@@ -69,8 +69,31 @@ private:
 };
 
 
-deferred_factory_parameter<Time::Factory> time_sec(double time);
-deferred_factory_parameter<Time::Factory> time_ms(double time);
+/**
+ * Creates the precursor to a Time stopping criterion factory, to be used
+ * in conjunction with `.with_criteria(...)` function calls when building a
+ * solver factory. This stopping criterion will stop the iteration after the
+ * specified amount of time since the start of the solver run has elapsed.
+ *
+ * Full usage example: Stop after 1 second or when the relative residual norm is
+ * below $10^{-10}$, whichever happens first.
+ * ```cpp
+ * auto factory = gko::solver::Cg<double>::build()
+ *                    .with_criteria(
+ *                        gko::stop::time_limit(std::chrono::seconds(1)),
+ *                        gko::stop::relative_residual_norm(1e-10))
+ *                    .on(exec);
+ * ```
+ *
+ * @param duration  the time limit after which to stop the iteration.
+ *                  Thanks to std::chrono's converting constructors, you can
+ *                  specify any time units, and they will be converted to
+ *                  nanoseconds automatically.
+ * @return a deferred_factory_parameter that can be passed to the
+ *         `with_criteria` function when building a solver.
+ */
+deferred_factory_parameter<Time::Factory> time_limit(
+    std::chrono::nanoseconds duration);
 
 
 }  // namespace stop

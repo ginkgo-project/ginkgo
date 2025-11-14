@@ -224,22 +224,58 @@ protected:
 };
 
 
-deferred_factory_parameter<CriterionFactory> abs_residual_norm(
+/**
+ * Creates the precursor to a ResidualNorm stopping criterion factory, to be
+ * used in conjunction with `.with_criteria(...)` function calls when building a
+ * solver factory. This stopping criterion will stop the iteration after the
+ * residual norm has decreased below the specified value or by the specified
+ * amount.
+ *
+ * Full usage example: Stop after 100 iterations or when the absolute residual
+ * norm is below $10^{-10}$, whichever happens first.
+ * ```cpp
+ * auto factory = gko::solver::Cg<double>::build()
+ *                    .with_criteria(
+ *                        gko::stop::max_iters(100),
+ *                        gko::stop::absolute_residual_norm(1e-10))
+ *                    .on(exec);
+ * ```
+ *
+ * @param tolerance  the value the residual norm needs to be below.
+ *     With residual $r$, initial guess $x_0$, right-hand side $b$, matrix $A$,
+ *     `absolute` means the exact value of the norm $||r||$,
+ *     `relative` means the norm relative to the right-hand side $||r||/||b||$,
+ *     `initial` means the norm relative to the initial residual
+ *     $||r||/||b - A x_0||$.
+ *     An implicit stopping criterion is only available with some solvers, and
+ *     refers to either the energy norm $||r||_A$ in short-recurrence solvers
+ *     like Cg or the euclidian norm $||r||$ in solvers like GMRES.
+ *     Implicit residual norms are cheaper to compute, but may be less precise
+ *     due to accumulating rounding errors.
+ * @return a deferred_factory_parameter that can be passed to the
+ *         `with_criteria` function when building a solver.
+ */
+deferred_factory_parameter<CriterionFactory> absolute_residual_norm(
     double tolerance);
 
-deferred_factory_parameter<CriterionFactory> rel_residual_norm(
+/** @copydoc absolute_residual_norm */
+deferred_factory_parameter<CriterionFactory> relative_residual_norm(
     double tolerance);
 
-deferred_factory_parameter<CriterionFactory> residual_norm_reduction(
+/** @copydoc absolute_residual_norm */
+deferred_factory_parameter<CriterionFactory> initial_residual_norm(
     double tolerance);
 
-deferred_factory_parameter<CriterionFactory> implicit_abs_residual_norm(
+/** @copydoc absolute_residual_norm */
+deferred_factory_parameter<CriterionFactory> absolute_implicit_residual_norm(
     double tolerance);
 
-deferred_factory_parameter<CriterionFactory> implicit_rel_residual_norm(
+/** @copydoc absolute_residual_norm */
+deferred_factory_parameter<CriterionFactory> relative_implicit_residual_norm(
     double tolerance);
 
-deferred_factory_parameter<CriterionFactory> implicit_residual_norm_reduction(
+/** @copydoc absolute_residual_norm */
+deferred_factory_parameter<CriterionFactory> initial_implicit_residual_norm(
     double tolerance);
 
 

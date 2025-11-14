@@ -24,7 +24,7 @@ bool Iteration::check_impl(uint8 stoppingId, bool setFinalized,
 }
 
 
-deferred_factory_parameter<Iteration::Factory> iteration(size_type count)
+deferred_factory_parameter<Iteration::Factory> max_iters(size_type count)
 {
     return Iteration::build().with_max_iters(count);
 }

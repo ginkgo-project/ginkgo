@@ -518,9 +518,9 @@ TYPED_TEST(ResidualNorm, SimplifiedInterface)
     auto initial_guess = gko::initialize<Mtx>({1000.0}, this->exec_);
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
 
-    auto factory_abs = gko::stop::abs_residual_norm(0.5).on(this->exec_);
-    auto factory_rel = gko::stop::rel_residual_norm(0.5).on(this->exec_);
-    auto factory_red = gko::stop::residual_norm_reduction(0.5).on(this->exec_);
+    auto factory_abs = gko::stop::absolute_residual_norm(0.5).on(this->exec_);
+    auto factory_rel = gko::stop::relative_residual_norm(0.5).on(this->exec_);
+    auto factory_red = gko::stop::initial_residual_norm(0.5).on(this->exec_);
 
     auto crit_abs =
         gko::as<gko::stop::ResidualNorm<TypeParam>>(factory_abs->generate(
@@ -1008,11 +1008,11 @@ TYPED_TEST(ImplicitResidualNorm, SimplifiedInterface)
     std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
 
     auto factory_abs =
-        gko::stop::implicit_abs_residual_norm(0.5).on(this->exec_);
+        gko::stop::absolute_implicit_residual_norm(0.5).on(this->exec_);
     auto factory_rel =
-        gko::stop::implicit_rel_residual_norm(0.5).on(this->exec_);
+        gko::stop::relative_implicit_residual_norm(0.5).on(this->exec_);
     auto factory_red =
-        gko::stop::implicit_residual_norm_reduction(0.5).on(this->exec_);
+        gko::stop::initial_implicit_residual_norm(0.5).on(this->exec_);
 
     auto crit_abs = gko::as<gko::stop::ImplicitResidualNorm<TypeParam>>(
         factory_abs->generate(nullptr, rhs, initial_guess.get(),

@@ -54,6 +54,16 @@ TEST_F(Time, CanCreateFactory)
 }
 
 
+TEST_F(Time, CanCreateFactoryNewInterface)
+{
+    auto new_factory =
+        gko::stop::time_limit(std::chrono::milliseconds(test_ms)).on(exec_);
+    ASSERT_NE(new_factory, nullptr);
+    ASSERT_EQ(new_factory->get_parameters().time_limit,
+              std::chrono::milliseconds(test_ms));
+}
+
+
 TEST_F(Time, CanCreateCriterion)
 {
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);

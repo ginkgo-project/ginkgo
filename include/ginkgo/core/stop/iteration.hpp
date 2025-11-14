@@ -60,7 +60,27 @@ protected:
 };
 
 
-deferred_factory_parameter<Iteration::Factory> iteration(size_type count);
+/**
+ * Creates the precursor to an Iteration stopping criterion factory, to be used
+ * in conjunction with `.with_criteria(...)` function calls when building a
+ * solver factory. This stopping criterion will stop the iteration after `count`
+ * iterations of the solver have finished.
+ *
+ * Full usage example: Stop after 100 iterations or when the relative residual
+ * norm is below $10^{-10}$, whichever happens first.
+ * ```cpp
+ * auto factory = gko::solver::Cg<double>::build()
+ *                    .with_criteria(
+ *                        gko::stop::max_iters(100),
+ *                        gko::stop::relative_residual_norm(1e-10))
+ *                    .on(exec);
+ * ```
+ *
+ * @param count  the number of iterations after which to stop
+ * @return a deferred_factory_parameter that can be passed to the
+ *         `with_criteria` function when building a solver.
+ */
+deferred_factory_parameter<Iteration::Factory> max_iters(size_type count);
 
 
 }  // namespace stop

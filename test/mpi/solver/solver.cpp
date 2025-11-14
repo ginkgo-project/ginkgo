@@ -79,8 +79,8 @@ struct SimpleSolverTest {
         std::shared_ptr<const gko::Executor> exec)
     {
         return solver_type::build().with_criteria(
-            gko::stop::iteration(iteration_count()),
-            gko::stop::abs_residual_norm(reduction_factor()).on(exec));
+            gko::stop::max_iters(iteration_count()),
+            gko::stop::absolute_residual_norm(reduction_factor()).on(exec));
     }
 
     static void assert_empty_state(const solver_type* mtx)

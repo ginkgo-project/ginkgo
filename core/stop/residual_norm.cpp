@@ -311,7 +311,8 @@ class ResidualNormFactory
 };
 
 
-deferred_factory_parameter<CriterionFactory> abs_residual_norm(double tolerance)
+deferred_factory_parameter<CriterionFactory> absolute_residual_norm(
+    double tolerance)
 {
     return residual_norm_factory_parameters{}
         .with_threshold(tolerance)
@@ -319,7 +320,8 @@ deferred_factory_parameter<CriterionFactory> abs_residual_norm(double tolerance)
 }
 
 
-deferred_factory_parameter<CriterionFactory> rel_residual_norm(double tolerance)
+deferred_factory_parameter<CriterionFactory> relative_residual_norm(
+    double tolerance)
 {
     return residual_norm_factory_parameters{}
         .with_threshold(tolerance)
@@ -327,7 +329,7 @@ deferred_factory_parameter<CriterionFactory> rel_residual_norm(double tolerance)
 }
 
 
-deferred_factory_parameter<CriterionFactory> residual_norm_reduction(
+deferred_factory_parameter<CriterionFactory> initial_residual_norm(
     double tolerance)
 {
     return residual_norm_factory_parameters{}
@@ -414,7 +416,7 @@ class ImplicitResidualNormFactory
 };
 
 
-deferred_factory_parameter<CriterionFactory> implicit_abs_residual_norm(
+deferred_factory_parameter<CriterionFactory> absolute_implicit_residual_norm(
     double tolerance)
 {
     return implicit_residual_norm_factory_parameters{}
@@ -423,7 +425,7 @@ deferred_factory_parameter<CriterionFactory> implicit_abs_residual_norm(
 }
 
 
-deferred_factory_parameter<CriterionFactory> implicit_rel_residual_norm(
+deferred_factory_parameter<CriterionFactory> relative_implicit_residual_norm(
     double tolerance)
 {
     return implicit_residual_norm_factory_parameters{}
@@ -432,7 +434,7 @@ deferred_factory_parameter<CriterionFactory> implicit_rel_residual_norm(
 }
 
 
-deferred_factory_parameter<CriterionFactory> implicit_residual_norm_reduction(
+deferred_factory_parameter<CriterionFactory> initial_implicit_residual_norm(
     double tolerance)
 {
     return implicit_residual_norm_factory_parameters{}

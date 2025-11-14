@@ -27,6 +27,13 @@ protected:
 };
 
 
+TEST_F(Iteration, NewInterface)
+{
+    auto factory = gko::stop::max_iters(test_iterations).on(exec_);
+    ASSERT_EQ(factory->get_parameters().max_iters, test_iterations);
+}
+
+
 TEST_F(Iteration, WaitsTillIteration)
 {
     bool one_changed{};
