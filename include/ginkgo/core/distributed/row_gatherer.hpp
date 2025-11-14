@@ -26,6 +26,42 @@ namespace experimental {
 namespace distributed {
 
 
+template <typename LocalIndexType>
+class RowGatherer;
+
+
+namespace detail {
+
+
+// give access to test function on protected function
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event> apply_prepare(
+    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
+    ptr_param<LinOp> x);
+
+// give access to test function on protected function
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event> apply_prepare(
+    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
+    ptr_param<LinOp> x, array<char>& workspace);
+
+// give access to test function on protected function
+template <typename LocalIndexType>
+mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
+                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            std::shared_ptr<const gko::detail::Event>);
+
+// give access to test function on protected function
+template <typename LocalIndexType>
+mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
+                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            std::shared_ptr<const gko::detail::Event>,
+                            array<char>& workspace);
+
+
+}  // namespace detail
+
+
 /**
  * The distributed::RowGatherer gathers the rows of distributed::Vector that
  * are located on other processes.
@@ -58,6 +94,24 @@ class RowGatherer final
       public EnablePolymorphicAssignment<RowGatherer<LocalIndexType>>,
       public DistributedBase {
     friend class EnablePolymorphicObject<RowGatherer, PolymorphicObject>;
+    template <typename ValueT, typename LocalIndexT, typename GlobalIndexT>
+    friend class Matrix;
+    // for test purpose
+    friend std::shared_ptr<const gko::detail::Event>
+    detail::apply_prepare<LocalIndexType>(const RowGatherer* rg,
+                                          ptr_param<const LinOp> b,
+                                          ptr_param<LinOp> x);
+    friend std::shared_ptr<const gko::detail::Event>
+    detail::apply_prepare<LocalIndexType>(const RowGatherer* rg,
+                                          ptr_param<const LinOp> b,
+                                          ptr_param<LinOp> x,
+                                          array<char>& workspace);
+    friend mpi::request detail::apply_finalize<LocalIndexType>(
+        const RowGatherer* rg, ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        std::shared_ptr<const gko::detail::Event>);
+    friend mpi::request detail::apply_finalize<LocalIndexType>(
+        const RowGatherer* rg, ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        std::shared_ptr<const gko::detail::Event>, array<char>& workspace);
 
 public:
     /**
@@ -99,20 +153,6 @@ public:
     [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
                                            ptr_param<LinOp> x,
                                            array<char>& workspace) const;
-
-    std::shared_ptr<const Event> apply_prepare(ptr_param<const LinOp> b,
-                                               ptr_param<LinOp> x) const;
-
-    std::shared_ptr<const Event> apply_prepare(ptr_param<const LinOp> b,
-                                               ptr_param<LinOp> x,
-                                               array<char>& workspace) const;
-
-    mpi::request apply_finalize(ptr_param<const LinOp> b, ptr_param<LinOp> x,
-                                std::shared_ptr<const Event>) const;
-
-    mpi::request apply_finalize(ptr_param<const LinOp> b, ptr_param<LinOp> x,
-                                std::shared_ptr<const Event>,
-                                array<char>& workspace) const;
 
     /**
      * Returns the size of the row gatherer.
@@ -200,6 +240,22 @@ public:
     RowGatherer& operator=(const RowGatherer& o);
 
     RowGatherer& operator=(RowGatherer&& o);
+
+protected:
+    std::shared_ptr<const gko::detail::Event> apply_prepare(
+        ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
+
+    std::shared_ptr<const gko::detail::Event> apply_prepare(
+        ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        array<char>& workspace) const;
+
+    mpi::request apply_finalize(
+        ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        std::shared_ptr<const gko::detail::Event>) const;
+
+    mpi::request apply_finalize(ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                                std::shared_ptr<const gko::detail::Event>,
+                                array<char>& workspace) const;
 
 private:
     /**

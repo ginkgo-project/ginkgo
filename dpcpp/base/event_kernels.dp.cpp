@@ -14,6 +14,7 @@
 
 
 namespace gko {
+namespace detail {
 
 
 /**
@@ -43,15 +44,18 @@ private:
 };
 
 
+}  // namespace detail
+
+
 namespace kernels {
 namespace dpcpp {
 namespace event {
 
 
 void record_event(std::shared_ptr<const DefaultExecutor> exec,
-                  std::shared_ptr<const Event>& event)
+                  std::shared_ptr<const detail::Event>& event)
 {
-    event = std::make_shared<DpcppEvent>(exec);
+    event = std::make_shared<detail::DpcppEvent>(exec);
 }
 
 

@@ -14,6 +14,10 @@ namespace gko {
 
 class Executor;
 
+
+namespace detail {
+
+
 /**
  * Event is to create a object to record between kernels. It provides
  * synchronize functions such that we can ensure the kernels before the event in
@@ -29,6 +33,7 @@ public:
 };
 
 
+}  // namespace detail
 }  // namespace gko
 
 
