@@ -458,4 +458,22 @@ TYPED_TEST(Dense, RecognizesInfiniteValue)
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
 
+
+TYPED_TEST(Dense, AllowsInfinitePaddingValue)
+{
+    using value_type = typename TestFixture::value_type;
+    // clang-format off
+    value_type data[] = {
+        1.0, 2.0, INFINITY,
+        3.0, 4.0, -1.0,
+        5.0, 6.0, -1.0};
+    // clang-format on
+
+    auto m = gko::matrix::Dense<TypeParam>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::make_array_view(this->exec, 9, data), 3);
+
+    ASSERT_NO_THROW(m->validate_data());
+}
+
 }  // namespace

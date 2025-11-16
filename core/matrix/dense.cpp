@@ -116,7 +116,7 @@ validation::ValidationResult dense_matrix_values_are_finite(
 template <typename ValueType>
 void Dense<ValueType>::validate_data() const
 {
-    GKO_VALIDATE(dense_matrix_values_are_finite(*this),
+    GKO_VALIDATE(dense_matrix_values_are_finite(this),
                  "matrix must contain only finite values");
 }
 
@@ -2095,13 +2095,12 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 
 template <typename ValueType>
 validation::ValidationResult dense_matrix_values_are_finite(
-    const Dense<ValueType>& mtx)
+    const Dense<ValueType>* mtx)
 {
     if constexpr (std::is_integral<ValueType>::value) {
         return {true, 0};
     } else {
-        const auto host_mtx =
-            gko::clone(mtx.get_executor()->get_master(), &mtx);
+        const auto host_mtx = mtx->clone(mtx->get_executor()->get_master());
         const auto num_rows = host_mtx->get_size()[0];
         const auto num_cols = host_mtx->get_size()[1];
         const auto host_values = host_mtx->get_const_values();
