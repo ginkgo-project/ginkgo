@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
@@ -505,6 +506,65 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoalMultipleRHS)
         ASSERT_TRUE(abs_criterion->update().residual_norm(res_norm).check(
             RelativeStoppingId, true, &stop_status, &one_changed));
         ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
+        ASSERT_EQ(one_changed, true);
+    }
+}
+
+
+TYPED_TEST(ResidualNorm, WorksWithMinIterationCount)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using NormVector = typename TestFixture::NormVector;
+    using T_nc = gko::remove_complex<TypeParam>;
+    auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    auto min_factory = gko::stop::min_iters(
+                           10, gko::stop::ResidualNorm<TypeParam>::build()
+                                   .with_baseline(gko::stop::mode::absolute)
+                                   .with_reduction_factor(r<TypeParam>::value))
+                           .on(this->exec_);
+    auto min_criterion =
+        min_factory->generate(nullptr, rhs, nullptr, initial_res.get());
+    {
+        auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
+        constexpr gko::uint8 RelativeStoppingId{1};
+        bool one_changed{};
+        gko::array<gko::stopping_status> stop_status(this->exec_, 1);
+        stop_status.get_data()[0].reset();
+
+        ASSERT_FALSE(
+            min_criterion->update()
+                .num_iterations(9)
+                .residual_norm(res_norm)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
+        ASSERT_EQ(one_changed, false);
+
+        res_norm->at(0) = r<TypeParam>::value * 0.9;
+        ASSERT_FALSE(
+            min_criterion->update()
+                .num_iterations(9)
+                .residual_norm(res_norm)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
+        ASSERT_EQ(one_changed, false);
+
+        res_norm->at(0) = r<TypeParam>::value * 1.1;
+        ASSERT_FALSE(
+            min_criterion->update()
+                .num_iterations(10)
+                .residual_norm(res_norm)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        ASSERT_EQ(stop_status.get_data()[0].has_converged(), false);
+        ASSERT_EQ(one_changed, false);
+
+        res_norm->at(0) = r<TypeParam>::value * 0.9;
+        ASSERT_TRUE(
+            min_criterion->update()
+                .num_iterations(10)
+                .residual_norm(res_norm)
+                .check(RelativeStoppingId, true, &stop_status, &one_changed));
+        ASSERT_EQ(stop_status.get_data()[0].has_converged(), true);
         ASSERT_EQ(one_changed, true);
     }
 }
