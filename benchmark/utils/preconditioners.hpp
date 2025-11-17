@@ -329,8 +329,27 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_criteria(gko::stop::ResidualNorm<etype>::build()
                                     .with_reduction_factor(rc_etype{}))
                  .on(exec);
+         }},
+        {"mg",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             using ir = gko::solver::Ir<etype>;
+             auto iter_stop = gko::share(gko::stop::Iteration::build()
+                                             .with_max_iters(FLAGS_mg_max_iters)
+                                             .on(exec));
+             auto tol_stop =
+                 gko::share(gko::stop::ResidualNorm<etype>::build()
+                                .with_baseline(gko::stop::mode::absolute)
+                                .with_reduction_factor(FLAGS_mg_tolerance)
+                                .on(exec));
+             return gko::solver::Multigrid::build()
+                 .with_mg_level(
+                     gko::multigrid::Pgm<etype, itype>::build()
+                         .with_deterministic(FLAGS_pgm_deterministic))
+                 .with_criteria(iter_stop, tol_stop)
+                 .with_max_levels(FLAGS_mg_max_num_levels)
+                 .on(exec);
          }}
-#ifdef GINKGO_BUILD_MPI
+#if GINKGO_BUILD_MPI
         ,
         {"schwarz-jacobi",
          [](std::shared_ptr<const gko::Executor> exec) {
@@ -409,50 +428,6 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                      gko::experimental::solver::Direct<etype, itype>::build()
                          .with_factorization(fact)
                          .on(exec))
-                 .on(exec);
-         }},
-        {"dist-mg",
-         [](std::shared_ptr<const gko::Executor> exec) {
-             using ir = gko::solver::Ir<etype>;
-             using schwarz =
-                 gko::experimental::distributed::preconditioner::Schwarz<etype,
-                                                                         itype>;
-             using bj = gko::preconditioner::Jacobi<etype, itype>;
-             auto iter_stop = gko::share(gko::stop::Iteration::build()
-                                             .with_max_iters(FLAGS_mg_max_iters)
-                                             .on(exec));
-             auto tol_stop =
-                 gko::share(gko::stop::ResidualNorm<etype>::build()
-                                .with_baseline(gko::stop::mode::absolute)
-                                .with_reduction_factor(FLAGS_mg_tolerance)
-                                .on(exec));
-             auto coarsest_solver_gen = gko::share(
-                 ir::build()
-                     .with_solver(schwarz::build().with_local_solver(
-                         bj::build().with_max_block_size(1u).with_skip_sorting(
-                             true)))
-                     .with_relaxation_factor(static_cast<etype>(0.9))
-                     .with_criteria(
-                         gko::stop::Iteration::build().with_max_iters(4u))
-                     .on(exec));
-             auto pre_smoother = gko::share(
-                 ir::build()
-                     .with_solver(schwarz::build().with_local_solver(
-                         bj::build().with_max_block_size(1u).with_skip_sorting(
-                             true)))
-                     .with_relaxation_factor(static_cast<etype>(0.9))
-                     .with_criteria(
-                         gko::stop::Iteration::build().with_max_iters(1u))
-                     .on(exec));
-             return gko::solver::Multigrid::build()
-                 .with_mg_level(
-                     gko::multigrid::Pgm<etype, itype>::build()
-                         .with_deterministic(FLAGS_pgm_deterministic))
-                 .with_criteria(iter_stop, tol_stop)
-                 .with_pre_smoother(pre_smoother)
-                 .with_post_uses_pre(true)
-                 .with_max_levels(FLAGS_mg_max_num_levels)
-                 .with_coarsest_solver(coarsest_solver_gen)
                  .on(exec);
          }}
 #endif
