@@ -348,6 +348,14 @@ lookup_data<IndexType> build_lookup(
                                      sparsity_type::hash);
 
 
+template <typename ValueType, typename IndexType>
+lookup_data<IndexType> build_lookup(
+    const SparsityCsr<ValueType, IndexType>* mtx,
+    sparsity_type allowed_sparsity = sparsity_type::full |
+                                     sparsity_type::bitmap |
+                                     sparsity_type::hash);
+
+
 }  // namespace csr
 }  // namespace matrix
 }  // namespace gko

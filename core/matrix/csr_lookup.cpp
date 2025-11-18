@@ -17,12 +17,9 @@ GKO_REGISTER_OPERATION(build_lookup_offsets, csr::build_lookup_offsets);
 GKO_REGISTER_OPERATION(build_lookup, csr::build_lookup);
 
 
-}  // namespace
-
-
-template <typename ValueType, typename IndexType>
-lookup_data<IndexType> build_lookup(const Csr<ValueType, IndexType>* mtx,
-                                    sparsity_type allowed_sparsity)
+template <typename IndexType, typename MatrixType>
+lookup_data<IndexType> build_lookup_impl(const MatrixType* mtx,
+                                         sparsity_type allowed_sparsity)
 {
     const auto exec = mtx->get_executor();
     const auto size = mtx->get_size()[0];
@@ -40,11 +37,40 @@ lookup_data<IndexType> build_lookup(const Csr<ValueType, IndexType>* mtx,
 }
 
 
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+lookup_data<IndexType> build_lookup(const Csr<ValueType, IndexType>* mtx,
+                                    sparsity_type allowed_sparsity)
+{
+    return build_lookup_impl<IndexType>(mtx, allowed_sparsity);
+}
+
+
 #define GKO_INSTANTIATE_BUILD_LOOKUP(ValueType, IndexType)                    \
     lookup_data<IndexType> build_lookup(const Csr<ValueType, IndexType>* mtx, \
                                         sparsity_type allowed_sparsity)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_INSTANTIATE_BUILD_LOOKUP);
+
+
+template <typename ValueType, typename IndexType>
+lookup_data<IndexType> build_lookup(
+    const SparsityCsr<ValueType, IndexType>* mtx,
+    sparsity_type allowed_sparsity)
+{
+    return build_lookup_impl<IndexType>(mtx, allowed_sparsity);
+}
+
+
+#define GKO_INSTANTIATE_BUILD_LOOKUP_SPARSITY(ValueType, IndexType) \
+    lookup_data<IndexType> build_lookup(                            \
+        const SparsityCsr<ValueType, IndexType>* mtx,               \
+        sparsity_type allowed_sparsity)
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_INSTANTIATE_BUILD_LOOKUP_SPARSITY);
 
 
 }  // namespace csr
