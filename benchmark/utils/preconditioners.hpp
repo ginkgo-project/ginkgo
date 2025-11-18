@@ -20,11 +20,11 @@
 
 DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use. "
-              "Supported values are: none, jacobi, paric, parict, parilu, "
+              "Supported values are: none, jacobi,mg, paric, parict, parilu, "
               "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "
               "parilut-isai, ic-isai, ilu-isai, sor, overhead"
 #ifdef GINKGO_BUILD_MPI
-              ", schwarz-jacobi, schwarz-ilu, schwarz-ic, schwarz-lu, dist-mg"
+              ", schwarz-jacobi, schwarz-ilu, schwarz-ic, schwarz-lu"
 #endif
 );
 
