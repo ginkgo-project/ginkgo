@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -210,7 +210,15 @@ template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::move_to(
     Csr<ValueType, IndexType>* result)
 {
-    this->convert_to(result);
+    // create empty row_ptrs
+    result->row_ptrs_ = std::exchange(
+        this->row_ptrs_, array<IndexType>{this->get_executor(), {IndexType{}}});
+    result->col_idxs_ = std::move(this->col_idxs_);
+    result->values_.resize_and_reset(this->get_num_nonzeros());
+    result->values_.fill(get_element(this->value_, 0));
+    result->set_size(this->get_size());
+    result->make_srow();
+    this->set_size(dim<2>{});
 }
 
 
