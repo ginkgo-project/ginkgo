@@ -89,15 +89,21 @@ public:
 
         std::unique_ptr<BaseReuseData> create_empty_reuse_data() const override;
 
-        /// TODO document
+        /**
+         * @copydoc LinOpFactory::generate
+         * @note This function overrides the default LinOpFactory::generate to
+         *       return a Reordered instead of a generic LinOp, which would need
+         *       to be cast to Reordered again to access its members.
+         *       It is only necessary because smart pointers aren't covariant.
+         */
         std::unique_ptr<Reordered> generate_reuse(
             std::shared_ptr<const LinOp> input,
             BaseReuseData& reuse_data) const;
 
-    protected:
         void check_reuse_consistent(const LinOp* input,
                                     BaseReuseData& reuse_data) const override;
 
+    protected:
         std::unique_ptr<LinOp> generate_reuse_impl(
             std::shared_ptr<const LinOp> input,
             BaseReuseData& reuse_data) const override;

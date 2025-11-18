@@ -71,6 +71,44 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
+class Lu<ValueType, IndexType>::LuReuseData : public BaseReuseData {
+    friend class Lu;
+    friend class Factory;
+
+public:
+    LuReuseData() = default;
+
+    bool is_empty() const { return lookup_data_ == nullptr; }
+
+private:
+    std::unique_ptr<matrix::csr::lookup_data<IndexType>> lookup_data_;
+    std::unique_ptr<matrix::SparsityCsr<ValueType, IndexType>>
+        symbolic_factors_;
+    // diag_idxs are cheap to recompute, ignore them
+};
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOpFactory::ReuseData>
+Lu<ValueType, IndexType>::create_empty_reuse_data() const
+{
+    return std::make_unique<LuReuseData>();
+}
+
+
+template <typename ValueType, typename IndexType>
+void Lu<ValueType, IndexType>::check_reuse_consistent(
+    const LinOp* input, BaseReuseData& reuse_data) const
+{
+    auto& lrd = *as<LuReuseData>(&reuse_data);
+    if (lrd.is_empty()) {
+        return;
+    }
+    GKO_ASSERT_IS_SQUARE_MATRIX(input);
+}
+
+
+template <typename ValueType, typename IndexType>
 Lu<ValueType, IndexType>::Lu(std::shared_ptr<const Executor> exec,
                              const parameters_type& params)
     : EnablePolymorphicObject<Lu, LinOpFactory>(std::move(exec)),
@@ -83,10 +121,44 @@ std::unique_ptr<Factorization<ValueType, IndexType>>
 Lu<ValueType, IndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix) const
 {
-    auto product =
-        std::unique_ptr<factorization_type>(static_cast<factorization_type*>(
-            this->LinOpFactory::generate(std::move(system_matrix)).release()));
-    return product;
+    return as<factorization_type>(
+        this->LinOpFactory::generate(std::move(system_matrix)));
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Lu<ValueType, IndexType>::generate_reuse(
+    std::shared_ptr<const LinOp> input, BaseReuseData& reuse_data) const
+    -> std::unique_ptr<factorization_type>
+{
+    return as<factorization_type>(
+        LinOpFactory::generate_reuse(input, reuse_data));
+}
+
+
+template <typename ValueType, typename IndexType>
+static std::unique_ptr<matrix::Csr<ValueType, IndexType>> symbolic_factorize(
+    symbolic_type algorithm, const matrix::Csr<ValueType, IndexType>* mtx)
+{
+    auto exec = mtx->get_executor();
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>> factors;
+    switch (algorithm) {
+    case symbolic_type::general:
+        exec->run(make_symbolic_lu(mtx, factors));
+        break;
+    case symbolic_type::near_symmetric:
+        exec->run(make_symbolic_lu_near_symm(mtx, factors));
+        break;
+    case symbolic_type::symmetric: {
+        std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
+            forest;
+        exec->run(make_symbolic_cholesky(mtx, true, factors, forest));
+        break;
+    }
+    default:
+        GKO_INVALID_STATE("Invalid symbolic factorization algorithm");
+    }
+    return factors;
 }
 
 
@@ -100,22 +172,7 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     const auto num_rows = mtx->get_size()[0];
     std::unique_ptr<matrix_type> factors;
     if (!parameters_.symbolic_factorization) {
-        switch (parameters_.symbolic_algorithm) {
-        case symbolic_type::general:
-            exec->run(make_symbolic_lu(mtx.get(), factors));
-            break;
-        case symbolic_type::near_symmetric:
-            exec->run(make_symbolic_lu_near_symm(mtx.get(), factors));
-            break;
-        case symbolic_type::symmetric: {
-            std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
-                forest;
-            exec->run(make_symbolic_cholesky(mtx.get(), true, factors, forest));
-            break;
-        }
-        default:
-            GKO_INVALID_STATE("Invalid symbolic factorization algorithm");
-        }
+        factors = symbolic_factorize(parameters_.symbolic_algorithm, mtx.get());
     } else {
         const auto& symbolic = parameters_.symbolic_factorization;
         const auto factor_nnz = symbolic->get_num_nonzeros();
@@ -132,6 +189,52 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     }
     // setup lookup structure on factors
     const auto lookup = matrix::csr::build_lookup(factors.get());
+    array<IndexType> diag_idxs{exec, num_rows};
+    exec->run(make_initialize(
+        mtx.get(), lookup.storage_offsets.get_const_data(),
+        lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
+        diag_idxs.get_data(), factors.get()));
+    // run numerical factorization
+    array<int> tmp{exec};
+    exec->run(make_factorize(
+        lookup.storage_offsets.get_const_data(),
+        lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
+        diag_idxs.get_const_data(), factors.get(), true, tmp));
+    return factorization_type::create_from_combined_lu(std::move(factors));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_reuse_impl(
+    std::shared_ptr<const LinOp> system_matrix, BaseReuseData& reuse_data) const
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
+    const auto exec = this->get_executor();
+    const auto mtx = copy_and_convert_to<matrix_type>(exec, system_matrix);
+    const auto num_rows = mtx->get_size()[0];
+    auto& lurd = *as<LuReuseData>(&reuse_data);
+    if (lurd.is_empty()) {
+        if (!parameters_.symbolic_factorization) {
+            auto tmp_factors =
+                symbolic_factorize(parameters_.symbolic_algorithm, mtx.get());
+            lurd.symbolic_factors_ = sparsity_pattern_type::create(exec);
+            tmp_factors->move_to(lurd.symbolic_factors_);
+        } else {
+            lurd.symbolic_factors_ =
+                parameters_.symbolic_factorization->clone();
+        }
+        // setup lookup structure on factors
+        lurd.lookup_data_ =
+            std::make_unique<matrix::csr::lookup_data<IndexType>>(
+                matrix::csr::build_lookup(lurd.symbolic_factors_.get()));
+    }
+    auto pattern = lurd.symbolic_factors_.get();
+    auto pattern_nnz = pattern->get_num_nonzeros();
+    auto factors = matrix_type::create(
+        exec, mtx->get_size(), array<ValueType>{exec, pattern_nnz},
+        make_array_view(exec, pattern_nnz, pattern->get_col_idxs()),
+        make_array_view(exec, num_rows + 1, pattern->get_row_ptrs()));
+    auto& lookup = *lurd.lookup_data_;
     array<IndexType> diag_idxs{exec, num_rows};
     exec->run(make_initialize(
         mtx.get(), lookup.storage_offsets.get_const_data(),

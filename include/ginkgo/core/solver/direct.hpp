@@ -41,6 +41,7 @@ public:
     using index_type = IndexType;
     using factorization_type =
         factorization::Factorization<value_type, index_type>;
+    using matrix_type = typename factorization_type::matrix_type;
     using transposed_type = Direct;
 
     class Factory;
@@ -53,14 +54,56 @@ public:
          *       which will throw an exception if a different number of rhs is
          *       passed to Direct::apply.
          */
-        gko::size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
+        size_type GKO_FACTORY_PARAMETER_SCALAR(num_rhs, 1u);
 
         /** The factorization factory to use for generating the factors. */
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             factorization);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Direct, parameters, Factory);
-    GKO_ENABLE_BUILD_METHOD(Factory);
+
+    const parameters_type& get_parameters() const { return parameters_; }
+    class Factory
+        : public EnableDefaultLinOpFactory<Factory, Direct, parameters_type> {
+        friend class EnablePolymorphicObject<Factory, LinOpFactory>;
+        friend class enable_parameters_type<parameters_type, Factory>;
+        explicit Factory(std ::shared_ptr<const Executor> exec)
+            : EnableDefaultLinOpFactory<Factory, Direct, parameters_type>(
+                  std::move(exec))
+        {}
+        explicit Factory(std::shared_ptr<const Executor> exec,
+                         const parameters_type& parameters)
+            : EnableDefaultLinOpFactory<Factory, Direct, parameters_type>(
+                  std::move(exec), parameters)
+        {}
+
+    public:
+        using BaseReuseData = LinOpFactory::ReuseData;
+        class DirectReuseData;  // opaque type
+
+        std::unique_ptr<BaseReuseData> create_empty_reuse_data() const override;
+
+        /**
+         * @copydoc LinOpFactory::generate
+         * @note This function overrides the default LinOpFactory::generate to
+         *       return a Direct instead of a generic LinOp, which would need
+         *       to be cast to Direct again to access its members.
+         *       It is only necessary because smart pointers aren't covariant.
+         */
+        std::unique_ptr<Direct> generate_reuse(
+            std::shared_ptr<const LinOp> input,
+            BaseReuseData& reuse_data) const;
+
+        void check_reuse_consistent(const LinOp* input,
+                                    BaseReuseData& reuse_data) const override;
+
+    protected:
+        std::unique_ptr<LinOp> generate_reuse_impl(
+            std::shared_ptr<const LinOp> input,
+            BaseReuseData& reuse_data) const override;
+    };
+    friend EnableDefaultLinOpFactory<Factory, Direct, parameters_type>;
+
+    static parameters_type build() { return {}; }
 
     /**
      * Create the parameters from the property_tree.
@@ -95,6 +138,9 @@ protected:
 
     Direct(const Factory* factory, std::shared_ptr<const LinOp> system_matrix);
 
+    Direct(const Factory* factory, std::shared_ptr<const LinOp> system_matrix,
+           typename Factory::DirectReuseData& reuse_data);
+
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
@@ -104,6 +150,7 @@ private:
     using lower_type = gko::solver::LowerTrs<value_type, index_type>;
     using upper_type = gko::solver::UpperTrs<value_type, index_type>;
 
+    parameters_type parameters_;
     std::unique_ptr<lower_type> lower_solver_;
     std::unique_ptr<upper_type> upper_solver_;
 };
@@ -117,9 +164,8 @@ namespace solver {
 
 
 template <typename ValueType, typename IndexType>
-struct workspace_traits<
-    gko::experimental::solver::Direct<ValueType, IndexType>> {
-    using Solver = gko::experimental::solver::Direct<ValueType, IndexType>;
+struct workspace_traits<experimental::solver::Direct<ValueType, IndexType>> {
+    using Solver = experimental::solver::Direct<ValueType, IndexType>;
     // number of vectors used by this workspace
     static int num_vectors(const Solver&);
     // number of arrays used by this workspace

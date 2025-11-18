@@ -372,10 +372,14 @@ public:
     std::unique_ptr<LinOp> generate_reuse(std::shared_ptr<const LinOp> input,
                                           ReuseData& reuse_data) const;
 
-protected:
+    /**
+     * Throws an exception if the input LinOp does not share the same sparsity
+     * pattern as the LinOp used to generate the reuse data.
+     */
     virtual void check_reuse_consistent(const LinOp* input,
                                         ReuseData& reuse_data) const;
 
+protected:
     virtual std::unique_ptr<LinOp> generate_reuse_impl(
         std::shared_ptr<const LinOp> input, ReuseData& reuse_data) const;
 };
