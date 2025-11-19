@@ -115,12 +115,6 @@
 // clang-format on
 
 
-/* Is the MPI forced to use dense comms? */
-// clang-format off
-#cmakedefine01 GINKGO_HAVE_FORCED_MPI_DENSE_COMM
-// clang-format on
-
-
 /* Is HWLOC available ? */
 // clang-format off
 #define GKO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@
