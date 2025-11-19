@@ -187,11 +187,6 @@ option(
      catastrophically in case the MPI implementation is not GPU Aware, and GPU aware functionality has been forced"
     OFF
 )
-option(
-    GINKGO_FORCE_MPI_DENSE_COMM
-    "Forces Ginkgo to use only dense communicators. By default, Ginkgo uses neighborhood communicators."
-    OFF
-)
 set(GINKGO_CI_TEST_OMP_PARALLELISM
     "4"
     CACHE STRING
@@ -401,7 +396,6 @@ if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
 endif()
 
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
-set(GINKGO_HAVE_FORCED_MPI_DENSE_COMM OFF)
 set(GINKGO_HAVE_OPENMPI_PRE_4_1_X OFF)
 if(GINKGO_BUILD_MPI)
     find_package(MPI 3.1 COMPONENTS CXX REQUIRED)
@@ -409,11 +403,6 @@ if(GINKGO_BUILD_MPI)
         set(GINKGO_HAVE_GPU_AWARE_MPI ON)
     else()
         set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
-    endif()
-    if(GINKGO_FORCE_MPI_DENSE_COMM)
-        set(GINKGO_HAVE_FORCED_MPI_DENSE_COMM ON)
-    else()
-        set(GINKGO_HAVE_FORCED_MPI_DENSE_COMM OFF)
     endif()
 
     # use try_compile instead of try_run to prevent cross-compiling issues
