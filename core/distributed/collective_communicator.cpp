@@ -34,13 +34,17 @@ request CollectiveCommunicator::i_all_to_all_v(
 }
 
 
-std::shared_ptr<CollectiveCommunicator>
-detail::create_default_collective_communicator(communicator base)
+namespace detail {
+
+
+std::shared_ptr<CollectiveCommunicator> create_default_collective_communicator(
+    communicator base)
 {
     return std::make_shared<DenseCommunicator>(base);
 }
 
 
+}  // namespace detail
 }  // namespace mpi
 }  // namespace experimental
 }  // namespace gko
