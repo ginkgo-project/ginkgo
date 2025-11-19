@@ -21,6 +21,12 @@ denumberify_paths = [
     "residual_norm",
     "rhs_norm",
     "max_relative_norm2",
+    "mean",
+    "variance",
+    "skewness",
+    "kurtosis",
+    "hyperskewness",
+    "hyperflatness"
 ]
 detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check("]
 empty_string_paths = ["filename"]
