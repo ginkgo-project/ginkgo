@@ -1044,26 +1044,41 @@ struct is_supported_value_type : std::false_type {};
 template <typename ValueType>
 struct is_supported_index_type : std::false_type {};
 
-// the <> here is necessary for partial specializations
-// TODO20: Replace this by concepts
-#define GKO_DECLARE_SUPPORTED_VALUE_TYPE(ValueType) \
-    <> struct is_supported_value_type<ValueType> : std::true_type {}
-#define GKO_DECLARE_SUPPORTED_INDEX_TYPE(IndexType) \
-    <> struct is_supported_index_type<IndexType> : std::true_type {}
+#if GINKGO_ENABLE_HALF
+template <>
+struct is_supported_value_type<float16> : std::true_type {};
+template <>
+struct is_supported_value_type<std::complex<float16>> : std::true_type {};
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+template <>
+struct is_supported_value_type<bfloat16> : std::true_type {};
+template <>
+struct is_supported_value_type<std::complex<bfloat16>> : std::true_type {};
+#endif
+template <>
+struct is_supported_value_type<float> : std::true_type {};
+template <>
+struct is_supported_value_type<double> : std::true_type {};
+template <>
+struct is_supported_value_type<std::complex<float>> : std::true_type {};
+template <>
+struct is_supported_value_type<std::complex<double>> : std::true_type {};
+template <>
+struct is_supported_index_type<int32> : std::true_type {};
+template <>
+struct is_supported_index_type<int64> : std::true_type {};
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SUPPORTED_VALUE_TYPE);
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_SUPPORTED_INDEX_TYPE);
-
-#undef GKO_DECLARE_SUPPORTED_VALUE_TYPE
-#undef GKO_DECLARE_SUPPORTED_INDEX_TYPE
 
 }  // namespace detail
 
 
+// TODO20: Replace this by concepts
 #define GKO_ASSERT_SUPPORTED_VALUE_TYPE                                     \
     static_assert(::gko::detail::is_supported_value_type<ValueType>::value, \
                   "Unsupported value type")
 
+// TODO20: Replace this by concepts
 #define GKO_ASSERT_SUPPORTED_INDEX_TYPE                                     \
     static_assert(::gko::detail::is_supported_index_type<IndexType>::value, \
                   "Unsupported index type")
