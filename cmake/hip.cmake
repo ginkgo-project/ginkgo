@@ -39,4 +39,10 @@ if(GINKGO_HIP_AMD_UNSAFE_ATOMIC AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 5)
         "${CMAKE_HIP_FLAGS} -munsafe-fp-atomics -Wno-unused-command-line-argument"
     )
 endif()
+if(GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 7)
+    # ROCm does not give the compile time warpSize after 7
+    # Ginkgo adds it as a short workaround to adapt the change.
+    # TODO: enable Ginkgo warpSize=32 support on AMD GPU and does not need additional definition
+    set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} -DwarpSize=64")
+endif()
 set(CMAKE_HIP_STANDARD 17)
