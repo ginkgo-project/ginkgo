@@ -341,6 +341,20 @@ build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.29.6 rocm/6.3.4 gcc/13.3.0 openmpi/5.0.7"
 
+build/amd/nompi/gcc/rocm710/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_tum-amd
+  variables:
+    BUILD_HIP: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_MPI: "OFF"
+    BUILD_OMP: "OFF"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.29.6 rocm/7.1.0 gcc/14.3.0"
+
 # no cuda but latest gcc and clang
 build/nocuda/nompi/gcc/core/debug/static:
   extends:
