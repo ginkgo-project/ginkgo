@@ -1036,6 +1036,70 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_INT32_TYPE(_macro) template _macro(int32)
 
 
+namespace detail {
+
+template <typename ValueType>
+struct is_supported_value_type : std::false_type {};
+
+template <typename ValueType>
+struct is_supported_index_type : std::false_type {};
+
+#if GINKGO_ENABLE_HALF
+template <>
+struct is_supported_value_type<float16> : std::true_type {};
+template <>
+struct is_supported_value_type<std::complex<float16>> : std::true_type {};
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+template <>
+struct is_supported_value_type<bfloat16> : std::true_type {};
+template <>
+struct is_supported_value_type<std::complex<bfloat16>> : std::true_type {};
+#endif
+template <>
+struct is_supported_value_type<float> : std::true_type {};
+template <>
+struct is_supported_value_type<double> : std::true_type {};
+template <>
+struct is_supported_value_type<std::complex<float>> : std::true_type {};
+template <>
+struct is_supported_value_type<std::complex<double>> : std::true_type {};
+template <>
+struct is_supported_index_type<int32> : std::true_type {};
+template <>
+struct is_supported_index_type<int64> : std::true_type {};
+
+
+}  // namespace detail
+
+
+// TODO20: Replace this by concepts
+#define GKO_ASSERT_SUPPORTED_VALUE_TYPE                                     \
+    static_assert(::gko::detail::is_supported_value_type<ValueType>::value, \
+                  "Unsupported value type")
+
+// TODO20: Replace this by concepts
+#define GKO_ASSERT_SUPPORTED_INDEX_TYPE                                     \
+    static_assert(::gko::detail::is_supported_index_type<IndexType>::value, \
+                  "Unsupported index type")
+
+#define GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE \
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;              \
+    GKO_ASSERT_SUPPORTED_INDEX_TYPE
+
+#define GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE                  \
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;                                    \
+    static_assert(                                                      \
+        ::gko::detail::is_supported_index_type<GlobalIndexType>::value, \
+        "Unsupported global index type");                               \
+    static_assert(                                                      \
+        ::gko::detail::is_supported_index_type<LocalIndexType>::value,  \
+        "Unsupported local index type");                                \
+    static_assert(                                                      \
+        sizeof(GlobalIndexType) >= sizeof(LocalIndexType),              \
+        "global index type must not be smaller than local index type")
+
+
 /**
  * Value for an invalid signed index type.
  */

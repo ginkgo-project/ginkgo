@@ -68,6 +68,7 @@ class Chebyshev final
     friend class EnableLinOp<Chebyshev>;
     friend class EnablePolymorphicObject<Chebyshev, LinOp>;
     friend class EnableApplyWithInitialGuess<Chebyshev>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

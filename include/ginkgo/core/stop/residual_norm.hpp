@@ -51,6 +51,7 @@ class ResidualNormBase
     : public EnablePolymorphicObject<ResidualNormBase<ValueType>, Criterion> {
     friend class EnablePolymorphicObject<ResidualNormBase<ValueType>,
                                          Criterion>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 protected:
     using absolute_type = remove_complex<ValueType>;

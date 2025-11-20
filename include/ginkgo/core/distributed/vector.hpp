@@ -80,6 +80,7 @@ class Vector
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;
     friend class detail::VectorCache<ValueType>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using EnableLinOp<Vector>::convert_to;

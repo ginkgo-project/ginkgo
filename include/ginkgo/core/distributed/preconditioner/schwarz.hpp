@@ -70,6 +70,7 @@ class Schwarz
     : public EnableLinOp<Schwarz<ValueType, LocalIndexType, GlobalIndexType>> {
     friend class EnableLinOp<Schwarz>;
     friend class EnablePolymorphicObject<Schwarz, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:
     using EnableLinOp<Schwarz>::convert_to;
