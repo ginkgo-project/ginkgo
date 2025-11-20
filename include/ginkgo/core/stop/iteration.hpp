@@ -83,10 +83,40 @@ protected:
 deferred_factory_parameter<Iteration::Factory> max_iters(size_type count);
 
 
+/**
+ * Creates the precursor to an MinimumIteration stopping criterion factory, to
+ * be used in conjunction with `.with_criteria(...)` function calls when
+ * building a solver factory. This stopping criterion wraps another stopping
+ * criterion inside, which only starts getting checked after the first `count`
+ * iterations finished.
+ *
+ * Full usage example: Stop when the relative residual
+ * norm is below $10^{-10}$, but with at least 100 iterations.
+ * ```cpp
+ * auto factory = gko::solver::Cg<double>::build()
+ *                    .with_criteria(gko::stop::min_iters(100,
+ *                        gko::stop::relative_residual_norm(1e-10)))
+ *                    .on(exec);
+ * ```
+ *
+ * @param count  the number of iterations after which to start checking the
+ * inner criterion
+ * @param criterion  the inner criterion, which will not be checked until
+ *                   `count` iterations finished, afterwards the min_iters
+ *                   stopping criterion behaves like the inner criterion.
+ * @return a deferred_factory_parameter that can be passed to the
+ *         `with_criteria` function when building a solver.
+ */
 deferred_factory_parameter<CriterionFactory> min_iters(
     size_type count, deferred_factory_parameter<CriterionFactory> criterion);
 
 
+/**
+ * @copydoc min_iters(size_type, deferred_factory_parameter<CriterionFactory>)
+ * This version supports supplying multiple stopping criteria independently, all
+ * of which will only be checked after the minimum iteration count has been
+ * exceeded.
+ */
 template <typename... Args>
 std::enable_if_t<sizeof...(Args) >= 2,
                  deferred_factory_parameter<CriterionFactory>>
