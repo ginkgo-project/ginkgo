@@ -17,13 +17,6 @@ namespace experimental {
 namespace distributed {
 
 
-#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
-using DefaultCollComm = mpi::DenseCommunicator;
-#else
-using DefaultCollComm = mpi::NeighborhoodCommunicator;
-#endif
-
-
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
                                                       ptr_param<LinOp> x) const
@@ -193,16 +186,38 @@ std::unique_ptr<RowGatherer<LocalIndexType>>
 RowGatherer<LocalIndexType>::create(std::shared_ptr<const Executor> exec,
                                     mpi::communicator comm)
 {
-    return std::unique_ptr<RowGatherer>(new RowGatherer(std::move(exec), comm));
+    return std::unique_ptr<RowGatherer>(new RowGatherer(
+        std::move(exec),
+        mpi::detail::create_default_collective_communicator(comm)));
 }
 
 
 template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                          mpi::communicator comm)
+    : RowGatherer(std::move(exec),
+                  mpi::detail::create_default_collective_communicator(comm))
+{}
+
+
+template <typename LocalIndexType>
+std::unique_ptr<RowGatherer<LocalIndexType>>
+RowGatherer<LocalIndexType>::create(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template)
+{
+    return std::unique_ptr<RowGatherer>(
+        new RowGatherer(std::move(exec), std::move(coll_comm_template)));
+}
+
+
+template <typename LocalIndexType>
+RowGatherer<LocalIndexType>::RowGatherer(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template)
     : EnablePolymorphicObject<RowGatherer>(exec),
-      DistributedBase(comm),
-      coll_comm_(std::make_shared<DefaultCollComm>(comm)),
+      DistributedBase(coll_comm_template->get_base_communicator()),
+      coll_comm_(std::move(coll_comm_template)),
       send_idxs_(exec),
       send_workspace_(exec)
 {}
@@ -239,8 +254,8 @@ RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
     if (this != &o) {
         size_ = std::exchange(o.size_, dim<2>{});
         coll_comm_ = std::exchange(
-            o.coll_comm_,
-            std::make_shared<DefaultCollComm>(o.get_communicator()));
+            o.coll_comm_, mpi::detail::create_default_collective_communicator(
+                              o.get_communicator()));
         send_idxs_ = std::move(o.send_idxs_);
         send_workspace_ = std::move(o.send_workspace_);
     }

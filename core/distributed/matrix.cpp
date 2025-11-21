@@ -37,7 +37,7 @@ GKO_REGISTER_OPERATION(separate_local_nonlocal,
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
-    : Matrix(exec, comm,
+    : Matrix(exec, RowGatherer<LocalIndexType>::create(exec, comm),
              gko::matrix::Csr<ValueType, LocalIndexType>::create(exec),
              gko::matrix::Csr<ValueType, LocalIndexType>::create(exec))
 {}
@@ -45,12 +45,13 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const RowGatherer<LocalIndexType>> row_gather_template,
     ptr_param<const LinOp> local_matrix_template,
     ptr_param<const LinOp> non_local_matrix_template)
     : EnableLinOp<Matrix>{exec},
-      DistributedBase{comm},
-      row_gatherer_{RowGatherer<LocalIndexType>::create(exec, comm)},
+      DistributedBase{row_gather_template->get_communicator()},
+      row_gatherer_{row_gather_template->clone(exec)},
       imap_{exec},
       one_scalar_{exec, 1.0},
       local_mtx_{local_matrix_template->clone(exec)},
@@ -70,7 +71,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<LinOp> local_linop)
     : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
-      row_gatherer_{RowGatherer<LocalIndexType>::create(exec, comm)},
+      row_gatherer_{RowGatherer<LocalIndexType>::create(
+          exec, mpi::detail::create_default_collective_communicator(comm))},
       imap_{exec},
       one_scalar_{exec, 1.0},
       non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
@@ -87,19 +89,17 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop)
     : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
-      row_gatherer_(RowGatherer<LocalIndexType>::create(exec, comm)),
+      row_gatherer_(RowGatherer<LocalIndexType>::create(
+          exec,
+          mpi::detail::create_default_collective_communicator(comm)
+              ->create_with_same_type(comm, &imap),
+          imap)),
       imap_(std::move(imap)),
       one_scalar_{exec, 1.0}
 {
     this->set_size({imap_.get_global_size(), imap_.get_global_size()});
     local_mtx_ = std::move(local_linop);
     non_local_mtx_ = std::move(non_local_linop);
-
-    row_gatherer_ = RowGatherer<LocalIndexType>::create(
-        row_gatherer_->get_executor(),
-        row_gatherer_->get_collective_communicator()->create_with_same_type(
-            comm, &imap_),
-        imap_);
 }
 
 
@@ -129,8 +129,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     ptr_param<const LinOp> local_matrix_template,
     ptr_param<const LinOp> non_local_matrix_template)
 {
-    return std::unique_ptr<Matrix>{new Matrix{exec, comm, local_matrix_template,
-                                              non_local_matrix_template}};
+    return std::unique_ptr<Matrix>{new Matrix{
+        exec,
+        RowGatherer<LocalIndexType>::create(
+            exec, mpi::detail::create_default_collective_communicator(comm)),
+        local_matrix_template, non_local_matrix_template}};
 }
 
 

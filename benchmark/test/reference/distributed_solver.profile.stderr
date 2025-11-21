@@ -34,6 +34,10 @@ DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
+DEBUG: begin copy(<typename>)
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: end   copy(<typename>)
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
