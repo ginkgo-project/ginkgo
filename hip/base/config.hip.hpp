@@ -32,15 +32,11 @@ struct config {
      * `device_functions.h`.
      */
 #if GINKGO_HIP_PLATFORM_HCC
-// workaround for ROCm >= 7, which does not give warpSize in compile time.
-// We can not define warpSize via compiler because amd_warp_functions.h defines
-// a struct variable called warpSize, too.
-#if defined(__GFX8__) || defined(__GFX9__)
+    // workaround for ROCm >= 7, which does not give warpSize in compile time.
+    // We can not define warpSize via compiler because amd_warp_functions.h
+    // defines a struct variable called warpSize, too. No support for 32 on AMD
+    // GPU yet.
     static constexpr uint32 warp_size = 64;
-#else
-    static_assert(false, "we do not test 32 on AMD GPU yet.");
-    static constexpr uint32 warp_size = 32;
-#endif
 #else  // GINKGO_HIP_PLATFORM_NVCC
     static constexpr uint32 warp_size = 32;
 #endif

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -623,14 +623,18 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     const auto block_dim = default_block_size;
     constexpr auto block_size = default_block_size;
 
-    initialize_kernel<block_size>
-        <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-            b->get_size()[0], b->get_size()[1], krylov_dim,
-            as_device_type(b->get_const_values()), b->get_stride(),
-            as_device_type(residual->get_values()), residual->get_stride(),
-            as_device_type(givens_sin->get_values()), givens_sin->get_stride(),
-            as_device_type(givens_cos->get_values()), givens_cos->get_stride(),
-            as_device_type(stop_status->get_data()));
+    if (grid_dim != 0) {
+        initialize_kernel<block_size>
+            <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+                b->get_size()[0], b->get_size()[1], krylov_dim,
+                as_device_type(b->get_const_values()), b->get_stride(),
+                as_device_type(residual->get_values()), residual->get_stride(),
+                as_device_type(givens_sin->get_values()),
+                givens_sin->get_stride(),
+                as_device_type(givens_cos->get_values()),
+                givens_cos->get_stride(),
+                as_device_type(stop_status->get_data()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(
@@ -661,12 +665,14 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
     constexpr auto block_size = default_block_size;
     const auto stride_arnoldi = arnoldi_norm->get_stride();
 
-    restart_1_kernel<block_size>
-        <<<grid_dim_1, block_dim, 0, exec->get_stream()>>>(
-            residual->get_size()[0], residual->get_size()[1], krylov_dim,
-            acc::as_device_range(krylov_bases),
-            as_device_type(residual_norm_collection->get_values()),
-            residual_norm_collection->get_stride());
+    if (grid_dim_1 != 0) {
+        restart_1_kernel<block_size>
+            <<<grid_dim_1, block_dim, 0, exec->get_stream()>>>(
+                residual->get_size()[0], residual->get_size()[1], krylov_dim,
+                acc::as_device_range(krylov_bases),
+                as_device_type(residual_norm_collection->get_values()),
+                residual_norm_collection->get_stride());
+    }
     kernels::GKO_DEVICE_NAMESPACE::dense::compute_norm2_dispatch(
         exec, residual, residual_norm, reduction_tmp);
 
@@ -695,21 +701,23 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                                2 * stride_arnoldi),
                 stride_arnoldi, acc::as_device_range(krylov_bases));
     }
-
     const auto grid_dim_2 =
         ceildiv(std::max<size_type>(num_rows, 1) * krylov_stride[1],
                 default_block_size);
-    restart_2_kernel<block_size>
-        <<<grid_dim_2, block_dim, 0, exec->get_stream()>>>(
-            residual->get_size()[0], residual->get_size()[1],
-            as_device_type(residual->get_const_values()),
-            residual->get_stride(),
-            as_device_type(residual_norm->get_const_values()),
-            as_device_type(residual_norm_collection->get_values()),
-            acc::as_device_range(krylov_bases),
-            as_device_type(next_krylov_basis->get_values()),
-            next_krylov_basis->get_stride(),
-            as_device_type(final_iter_nums->get_data()));
+
+    if (grid_dim_2 != 0) {
+        restart_2_kernel<block_size>
+            <<<grid_dim_2, block_dim, 0, exec->get_stream()>>>(
+                residual->get_size()[0], residual->get_size()[1],
+                as_device_type(residual->get_const_values()),
+                residual->get_stride(),
+                as_device_type(residual_norm->get_const_values()),
+                as_device_type(residual_norm_collection->get_values()),
+                acc::as_device_range(krylov_bases),
+                as_device_type(next_krylov_basis->get_values()),
+                next_krylov_basis->get_stride(),
+                as_device_type(final_iter_nums->get_data()));
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
@@ -919,18 +927,21 @@ void givens_rotation(std::shared_ptr<const DefaultExecutor> exec,
     const auto block_dim = block_size;
     const auto grid_dim =
         static_cast<unsigned int>(ceildiv(num_cols, block_size));
-
-    givens_rotation_kernel<block_size>
-        <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-            hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1],
-            iter, as_device_type(hessenberg_iter->get_values()),
-            hessenberg_iter->get_stride(),
-            as_device_type(givens_sin->get_values()), givens_sin->get_stride(),
-            as_device_type(givens_cos->get_values()), givens_cos->get_stride(),
-            as_device_type(residual_norm->get_values()),
-            as_device_type(residual_norm_collection->get_values()),
-            residual_norm_collection->get_stride(),
-            stop_status->get_const_data());
+    if (grid_dim != 0) {
+        givens_rotation_kernel<block_size>
+            <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+                hessenberg_iter->get_size()[0], hessenberg_iter->get_size()[1],
+                iter, as_device_type(hessenberg_iter->get_values()),
+                hessenberg_iter->get_stride(),
+                as_device_type(givens_sin->get_values()),
+                givens_sin->get_stride(),
+                as_device_type(givens_cos->get_values()),
+                givens_cos->get_stride(),
+                as_device_type(residual_norm->get_values()),
+                as_device_type(residual_norm_collection->get_values()),
+                residual_norm_collection->get_stride(),
+                stop_status->get_const_data());
+    }
 }
 
 
@@ -949,12 +960,14 @@ void arnoldi(std::shared_ptr<const DefaultExecutor> exec,
              array<stopping_status>* reorth_status,
              array<size_type>* num_reorth)
 {
-    increase_final_iteration_numbers_kernel<<<
-        static_cast<unsigned int>(
-            ceildiv(final_iter_nums->get_size(), default_block_size)),
-        default_block_size, 0, exec->get_stream()>>>(
-        as_device_type(final_iter_nums->get_data()),
-        stop_status->get_const_data(), final_iter_nums->get_size());
+    if (final_iter_nums->get_size() != 0) {
+        increase_final_iteration_numbers_kernel<<<
+            static_cast<unsigned int>(
+                ceildiv(final_iter_nums->get_size(), default_block_size)),
+            default_block_size, 0, exec->get_stream()>>>(
+            as_device_type(final_iter_nums->get_data()),
+            stop_status->get_const_data(), final_iter_nums->get_size());
+    }
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status->get_const_data(), reorth_status->get_data(),
@@ -1007,14 +1020,15 @@ void calculate_qy(std::shared_ptr<const DefaultExecutor> exec,
     const auto grid_dim = static_cast<unsigned int>(
         ceildiv(num_rows * stride_before_preconditioner, block_size));
     const auto block_dim = block_size;
-
-    calculate_Qy_kernel<block_size>
-        <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-            num_rows, num_cols, acc::as_device_range(krylov_bases),
-            as_device_type(y->get_const_values()), y->get_stride(),
-            as_device_type(before_preconditioner->get_values()),
-            stride_before_preconditioner,
-            as_device_type(final_iter_nums->get_const_data()));
+    if (grid_dim != 0) {
+        calculate_Qy_kernel<block_size>
+            <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
+                num_rows, num_cols, acc::as_device_range(krylov_bases),
+                as_device_type(y->get_const_values()), y->get_stride(),
+                as_device_type(before_preconditioner->get_values()),
+                stride_before_preconditioner,
+                as_device_type(final_iter_nums->get_const_data()));
+    }
     // Calculate qy
     // before_preconditioner = krylov_bases * y
 }
