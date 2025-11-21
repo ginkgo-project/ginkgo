@@ -226,12 +226,25 @@ if(GINKGO_BUILD_CUDA)
 endif()
 if(GINKGO_BUILD_HIP)
     include(cmake/hip.cmake)
+    message("HIP_VERSION ${GINKGO_HIP_VERSION}")
     if(GINKGO_HIP_PLATFORM_AMD AND GINKGO_HIP_VERSION VERSION_LESS 5.7)
         # Hip allow custom namespace but does not fully make everything in the custom namespace before rocm-5.7
         # more specific pr: https://github.com/ROCm/rocThrust/pull/286
         message(
             STATUS
             "Disable custom thrust namespace for hip before 5.7 because hip does not fully support it before 5.7"
+        )
+        set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE OFF)
+    elseif(
+        GINKGO_HIP_PLATFORM_AMD
+        AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 7.1
+        AND GINKGO_HIP_VERSION VERSION_LESS 7.2
+    )
+        # https://github.com/ROCm/rocm-libraries/pull/1769 should fix this issue in ROCm 7.1.1.
+        # HIP VERSION does not use the exact version number as ROCm. Need to wait for ROCm 7.1.1 to set proper range for ROCm 7.1.0
+        message(
+            STATUS
+            "Disable custom thrust namespace for hip 7.1 because hip does not adapt the custom namespace fully."
         )
         set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE OFF)
     else()
