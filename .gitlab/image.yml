@@ -79,6 +79,12 @@
     - amd-gpus
     - tum
 
+.use_tum-amd-mi210:
+  image: rocky_tum
+  tags:
+    - amd-gpus-mi210
+    - tum
+
 .use_tum-intel:
   image: rocky_tum_intel
   tags:
