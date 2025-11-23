@@ -126,7 +126,7 @@ template <typename ValueType, typename IndexType>
 void conv2dsparse(
     std::shared_ptr<const ReferenceExecutor> exec,
     const std::vector<const gko::matrix::Csr<ValueType, IndexType>*>& kernels,
-    const gko::matrix::Dense<ValueType>* b,
+    const std::vector<const gko::matrix::Dense<ValueType>*>& b,
     std::vector<gko::matrix::Dense<ValueType>*>& x)
 {
     // implement convolution here

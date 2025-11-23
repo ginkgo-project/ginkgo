@@ -143,7 +143,7 @@ GKO_DECLARE_ALL_AS_TEMPLATES_CONV2D;
         std::shared_ptr<const DefaultExecutor> exec,                      \
         const std::vector<const gko::matrix::Csr<ValueType, IndexType>*>& \
             kernels,                                                      \
-        const gko::matrix::Dense<ValueType>* b,                           \
+        const std::vector<const gko::matrix::Dense<ValueType>*>& b,       \
         std::vector<gko::matrix::Dense<ValueType>*>& x)
 
 

@@ -157,13 +157,25 @@ public:
         const std::vector<std::shared_ptr<const Csr<ValueType, IndexType>>>&
             kernels);
     std::vector<std::shared_ptr<const Csr<ValueType, IndexType>>> kernels_;
-    void apply(const std::shared_ptr<const LinOp>& b,
+    void apply(const std::vector<std::shared_ptr<const LinOp>>& b,
                const std::vector<std::shared_ptr<LinOp>>& xs) const
     {
-        std::vector<LinOp*> raw_ptrs;
-        raw_ptrs.reserve(xs.size());
-        for (auto& x : xs) raw_ptrs.push_back(x.get());
-        this->apply_impl(b.get(), raw_ptrs);
+        // Convert b (vector<shared_ptr<const LinOp>>) to vector<const LinOp*>
+        std::vector<const LinOp*> b_raw;
+        b_raw.reserve(b.size());
+        for (auto& bi : b) {
+            b_raw.push_back(bi.get());
+        }
+
+        // Convert xs (vector<shared_ptr<LinOp>>) to vector<LinOp*>
+        std::vector<LinOp*> xs_raw;
+        xs_raw.reserve(xs.size());
+        for (auto& xi : xs) {
+            xs_raw.push_back(xi.get());
+        }
+
+        // Call the multi-input apply_impl
+        this->apply_impl(b_raw, xs_raw);
     }
 
 
@@ -178,7 +190,9 @@ protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
-    void apply_impl(const LinOp* b, const std::vector<LinOp*>& xs) const;
+    // void apply_impl(const LinOp* b, const std::vector<LinOp*>& xs) const;
+    void apply_impl(const std::vector<const LinOp*>& b,
+                    const std::vector<LinOp*>& xs) const;
     void validate_application_parameters(const LinOp* b,
                                          const LinOp* x) const override;
 

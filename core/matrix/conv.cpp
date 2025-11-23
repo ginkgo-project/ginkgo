@@ -139,10 +139,11 @@ void Conv2dsparse<ValueType, IndexType>::apply_impl(const LinOp* b,
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            const auto input = dense_b;
+            // Convert to vectors
+            std::vector<decltype(dense_b)> inputs = {dense_b};
             std::vector<decltype(dense_x)> outputs = {dense_x};
 
-            // FIXED: remove the redundant 'const' here
+            // Kernel pointers
             std::vector<decltype(kernels_[0].get())> kernel_ptrs;
             kernel_ptrs.reserve(kernels_.size());
             for (auto& k : kernels_) {
@@ -150,7 +151,7 @@ void Conv2dsparse<ValueType, IndexType>::apply_impl(const LinOp* b,
             }
 
             this->get_executor()->run(
-                conv2dsparse::make_conv2dsparse(kernel_ptrs, input, outputs));
+                conv2dsparse::make_conv2dsparse(kernel_ptrs, inputs, outputs));
         },
         b, x);
 }
@@ -158,32 +159,34 @@ void Conv2dsparse<ValueType, IndexType>::apply_impl(const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 void Conv2dsparse<ValueType, IndexType>::apply_impl(
-    const LinOp* b, const std::vector<LinOp*>& xs) const
+    const std::vector<const LinOp*>& b, const std::vector<LinOp*>& xs) const
 {
     precision_dispatch_real_complex<ValueType>(
-        [this, &xs](auto dense_b, auto /*ignored*/) {
-            const auto input = dense_b;
+        [this, &b, &xs](auto /*ignored1*/, auto /*ignored2*/) {
+            // Convert inputs
+            std::vector<decltype(as<matrix::Dense<ValueType>>(b[0]))> inputs;
+            inputs.reserve(b.size());
+            for (auto* bi : b) {
+                inputs.push_back(as<matrix::Dense<ValueType>>(bi));
+            }
 
-            // Collect kernel pointers
+            // Convert outputs
+            std::vector<decltype(as<matrix::Dense<ValueType>>(xs[0]))> outputs;
+            outputs.reserve(xs.size());
+            for (auto* xi : xs) {
+                outputs.push_back(as<matrix::Dense<ValueType>>(xi));
+            }
+
+            // Kernel pointers
             std::vector<decltype(kernels_[0].get())> kernel_ptrs;
             for (auto& k : kernels_) {
                 kernel_ptrs.push_back(k.get());
             }
 
-            // Convert all outputs to Dense
-            std::vector<decltype(as<gko::matrix::Dense<ValueType>>(xs[0]))>
-                outputs;
-            outputs.reserve(xs.size());
-            for (auto x : xs) {
-                outputs.push_back(as<gko::matrix::Dense<ValueType>>(x));
-            }
-
-            // Run multi-filter convolution
             this->get_executor()->run(
-                conv2dsparse::make_conv2dsparse(kernel_ptrs, input, outputs));
+                conv2dsparse::make_conv2dsparse(kernel_ptrs, inputs, outputs));
         },
-        b,
-        xs.front());  // dispatch uses only first output to determine precision
+        b.front(), xs.front());
 }
 // ------------------------------------------------------
 // Alpha-beta apply overloads (placeholders)
