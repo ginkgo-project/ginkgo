@@ -32,13 +32,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
 namespace conv2dsparse {
 
 template <typename ValueType, typename IndexType>
-void conv2dsparse(std::shared_ptr<const OmpExecutor> exec,
-                  const gko::matrix::Csr<ValueType, IndexType>* kernel,
-                  const gko::matrix::Dense<ValueType>* b,
-                  gko::matrix::Dense<ValueType>* x)
+void conv2dsparse(
+    std::shared_ptr<const OmpExecutor> exec,
+    const std::vector<const gko::matrix::Csr<ValueType, IndexType>*>& kernels,
+    const gko::matrix::Dense<ValueType>* b,
+    std::vector<gko::matrix::Dense<ValueType>*>& x)
 {
     GKO_NOT_IMPLEMENTED;
 }
+
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONV2DSPARSE_KERNEL);
 

@@ -123,12 +123,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONV2D_KERNEL);
 namespace conv2dsparse {
 // implement convolution here
 template <typename ValueType, typename IndexType>
-void conv2dsparse(std::shared_ptr<const DefaultExecutor> exec,
-                  const gko::matrix::Csr<ValueType, IndexType>* kernel,
-                  const gko::matrix::Dense<ValueType>* b,
-                  gko::matrix::Dense<ValueType>* x)
+void conv2dsparse(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const std::vector<const gko::matrix::Csr<ValueType, IndexType>*>& kernels,
+    const gko::matrix::Dense<ValueType>* b,
+    std::vector<gko::matrix::Dense<ValueType>*>& x)
 {
     // implement convolution here
+    /*
     const int b_size_row = b->get_size()[0];
     const int b_size_col = b->get_size()[1];
     const int x_size_row = x->get_size()[0];
@@ -175,6 +177,7 @@ void conv2dsparse(std::shared_ptr<const DefaultExecutor> exec,
             x->at(i, j) = sum;
         }
     }
+    */
 }
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CONV2DSPARSE_KERNEL);
 

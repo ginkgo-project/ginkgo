@@ -152,19 +152,38 @@ public:
     static std::unique_ptr<Conv2dsparse> create(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const Csr<ValueType, IndexType>> kernel);
+    static std::unique_ptr<Conv2dsparse> create(
+        std::shared_ptr<const Executor> exec,
+        const std::vector<std::shared_ptr<const Csr<ValueType, IndexType>>>&
+            kernels);
+    std::vector<std::shared_ptr<const Csr<ValueType, IndexType>>> kernels_;
+    void apply(const std::shared_ptr<const LinOp>& b,
+               const std::vector<std::shared_ptr<LinOp>>& xs) const
+    {
+        std::vector<LinOp*> raw_ptrs;
+        raw_ptrs.reserve(xs.size());
+        for (auto& x : xs) raw_ptrs.push_back(x.get());
+        this->apply_impl(b.get(), raw_ptrs);
+    }
+
 
 protected:
-    Conv2dsparse(std::shared_ptr<const Executor> exec,
-                 std::shared_ptr<const Csr<ValueType, IndexType>> kernel);
+    Conv2dsparse(
+        std::shared_ptr<const Executor> exec,
+        const std::vector<std::shared_ptr<const Csr<ValueType, IndexType>>>&
+            kernels);
+    // Conv2dsparse(std::shared_ptr<const Executor> exec,
+    //              std::shared_ptr<const Csr<ValueType, IndexType>> kernel);
     Conv2dsparse(std::shared_ptr<const Executor> exec);
     void apply_impl(const LinOp* b, LinOp* x) const override;
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+    void apply_impl(const LinOp* b, const std::vector<LinOp*>& xs) const;
     void validate_application_parameters(const LinOp* b,
                                          const LinOp* x) const override;
 
 private:
-    std::shared_ptr<const Csr<ValueType, IndexType>> kernel_;
+    // std::shared_ptr<const Csr<ValueType, IndexType>> kernel_;
 };
 
 }  // namespace matrix

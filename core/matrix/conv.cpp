@@ -119,7 +119,7 @@ void Conv2d<ValueType>::apply_impl(const LinOp* b,
 // ------------------------------------------------------
 // 2D sparse convolution
 // ------------------------------------------------------
-
+/*
 template <typename ValueType, typename IndexType>
 void Conv2dsparse<ValueType, IndexType>::apply_impl(const LinOp* b,
                                                     LinOp* x) const
@@ -132,7 +132,59 @@ void Conv2dsparse<ValueType, IndexType>::apply_impl(const LinOp* b,
         b, x);
 }
 
+*/
+template <typename ValueType, typename IndexType>
+void Conv2dsparse<ValueType, IndexType>::apply_impl(const LinOp* b,
+                                                    LinOp* x) const
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            const auto input = dense_b;
+            std::vector<decltype(dense_x)> outputs = {dense_x};
 
+            // FIXED: remove the redundant 'const' here
+            std::vector<decltype(kernels_[0].get())> kernel_ptrs;
+            kernel_ptrs.reserve(kernels_.size());
+            for (auto& k : kernels_) {
+                kernel_ptrs.push_back(k.get());
+            }
+
+            this->get_executor()->run(
+                conv2dsparse::make_conv2dsparse(kernel_ptrs, input, outputs));
+        },
+        b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Conv2dsparse<ValueType, IndexType>::apply_impl(
+    const LinOp* b, const std::vector<LinOp*>& xs) const
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this, &xs](auto dense_b, auto /*ignored*/) {
+            const auto input = dense_b;
+
+            // Collect kernel pointers
+            std::vector<decltype(kernels_[0].get())> kernel_ptrs;
+            for (auto& k : kernels_) {
+                kernel_ptrs.push_back(k.get());
+            }
+
+            // Convert all outputs to Dense
+            std::vector<decltype(as<gko::matrix::Dense<ValueType>>(xs[0]))>
+                outputs;
+            outputs.reserve(xs.size());
+            for (auto x : xs) {
+                outputs.push_back(as<gko::matrix::Dense<ValueType>>(x));
+            }
+
+            // Run multi-filter convolution
+            this->get_executor()->run(
+                conv2dsparse::make_conv2dsparse(kernel_ptrs, input, outputs));
+        },
+        b,
+        xs.front());  // dispatch uses only first output to determine precision
+}
 // ------------------------------------------------------
 // Alpha-beta apply overloads (placeholders)
 // ------------------------------------------------------
@@ -256,16 +308,23 @@ template <typename ValueType, typename IndexType>
 Conv2dsparse<ValueType, IndexType>::Conv2dsparse(
     std::shared_ptr<const Executor> exec)
     : EnableLinOp<Conv2dsparse>(exec),
-      kernel_{Csr<ValueType, IndexType>::create(exec, dim<2>{}, 0)}
+      kernels_{Csr<ValueType, IndexType>::create(exec, dim<2>{}, 0)}
 {}
-
+template <typename ValueType, typename IndexType>
+Conv2dsparse<ValueType, IndexType>::Conv2dsparse(
+    std::shared_ptr<const Executor> exec,
+    const std::vector<std::shared_ptr<const Csr<ValueType, IndexType>>>&
+        kernels)
+    : EnableLinOp<Conv2dsparse>(exec), kernels_{kernels}
+{}
+/*
 template <typename ValueType, typename IndexType>
 Conv2dsparse<ValueType, IndexType>::Conv2dsparse(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const Csr<ValueType, IndexType>> kernel)
     : EnableLinOp<Conv2dsparse>(exec), kernel_{std::move(kernel)}
 {}
-
+*/
 
 // ------------------------------------------------------
 // Factory functions
@@ -320,11 +379,21 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<Conv2dsparse<ValueType, IndexType>>
 Conv2dsparse<ValueType, IndexType>::create(
     std::shared_ptr<const Executor> exec,
+    const std::vector<std::shared_ptr<const Csr<ValueType, IndexType>>>&
+        kernels)
+{
+    return std::unique_ptr<Conv2dsparse>{new Conv2dsparse{exec, kernels}};
+}
+/*
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Conv2dsparse<ValueType, IndexType>>
+Conv2dsparse<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec,
     std::shared_ptr<const Csr<ValueType, IndexType>> kernel)
 {
     return std::unique_ptr<Conv2dsparse>{new Conv2dsparse{exec, kernel}};
 }
-
+*/
 
 // ------------------------------------------------------
 // Explicit instantiation

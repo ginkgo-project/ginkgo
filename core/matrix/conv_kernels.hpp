@@ -136,12 +136,15 @@ GKO_DECLARE_ALL_AS_TEMPLATES_CONV2D;
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES_CONV2D
 
+
 /* Declarations for conv2dsparse */
-#define GKO_DECLARE_CONV2DSPARSE_KERNEL(ValueType, IndexType)               \
-    void conv2dsparse(std::shared_ptr<const DefaultExecutor> exec,          \
-                      const gko::matrix::Csr<ValueType, IndexType>* kernel, \
-                      const gko::matrix::Dense<ValueType>* b,               \
-                      gko::matrix::Dense<ValueType>* x)
+#define GKO_DECLARE_CONV2DSPARSE_KERNEL(ValueType, IndexType)             \
+    void conv2dsparse(                                                    \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const std::vector<const gko::matrix::Csr<ValueType, IndexType>*>& \
+            kernels,                                                      \
+        const gko::matrix::Dense<ValueType>* b,                           \
+        std::vector<gko::matrix::Dense<ValueType>*>& x)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES_CONV2DSPARSE     \
