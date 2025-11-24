@@ -14,8 +14,10 @@ endif()
 
 find_package(NVTX REQUIRED)
 
-find_package(Thrust REQUIRED)
-thrust_create_target(Thrust)
+if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL 13)
+    find_package(Thrust REQUIRED)
+    thrust_create_target(Thrust)
+endif()
 
 if(
     CMAKE_CUDA_HOST_COMPILER
