@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -153,7 +153,7 @@ void DpcppExecutor::raw_copy_to(const DpcppExecutor* dest, size_type num_bytes,
 }
 
 
-void DpcppExecutor::synchronize() const { queue_->wait_and_throw(); }
+void DpcppExecutor::synchronize_impl() const { queue_->wait_and_throw(); }
 
 scoped_device_id_guard DpcppExecutor::get_scoped_device_id_guard() const
 {

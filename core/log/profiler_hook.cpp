@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -280,6 +280,18 @@ void ProfilerHook::on_iteration_complete(
 }
 
 
+void ProfilerHook::on_synchronize_started(const gko::Executor*) const
+{
+    this->begin_hook_("synchronize", profile_event_category::operation);
+}
+
+
+void ProfilerHook::on_synchronize_completed(const gko::Executor*) const
+{
+    this->end_hook_("synchronize", profile_event_category::operation);
+}
+
+
 bool ProfilerHook::needs_propagation() const { return true; }
 
 
@@ -306,10 +318,12 @@ void ProfilerHook::set_synchronization(bool synchronize)
 void ProfilerHook::maybe_synchronize(const Executor* exec) const
 {
     if (synchronize_) {
-        profiling_scope_guard sync_guard{"synchronize",
+        profiling_scope_guard sync_guard{"logger_synchronize",
                                          profile_event_category::internal,
                                          begin_hook_, end_hook_};
-        exec->synchronize();
+        // we call synchronize_impl not synchronize to separate the syncrhonize
+        // caller.
+        exec->synchronize_impl();
     }
 }
 

@@ -618,6 +618,22 @@ protected:
 
 
 public:
+    /**
+     * synchronize started event.
+     *
+     * @param exec  the executor used
+     */
+    GKO_LOGGER_REGISTER_EVENT(27, synchronize_started, const Executor* exec)
+
+    /**
+     * synchronize completed event.
+     *
+     * @param exec  the executor used
+     */
+    GKO_LOGGER_REGISTER_EVENT(28, synchronize_completed, const Executor* exec)
+
+
+public:
 #undef GKO_LOGGER_REGISTER_EVENT
 
     /**
@@ -626,7 +642,8 @@ public:
     static constexpr mask_type executor_events_mask =
         allocation_started_mask | allocation_completed_mask |
         free_started_mask | free_completed_mask | copy_started_mask |
-        copy_completed_mask;
+        copy_completed_mask | synchronize_started_mask |
+        synchronize_completed_mask;
 
     /**
      * Bitset Mask which activates all operation events

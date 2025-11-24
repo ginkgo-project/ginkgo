@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -165,7 +165,7 @@ void CudaExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 }
 
 
-void CudaExecutor::synchronize() const
+void CudaExecutor::synchronize_impl() const
 {
     detail::cuda_scoped_device_id_guard g(this->get_device_id());
     GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamSynchronize(this->get_stream()));
