@@ -13,12 +13,12 @@
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
     - source /storage/apps/opt/spack/share/spack/setup-env.sh
     - mkdir -p lmod/cuda
-    - echo 'prepend_path("PATH","/storage/apps/usr/local/cuda-13.0.2/bin")' > 13.0.2.lua
-    - echo 'prepend_path("CMAKE_PREFIX_PATH","/storage/apps/usr/local/cuda-13.0.2/.")' >> 13.0.2.lua
-    - echo 'setenv("CUDA_HOME","/storage/apps/usr/local/cuda-13.0.2")' >> 13.0.2.lua
-    - echo 'setenv("NVHPC_CUDA_HOME","/storage/apps/usr/local/cuda-13.0.2")' >> 13.0.2.lua
-    - export MODULEPATH="$(pwd)/lmod/cuda":/storage/apps/opt/rocm-modules:/storage/apps/opt/spack/share/spack/lmod/linux-rocky9-x86_64/Core
-    - module av cuda
+    - echo 'prepend_path("PATH","/storage/apps/usr/local/cuda-13.0.2/bin")' > lmod/cuda/13.0.2.lua
+    - echo 'prepend_path("CMAKE_PREFIX_PATH","/storage/apps/usr/local/cuda-13.0.2/.")' >> lmod/cuda/13.0.2.lua
+    - echo 'setenv("CUDA_HOME","/storage/apps/usr/local/cuda-13.0.2")' >> lmod/cuda/13.0.2.lua
+    - echo 'setenv("NVHPC_CUDA_HOME","/storage/apps/usr/local/cuda-13.0.2")' >> lmod/cuda/13.0.2.lua
+    - export MODULEPATH="$(pwd)/lmod":/storage/apps/opt/rocm-modules:/storage/apps/opt/spack/share/spack/lmod/linux-rocky9-x86_64/Core
+    - module av
 
 .before_script_git_template:
   before_script:
