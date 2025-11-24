@@ -14,6 +14,9 @@ endif()
 
 find_package(NVTX REQUIRED)
 
+find_package(Thrust REQUIRED)
+thrust_create_target(Thrust)
+
 if(
     CMAKE_CUDA_HOST_COMPILER
     AND NOT CMAKE_CXX_COMPILER STREQUAL CMAKE_CUDA_HOST_COMPILER
