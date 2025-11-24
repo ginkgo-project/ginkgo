@@ -237,6 +237,9 @@ add_subdirectory(tools)
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
+if(GINKGO_BUILD_MICROBENCHMARKS)
+    add_subdirectory(gpu-microbenchmarks)
+endif()
 
 configure_file(run_all_benchmarks.sh run_all_benchmarks.sh COPYONLY)
 
