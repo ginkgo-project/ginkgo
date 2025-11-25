@@ -128,6 +128,51 @@ ValidationResult has_unique_idxs_in_row(const gko::array<IndexType>& row_ptrs,
 }
 
 
+template <typename ValueType, typename IndexType>
+void validate_system_matrix(std::shared_ptr<const LinOp> mtx)
+{
+    if (!mtx) {
+        throw InvalidData(__FILE__, __LINE__, typeid(LinOp),
+                          "System matrix is null.");
+    }
+
+    auto try_validate = [&](auto&& ptr, const char* name) {
+        using PtrType = decltype(ptr);
+        if (auto typed =
+                std::dynamic_pointer_cast<const typename PtrType::element_type>(
+                    mtx)) {
+            try {
+                typed->validate_data();
+                return true;
+            } catch (const InvalidData& e) {
+                throw InvalidData(__FILE__, __LINE__, typeid(LinOp),
+                                  std::string("Invalid ") + name +
+                                      " matrix. Inner error: " + e.what());
+            }
+        }
+        return false;
+    };
+
+    if (try_validate(std::shared_ptr<const matrix::Coo<ValueType, IndexType>>{},
+                     "Coo") ||
+        try_validate(std::shared_ptr<const matrix::Csr<ValueType, IndexType>>{},
+                     "Csr") ||
+        try_validate(std::shared_ptr<const matrix::Ell<ValueType, IndexType>>{},
+                     "Ell") ||
+        try_validate(std::shared_ptr<const matrix::Dense<ValueType>>{},
+                     "Dense") ||
+        try_validate(std::shared_ptr<const matrix::Diagonal<ValueType>>{},
+                     "Diagonal") ||
+        try_validate(std::shared_ptr<const matrix::Permutation<IndexType>>{},
+                     "Permutation")) {
+        return;
+    }
+
+    throw InvalidData(__FILE__, __LINE__, typeid(LinOp),
+                      "Unsupported system matrix type.");
+}
+
+
 }  // namespace validation
 }  // namespace gko
 
