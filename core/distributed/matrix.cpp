@@ -484,7 +484,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             } else {
                 // we use event here such that we can submit spmv job first
                 // without waiting for synchronization from the row gatherer.
-                auto ev = this->row_gatherer_->apply_prepare(dense_b, recv_ptr);
+                auto ev = this->row_gatherer_->apply_prepare(dense_b);
                 local_mtx_->apply(dense_b->get_local_vector(), local_x);
                 auto req =
                     this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
@@ -552,7 +552,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             } else {
                 // we use event here such that we can submit spmv job first
                 // without waiting for synchronization from the row gatherer.
-                auto ev = this->row_gatherer_->apply_prepare(dense_b, recv_ptr);
+                auto ev = this->row_gatherer_->apply_prepare(dense_b);
                 local_mtx_->apply(local_alpha.get(),
                                   dense_b->get_local_vector(), local_beta.get(),
                                   local_x);

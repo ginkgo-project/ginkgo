@@ -36,14 +36,13 @@ namespace detail {
 // give access to test function on protected function
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event> apply_prepare(
-    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
-    ptr_param<LinOp> x);
+    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b);
 
 // give access to test function on protected function
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event> apply_prepare(
     const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
-    ptr_param<LinOp> x, array<char>& workspace);
+    array<char>& workspace);
 
 // give access to test function on protected function
 template <typename LocalIndexType>
@@ -99,12 +98,10 @@ class RowGatherer final
     // for test purpose
     friend std::shared_ptr<const gko::detail::Event>
     detail::apply_prepare<LocalIndexType>(const RowGatherer* rg,
-                                          ptr_param<const LinOp> b,
-                                          ptr_param<LinOp> x);
+                                          ptr_param<const LinOp> b);
     friend std::shared_ptr<const gko::detail::Event>
     detail::apply_prepare<LocalIndexType>(const RowGatherer* rg,
                                           ptr_param<const LinOp> b,
-                                          ptr_param<LinOp> x,
                                           array<char>& workspace);
     friend mpi::request detail::apply_finalize<LocalIndexType>(
         const RowGatherer* rg, ptr_param<const LinOp> b, ptr_param<LinOp> x,
@@ -243,11 +240,10 @@ public:
 
 protected:
     std::shared_ptr<const gko::detail::Event> apply_prepare(
-        ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
+        ptr_param<const LinOp> b) const;
 
     std::shared_ptr<const gko::detail::Event> apply_prepare(
-        ptr_param<const LinOp> b, ptr_param<LinOp> x,
-        array<char>& workspace) const;
+        ptr_param<const LinOp> b, array<char>& workspace) const;
 
     mpi::request apply_finalize(
         ptr_param<const LinOp> b, ptr_param<LinOp> x,
