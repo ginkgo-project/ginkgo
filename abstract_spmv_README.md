@@ -50,7 +50,32 @@
 - 支持 CUDA 的 GPU (计算能力 6.0 或更高)
 - C++14 或更高版本的编译器
 
-### 编译测试程序
+### 快速测试编译（推荐）
+
+使用提供的自动化测试脚本：
+
+```bash
+# 运行完整的编译测试
+./compile_test.sh
+```
+
+此脚本将：
+1. 编译最小测试用例 (test_minimal.cu)
+2. 编译独立实现 (abstract_spmv_standalone.cu)
+3. 编译完整测试 (abstract_spmv_test.cu)
+4. 运行测试并验证结果
+
+### 手动编译
+
+#### 方式 1: 编译最小测试（最快）
+
+```bash
+# 编译并运行最小测试
+nvcc -std=c++14 -arch=sm_70 test_minimal.cu -o test_minimal
+./test_minimal
+```
+
+#### 方式 2: 编译完整测试
 
 ```bash
 # 使用 nvcc 编译

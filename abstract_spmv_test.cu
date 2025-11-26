@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cmath>
+#include <utility>
 
 // Include all the code from abstract_spmv_standalone.cu (or compile it separately)
 // For simplicity, we'll include the declarations here
@@ -121,7 +122,7 @@ public:
 
     template <typename... Args>
     __host__ __device__ auto operator()(Args... args) const
-        -> decltype(accessor_(args...)) {
+        -> decltype(std::declval<Accessor>()(args...)) {
         return accessor_(args...);
     }
 
@@ -129,8 +130,9 @@ public:
         return &accessor_;
     }
 
+    template <typename T = Accessor>
     __host__ __device__ auto length(int dimension) const
-        -> decltype(accessor_.length(dimension)) {
+        -> decltype(std::declval<T>().length(dimension)) {
         return accessor_.length(dimension);
     }
 

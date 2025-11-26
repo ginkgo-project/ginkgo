@@ -9,6 +9,7 @@
 #include <cooperative_groups.h>
 #include <cstdint>
 #include <cstdio>
+#include <utility>
 
 // ============================================================================
 // Basic type definitions
@@ -160,7 +161,7 @@ public:
 
     template <typename... Args>
     __host__ __device__ auto operator()(Args... args) const
-        -> decltype(accessor_(args...))
+        -> decltype(std::declval<Accessor>()(args...))
     {
         return accessor_(args...);
     }
@@ -170,8 +171,9 @@ public:
         return &accessor_;
     }
 
+    template <typename T = Accessor>
     __host__ __device__ auto length(int dimension) const
-        -> decltype(accessor_.length(dimension))
+        -> decltype(std::declval<T>().length(dimension))
     {
         return accessor_.length(dimension);
     }
