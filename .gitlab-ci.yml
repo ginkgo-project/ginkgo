@@ -34,7 +34,7 @@ packaging/spack/rocm:
     - .spack_build_template
     - .package_test_condition
   image:
-    name: ecpe4s/e4s-base-rocm:24.11
+    name: ecpe4s/e4s-base-rocm:25.06
     entrypoint: [""]
   tags:
     - nla-gpu
@@ -50,7 +50,7 @@ packaging/spack-v1/rocm:
     - .spack_v1_build_template
     - .package_test_condition
   image:
-    name: ecpe4s/e4s-base-rocm:24.11
+    name: ecpe4s/e4s-base-rocm:25.06
     entrypoint: [""]
   tags:
     - nla-gpu
@@ -66,7 +66,7 @@ packaging/spack/cuda:
     - .spack_build_template
     - .package_test_condition
   image:
-    name: ecpe4s/e4s-base-cuda:24.11
+    name: ecpe4s/e4s-base-cuda:25.06
     entrypoint: [""]
   tags:
     - tum
@@ -83,7 +83,7 @@ packaging/spack-v1/cuda:
     - .spack_v1_build_template
     - .package_test_condition
   image:
-    name: ecpe4s/e4s-base-cuda:24.11
+    name: ecpe4s/e4s-base-cuda:25.06
     entrypoint: [""]
   tags:
     - tum
@@ -100,7 +100,7 @@ packaging/spack/sycl:
     - .spack_build_template
     - .package_test_condition
   image:
-    name: ecpe4s/e4s-base-oneapi:24.11
+    name: ecpe4s/e4s-base-oneapi:25.06
     entrypoint: [""]
   tags:
     - tum
@@ -117,7 +117,7 @@ packaging/spack-v1/sycl:
     - .spack_v1_build_template
     - .package_test_condition
   image:
-    name: ecpe4s/e4s-base-oneapi:24.11
+    name: ecpe4s/e4s-base-oneapi:25.06
     entrypoint: [""]
   tags:
     - tum
