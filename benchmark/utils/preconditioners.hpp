@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,9 +20,13 @@
 
 DEFINE_string(preconditioners, "none",
               "A comma-separated list of preconditioners to use. "
-              "Supported values are: none, jacobi, paric, parict, parilu, "
+              "Supported values are: none, jacobi,mg, paric, parict, parilu, "
               "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "
-              "parilut-isai, ic-isai, ilu-isai, sor, overhead");
+              "parilut-isai, ic-isai, ilu-isai, sor, overhead"
+#ifdef GINKGO_BUILD_MPI
+              ", schwarz-jacobi, schwarz-ilu, schwarz-ic, schwarz-lu"
+#endif
+);
 
 DEFINE_uint32(parilu_iterations, 5,
               "The number of iterations for ParIC(T)/ParILU(T)");
@@ -54,6 +58,18 @@ DEFINE_double(sor_relaxation_factor, 1.0,
 
 DEFINE_bool(sor_symmetric, false,
             "Apply the SOR preconditioner symmetrically, i.e. use SSOR");
+
+DEFINE_bool(pgm_deterministic, false,
+            "Use deterministic computation of the aggregated group within PGM");
+
+DEFINE_uint32(
+    mg_max_num_levels, false,
+    "The maximum number of levels to use for the Multigrid preconditioner");
+
+DEFINE_double(mg_tolerance, false, "The tolerance for the coarse solver");
+
+DEFINE_uint32(mg_max_iters, false,
+              "The max number of iterations for the coarse solver");
 
 
 // parses the Jacobi storage optimization command line argument
@@ -307,12 +323,115 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_symmetric(FLAGS_sor_symmetric)
                  .on(exec);
          }},
-        {"overhead", [](std::shared_ptr<const gko::Executor> exec) {
+        {"overhead",
+         [](std::shared_ptr<const gko::Executor> exec) {
              return gko::Overhead<etype>::build()
                  .with_criteria(gko::stop::ResidualNorm<etype>::build()
                                     .with_reduction_factor(rc_etype{}))
                  .on(exec);
-         }}};
+         }},
+        {"mg",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             using ir = gko::solver::Ir<etype>;
+             auto iter_stop = gko::share(gko::stop::Iteration::build()
+                                             .with_max_iters(FLAGS_mg_max_iters)
+                                             .on(exec));
+             auto tol_stop =
+                 gko::share(gko::stop::ResidualNorm<etype>::build()
+                                .with_baseline(gko::stop::mode::absolute)
+                                .with_reduction_factor(FLAGS_mg_tolerance)
+                                .on(exec));
+             return gko::solver::Multigrid::build()
+                 .with_mg_level(
+                     gko::multigrid::Pgm<etype, itype>::build()
+                         .with_deterministic(FLAGS_pgm_deterministic))
+                 .with_criteria(iter_stop, tol_stop)
+                 .with_max_levels(FLAGS_mg_max_num_levels)
+                 .on(exec);
+         }}
+#if GINKGO_BUILD_MPI
+        ,
+        {"schwarz-jacobi",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::experimental::distributed::preconditioner::Schwarz<
+                        etype>::build()
+                 .with_local_solver(
+                     gko::preconditioner::Jacobi<etype>::build()
+                         .with_max_block_size(FLAGS_jacobi_max_block_size)
+                         .with_storage_optimization(
+                             parse_storage_optimization(FLAGS_jacobi_storage))
+                         .with_accuracy(
+                             static_cast<rc_etype>(FLAGS_jacobi_accuracy))
+                         .with_skip_sorting(true)
+                         .on(exec))
+                 .on(exec);
+         }},
+        {"schwarz-general-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::experimental::distributed::preconditioner::Schwarz<
+                        etype, itype>::build()
+                 .with_local_solver(
+                     gko::preconditioner::GeneralIsai<etype, itype>::build()
+                         .with_sparsity_power(FLAGS_isai_power)
+                         .on(exec))
+                 .on(exec);
+         }},
+        {"schwarz-spd-isai",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return gko::experimental::distributed::preconditioner::Schwarz<
+                        etype, itype>::build()
+                 .with_local_solver(
+                     gko::preconditioner::SpdIsai<etype, itype>::build()
+                         .with_sparsity_power(FLAGS_isai_power)
+                         .on(exec))
+                 .on(exec);
+         }},
+        {"schwarz-ilu",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact =
+                 gko::share(gko::factorization::Ilu<etype, itype>::build()
+                                .with_skip_sorting(true)
+                                .on(exec));
+             return gko::experimental::distributed::preconditioner::Schwarz<
+                        etype, itype>::build()
+                 .with_local_solver(gko::preconditioner::Ilu<
+                                        gko::solver::LowerTrs<etype, itype>,
+                                        gko::solver::UpperTrs<etype, itype>,
+                                        false, itype>::build()
+                                        .with_factorization(fact)
+                                        .on(exec))
+                 .on(exec);
+         }},
+        {"schwarz-ic",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact =
+                 gko::share(gko::factorization::Ic<etype, itype>::build()
+                                .with_skip_sorting(true)
+                                .on(exec));
+             return gko::experimental::distributed::preconditioner::Schwarz<
+                        etype, itype>::build()
+                 .with_local_solver(
+                     gko::preconditioner::Ic<
+                         gko::solver::LowerTrs<etype, itype>, itype>::build()
+                         .with_factorization(fact)
+                         .on(exec))
+                 .on(exec);
+         }},
+        {"schwarz-lu",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = gko::share(
+                 gko::experimental::factorization::Lu<etype, itype>::build().on(
+                     exec));
+             return gko::experimental::distributed::preconditioner::Schwarz<
+                        etype, itype>::build()
+                 .with_local_solver(
+                     gko::experimental::solver::Direct<etype, itype>::build()
+                         .with_factorization(fact)
+                         .on(exec))
+                 .on(exec);
+         }}
+#endif
+    };
 
 
 #endif  // GKO_BENCHMARK_UTILS_PRECONDITIONERS_HPP_
