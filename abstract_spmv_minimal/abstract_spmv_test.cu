@@ -200,7 +200,7 @@ template <unsigned subwarp_size, typename ValueType, typename IndexType,
 __device__ __forceinline__ void warp_atomic_add(
     const group::thread_block_tile<subwarp_size>& group, bool force_write,
     ValueType& val, const IndexType row, acc::range<output_accessor>& c,
-    const IndexType column_id, Closure scale)
+    const IndexType column_id, Closure&& scale)
 {
     const bool need_write = segment_scan(
         group, row, val, [](ValueType a, ValueType b) { return a + b; });
@@ -212,24 +212,24 @@ __device__ __forceinline__ void warp_atomic_add(
     }
 }
 
-template <bool last, unsigned subwarp_size, typename arithmetic_type,
-          typename matrix_accessor, typename IndexType, typename input_accessor,
-          typename output_accessor, typename Closure>
+template <bool last, unsigned subwarp_size, typename ArithmeticType,
+          typename MatrixAccessor, typename IndexType, typename InputAccessor,
+          typename OutputAccessor, typename Closure>
 __device__ __forceinline__ void process_window(
     const group::thread_block_tile<subwarp_size>& group,
     const IndexType num_rows, const IndexType data_size, const IndexType ind,
     IndexType& row, IndexType& row_end, IndexType& nrow, IndexType& nrow_end,
-    arithmetic_type& temp_val, acc::range<matrix_accessor> val,
+    ArithmeticType& temp_val, acc::range<MatrixAccessor> val,
     const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
-    acc::range<output_accessor> c, const IndexType column_id, Closure scale)
+    const IndexType* __restrict__ row_ptrs, acc::range<InputAccessor> b,
+    acc::range<OutputAccessor> c, const IndexType column_id, Closure&& scale)
 {
     const auto curr_row = row;
     find_next_row<last>(num_rows, data_size, ind, row, row_end, nrow, nrow_end,
                         row_ptrs);
     if (group.any(curr_row != row)) {
-        warp_atomic_add(group, curr_row != row, temp_val, curr_row, c,
-                        column_id, scale);
+        warp_atomic_add<subwarp_size>(group, curr_row != row, temp_val, curr_row, c,
+                        column_id, std::forward<Closure>(scale));
         nrow = group.shfl(row, subwarp_size - 1);
         nrow_end = group.shfl(row_end, subwarp_size - 1);
     }
@@ -280,14 +280,14 @@ __device__ __forceinline__ void spmv_kernel(
     const auto tile_block =
         group::tiled_partition<wsize>(group::this_thread_block());
     for (; ind < ind_end; ind += wsize) {
-        process_window<false>(tile_block, num_rows, data_size, ind, row,
+        process_window<false, wsize>(tile_block, num_rows, data_size, ind, row,
                               row_end, nrow, nrow_end, temp_val, val, col_idxs,
                               row_ptrs, b, c, column_id, scale);
     }
-    process_window<true>(tile_block, num_rows, data_size, ind, row, row_end,
+    process_window<true, wsize>(tile_block, num_rows, data_size, ind, row, row_end,
                          nrow, nrow_end, temp_val, val, col_idxs, row_ptrs, b,
                          c, column_id, scale);
-    warp_atomic_add(tile_block, true, temp_val, row, c, column_id, scale);
+    warp_atomic_add<wsize>(tile_block, true, temp_val, row, c, column_id, scale);
 }
 
 template <typename matrix_accessor, typename input_accessor,
