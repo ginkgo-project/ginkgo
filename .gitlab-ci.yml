@@ -87,43 +87,6 @@ release/latest/clang:
     - cpu
 
 
-release/latest/cuda:
-  extends:
-    - .default_variables
-    - .build_template
-  stage: build
-  image: mkochkit/ginkgo-release:cuda-latest
-  before_script:
-    - export NUM_CORES=${CI_PARALLELISM}
-    - export OMP_NUM_THREADS=${NUM_CORES}
-    - export CCACHE_DIR=${CCACHE_DIR}
-    - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
-  variables:
-    BUILD_TYPE: "Release"
-    BUILD_CUDA: "ON"
-    CUDA_ARCH_STR: "-DCMAKE_CUDA_ARCHITECTURES=80"
-  tags:
-    - nvidia-gpus
-
-
-release/latest/rocm:
-  extends:
-    - .default_variables
-    - .build_template
-  image: mkochkit/ginkgo-release:rocm-latest
-  before_script:
-    - export NUM_CORES=${CI_PARALLELISM}
-    - export OMP_NUM_THREADS=${NUM_CORES}
-    - export CCACHE_DIR=${CCACHE_DIR}
-    - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
-    - export CMAKE_PREFIX_PATH=/opt/rocm
-  variables:
-    BUILD_TYPE: "Release"
-    BUILD_HIP: "ON"
-  tags:
-    - amd-gpu
-
-
 release/latest/oneapi:
   extends:
     - .default_variables
