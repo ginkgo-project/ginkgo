@@ -611,9 +611,23 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
                         ? host_recv_vector.get()
                         : recv_vector.get();
 
-    auto req = row_gatherer_->apply_async(scaling_factors_ptr, recv_ptr);
-    scale_diag->rapply(local_mtx_, local_mtx_);
-    req.wait();
+    if (scaling_factors->get_executor() ==
+        scaling_factors->get_executor()->get_master()) {
+        // reference and omp executor does not have event, so we still
+        // submit the mpi first.
+        auto req =
+            this->row_gatherer_->apply_async(scaling_factors_ptr, recv_ptr);
+        scale_diag->rapply(local_mtx_, local_mtx_);
+        req.wait();
+    } else {
+        // we use event here such that we can submit local matrix scaling job
+        // first without waiting for synchronization from the row gatherer.
+        auto ev = this->row_gatherer_->apply_prepare(scaling_factors_ptr);
+        scale_diag->rapply(local_mtx_, local_mtx_);
+        auto req = this->row_gatherer_->apply_finalize(scaling_factors_ptr,
+                                                       recv_ptr, ev);
+        req.wait();
+    }
     if (n_non_local_cols > 0) {
         if (recv_ptr != recv_vector.get()) {
             recv_vector->copy_from(host_recv_vector);
