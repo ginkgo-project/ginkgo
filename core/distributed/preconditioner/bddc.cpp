@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include <parmetis.h>
+#include GKO_PARMETIS_HEADER
 #include <sys/types.h>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -990,17 +990,17 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         // Go through host with ParMETIS
         auto host_coarse = coarse_contribution.copy_to_host();
         int n_coarse_entries = host_coarse.nonzeros.size();
-        std::vector<int> elmdist(comm.size() + 1);
+        std::vector<idx_t> elmdist(comm.size() + 1);
         std::iota(elmdist.begin(), elmdist.end(), 0);
-        std::vector<int> eptr{0, static_cast<int>(n_constraints)};
-        std::vector<int> eind(n_constraints);
+        std::vector<idx_t> eptr{0, static_cast<idx_t>(n_constraints)};
+        std::vector<idx_t> eind(n_constraints);
         for (size_type i = 0; i < n_constraints; i++) {
             eind[i] = coarse_global_idxs.get_const_data()[i];
         }
-        int elmwgt = 0;
-        int numflag = 0;
-        int ncon = 1;
-        int ncommonnodes = 2;
+        idx_t elmwgt = 0;
+        idx_t numflag = 0;
+        idx_t ncon = 1;
+        idx_t ncommonnodes = 2;
         array<size_type> local_sizes{host_exec, num_parts};
         comm.all_gather(host_exec, &local_size, 1, local_sizes.get_data(), 1);
         int min_size = local_size;
@@ -1009,7 +1009,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 min_size, static_cast<int>(local_sizes.get_const_data()[i]));
         }
         // int nparts = 1;
-        int nparts = std::pow(
+        idx_t nparts = std::pow(
             2,
             std::ceil(std::log(std::ceil(
                           static_cast<remove_complex<ValueType>>(
@@ -1021,11 +1021,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         // << nparts << std::endl;
         // int nparts = std::pow(2, std::floor(std::log(comm.size() / 2) /
         // std::log(2)));
-        std::vector<float> tpwgts(ncon * nparts, 1. / nparts);
-        std::vector<float> ubvec(ncon, 1.05);
-        int options = 0;
-        int edgecut;
-        int new_part = comm.rank();
+        std::vector<real_t> tpwgts(ncon * nparts, 1. / nparts);
+        std::vector<real_t> ubvec(ncon, 1.05);
+        idx_t options = 0;
+        idx_t edgecut;
+        idx_t new_part = comm.rank();
         MPI_Comm commptr = comm.get();
 
         int ret = ParMETIS_V3_PartMeshKway(

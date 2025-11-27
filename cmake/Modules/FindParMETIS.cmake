@@ -57,6 +57,7 @@ find_file(
     PATHS ${PARMETIS_INCLUDE_DIR}
     NO_DEFAULT_PATH
 )
+
 if(PARMETIS_HEADER_FILE)
     file(READ "${PARMETIS_HEADER_FILE}" parmetisheader)
     string(
@@ -81,6 +82,8 @@ if(PARMETIS_HEADER_FILE)
             "${ParMETIS_MAJOR_VERSION}.${ParMETIS_MINOR_VERSION}"
         )
     endif()
+
+    set(PARMETIS_HEADER parmetis.h)
 endif()
 unset(PARMETIS_HEADER_FILE CACHE)
 
