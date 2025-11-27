@@ -219,13 +219,7 @@
   extends:
     - .before_script_template
   script:
-    # Set up newest spack
-    - git clone -c feature.manyFiles=true --depth=1 https://github.com/spack/spack.git ${CI_BUILDS_DIR}/spack
-    - source ${CI_BUILDS_DIR}/spack/share/spack/setup-env.sh
-    - spack bootstrap now
-    - 'echo "spack: $(which spack) $(spack --version)"'
-    # Add upstream spack
-    - spack config --scope user add upstreams:system:install_tree:/storage/apps/opt/spack/opt/spack
+    - source /storage/apps/opt/spack/share/spack/setup-env.sh
     # Add ginkgo's spack fork to use development version of ginkgo's spack package
     - echo "Using spack branch ${SPACK_BRANCH}"
     - git clone -c feature.manyFiles=true --depth=1 --sparse -b ${SPACK_BRANCH} https://github.com/ginkgo-project/spack-packages.git ${CI_BUILDS_DIR}/ginkgo-spack-packages
