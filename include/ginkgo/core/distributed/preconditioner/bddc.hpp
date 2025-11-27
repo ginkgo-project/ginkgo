@@ -24,6 +24,7 @@
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/distributed/dd_matrix.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/preconditioner/bddc_helpers.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -39,11 +40,6 @@ namespace distributed {
  * @ingroup precond
  */
 namespace preconditioner {
-
-
-enum class dof_type { inner, inactive, face, edge, vertex };
-
-enum class scaling_type { stiffness, deluxe };
 
 
 /**

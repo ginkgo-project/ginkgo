@@ -7,9 +7,12 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <map>
 #include <string>
+#include <vector>
 
-#include "ginkgo/core/distributed/preconditioner/bddc.hpp"
+#include <ginkgo/core/base/intrinsics.hpp>
+#include <ginkgo/core/distributed/preconditioner/bddc_helpers.hpp>
 
 
 namespace gko {

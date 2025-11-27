@@ -24,7 +24,6 @@
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "ginkgo/core/base/types.hpp"
-#include "ginkgo/core/distributed/preconditioner/bddc.hpp"
 
 
 namespace {

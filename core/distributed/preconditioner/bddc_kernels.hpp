@@ -8,11 +8,11 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
+#include <ginkgo/core/base/intrinsics.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
-#include <ginkgo/core/distributed/preconditioner/bddc.hpp>
-#include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/distributed/preconditioner/bddc_helpers.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/kernel_declaration.hpp"
