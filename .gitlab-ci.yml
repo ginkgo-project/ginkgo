@@ -33,95 +33,29 @@ packaging/spack/rocm:
   extends:
     - .spack_build_template
     - .package_test_condition
-  image:
-    name: ecpe4s/e4s-base-rocm:25.06
-    entrypoint: [""]
-  tags:
-    - nla-gpu
+    - .use_tum-amd
   variables:
     GIT_STRATEGY: none
     GINKGO_SPEC: "@develop +rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
   needs:
     - packaging/spack/trigger
-
-
-packaging/spack-v1/rocm:
-  extends:
-    - .spack_v1_build_template
-    - .package_test_condition
-  image:
-    name: ecpe4s/e4s-base-rocm:25.06
-    entrypoint: [""]
-  tags:
-    - nla-gpu
-  variables:
-    GIT_STRATEGY: none
-    GINKGO_SPEC: "@develop +rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
-  needs:
-    - packaging/spack/trigger
-
 
 packaging/spack/cuda:
   extends:
     - .spack_build_template
     - .package_test_condition
-  image:
-    name: ecpe4s/e4s-base-cuda:25.06
-    entrypoint: [""]
-  tags:
-    - tum
-    - nvidia-gpus
+    - .use_tum-nvidia
   variables:
     GIT_STRATEGY: none
     GINKGO_SPEC: "@develop +cuda cuda_arch=80 +openmp +mpi generator=ninja"
   needs:
     - packaging/spack/trigger
-
-
-packaging/spack-v1/cuda:
-  extends:
-    - .spack_v1_build_template
-    - .package_test_condition
-  image:
-    name: ecpe4s/e4s-base-cuda:25.06
-    entrypoint: [""]
-  tags:
-    - tum
-    - nvidia-gpus
-  variables:
-    GIT_STRATEGY: none
-    GINKGO_SPEC: "@develop +cuda cuda_arch=80 +openmp +mpi generator=ninja"
-  needs:
-    - packaging/spack/trigger
-
 
 packaging/spack/sycl:
   extends:
     - .spack_build_template
     - .package_test_condition
-  image:
-    name: ecpe4s/e4s-base-oneapi:25.06
-    entrypoint: [""]
-  tags:
-    - tum
-    - intel-gpus
-  variables:
-    GIT_STRATEGY: none
-    GINKGO_SPEC: "@develop +sycl +openmp +mpi generator=ninja %oneapi"
-  needs:
-    - packaging/spack/trigger
-
-
-packaging/spack-v1/sycl:
-  extends:
-    - .spack_v1_build_template
-    - .package_test_condition
-  image:
-    name: ecpe4s/e4s-base-oneapi:25.06
-    entrypoint: [""]
-  tags:
-    - tum
-    - intel-gpus
+    - .use_tum-intel
   variables:
     GIT_STRATEGY: none
     GINKGO_SPEC: "@develop +sycl +openmp +mpi generator=ninja %oneapi"
