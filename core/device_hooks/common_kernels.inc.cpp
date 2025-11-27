@@ -10,6 +10,7 @@
 #include "core/base/batch_instantiation.hpp"
 #include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/event_kernels.hpp"
 #include "core/base/index_set_kernels.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/absolute_array_kernels.hpp"
@@ -253,6 +254,7 @@ template GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(size_type);
 
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
+template GKO_DECLARE_FILL_ARRAY_KERNEL(char);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint16);
 template GKO_DECLARE_FILL_ARRAY_KERNEL(uint32);
 #ifndef GKO_SIZE_T_IS_UINT64_T
@@ -314,6 +316,15 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL);
 
 
 }  // namespace idx_set
+
+
+namespace event {
+
+
+GKO_STUB(GKO_DECLARE_EVENT_RECORD_EVENT);
+
+
+}
 
 
 namespace partition {

@@ -474,9 +474,22 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                                 ? host_recv_vector.get()
                                 : recv_vector.get();
-            auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
-            local_mtx_->apply(dense_b->get_local_vector(), local_x);
-            req.wait();
+            if (dense_b->get_executor() ==
+                dense_b->get_executor()->get_master()) {
+                // reference and omp executor does not have event, so we still
+                // submit the mpi first.
+                auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
+                local_mtx_->apply(dense_b->get_local_vector(), local_x);
+                req.wait();
+            } else {
+                // we use event here such that we can submit spmv job first
+                // without waiting for synchronization from the row gatherer.
+                auto ev = this->row_gatherer_->apply_prepare(dense_b);
+                local_mtx_->apply(dense_b->get_local_vector(), local_x);
+                auto req =
+                    this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
+                req.wait();
+            }
 
             if (recv_ptr != recv_vector.get()) {
                 recv_vector->copy_from(host_recv_vector);
@@ -527,10 +540,26 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                                 ? host_recv_vector.get()
                                 : recv_vector.get();
-            auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
-            local_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
-                              local_beta.get(), local_x);
-            req.wait();
+            if (dense_b->get_executor() ==
+                dense_b->get_executor()->get_master()) {
+                // reference and omp executor does not have event, so we still
+                // submit the mpi first.
+                auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
+                local_mtx_->apply(local_alpha.get(),
+                                  dense_b->get_local_vector(), local_beta.get(),
+                                  local_x);
+                req.wait();
+            } else {
+                // we use event here such that we can submit spmv job first
+                // without waiting for synchronization from the row gatherer.
+                auto ev = this->row_gatherer_->apply_prepare(dense_b);
+                local_mtx_->apply(local_alpha.get(),
+                                  dense_b->get_local_vector(), local_beta.get(),
+                                  local_x);
+                auto req =
+                    this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
+                req.wait();
+            }
 
             if (recv_ptr != recv_vector.get()) {
                 recv_vector->copy_from(host_recv_vector);
@@ -582,9 +611,23 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
                         ? host_recv_vector.get()
                         : recv_vector.get();
 
-    auto req = row_gatherer_->apply_async(scaling_factors_ptr, recv_ptr);
-    scale_diag->rapply(local_mtx_, local_mtx_);
-    req.wait();
+    if (scaling_factors->get_executor() ==
+        scaling_factors->get_executor()->get_master()) {
+        // reference and omp executor does not have event, so we still
+        // submit the mpi first.
+        auto req =
+            this->row_gatherer_->apply_async(scaling_factors_ptr, recv_ptr);
+        scale_diag->rapply(local_mtx_, local_mtx_);
+        req.wait();
+    } else {
+        // we use event here such that we can submit local matrix scaling job
+        // first without waiting for synchronization from the row gatherer.
+        auto ev = this->row_gatherer_->apply_prepare(scaling_factors_ptr);
+        scale_diag->rapply(local_mtx_, local_mtx_);
+        auto req = this->row_gatherer_->apply_finalize(scaling_factors_ptr,
+                                                       recv_ptr, ev);
+        req.wait();
+    }
     if (n_non_local_cols > 0) {
         if (recv_ptr != recv_vector.get()) {
             recv_vector->copy_from(host_recv_vector);
