@@ -26,8 +26,8 @@ packaging/spack/trigger:
     SPACK_BRANCH: develop
     GINKGO_VERSION: develop
   script:
-    - echo "SPACK_BRANCH=${SPACK_BRANCH}" > build.env
-    - echo "GINKGO_VERSION=${GINKGO_VERSION}" > build.env
+    - echo "SPACK_BRANCH=${SPACK_BRANCH}" >> build.env
+    - echo "GINKGO_VERSION=${GINKGO_VERSION}" >> build.env
   artifacts:
     reports:
       dotenv: build.env
