@@ -23,8 +23,11 @@ packaging/spack/trigger:
     - status-jobs
   variables:
     GIT_STRATEGY: none
+    SPACK_BRANCH: develop
+    GINKGO_VERSION: develop
   script:
-    - echo "SPACK_BRANCH=${GINKGO_SPACK_BRANCH:=develop}" > build.env
+    - echo "SPACK_BRANCH=${SPACK_BRANCH}" > build.env
+    - echo "GINKGO_VERSION=${GINKGO_VERSION}" > build.env
   artifacts:
     reports:
       dotenv: build.env
@@ -36,7 +39,7 @@ packaging/spack/rocm:
     - .use_tum-amd
   variables:
     GIT_STRATEGY: none
-    GINKGO_SPEC: "@develop +rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
+    GINKGO_SPEC: "+rocm amdgpu_target=gfx90a +openmp +mpi generator=ninja"
   needs:
     - packaging/spack/trigger
 
@@ -47,7 +50,7 @@ packaging/spack/cuda:
     - .use_tum-nvidia
   variables:
     GIT_STRATEGY: none
-    GINKGO_SPEC: "@develop +cuda cuda_arch=80 +openmp +mpi generator=ninja"
+    GINKGO_SPEC: "+cuda cuda_arch=80 +openmp +mpi generator=ninja"
   needs:
     - packaging/spack/trigger
 
@@ -58,6 +61,6 @@ packaging/spack/sycl:
     - .use_tum-intel
   variables:
     GIT_STRATEGY: none
-    GINKGO_SPEC: "@develop +sycl +openmp +mpi generator=ninja %oneapi"
+    GINKGO_SPEC: "+sycl +openmp +mpi generator=ninja %oneapi"
   needs:
     - packaging/spack/trigger
