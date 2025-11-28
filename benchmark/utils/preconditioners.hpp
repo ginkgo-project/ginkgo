@@ -18,15 +18,22 @@
 #include "benchmark/utils/types.hpp"
 
 
+// MSVC has different way to expand macro than linux, so we can not put the #if
+// inside the DEFINE_string macro
+#define PRECONDITIONERS_COMMON                                        \
+    "A comma-separated list of preconditioners to use. "              \
+    "Supported values are: none, jacobi, mg, paric, parict, parilu, " \
+    "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "        \
+    "parilut-isai, ic-isai, ilu-isai, sor, overhead"
+#if GINKGO_BUILD_MPI
 DEFINE_string(preconditioners, "none",
-              "A comma-separated list of preconditioners to use. "
-              "Supported values are: none, jacobi,mg, paric, parict, parilu, "
-              "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "
-              "parilut-isai, ic-isai, ilu-isai, sor, overhead"
-#ifdef GINKGO_BUILD_MPI
-              ", schwarz-jacobi, schwarz-ilu, schwarz-ic, schwarz-lu"
+              PRECONDITIONERS_COMMON
+              ", schwarz-jacobi, schwarz-ilu, schwarz-ic, schwarz-lu");
+#else
+DEFINE_string(preconditioners, "none", PRECONDITIONERS_COMMON);
 #endif
-);
+
+#undef PRECONDITIONERS_COMMON
 
 DEFINE_uint32(parilu_iterations, 5,
               "The number of iterations for ParIC(T)/ParILU(T)");
