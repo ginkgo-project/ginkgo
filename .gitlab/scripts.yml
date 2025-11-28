@@ -237,6 +237,9 @@
     # Use CI_BUILDS_DIR for the spack install and build directory
     - 'spack config add "config:install_tree:root:${CI_BUILDS_DIR}/spack/opt/spack"'
     - 'spack config add "config:build_stage:${CI_BUILDS_DIR}/spack-stage"'
+    # Install patch command in case the spack package for ginkgo requires patching
+    - spack install xz && spack load xz
+    - spack install patch && spack load patch
     - echo "Using ginkgo version ${GINKGO_VERSION:=develop}"
     - spack install -j ${NUM_CORES} gko.ginkgo @${GINKGO_VERSION} ${GINKGO_SPEC}
 
