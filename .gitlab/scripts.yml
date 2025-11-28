@@ -224,8 +224,6 @@
     - source ${CI_BUILDS_DIR}/spack/share/spack/setup-env.sh
     # Set use writable dir as user cache
     - export SPACK_USER_CACHE_PATH=${CI_BUILDS_DIR}/spack-cache
-    - spack bootstrap now
-    - 'echo "spack: $(which spack) $(spack --version)"'
     # Add upstream spack
     - spack config add upstreams:system:install_tree:/storage/apps/opt/spack/opt/spack
     # Add ginkgo's spack fork to use development version of ginkgo's spack package
