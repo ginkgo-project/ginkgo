@@ -51,7 +51,7 @@
     - if: $RUN_CI_TAG && ($STATUS_CONTEXT == "full" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG)
     - if: $RUN_CI_TAG && $STATUS_CONTEXT == null # FIXME: this will be "full"
       when: manual
-      allow_failure: true
+      allow_failure: false
   needs: []
 
 
