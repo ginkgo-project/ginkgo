@@ -222,7 +222,7 @@ build/cuda130/nompi/gcc/cuda/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-nvidia
   variables:
     BUILD_CUDA: "ON"
@@ -360,7 +360,7 @@ build/amd/nompi/gcc/rocm710/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
-    - .quick_test_condition
+    - .full_test_condition
     - .use_tum-amd-mi210
   variables:
     BUILD_HIP: "ON"
