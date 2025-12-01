@@ -34,6 +34,7 @@ protected:
     // in single mode, mixed_type will be the same as value_type
     using mixed_type = float;
     using Mtx = gko::matrix::Dense<value_type>;
+    using CsrMtx = gko::matrix::Csr<value_type>;
     using MixedMtx = gko::matrix::Dense<mixed_type>;
     using NormVector = gko::matrix::Dense<gko::remove_complex<value_type>>;
     using Arr = gko::array<index_type>;
@@ -98,6 +99,7 @@ protected:
         x = gen_mtx<Mtx>(65, 25);
         y = gen_mtx<Mtx>(25, 35);
         c_x = gen_mtx<ComplexMtx>(65, 25);
+        csr_y = gen_mtx<CsrMtx>(25, 35);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         result = gen_mtx<Mtx>(65, 35);
@@ -105,6 +107,7 @@ protected:
         dx = gko::clone(exec, x);
         dy = gko::clone(exec, y);
         dc_x = gko::clone(exec, c_x);
+        dcsr_y = gko::clone(exec, csr_y);
         dresult = gko::clone(exec, result);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
@@ -166,6 +169,7 @@ protected:
     std::unique_ptr<ComplexMtx> c_y;
     std::unique_ptr<ComplexMtx> c_alpha;
     std::unique_ptr<Mtx> y;
+    std::unique_ptr<CsrMtx> csr_y;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> result;
@@ -175,6 +179,7 @@ protected:
     std::unique_ptr<ComplexMtx> dc_y;
     std::unique_ptr<ComplexMtx> dc_alpha;
     std::unique_ptr<Mtx> dy;
+    std::unique_ptr<CsrMtx> dcsr_y;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
     std::unique_ptr<Mtx> dresult;
@@ -325,9 +330,9 @@ TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
 TEST_F(Dense, ApplyToMixedComplexIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto complex_b = gen_mtx<ComplexMtx>(x->get_size()[1], 1);
+    auto complex_b = gen_mtx<MixedComplexMtx>(x->get_size()[1], 1);
     auto dcomplex_b = gko::clone(exec, complex_b);
-    auto complex_x = gen_mtx<ComplexMtx>(x->get_size()[0], 1);
+    auto complex_x = gen_mtx<MixedComplexMtx>(x->get_size()[0], 1);
     auto dcomplex_x = gko::clone(exec, complex_x);
 
     x->apply(complex_b, complex_x);
@@ -368,6 +373,33 @@ TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 2e-7);
 }
 
+TEST_F(Dense, SimpleMspmIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    #ifdef GKO_COMPILING_OMP
+    x->apply(csr_y, result);
+    dx->apply(dcsr_y, dresult);
+
+    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
+    #else
+    ASSERT_THROW(dx->apply(dcsr_y, dresult), gko::NotImplemented);
+    #endif
+}
+
+TEST_F(Dense, AdvancedMspmIsEquivalentToRef)
+{
+    set_up_apply_data();
+
+    #ifdef GKO_COMPILING_OMP
+    x->apply(alpha, csr_y, beta, result);
+    dx->apply(dalpha, dcsr_y, dbeta, dresult);
+
+    GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
+    #else
+    ASSERT_THROW(dx->apply(dalpha, dcsr_y, dbeta, dresult), gko::NotImplemented);
+    #endif
+}
 
 TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
 {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,6 +30,19 @@ namespace kernels {
                const matrix::Dense<_type>* alpha,                            \
                const matrix::Dense<_type>* a, const matrix::Dense<_type>* b, \
                const matrix::Dense<_type>* beta, matrix::Dense<_type>* c)
+
+#define GKO_DECLARE_DENSE_SIMPLE_MSPM_KERNEL(_vtype, _itype)      \
+    void simple_mspm(std::shared_ptr<const DefaultExecutor> exec, \
+                     const matrix::Dense<_vtype>* a,              \
+                     const matrix::Csr<_vtype, _itype>* b,        \
+                     matrix::Dense<_vtype>* c)
+
+#define GKO_DECLARE_DENSE_MSPM_KERNEL(_vtype, _itype)      \
+    void mspm(std::shared_ptr<const DefaultExecutor> exec, \
+              const matrix::Dense<_vtype>* alpha,          \
+              const matrix::Dense<_vtype>* a,              \
+              const matrix::Csr<_vtype, _itype>* b,        \
+              const matrix::Dense<_vtype>* beta, matrix::Dense<_vtype>* c)
 
 #define GKO_DECLARE_DENSE_COPY_KERNEL(_intype, _outtype)   \
     void copy(std::shared_ptr<const DefaultExecutor> exec, \
@@ -354,6 +367,10 @@ namespace kernels {
     GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL(ValueType);                         \
     template <typename ValueType>                                             \
     GKO_DECLARE_DENSE_APPLY_KERNEL(ValueType);                                \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_SIMPLE_MSPM_KERNEL(ValueType, IndexType);               \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_MSPM_KERNEL(ValueType, IndexType);                      \
     template <typename InValueType, typename OutValueType>                    \
     GKO_DECLARE_DENSE_COPY_KERNEL(InValueType, OutValueType);                 \
     template <typename ValueType>                                             \
