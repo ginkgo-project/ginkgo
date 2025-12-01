@@ -226,7 +226,6 @@ if(GINKGO_BUILD_CUDA)
 endif()
 if(GINKGO_BUILD_HIP)
     include(cmake/hip.cmake)
-    message("HIP_VERSION ${GINKGO_HIP_VERSION}")
     if(GINKGO_HIP_PLATFORM_AMD AND GINKGO_HIP_VERSION VERSION_LESS 5.7)
         # Hip allow custom namespace but does not fully make everything in the custom namespace before rocm-5.7
         # more specific pr: https://github.com/ROCm/rocThrust/pull/286

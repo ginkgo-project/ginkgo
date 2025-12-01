@@ -7,7 +7,6 @@ on:
       - 'master'
       - 'develop'
       - 'release/**'
-      - 'arm_action'
     tags:
       - '**'
   pull_request:
