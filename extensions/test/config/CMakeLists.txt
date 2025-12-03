@@ -5,7 +5,7 @@ if(NOT yaml-cpp_FOUND)
     FetchContent_Declare(
         yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-        GIT_TAG 2f86d13775d119edbb69af52e5f566fd65c6953b
+        GIT_TAG bbf8bdb087bb3f3621ca0a5ace06047805f4e9f3
     )
 
     # Turn off additional tool in yaml-cpp
