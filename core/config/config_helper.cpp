@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/config/registry_accessor.hpp"
 #include "core/config/stop_config.hpp"
@@ -118,21 +119,32 @@ parse_minimal_criteria(const pnode& config, const registry& context,
     // We use additional scope such that we check it before the following map
     // throw exception
     {
-        config_check_decorator config_check(config);
+        config_check_decorator config_check(config, {{"min_iters"}});
         for (const auto& it : criterion_map) {
             config_check.get(it.first);
         }
     }
 
+
     std::vector<deferred_factory_parameter<const stop::CriterionFactory>> res;
     for (const auto& it : config.get_map()) {
-        if (it.first == "value_type") {
+        if (it.first == "value_type" || it.first == "min_iters") {
             continue;
         }
         res.emplace_back(
             criterion_map.at(it.first)(config, context, updated_td));
     }
-    return res;
+    if (auto& obj = config.get("min_iters")) {
+        auto counts = get_value<size_type>(obj);
+        if (res.size() == 1) {
+            return {stop::min_iters(counts, res.at(0))};
+        } else {
+            return {stop::min_iters(
+                counts, stop::Combined::build().with_criteria(res))};
+        }
+    } else {
+        return res;
+    }
 }
 
 

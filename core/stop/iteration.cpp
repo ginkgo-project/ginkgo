@@ -31,7 +31,8 @@ deferred_factory_parameter<Iteration::Factory> max_iters(size_type count)
 
 
 deferred_factory_parameter<CriterionFactory> min_iters(
-    size_type count, deferred_factory_parameter<CriterionFactory> criterion)
+    size_type count,
+    deferred_factory_parameter<const CriterionFactory> criterion)
 {
     return MinIterationWrapper::build()
         .with_min_iters(count)
