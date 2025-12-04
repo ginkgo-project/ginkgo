@@ -218,6 +218,20 @@ build/cuda126/nompi/gcc/cuda/release/shared:
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.30.8 cuda/12.6.3 gcc/13.3.0"
 
+build/cuda130/nompi/gcc/cuda/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-nvidia
+  variables:
+    BUILD_CUDA: "ON"
+    BUILD_HWLOC: "OFF"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.30.8 cuda/13.0.2 gcc/14.3.0"
+
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
   extends:
@@ -340,6 +354,21 @@ build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:
     BUILD_MPI: "ON"
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.29.6 rocm/6.3.4 gcc/13.3.0 openmpi/5.0.7"
+
+# mi50 is not officially supported by ROCm >= 7
+build/amd/nompi/gcc/rocm710/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-amd-mi210
+  variables:
+    BUILD_HIP: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_MPI: "OFF"
+    BUILD_OMP: "OFF"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.29.6 rocm/7.1.0 gcc/14.3.0"
 
 # no cuda but latest gcc and clang
 build/nocuda/nompi/gcc/core/debug/static:
