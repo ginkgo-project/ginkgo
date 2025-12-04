@@ -164,8 +164,7 @@ Bddc<ValueType, LocalIndexType, GlobalIndexType>::parse(
     const config::pnode& config, const config::registry& context,
     const config::type_descriptor& td_for_child)
 {
-    auto params = Bddc<ValueType, LocalIndexType, GlobalIndexType>::build();
-
+    auto params = Bddc::build();
     if (auto& obj = config.get("local_solver")) {
         params.with_local_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(

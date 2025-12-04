@@ -11,7 +11,7 @@ set(config_source
     config/solver_config.cpp
 )
 if(GINKGO_BUILD_MPI)
-    list(APPEND config_source config/schwarz_config.cpp)
+    list(APPEND config_source config/indextype_dispatch.cpp)
 endif()
 # MSVC: LNK1189 issue
 # CLANG in MSYS2 (MINGW): too many exported symbols

@@ -71,7 +71,8 @@ enum class LinOpFactoryType : int {
     Sor,
     Multigrid,
     Pgm,
-    Schwarz
+    Schwarz,
+    Bddc
 };
 
 
