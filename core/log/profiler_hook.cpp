@@ -23,50 +23,6 @@
 
 namespace gko {
 namespace log {
-namespace {
-
-
-std::string check_vector_type(const LinOp* linop)
-{
-#define GKO_CHECK_TYPE(_class, _type)                                        \
-    if (dynamic_cast<const _class<_type>*>(linop)) {                         \
-        return #_class "<" #_type ">";                                       \
-    } else if (dynamic_cast<const _class<std::complex<_type>>*>(linop)) {    \
-        return #_class "<complex<" #_type ">>";                              \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
-                  "semi-colon warnings")
-
-    using gko::matrix::Dense;
-    GKO_CHECK_TYPE(Dense, double);
-    GKO_CHECK_TYPE(Dense, float);
-#if GINKGO_ENABLE_HALF
-    GKO_CHECK_TYPE(Dense, half);
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-    GKO_CHECK_TYPE(Dense, bfloat16);
-#endif
-
-#if GINKGO_BUILD_MPI
-    using gko::experimental::distributed::Vector;
-    GKO_CHECK_TYPE(Vector, double);
-    GKO_CHECK_TYPE(Vector, float);
-#if GINKGO_ENABLE_HALF
-    GKO_CHECK_TYPE(Vector, half);
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-    GKO_CHECK_TYPE(Vector, bfloat16);
-#endif
-#endif
-
-#undef GKO_CHECK_TYPE
-
-    return "linop";
-}
-
-
-}  // namespace
 
 
 void ProfilerHook::on_allocation_started(const gko::Executor* exec,
@@ -188,8 +144,8 @@ void ProfilerHook::on_linop_apply_started(const LinOp* A, const LinOp* b,
                                           const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "apply(" << stringify_object(A) << "*" << check_vector_type(b) << "="
-       << check_vector_type(x) << ")";
+    ss << "apply(" << stringify_object(A) << " * " << stringify_object(b)
+       << " = " << stringify_object(x) << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->begin_hook_("iteration", profile_event_category::solver);
@@ -201,8 +157,8 @@ void ProfilerHook::on_linop_apply_completed(const LinOp* A, const LinOp* b,
                                             const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "apply(" << stringify_object(A) << "*" << check_vector_type(b) << "="
-       << check_vector_type(x) << ")";
+    ss << "apply(" << stringify_object(A) << " * " << stringify_object(b)
+       << " = " << stringify_object(x) << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->end_hook_("iteration", profile_event_category::solver);
     }
@@ -217,9 +173,9 @@ void ProfilerHook::on_linop_advanced_apply_started(const LinOp* A,
                                                    const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "advanced_apply(" << check_vector_type(alpha) << "*"
-       << stringify_object(A) << "*" << check_vector_type(b) << "+"
-       << check_vector_type(beta) << "*" << check_vector_type(x) << ")";
+    ss << "advanced_apply(" << stringify_object(alpha) << " * "
+       << stringify_object(A) << " * " << stringify_object(b) << " + "
+       << stringify_object(beta) << " * " << stringify_object(x) << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->begin_hook_("iteration", profile_event_category::solver);
@@ -234,9 +190,9 @@ void ProfilerHook::on_linop_advanced_apply_completed(const LinOp* A,
                                                      const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "advanced_apply(" << check_vector_type(alpha) << "*"
-       << stringify_object(A) << "*" << check_vector_type(b) << "+"
-       << check_vector_type(beta) << "*" << check_vector_type(x) << ")";
+    ss << "advanced_apply(" << stringify_object(alpha) << " * "
+       << stringify_object(A) << " * " << stringify_object(b) << " + "
+       << stringify_object(beta) << " * " << stringify_object(x) << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->end_hook_("iteration", profile_event_category::solver);
     }

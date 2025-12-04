@@ -110,14 +110,14 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
         "end:copy(obj,obj)",
         "begin:move(obj_copy,obj)",
         "end:move(obj_copy,obj)",
-        "begin:apply(obj*linop=linop)",
+        "begin:apply(obj * obj = obj)",
         "begin:op",
         "end:op",
-        "end:apply(obj*linop=linop)",
-        "begin:advanced_apply(linop*obj*linop+linop*linop)",
+        "end:apply(obj * obj = obj)",
+        "begin:advanced_apply(DummyLinOp * obj * obj + DummyLinOp * obj)",
         "begin:op",
         "end:op",
-        "end:advanced_apply(linop*obj*linop+linop*linop)",
+        "end:advanced_apply(DummyLinOp * obj * obj + DummyLinOp * obj)",
         "begin:generate(obj_factory)",
         "begin:op",
         "end:op",
@@ -160,24 +160,22 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
 {
     // clang-format off
     std::vector<std::string> expected{
-        "begin:apply(obj*Dense<float>=Dense<complex<double>>)",
+        "begin:apply(obj * gko::matrix::Dense<float> = gko::matrix::Dense<std::complex<double> >)",
         "begin:op",
         "end:op",
-        "end:apply(obj*Dense<float>=Dense<complex<double>>)",
-        "begin:advanced_apply(Dense<complex<double>>*obj*Dense<float>+Dense<float>*Dense<complex<double>>)",
+        "end:apply(obj * gko::matrix::Dense<float> = gko::matrix::Dense<std::complex<double> >)",
+        "begin:advanced_apply(gko::matrix::Dense<std::complex<double> > * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * gko::matrix::Dense<std::complex<double> >)",
         "begin:op",
         "end:op",
-        "end:advanced_apply(Dense<complex<double>>*obj*Dense<float>+Dense<float>*Dense<complex<double>>)",
-        "begin:apply(obj*linop=Dense<complex<double>>)",
+        "end:advanced_apply(gko::matrix::Dense<std::complex<double> > * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * gko::matrix::Dense<std::complex<double> >)",
+        "begin:apply(obj * obj = gko::matrix::Dense<std::complex<double> >)",
         "begin:op",
         "end:op",
-        "end:apply(obj*linop=Dense<complex<double>>)",
-        "begin:advanced_apply(Dense<complex<double>>*obj*Dense<float>+linop*"
-        "linop)",
+        "end:apply(obj * obj = gko::matrix::Dense<std::complex<double> >)",
+        "begin:advanced_apply(gko::matrix::Dense<std::complex<double> > * obj * gko::matrix::Dense<float> + DummyLinOp * obj)",
         "begin:op",
         "end:op",
-        "end:advanced_apply(Dense<complex<double>>*obj*Dense<float>+linop*"
-        "linop)"};
+        "end:advanced_apply(gko::matrix::Dense<std::complex<double> > * obj * gko::matrix::Dense<float> + DummyLinOp * obj)"};
     // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
@@ -210,14 +208,14 @@ TEST(ProfilerHook, LogsIteration)
     using Vec = gko::matrix::Dense<>;
     // clang-format off
     std::vector<std::string> expected{
-        "begin:apply(solver*Dense<double>=Dense<double>)",
+        "begin:apply(solver * mtx = mtx)",
         "begin:iteration",
         "end:iteration",
-        "end:apply(solver*Dense<double>=Dense<double>)",
-        "begin:advanced_apply(Dense<double>*solver*Dense<double>+Dense<double>*Dense<double>)",
+        "end:apply(solver * mtx = mtx)",
+        "begin:advanced_apply(gko::matrix::Dense<double> * solver * mtx + gko::matrix::Dense<double> * mtx)",
         "begin:iteration",
         "end:iteration",
-        "end:advanced_apply(Dense<double>*solver*Dense<double>+Dense<double>*Dense<double>)"};
+        "end:advanced_apply(gko::matrix::Dense<double> * solver * mtx + gko::matrix::Dense<double> * mtx)"};
     // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
