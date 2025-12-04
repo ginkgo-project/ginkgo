@@ -105,24 +105,25 @@ protected:
 
 TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
 {
-    std::vector<std::string> expected{"begin:copy(obj,obj)",
-                                      "end:copy(obj,obj)",
-                                      "begin:move(obj_copy,obj)",
-                                      "end:move(obj_copy,obj)",
-                                      "begin:apply(obj)",
-                                      "begin:op",
-                                      "end:op",
-                                      "end:apply(obj)",
-                                      "begin:advanced_apply(obj)",
-                                      "begin:op",
-                                      "end:op",
-                                      "end:advanced_apply(obj)",
-                                      "begin:generate(obj_factory)",
-                                      "begin:op",
-                                      "end:op",
-                                      "end:generate(obj_factory)",
-                                      "begin:check(nullptr)",
-                                      "end:check(nullptr)"};
+    std::vector<std::string> expected{
+        "begin:copy(obj,obj)",
+        "end:copy(obj,obj)",
+        "begin:move(obj_copy,obj)",
+        "end:move(obj_copy,obj)",
+        "begin:apply(obj*linop=linop)",
+        "begin:op",
+        "end:op",
+        "end:apply(obj*linop=linop)",
+        "begin:advanced_apply(linop*obj*linop+linop*linop)",
+        "begin:op",
+        "end:op",
+        "end:advanced_apply(linop*obj*linop+linop*linop)",
+        "begin:generate(obj_factory)",
+        "begin:op",
+        "end:op",
+        "end:generate(obj_factory)",
+        "begin:check(nullptr)",
+        "end:check(nullptr)"};
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
     auto exec = gko::ReferenceExecutor::create();
@@ -157,18 +158,16 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
 
 TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
 {
-    // clang-format: off
+    // clang-format off
     std::vector<std::string> expected{
         "begin:apply(obj*Dense<float>=Dense<complex<double>>)",
         "begin:op",
         "end:op",
         "end:apply(obj*Dense<float>=Dense<complex<double>>)",
-        "begin:advanced_apply(Dense<complex<double>>*obj*Dense<float>+Dense<"
-        "float>*Dense<complex<double>>)",
+        "begin:advanced_apply(Dense<complex<double>>*obj*Dense<float>+Dense<float>*Dense<complex<double>>)",
         "begin:op",
         "end:op",
-        "end:advanced_apply(Dense<complex<double>>*obj*Dense<float>+Dense<"
-        "float>*Dense<complex<double>>)",
+        "end:advanced_apply(Dense<complex<double>>*obj*Dense<float>+Dense<float>*Dense<complex<double>>)",
         "begin:apply(obj*linop=Dense<complex<double>>)",
         "begin:op",
         "end:op",
@@ -179,13 +178,12 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
         "end:op",
         "end:advanced_apply(Dense<complex<double>>*obj*Dense<float>+linop*"
         "linop)"};
-    // clang-format: on
+    // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::ProfilerHook::create_custom(
         std::move(hooks.first), std::move(hooks.second));
-    logger->set_apply_precision_check(true);
     auto linop = gko::share(DummyLinOp::create(exec));
     auto alpha = gko::share(gko::matrix::Dense<std::complex<double>>::create(
         exec, gko::dim<2>{1, 1}));
@@ -210,14 +208,17 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
 TEST(ProfilerHook, LogsIteration)
 {
     using Vec = gko::matrix::Dense<>;
-    std::vector<std::string> expected{"begin:apply(solver)",
-                                      "begin:iteration",
-                                      "end:iteration",
-                                      "end:apply(solver)",
-                                      "begin:advanced_apply(solver)",
-                                      "begin:iteration",
-                                      "end:iteration",
-                                      "end:advanced_apply(solver)"};
+    // clang-format off
+    std::vector<std::string> expected{
+        "begin:apply(solver*Dense<double>=Dense<double>)",
+        "begin:iteration",
+        "end:iteration",
+        "end:apply(solver*Dense<double>=Dense<double>)",
+        "begin:advanced_apply(Dense<double>*solver*Dense<double>+Dense<double>*Dense<double>)",
+        "begin:iteration",
+        "end:iteration",
+        "end:advanced_apply(Dense<double>*solver*Dense<double>+Dense<double>*Dense<double>)"};
+    // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
     auto exec = gko::ReferenceExecutor::create();

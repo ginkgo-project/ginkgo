@@ -196,11 +196,6 @@ public:
     void set_synchronization(bool synchronize);
 
     /**
-     * Whether check the Dense/Vector precision involved in apply function.
-     */
-    void set_apply_precision_check(bool check);
-
-    /**
      * Creates a scope guard for a user-defined range to be included in the
      * profile.
      *
@@ -396,7 +391,6 @@ private:
     bool synchronize_;
     hook_function begin_hook_;
     hook_function end_hook_;
-    bool log_apply_precision_;
 };
 
 
