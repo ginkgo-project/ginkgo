@@ -188,11 +188,8 @@ void ProfilerHook::on_linop_apply_started(const LinOp* A, const LinOp* b,
                                           const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "apply(" << stringify_object(A);
-    if (log_apply_precision_) {
-        ss << "*" << check_vector_type(b) << "=" << check_vector_type(x);
-    }
-    ss << ")";
+    ss << "apply(" << stringify_object(A) << "*" << check_vector_type(b) << "="
+       << check_vector_type(x) << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->begin_hook_("iteration", profile_event_category::solver);
@@ -204,11 +201,8 @@ void ProfilerHook::on_linop_apply_completed(const LinOp* A, const LinOp* b,
                                             const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "apply(" << stringify_object(A);
-    if (log_apply_precision_) {
-        ss << "*" << check_vector_type(b) << "=" << check_vector_type(x);
-    }
-    ss << ")";
+    ss << "apply(" << stringify_object(A) << "*" << check_vector_type(b) << "="
+       << check_vector_type(x) << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->end_hook_("iteration", profile_event_category::solver);
     }
@@ -223,15 +217,9 @@ void ProfilerHook::on_linop_advanced_apply_started(const LinOp* A,
                                                    const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "advanced_apply(";
-    if (log_apply_precision_) {
-        ss << check_vector_type(alpha) << "*" << stringify_object(A) << "*"
-           << check_vector_type(b) << "+" << check_vector_type(beta) << "*"
-           << check_vector_type(x);
-    } else {
-        ss << stringify_object(A);
-    }
-    ss << ")";
+    ss << "advanced_apply(" << check_vector_type(alpha) << "*"
+       << stringify_object(A) << "*" << check_vector_type(b) << "+"
+       << check_vector_type(beta) << "*" << check_vector_type(x) << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->begin_hook_("iteration", profile_event_category::solver);
@@ -246,15 +234,9 @@ void ProfilerHook::on_linop_advanced_apply_completed(const LinOp* A,
                                                      const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "advanced_apply(";
-    if (log_apply_precision_) {
-        ss << check_vector_type(alpha) << "*" << stringify_object(A) << "*"
-           << check_vector_type(b) << "+" << check_vector_type(beta) << "*"
-           << check_vector_type(x);
-    } else {
-        ss << stringify_object(A);
-    }
-    ss << ")";
+    ss << "advanced_apply(" << check_vector_type(alpha) << "*"
+       << stringify_object(A) << "*" << check_vector_type(b) << "+"
+       << check_vector_type(beta) << "*" << check_vector_type(x) << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->end_hook_("iteration", profile_event_category::solver);
     }
@@ -376,12 +358,6 @@ void ProfilerHook::set_synchronization(bool synchronize)
 }
 
 
-void ProfilerHook::set_apply_precision_check(bool check)
-{
-    log_apply_precision_ = check;
-}
-
-
 void ProfilerHook::maybe_synchronize(const Executor* exec) const
 {
     if (synchronize_) {
@@ -407,10 +383,7 @@ std::string ProfilerHook::stringify_object(const PolymorphicObject* obj) const
 
 
 ProfilerHook::ProfilerHook(hook_function begin, hook_function end)
-    : synchronize_{false},
-      begin_hook_{begin},
-      end_hook_{end},
-      log_apply_precision_{false}
+    : synchronize_{false}, begin_hook_{begin}, end_hook_{end}
 {}
 
 
