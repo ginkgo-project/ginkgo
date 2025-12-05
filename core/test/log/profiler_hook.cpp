@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,11 +11,20 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
 
+#ifdef __APPLE__
+// APPLE has different name for the dense<std::complex<>>
+const std::string dense_complex_double =
+    "gko::matrix::Dense<std::__1::complex<double>>";
+#else
+const std::string dense_complex_double =
+    "gko::matrix::Dense<std::complex<double> >";
+#endif
 
 std::pair<gko::log::ProfilerHook::hook_function,
           gko::log::ProfilerHook::hook_function>
@@ -104,24 +113,25 @@ protected:
 
 TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
 {
-    std::vector<std::string> expected{"begin:copy(obj,obj)",
-                                      "end:copy(obj,obj)",
-                                      "begin:move(obj_copy,obj)",
-                                      "end:move(obj_copy,obj)",
-                                      "begin:apply(obj)",
-                                      "begin:op",
-                                      "end:op",
-                                      "end:apply(obj)",
-                                      "begin:advanced_apply(obj)",
-                                      "begin:op",
-                                      "end:op",
-                                      "end:advanced_apply(obj)",
-                                      "begin:generate(obj_factory)",
-                                      "begin:op",
-                                      "end:op",
-                                      "end:generate(obj_factory)",
-                                      "begin:check(nullptr)",
-                                      "end:check(nullptr)"};
+    std::vector<std::string> expected{
+        "begin:copy(obj,obj)",
+        "end:copy(obj,obj)",
+        "begin:move(obj_copy,obj)",
+        "end:move(obj_copy,obj)",
+        "begin:apply(obj * obj = obj)",
+        "begin:op",
+        "end:op",
+        "end:apply(obj * obj = obj)",
+        "begin:advanced_apply(DummyLinOp * obj * obj + DummyLinOp * obj)",
+        "begin:op",
+        "end:op",
+        "end:advanced_apply(DummyLinOp * obj * obj + DummyLinOp * obj)",
+        "begin:generate(obj_factory)",
+        "begin:op",
+        "end:op",
+        "end:generate(obj_factory)",
+        "begin:check(nullptr)",
+        "end:check(nullptr)"};
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
     auto exec = gko::ReferenceExecutor::create();
@@ -154,17 +164,67 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
 }
 
 
+TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
+{
+    // clang-format off
+    std::vector<std::string> expected{
+        "begin:apply(obj * gko::matrix::Dense<float> = " + dense_complex_double + ")",
+        "begin:op",
+        "end:op",
+        "end:apply(obj * gko::matrix::Dense<float> = " + dense_complex_double + ")",
+        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * " + dense_complex_double + ")",
+        "begin:op",
+        "end:op",
+        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * " + dense_complex_double + ")",
+        "begin:apply(obj * obj = " + dense_complex_double + ")",
+        "begin:op",
+        "end:op",
+        "end:apply(obj * obj = " + dense_complex_double + ")",
+        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + DummyLinOp * obj)",
+        "begin:op",
+        "end:op",
+        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + DummyLinOp * obj)"};
+    // clang-format on
+    std::vector<std::string> output;
+    auto hooks = make_hooks(output);
+    auto exec = gko::ReferenceExecutor::create();
+    auto logger = gko::log::ProfilerHook::create_custom(
+        std::move(hooks.first), std::move(hooks.second));
+    auto linop = gko::share(DummyLinOp::create(exec));
+    auto alpha = gko::share(gko::matrix::Dense<std::complex<double>>::create(
+        exec, gko::dim<2>{1, 1}));
+    auto beta =
+        gko::share(gko::matrix::Dense<float>::create(exec, gko::dim<2>{1, 1}));
+    auto invec = gko::share(gko::matrix::Dense<float>::create(exec));
+    auto outvec =
+        gko::share(gko::matrix::Dense<std::complex<double>>::create(exec));
+    auto scalar = DummyLinOp::create(exec, gko::dim<2>{1, 1});
+    logger->set_object_name(linop, "obj");
+    exec->add_logger(logger);
+
+    linop->apply(invec, outvec);
+    linop->apply(alpha, invec, beta, outvec);
+    linop->apply(linop, outvec);
+    linop->apply(alpha, invec, scalar, linop);
+
+    ASSERT_EQ(output, expected);
+}
+
+
 TEST(ProfilerHook, LogsIteration)
 {
     using Vec = gko::matrix::Dense<>;
-    std::vector<std::string> expected{"begin:apply(solver)",
-                                      "begin:iteration",
-                                      "end:iteration",
-                                      "end:apply(solver)",
-                                      "begin:advanced_apply(solver)",
-                                      "begin:iteration",
-                                      "end:iteration",
-                                      "end:advanced_apply(solver)"};
+    // clang-format off
+    std::vector<std::string> expected{
+        "begin:apply(solver * mtx = mtx)",
+        "begin:iteration",
+        "end:iteration",
+        "end:apply(solver * mtx = mtx)",
+        "begin:advanced_apply(gko::matrix::Dense<double> * solver * mtx + gko::matrix::Dense<double> * mtx)",
+        "begin:iteration",
+        "end:iteration",
+        "end:advanced_apply(gko::matrix::Dense<double> * solver * mtx + gko::matrix::Dense<double> * mtx)"};
+    // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
     auto exec = gko::ReferenceExecutor::create();
