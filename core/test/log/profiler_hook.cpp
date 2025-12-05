@@ -17,6 +17,14 @@
 
 #include "core/test/utils.hpp"
 
+#ifdef __APPLE__
+// APPLE has different name for the dense<std::complex<>>
+const std::string dense_complex_double =
+    "gko::matrix::Dense<std::__1::complex<double>>";
+#else
+const std::string dense_complex_double =
+    "gko::matrix::Dense<std::complex<double> >";
+#endif
 
 std::pair<gko::log::ProfilerHook::hook_function,
           gko::log::ProfilerHook::hook_function>
@@ -160,22 +168,22 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
 {
     // clang-format off
     std::vector<std::string> expected{
-        "begin:apply(obj * gko::matrix::Dense<float> = gko::matrix::Dense<std::complex<double> >)",
+        "begin:apply(obj * gko::matrix::Dense<float> = " + dense_complex_double + ")",
         "begin:op",
         "end:op",
-        "end:apply(obj * gko::matrix::Dense<float> = gko::matrix::Dense<std::complex<double> >)",
-        "begin:advanced_apply(gko::matrix::Dense<std::complex<double> > * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * gko::matrix::Dense<std::complex<double> >)",
+        "end:apply(obj * gko::matrix::Dense<float> = " + dense_complex_double + ")",
+        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * " + dense_complex_double + ")",
         "begin:op",
         "end:op",
-        "end:advanced_apply(gko::matrix::Dense<std::complex<double> > * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * gko::matrix::Dense<std::complex<double> >)",
-        "begin:apply(obj * obj = gko::matrix::Dense<std::complex<double> >)",
+        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * " + dense_complex_double + ")",
+        "begin:apply(obj * obj = " + dense_complex_double + ")",
         "begin:op",
         "end:op",
-        "end:apply(obj * obj = gko::matrix::Dense<std::complex<double> >)",
-        "begin:advanced_apply(gko::matrix::Dense<std::complex<double> > * obj * gko::matrix::Dense<float> + DummyLinOp * obj)",
+        "end:apply(obj * obj = " + dense_complex_double + ")",
+        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + DummyLinOp * obj)",
         "begin:op",
         "end:op",
-        "end:advanced_apply(gko::matrix::Dense<std::complex<double> > * obj * gko::matrix::Dense<float> + DummyLinOp * obj)"};
+        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + DummyLinOp * obj)"};
     // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
