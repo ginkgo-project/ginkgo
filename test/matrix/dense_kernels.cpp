@@ -98,6 +98,7 @@ protected:
         x = gen_mtx<Mtx>(65, 25);
         y = gen_mtx<Mtx>(25, 35);
         c_x = gen_mtx<ComplexMtx>(65, 25);
+        u = gen_mtx<Mtx>(7, 25);
         alpha = gko::initialize<Mtx>({2.0}, ref);
         beta = gko::initialize<Mtx>({-1.0}, ref);
         result = gen_mtx<Mtx>(65, 35);
@@ -105,6 +106,7 @@ protected:
         dx = gko::clone(exec, x);
         dy = gko::clone(exec, y);
         dc_x = gko::clone(exec, c_x);
+        du = gko::clone(exec, u);
         dresult = gko::clone(exec, result);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
@@ -117,7 +119,7 @@ protected:
         std::vector<int> tmp2(x->get_size()[1], 0);
         std::iota(tmp2.begin(), tmp2.end(), 0);
         std::shuffle(tmp2.begin(), tmp2.end(), rng);
-        std::vector<int> tmp3(x->get_size()[0] / 10);
+        std::vector<int> tmp3(u->get_size()[0]);
         std::vector<value_type> scale_factors(tmp.size());
         std::vector<value_type> scale_factors2(tmp2.size());
         std::uniform_int_distribution<int> row_dist(0, x->get_size()[0] - 1);
@@ -125,6 +127,9 @@ protected:
         for (auto& i : tmp3) {
             i = row_dist(rng);
         }
+        std::vector<int> tmp4(sub_rows.length());
+        std::iota(tmp4.begin(), tmp4.end(), 0);
+        std::shuffle(tmp4.begin(), tmp4.end(), rng);
         for (auto& s : scale_factors) {
             s = scale_dist(rng);
         }
@@ -137,6 +142,10 @@ protected:
             std::unique_ptr<Arr>(new Arr{ref, tmp2.begin(), tmp2.end()});
         rgather_idxs =
             std::unique_ptr<Arr>(new Arr{ref, tmp3.begin(), tmp3.end()});
+        rscatter_idxs = std::unique_ptr<Arr>(
+            new Arr{ref, tmp.begin(), tmp.begin() + u->get_size()[0]});
+        rscatter_idxs_sub = std::unique_ptr<Arr>(
+            new Arr{ref, tmp4.begin(), tmp4.begin() + u->get_size()[0]});
         rpermutation = Permutation::create(ref, *rpermute_idxs);
         cpermutation = Permutation::create(ref, *cpermute_idxs);
         rspermutation = ScaledPermutation::create(
@@ -166,6 +175,7 @@ protected:
     std::unique_ptr<ComplexMtx> c_y;
     std::unique_ptr<ComplexMtx> c_alpha;
     std::unique_ptr<Mtx> y;
+    std::unique_ptr<Mtx> u;
     std::unique_ptr<Mtx> alpha;
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> result;
@@ -175,6 +185,7 @@ protected:
     std::unique_ptr<ComplexMtx> dc_y;
     std::unique_ptr<ComplexMtx> dc_alpha;
     std::unique_ptr<Mtx> dy;
+    std::unique_ptr<Mtx> du;
     std::unique_ptr<Mtx> dalpha;
     std::unique_ptr<Mtx> dbeta;
     std::unique_ptr<Mtx> dresult;
@@ -186,6 +197,11 @@ protected:
     std::unique_ptr<ScaledPermutation> rspermutation;
     std::unique_ptr<ScaledPermutation> cspermutation;
     std::unique_ptr<Arr> rgather_idxs;
+    std::unique_ptr<Arr> rscatter_idxs;
+    std::unique_ptr<Arr> rscatter_idxs_sub;
+
+    gko::span sub_rows{5, 43};
+    gko::span sub_cols{3, 19};
 };
 
 
@@ -1266,6 +1282,82 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
     sub_dx->row_gather(alpha, rgather_idxs.get(), beta, dr_gather);
 
     GKO_ASSERT_MTX_NEAR(r_gather, dr_gather, 0);
+}
+
+
+TEST_F(Dense, CanScatterRowsIntoDense)
+{
+    set_up_apply_data();
+
+    u->row_scatter(rscatter_idxs.get(), x);
+    du->row_scatter(rscatter_idxs.get(), dx);
+
+    GKO_ASSERT_MTX_NEAR(x, dx, 0);
+}
+
+
+TEST_F(Dense, CanScatterRowsIntoDenseFailsWithInvalidState)
+{
+    set_up_apply_data();
+    gko::array<index_type> out_of_bounds(ref, du->get_size()[0]);
+    out_of_bounds.get_data()[0] = dx->get_size()[0] * 40;
+
+    ASSERT_THROW(du->row_scatter(&out_of_bounds, dx), gko::InvalidStateError);
+}
+
+
+TEST_F(Dense, CanScatterRowsIntoDenseSubmatrix)
+{
+    set_up_apply_data();
+    auto sx = x->create_submatrix(sub_rows, sub_cols);
+    auto dsx = dx->create_submatrix(sub_rows, sub_cols);
+
+    u->create_submatrix({0, u->get_size()[0]}, sub_cols)
+        ->row_scatter(rscatter_idxs_sub.get(), sx);
+    du->create_submatrix({0, du->get_size()[0]}, sub_cols)
+        ->row_scatter(rscatter_idxs_sub.get(), dsx);
+
+    GKO_ASSERT_MTX_NEAR(sx, dsx, 0);
+}
+
+
+TEST_F(Dense, CanScatterRowsIntoDenseCrossExecutor)
+{
+    set_up_apply_data();
+
+    u->row_scatter(rscatter_idxs.get(), x);
+    u->row_scatter(rscatter_idxs.get(), dx);
+
+    GKO_ASSERT_MTX_NEAR(x, dx, 0);
+}
+
+
+#ifdef NDEBUG
+// this test can only be run if C asserts are disabled. Otherwise,
+// an assert in the constructor of index_set may fail.
+TEST_F(Dense, CanScatterRowsIntoDenseUsingIndexSetFailsWithInvalidState)
+{
+    set_up_apply_data();
+    gko::array<index_type> out_of_bounds(ref, du->get_size()[0]);
+    out_of_bounds.get_data()[0] = dx->get_size()[0] * 40;
+    auto rindices = std::make_unique<gko::index_set<index_type>>(
+        ref, x->get_size()[0], out_of_bounds);
+
+    ASSERT_THROW(du->row_scatter(&out_of_bounds, dx), gko::InvalidStateError);
+}
+#endif
+
+
+TEST_F(Dense, GatherScatterIsIdentity)
+{
+    set_up_apply_data();
+
+    auto gather = dx->row_gather(rgather_idxs.get());
+    dx->fill(-gko::one<value_type>());
+    gather->row_scatter(rgather_idxs.get(), dx);
+    auto result = dx->row_gather(rgather_idxs.get());
+
+    GKO_ASSERT_MTX_NEAR(gather, result, 0);
 }
 
 

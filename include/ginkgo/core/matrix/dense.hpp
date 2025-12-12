@@ -41,6 +41,10 @@ class VectorCache;
 }  // namespace experimental
 
 
+template <typename IndexType>
+class index_set;
+
+
 namespace matrix {
 
 
@@ -68,6 +72,8 @@ class Sellp;
 template <typename ValueType, typename IndexType>
 class SparsityCsr;
 
+template <typename IndexType>
+class RowScatterer;
 
 /**
  * Dense is a matrix format which explicitly stores all values of the matrix.
@@ -720,6 +726,36 @@ public:
                     const array<int64>* gather_indices,
                     ptr_param<const LinOp> beta,
                     ptr_param<LinOp> row_collection) const;
+
+    /**
+     * Copies this matrix into the given rows of the target matrix.
+     *
+     * @tparam IndexType  the index type, either int32 or int64
+     *
+     * @param scatter_indices  row indices of the target matrix. It must
+     *                         have the same number of indices as rows in
+     *                         this matrix.
+     * @param target  matrix where the scattered rows are stored, i.e.
+     *                `target(scatter_indices[i], j) = this(i, j)`
+     *
+     * @warning scatter_indices may not contain duplicates, unless if
+     *          for indices `i, j` with `scatter_indices[i] ==
+     *          scatter_indices[j]` the rows `i, j` of this matrix are
+     *          identical.
+     */
+    void row_scatter(ptr_param<const RowScatterer<int32>> scatterer,
+                     ptr_param<LinOp> target);
+
+    void row_scatter(ptr_param<const LinOp> alpha,
+                     ptr_param<const RowScatterer<int32>> scatterer,
+                     ptr_param<const LinOp> beta, ptr_param<LinOp> target);
+
+    void row_scatter(ptr_param<const RowScatterer<int64>> scatterer,
+                     ptr_param<LinOp> target);
+
+    void row_scatter(ptr_param<const LinOp> alpha,
+                     ptr_param<const RowScatterer<int64>> scatterer,
+                     ptr_param<const LinOp> beta, ptr_param<LinOp> target);
 
     std::unique_ptr<LinOp> column_permute(
         const array<int32>* permutation_indices) const override;
