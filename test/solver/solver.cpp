@@ -74,11 +74,11 @@ struct SimpleSolverTest {
     {
         if (check_residual) {
             return solver_type::build().with_criteria(
-                gko::stop::max_iters(iteration_count));
-        } else {
-            return solver_type::build().with_criteria(
                 gko::stop::max_iters(iteration_count),
                 gko::stop::absolute_residual_norm(1e-30));
+        } else {
+            return solver_type::build().with_criteria(
+                gko::stop::max_iters(iteration_count));
         }
     }
 
