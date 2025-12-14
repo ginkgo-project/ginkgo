@@ -54,7 +54,7 @@ TEST_F(Time, CanCreateFactory)
 }
 
 
-TEST_F(Time, CanCreateFactoryNewInterface)
+TEST_F(Time, CanCreateFactorySimplifiedInterface)
 {
     auto new_factory =
         gko::stop::time_limit(std::chrono::milliseconds(test_ms)).on(exec_);

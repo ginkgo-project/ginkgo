@@ -27,7 +27,7 @@ protected:
 };
 
 
-TEST_F(Iteration, NewInterface)
+TEST_F(Iteration, SimplifiedInterface)
 {
     auto factory = gko::stop::max_iters(test_iterations).on(exec_);
     ASSERT_EQ(factory->get_parameters().max_iters, test_iterations);

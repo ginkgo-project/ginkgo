@@ -531,7 +531,6 @@ TYPED_TEST(ResidualNorm, SimplifiedInterface)
     auto crit_red =
         gko::as<gko::stop::ResidualNorm<TypeParam>>(factory_red->generate(
             nullptr, rhs, initial_guess.get(), initial_res.get()));
-
     ASSERT_EQ(crit_abs->get_parameters().baseline, gko::stop::mode::absolute);
     ASSERT_EQ(crit_rel->get_parameters().baseline, gko::stop::mode::rhs_norm);
     ASSERT_EQ(crit_red->get_parameters().baseline,
@@ -1023,7 +1022,6 @@ TYPED_TEST(ImplicitResidualNorm, SimplifiedInterface)
     auto crit_red = gko::as<gko::stop::ImplicitResidualNorm<TypeParam>>(
         factory_red->generate(nullptr, rhs, initial_guess.get(),
                               initial_res.get()));
-
     ASSERT_EQ(crit_abs->get_parameters().baseline, gko::stop::mode::absolute);
     ASSERT_EQ(crit_rel->get_parameters().baseline, gko::stop::mode::rhs_norm);
     ASSERT_EQ(crit_red->get_parameters().baseline,
