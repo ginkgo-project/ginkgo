@@ -38,6 +38,7 @@ target_sources(
         base/device_matrix_data.cpp
         base/executor.cpp
         base/index_set.cpp
+        base/lin_op.cpp
         base/memory.cpp
         base/mpi.cpp
         base/mtx_io.cpp
@@ -107,6 +108,7 @@ target_sources(
         reorder/amd.cpp
         reorder/mc64.cpp
         reorder/rcm.cpp
+        reorder/reordered.cpp
         reorder/scaled_reordered.cpp
         solver/batch_bicgstab.cpp
         solver/batch_cg.cpp

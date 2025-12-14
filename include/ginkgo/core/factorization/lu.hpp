@@ -66,6 +66,8 @@ public:
     using matrix_type = matrix::Csr<value_type, index_type>;
     using sparsity_pattern_type = matrix::SparsityCsr<value_type, index_type>;
     using factorization_type = Factorization<value_type, index_type>;
+    using BaseReuseData = LinOpFactory::ReuseData;
+    class LuReuseData;  // opaque type
 
     struct parameters_type
         : public enable_parameters_type<parameters_type, Lu> {
@@ -108,11 +110,6 @@ public:
      *
      * @return the parameters used to construct the factory.
      */
-    const parameters_type& get_parameters() { return parameters_; }
-
-    /**
-     * @copydoc get_parameters
-     */
     const parameters_type& get_parameters() const { return parameters_; }
 
     /**
@@ -124,6 +121,17 @@ public:
      */
     std::unique_ptr<factorization_type> generate(
         std::shared_ptr<const LinOp> system_matrix) const;
+
+    /**
+     * @copydoc LinOpFactory::generate_reuse
+     * @note This function overrides the default LinOpFactory::generate_reuse to
+     *       return a Factorization instead of a generic LinOp, which would need
+     *       to be cast to Factorization again to access its factors.
+     *       It is only necessary because smart pointers aren't covariant.
+     */
+    std::unique_ptr<factorization_type> generate_reuse(
+        std::shared_ptr<const LinOp> system_matrix,
+        BaseReuseData& reuse_data) const;
 
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
@@ -146,12 +154,21 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
+    std::unique_ptr<BaseReuseData> create_empty_reuse_data() const override;
+
+    void check_reuse_consistent(const LinOp* input,
+                                BaseReuseData& reuse_data) const override;
+
 protected:
     explicit Lu(std::shared_ptr<const Executor> exec,
                 const parameters_type& params = {});
 
     std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> system_matrix) const override;
+
+    std::unique_ptr<LinOp> generate_reuse_impl(
+        std::shared_ptr<const LinOp> input,
+        BaseReuseData& reuse_data) const override;
 
 private:
     parameters_type parameters_;

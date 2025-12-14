@@ -333,6 +333,42 @@ TYPED_TEST(Lu, FactorizeWithKnownSparsityWorks)
 }
 
 
+TYPED_TEST(Lu, FactorizeReuseWorks)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using gko::experimental::factorization::symbolic_type;
+    this->forall_matrices(
+        [this] {
+            auto alpha = gko::initialize<gko::matrix::Dense<value_type>>(
+                {value_type{2.0}}, this->ref);
+            for (auto algorithm :
+                 {symbolic_type::general, symbolic_type::near_symmetric,
+                  symbolic_type::symmetric}) {
+                SCOPED_TRACE(int(algorithm));
+                auto factory =
+                    gko::experimental::factorization::Lu<value_type,
+                                                         index_type>::build()
+                        .with_symbolic_algorithm(algorithm)
+                        .on(this->ref);
+                auto reuse_data = factory->create_empty_reuse_data();
+                auto mtx_scaled = gko::share(this->mtx->clone());
+                mtx_scaled->scale(alpha);
+                auto lu = factory->generate_reuse(mtx_scaled, *reuse_data);
+                auto lu2 = factory->generate_reuse(this->mtx, *reuse_data);
+
+                GKO_ASSERT_MTX_EQ_SPARSITY(lu->get_combined(), this->mtx_lu);
+                GKO_ASSERT_MTX_NEAR(lu2->get_combined(), this->mtx_lu,
+                                    r<value_type>::value);
+                ASSERT_EQ(lu->get_storage_type(),
+                          gko::experimental::factorization::storage_type::
+                              combined_lu);
+            }
+        },
+        true);
+}
+
+
 TYPED_TEST(Lu, ValidateValidFactors)
 {
     using value_type = typename TestFixture::value_type;
