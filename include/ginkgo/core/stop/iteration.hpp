@@ -100,10 +100,11 @@ deferred_factory_parameter<Iteration::Factory> max_iters(size_type count);
  * ```
  *
  * @param count  the number of iterations after which to start checking the
- * inner criterion
+ *               inner criterion
  * @param criterion  the inner criterion, which will not be checked until
  *                   `count` iterations finished, afterwards the min_iters
  *                   stopping criterion behaves like the inner criterion.
+ *
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
