@@ -5,10 +5,10 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/device_matrix_data.hpp>
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/test/utils.hpp"
-#include "ginkgo/core/base/exception.hpp"
 
 
 namespace {

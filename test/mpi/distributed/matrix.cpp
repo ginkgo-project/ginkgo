@@ -12,6 +12,7 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -21,7 +22,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/test/utils.hpp"
-#include "ginkgo/core/base/exception.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
 
 

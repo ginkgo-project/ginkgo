@@ -4,8 +4,9 @@
 
 #include "core/distributed/partition_kernels.hpp"
 
+#include <ginkgo/core/base/math.hpp>
+
 #include "core/base/segmented_array.hpp"
-#include "ginkgo/core/base/math.hpp"
 
 
 namespace gko {

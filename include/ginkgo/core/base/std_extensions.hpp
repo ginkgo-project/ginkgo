@@ -11,7 +11,7 @@
 #include <memory>
 #include <type_traits>
 
-#include "ginkgo/core/base/types.hpp"
+#include <ginkgo/core/base/types.hpp>
 
 
 // This header provides implementations of useful utilities introduced into the

@@ -8,9 +8,8 @@
 
 #include <chrono>
 
+#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
-
-#include "ginkgo/core/base/abstract_factory.hpp"
 
 
 namespace gko {

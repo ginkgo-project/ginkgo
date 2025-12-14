@@ -12,13 +12,13 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/pipe_cg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
-#include "ginkgo/core/base/range.hpp"
 
 
 namespace gko {

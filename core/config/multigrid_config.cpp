@@ -1,9 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <ginkgo/core/multigrid/pgm.hpp>
+
 #include "core/config/parse_macro.hpp"
-#include "ginkgo/core/multigrid/pgm.hpp"
 
 
 namespace gko {

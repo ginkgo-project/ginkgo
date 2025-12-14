@@ -4,7 +4,7 @@
 
 #include "ginkgo/core/stop/iteration.hpp"
 
-#include "ginkgo/core/base/abstract_factory.hpp"
+#include <ginkgo/core/base/abstract_factory.hpp>
 
 
 namespace gko {

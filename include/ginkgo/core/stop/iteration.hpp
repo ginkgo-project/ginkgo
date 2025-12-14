@@ -6,9 +6,8 @@
 #define GKO_PUBLIC_CORE_STOP_ITERATION_HPP_
 
 
+#include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
-
-#include "ginkgo/core/base/abstract_factory.hpp"
 
 
 namespace gko {
