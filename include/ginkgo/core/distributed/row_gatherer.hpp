@@ -13,6 +13,7 @@
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
@@ -23,6 +24,41 @@
 namespace gko {
 namespace experimental {
 namespace distributed {
+
+
+template <typename LocalIndexType>
+class RowGatherer;
+
+
+namespace detail {
+
+
+// give access to test function on protected function
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event> apply_prepare(
+    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b);
+
+// give access to test function on protected function
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event> apply_prepare(
+    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
+    array<char>& workspace);
+
+// give access to test function on protected function
+template <typename LocalIndexType>
+mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
+                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            std::shared_ptr<const gko::detail::Event>);
+
+// give access to test function on protected function
+template <typename LocalIndexType>
+mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
+                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            std::shared_ptr<const gko::detail::Event>,
+                            array<char>& workspace);
+
+
+}  // namespace detail
 
 
 /**
@@ -57,13 +93,30 @@ class RowGatherer final
       public EnablePolymorphicAssignment<RowGatherer<LocalIndexType>>,
       public DistributedBase {
     friend class EnablePolymorphicObject<RowGatherer, PolymorphicObject>;
+    template <typename ValueT, typename LocalIndexT, typename GlobalIndexT>
+    friend class Matrix;
+    // for test purpose
+    friend std::shared_ptr<const gko::detail::Event>
+    detail::apply_prepare<LocalIndexType>(const RowGatherer* rg,
+                                          ptr_param<const LinOp> b);
+    friend std::shared_ptr<const gko::detail::Event>
+    detail::apply_prepare<LocalIndexType>(const RowGatherer* rg,
+                                          ptr_param<const LinOp> b,
+                                          array<char>& workspace);
+    friend mpi::request detail::apply_finalize<LocalIndexType>(
+        const RowGatherer* rg, ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        std::shared_ptr<const gko::detail::Event>);
+    friend mpi::request detail::apply_finalize<LocalIndexType>(
+        const RowGatherer* rg, ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        std::shared_ptr<const gko::detail::Event>, array<char>& workspace);
 
 public:
     /**
      * Asynchronous version of LinOp::apply.
      *
-     * @warning Only one mpi::request can be active at any given time. This
-     *          function will throw if another request is already active.
+     * @warning Only one mpi::request can be active at any given time. Calling
+     *          this function again without waiting on the previous mpi::request
+     *          will lead to undefined behavior.
      *
      * @param b  the input distributed::Vector.
      * @param x  the output matrix::Dense with the rows gathered from b. Its
@@ -73,8 +126,8 @@ public:
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
      */
-    mpi::request apply_async(ptr_param<const LinOp> b,
-                             ptr_param<LinOp> x) const;
+    [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
+                                           ptr_param<LinOp> x) const;
 
     /**
      * Asynchronous version of LinOp::apply.
@@ -94,8 +147,9 @@ public:
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
      */
-    mpi::request apply_async(ptr_param<const LinOp> b, ptr_param<LinOp> x,
-                             array<char>& workspace) const;
+    [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
+                                           ptr_param<LinOp> x,
+                                           array<char>& workspace) const;
 
     /**
      * Returns the size of the row gatherer.
@@ -156,6 +210,26 @@ public:
     static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
+    /*
+     * Create method for an empty RowGatherer with an template for the
+     * collective communicator.
+     *
+     * This is mainly used for creating a new RowGatherer with the same runtime
+     * type for the collective communicator, e.g.:
+     * ```c++
+     * auto rg = RowGatherer<>::create(
+     *   exec, std::make_shared<mpi::NeighborhoodCommunicator>(comm));
+     * ...
+     * rg = RowGatherer<>::create(
+     *   exec,
+     *   rg->get_collective_communicator()->create_with_same_type(comm, &imap),
+     *   imap);
+     * ```
+     */
+    static std::unique_ptr<RowGatherer> create(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template);
+
     RowGatherer(const RowGatherer& o);
 
     RowGatherer(RowGatherer&& o) noexcept;
@@ -163,6 +237,21 @@ public:
     RowGatherer& operator=(const RowGatherer& o);
 
     RowGatherer& operator=(RowGatherer&& o);
+
+protected:
+    std::shared_ptr<const gko::detail::Event> apply_prepare(
+        ptr_param<const LinOp> b) const;
+
+    std::shared_ptr<const gko::detail::Event> apply_prepare(
+        ptr_param<const LinOp> b, array<char>& workspace) const;
+
+    mpi::request apply_finalize(
+        ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        std::shared_ptr<const gko::detail::Event>) const;
+
+    mpi::request apply_finalize(ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                                std::shared_ptr<const gko::detail::Event>,
+                                array<char>& workspace) const;
 
 private:
     /**
@@ -181,14 +270,18 @@ private:
      */
     RowGatherer(std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
+    /**
+     * @copydoc RowGatherer::create(std::shared_ptr<const
+     *          Executor>, std::shared_ptr<const mpi::CollectiveCommunicator>)
+     */
+    RowGatherer(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template);
+
     dim<2> size_;
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
     array<LocalIndexType> send_idxs_;
     mutable array<char> send_workspace_;
-    // This object might not hold an actual MPI request, so we can't use the
-    // always owning mpi::request. Its destructor would otherwise make the
-    // program crash.
-    mutable MPI_Request req_listener_{MPI_REQUEST_NULL};
 };
 
 

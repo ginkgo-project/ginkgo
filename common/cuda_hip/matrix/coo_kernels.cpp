@@ -271,8 +271,18 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
         return;
     }
 // not support 16 bit atomic
-#if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
+#if !defined(CUDA_VERSION)
     if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
+        GKO_NOT_SUPPORTED(c);
+    } else
+#else
+    const auto compute_capability =
+        as<CudaExecutor>(exec)->get_compute_capability();
+    if (compute_capability < 70 &&
+        std::is_same_v<remove_complex<ValueType>, half>) {
+        GKO_NOT_SUPPORTED(c);
+    } else if (compute_capability < 80 &&
+               std::is_same_v<remove_complex<ValueType>, bfloat16>) {
         GKO_NOT_SUPPORTED(c);
     } else
 #endif
@@ -323,8 +333,18 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
         return;
     }
     // not support 16 bit atomic
-#if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
+#if !defined(CUDA_VERSION)
     if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
+        GKO_NOT_SUPPORTED(c);
+    } else
+#else
+    const auto compute_capability =
+        as<CudaExecutor>(exec)->get_compute_capability();
+    if (compute_capability < 70 &&
+        std::is_same_v<remove_complex<ValueType>, half>) {
+        GKO_NOT_SUPPORTED(c);
+    } else if (compute_capability < 80 &&
+               std::is_same_v<remove_complex<ValueType>, bfloat16>) {
         GKO_NOT_SUPPORTED(c);
     } else
 #endif

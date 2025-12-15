@@ -27,6 +27,8 @@ add_library(${ginkgo_core} "")
 target_sources(
     ${ginkgo_core}
     PRIVATE
+        ../third_party/SuiteSparse/wrapper32.cpp
+        ../third_party/SuiteSparse/wrapper64.cpp
         base/array.cpp
         base/batch_multi_vector.cpp
         base/block_operator.cpp
@@ -69,11 +71,11 @@ target_sources(
         log/profiler_hook.cpp
         log/profiler_hook_summary.cpp
         log/profiler_hook_summary_writer.cpp
-        log/tau.cpp
-        log/vtune.cpp
         log/record.cpp
         log/solver_progress.cpp
         log/stream.cpp
+        log/tau.cpp
+        log/vtune.cpp
         matrix/batch_csr.cpp
         matrix/batch_dense.cpp
         matrix/batch_ell.cpp
@@ -97,11 +99,11 @@ target_sources(
         multigrid/pgm.cpp
         preconditioner/batch_jacobi.cpp
         preconditioner/gauss_seidel.cpp
-        preconditioner/sor.cpp
         preconditioner/ic.cpp
         preconditioner/ilu.cpp
         preconditioner/isai.cpp
         preconditioner/jacobi.cpp
+        preconditioner/sor.cpp
         reorder/amd.cpp
         reorder/mc64.cpp
         reorder/rcm.cpp
@@ -116,22 +118,20 @@ target_sources(
         solver/chebyshev.cpp
         solver/direct.cpp
         solver/fcg.cpp
-        solver/pipe_cg.cpp
         solver/gcr.cpp
         solver/gmres.cpp
         solver/idr.cpp
         solver/ir.cpp
-        solver/minres.cpp
         solver/lower_trs.cpp
+        solver/minres.cpp
         solver/multigrid.cpp
+        solver/pipe_cg.cpp
         solver/upper_trs.cpp
         stop/combined.cpp
         stop/criterion.cpp
         stop/iteration.cpp
         stop/residual_norm.cpp
         stop/time.cpp
-        ../third_party/SuiteSparse/wrapper32.cpp
-        ../third_party/SuiteSparse/wrapper64.cpp
 )
 
 if(GINKGO_HAVE_PAPI_SDE)
@@ -146,17 +146,17 @@ if(GINKGO_BUILD_MPI)
     target_sources(
         ${ginkgo_core}
         PRIVATE
-            distributed/vector_cache.cpp
-            mpi/exception.cpp
             distributed/assembly.cpp
             distributed/collective_communicator.cpp
             distributed/dense_communicator.cpp
             distributed/matrix.cpp
             distributed/neighborhood_communicator.cpp
             distributed/partition_helpers.cpp
+            distributed/preconditioner/schwarz.cpp
             distributed/row_gatherer.cpp
             distributed/vector.cpp
-            distributed/preconditioner/schwarz.cpp
+            distributed/vector_cache.cpp
+            mpi/exception.cpp
     )
 endif()
 

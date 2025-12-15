@@ -4,16 +4,17 @@ target_sources(
     PRIVATE
         base/batch_multi_vector_kernels.cpp
         base/device_matrix_data_kernels.cpp
+        base/event_kernels.cpp
         base/index_set_kernels.cpp
         base/scoped_device_id.cpp
         base/version.cpp
         components/absolute_array_kernels.cpp
         components/fill_array_kernels.cpp
         components/format_conversion_kernels.cpp
-        components/range_minimum_query_kernels.cpp
-        components/reduce_array_kernels.cpp
         components/precision_conversion_kernels.cpp
         components/prefix_sum_kernels.cpp
+        components/range_minimum_query_kernels.cpp
+        components/reduce_array_kernels.cpp
         distributed/assembly_kernels.cpp
         distributed/index_map_kernels.cpp
         distributed/matrix_kernels.cpp
@@ -47,9 +48,9 @@ target_sources(
         matrix/sparsity_csr_kernels.cpp
         multigrid/pgm_kernels.cpp
         preconditioner/batch_jacobi_kernels.cpp
-        preconditioner/sor_kernels.cpp
         preconditioner/isai_kernels.cpp
         preconditioner/jacobi_kernels.cpp
+        preconditioner/sor_kernels.cpp
         reorder/rcm_kernels.cpp
         solver/batch_bicgstab_kernels.cpp
         solver/batch_cg_kernels.cpp
@@ -61,14 +62,14 @@ target_sources(
         solver/chebyshev_kernels.cpp
         solver/common_gmres_kernels.cpp
         solver/fcg_kernels.cpp
-        solver/pipe_cg_kernels.cpp
         solver/gcr_kernels.cpp
         solver/gmres_kernels.cpp
         solver/idr_kernels.cpp
         solver/ir_kernels.cpp
         solver/lower_trs_kernels.cpp
-        solver/multigrid_kernels.cpp
         solver/minres_kernels.cpp
+        solver/multigrid_kernels.cpp
+        solver/pipe_cg_kernels.cpp
         solver/upper_trs_kernels.cpp
         stop/criterion_kernels.cpp
         stop/residual_norm_kernels.cpp

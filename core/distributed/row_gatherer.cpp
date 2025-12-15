@@ -5,51 +5,119 @@
 #include "ginkgo/core/distributed/row_gatherer.hpp"
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
+#include "core/base/event_kernels.hpp"
 
 namespace gko {
 namespace experimental {
 namespace distributed {
 
 
-#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
-using DefaultCollComm = mpi::DenseCommunicator;
-#else
-using DefaultCollComm = mpi::NeighborhoodCommunicator;
-#endif
+namespace event {
+namespace {
+GKO_REGISTER_OPERATION(record_event, event::record_event);
+}
+}  // namespace event
 
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
                                                       ptr_param<LinOp> x) const
 {
-    int is_inactive;
-    MPI_Status status;
-    GKO_ASSERT_NO_MPI_ERRORS(
-        MPI_Request_get_status(req_listener_, &is_inactive, &status));
-    // This is untestable. Some processes might complete the previous request
-    // while others don't, so it's impossible to create a predictable behavior
-    // for a test.
-    GKO_THROW_IF_INVALID(is_inactive,
-                         "Tried to call RowGatherer::apply_async while there "
-                         "is already an active communication. Please use the "
-                         "overload with a workspace to handle multiple "
-                         "connections.");
-
-    auto req = apply_async(b, x, send_workspace_);
-    req_listener_ = *req.get();
-    return req;
+    return apply_async(b, x, send_workspace_);
 }
 
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(
     ptr_param<const LinOp> b, ptr_param<LinOp> x, array<char>& workspace) const
+{
+    auto ev = this->apply_prepare(b, workspace);
+    return this->apply_finalize(b, x, ev, workspace);
+}
+
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event>
+RowGatherer<LocalIndexType>::apply_prepare(ptr_param<const LinOp> b) const
+{
+    return apply_prepare(b, send_workspace_);
+}
+
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event>
+RowGatherer<LocalIndexType>::apply_prepare(ptr_param<const LinOp> b,
+                                           array<char>& workspace) const
+{
+    std::shared_ptr<const gko::detail::Event> ev = nullptr;
+    auto exec = this->get_executor();
+    auto use_host_buffer =
+        mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
+    auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
+
+    // dispatch global vector
+    run<Vector,
+#if GINKGO_ENABLE_HALF
+        half, std::complex<half>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        bfloat16, std::complex<bfloat16>,
+#endif
+        double, float, std::complex<double>, std::complex<float>>(
+        make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
+            using ValueType =
+                typename std::decay_t<decltype(*b_global)>::value_type;
+            // dispatch local vector with the same precision as the global
+            // vector
+            distributed::precision_dispatch<ValueType>([&]() {
+                auto b_local = b_global->get_local_vector();
+
+                dim<2> send_size(coll_comm_->get_send_size(),
+                                 b_local->get_size()[1]);
+                auto send_size_in_bytes =
+                    sizeof(ValueType) * send_size[0] * send_size[1];
+                // TODO: can not combine them to assignment because array
+                // assignment will copy the data to the place without
+                // changing executor.
+                if (!workspace.get_executor() ||
+                    !mpi_exec->memory_accessible(workspace.get_executor())) {
+                    workspace.set_executor(mpi_exec);
+                }
+                if (send_size_in_bytes > workspace.get_size()) {
+                    workspace.resize_and_reset(send_size_in_bytes);
+                }
+                auto send_buffer = matrix::Dense<ValueType>::create(
+                    mpi_exec, send_size,
+                    make_array_view(
+                        mpi_exec, send_size[0] * send_size[1],
+                        reinterpret_cast<ValueType*>(workspace.get_data())),
+                    send_size[1]);
+                b_local->row_gather(&send_idxs_, send_buffer);
+                b_local->get_executor()->run(event::make_record_event(ev));
+            });
+        });
+    return ev;
+}
+
+
+template <typename LocalIndexType>
+mpi::request RowGatherer<LocalIndexType>::apply_finalize(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x,
+    std::shared_ptr<const gko::detail::Event> ev) const
+{
+    auto req = apply_finalize(b, x, ev, send_workspace_);
+    return req;
+}
+
+template <typename LocalIndexType>
+mpi::request RowGatherer<LocalIndexType>::apply_finalize(
+    ptr_param<const LinOp> b, ptr_param<LinOp> x,
+    std::shared_ptr<const gko::detail::Event> ev, array<char>& workspace) const
 {
     mpi::request req;
 
@@ -85,31 +153,16 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
 
                     dim<2> send_size(coll_comm_->get_send_size(),
                                      b_local->get_size()[1]);
-                    auto send_size_in_bytes =
-                        sizeof(ValueType) * send_size[0] * send_size[1];
-                    // TODO: can not combine them to assignment because array
-                    // assignment will copy the data to the place without
-                    // changing executor.
-                    if (!workspace.get_executor() ||
-                        !mpi_exec->memory_accessible(
-                            workspace.get_executor())) {
-                        workspace.set_executor(mpi_exec);
-                    }
-                    if (send_size_in_bytes > workspace.get_size()) {
-                        workspace.resize_and_reset(send_size_in_bytes);
-                    }
                     auto send_buffer = matrix::Dense<ValueType>::create(
                         mpi_exec, send_size,
                         make_array_view(
                             mpi_exec, send_size[0] * send_size[1],
                             reinterpret_cast<ValueType*>(workspace.get_data())),
                         send_size[1]);
-                    b_local->row_gather(&send_idxs_, send_buffer);
 
                     auto recv_ptr = x_global->get_local_values();
                     auto send_ptr = send_buffer->get_values();
-
-                    b_local->get_executor()->synchronize();
+                    ev->synchronize();
                     mpi::contiguous_type type(
                         b_local->get_size()[1],
                         mpi::type_impl<ValueType>::get_type());
@@ -120,6 +173,78 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
         });
     return req;
 }
+
+
+namespace detail {
+
+
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event> apply_prepare(
+    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b)
+{
+    return rg->apply_prepare(b);
+}
+
+
+template <typename LocalIndexType>
+std::shared_ptr<const gko::detail::Event> apply_prepare(
+    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
+    array<char>& workspace)
+{
+    return rg->apply_prepare(b, workspace);
+}
+
+
+template <typename LocalIndexType>
+mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
+                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            std::shared_ptr<const gko::detail::Event> ev)
+{
+    return rg->apply_finalize(b, x, ev);
+}
+
+
+template <typename LocalIndexType>
+mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
+                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            std::shared_ptr<const gko::detail::Event> ev,
+                            array<char>& workspace)
+{
+    return rg->apply_finalize(b, x, ev, workspace);
+}
+
+
+#define GKO_DECLARE_TEST_APPLY_PREPARE(_itype)               \
+    std::shared_ptr<const gko::detail::Event> apply_prepare( \
+        const RowGatherer<_itype>*, ptr_param<const LinOp>)
+
+#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(_itype)     \
+    std::shared_ptr<const gko::detail::Event> apply_prepare( \
+        const RowGatherer<_itype>*, ptr_param<const LinOp>, array<char>&)
+
+#define GKO_DECLARE_TEST_APPLY_FINALIZE(_itype)                               \
+    mpi::request apply_finalize(const RowGatherer<_itype>* rg,                \
+                                ptr_param<const LinOp> b, ptr_param<LinOp> x, \
+                                std::shared_ptr<const gko::detail::Event> ev)
+
+#define GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE(_itype)                     \
+    mpi::request apply_finalize(const RowGatherer<_itype>* rg,                \
+                                ptr_param<const LinOp> b, ptr_param<LinOp> x, \
+                                std::shared_ptr<const gko::detail::Event> ev, \
+                                array<char>&)
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_PREPARE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_FINALIZE);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE);
+
+#undef GKO_DECLARE_TEST_APPLY_PREPARE
+#undef GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE
+#undef GKO_DECLARE_TEST_APPLY_FINALIZE
+#undef GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE
+
+
+}  // namespace detail
 
 
 template <typename LocalIndexType>
@@ -160,8 +285,7 @@ RowGatherer<LocalIndexType>::RowGatherer(
                    imap.get_global_size()}),
       coll_comm_(std::move(coll_comm)),
       send_idxs_(exec),
-      send_workspace_(exec),
-      req_listener_(MPI_REQUEST_NULL)
+      send_workspace_(exec)
 {
     // check that the coll_comm_ and imap have the same recv size
     // the same check for the send size is not possible, since the
@@ -209,19 +333,40 @@ std::unique_ptr<RowGatherer<LocalIndexType>>
 RowGatherer<LocalIndexType>::create(std::shared_ptr<const Executor> exec,
                                     mpi::communicator comm)
 {
-    return std::unique_ptr<RowGatherer>(new RowGatherer(std::move(exec), comm));
+    return std::unique_ptr<RowGatherer>(new RowGatherer(
+        std::move(exec),
+        mpi::detail::create_default_collective_communicator(comm)));
 }
 
 
 template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                          mpi::communicator comm)
+    : RowGatherer(std::move(exec),
+                  mpi::detail::create_default_collective_communicator(comm))
+{}
+
+
+template <typename LocalIndexType>
+std::unique_ptr<RowGatherer<LocalIndexType>>
+RowGatherer<LocalIndexType>::create(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template)
+{
+    return std::unique_ptr<RowGatherer>(
+        new RowGatherer(std::move(exec), std::move(coll_comm_template)));
+}
+
+
+template <typename LocalIndexType>
+RowGatherer<LocalIndexType>::RowGatherer(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template)
     : EnablePolymorphicObject<RowGatherer>(exec),
-      DistributedBase(comm),
-      coll_comm_(std::make_shared<DefaultCollComm>(comm)),
+      DistributedBase(coll_comm_template->get_base_communicator()),
+      coll_comm_(std::move(coll_comm_template)),
       send_idxs_(exec),
-      send_workspace_(exec),
-      req_listener_(MPI_REQUEST_NULL)
+      send_workspace_(exec)
 {}
 
 
@@ -230,8 +375,7 @@ RowGatherer<LocalIndexType>::RowGatherer(RowGatherer&& o) noexcept
     : EnablePolymorphicObject<RowGatherer>(o.get_executor()),
       DistributedBase(o.get_communicator()),
       send_idxs_(o.get_executor()),
-      send_workspace_(o.get_executor()),
-      req_listener_(MPI_REQUEST_NULL)
+      send_workspace_(o.get_executor())
 {
     *this = std::move(o);
 }
@@ -257,11 +401,10 @@ RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
     if (this != &o) {
         size_ = std::exchange(o.size_, dim<2>{});
         coll_comm_ = std::exchange(
-            o.coll_comm_,
-            std::make_shared<DefaultCollComm>(o.get_communicator()));
+            o.coll_comm_, mpi::detail::create_default_collective_communicator(
+                              o.get_communicator()));
         send_idxs_ = std::move(o.send_idxs_);
         send_workspace_ = std::move(o.send_workspace_);
-        req_listener_ = std::exchange(o.req_listener_, MPI_REQUEST_NULL);
     }
     return *this;
 }

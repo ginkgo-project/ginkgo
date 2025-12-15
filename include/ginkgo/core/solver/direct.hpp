@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,6 +36,7 @@ class Direct : public EnableLinOp<Direct<ValueType, IndexType>>,
                    factorization::Factorization<ValueType, IndexType>>,
                public Transposable {
     friend class EnablePolymorphicObject<Direct, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;

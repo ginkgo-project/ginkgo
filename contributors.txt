@@ -3,9 +3,10 @@ license, as specified in the repository's LICENSE file.
 
 Aliaga José I. <aliaga@uji.es> Universitat Jaume I
 Anzt Hartwig <hartwig.anzt@kit.edu> Karlsruhe Institute of Technology, The University of Tennessee Knoxville
+Beams Natalie <nbeams@icl.utk.edu> University of Tennessee, Knoxville
 Boman Erik <egboman@sandia.gov> Sandia National Laboratories
 Castelli Fabian <fabian.castelli@kit.edu> Karlsruhe Institute of Technology
-Chen Yenchen <yanjen224@gmail.com> National Taiwan University
+Chen Yen-Chen <yanjen224@gmail.com> National Taiwan University
 Cojean Terry <terry.cojean@kit.edu> Karlsruhe Institute of Technology
 Conen Niklas <niklas.conen@student.kit.edu> Karlsruhe Institute of Technology
 Drzaic Jelena <jelena.drzaic1@gmail.com> University of Zagreb
@@ -26,4 +27,4 @@ Olenik Gregor <go@hpsim.de> HPSim
 Ribizel Tobias <mail@upsj.de> Karlsruhe Institute of Technology
 Riemer Lukas <lksriemer@gmail.com> Karlsruhe Institute of Technology
 Luka Stanisic <luka.stanisic@huawei.com> Huawei Technologies Duesseldorf GmbH
-Tsai Yuhsiang <yhmtsai@gmail.com> National Taiwan University
+Tsai Yu-Hsiang <yhmtsai@gmail.com> National Taiwan University

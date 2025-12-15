@@ -187,6 +187,7 @@ function(ginkgo_add_test test_name test_target_name)
                 "Disabling test: ${test_target_name}. Only ${MPIEXEC_MAX_NUMPROCS} "
                 "MPI processes available but ${add_test_MPI_SIZE} processes required."
             )
+            return()
         endif()
     else()
         add_test(
@@ -196,7 +197,10 @@ function(ginkgo_add_test test_name test_target_name)
         )
     endif()
 
-    ginkgo_add_resource_requirement(${REL_BINARY_DIR}/${test_binary_name} ${ARGN})
+    ginkgo_add_resource_requirement(
+        ${REL_BINARY_DIR}/${test_binary_name}
+        ${ARGN}
+    )
 
     set(test_preload)
     if(GINKGO_TEST_NONDEFAULT_STREAM AND GINKGO_BUILD_CUDA)
@@ -241,7 +245,10 @@ function(ginkgo_create_dpcpp_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
     add_executable(${test_target_name} ${test_name}.dp.cpp)
     target_compile_options(${test_target_name} PRIVATE ${GINKGO_DPCPP_FLAGS})
-    gko_add_sycl_to_target(TARGET ${test_target_name} SOURCES ${test_name}.dp.cpp)
+    gko_add_sycl_to_target(
+        TARGET ${test_target_name}
+        SOURCES ${test_name}.dp.cpp
+    )
     target_link_options(
         ${test_target_name}
         PRIVATE -fsycl-device-code-split=per_kernel
@@ -260,7 +267,12 @@ endfunction(ginkgo_create_dpcpp_test)
 ## Test compiled with CUDA
 function(ginkgo_create_cuda_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
-    ginkgo_create_cuda_test_internal(${test_name} ${test_name}.cu ${test_target_name} ${ARGN})
+    ginkgo_create_cuda_test_internal(
+        ${test_name}
+        ${test_name}.cu
+        ${test_target_name}
+        ${ARGN}
+    )
 endfunction(ginkgo_create_cuda_test)
 
 ## Internal function allowing separate test name, filename and target name
@@ -292,13 +304,23 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
         )
     endif()
     ginkgo_set_test_target_properties(${test_target_name} "_cuda" ${ARGN})
-    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE cudagpu)
+    ginkgo_add_test(
+        ${test_name}
+        ${test_target_name}
+        ${ARGN}
+        RESOURCE_TYPE cudagpu
+    )
 endfunction(ginkgo_create_cuda_test_internal)
 
 ## Test compiled with HIP
 function(ginkgo_create_hip_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
-    ginkgo_create_hip_test_internal(${test_name} ${test_name}.hip.cpp ${test_target_name} ${ARGN})
+    ginkgo_create_hip_test_internal(
+        ${test_name}
+        ${test_name}.hip.cpp
+        ${test_target_name}
+        ${ARGN}
+    )
 endfunction(ginkgo_create_hip_test)
 
 ## Internal function allowing separate filename, test name and test target name.
@@ -316,13 +338,24 @@ function(ginkgo_create_hip_test_internal test_name filename test_target_name)
         )
     endif()
     ginkgo_set_test_target_properties(${test_target_name} "_hip" ${ARGN})
-    ginkgo_add_test(${test_name} ${test_target_name} ${ARGN} RESOURCE_TYPE hipgpu)
+    ginkgo_add_test(
+        ${test_name}
+        ${test_target_name}
+        ${ARGN}
+        RESOURCE_TYPE hipgpu
+    )
 endfunction(ginkgo_create_hip_test_internal)
 
 ## Test compiled with OpenMP
 function(ginkgo_create_omp_test test_name)
     ginkgo_build_test_name(${test_name} test_target_name ${ARGN})
-    ginkgo_create_omp_test_internal(${test_name} ${test_name}.cpp ${test_target_name} "" ${ARGN})
+    ginkgo_create_omp_test_internal(
+        ${test_name}
+        ${test_name}.cpp
+        ${test_target_name}
+        ""
+        ${ARGN}
+    )
 endfunction()
 
 function(ginkgo_create_omp_test_internal test_name filename test_target_name)
@@ -346,10 +379,20 @@ function(ginkgo_create_common_test test_name)
         ginkgo_create_common_test_internal(${test_name} HipExecutor hip ${ARGN})
     endif()
     if(GINKGO_BUILD_CUDA)
-        ginkgo_create_common_test_internal(${test_name} CudaExecutor cuda ${ARGN})
+        ginkgo_create_common_test_internal(
+            ${test_name}
+            CudaExecutor
+            cuda
+            ${ARGN}
+        )
     endif()
     if(GINKGO_BUILD_SYCL)
-        ginkgo_create_common_test_internal(${test_name} DpcppExecutor dpcpp ${ARGN})
+        ginkgo_create_common_test_internal(
+            ${test_name}
+            DpcppExecutor
+            dpcpp
+            ${ARGN}
+        )
     endif()
 endfunction(ginkgo_create_common_test)
 
@@ -392,8 +435,8 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
         ${test_target_name}
         PRIVATE
             EXEC_TYPE=${exec_type}
-            GKO_DEVICE_NAMESPACE=${exec}
             GKO_COMPILING_${exec_upper}
+            GKO_DEVICE_NAMESPACE=${exec}
     )
     target_link_libraries(
         ${test_target_name}
@@ -411,7 +454,12 @@ function(ginkgo_create_common_test_internal test_name exec_type exec)
         )
     endif()
     ginkgo_set_test_target_properties(${test_target_name} "_${exec}" ${ARGN})
-    ginkgo_add_test(${test_name}_${exec} ${test_target_name} ${ARGN} RESOURCE_TYPE ${test_resource_type})
+    ginkgo_add_test(
+        ${test_name}_${exec}
+        ${test_target_name}
+        ${ARGN}
+        RESOURCE_TYPE ${test_resource_type}
+    )
 endfunction(ginkgo_create_common_test_internal)
 
 ## Common test compiled with the device compiler, one target for each enabled backend
@@ -434,14 +482,22 @@ function(ginkgo_create_common_device_test test_name)
         GINKGO_BUILD_SYCL
         AND NOT ("dpcpp" IN_LIST common_device_test_DISABLE_EXECUTORS)
     )
-        ginkgo_create_common_test_internal(${test_name} DpcppExecutor dpcpp ${ARGN})
+        ginkgo_create_common_test_internal(
+            ${test_name}
+            DpcppExecutor
+            dpcpp
+            ${ARGN}
+        )
         target_compile_options(
             ${test_target_name}_dpcpp
             PRIVATE ${GINKGO_DPCPP_FLAGS}
         )
         # We need to use a new file to avoid sycl setting in other backends because add_sycl_to_target will change the source property.
         configure_file(${test_name}.cpp ${test_name}.dp.cpp @ONLY)
-        gko_add_sycl_to_target(TARGET ${test_target_name}_dpcpp SOURCES ${test_name}.dp.cpp)
+        gko_add_sycl_to_target(
+            TARGET ${test_target_name}_dpcpp
+            SOURCES ${test_name}.dp.cpp
+        )
         target_link_options(
             ${test_target_name}_dpcpp
             PRIVATE -fsycl-device-lib=all -fsycl-device-code-split=per_kernel
@@ -460,7 +516,12 @@ function(ginkgo_create_common_device_test test_name)
     )
         # need to make a separate file for this, since we can't set conflicting properties on the same file
         configure_file(${test_name}.cpp ${test_name}.cu @ONLY)
-        ginkgo_create_cuda_test_internal(${test_name}_cuda ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.cu ${test_target_name}_cuda ${ARGN})
+        ginkgo_create_cuda_test_internal(
+            ${test_name}_cuda
+            ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.cu
+            ${test_target_name}_cuda
+            ${ARGN}
+        )
         target_compile_definitions(
             ${test_target_name}_cuda
             PRIVATE EXEC_TYPE=CudaExecutor GKO_DEVICE_NAMESPACE=cuda
@@ -472,7 +533,12 @@ function(ginkgo_create_common_device_test test_name)
     )
         # need to make a separate file for this, since we can't set conflicting properties on the same file
         configure_file(${test_name}.cpp ${test_name}.hip.cpp @ONLY)
-        ginkgo_create_hip_test_internal(${test_name}_hip ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.hip.cpp ${test_target_name}_hip ${ARGN})
+        ginkgo_create_hip_test_internal(
+            ${test_name}_hip
+            ${CMAKE_CURRENT_BINARY_DIR}/${test_name}.hip.cpp
+            ${test_target_name}_hip
+            ${ARGN}
+        )
         target_compile_definitions(
             ${test_target_name}_hip
             PRIVATE EXEC_TYPE=HipExecutor GKO_DEVICE_NAMESPACE=hip
@@ -483,5 +549,11 @@ endfunction(ginkgo_create_common_device_test)
 ## Common test compiled with the host compiler for all enabled backends and Reference
 function(ginkgo_create_common_and_reference_test test_name)
     ginkgo_create_common_test(${test_name} ${ARGN})
-    ginkgo_create_common_test_internal(${test_name} ReferenceExecutor reference REFERENCE ${ARGN})
+    ginkgo_create_common_test_internal(
+        ${test_name}
+        ReferenceExecutor
+        reference
+        REFERENCE
+        ${ARGN}
+    )
 endfunction(ginkgo_create_common_and_reference_test)

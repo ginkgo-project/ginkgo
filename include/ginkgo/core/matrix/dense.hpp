@@ -137,6 +137,7 @@ class Dense
     friend class Dense<to_complex<ValueType>>;
     friend class experimental::distributed::Vector<ValueType>;
     friend class experimental::distributed::detail::VectorCache<ValueType>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using EnableLinOp<Dense>::convert_to;
@@ -1145,6 +1146,24 @@ public:
     std::unique_ptr<Dense> create_submatrix(const span& rows,
                                             const span& columns)
     {
+        return create_submatrix(rows, columns, this->get_stride());
+    }
+
+
+    /**
+     * Create a submatrix from the original matrix.
+     *
+     * @param rows  row span
+     * @param columns  column span
+     * @param size  size of the submatrix (only used for consistency with
+     *              distributed::Vector)
+     */
+    std::unique_ptr<Dense> create_submatrix(const local_span& rows,
+                                            const local_span& columns,
+                                            dim<2> size)
+    {
+        dim<2> deduced_size{rows.length(), columns.length()};
+        GKO_ASSERT_EQUAL_DIMENSIONS(deduced_size, size);
         return create_submatrix(rows, columns, this->get_stride());
     }
 

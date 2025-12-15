@@ -71,6 +71,7 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
     friend class Ell<to_complex<ValueType>, IndexType>;
     friend class Ell<previous_precision<ValueType>, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using EnableLinOp<Ell>::convert_to;

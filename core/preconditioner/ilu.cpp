@@ -13,7 +13,6 @@
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 
-
 namespace gko {
 namespace preconditioner {
 namespace detail {
@@ -25,26 +24,30 @@ typename Ilu::parameters_type ilu_parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Ilu::build();
+    // reverse_apply is used for determining the Ilu type
+    config::config_check_decorator config_check(config, {"reverse_apply"});
+
     using l_solver_type = typename Ilu::l_solver_type;
     using u_solver_type = typename Ilu::u_solver_type;
     static_assert(std::is_same_v<l_solver_type, LinOp>,
                   "only support ILU parse when l_solver_type is LinOp.");
     static_assert(std::is_same_v<u_solver_type, LinOp>,
                   "only support ILU parse when u_solver_type is LinOp.");
-    if (auto& obj = config.get("l_solver")) {
+
+    if (auto& obj = config_check.get("l_solver")) {
         params.with_l_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("u_solver")) {
+    if (auto& obj = config_check.get("u_solver")) {
         params.with_u_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("factorization")) {
+    if (auto& obj = config_check.get("factorization")) {
         params.with_factorization(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_factory<const LinOpFactory>(obj, context,
+                                                             td_for_child));
     }
 
     return params;

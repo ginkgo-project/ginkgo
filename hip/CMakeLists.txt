@@ -1,9 +1,25 @@
 cmake_minimum_required(VERSION 3.21)
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
-add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/csr_kernels.instantiate.cpp CSR_INSTANTIATE)
-add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip matrix/fbcsr_kernels.instantiate.cpp FBCSR_INSTANTIATE)
-add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip solver/batch_bicgstab_launch.instantiate.cpp BATCH_BICGSTAB_INSTANTIATE)
-add_instantiation_files(${PROJECT_SOURCE_DIR}/common/cuda_hip solver/batch_cg_launch.instantiate.cpp BATCH_CG_INSTANTIATE)
+add_instantiation_files(
+    ${PROJECT_SOURCE_DIR}/common/cuda_hip
+    matrix/csr_kernels.instantiate.cpp
+    CSR_INSTANTIATE
+)
+add_instantiation_files(
+    ${PROJECT_SOURCE_DIR}/common/cuda_hip
+    matrix/fbcsr_kernels.instantiate.cpp
+    FBCSR_INSTANTIATE
+)
+add_instantiation_files(
+    ${PROJECT_SOURCE_DIR}/common/cuda_hip
+    solver/batch_bicgstab_launch.instantiate.cpp
+    BATCH_BICGSTAB_INSTANTIATE
+)
+add_instantiation_files(
+    ${PROJECT_SOURCE_DIR}/common/cuda_hip
+    solver/batch_cg_launch.instantiate.cpp
+    BATCH_CG_INSTANTIATE
+)
 # we don't split up the dense kernels into distinct compilations
 list(
     APPEND
@@ -12,6 +28,7 @@ list(
 )
 set(GINKGO_HIP_SOURCES
     base/device.hip.cpp
+    base/event_kernels.cpp
     base/exception.hip.cpp
     base/executor.hip.cpp
     base/memory.hip.cpp

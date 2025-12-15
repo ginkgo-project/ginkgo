@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,9 +22,13 @@ deferred_factory_parameter<gko::LinOpFactory> parse(const pnode& config,
                                                     const type_descriptor& td)
 {
     if (auto& obj = config.get("type")) {
-        auto func = detail::registry_accessor::get_build_map(context).at(
-            obj.get_string());
-        return func(config, context, td);
+        const auto& build_map =
+            detail::registry_accessor::get_build_map(context);
+        auto search = build_map.find(obj.get_string());
+        if (search == build_map.end()) {
+            GKO_INVALID_CONFIG_VALUE("type", obj.get_string());
+        }
+        return search->second(config, context, td);
     }
     GKO_MISSING_CONFIG_ENTRY("type");
 }

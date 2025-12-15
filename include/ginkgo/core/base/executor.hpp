@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -759,7 +759,7 @@ public:
 #if (GKO_VERBOSE_LEVEL >= 1) && !defined(NDEBUG)
             // Unoptimized copy. Try to go through the masters.
             // output to log when verbose >= 1 and debug build
-            std::clog << "Not direct copy. Try to copy data from the masters."
+            std::cerr << "Not direct copy. Try to copy data from the masters."
                       << std::endl;
 #endif
             auto src_master = src_exec->get_master().get();
@@ -1654,6 +1654,14 @@ public:
     int get_minor_version() const noexcept
     {
         return this->get_exec_info().minor;
+    }
+
+    /**
+     * Get the compute capability
+     */
+    int get_compute_capability() const noexcept
+    {
+        return this->get_major_version() * 10 + this->get_minor_version();
     }
 
     /**

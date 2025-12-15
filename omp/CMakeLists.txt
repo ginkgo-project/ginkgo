@@ -8,8 +8,10 @@ list(
 target_sources(
     ginkgo_omp
     PRIVATE
+        ${GKO_UNIFIED_COMMON_SOURCES}
         base/batch_multi_vector_kernels.cpp
         base/device_matrix_data_kernels.cpp
+        base/event_kernels.cpp
         base/executor.cpp
         base/index_set_kernels.cpp
         base/scoped_device_id.cpp
@@ -58,7 +60,6 @@ target_sources(
         solver/upper_trs_kernels.cpp
         stop/criterion_kernels.cpp
         stop/residual_norm_kernels.cpp
-        ${GKO_UNIFIED_COMMON_SOURCES}
 )
 
 ginkgo_compile_features(ginkgo_omp)
@@ -108,7 +109,10 @@ ginkgo_default_includes(ginkgo_omp)
 ginkgo_install_library(ginkgo_omp)
 
 if(GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_omp "GKO_COMPILING_OMP;GKO_DEVICE_NAMESPACE=omp")
+    ginkgo_check_headers(
+        ginkgo_omp
+        "GKO_COMPILING_OMP;GKO_DEVICE_NAMESPACE=omp"
+    )
 endif()
 
 if(GINKGO_BUILD_TESTS)

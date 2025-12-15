@@ -66,13 +66,29 @@ protected:
 TYPED_TEST_SUITE(RowGatherer, gko::test::IndexTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(RowGatherer, CanDefaultConstruct)
+TYPED_TEST(RowGatherer, CanDefaultConstructFromMpiCommunicator)
 {
     using RowGatherer = typename TestFixture::row_gatherer_type;
 
     auto rg = RowGatherer::create(this->ref, this->comm);
 
     GKO_ASSERT_EQUAL_DIMENSIONS(rg, gko::dim<2>());
+    auto coll_comm = rg->get_collective_communicator();
+    ASSERT_NO_THROW(
+        gko::as<gko::experimental::mpi::DenseCommunicator>(coll_comm));
+}
+
+
+TYPED_TEST(RowGatherer, CanDefaultConstructFromCollectiveCommunicator)
+{
+    using RowGatherer = typename TestFixture::row_gatherer_type;
+
+    auto coll_comm_in = std::make_shared<CollCommType>(this->comm);
+    auto rg = RowGatherer::create(this->ref, coll_comm_in);
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(rg, gko::dim<2>());
+    auto coll_comm = rg->get_collective_communicator();
+    ASSERT_NO_THROW(gko::as<CollCommType>(coll_comm));
 }
 
 

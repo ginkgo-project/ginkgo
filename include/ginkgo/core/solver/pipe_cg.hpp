@@ -64,6 +64,7 @@ class PipeCg
       public Transposable {
     friend class EnableLinOp<PipeCg>;
     friend class EnablePolymorphicObject<PipeCg, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;
@@ -147,36 +148,32 @@ struct workspace_traits<PipeCg<ValueType>> {
     // array containing all varying vectors (dependent on problem size)
     static std::vector<int> vectors(const Solver&);
 
-    // residual vector
-    constexpr static int r = 0;
+    // joint (residual vector | w vector)
+    constexpr static int rw = 0;
     // preconditioned residual vector
     constexpr static int z = 1;
     // p vector
     constexpr static int p = 2;
-    // w vector
-    constexpr static int w = 3;
     // m vector
-    constexpr static int m = 4;
+    constexpr static int m = 3;
     // n vector
-    constexpr static int n = 5;
+    constexpr static int n = 4;
     // q vector
-    constexpr static int q = 6;
+    constexpr static int q = 5;
     // f vector
-    constexpr static int f = 7;
+    constexpr static int f = 6;
     // g vector
-    constexpr static int g = 8;
+    constexpr static int g = 7;
     // beta scalar
-    constexpr static int beta = 9;
-    // delta scalar
-    constexpr static int delta = 10;
+    constexpr static int beta = 8;
+    // (rho|delta) joint scalar
+    constexpr static int rhodelta = 9;
     // previous rho scalar
-    constexpr static int prev_rho = 11;
-    // current rho scalar
-    constexpr static int rho = 12;
+    constexpr static int prev_rho = 10;
     // constant 1.0 scalar
-    constexpr static int one = 13;
+    constexpr static int one = 11;
     // constant -1.0 scalar
-    constexpr static int minus_one = 14;
+    constexpr static int minus_one = 12;
 
     // stopping status array
     constexpr static int stop = 0;

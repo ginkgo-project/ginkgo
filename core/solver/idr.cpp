@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/solver/idr.hpp"
+
+#include <string>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -11,11 +13,11 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
-
 
 namespace gko {
 namespace solver {
@@ -40,20 +42,21 @@ typename Idr<ValueType>::parameters_type Idr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Idr<ValueType>::build();
-    common_solver_parse(params, config, context, td_for_child);
-    if (auto& obj = config.get("subspace_dim")) {
-        params.with_subspace_dim(gko::config::get_value<size_type>(obj));
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
+    if (auto& obj = config_check.get("subspace_dim")) {
+        params.with_subspace_dim(config::get_value<size_type>(obj));
     }
-    if (auto& obj = config.get("kappa")) {
-        params.with_kappa(
-            gko::config::get_value<remove_complex<ValueType>>(obj));
+    if (auto& obj = config_check.get("kappa")) {
+        params.with_kappa(config::get_value<remove_complex<ValueType>>(obj));
     }
-    if (auto& obj = config.get("deterministic")) {
-        params.with_deterministic(gko::config::get_value<bool>(obj));
+    if (auto& obj = config_check.get("deterministic")) {
+        params.with_deterministic(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("complex_subspace")) {
-        params.with_complex_subspace(gko::config::get_value<bool>(obj));
+    if (auto& obj = config_check.get("complex_subspace")) {
+        params.with_complex_subspace(config::get_value<bool>(obj));
     }
+
     return params;
 }
 

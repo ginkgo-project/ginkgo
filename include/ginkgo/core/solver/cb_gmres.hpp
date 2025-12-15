@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -98,6 +98,7 @@ class CbGmres : public EnableLinOp<CbGmres<ValueType>>,
                                                            CbGmres<ValueType>> {
     friend class EnableLinOp<CbGmres>;
     friend class EnablePolymorphicObject<CbGmres, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using value_type = ValueType;

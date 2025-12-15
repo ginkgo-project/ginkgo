@@ -34,6 +34,11 @@ DEFINE_bool(
     rel_residual, false,
     "Use relative residual instead of residual reduction stopping criterion");
 
+DEFINE_bool(benchmark_from_scratch, false,
+            "benchmark the solver from scratch everytime which requires "
+            "workspace initialization everytime. When this is true, the "
+            "repetition progress will use the solver generated additionally.");
+
 DEFINE_string(solvers, "cg",
               "A comma-separated list of solvers to run. "
               "Supported values are: bicgstab, bicg, cb_gmres_keep, "
@@ -52,6 +57,9 @@ DEFINE_uint32(gcr_restart, 100,
 
 DEFINE_uint32(gmres_restart, 100,
               "Maximum dimension of the Krylov space to use in GMRES");
+
+DEFINE_string(gmres_ortho_method, "mgs",
+              "The orthogonalization method to use in GMRES.");
 
 DEFINE_uint32(idr_subspace_dim, 2,
               "What dimension of the subspace to use in IDR");
@@ -200,9 +208,23 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
                 .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
             exec, precond, max_iters);
     } else if (description == "gmres") {
+        gko::solver::gmres::ortho_method ortho_method;
+        if (FLAGS_gmres_ortho_method == "mgs") {
+            ortho_method = gko::solver::gmres::ortho_method::mgs;
+        } else if (FLAGS_gmres_ortho_method == "cgs") {
+            ortho_method = gko::solver::gmres::ortho_method::cgs;
+        } else if (FLAGS_gmres_ortho_method == "cgs2") {
+            ortho_method = gko::solver::gmres::ortho_method::cgs2;
+        } else {
+            throw std::range_error(
+                std::string(
+                    "GMRES doesn't support the orthogonalization method <") +
+                FLAGS_gmres_ortho_method + ">!");
+        }
         return add_criteria_precond_finalize(
-            gko::solver::Gmres<etype>::build().with_krylov_dim(
-                FLAGS_gmres_restart),
+            gko::solver::Gmres<etype>::build()
+                .with_krylov_dim(FLAGS_gmres_restart)
+                .with_ortho_method(ortho_method),
             exec, precond, max_iters);
     } else if (description == "minres") {
         return add_criteria_precond_finalize<gko::solver::Minres<etype>>(
@@ -430,7 +452,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 exec, state.system_matrix.get(), state.b.get());
         }
 
-        std::clog << "Matrix is of size (" << state.system_matrix->get_size()[0]
+        std::cerr << "Matrix is of size (" << state.system_matrix->get_size()[0]
                   << ", " << state.system_matrix->get_size()[1] << ")"
                   << std::endl;
         test_case["rows"] = state.system_matrix->get_size()[0];
@@ -470,9 +492,9 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             for (auto _ : ic.warmup_run()) {
                 auto x_clone = clone(state.x);
                 auto precond = precond_factory.at(precond_name)(exec);
-                solver = generate_solver(exec, give(precond), solver_name,
-                                         FLAGS_warmup_max_iters)
-                             ->generate(state.system_matrix);
+                auto solver = generate_solver(exec, give(precond), solver_name,
+                                              FLAGS_warmup_max_iters)
+                                  ->generate(state.system_matrix);
                 solver->apply(state.b, x_clone);
                 exec->synchronize();
             }
@@ -482,7 +504,6 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         if (FLAGS_detailed && !FLAGS_overhead) {
             // slow run, get the time of each functions
             auto x_clone = clone(state.x);
-
             {
                 auto gen_logger = create_operations_logger(
                     FLAGS_gpu_timer, FLAGS_nested_names, exec,
@@ -492,10 +513,12 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                     exec->get_master()->add_logger(gen_logger);
                 }
 
-                auto precond = precond_factory.at(precond_name)(exec);
-                solver = generate_solver(exec, give(precond), solver_name,
-                                         FLAGS_max_iters)
-                             ->generate(state.system_matrix);
+                {
+                    auto precond = precond_factory.at(precond_name)(exec);
+                    auto solver = generate_solver(exec, give(precond),
+                                                  solver_name, FLAGS_max_iters)
+                                      ->generate(state.system_matrix);
+                }
 
                 exec->remove_logger(gen_logger);
                 if (exec != exec->get_master()) {
@@ -503,8 +526,14 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 }
             }
 
-            if (auto prec =
-                    dynamic_cast<const gko::Preconditionable*>(solver.get())) {
+            // generate it for apply usage
+            auto precond = precond_factory.at(precond_name)(exec);
+            auto detailed_solver = generate_solver(exec, give(precond),
+                                                   solver_name, FLAGS_max_iters)
+                                       ->generate(state.system_matrix);
+
+            if (auto prec = dynamic_cast<const gko::Preconditionable*>(
+                    detailed_solver.get())) {
                 solver_case["preconditioner"] = json::object();
                 write_precond_info(
                     clone(exec->get_master(), prec->get_preconditioner()).get(),
@@ -520,7 +549,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                     exec->get_master()->add_logger(apply_logger);
                 }
 
-                solver->apply(state.b, x_clone);
+                detailed_solver->apply(state.b, x_clone);
 
                 exec->remove_logger(apply_logger);
                 if (exec != exec->get_master()) {
@@ -537,8 +566,8 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                     solver_case["true_residuals"],
                     solver_case["implicit_residuals"],
                     solver_case["iteration_timestamps"]);
-                solver->add_logger(res_logger);
-                solver->apply(state.b, x_clone);
+                detailed_solver->add_logger(res_logger);
+                detailed_solver->apply(state.b, x_clone);
                 if (!res_logger->has_implicit_res_norms()) {
                     solver_case.erase("implicit_residuals");
                 }
@@ -551,17 +580,35 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         auto generate_timer = get_timer(exec, FLAGS_gpu_timer);
         auto apply_timer = ic.get_timer();
         auto x_clone = clone(state.x);
+        // if we do not benchmark from scratch, we generate it here and do
+        // operations once. we can not rely on the warmup one because it uses
+        // different iteration criterion.
+        if (!FLAGS_benchmark_from_scratch) {
+            auto precond = precond_factory.at(precond_name)(exec);
+            solver = gko::share(generate_solver(exec, give(precond),
+                                                solver_name, FLAGS_max_iters)
+                                    ->generate(state.system_matrix));
+            solver->apply(state.b, x_clone);
+        }
         for (auto status : ic.run(false)) {
             auto range = annotate("repetition");
             x_clone = clone(state.x);
 
-            exec->synchronize();
-            generate_timer->tic();
-            auto precond = precond_factory.at(precond_name)(exec);
-            solver = generate_solver(exec, give(precond), solver_name,
-                                     FLAGS_max_iters)
-                         ->generate(state.system_matrix);
-            generate_timer->toc();
+            {
+                exec->synchronize();
+                generate_timer->tic();
+                auto precond = precond_factory.at(precond_name)(exec);
+                auto generated_solver =
+                    gko::share(generate_solver(exec, give(precond), solver_name,
+                                               FLAGS_max_iters)
+                                   ->generate(state.system_matrix));
+                generate_timer->toc();
+                // when it is not from scratch, we always generate it explicitly
+                // before for-loop
+                if (FLAGS_benchmark_from_scratch) {
+                    solver = generated_solver;
+                }
+            }
 
             exec->synchronize();
             if (ic.get_num_repetitions() == 0) {

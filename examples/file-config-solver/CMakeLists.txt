@@ -3,7 +3,7 @@ project(file-config-solver)
 
 # We only need to find Ginkgo/nlohmann_json if we build this example stand-alone
 if(NOT GINKGO_BUILD_EXAMPLES)
-    find_package(Ginkgo 1.10.0 REQUIRED)
+    find_package(Ginkgo 1.11.0 REQUIRED)
     find_package(nlohmann_json 3.9.1 REQUIRED)
 endif()
 

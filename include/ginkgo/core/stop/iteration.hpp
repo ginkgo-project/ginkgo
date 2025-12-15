@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,7 +30,13 @@ public:
         /**
          * Maximum number of iterations
          */
-        size_type GKO_FACTORY_PARAMETER_SCALAR(max_iters, 0);
+        size_type max_iters{0};
+
+        parameters_type& with_max_iters(size_type value)
+        {
+            this->max_iters = value;
+            return *this;
+        }
     };
     GKO_ENABLE_CRITERION_FACTORY(Iteration, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

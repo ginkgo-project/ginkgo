@@ -62,15 +62,15 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
                                     const config::type_descriptor& td_for_child)
 {
     auto params = preconditioner::Jacobi<ValueType, IndexType>::build();
-
-    if (auto& obj = config.get("max_block_size")) {
-        params.with_max_block_size(gko::config::get_value<uint32>(obj));
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("max_block_size")) {
+        params.with_max_block_size(config::get_value<uint32>(obj));
     }
-    if (auto& obj = config.get("max_block_stride")) {
-        params.with_max_block_stride(gko::config::get_value<uint32>(obj));
+    if (auto& obj = config_check.get("max_block_stride")) {
+        params.with_max_block_stride(config::get_value<uint32>(obj));
     }
-    if (auto& obj = config.get("skip_sorting")) {
-        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    if (auto& obj = config_check.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
     }
     // No array support
     if (config.get("block_pointers")) {
@@ -81,17 +81,17 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
     // storage_optimization_type is not public. It uses precision_reduction
     // as input. It allows value and array input, but we only support the value
     // input [x, y] -> one precision_reduction (value mode)
-    if (auto& obj = config.get("storage_optimization")) {
+    if (auto& obj = config_check.get("storage_optimization")) {
         params.with_storage_optimization(
-            gko::config::get_value<precision_reduction>(obj));
+            config::get_value<precision_reduction>(obj));
     }
-    if (auto& obj = config.get("accuracy")) {
-        params.with_accuracy(
-            gko::config::get_value<remove_complex<ValueType>>(obj));
+    if (auto& obj = config_check.get("accuracy")) {
+        params.with_accuracy(config::get_value<remove_complex<ValueType>>(obj));
     }
-    if (auto& obj = config.get("aggregate_l1")) {
-        params.with_aggregate_l1(gko::config::get_value<bool>(obj));
+    if (auto& obj = config_check.get("aggregate_l1")) {
+        params.with_aggregate_l1(config::get_value<bool>(obj));
     }
+
     return params;
 }
 

@@ -76,7 +76,8 @@ protected:
         small_one->fill(1);
         small_x = small_zero->clone();
         small_r = small_zero->clone();
-        small_z = small_zero->clone();
+        small_z1 = small_zero->clone();
+        small_z2 = small_zero->clone();
         small_w = small_zero->clone();
         small_m = small_zero->clone();
         small_n = small_zero->clone();
@@ -102,7 +103,8 @@ protected:
     std::unique_ptr<Mtx> small_x;
     std::unique_ptr<Mtx> small_b;
     std::unique_ptr<Mtx> small_r;
-    std::unique_ptr<Mtx> small_z;
+    std::unique_ptr<Mtx> small_z1;
+    std::unique_ptr<Mtx> small_z2;
     std::unique_ptr<Mtx> small_w;
     std::unique_ptr<Mtx> small_m;
     std::unique_ptr<Mtx> small_n;
@@ -142,7 +144,7 @@ TYPED_TEST(PipeCg, KernelInitialize1)
 
 TYPED_TEST(PipeCg, KernelInitialize2)
 {
-    this->small_z->fill(2);
+    this->small_z1->fill(2);
     this->small_w->fill(8);
     this->small_m->fill(8);
     this->small_n->fill(24);
@@ -151,10 +153,10 @@ TYPED_TEST(PipeCg, KernelInitialize2)
     gko::kernels::reference::pipe_cg::initialize_2(
         this->exec, this->small_p.get(), this->small_q.get(),
         this->small_f.get(), this->small_g.get(), this->small_beta.get(),
-        this->small_z.get(), this->small_w.get(), this->small_m.get(),
+        this->small_z1.get(), this->small_w.get(), this->small_m.get(),
         this->small_n.get(), this->small_delta.get());
 
-    GKO_ASSERT_MTX_NEAR(this->small_p, this->small_z, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p, this->small_z1, 0);
     GKO_ASSERT_MTX_NEAR(this->small_q, this->small_w, 0);
     GKO_ASSERT_MTX_NEAR(this->small_f, this->small_m, 0);
     GKO_ASSERT_MTX_NEAR(this->small_g, this->small_n, 0);
@@ -166,7 +168,8 @@ TYPED_TEST(PipeCg, KernelStep1)
 {
     this->small_x->fill(1);
     this->small_r->fill(2);
-    this->small_z->fill(3);
+    this->small_z1->fill(3);
+    this->small_z2->fill(3);
     this->small_w->fill(4);
     this->small_p->fill(4);
     this->small_q->fill(3);
@@ -181,13 +184,15 @@ TYPED_TEST(PipeCg, KernelStep1)
 
     gko::kernels::reference::pipe_cg::step_1(
         this->exec, this->small_x.get(), this->small_r.get(),
-        this->small_z.get(), this->small_w.get(), this->small_p.get(),
-        this->small_q.get(), this->small_f.get(), this->small_g.get(),
-        this->small_rho.get(), this->small_beta.get(), &this->small_stop);
+        this->small_z1.get(), this->small_z2.get(), this->small_w.get(),
+        this->small_p.get(), this->small_q.get(), this->small_f.get(),
+        this->small_g.get(), this->small_rho.get(), this->small_beta.get(),
+        &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{2.0, 1.0}, {2.0, 1.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{1.25, 2.0}, {1.25, 2.0}}), 0);
-    GKO_ASSERT_MTX_NEAR(this->small_z, l({{2.5, 3.0}, {2.5, 3.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_z1, l({{2.5, 3.0}, {2.5, 3.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_z2, this->small_z1, 0);
     GKO_ASSERT_MTX_NEAR(this->small_w, l({{3.75, 4.0}, {3.75, 4.0}}), 0);
 }
 
@@ -196,7 +201,7 @@ TYPED_TEST(PipeCg, KernelStep1DivByZero)
 {
     this->small_x->fill(1);
     this->small_r->fill(2);
-    this->small_z->fill(3);
+    this->small_z1->fill(3);
     this->small_w->fill(4);
     this->small_p->fill(4);
     this->small_q->fill(3);
@@ -207,20 +212,21 @@ TYPED_TEST(PipeCg, KernelStep1DivByZero)
 
     gko::kernels::reference::pipe_cg::step_1(
         this->exec, this->small_x.get(), this->small_r.get(),
-        this->small_z.get(), this->small_w.get(), this->small_p.get(),
-        this->small_q.get(), this->small_f.get(), this->small_g.get(),
-        this->small_rho.get(), this->small_beta.get(), &this->small_stop);
+        this->small_z1.get(), this->small_z2.get(), this->small_w.get(),
+        this->small_p.get(), this->small_q.get(), this->small_f.get(),
+        this->small_g.get(), this->small_rho.get(), this->small_beta.get(),
+        &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{1.0, 1.0}, {1.0, 1.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{2.0, 2.0}, {2.0, 2.0}}), 0);
-    GKO_ASSERT_MTX_NEAR(this->small_z, l({{3.0, 3.0}, {3.0, 3.0}}), 0);
+    GKO_ASSERT_MTX_NEAR(this->small_z1, l({{3.0, 3.0}, {3.0, 3.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_w, l({{4.0, 4.0}, {4.0, 4.0}}), 0);
 }
 
 
 TYPED_TEST(PipeCg, KernelStep2)
 {
-    this->small_z->fill(1);
+    this->small_z1->fill(1);
     this->small_w->fill(2);
     this->small_m->fill(3);
     this->small_n->fill(4);
@@ -242,7 +248,7 @@ TYPED_TEST(PipeCg, KernelStep2)
     gko::kernels::reference::pipe_cg::step_2(
         this->exec, this->small_beta.get(), this->small_p.get(),
         this->small_q.get(), this->small_f.get(), this->small_g.get(),
-        this->small_z.get(), this->small_w.get(), this->small_m.get(),
+        this->small_z1.get(), this->small_w.get(), this->small_m.get(),
         this->small_n.get(), this->small_prev_rho.get(), this->small_rho.get(),
         this->small_delta.get(), &this->small_stop);
 
@@ -256,7 +262,7 @@ TYPED_TEST(PipeCg, KernelStep2)
 
 TYPED_TEST(PipeCg, KernelStep2DivByZero)
 {
-    this->small_z->fill(1);
+    this->small_z1->fill(1);
     this->small_w->fill(2);
     this->small_m->fill(3);
     this->small_n->fill(4);
@@ -275,12 +281,12 @@ TYPED_TEST(PipeCg, KernelStep2DivByZero)
     gko::kernels::reference::pipe_cg::step_2(
         this->exec, this->small_beta.get(), this->small_p.get(),
         this->small_q.get(), this->small_f.get(), this->small_g.get(),
-        this->small_z.get(), this->small_w.get(), this->small_m.get(),
+        this->small_z1.get(), this->small_w.get(), this->small_m.get(),
         this->small_n.get(), this->small_prev_rho.get(), this->small_rho.get(),
         this->small_delta.get(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_beta, this->small_delta, 0);
-    GKO_ASSERT_MTX_NEAR(this->small_p, this->small_z, 0);
+    GKO_ASSERT_MTX_NEAR(this->small_p, this->small_z1, 0);
     GKO_ASSERT_MTX_NEAR(this->small_q, this->small_w, 0);
     GKO_ASSERT_MTX_NEAR(this->small_f, this->small_m, 0);
     GKO_ASSERT_MTX_NEAR(this->small_g, this->small_n, 0);
@@ -290,7 +296,7 @@ TYPED_TEST(PipeCg, KernelStep2DivByZero)
 TYPED_TEST(PipeCg, KernelStep2BetaZero)
 {
     using value_type = typename TestFixture::value_type;
-    this->small_z->fill(1);
+    this->small_z1->fill(1);
     this->small_w->fill(1);
     this->small_m->fill(1);
     this->small_n->fill(1);
@@ -312,7 +318,7 @@ TYPED_TEST(PipeCg, KernelStep2BetaZero)
     gko::kernels::reference::pipe_cg::step_2(
         this->exec, this->small_beta.get(), this->small_p.get(),
         this->small_q.get(), this->small_f.get(), this->small_g.get(),
-        this->small_z.get(), this->small_w.get(), this->small_m.get(),
+        this->small_z1.get(), this->small_w.get(), this->small_m.get(),
         this->small_n.get(), this->small_prev_rho.get(), this->small_rho.get(),
         this->small_delta.get(), &this->small_stop);
 

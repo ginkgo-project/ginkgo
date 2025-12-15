@@ -17,6 +17,7 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/test/utils.hpp"
@@ -430,7 +431,7 @@ public:
         dense_x = dense_vec_type::create(exec);
         dense_y = dense_vec_type::create(exec);
 
-        gko::matrix_data<value_type, global_index_type> mat_input{
+        mat_input = matrix_data{
             size,
             // clang-format off
             {{0, 1, 1}, {0, 3, 2}, {1, 1, 3}, {1, 2, 4}, {2, 1, 5},
@@ -536,6 +537,8 @@ public:
     std::unique_ptr<dense_vec_type> beta;
 
     std::default_random_engine engine;
+
+    matrix_data mat_input;
 };
 
 TYPED_TEST_SUITE(Matrix, gko::test::ValueTypes, TypenameNameGenerator);
@@ -595,6 +598,65 @@ TYPED_TEST(Matrix, CanAdvancedApplyToSingleVector)
     this->y->read_distributed(vec_md, this->row_part);
 
     this->dist_mat->apply(this->alpha, this->x, this->beta, this->y);
+
+    GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+}
+
+
+TYPED_TEST(Matrix, CanApplyToSingleVectorByNonLocalApply2)
+{
+    using value_type = typename TestFixture::value_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    // Coo does not support 16-bit floating point precision in some situations.
+    SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
+    auto vec_md = gko::matrix_data<value_type, global_index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
+    I<I<value_type>> result[3] = {{{10}, {18}}, {{28}, {67}}, {{59}}};
+    auto rank = this->comm.rank();
+    this->x->read_distributed(vec_md, this->col_part);
+    this->y->read_distributed(vec_md, this->row_part);
+    // default setup with csr should use normal advanced apply, so use coo as
+    // non_local to check apply2
+    auto dist_mat_coo = dist_mtx_type::create(
+        this->exec, this->comm, gko::with_matrix_type<gko::matrix::Csr>(),
+        gko::with_matrix_type<gko::matrix::Coo>());
+    dist_mat_coo->read_distributed(this->mat_input, this->row_part,
+                                   this->col_part);
+
+    dist_mat_coo->apply(this->x, this->y);
+
+    GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
+}
+
+
+TYPED_TEST(Matrix, CanAdvancedApplyToSingleVectorByNonLocalApply2)
+{
+    using value_type = typename TestFixture::value_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dense_vec_type = typename TestFixture::dense_vec_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    // Coo does not support 16-bit floating point precision in some situations.
+    SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
+    auto vec_md = gko::matrix_data<value_type, global_index_type>{
+        I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
+    I<I<value_type>> result[3] = {{{17}, {30}}, {{47}, {122}}, {{103}}};
+    auto rank = this->comm.rank();
+    this->alpha = gko::initialize<dense_vec_type>({2.0}, this->exec);
+    this->beta = gko::initialize<dense_vec_type>({-3.0}, this->exec);
+    this->x->read_distributed(vec_md, this->col_part);
+    this->y->read_distributed(vec_md, this->row_part);
+    // default setup with csr should use normal advanced apply, so use coo as
+    // non_local to check apply2
+    auto dist_mat_coo = dist_mtx_type::create(
+        this->exec, this->comm, gko::with_matrix_type<gko::matrix::Csr>(),
+        gko::with_matrix_type<gko::matrix::Coo>());
+    dist_mat_coo->read_distributed(this->mat_input, this->row_part,
+                                   this->col_part);
+
+    dist_mat_coo->apply(this->alpha, this->x, this->beta, this->y);
 
     GKO_ASSERT_MTX_NEAR(this->y->get_local_vector(), result[rank], 0);
 }

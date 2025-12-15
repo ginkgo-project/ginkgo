@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 #include <ginkgo/core/base/array.hpp>
@@ -668,7 +669,18 @@ public:
     using index_type = IndexType;
     using view_type = device_range_minimum_query<block_size, index_type>;
     using block_lut_type = block_range_minimum_query_lookup_table<block_size>;
-    using block_lut_view_type = typename block_lut_type::view_type;
+    // MSVC with CUDA (likely >= 12.6) has an issue to recognize typename even
+    // with typename there. We unpack typename block_lut_type::view_type
+    // manually to reduce the compiler pressure.
+    using block_lut_view_type =
+        device_block_range_minimum_query_lookup_table<block_size>;
+#ifndef _MSC_VER
+    // To avoid any inconsistency, we check the type when it is not MSVC.
+    static_assert(
+        std::is_same_v<block_lut_view_type, typename block_lut_type::view_type>,
+        "block_lut_view_type is not the same type as "
+        "block_lut_type::view_type");
+#endif
     using block_argmin_view_type = bit_packed_span<int, index_type, uint32>;
     using block_argmin_storage_type =
         typename block_argmin_view_type::storage_type;
