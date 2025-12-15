@@ -1,0 +1,7 @@
+Running on ReferenceExecutor
+Running with 2 warm iterations and 10 running iterations
+The random seed for right hand sides is 42
+Running with preconditioners: mg-pgm
+Running test case stencil(1000, 7pt, stencil)
+Matrix is of size (1000, 1000), 6400
+	Running preconditioner: mg-pgm

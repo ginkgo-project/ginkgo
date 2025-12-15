@@ -42,7 +42,7 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
         return Vec::create(
             exec, comm, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
             local_generator.generate_rhs(
-                exec, gko::as<Mtx>(system_matrix)->get_diag_matrix().get(),
+                exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
                 config));
     }
 
@@ -53,7 +53,7 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
         return Vec::create(
             exec, comm, gko::dim<2>{rhs->get_size()[0], FLAGS_nrhs},
             local_generator.generate_initial_guess(
-                exec, gko::as<Mtx>(system_matrix)->get_diag_matrix().get(),
+                exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
                 rhs->get_local_vector()));
     }
 };
