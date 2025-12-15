@@ -634,8 +634,8 @@ public:
         }
 
         if (size > 0 && this->is_owning()) {
-            size_ = size;
             data_.reset(exec_->alloc<value_type>(size));
+            size_ = size;
         } else {
             this->clear();
         }
