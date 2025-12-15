@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # set up script
-if [ $# -ne 1 ]; then
+if [[ $# -ne 1 ]]; then
     echo -e "Usage: $0 GINKGO_BUILD_DIRECTORY"
     exit 1
 fi

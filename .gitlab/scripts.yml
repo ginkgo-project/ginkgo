@@ -38,7 +38,7 @@
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
     - mkdir install_prefix
     - export INSTALL_PREFIX=`pwd`/install_prefix
-    - if [ -n "${CUDA_ARCH}" ]; then
+    - if [[ -n "${CUDA_ARCH}" ]]; then
       export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       fi
     - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
@@ -81,12 +81,12 @@
     - mkdir -p ${CI_JOB_NAME} && cd ${CI_JOB_NAME}
     - mkdir install_prefix
     - export INSTALL_PREFIX=`pwd`/install_prefix
-    - if [ -n "${CUDA_ARCH}" ]; then
+    - if [[ -n "${CUDA_ARCH}" ]]; then
       export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       fi
-    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
-    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
-    - if [ -n "${ONEAPI_DEVICE_SELECTOR}" ]; then export ONEAPI_DEVICE_SELECTOR; fi
+    - if [[ -n "${SYCL_DEVICE_TYPE}" ]]; then export SYCL_DEVICE_TYPE; fi
+    - if [[ -n "${SYCL_DEVICE_FILTER}" ]]; then export SYCL_DEVICE_FILTER; fi
+    - if [[ -n "${ONEAPI_DEVICE_SELECTOR}" ]]; then export ONEAPI_DEVICE_SELECTOR; fi
     - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
       export OMPI_ALLOW_RUN_AS_ROOT=1;
       export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
@@ -123,8 +123,8 @@
     - pushd test/test_install
     - ninja install
     - popd
-    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
-    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
+    - if [[ -n "${SYCL_DEVICE_TYPE}" ]]; then unset SYCL_DEVICE_TYPE; fi
+    - if [[ -n "${SYCL_DEVICE_FILTER}" ]]; then unset SYCL_DEVICE_FILTER; fi
     - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
       PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH ninja test_pkgconfig;
       fi
@@ -140,14 +140,14 @@
     - export INSTALL_PREFIX=`pwd`/install_prefix
     # get system version before loading module
     - if [[ "${CXX_COMPILER}" = "g++" ]]; then export SYSTEM_VERSION=$(${CXX_COMPILER} -dumpfullversion); fi
-    - if [ -n "${MODULE_LOAD}" ]; then module load ${MODULE_LOAD}; fi
-    - if [ -n "${SPACK_LOAD}" ]; then spack load ${SPACK_LOAD}; fi
-    - if [ -n "${CUDA_ARCH}" ]; then
+    - if [[ -n "${MODULE_LOAD}" ]]; then module load ${MODULE_LOAD}; fi
+    - if [[ -n "${SPACK_LOAD}" ]]; then spack load ${SPACK_LOAD}; fi
+    - if [[ -n "${CUDA_ARCH}" ]]; then
       export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       fi
-    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
-    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
-    - if [ -n "${ONEAPI_DEVICE_SELECTOR}" ]; then export ONEAPI_DEVICE_SELECTOR; fi
+    - if [[ -n "${SYCL_DEVICE_TYPE}" ]]; then export SYCL_DEVICE_TYPE; fi
+    - if [[ -n "${SYCL_DEVICE_FILTER}" ]]; then export SYCL_DEVICE_FILTER; fi
+    - if [[ -n "${ONEAPI_DEVICE_SELECTOR}" ]]; then export ONEAPI_DEVICE_SELECTOR; fi
     - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
       export OMPI_ALLOW_RUN_AS_ROOT=1;
       export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1;
@@ -213,8 +213,8 @@
     - pushd test/test_install
     - ninja install
     - popd
-    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
-    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
+    - if [[ -n "${SYCL_DEVICE_TYPE}" ]]; then unset SYCL_DEVICE_TYPE; fi
+    - if [[ -n "${SYCL_DEVICE_FILTER}" ]]; then unset SYCL_DEVICE_FILTER; fi
     - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
       PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib64/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib64:$LD_LIBRARY_PATH ninja test_pkgconfig;
       fi
@@ -225,8 +225,8 @@
   stage: test
   before_script:
     # Sanity checks
-    - if [ -z "${USE_NAME}" ]; then exit 111; fi
-    - if [ -z "${SLURM_PARTITION}" ]; then exit 222; fi
+    - if [[ -z "${USE_NAME}" ]]; then exit 111; fi
+    - if [[ -z "${SLURM_PARTITION}" ]]; then exit 222; fi
     - if [[ ! "${SLURM_GRES}" =~ "^gpu*"  ]]; then export NVIDIA_VISIBLE_DEVICES=void; fi
   variables:
     GIT_CLEAN_FLAGS: none
@@ -256,8 +256,8 @@
 .horeka_benchmark_before_script_template:
   before_script:
     # Sanity checks
-    - if [ -z "${USE_NAME}" ]; then exit 111; fi
-    - if [ -z "${SLURM_PARTITION}" ]; then exit 222; fi
+    - if [[ -z "${USE_NAME}" ]]; then exit 111; fi
+    - if [[ -z "${SLURM_PARTITION}" ]]; then exit 222; fi
     - if [[ ! "${SLURM_GRES}" =~ "^gpu*"  ]]; then export NVIDIA_VISIBLE_DEVICES=void; fi
     - if [[ -z "${EXECUTOR}" ]]; then exit 233; fi
     - if [[ -z "${SYSTEM_NAME}" ]]; then exit 233; fi

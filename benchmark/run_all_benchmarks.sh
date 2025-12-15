@@ -8,61 +8,61 @@ print_default() {
     echo "$var  environment variable not set - assuming \"${!var}\"" 1>&2
 }
 
-if [ ! "${BENCHMARK}" ]; then
+if [[ ! "${BENCHMARK}" ]]; then
     BENCHMARK="spmv"
     print_default BENCHMARK
 fi
 
-if [ ! "${DRY_RUN}" ]; then
+if [[ ! "${DRY_RUN}" ]]; then
     DRY_RUN="false"
     print_default DRY_RUN
 fi
 
-if [ ! "${EXECUTOR}" ]; then
+if [[ ! "${EXECUTOR}" ]]; then
     EXECUTOR="cuda"
     print_default EXECUTOR
 fi
 
-if [ ! "${REPETITIONS}" ]; then
+if [[ ! "${REPETITIONS}" ]]; then
     REPETITIONS=10
     print_default REPETITIONS
 fi
 
-if [ ! "${SOLVER_REPETITIONS}" ]; then
+if [[ ! "${SOLVER_REPETITIONS}" ]]; then
     SOLVER_REPETITIONS=1
     print_default SOLVER_REPETITIONS
 fi
 
-if [ ! "${SEGMENTS}" ]; then
+if [[ ! "${SEGMENTS}" ]]; then
     echo "SEGMENTS  environment variable not set - running entire suite" 1>&2
     SEGMENTS=1
     SEGMENT_ID=1
-elif [ ! "${SEGMENT_ID}" ]; then
+elif [[ ! "${SEGMENT_ID}" ]]; then
     echo "SEGMENT_ID  environment variable not set - exiting" 1>&2
     exit 1
 fi
 
-if [ ! "${PRECONDS}" ]; then
+if [[ ! "${PRECONDS}" ]]; then
     PRECONDS="none"
     print_default PRECONDS
 fi
 
-if [ ! "${FORMATS}" ]; then
+if [[ ! "${FORMATS}" ]]; then
     FORMATS="csr,coo,ell,hybrid,sellp"
     print_default FORMATS
 fi
 
-if [ ! "${ELL_IMBALANCE_LIMIT}" ]; then
+if [[ ! "${ELL_IMBALANCE_LIMIT}" ]]; then
     ELL_IMBALANCE_LIMIT=100
     print_default ELL_IMBALANCE_LIMIT
 fi
 
-if [ ! "${SOLVERS}" ]; then
+if [[ ! "${SOLVERS}" ]]; then
     SOLVERS="bicgstab,cg,cgs,fcg,gmres,cb_gmres_reduce1,idr"
     print_default SOLVERS
 fi
 
-if [ ! "${SOLVERS_PRECISION}" ]; then
+if [[ ! "${SOLVERS_PRECISION}" ]]; then
     SOLVERS_PRECISION=1e-6
     print_default SOLVERS_PRECISION
 fi

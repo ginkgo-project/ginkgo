@@ -115,7 +115,7 @@ for i in $(seq 0 $(ssget -n)); do
     posdef=$(ssget -p posdef -i ${i})
     cols=$(ssget -p cols -i ${i})
     nnz=$(ssget -p nonzeros -i ${i})
-    if [ "$posdef" -eq 1 -a "$cols" -lt 10000000 -a "$nnz" -lt 500000000 ]; then
+    if [[ "$posdef" -eq 1 -a "$cols" -lt 10000000 -a "$nnz" -lt 500000000 ]]; then
         ssget -f -i ${i}
     fi
 done
