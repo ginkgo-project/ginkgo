@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/work_estimate.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
@@ -476,6 +477,53 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(dense, GKO_DECLARE_ALL_AS_TEMPLATES);
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
+namespace work_estimate {
+namespace dense {
+
+
+template <typename ValueType>
+kernel_work_estimate simple_apply(const matrix::Dense<ValueType>* a,
+                                  const matrix::Dense<ValueType>* b,
+                                  matrix::Dense<ValueType>* c)
+{
+    const auto a_rows = a->get_size()[0];
+    const auto a_cols = a->get_size()[1];
+    const auto b_cols = b->get_size()[1];
+    return compute_bound_work_estimate{2 * a_rows * a_cols * b_cols};
+}
+
+
+template <typename InValueType, typename OutValueType>
+kernel_work_estimate copy(const matrix::Dense<InValueType>* input,
+                          matrix::Dense<OutValueType>* output)
+{
+    const auto memsize = input->get_size()[0] * input->get_size()[1];
+    return memory_bound_work_estimate{memsize * sizeof(InValueType),
+                                      memsize * sizeof(OutValueType)};
+}
+
+
+template <typename ValueType>
+kernel_work_estimate fill(matrix::Dense<ValueType>* mat, ValueType value)
+{
+    return memory_bound_work_estimate{
+        0, mat->get_size()[0] * mat->get_size()[1] * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+kernel_work_estimate compute_dot_dispatch(const matrix::Dense<ValueType>* x,
+                                          const matrix::Dense<ValueType>* y,
+                                          matrix::Dense<ValueType>* result,
+                                          array<char>& tmp)
+{
+    const auto num_elements = x->get_size()[0] * x->get_size()[1];
+    return memory_bound_work_estimate{2 * num_elements * sizeof(ValueType), 0};
+}
+
+
+}  // namespace dense
+}  // namespace work_estimate
 }  // namespace kernels
 }  // namespace gko
 
