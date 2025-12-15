@@ -300,8 +300,14 @@ class ResidualNormFactory
             >(args.b, [&](auto dense_b) {
             using value_type =
                 typename std::decay_t<decltype(*dense_b)>::value_type;
-            auto dense_x = as<matrix::Dense<value_type>>(args.x);
-            auto dense_r = as<matrix::Dense<value_type>>(args.initial_residual);
+            constexpr bool is_distributed =
+                std::is_same_v<std::decay_t<decltype(*dense_b)>,
+                               experimental::distributed::Vector<value_type>>;
+            using vector_type = std::conditional_t<
+                is_distributed, experimental::distributed::Vector<value_type>,
+                matrix::Dense<value_type>>;
+            auto dense_x = as<vector_type>(args.x);
+            auto dense_r = as<vector_type>(args.initial_residual);
             auto cast_threshold = static_cast<remove_complex<value_type>>(
                 this->parameters_.threshold);
             auto cast_args =
