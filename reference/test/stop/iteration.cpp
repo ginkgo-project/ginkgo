@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,6 +25,13 @@ protected:
     std::unique_ptr<gko::stop::Iteration::Factory> factory_;
     std::shared_ptr<const gko::Executor> exec_;
 };
+
+
+TEST_F(Iteration, SimplifiedInterface)
+{
+    auto factory = gko::stop::max_iters(test_iterations).on(exec_);
+    ASSERT_EQ(factory->get_parameters().max_iters, test_iterations);
+}
 
 
 TEST_F(Iteration, WaitsTillIteration)

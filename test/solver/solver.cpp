@@ -72,13 +72,14 @@ struct SimpleSolverTest {
         std::shared_ptr<const gko::Executor> exec,
         gko::size_type iteration_count, bool check_residual = true)
     {
-        return solver_type::build().with_criteria(
-            gko::stop::Iteration::build().with_max_iters(iteration_count),
-            check_residual ? gko::stop::ResidualNorm<value_type>::build()
-                                 .with_baseline(gko::stop::mode::absolute)
-                                 .with_reduction_factor(1e-30)
-                                 .on(exec)
-                           : nullptr);
+        if (check_residual) {
+            return solver_type::build().with_criteria(
+                gko::stop::max_iters(iteration_count),
+                gko::stop::absolute_residual_norm(1e-30));
+        } else {
+            return solver_type::build().with_criteria(
+                gko::stop::max_iters(iteration_count));
+        }
     }
 
     static typename solver_type::parameters_type build_preconditioned(

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -510,6 +510,40 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoalMultipleRHS)
 }
 
 
+TYPED_TEST(ResidualNorm, SimplifiedInterface)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using NormVector = typename TestFixture::NormVector;
+    auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
+    auto initial_guess = gko::initialize<Mtx>({1000.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+
+    auto factory_abs = gko::stop::absolute_residual_norm(0.5).on(this->exec_);
+    auto factory_rel = gko::stop::relative_residual_norm(0.5).on(this->exec_);
+    auto factory_red = gko::stop::initial_residual_norm(0.5).on(this->exec_);
+
+    auto crit_abs =
+        gko::as<gko::stop::ResidualNorm<TypeParam>>(factory_abs->generate(
+            nullptr, rhs, initial_guess.get(), initial_res.get()));
+    auto crit_rel =
+        gko::as<gko::stop::ResidualNorm<TypeParam>>(factory_rel->generate(
+            nullptr, rhs, initial_guess.get(), initial_res.get()));
+    auto crit_red =
+        gko::as<gko::stop::ResidualNorm<TypeParam>>(factory_red->generate(
+            nullptr, rhs, initial_guess.get(), initial_res.get()));
+    ASSERT_EQ(crit_abs->get_parameters().baseline, gko::stop::mode::absolute);
+    ASSERT_EQ(crit_rel->get_parameters().baseline, gko::stop::mode::rhs_norm);
+    ASSERT_EQ(crit_red->get_parameters().baseline,
+              gko::stop::mode::initial_resnorm);
+    ASSERT_EQ(crit_abs->get_parameters().reduction_factor,
+              gko::remove_complex<TypeParam>{0.5});
+    ASSERT_EQ(crit_rel->get_parameters().reduction_factor,
+              gko::remove_complex<TypeParam>{0.5});
+    ASSERT_EQ(crit_red->get_parameters().reduction_factor,
+              gko::remove_complex<TypeParam>{0.5});
+}
+
+
 template <typename T>
 class ResidualNormWithInitialResnorm : public ::testing::Test {
 protected:
@@ -961,6 +995,43 @@ TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
         RelativeStoppingId, true, &stop_status, &one_changed));
     ASSERT_EQ(stop_status.get_data()[1].has_converged(), true);
     ASSERT_EQ(one_changed, true);
+}
+
+
+TYPED_TEST(ImplicitResidualNorm, SimplifiedInterface)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using NormVector = typename TestFixture::NormVector;
+    auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
+    auto initial_guess = gko::initialize<Mtx>({1000.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+
+    auto factory_abs =
+        gko::stop::absolute_implicit_residual_norm(0.5).on(this->exec_);
+    auto factory_rel =
+        gko::stop::relative_implicit_residual_norm(0.5).on(this->exec_);
+    auto factory_red =
+        gko::stop::initial_implicit_residual_norm(0.5).on(this->exec_);
+
+    auto crit_abs = gko::as<gko::stop::ImplicitResidualNorm<TypeParam>>(
+        factory_abs->generate(nullptr, rhs, initial_guess.get(),
+                              initial_res.get()));
+    auto crit_rel = gko::as<gko::stop::ImplicitResidualNorm<TypeParam>>(
+        factory_rel->generate(nullptr, rhs, initial_guess.get(),
+                              initial_res.get()));
+    auto crit_red = gko::as<gko::stop::ImplicitResidualNorm<TypeParam>>(
+        factory_red->generate(nullptr, rhs, initial_guess.get(),
+                              initial_res.get()));
+    ASSERT_EQ(crit_abs->get_parameters().baseline, gko::stop::mode::absolute);
+    ASSERT_EQ(crit_rel->get_parameters().baseline, gko::stop::mode::rhs_norm);
+    ASSERT_EQ(crit_red->get_parameters().baseline,
+              gko::stop::mode::initial_resnorm);
+    ASSERT_EQ(crit_abs->get_parameters().reduction_factor,
+              gko::remove_complex<TypeParam>{0.5});
+    ASSERT_EQ(crit_rel->get_parameters().reduction_factor,
+              gko::remove_complex<TypeParam>{0.5});
+    ASSERT_EQ(crit_red->get_parameters().reduction_factor,
+              gko::remove_complex<TypeParam>{0.5});
 }
 
 

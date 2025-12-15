@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -50,6 +50,16 @@ TEST_F(Time, CanCreateFactory)
 {
     ASSERT_NE(factory_, nullptr);
     ASSERT_EQ(factory_->get_parameters().time_limit,
+              std::chrono::milliseconds(test_ms));
+}
+
+
+TEST_F(Time, CanCreateFactorySimplifiedInterface)
+{
+    auto new_factory =
+        gko::stop::time_limit(std::chrono::milliseconds(test_ms)).on(exec_);
+    ASSERT_NE(new_factory, nullptr);
+    ASSERT_EQ(new_factory->get_parameters().time_limit,
               std::chrono::milliseconds(test_ms));
 }
 

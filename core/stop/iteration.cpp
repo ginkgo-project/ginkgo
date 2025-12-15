@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/stop/iteration.hpp"
+
+#include <ginkgo/core/base/abstract_factory.hpp>
 
 
 namespace gko {
@@ -19,6 +21,12 @@ bool Iteration::check_impl(uint8 stoppingId, bool setFinalized,
         *one_changed = true;
     }
     return result;
+}
+
+
+deferred_factory_parameter<Iteration::Factory> max_iters(size_type count)
+{
+    return Iteration::build().with_max_iters(count);
 }
 
 
