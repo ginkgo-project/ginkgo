@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -175,6 +175,8 @@ public:
         ptr_param<const Permutation> other) const;
 
     void write(gko::matrix_data<value_type, index_type>& data) const override;
+
+    void validate_data() const override;
 
     /**
      * Creates an uninitialized Permutation arrays on the specified executor.

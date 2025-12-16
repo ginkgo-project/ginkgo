@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -56,6 +56,12 @@ public:
         this->template log<log::Logger::polymorphic_object_deleted>(exec_.get(),
                                                                     this);
     }
+
+    /**
+     * Throws gko::InvalidData exception if the data inside the arrays is
+     * invalid.
+     */
+    virtual void validate_data() const {}
 
     // preserve the executor of the object
     PolymorphicObject& operator=(const PolymorphicObject&) { return *this; }

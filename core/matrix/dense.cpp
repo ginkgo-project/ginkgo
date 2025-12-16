@@ -28,6 +28,7 @@
 
 #include "core/base/array_access.hpp"
 #include "core/base/dispatch_helper.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
@@ -105,6 +106,19 @@ GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
 
 }  // anonymous namespace
 }  // namespace dense
+
+
+template <typename ValueType>
+validation::ValidationResult dense_matrix_values_are_finite(
+    const Dense<ValueType>* mtx);
+
+
+template <typename ValueType>
+void Dense<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(dense_matrix_values_are_finite(this),
+                 "matrix must contain only finite values");
+}
 
 
 template <typename ValueType>
@@ -2075,6 +2089,30 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
     if (size[0] > 0 && size[1] > 0) {
         GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
                              values_.get_size());
+    }
+}
+
+
+template <typename ValueType>
+validation::ValidationResult dense_matrix_values_are_finite(
+    const Dense<ValueType>* mtx)
+{
+    if constexpr (std::is_integral<ValueType>::value) {
+        return {true, 0};
+    } else {
+        const auto host_mtx = mtx->clone(mtx->get_executor()->get_master());
+        const auto num_rows = host_mtx->get_size()[0];
+        const auto num_cols = host_mtx->get_size()[1];
+        const auto host_values = host_mtx->get_const_values();
+        const auto stride = host_mtx->get_stride();
+        for (size_t i = 0; i < num_rows; ++i) {
+            for (size_t j = 0; j < num_cols; ++j) {
+                if (!is_finite(host_values[i * stride + j])) {
+                    return {false, static_cast<size_t>(i * stride + j)};
+                }
+            }
+        }
+        return {true, 0};
     }
 }
 

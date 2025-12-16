@@ -48,9 +48,6 @@ class Fbcsr;
 template <typename ValueType, typename IndexType>
 class CsrBuilder;
 
-template <typename IndexType>
-class Permutation;
-
 
 namespace detail {
 
@@ -1359,6 +1356,8 @@ public:
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
         this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
     }
+
+    void validate_data() const override;
 
     /**
      * Creates an uninitialized CSR matrix of the specified size.

@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -48,6 +49,22 @@ GKO_REGISTER_OPERATION(conj_array, coo::conj_array);
 
 }  // anonymous namespace
 }  // namespace coo
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::is_sorted(row_idxs_),
+                 "row_idxs must be non-decending");
+    GKO_VALIDATE(validation::is_within_nonegative_bounds(
+                     row_idxs_, static_cast<IndexType>(this->get_size()[0])),
+                 "row_idxs must be within bounds");
+    GKO_VALIDATE(validation::is_within_nonegative_bounds(
+                     col_idxs_, static_cast<IndexType>(this->get_size()[1])),
+                 "col_idxs must be within bounds");
+    GKO_VALIDATE(validation::sparse_matrix_values_are_finite(values_),
+                 "matrix must contain only finite values");
+}
 
 
 template <typename ValueType, typename IndexType>

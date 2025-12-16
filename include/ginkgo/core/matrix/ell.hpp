@@ -252,6 +252,8 @@ public:
         return this->get_const_col_idxs()[this->linearize_index(row, idx)];
     }
 
+    void validate_data() const override;
+
     /**
      * Creates an uninitialized Ell matrix of the specified size.
      *

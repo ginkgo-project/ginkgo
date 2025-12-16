@@ -18,6 +18,7 @@
 #include "core/base/allocator.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -52,6 +53,34 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 }  // anonymous namespace
 }  // namespace ell
+
+
+template <typename IndexType>
+validation::ValidationResult ell_has_unique_idxs(
+    const array<IndexType>& col_idxs, const IndexType num_rows,
+    const size_type num_non_zero_per_row, const size_type stride);
+
+
+template <typename IndexType>
+validation::ValidationResult is_well_padded(
+    const gko::array<IndexType>& col_idxs, const IndexType num_rows,
+    const size_type num_non_zero_per_row, const size_type stride);
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::sparse_matrix_values_are_finite(values_),
+                 "matrix must contain only finite values");
+    GKO_VALIDATE(ell_has_unique_idxs(
+                     col_idxs_, static_cast<IndexType>(this->get_size()[0]),
+                     num_stored_elements_per_row_, stride_),
+                 "col_idxs must contain unique indices");
+    GKO_VALIDATE(
+        is_well_padded(col_idxs_, static_cast<IndexType>(this->get_size()[0]),
+                       num_stored_elements_per_row_, stride_),
+        "col_idxs must only be before padding");
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -440,6 +469,48 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
 {
     GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_, values_.get_size());
     GKO_ASSERT_EQ(num_stored_elements_per_row_ * stride_, col_idxs_.get_size());
+}
+
+
+template <typename IndexType>
+validation::ValidationResult ell_has_unique_idxs(
+    const array<IndexType>& col_idxs, const IndexType num_rows,
+    const size_type num_stored_elements_per_row, const size_type stride)
+{
+    const auto host_col_idxs = col_idxs.copy_to_host();
+    for (size_type i = 0; i < num_rows; ++i) {
+        std::unordered_set<IndexType> unique_idxs;
+        for (size_type j = 0; j < num_stored_elements_per_row; ++j) {
+            const auto idx = host_col_idxs[i + stride * j];
+            if (idx != -1 && idx < num_rows) {
+                if (!unique_idxs.insert(idx).second) {
+                    return {false, static_cast<size_t>(i + stride * j)};
+                }
+            }
+        }
+    }
+    return {true, 0};
+}
+
+
+template <typename IndexType>
+validation::ValidationResult is_well_padded(
+    const gko::array<IndexType>& col_idxs, const IndexType num_rows,
+    const size_type num_stored_elements_per_row, const size_type stride)
+{
+    const auto host_col_idxs = col_idxs.copy_to_host();
+    for (size_type i = 0; i < num_rows; ++i) {
+        bool padding = false;
+        for (size_type j = 0; j < num_stored_elements_per_row; ++j) {
+            const auto idx = host_col_idxs[i + stride * j];
+            if (idx == invalid_index<IndexType>()) {
+                padding = true;
+            } else if (padding) {
+                return {false, static_cast<size_t>(i)};
+            }
+        }
+    }
+    return {true, 0};
 }
 
 

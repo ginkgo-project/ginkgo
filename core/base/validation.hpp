@@ -1,0 +1,124 @@
+// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
+#ifndef GKO_CORE_BASE_VALIDATION_HPP_
+#define GKO_CORE_BASE_VALIDATION_HPP_
+
+
+#include <cmath>
+#include <unordered_set>
+
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
+
+
+namespace gko {
+namespace validation {
+
+
+#define GKO_VALIDATE(_expression, _message)                    \
+    {                                                          \
+        auto result = (_expression);                           \
+        if (!result.isValid) {                                 \
+            throw gko::InvalidData(                            \
+                __FILE__, __LINE__, typeid(decltype(*this)),   \
+                "Exception occurs at index " +                 \
+                    std::to_string(result.exception_message) + \
+                    ". " _message " (" #_expression ")");      \
+        }                                                      \
+    }
+
+
+struct ValidationResult {
+    bool isValid;
+    size_t exception_message;
+
+    explicit operator bool() const noexcept { return isValid; }
+};
+
+
+template <typename IndexType>
+ValidationResult is_sorted(const gko::array<IndexType>& idxs_array)
+{
+    const auto host_idxs_array = idxs_array.copy_to_host();
+    for (size_t i = 0; i + 1 < host_idxs_array.size(); ++i) {
+        if (host_idxs_array[i] > host_idxs_array[i + 1]) {
+            return {false, static_cast<size_t>(i)};
+        }
+    }
+    return {true, 0};
+}
+
+
+template <typename IndexType>
+ValidationResult is_within_nonegative_bounds(
+    const gko::array<IndexType>& idxs_array, const IndexType upper_bound)
+{
+    const auto host_idxs_array = idxs_array.copy_to_host();
+    auto min_pos = 0;
+    auto max_pos = 0;
+
+    for (size_t i = 1; i < host_idxs_array.size(); ++i) {
+        if (host_idxs_array[i] < host_idxs_array[min_pos]) {
+            min_pos = i;
+        }
+        if (host_idxs_array[i] > host_idxs_array[max_pos]) {
+            max_pos = i;
+        }
+    }
+    if (host_idxs_array[min_pos] < 0) {
+        return {false, static_cast<size_t>(min_pos)};
+    }
+    if (host_idxs_array[max_pos] >= upper_bound) {
+        return {false, static_cast<size_t>(max_pos)};
+    }
+
+    return {true, 0};
+}
+
+
+template <typename ValueType>
+ValidationResult sparse_matrix_values_are_finite(
+    const gko::array<ValueType>& values)
+{
+    const auto host_values = values.copy_to_host();
+    for (size_t i = 0; i < host_values.size(); ++i) {
+        if (!is_finite(host_values[i])) {
+            return {false, static_cast<size_t>(i)};
+        }
+    }
+    return {true, 0};
+}
+
+
+template <typename IndexType>
+ValidationResult has_unique_idxs(const gko::array<IndexType>& row_ptrs,
+                                 const gko::array<IndexType>& col_idxs)
+{
+    const auto host_row_ptrs = row_ptrs.copy_to_host();
+    const auto host_col_idxs = col_idxs.copy_to_host();
+
+    const auto num_rows_ = host_row_ptrs.size() - 1;
+
+    for (IndexType row = 0; row < num_rows_; row++) {
+        const auto begin = host_row_ptrs[row];
+        const auto end = host_row_ptrs[row + 1];
+        const auto size = end - begin;
+        std::unordered_set<IndexType> unique_ptrs(host_col_idxs.begin() + begin,
+                                                  host_col_idxs.begin() + end);
+
+        if (unique_ptrs.size() < size) {
+            return {false, static_cast<size_t>(row)};
+        }
+    }
+    return {true, 0};
+}
+
+
+}  // namespace validation
+}  // namespace gko
+
+
+#endif  // GKO_CORE_BASE_UTILS_HPP_

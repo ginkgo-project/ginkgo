@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -231,3 +231,59 @@ TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
 
     this->assert_equal_to_original_mtx(m);
 }
+
+
+TYPED_TEST(Ell, RecognizesInfiniteValue)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec);
+    mtx->read(
+        {{2, 3},
+         {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 0, 0.0}, {1, 1, 5.0}}});
+    mtx->get_values()[0] = INFINITY;
+
+    ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Ell, RecognizesDupplicateIndex)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec);
+    mtx->read(
+        {{2, 3},
+         {{0, 0, 1.0}, {0, 0, 3.0}, {0, 2, 2.0}, {1, 0, 0.0}, {1, 1, 5.0}}});
+
+    ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Ell, RecognizesUnboundedColumnIndex)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
+    index_type col_idxs[] = {4, 1, 0, -1, 1, 0, 0, -1};
+    auto mtx = gko::matrix::Ell<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::make_array_view(this->exec, 8, values),
+        gko::make_array_view(this->exec, 8, col_idxs), 2, 4);
+
+    ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
+}
+
+
+// TYPED_TEST(Ell, RecognizesInfinitePaddingValue)
+// {
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+
+//     value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, INFINITY, -1.0};
+//     index_type col_idxs[] = {0, 1, 0, -1, 1, 0, -1, -1};
+//     auto mtx = gko::matrix::Ell<value_type, index_type>::create(
+//         this->exec, gko::dim<2>{3, 2},
+//         gko::make_array_view(this->exec, 8, values),
+//         gko::make_array_view(this->exec, 8, col_idxs), 2, 4);
+
+//     ASSERT_NO_THROW(mtx->validate_data());
+// }

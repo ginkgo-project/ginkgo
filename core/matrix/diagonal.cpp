@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
@@ -34,6 +35,13 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 }  // anonymous namespace
 }  // namespace diagonal
+
+template <typename ValueType>
+void Diagonal<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::sparse_matrix_values_are_finite(values_),
+                 "matrix must contain only finite values");
+}
 
 
 template <typename ValueType>
