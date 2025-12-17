@@ -401,7 +401,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithL1Smoother)
     using cg = typename TestFixture::solver_type;
     using prec = typename TestFixture::dist_prec_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
-    constexpr double tolerance = 1e-20;
+    constexpr double tolerance = r<value_type>::value;
     auto iter_stop = gko::share(
         gko::stop::Iteration::build().with_max_iters(200u).on(this->exec));
     auto tol_stop = gko::share(
