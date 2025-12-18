@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <algorithm>
+#include <stdexcept>
 #include <type_traits>
 
 #include <gtest/gtest.h>
@@ -36,7 +37,7 @@ protected:
         EXPECT_EQ(a.get_const_data()[1], T{2});
     }
 
-    std::shared_ptr<const gko::Executor> exec;
+    std::shared_ptr<gko::Executor> exec;
     gko::array<T> x;
 };
 
@@ -428,6 +429,37 @@ TYPED_TEST(Array, CanBeResized)
     EXPECT_EQ(this->x.get_const_data()[0], TypeParam{1});
     EXPECT_EQ(this->x.get_const_data()[1], TypeParam{8});
     EXPECT_EQ(this->x.get_const_data()[2], TypeParam{7});
+}
+
+
+class ThrowOnAllocationLogger : public gko::log::Logger {
+public:
+    void on_allocation_started(const gko::Executor* exec,
+                               const gko::size_type& num_bytes) const override
+    {
+        throw std::runtime_error{""};
+    }
+
+    ThrowOnAllocationLogger()
+        : Logger(gko::log::Logger::allocation_started_mask)
+    {}
+};
+
+
+TYPED_TEST(Array, ResizeIsExceptionSafe)
+{
+    this->exec->add_logger(std::make_unique<ThrowOnAllocationLogger>());
+    gko::array<TypeParam> a{this->exec};
+    bool thrown = false;
+
+    try {
+        a.resize_and_reset(1);
+    } catch (const std::runtime_error&) {
+        thrown = true;
+    }
+
+    ASSERT_EQ(a.get_size(), 0);
+    ASSERT_TRUE(thrown);
 }
 
 
