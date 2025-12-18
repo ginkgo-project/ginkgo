@@ -4,7 +4,7 @@
 
 #include "ginkgo/core/stop/iteration.hpp"
 
-#include <ginkgo/core/base/abstract_factory.hpp>
+#include "core/stop/iteration.hpp"
 
 
 namespace gko {
@@ -27,6 +27,15 @@ bool Iteration::check_impl(uint8 stoppingId, bool setFinalized,
 deferred_factory_parameter<Iteration::Factory> max_iters(size_type count)
 {
     return Iteration::build().with_max_iters(count);
+}
+
+
+deferred_factory_parameter<CriterionFactory> min_iters(
+    size_type count, deferred_factory_parameter<CriterionFactory> criterion)
+{
+    return MinIterationWrapper::build()
+        .with_min_iters(count)
+        .with_inner_criterion(criterion);
 }
 
 

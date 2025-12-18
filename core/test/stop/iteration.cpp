@@ -1,6 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
+
+#include "core/stop/iteration.hpp"
 
 #include <gtest/gtest.h>
 
@@ -38,6 +40,26 @@ TEST_F(Iteration, CanCreateCriterion)
 {
     auto criterion = factory_->generate(nullptr, nullptr, nullptr);
     ASSERT_NE(criterion, nullptr);
+}
+
+
+TEST_F(Iteration, CanCreateMinIterationWithInnerCriterion)
+{
+    auto factory = gko::as<gko::stop::MinIterationWrapper::Factory>(
+        gko::stop::min_iters(10, gko::stop::max_iters(100),
+                             gko::stop::max_iters(1000))
+            .on(exec_));
+
+    auto inner = gko::as<gko::stop::Combined::Factory>(
+        factory->get_parameters().inner_criterion);
+    ASSERT_EQ(factory->get_parameters().min_iters, 10);
+    ASSERT_EQ(inner->get_parameters().criteria.size(), 2);
+    auto inner1 = gko::as<gko::stop::Iteration::Factory>(
+        inner->get_parameters().criteria.at(0));
+    auto inner2 = gko::as<gko::stop::Iteration::Factory>(
+        inner->get_parameters().criteria.at(1));
+    ASSERT_EQ(inner1->get_parameters().max_iters, 100);
+    ASSERT_EQ(inner2->get_parameters().max_iters, 1000);
 }
 
 
