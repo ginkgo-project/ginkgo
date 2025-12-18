@@ -16,6 +16,7 @@
 #include <ginkgo/core/stop/time.hpp>
 
 #include "core/config/config_helper.hpp"
+#include "core/stop/iteration.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -282,6 +283,68 @@ TEST_F(Config, GenerateCriteriaFromMinimalConfigWithValueType)
             criteria[1]);
         ASSERT_NE(time, nullptr);
         EXPECT_EQ(time->get_parameters().time_limit, 100ns);
+    }
+}
+
+
+TEST_F(Config, GenerateOneCriteriaFromMinimalConfigWithMinIters)
+{
+    auto reg = registry();
+    reg.emplace("precond", this->mtx);
+    pnode minimal_stop{{{"iteration", pnode{5}}, {"min_iters", pnode{10}}}};
+
+    pnode p{{{"criteria", minimal_stop}}};
+    auto obj = std::dynamic_pointer_cast<gko::solver::Cg<float>::Factory>(
+        parse<LinOpFactoryType::Cg>(p, reg, type_descriptor{"float32", "void"})
+            .on(this->exec));
+
+    ASSERT_NE(obj, nullptr);
+    auto criteria = gko::as<gko::stop::MinIterationWrapper::Factory>(
+        obj->get_parameters().criteria.at(0));
+    auto inner = gko::as<gko::stop::Iteration::Factory>(
+        criteria->get_parameters().inner_criterion);
+    ASSERT_EQ(criteria->get_parameters().min_iters, 10);
+    ASSERT_EQ(inner->get_parameters().max_iters, 5);
+}
+
+
+TEST_F(Config, GenerateCriteriaFromMinimalConfigWithMinIters)
+{
+    auto reg = registry();
+    reg.emplace("precond", this->mtx);
+    pnode minimal_stop{{{"iteration", pnode{5}},
+                        {"time", pnode{100}},
+                        {"min_iters", pnode{10}}}};
+
+    pnode p{{{"criteria", minimal_stop}}};
+    auto obj = std::dynamic_pointer_cast<gko::solver::Cg<float>::Factory>(
+        parse<LinOpFactoryType::Cg>(p, reg, type_descriptor{"float32", "void"})
+            .on(this->exec));
+
+    ASSERT_NE(obj, nullptr);
+    auto criteria = gko::as<gko::stop::MinIterationWrapper::Factory>(
+        obj->get_parameters().criteria.at(0));
+    auto inner = gko::as<gko::stop::Combined::Factory>(
+        criteria->get_parameters().inner_criterion);
+    ASSERT_EQ(criteria->get_parameters().min_iters, 10);
+    ASSERT_EQ(inner->get_parameters().criteria.size(), 2);
+    if (auto inner1 = gko::as<gko::stop::Iteration::Factory>(
+            inner->get_parameters().criteria.at(0))) {
+        auto inner2 = gko::as<gko::stop::Time::Factory>(
+            inner->get_parameters().criteria.at(1));
+        ASSERT_EQ(inner1->get_parameters().max_iters, 5);
+        ASSERT_EQ(inner2->get_parameters().time_limit,
+                  std::chrono::nanoseconds(100));
+    } else if (auto inner1 = gko::as<gko::stop::Time::Factory>(
+                   inner->get_parameters().criteria.at(0))) {
+        auto inner2 = gko::as<gko::stop::Iteration::Factory>(
+            inner->get_parameters().criteria.at(1));
+        ASSERT_EQ(inner2->get_parameters().max_iters, 5);
+        ASSERT_EQ(inner1->get_parameters().time_limit,
+                  std::chrono::nanoseconds(100));
+    } else {
+        ASSERT_TRUE(false)
+            << "the first criterion is not ResidualNorm or Time.";
     }
 }
 
