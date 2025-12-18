@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,13 +24,13 @@ bool Iteration::check_impl(uint8 stoppingId, bool setFinalized,
 }
 
 
-deferred_factory_parameter<Iteration::Factory> max_iters(size_type count)
+deferred_factory_parameter<const Iteration::Factory> max_iters(size_type count)
 {
     return Iteration::build().with_max_iters(count);
 }
 
 
-deferred_factory_parameter<CriterionFactory> min_iters(
+deferred_factory_parameter<const CriterionFactory> min_iters(
     size_type count, deferred_factory_parameter<CriterionFactory> criterion)
 {
     return MinIterationWrapper::build()
