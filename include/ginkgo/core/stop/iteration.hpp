@@ -80,7 +80,7 @@ protected:
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<Iteration::Factory> max_iters(size_type count);
+deferred_factory_parameter<const Iteration::Factory> max_iters(size_type count);
 
 
 /**
@@ -108,23 +108,23 @@ deferred_factory_parameter<Iteration::Factory> max_iters(size_type count);
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<CriterionFactory> min_iters(
+deferred_factory_parameter<const CriterionFactory> min_iters(
     size_type count, deferred_factory_parameter<CriterionFactory> criterion);
 
 
 /**
- * @copydoc min_iters(size_type, deferred_factory_parameter<CriterionFactory>)
- * This version supports supplying multiple stopping criteria independently, all
- * of which will only be checked after the minimum iteration count has been
- * exceeded.
+ * @copydoc min_iters(size_type, deferred_factory_parameter<const
+ * CriterionFactory>) This version supports supplying multiple stopping criteria
+ * independently, all of which will only be checked after the minimum iteration
+ * count has been exceeded.
  */
 template <typename... Args>
 std::enable_if_t<sizeof...(Args) >= 2,
-                 deferred_factory_parameter<CriterionFactory>>
+                 deferred_factory_parameter<const CriterionFactory>>
 min_iters(size_type count, Args&&... criteria)
 {
-    std::vector<deferred_factory_parameter<CriterionFactory>> criterion_vec{
-        std::forward<Args>(criteria)...};
+    std::vector<deferred_factory_parameter<const CriterionFactory>>
+        criterion_vec{std::forward<Args>(criteria)...};
     return min_iters(count, Combined::build().with_criteria(criterion_vec));
 };
 
