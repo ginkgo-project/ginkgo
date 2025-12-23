@@ -31,6 +31,7 @@
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/utils/matrix_utils.hpp"
+#include "ginkgo/core/base/math.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
 
 
@@ -145,7 +146,9 @@ protected:
 
     void assert_equal_to_non_distributed_vector(
         std::shared_ptr<dist_vec_type> dist_vec,
-        std::shared_ptr<local_vec_type> local_vec)
+        std::shared_ptr<local_vec_type> local_vec,
+        gko::remove_complex<value_type> mult =
+            gko::one<gko::remove_complex<value_type>>())
     {
         auto host_row_part = row_part->clone(ref);
         auto l_dist_vec = dist_vec->get_local_vector();
@@ -156,7 +159,8 @@ protected:
                 local_vec->get_const_values() +
                     host_row_part->get_range_bounds()[comm.rank()]),
             l_dist_vec->get_size()[1]);
-        GKO_ASSERT_MTX_NEAR(l_dist_vec, vec_view.get(), r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(l_dist_vec, vec_view.get(),
+                            mult * r<value_type>::value);
     }
 };
 
@@ -380,4 +384,60 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionerWithL1Smoother)
 
     this->assert_equal_to_non_distributed_vector(this->dist_x,
                                                  this->non_dist_x);
+}
+
+
+TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithL1Smoother)
+{
+    using value_type = typename TestFixture::value_type;
+
+    if (gko::is_complex<value_type>()) {
+        // it can give `nan`-values with complex numbers
+        GTEST_SKIP() << "CanApplyPreconditionedSolverWithL1Smoother is not "
+                        "tested for complex numbers";
+    }
+
+    using csr = typename TestFixture::local_matrix_type;
+    using cg = typename TestFixture::solver_type;
+    using prec = typename TestFixture::dist_prec_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    const double tolerance = r<value_type>::value;
+
+    auto iter_stop = gko::share(
+        gko::stop::Iteration::build().with_max_iters(200u).on(this->exec));
+    auto tol_stop = gko::share(
+        gko::stop::ResidualNorm<value_type>::build()
+            .with_reduction_factor(
+                static_cast<gko::remove_complex<value_type>>(tolerance))
+            .on(this->exec));
+    auto non_dist_diag_with_l1 =
+        gko::share(gko::matrix::Diagonal<value_type>::create(
+            this->exec, 8u,
+            gko::array<value_type>(this->exec, {2, 3, 3, 3, 3, 2, 2, 2})));
+    this->dist_solver_factory =
+        cg::build()
+            .with_preconditioner(
+                prec::build()
+                    .with_local_solver(this->local_solver_factory)
+                    .with_l1_smoother(true)
+                    .on(this->exec))
+            .with_criteria(iter_stop, tol_stop)
+            .on(this->exec);
+    auto dist_solver = this->dist_solver_factory->generate(this->dist_mat);
+    this->non_dist_solver_factory =
+        cg::build()
+            .with_generated_preconditioner(this->local_solver_factory->generate(
+                gko::copy_and_convert_to<local_matrix_type>(
+                    this->exec, non_dist_diag_with_l1)))
+            .with_criteria(iter_stop, tol_stop)
+            .on(this->exec);
+    auto non_dist_solver =
+        this->non_dist_solver_factory->generate(this->non_dist_mat);
+
+    dist_solver->apply(this->dist_b.get(), this->dist_x.get());
+    non_dist_solver->apply(this->non_dist_b.get(), this->non_dist_x.get());
+
+    this->assert_equal_to_non_distributed_vector(
+        this->dist_x, this->non_dist_x,
+        2);  // mult = 2 is needed for the gko::half to work
 }

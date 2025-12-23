@@ -192,7 +192,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     }
     if (!parameters_.local_solver && !parameters_.generated_local_solver) {
         GKO_INVALID_STATE(
-            "Requires either a generated solver or an solver factory");
+            "Requires either a generated solver or a solver factory");
     }
     if (parameters_.generated_local_solver) {
         this->set_solver(parameters_.generated_local_solver);
@@ -234,6 +234,8 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             exec, local_matrix->get_size()[0]);
         auto one = initialize<matrix::Dense<ValueType>>(
             {::gko::one<ValueType>()}, exec);
+        local_matrix_copy->sort_by_column_index();  // spgeam requires sorting
+                                                    // for some backends
         l1_diag_csr->apply(one, id, one, local_matrix_copy);
 
         this->set_solver(
