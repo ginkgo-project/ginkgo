@@ -76,6 +76,7 @@ target_sources(
         log/stream.cpp
         log/tau.cpp
         log/vtune.cpp
+        matrix/amp.cpp
         matrix/batch_csr.cpp
         matrix/batch_dense.cpp
         matrix/batch_ell.cpp
