@@ -36,13 +36,13 @@ constexpr int num_amp_precisions = std::tuple_size<supported_precisions>::value;
 namespace detail {
 
 
-template <bool cond, int val>
-struct enable_if_v {};
+// template <bool cond, int val>
+// struct enable_if_v {};
 
-template <int val>
-struct enable_if_v<true, val> {
-    static constexpr int value = val;
-};
+// template <int val>
+// struct enable_if_v<true, val> {
+//     static constexpr int value = val;
+// };
 
 
 template <int i>

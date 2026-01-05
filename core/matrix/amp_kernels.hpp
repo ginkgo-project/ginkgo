@@ -18,7 +18,14 @@ namespace gko {
 namespace kernels {
 
 
-constexpr int num_precs = matrix::AMP<default_precision, int32>::num_precisions;
+namespace amp {
+
+template <typename T, typename ValueType, typename IndexType>
+using array_prec =
+    std::array<T, matrix::AMP<ValueType, IndexType>::num_precisions>;
+
+}
+
 
 #define GKO_DECLARE_AMP_SPMV_KERNEL(InputValueType, MatrixValueType, \
                                     OutputValueType, IndexType)      \
@@ -39,14 +46,15 @@ constexpr int num_precs = matrix::AMP<default_precision, int32>::num_precisions;
 #define GKO_DECLARE_AMP_GENERATE_CWISE_ELL_STEP1_KERNEL(ValueType, IndexType) \
     void generate_ell_rownorms_storage(                                       \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::Ell<ValueType, IndexType>* a,                           \
-        std::array<int, num_precs>& max_nnz, array<ValueType>& rownorms)
+        const matrix::Ell<ValueType, IndexType>* a, const float tolerance,    \
+        kernels::amp::array_prec<int, ValueType, IndexType>& max_nnz,         \
+        array<remove_complex<ValueType>>& rownorms)
 
 #define GKO_DECLARE_AMP_GENERATE_ELL_SCATTER_BINS_KERNEL(ValueType, IndexType) \
     void generate_ell_scatter_bins(                                            \
         std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Ell<ValueType, IndexType>* a,                            \
-        std::array<LinOp*, num_precs>& amat)
+        const matrix::Ell<ValueType, IndexType>* a, const float tolerance,     \
+        kernels::amp::array_prec<LinOp*, ValueType, IndexType>& amat)
 
 #define GKO_DECLARE_AMP_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \

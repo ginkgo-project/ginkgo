@@ -20,7 +20,27 @@ protected:
     using Mtx = gko::matrix::AMP<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
 
-    Amp() : exec(gko::ReferenceExecutor::create()) {}
+    Amp() : exec(gko::ReferenceExecutor::create())
+    {
+        // Static tests
+#if GINKGO_ENABLE_BFLOAT16 || GINKGO_ENABLE_HALF
+        static_assert(gko::matrix::AMP<double, int>::num_precisions == 3,
+                      "Wrong number of supported precisions for AMP<double>!");
+        static_assert(gko::matrix::AMP<float, int>::num_precisions == 2,
+                      "Wrong number of supported precisions for AMP<float>!");
+        static_assert(
+            gko::matrix::AMP<std::complex<float>, int>::num_precisions == 2,
+            "Wrong number of supported precisions for AMP<complex float>!");
+#else
+        static_assert(gko::matrix::AMP<double, int>::num_precisions == 2,
+                      "Wrong number of supported precisions for AMP<double>!");
+        static_assert(gko::matrix::AMP<float, int>::num_precisions == 1,
+                      "Wrong number of supported precisions for AMP<float>!");
+        static_assert(
+            gko::matrix::AMP<std::complex<float>, int>::num_precisions == 1,
+            "Wrong number of supported precisions for AMP<complex float>!");
+#endif
+    }
 
     std::unique_ptr<Mtx> create_amp_from_dense(gko::dim<2> size)
     {

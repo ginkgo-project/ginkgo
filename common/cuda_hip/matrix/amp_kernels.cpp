@@ -55,10 +55,11 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_ell_rownorms_storage(std::shared_ptr<const DefaultExecutor> exec,
-                                   const matrix::Ell<ValueType, IndexType>* a,
-                                   std::array<int, num_precs>& max_nnz,
-                                   array<ValueType>& rownorms)
+void generate_ell_rownorms_storage(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
+    kernels::amp::array_prec<int, ValueType, IndexType>& max_nnz,
+    array<remove_complex<ValueType>>& rownorms)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -68,9 +69,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_ell_scatter_bins(std::shared_ptr<const DefaultExecutor> exec,
-                               const matrix::Ell<ValueType, IndexType>* a,
-                               std::array<LinOp*, num_precs>& amat)
+void generate_ell_scatter_bins(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
+    kernels::amp::array_prec<LinOp*, ValueType, IndexType>& amat)
 {
     GKO_NOT_IMPLEMENTED;
 }

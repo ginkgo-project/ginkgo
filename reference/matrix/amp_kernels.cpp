@@ -11,6 +11,7 @@
 #include <ginkgo/core/matrix/ell.hpp>
 
 #include "core/base/mixed_precision_types.hpp"
+#include "ginkgo/core/base/amp_helpers.hpp"
 
 
 namespace gko {
@@ -54,13 +55,104 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_AMP_ADVANCED_SPMV_KERNEL);
 
 
+// Get the lower bound of precision bin index prec_idx.
+template <typename RealType, int prec_idx>
+inline float get_bin_lower_bound(const RealType row_norm, const float tolerance)
+{
+    using next_type =
+        typename std::tuple_element<prec_idx + 1,
+                                    gko::amp::supported_precisions>::type;
+    return static_cast<float>(tolerance * row_norm /
+                              std::numeric_limits<next_type>::epsilon());
+}
+
+// Get the lower bounds for all available precision bins.
+template <typename RealType, int q, int k>
+inline void get_all_bins_lower_bounds(const RealType row_norm,
+                                      const float tolerance,
+                                      std::array<float, q>& lbs)
+{
+    if constexpr (k > q - 1) {
+        return;
+    }
+    if constexpr (k == q - 1) {
+        lbs[k] = 0;
+    } else {
+        lbs[k] = get_bin_lower_bound<RealType, k>(row_norm, tolerance);
+        get_all_bins_lower_bounds<RealType, q, k + 1>(row_norm, tolerance, lbs);
+    }
+}
+
+// Return the precision bin index that a number should go to.
+// Returns -1 if the number should be dropped.
+// TODO: Terminate recursion.
+template <typename RealType, int q>
+inline int get_precision_bin(const std::array<float, q>& lower_bounds,
+                             const RealType abs_number, const int k)
+{
+    // static_assert(k < q, "Bin should be have been found by now!");
+    if (k >= q) {
+        printf("!!! Finding precision bin failed!");
+        return -2;
+    }
+    if (k == q - 1) {
+        if (abs_number > std::numeric_limits<RealType>::min()) {
+            return q - 1;
+        } else {
+            return -1;
+        }
+    }
+    if (abs_number > static_cast<RealType>(lower_bounds[k])) {
+        return k;
+    } else {
+        return get_precision_bin<RealType, q>(lower_bounds, abs_number, k + 1);
+    }
+}
+
+
 template <typename ValueType, typename IndexType>
 void generate_ell_rownorms_storage(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Ell<ValueType, IndexType>* a,
-    std::array<int, num_precs>& max_nnz, array<ValueType>& rownorms)
+    const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
+    kernels::amp::array_prec<int, ValueType, IndexType>& max_nnz,
+    array<remove_complex<ValueType>>& rownorms)
 {
-    GKO_NOT_IMPLEMENTED;
+    using real_type = remove_complex<ValueType>;
+    constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
+    const auto nrows = a->get_size()[0];
+    const auto ostride = a->get_stride();
+    const auto omax_nnz = a->get_num_stored_elements_per_row();
+    const ValueType* const ovals = a->get_const_values();
+    const IndexType* const ocolids = a->get_const_col_idxs();
+    for (int irow = 0; irow < nrows; irow++) {
+        // Compute row's 1-norm
+        auto rnorm = static_cast<real_type>(0);
+        for (int j = 0; j < omax_nnz; j++) {
+            if (ocolids[j * ostride + irow] == invalid_index<IndexType>()) {
+                break;
+            } else {
+                rnorm += std::abs(ovals[j * ostride + irow]);
+            }
+        }
+        rownorms.get_data()[irow] = rnorm;
+
+        // Compute lower limits of each precision bin
+        std::array<float, q> min_bin;
+        get_all_bins_lower_bounds<real_type, q, 0>(rnorm, tolerance, min_bin);
+
+        // Get max nnz per row for each precision bin matrix
+        std::array<int, q> row_nnz = {};
+        for (int j = 0; j < omax_nnz; j++) {
+            const int ibin = get_precision_bin<real_type, q>(
+                min_bin, std::abs(ovals[j * ostride + irow]), 0);
+            if (ibin >= 0) {
+                row_nnz[ibin]++;
+            }
+        }
+        for (int k = 0; k < q; k++) {
+            max_nnz[k] = std::max(max_nnz[k], row_nnz[k]);
+        }
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
@@ -68,10 +160,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
-                               const matrix::Ell<ValueType, IndexType>* a,
-                               std::array<LinOp*, num_precs>& amat)
+void generate_ell_scatter_bins(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Ell<ValueType, IndexType>* const a, const float tolerance,
+    kernels::amp::array_prec<LinOp*, ValueType, IndexType>& amat)
 {
+    constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
     GKO_NOT_IMPLEMENTED;
 }
 

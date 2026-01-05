@@ -56,12 +56,11 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
-    using mat_data = matrix_data<ValueType, IndexType>;
-    using device_mat_data = device_matrix_data<ValueType, IndexType>;
-    // using absolute_type = remove_complex<AMP<ValueType,IndexType>>;
 
     // Maximum number of supported precisions.
-    static constexpr int num_precisions = gko::amp::num_amp_precisions;
+    static constexpr int num_precisions =
+        gko::amp::num_amp_precisions -
+        gko::amp::precision_index<remove_complex<ValueType>>::index;
 
     void convert_to(Dense<ValueType>* other) const override;
 
@@ -84,7 +83,7 @@ public:
      * is not necessary for this matrix, its slot is left un-allocated and
      * should return `nullptr`.
      *
-     * @param i  bin index (0 to num_amp_precisions-1)
+     * @param i  bin index (0 to num_precisions-1)
      * @return pointer to the bin matrix, or nullptr if index out of range
      */
     const LinOp* get_bin_matrix(int i) const
