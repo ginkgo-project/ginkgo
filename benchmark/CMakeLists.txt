@@ -40,6 +40,9 @@ function(ginkgo_benchmark_cusparse_linops type def)
         cusparse_linops_${type}
         PRIVATE Ginkgo::ginkgo CUDA::cudart CUDA::cublas CUDA::cusparse
     )
+    if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL 13)
+        target_link_libraries(cusparse_linops_${type} PRIVATE Thrust)
+    endif()
     ginkgo_compile_features(cusparse_linops_${type})
 endfunction()
 
@@ -146,24 +149,46 @@ endfunction(ginkgo_add_single_benchmark_executable)
 # All remaining arguments will be treated as source files
 function(ginkgo_add_typed_benchmark_executables name use_lib_linops)
     ginkgo_add_single_benchmark_executable(
-        "${name}" "${use_lib_linops}" "GKO_BENCHMARK_USE_DOUBLE_PRECISION" "d" ${ARGN}
+        "${name}"
+        "${use_lib_linops}"
+        "GKO_BENCHMARK_USE_DOUBLE_PRECISION"
+        "d"
+        ${ARGN}
     )
     ginkgo_add_single_benchmark_executable(
-        "${name}_single" "${use_lib_linops}" "GKO_BENCHMARK_USE_SINGLE_PRECISION" "s" ${ARGN}
+        "${name}_single"
+        "${use_lib_linops}"
+        "GKO_BENCHMARK_USE_SINGLE_PRECISION"
+        "s"
+        ${ARGN}
     )
     ginkgo_add_single_benchmark_executable(
-        "${name}_dcomplex" "${use_lib_linops}" "GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION" "z" ${ARGN}
+        "${name}_dcomplex"
+        "${use_lib_linops}"
+        "GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION"
+        "z"
+        ${ARGN}
     )
     ginkgo_add_single_benchmark_executable(
-        "${name}_scomplex" "${use_lib_linops}" "GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION" "c" ${ARGN}
+        "${name}_scomplex"
+        "${use_lib_linops}"
+        "GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION"
+        "c"
+        ${ARGN}
     )
 endfunction(ginkgo_add_typed_benchmark_executables)
 
 if(GINKGO_BUILD_CUDA)
     ginkgo_benchmark_cusparse_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
     ginkgo_benchmark_cusparse_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
-    ginkgo_benchmark_cusparse_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
-    ginkgo_benchmark_cusparse_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
+    ginkgo_benchmark_cusparse_linops(
+        z
+        GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION
+    )
+    ginkgo_benchmark_cusparse_linops(
+        c
+        GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION
+    )
     add_library(cuda_timer utils/cuda_timer.cpp)
     target_link_libraries(cuda_timer PRIVATE ginkgo CUDA::cudart)
     ginkgo_compile_features(cuda_timer)
@@ -171,8 +196,14 @@ endif()
 if(GINKGO_BUILD_HIP)
     ginkgo_benchmark_hipsparse_linops(d GKO_BENCHMARK_USE_DOUBLE_PRECISION)
     ginkgo_benchmark_hipsparse_linops(s GKO_BENCHMARK_USE_SINGLE_PRECISION)
-    ginkgo_benchmark_hipsparse_linops(z GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION)
-    ginkgo_benchmark_hipsparse_linops(c GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION)
+    ginkgo_benchmark_hipsparse_linops(
+        z
+        GKO_BENCHMARK_USE_DOUBLE_COMPLEX_PRECISION
+    )
+    ginkgo_benchmark_hipsparse_linops(
+        c
+        GKO_BENCHMARK_USE_SINGLE_COMPLEX_PRECISION
+    )
     set_source_files_properties(utils/hip_timer.hip.cpp PROPERTIES LANGUAGE HIP)
     add_library(hip_timer utils/hip_timer.hip.cpp)
     target_link_libraries(hip_timer PRIVATE ginkgo)

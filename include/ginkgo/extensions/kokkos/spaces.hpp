@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,9 +18,20 @@ namespace ext {
 namespace kokkos {
 namespace detail {
 
+#ifdef KOKKOS_ENABLE_SYCL
+#if KOKKOS_VERSION >= 40500
+using KokkosSYCLExecSpace = Kokkos::SYCL;
+using KokkosSYCLMemorySpace = Kokkos::SYCLDeviceUSMSpace;
+#else
+using KokkosSYCLExecSpace = Kokkos::Experimental::SYCL;
+using KokkosSYCLMemorySpace = Kokkos::Experimental::SYCLDeviceUSMSpace;
+#endif
+#endif
+
 
 /**
- * Helper to check if an executor type can access the memory of an memory space
+ * Helper to check if an executor type can access the memory of an memory
+ * space
  *
  * @tparam MemorySpace  Type fulfilling the Kokkos MemorySpace concept.
  * @tparam ExecType  One of the Ginkgo executor types.
@@ -47,7 +58,6 @@ template <typename MemorySpace>
 struct compatible_space<MemorySpace, OmpExecutor>
     : compatible_space<MemorySpace, ReferenceExecutor> {};
 #endif
-
 #ifdef KOKKOS_ENABLE_CUDA
 template <typename MemorySpace>
 struct compatible_space<MemorySpace, CudaExecutor> {
@@ -68,7 +78,7 @@ struct compatible_space<MemorySpace, HipExecutor> {
 template <typename MemorySpace>
 struct compatible_space<MemorySpace, DpcppExecutor> {
     static constexpr bool value =
-        Kokkos::SpaceAccessibility<Kokkos::Experimental::SYCL,
+        Kokkos::SpaceAccessibility<KokkosSYCLExecSpace,
                                    MemorySpace>::accessible;
 };
 #endif
@@ -156,6 +166,12 @@ inline std::shared_ptr<Executor> create_default_host_executor()
         return ReferenceExecutor::create();
     }
 #endif
+#ifdef KOKKOS_ENABLE_THREADS
+    if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
+                                 Kokkos::Threads>) {
+        return ReferenceExecutor::create();
+    }
+#endif
 #ifdef KOKKOS_ENABLE_OPENMP
     if constexpr (std::is_same_v<Kokkos::DefaultHostExecutionSpace,
                                  Kokkos::OpenMP>) {
@@ -174,7 +190,7 @@ inline std::shared_ptr<Executor> create_default_host_executor()
  * - OpenMP
  * - Cuda
  * - HIP
- * - Experimental::SYCL
+ * - SYCL
  * If none of these spaces are enabled, then this function throws an exception.
  * For Cuda, HIP, SYCL, the device-id used by Kokkos is passed to the Executor
  * constructor.
@@ -201,6 +217,11 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace ex, MemorySpace = {})
 #ifdef KOKKOS_ENABLE_OPENMP
     if constexpr (std::is_same_v<ExecSpace, Kokkos::OpenMP>) {
         return OmpExecutor::create();
+    }
+#endif
+#ifdef KOKKOS_ENABLE_THREADS
+    if constexpr (std::is_same_v<ExecSpace, Kokkos::Threads>) {
+        return ReferenceExecutor::create();
     }
 #endif
 #ifdef KOKKOS_ENABLE_CUDA
@@ -247,9 +268,9 @@ inline std::shared_ptr<Executor> create_executor(ExecSpace ex, MemorySpace = {})
     }
 #endif
 #ifdef KOKKOS_ENABLE_SYCL
-    if constexpr (std::is_same_v<ExecSpace, Kokkos::Experimental::SYCL>) {
+    if constexpr (std::is_same_v<ExecSpace, detail::KokkosSYCLExecSpace>) {
         static_assert(
-            std::is_same_v<MemorySpace, Kokkos::Experimental::SYCLSpace>,
+            std::is_same_v<MemorySpace, detail::KokkosSYCLMemorySpace>,
             "Ginkgo doesn't support shared memory space allocation for SYCL");
         return DpcppExecutor::create(Kokkos::device_id(),
                                      create_default_host_executor());

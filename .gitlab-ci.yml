@@ -110,7 +110,6 @@ build/cuda110/nompi/gcc/cuda/release/shared:
     # this is seemingly broken with CUDA 11
     # EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
 
-
 # nvhpc and friends
 build/nvhpc233/cuda120/nompi/nvcpp/release/static:
   extends:
@@ -148,6 +147,90 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
     CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
     # disable spurious unused argument warning
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
+
+build/cuda118/nompi/gcc/cuda/debug/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-nvidia
+  variables:
+    BUILD_CUDA: "ON"
+    BUILD_HWLOC: "OFF"
+    ENABLE_HALF: "ON"
+    BUILD_TYPE: "Debug"
+    MODULE_LOAD: "cmake/3.18.6 cuda/11.8.0 gcc/7.5.0"
+
+build/cuda120/openmpi/gcc/cuda/release/static:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-nvidia
+  variables:
+    BUILD_CUDA: "ON"
+    BUILD_HWLOC: "OFF"
+    ENABLE_HALF: "ON"
+    BUILD_MPI: "ON"
+    BUILD_SHARED_LIBS: "OFF"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.18.6 cuda/12.0.1 gcc/12.4.0 openmpi/4.1.8"
+
+build/cuda122/openmpi/gcc/cuda/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-nvidia
+  variables:
+    BUILD_CUDA: "ON"
+    BUILD_HWLOC: "OFF"
+    ENABLE_HALF: "ON"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.20.6 cuda/12.2.2 gcc/12.4.0 openmpi/5.0.7"
+
+build/cuda124/mpich/gcc/cuda/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-nvidia
+  variables:
+    BUILD_CUDA: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_MPI: "ON"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.30.8 cuda/12.6.3 gcc/13.3.0 mpich"
+
+build/cuda126/nompi/gcc/cuda/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-nvidia
+  variables:
+    BUILD_CUDA: "ON"
+    BUILD_HWLOC: "OFF"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.30.8 cuda/12.6.3 gcc/13.3.0"
+
+build/cuda130/nompi/gcc/cuda/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-nvidia
+  variables:
+    BUILD_CUDA: "ON"
+    BUILD_HWLOC: "OFF"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.30.8 cuda/13.0.2 gcc/14.3.0"
 
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
@@ -229,6 +312,63 @@ build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
     BUILD_MPI: "OFF"
     BUILD_HIP: "ON"
     BUILD_TYPE: "Release"
+
+build/amd/openmpi/gcc/rocm600/release/static:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-amd
+  variables:
+    BUILD_HIP: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_MPI: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+    MODULE_LOAD: "cmake/3.24.4 rocm/6.0.0 gcc/13.3.0 openmpi/5.0.7"
+
+build/amd/nompi/gcc/rocm573/debug/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-amd
+  variables:
+    BUILD_HIP: "ON"
+    BUILD_OMP: "OFF"
+    BUILD_HWLOC: "OFF"
+    BUILD_TYPE: "Debug"
+    ENABLE_BFLOAT16: "ON"
+    ENABLE_HALF: "OFF"
+    MODULE_LOAD: "cmake/3.25.3 rocm/5.7.3 gcc/12.4.0"
+
+build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-amd
+  variables:
+    BUILD_HIP: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_MPI: "ON"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.29.6 rocm/6.3.4 gcc/13.3.0 openmpi/5.0.7"
+
+# mi50 is not officially supported by ROCm >= 7
+build/amd/nompi/gcc/rocm710/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-amd-mi210
+  variables:
+    BUILD_HIP: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_MPI: "OFF"
+    BUILD_OMP: "OFF"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.29.6 rocm/7.1.0 gcc/14.3.0"
 
 # no cuda but latest gcc and clang
 build/nocuda/nompi/gcc/core/debug/static:
@@ -350,13 +490,76 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
+build/nogpu/nompi/gcc/omp/debug/static:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-cpu
+  variables:
+    BUILD_OMP: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+    MIXED_PRECISION: "OFF"
+    BUILD_HWLOC: "OFF"
+    MODULE_LOAD: "cmake/3.18.6 gcc/7.5.0"
+
+build/nogpu/nompi/gcc/omp/release/static:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-cpu
+  variables:
+    BUILD_OMP: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+    BUILD_HWLOC: "OFF"
+    MODULE_LOAD: "cmake/3.18.6 gcc/9.5.0"
+
+build/nogpu/nompi/gcc/noomp/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-cpu
+  variables:
+    BUILD_TYPE: "Release"
+    BUILD_HWLOC: "OFF"
+    MODULE_LOAD: "cmake/3.18.6 gcc/9.5.0"
+
+build/nogpu/nompi/gcc12/noomp/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-cpu
+  variables:
+    BUILD_TYPE: "Release"
+    BUILD_HWLOC: "OFF"
+    MODULE_LOAD: "cmake/3.18.6 gcc/12.4.0"
+
+build/nogpu/mpi/gcc13/noomp/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_tum-cpu
+  variables:
+    BUILD_TYPE: "Release"
+    BUILD_HWLOC: "OFF"
+    BUILD_MPI: "ON"
+    MODULE_LOAD: "cmake/3.18.6 gcc/13.3.0 openmpi"
+
 # spack oneapi 2023.1
 build/icpx20231/gpu/release/shared:
   extends:
     - .build_and_test_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko-oneapi20231-igpu
+    - .use_gko-oneapi20231-gpu
   variables:
     CXX_COMPILER: "icpx"
     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
@@ -367,13 +570,65 @@ build/icpx20231/gpu/release/shared:
     ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
     BUILD_HWLOC: "OFF"
 
+build/dpcpp20231/gpu/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-intel-fp32
+  variables:
+    CXX_COMPILER: "dpcpp"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
+    BUILD_SYCL: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "ON"
+    DPCPP_SINGLE_MODE: "ON"
+    MODULE_LOAD: "cmake/3.21.7 intel-oneapi-compilers/2023.1.0 intel-oneapi-dpl/2022.1.0 intel-oneapi-tbb/2021.9.0 intel-oneapi-mkl/2023.1.0"
+    ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
+    BUILD_HWLOC: "OFF"
+
+build/icpx202402/gpu/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-intel
+  variables:
+    CXX_COMPILER: "icpx"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise -Wno-deprecated-declarations"
+    BUILD_SYCL: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_TYPE: "Release"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "OFF"
+    ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
+    MODULE_LOAD: "cmake/3.21.7 intel-oneapi-compilers/2024.0.2 intel-oneapi-dpl/2022.3.0 intel-oneapi-tbb/2021.11.0 intel-oneapi-mkl/2024.0.0"
+
+build/icpx202421/gpu/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-intel
+  variables:
+    CXX_COMPILER: "icpx"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise -Wno-deprecated-declarations"
+    BUILD_SYCL: "ON"
+    BUILD_OMP: "ON"
+    BUILD_HWLOC: "OFF"
+    BUILD_TYPE: "Release"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+    MODULE_LOAD: "cmake/3.28.6 intel-oneapi-compilers/2024.2.1 intel-oneapi-dpl/2022.6.1 intel-oneapi-tbb/2021.13.1 intel-oneapi-mkl/2024.2.1"
+
 # TODO: Enable when debug shared library size issues are fixed
 # build/dpcpp/level_zero_igpu/debug/shared:
 #   extends:
 #     - .build_and_test_template
 #     - .default_variables
 #     - .full_test_condition
-#     - .use_gko-oneapi-igpu
+#     - .use_gko-oneapi-gpu
 #   variables:
 #     CXX_COMPILER: "dpcpp"
 #     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
@@ -389,7 +644,7 @@ build/dpcpp/gpu/release/shared:
     - .build_and_test_template
     - .default_variables
     - .full_test_condition
-    - .use_gko-oneapi-igpu
+    - .use_gko-oneapi-gpu
   variables:
     CXX_COMPILER: "dpcpp"
     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
@@ -403,41 +658,43 @@ build/dpcpp/gpu/release/shared:
 
 # windows jobs
 # Note that this is using Powershell, not bash
-build/windows-cuda/release/shared:
-  extends:
-    - .quick_test_condition
-  stage: build
-  script:
-    - if (Test-Path build) { rm -r -fo build }
-    - if (Test-Path install) { rm -r -fo install }
-    - mkdir build
-    - mkdir install
-    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=ON "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
-    - cmake --build build --config Release -j16
-    - ctest --test-dir build -C Release --no-tests=error --output-on-failure
-    - $env:PATH+=";$pwd/install/bin"
-    - cmake --install build --config Release
-    - cmake --build build --target test_install --config Release
-  tags:
-    - windows-cuda
+# Disable it now until the server is back
+# build/windows-cuda/release/shared:
+#   extends:
+#     - .quick_test_condition
+#   stage: build
+#   script:
+#     - if (Test-Path build) { rm -r -fo build }
+#     - if (Test-Path install) { rm -r -fo install }
+#     - mkdir build
+#     - mkdir install
+#     - nvidia-smi
+#     - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=ON "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+#     - cmake --build build --config Release -j16
+#     - ctest --test-dir build -C Release --no-tests=error --output-on-failure
+#     - $env:PATH+=";$pwd/install/bin"
+#     - cmake --install build --config Release
+#     - cmake --build build --target test_install --config Release
+#   tags:
+#     - windows-cuda
 
-build/windows/release/shared:
-  extends:
-    - .full_test_condition
-  stage: build
-  script:
-    - if (Test-Path build) { rm -r -fo build }
-    - if (Test-Path install) { rm -r -fo install }
-    - mkdir build
-    - mkdir install
-    - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=OFF "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
-    - cmake --build build --config Release -j16
-    - ctest --test-dir build -C Release --no-tests=error --output-on-failure -j16
-    - $env:PATH+=";$pwd/install/bin"
-    - cmake --install build --config Release
-    - cmake --build build --target test_install --config Release
-  tags:
-    - windows
+# build/windows/release/shared:
+#   extends:
+#     - .full_test_condition
+#   stage: build
+#   script:
+#     - if (Test-Path build) { rm -r -fo build }
+#     - if (Test-Path install) { rm -r -fo install }
+#     - mkdir build
+#     - mkdir install
+#     - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=OFF "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
+#     - cmake --build build --config Release -j16
+#     - ctest --test-dir build -C Release --no-tests=error --output-on-failure -j16
+#     - $env:PATH+=";$pwd/install/bin"
+#     - cmake --install build --config Release
+#     - cmake --build build --target test_install --config Release
+#   tags:
+#     - windows
 
 # Job with important warnings as error
 warnings:
@@ -533,7 +790,10 @@ sonarqube_cov_:
       fi
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
       -DGINKGO_SONARQUBE_TEST=ON
-    - sonar-scanner -Dsonar.login=${SONARQUBE_LOGIN}
+    - sonar-scanner -Dsonar.token=${SONARQUBE_LOGIN}
+      -Dsonar.projectKey="ginkgo-project_ginkgo"
+      -Dsonar.organization="ginkgo-project"
+      -Dsonar.host.url="https://sonarcloud.io"
       -Dsonar.cfamily.build-wrapper-output=build/bw-output
       -Dsonar.cfamily.gcov.reportsPath=build/Testing/CoverageInfo
       ${sonar_branching}
@@ -556,7 +816,10 @@ sonarqube_cov:
   script:
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
       -DGINKGO_SONARQUBE_TEST=ON
-    - sonar-scanner -Dsonar.login=${SONARQUBE_LOGIN}
+    - sonar-scanner -Dsonar.token=${SONARQUBE_LOGIN}
+      -Dsonar.projectKey="ginkgo-project_ginkgo"
+      -Dsonar.organization="ginkgo-project"
+      -Dsonar.host.url="https://sonarcloud.io"
       -Dsonar.cfamily.build-wrapper-output=build/bw-output
       -Dsonar.cfamily.gcov.reportsPath=build/Testing/CoverageInfo
       -Dsonar.branch.name=${CI_COMMIT_REF_NAME}

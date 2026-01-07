@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(
     Ginkgo
     LANGUAGES CXX
-    VERSION 1.10.0
+    VERSION 1.11.0
     DESCRIPTION
         "A numerical linear algebra library targeting many-core architectures"
 )
@@ -41,7 +41,12 @@ option(GINKGO_BUILD_BENCHMARKS "Build Ginkgo's benchmarks" ON)
 option(GINKGO_BUILD_REFERENCE "Compile reference CPU kernels" ON)
 option(GINKGO_BUILD_OMP "Compile OpenMP kernels for CPU" ${GINKGO_HAS_OMP})
 option(GINKGO_BUILD_MPI "Compile the MPI module" ${GINKGO_HAS_MPI})
-gko_rename_cache(GINKGO_BUILD_DPCPP GINKGO_BUILD_SYCL BOOL "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware")
+gko_rename_cache(
+    GINKGO_BUILD_DPCPP
+    GINKGO_BUILD_SYCL
+    BOOL
+    "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware"
+)
 option(
     GINKGO_BUILD_SYCL
     "Compile SYCL kernels for Intel GPUs or other SYCL enabled hardware"
@@ -192,8 +197,18 @@ option(
     "Enables mapping to Kokkos types to check the alignment of the source and target type."
     ON
 )
-gko_rename_cache(GINKGO_COMPILER_FLAGS CMAKE_CXX_FLAGS BOOL "Flags used by the CXX compiler during all build types.")
-gko_rename_cache(GINKGO_CUDA_COMPILER_FLAGS CMAKE_CUDA_FLAGS BOOL "Flags used by the CUDA compiler during all build types.")
+gko_rename_cache(
+    GINKGO_COMPILER_FLAGS
+    CMAKE_CXX_FLAGS
+    BOOL
+    "Flags used by the CXX compiler during all build types."
+)
+gko_rename_cache(
+    GINKGO_CUDA_COMPILER_FLAGS
+    CMAKE_CUDA_FLAGS
+    BOOL
+    "Flags used by the CUDA compiler during all build types."
+)
 
 # load executor-specific configuration
 if(GINKGO_BUILD_CUDA)
@@ -219,6 +234,18 @@ if(GINKGO_BUILD_HIP)
             "Disable custom thrust namespace for hip before 5.7 because hip does not fully support it before 5.7"
         )
         set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE OFF)
+    elseif(
+        GINKGO_HIP_PLATFORM_AMD
+        AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 7.1
+        AND GINKGO_HIP_VERSION VERSION_LESS 7.2
+    )
+        # https://github.com/ROCm/rocm-libraries/pull/1769 should fix this issue in ROCm 7.1.1.
+        # HIP VERSION does not use the exact version number as ROCm. Need to wait for ROCm 7.1.1 to set proper range for ROCm 7.1.0
+        message(
+            STATUS
+            "Disable custom thrust namespace for hip 7.1 because hip does not adapt the custom namespace fully."
+        )
+        set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE OFF)
     else()
         message(STATUS "Enable custom thrust namespace for hip")
         set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE ON)
@@ -241,7 +268,7 @@ include(cmake/compiler_features.cmake)
 include(cmake/generate_ginkgo_hpp.cmake)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /permissive-")
 endif()
 if(MINGW OR CYGWIN)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -250,6 +277,16 @@ if(MINGW OR CYGWIN)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-assume-unique-vtables")
     else()
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wa,-mbig-obj")
+    endif()
+else()
+    # using 16 because we pass that during apple clang 15 but not 16. The version leading this issue is not clear from the bug report.
+    if(
+        CMAKE_CXX_COMPILER_ID MATCHES "Clang"
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17
+        AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16
+    )
+        # Similar to MINGW/CYGWIN clang issue. LLVM includes the fix from 17 for Itanium ABI but not MS ABI.
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-assume-unique-vtables")
     endif()
 endif()
 
@@ -382,21 +419,21 @@ if(GINKGO_BUILD_MPI)
 
     # use try_compile instead of try_run to prevent cross-compiling issues
     try_compile(
-        uses_openmpi
+        gko_uses_openmpi
         ${Ginkgo_BINARY_DIR}
         ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
         COMPILE_DEFINITIONS -DCHECK_HAS_OPEN_MPI=1
         LINK_LIBRARIES MPI::MPI_CXX
     )
-    if(uses_openmpi)
+    if(gko_uses_openmpi)
         try_compile(
-            valid_openmpi_version
+            gko_valid_openmpi_version
             ${Ginkgo_BINARY_DIR}
             ${Ginkgo_SOURCE_DIR}/cmake/openmpi_test.cpp
             COMPILE_DEFINITIONS -DCHECK_OPEN_MPI_VERSION=1
             LINK_LIBRARIES MPI::MPI_CXX
         )
-        if(NOT valid_openmpi_version)
+        if(NOT gko_valid_openmpi_version)
             message(
                 WARNING
                 "OpenMPI v4.0.x has several bugs that forces us to use non-optimal communication in our distributed "
@@ -405,9 +442,11 @@ if(GINKGO_BUILD_MPI)
             )
             set(GINKGO_HAVE_OPENMPI_PRE_4_1_X ON)
         endif()
-        unset(valid_openmpi_version)
+        unset(gko_valid_openmpi_version)
+        unset(gko_valid_openmpi_version CACHE)
     endif()
-    unset(uses_openmpi)
+    unset(gko_uses_openmpi)
+    unset(gko_uses_openmpi CACHE)
 endif()
 
 # Try to find the third party packages before using our subdirectories
@@ -463,9 +502,21 @@ if(MSVC)
 endif()
 
 if(GINKGO_BUILD_SYCL)
-    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MAJOR_VERSION __LIBSYCL_MAJOR_VERSION)
-    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_MINOR_VERSION __LIBSYCL_MINOR_VERSION)
-    ginkgo_extract_dpcpp_version(${CMAKE_CXX_COMPILER} GINKGO_DPCPP_VERSION __SYCL_COMPILER_VERSION)
+    ginkgo_extract_dpcpp_version(
+        ${CMAKE_CXX_COMPILER}
+        GINKGO_DPCPP_MAJOR_VERSION
+        __LIBSYCL_MAJOR_VERSION
+    )
+    ginkgo_extract_dpcpp_version(
+        ${CMAKE_CXX_COMPILER}
+        GINKGO_DPCPP_MINOR_VERSION
+        __LIBSYCL_MINOR_VERSION
+    )
+    ginkgo_extract_dpcpp_version(
+        ${CMAKE_CXX_COMPILER}
+        GINKGO_DPCPP_VERSION
+        __SYCL_COMPILER_VERSION
+    )
 else()
     set(GINKGO_DPCPP_MAJOR_VERSION "0")
     set(GINKGO_DPCPP_MINOR_VERSION "0")

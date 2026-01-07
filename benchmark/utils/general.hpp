@@ -171,18 +171,18 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
 void print_general_information(const std::string& extra,
                                std::shared_ptr<const gko::Executor> exec)
 {
-    std::clog << gko::version_info::get() << std::endl
+    std::cerr << gko::version_info::get() << std::endl
               << "Running on " << exec->get_description() << std::endl
               << "Running with " << FLAGS_warmup << " warm iterations and ";
     if (FLAGS_repetitions == "auto") {
-        std::clog << "adaptively determined repetititions with "
+        std::cerr << "adaptively determined repetititions with "
                   << FLAGS_min_repetitions
                   << " <= rep <= " << FLAGS_max_repetitions
                   << " and a minimal runtime of " << FLAGS_min_runtime << "s\n";
     } else {
-        std::clog << FLAGS_repetitions << " running iterations\n";
+        std::cerr << FLAGS_repetitions << " running iterations\n";
     }
-    std::clog << "The random seed for right hand sides is " << FLAGS_seed
+    std::cerr << "The random seed for right hand sides is " << FLAGS_seed
               << '\n'
               << extra << std::endl;
 }
@@ -203,10 +203,10 @@ std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
             {"debug", [] {
                  return ProfilerHook::create_custom(
                      [](const char* name, gko::log::profile_event_category) {
-                         std::clog << "DEBUG: begin " << name << '\n';
+                         std::cerr << "DEBUG: begin " << name << '\n';
                      },
                      [](const char* name, gko::log::profile_event_category) {
-                         std::clog << "DEBUG: end   " << name << '\n';
+                         std::cerr << "DEBUG: end   " << name << '\n';
                      });
              }}};
     return hook_map.at(FLAGS_profiler_hook)();

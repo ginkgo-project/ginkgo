@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,7 +32,11 @@ struct config {
      * `device_functions.h`.
      */
 #if GINKGO_HIP_PLATFORM_HCC
-    static constexpr uint32 warp_size = warpSize;
+    // workaround for ROCm >= 7, which does not give warpSize in compile time.
+    // We can not define warpSize via compiler because amd_warp_functions.h
+    // defines a struct variable called warpSize, too. No support for 32 on AMD
+    // GPU yet.
+    static constexpr uint32 warp_size = 64;
 #else  // GINKGO_HIP_PLATFORM_NVCC
     static constexpr uint32 warp_size = 32;
 #endif

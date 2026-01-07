@@ -28,6 +28,7 @@ DEFINE_string(
     "BLAS algorithms:\n"
     "   copy (y = x),\n"
     "   axpy (y = y + a * x),\n"
+    "   sub_scaled (y = y - a * x),\n"
     "   multiaxpy (like axpy, but a has one entry per column),\n"
     "   scal (y = a * y),\n"
     "   multiscal (like scal, but a has one entry per column),\n"
@@ -128,6 +129,46 @@ public:
     void prepare() override { as_vector<Generator>(y_)->fill(1); }
 
     void run() override { as_vector<Generator>(y_)->add_scaled(alpha_, x_); }
+
+private:
+    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
+    std::unique_ptr<gko::LinOp> x_;
+    std::unique_ptr<gko::LinOp> y_;
+};
+
+
+template <typename Generator>
+class SubScaledOperation : public BenchmarkOperation {
+public:
+    SubScaledOperation(std::shared_ptr<const gko::Executor> exec,
+                       const Generator& generator, gko::size_type rows,
+                       gko::size_type cols, gko::size_type stride_in,
+                       gko::size_type stride_out, bool multi)
+    {
+        auto size = gko::dim<2>{rows, cols};
+        alpha_ = gko::matrix::Dense<etype>::create(
+            exec, gko::dim<2>{1, multi ? cols : 1});
+        x_ = generator.create_multi_vector_strided(
+            exec, size, generator.create_default_local_size(size), stride_in);
+        y_ = generator.create_multi_vector_strided(
+            exec, size, generator.create_default_local_size(size), stride_out);
+        alpha_->fill(1);
+        as_vector<Generator>(x_)->fill(1);
+    }
+
+    gko::size_type get_flops() const override
+    {
+        return y_->get_size()[0] * y_->get_size()[1] * 2;
+    }
+
+    gko::size_type get_memory() const override
+    {
+        return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype) * 3;
+    }
+
+    void prepare() override { as_vector<Generator>(y_)->fill(1); }
+
+    void run() override { as_vector<Generator>(y_)->sub_scaled(alpha_, x_); }
 
 private:
     std::unique_ptr<gko::matrix::Dense<etype>> alpha_;

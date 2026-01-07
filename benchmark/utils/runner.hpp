@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,13 +32,13 @@ std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
                      [do_print](const char* name,
                                 gko::log::profile_event_category) {
                          if (do_print) {
-                             std::clog << "DEBUG: begin " << name << '\n';
+                             std::cerr << "DEBUG: begin " << name << '\n';
                          }
                      },
                      [do_print](const char* name,
                                 gko::log::profile_event_category) {
                          if (do_print) {
-                             std::clog << "DEBUG: end   " << name << '\n';
+                             std::cerr << "DEBUG: end   " << name << '\n';
                          }
                      });
              }}};
@@ -119,7 +119,7 @@ void run_test_cases(const Benchmark<State>& benchmark,
             }
             auto test_case_desc = benchmark.describe_config(test_case);
             if (benchmark.should_print()) {
-                std::clog << "Running test case " << test_case_desc
+                std::cerr << "Running test case " << test_case_desc
                           << std::endl;
             }
             auto test_case_state = benchmark.setup(exec, test_case);
@@ -132,7 +132,7 @@ void run_test_cases(const Benchmark<State>& benchmark,
                 }
                 benchmark_case[operation_name] = json::object();
                 if (benchmark.should_print()) {
-                    std::clog << "\tRunning " << benchmark.get_name() << ": "
+                    std::cerr << "\tRunning " << benchmark.get_name() << ": "
                               << operation_name << std::endl;
                 }
                 auto& operation_case = benchmark_case[operation_name];

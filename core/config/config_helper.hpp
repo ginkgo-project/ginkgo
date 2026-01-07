@@ -6,6 +6,7 @@
 #define GKO_CORE_CONFIG_CONFIG_HELPER_HPP_
 
 
+#include <set>
 #include <string>
 #include <type_traits>
 
@@ -313,6 +314,33 @@ inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
     }
     return strategy_ptr;
 }
+
+
+/**
+ * This is a decroator on top of config node. When we try to get a node by a
+ * key, it registers the keys as the allowed_keys. When this object is
+ * destroyed, it will check whether the config node only contains the key in
+ * allowed_keys. If some key is not in allowed_keys, it will throw an exception.
+ */
+class config_check_decorator {
+public:
+    config_check_decorator(
+        const pnode& config,
+        const std::set<std::string>& additional_allowed_keys = {});
+
+    // we allow exception here because we only use it in function not class.
+    ~config_check_decorator() noexcept(false);
+
+    config_check_decorator(const config_check_decorator&) = delete;
+
+    config_check_decorator& operator=(const config_check_decorator&) = delete;
+
+    const pnode& get(const std::string& key);
+
+private:
+    std::set<std::string> allowed_keys_;
+    const pnode& config_;
+};
 
 
 }  // namespace config

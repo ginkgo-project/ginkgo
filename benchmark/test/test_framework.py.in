@@ -21,6 +21,12 @@ denumberify_paths = [
     "residual_norm",
     "rhs_norm",
     "max_relative_norm2",
+    "mean",
+    "variance",
+    "skewness",
+    "kurtosis",
+    "hyperskewness",
+    "hyperflatness"
 ]
 detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check("]
 empty_string_paths = ["filename"]
@@ -202,6 +208,8 @@ def compare_output_impl(
                 difflib.unified_diff(expected_stdout_processed, result_stdout_processed)
             )
         )
+        print("original stdout:")
+        print(result.stdout.decode())
         failed = True
     if result_stderr_processed != expected_stderr_processed:
         print("FAIL: stderr differs")
@@ -210,6 +218,8 @@ def compare_output_impl(
                 difflib.unified_diff(expected_stderr_processed, result_stderr_processed)
             )
         )
+        print("original stderr:")
+        print(result.stderr.decode())
         failed = True
     if failed:
         exit(1)

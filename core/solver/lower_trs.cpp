@@ -1,6 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
+
+#include <string>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -16,7 +18,6 @@
 #include "core/config/config_helper.hpp"
 #include "core/config/trisolver_config.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
-
 
 namespace gko {
 namespace solver {
@@ -41,7 +42,9 @@ LowerTrs<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = LowerTrs<ValueType, IndexType>::build();
-    common_trisolver_parse(params, config, context, td_for_child);
+    config::config_check_decorator config_check(config);
+    config::common_trisolver_parse(params, config_check, context, td_for_child);
+
     return params;
 }
 

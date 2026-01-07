@@ -58,6 +58,7 @@ class Csr final
     friend class Csr<previous_precision<ValueType>, IndexType>;
     static_assert(std::is_same<IndexType, int32>::value,
                   "IndexType must be a 32 bit integer");
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using EnableBatchLinOp<Csr>::convert_to;

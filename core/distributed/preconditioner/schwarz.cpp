@@ -26,7 +26,6 @@
 #include "core/distributed/helpers.hpp"
 #include "core/matrix/csr_kernels.hpp"
 
-
 namespace gko {
 namespace experimental {
 namespace distributed {
@@ -47,30 +46,30 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Schwarz::build();
-
-    if (auto& obj = config.get("generated_local_solver")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("generated_local_solver")) {
         params.with_generated_local_solver(
-            gko::config::get_stored_obj<const LinOp>(obj, context));
+            config::get_stored_obj<const LinOp>(obj, context));
     }
-    if (auto& obj = config.get("local_solver")) {
+    if (auto& obj = config_check.get("local_solver")) {
         params.with_local_solver(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_factory<const LinOpFactory>(obj, context,
+                                                             td_for_child));
     }
-    if (auto& obj = config.get("l1_smoother")) {
+    if (auto& obj = config_check.get("l1_smoother")) {
         params.with_l1_smoother(obj.get_boolean());
     }
-    if (auto& obj = config.get("coarse_level")) {
+    if (auto& obj = config_check.get("coarse_level")) {
         params.with_coarse_level(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("coarse_solver")) {
+    if (auto& obj = config_check.get("coarse_solver")) {
         params.with_coarse_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("coarse_weight")) {
+    if (auto& obj = config_check.get("coarse_weight")) {
         params.with_coarse_weight(gko::config::get_value<ValueType>(obj));
     }
 

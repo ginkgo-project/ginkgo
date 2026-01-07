@@ -1,1 +1,9 @@
-ginkgo_create_common_and_reference_test(solver MPI_SIZE 3 DISABLE_EXECUTORS dpcpp LABELS distributed)
+ginkgo_create_common_and_reference_test(
+    solver
+    MPI_SIZE
+    3
+    DISABLE_EXECUTORS
+    dpcpp
+    LABELS
+    distributed
+)

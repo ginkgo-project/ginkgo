@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -52,6 +52,7 @@ class Sor
     : public EnablePolymorphicObject<Sor<ValueType, IndexType>, LinOpFactory>,
       public EnablePolymorphicAssignment<Sor<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Sor, LinOpFactory>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     struct parameters_type;

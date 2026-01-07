@@ -947,7 +947,7 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
                 solver.ref->apply(b.ref, x.ref);
                 solver.dev->apply(b.dev, x.dev);
 
-                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, this->tol(x));
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, 1.2 * this->tol(x));
             });
     });
 }

@@ -4,6 +4,7 @@ set(CUDA_HIP_SOURCES
     base/device_matrix_data_kernels.cpp
     base/index_set_kernels.cpp
     components/prefix_sum_kernels.cpp
+    components/bitvector.cpp
     distributed/assembly_kernels.cpp
     distributed/index_map_kernels.cpp
     distributed/matrix_kernels.cpp

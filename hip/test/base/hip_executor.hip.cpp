@@ -154,6 +154,13 @@ TEST_F(HipExecutor, FailsWhenOverallocating)
         gko::AllocationError);
 
     hip->free(ptr);
+#if HIP_VERSION >= 70000000
+    // hipSPARSE handle creation will still carry the last error even if the
+    // error has been returned after ROCm 7.0.0. We use hipGetLastError() to
+    // throw it again. Related Issue:
+    // https://github.com/ROCm/rocm-libraries/issues/2801
+    hipGetLastError();
+#endif
 }
 
 

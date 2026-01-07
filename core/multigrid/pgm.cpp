@@ -163,17 +163,18 @@ Pgm<ValueType, IndexType>::parse(const config::pnode& config,
                                  const config::type_descriptor& td_for_child)
 {
     auto params = Pgm<ValueType, IndexType>::build();
-    if (auto& obj = config.get("max_iterations")) {
-        params.with_max_iterations(gko::config::get_value<unsigned>(obj));
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("max_iterations")) {
+        params.with_max_iterations(config::get_value<unsigned>(obj));
     }
-    if (auto& obj = config.get("max_unassigned_ratio")) {
-        params.with_max_unassigned_ratio(gko::config::get_value<double>(obj));
+    if (auto& obj = config_check.get("max_unassigned_ratio")) {
+        params.with_max_unassigned_ratio(config::get_value<double>(obj));
     }
-    if (auto& obj = config.get("deterministic")) {
-        params.with_deterministic(gko::config::get_value<bool>(obj));
+    if (auto& obj = config_check.get("deterministic")) {
+        params.with_deterministic(config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("skip_sorting")) {
-        params.with_skip_sorting(gko::config::get_value<bool>(obj));
+    if (auto& obj = config_check.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
     }
 
     return params;

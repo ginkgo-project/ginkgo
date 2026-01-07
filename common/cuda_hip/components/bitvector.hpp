@@ -141,6 +141,13 @@ from_sorted_indices(
     typename std::iterator_traits<IndexIterator>::difference_type count,
     typename std::iterator_traits<IndexIterator>::value_type size)
 {
+// Using EXEC_TYPE as an indicator in test.
+// We pre-compile the routine for test in library to avoid thrust issue before
+// CUDA 12.4
+#ifdef EXEC_TYPE
+    static_assert(std::is_same_v<IndexIterator, void>,
+                  "must only compile this kernel in ginkgo library");
+#else
     using index_type = typename std::iterator_traits<IndexIterator>::value_type;
     using storage_type = typename device_bitvector<index_type>::storage_type;
     constexpr auto block_size = device_bitvector<index_type>::block_size;
@@ -170,7 +177,25 @@ from_sorted_indices(
                            ranks.get_data(), index_type{});
 
     return gko::bitvector<index_type>{std::move(bits), std::move(ranks), size};
+#endif
 }
+
+#define GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(IndexIterator)             \
+    gko::bitvector<typename std::iterator_traits<IndexIterator>::value_type> \
+    from_sorted_indices(                                                     \
+        std::shared_ptr<const DefaultExecutor> exec, IndexIterator it,       \
+        typename std::iterator_traits<IndexIterator>::difference_type count, \
+        typename std::iterator_traits<IndexIterator>::value_type size)
+
+// Before CUDA 12.4 (or NCCL 2.3), THRUST_CUB_WRAPPED_NAMESPACE is required for
+// separating the thrust implementation in different shared library. The test
+// also compiles thrust kernel, so it leads the thrust issue between test and
+// ginkgo library. Compiling the kernel used by the test in the library to
+// work around this issue.
+extern template GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(gko::int32*);
+extern template GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(gko::int64*);
+extern template GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(const gko::int32*);
+extern template GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(const gko::int64*);
 
 
 }  // namespace bitvector

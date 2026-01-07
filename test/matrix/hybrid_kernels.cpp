@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -77,7 +77,7 @@ protected:
 };
 
 
-TEST_F(Hybrid, SubMatrixExecutorAfterCopyIsEquivalentToExcutor)
+TEST_F(Hybrid, SubMatrixExecutorAfterCopyIsEquivalentToExecutor)
 {
     set_up_apply_data();
 
