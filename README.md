@@ -11,6 +11,11 @@
 
 </div>
 
+---
+
+**This branch is deprecated and will not be updated. Please use the `main` branch instead.**
+
+---
 
 Ginkgo is a high-performance numerical linear algebra library for many-core systems, with a
 focus on solution of sparse linear systems. It is implemented using modern C++
