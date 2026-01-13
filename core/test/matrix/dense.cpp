@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -303,6 +303,26 @@ TYPED_TEST(Dense, CanBeReadFromMatrixAssemblyData)
     EXPECT_EQ(m->at(1, 1), value_type{5.0});
     EXPECT_EQ(m->at(0, 2), value_type{2.0});
     ASSERT_EQ(m->at(1, 2), value_type{0.0});
+}
+
+
+TYPED_TEST(Dense, CanCreateDeviceView)
+{
+    auto view = this->mtx->get_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.stride, this->mtx->get_stride());
+    EXPECT_EQ(view.data, this->mtx->get_values());
+}
+
+
+TYPED_TEST(Dense, CanCreateConstDeviceView)
+{
+    auto view = this->mtx->get_const_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.stride, this->mtx->get_stride());
+    EXPECT_EQ(view.data, this->mtx->get_values());
 }
 
 

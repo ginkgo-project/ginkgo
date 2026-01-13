@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1954,6 +1954,22 @@ void Dense<ValueType>::get_imag(ptr_param<real_type> result) const
     exec->run(dense::make_get_imag(
         this, make_temporary_output_clone(exec, result).get()));
 }
+
+
+template <typename ValueType>
+auto Dense<ValueType>::get_device_view() -> device_view
+{
+    return device_view{this->get_size(), this->get_stride(),
+                       this->get_values()};
+};
+
+
+template <typename ValueType>
+auto Dense<ValueType>::get_const_device_view() const -> const_device_view
+{
+    return const_device_view{this->get_size(), this->get_stride(),
+                             this->get_const_values()};
+};
 
 
 template <typename ValueType>
