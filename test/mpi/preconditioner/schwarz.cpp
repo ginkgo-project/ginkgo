@@ -415,7 +415,6 @@ TYPED_TEST(SchwarzPreconditioner, UnsortedMatrixSolverWithL1Smoother)
         gko::share(dist_mtx_type::create(this->exec, this->comm));
     dist_mat_unsorted->read_distributed(unsorted_data, this->row_part);
 
-
     auto sorted_data = unsorted_data;
     sorted_data.sort_row_major();
 
