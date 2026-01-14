@@ -4,14 +4,15 @@
 
 #include "core/matrix/amp_kernels.hpp"
 
+#include <ginkgo/core/base/amp_types.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
+#include "core/base/amp_utils.hpp"
 #include "core/base/mixed_precision_types.hpp"
-#include "ginkgo/core/base/amp_helpers.hpp"
 
 
 namespace gko {
@@ -114,7 +115,7 @@ template <typename ValueType, typename IndexType>
 void generate_ell_rownorms_storage(
     std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
-    kernels::amp::array_prec<int, ValueType, IndexType>& max_nnz,
+    gko::amp::array_prec<int, ValueType>& max_nnz_per_row,
     array<remove_complex<ValueType>>& rownorms)
 {
     using real_type = remove_complex<ValueType>;
@@ -124,6 +125,9 @@ void generate_ell_rownorms_storage(
     const auto omax_nnz = a->get_num_stored_elements_per_row();
     const ValueType* const ovals = a->get_const_values();
     const IndexType* const ocolids = a->get_const_col_idxs();
+    for (int k = 0; k < q; k++) {
+        max_nnz_per_row[k] = 0;
+    }
     for (int irow = 0; irow < nrows; irow++) {
         // Compute row's 1-norm
         auto rnorm = static_cast<real_type>(0);
@@ -149,9 +153,12 @@ void generate_ell_rownorms_storage(
                 row_nnz[ibin]++;
             }
         }
+        printf("Row %d: bin nnz are: ", irow);
         for (int k = 0; k < q; k++) {
-            max_nnz[k] = std::max(max_nnz[k], row_nnz[k]);
+            printf(" %d ", row_nnz[k]);
+            max_nnz_per_row[k] = std::max(max_nnz_per_row[k], row_nnz[k]);
         }
+        printf("\n");
     }
 }
 
@@ -159,14 +166,93 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_AMP_GENERATE_CWISE_ELL_STEP1_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void generate_ell_scatter_bins(
-    std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Ell<ValueType, IndexType>* const a, const float tolerance,
-    kernels::amp::array_prec<LinOp*, ValueType, IndexType>& amat)
+void somefunc()
 {
+    using suptypes = gko::amp::supported_types<double>::type;
+    static_assert(std::is_same_v<gko::amp::supported_precisions, suptypes>,
+                  "Wrong types!");
+
+    using csuptypes = gko::amp::supported_types<std::complex<float>>::type;
+    static_assert(
+        std::is_same_v<std::tuple<std::complex<double>, std::complex<float>,
+                                  std::complex<half>>,
+                       csuptypes>,
+        "Wrong types!");
+}
+
+template <typename ValueType, typename IndexType>
+void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
+                               const matrix::Ell<ValueType, IndexType>* const a,
+                               const float tolerance,
+                               gko::amp::array_prec<LinOp*, ValueType>& amat)
+{
+    using real_type = remove_complex<ValueType>;
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
-    GKO_NOT_IMPLEMENTED;
+    const auto nrows = a->get_size()[0];
+    const auto ostride = a->get_stride();
+    const auto omax_nnz = a->get_num_stored_elements_per_row();
+    const ValueType* const ovals = a->get_const_values();
+    const IndexType* const ocolidxs = a->get_const_col_idxs();
+    for (int irow = 0; irow < nrows; irow++) {
+        // Compute row's 1-norm
+        auto rnorm = static_cast<real_type>(0);
+        for (int j = 0; j < omax_nnz; j++) {
+            if (ocolidxs[j * ostride + irow] == invalid_index<IndexType>()) {
+                break;
+            } else {
+                rnorm += std::abs(ovals[j * ostride + irow]);
+            }
+        }
+
+        // Compute lower limits of each precision bin
+        std::array<float, q> min_bin;
+        get_all_bins_lower_bounds<real_type, q, 0>(rnorm, tolerance, min_bin);
+
+        using EllTuple = gko::instantiation_tuple_t<
+            gko::generator_partial<gko::matrix::Ell, IndexType>,
+            typename gko::amp::supported_types<ValueType>::type>;
+        using ScalarPtrTuple = gko::instantiation_tuple_t<
+            gko::generator<gko::ptr_type>,
+            typename gko::amp::supported_types<ValueType>::type>;
+        ScalarPtrTuple xvalues;
+        gko::amp::array_prec<IndexType*, ValueType> xcol_idxs;
+
+        // initialize bins
+        gko::constexpr_for<0, q, 1>([&](auto k) {
+            // using b_value_type = gko::amp::type_at_idx<k>;
+            auto ematk =
+                dynamic_cast<typename std::tuple_element<k, EllTuple>::type*>(
+                    amat[k]);
+            xcol_idxs[k] = ematk->get_col_idxs();
+            std::get<k>(xvalues) = ematk->get_values();
+            const auto nnz_row = ematk->get_num_stored_elements_per_row();
+            const auto stride = ematk->get_stride();
+            for (int j = 0; j < nnz_row; j++) {
+                for (IndexType i = 0; i < stride; i++) {
+                    xcol_idxs[k][j * stride + i] =
+                        gko::invalid_index<IndexType>();
+                    std::get<k>(xvalues)[j * stride + i] = 0;
+                }
+            }
+        });
+
+        std::array<int, q> ixj = {};
+        for (int j = 0; j < omax_nnz; j++) {
+            const int ibin = get_precision_bin<real_type, q>(
+                min_bin, std::abs(ovals[j * ostride + irow]), 0);
+            if (ibin >= 0 && ibin < q) {
+                xcol_idxs[ibin][ixj[ibin]] = ocolidxs[j];
+                // TODO: xvalues[ibin][ixj[ibin]] = ovals[j];
+                assign_value_to_array_tuple<q, 0>(xvalues, ovals[j], ibin,
+                                                  ixj[ibin]);
+                ixj[ibin]++;
+            }
+        }
+        printf("Row %d: bin nnz are: ", irow);
+        for (int k = 0; k < q; k++) {
+        }
+        printf("\n");
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(

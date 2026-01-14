@@ -6,11 +6,12 @@
 #define GKO_PUBLIC_CORE_MATRIX_AMP_HPP_
 
 
-#include <ginkgo/core/base/amp_helpers.hpp>
+#include <ginkgo/core/base/amp_types.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 
 namespace gko {

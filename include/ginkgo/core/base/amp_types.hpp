@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_BASE_AMP_HELPERS_HPP_
-#define GKO_PUBLIC_CORE_BASE_AMP_HELPERS_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_AMP_TYPES_HPP_
+#define GKO_PUBLIC_CORE_BASE_AMP_TYPES_HPP_
 
 #include <tuple>
 
@@ -14,39 +14,36 @@ namespace gko {
 namespace amp {
 
 
-// static constexpr int num_precisions
-//         = std::tuple_size_v<gko::detail::supported_precisions>;
-
-
 #if GINKGO_ENABLE_BFLOAT16 || GINKGO_ENABLE_HALF
 #define GINKGO_HAVE_AMP_HALF 1
 #if GINKGO_ENABLE_HALF
-using amphalf = half;
+using half = gko::half;
 #else
-using amphalf = bfloat16;
+using half = gko::bfloat16;
 #endif
-using supported_precisions = std::tuple<double, float, amphalf>;
+using supported_precisions = std::tuple<double, float, half>;
 #else
 using supported_precisions = std::tuple<double, float>;
 #endif
 
+template <typename ValueType>
+struct supported_types {
+    using type = supported_precisions;
+};
+
+template <typename ValueType>
+struct supported_types<std::complex<ValueType>> {
+    using type = gko::to_complex<supported_precisions>;
+};
+
 constexpr int num_amp_precisions = std::tuple_size<supported_precisions>::value;
+
+template <int i>
+using type_at_idx = typename std::tuple_element<i, supported_precisions>::type;
 
 
 namespace detail {
 
-
-// template <bool cond, int val>
-// struct enable_if_v {};
-
-// template <int val>
-// struct enable_if_v<true, val> {
-//     static constexpr int value = val;
-// };
-
-
-template <int i>
-using type_at_idx = typename std::tuple_element<i, supported_precisions>::type;
 
 template <typename ValueType, int i, typename Enable = void>
 struct prec_idx_helper {
@@ -75,28 +72,9 @@ struct precision_index {
         detail::prec_idx_helper<ValueType, num_amp_precisions - 1>::index;
 };
 
-// template<>
-// struct precision_index<double> {
-//     static constexpr int position = 0;
-// };
-
-// template<>
-// struct precision_index<float> {
-//     static constexpr int position = 1;
-// };
-
-// #if GINKGO_HAVE_AMP_HALF
-
-// template<>
-// struct precision_index<amphalf> {
-//     static constexpr int position = 2;
-// };
-
-// #endif
-
 
 }  // namespace amp
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_BASE_AMP_HELPERS_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_AMP_TYPES_HPP_

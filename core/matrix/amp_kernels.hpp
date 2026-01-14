@@ -12,19 +12,11 @@
 #include <ginkgo/core/matrix/ell.hpp>
 
 #include "core/base/kernel_declaration.hpp"
+#include "core/matrix/amp_helpers.hpp"
 
 
 namespace gko {
 namespace kernels {
-
-
-namespace amp {
-
-template <typename T, typename ValueType, typename IndexType>
-using array_prec =
-    std::array<T, matrix::AMP<ValueType, IndexType>::num_precisions>;
-
-}
 
 
 #define GKO_DECLARE_AMP_SPMV_KERNEL(InputValueType, MatrixValueType, \
@@ -47,14 +39,14 @@ using array_prec =
     void generate_ell_rownorms_storage(                                       \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const matrix::Ell<ValueType, IndexType>* a, const float tolerance,    \
-        kernels::amp::array_prec<int, ValueType, IndexType>& max_nnz,         \
+        gko::amp::array_prec<int, ValueType>& max_nnz_per_row,                \
         array<remove_complex<ValueType>>& rownorms)
 
 #define GKO_DECLARE_AMP_GENERATE_ELL_SCATTER_BINS_KERNEL(ValueType, IndexType) \
     void generate_ell_scatter_bins(                                            \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::Ell<ValueType, IndexType>* a, const float tolerance,     \
-        kernels::amp::array_prec<LinOp*, ValueType, IndexType>& amat)
+        gko::amp::array_prec<LinOp*, ValueType>& amat)
 
 #define GKO_DECLARE_AMP_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \

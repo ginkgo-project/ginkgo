@@ -7,7 +7,58 @@
 #include <ginkgo/core/matrix/amp.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/matrix/amp_helpers.hpp"
 #include "core/test/utils.hpp"
+#include "ginkgo/core/base/executor.hpp"
+
+
+TEST(AMPHelpers, AllocatesEllBinsCorrectlyDouble)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    const gko::dim<2> ds{10, 12};
+    auto mnpr = gko::amp::array_prec<int, double>{3, 4, 5};
+
+    auto bins = gko::amp::allocate_bins<double, int>(exec, ds, mnpr);
+
+    static_assert(std::tuple_size<decltype(bins)>{} == 3,
+                  "wrong number of bins!");
+    auto p = dynamic_cast<gko::matrix::Ell<double, int>*>(bins[0].get());
+    EXPECT_TRUE(p);
+    EXPECT_EQ(p->get_size(), ds);
+    EXPECT_EQ(p->get_num_stored_elements_per_row(), 3);
+    auto q = dynamic_cast<gko::matrix::Ell<float, int>*>(bins[1].get());
+    EXPECT_TRUE(q);
+    EXPECT_EQ(q->get_size(), ds);
+    EXPECT_EQ(q->get_num_stored_elements_per_row(), 4);
+    auto r =
+        dynamic_cast<gko::matrix::Ell<gko::amp::half, int>*>(bins[2].get());
+    EXPECT_TRUE(r);
+    EXPECT_EQ(r->get_size(), ds);
+    EXPECT_EQ(r->get_num_stored_elements_per_row(), 5);
+}
+
+TEST(AMPHelpers, AllocatesEllBinsCorrectlyComplexFloat)
+{
+    using value_type = std::complex<float>;
+    using half = gko::amp::half;
+    auto exec = gko::ReferenceExecutor::create();
+    const gko::dim<2> ds{10, 12};
+    auto mnpr = gko::amp::array_prec<int, value_type>{4, 5};
+
+    auto bins = gko::amp::allocate_bins<value_type, int>(exec, ds, mnpr);
+
+    static_assert(std::tuple_size<decltype(bins)>{} == 2,
+                  "wrong number of bins!");
+    auto p = dynamic_cast<gko::matrix::Ell<value_type, int>*>(bins[0].get());
+    EXPECT_TRUE(p);
+    EXPECT_EQ(p->get_size(), ds);
+    EXPECT_EQ(p->get_num_stored_elements_per_row(), 4);
+    auto r =
+        dynamic_cast<gko::matrix::Ell<std::complex<half>, int>*>(bins[1].get());
+    EXPECT_TRUE(r);
+    EXPECT_EQ(r->get_size(), ds);
+    EXPECT_EQ(r->get_num_stored_elements_per_row(), 5);
+}
 
 
 template <typename ValueIndexType>

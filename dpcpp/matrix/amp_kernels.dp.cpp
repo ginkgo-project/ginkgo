@@ -11,6 +11,7 @@
 #include <ginkgo/core/matrix/ell.hpp>
 
 #include "core/base/mixed_precision_types.hpp"
+#include "core/matrix/amp_helpers.hpp"
 
 
 namespace gko {
@@ -58,7 +59,7 @@ template <typename ValueType, typename IndexType>
 void generate_ell_rownorms_storage(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
-    kernels::amp::array_prec<int, ValueType, IndexType>& max_nnz,
+    gko::amp::array_prec<int, ValueType>& max_nnz,
     array<remove_complex<ValueType>>& rownorms)
 {
     GKO_NOT_IMPLEMENTED;
@@ -69,10 +70,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_ell_scatter_bins(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
-    kernels::amp::array_prec<LinOp*, ValueType, IndexType>& amat)
+void generate_ell_scatter_bins(std::shared_ptr<const DpcppExecutor> exec,
+                               const matrix::Ell<ValueType, IndexType>* a,
+                               const float tolerance,
+                               gko::amp::array_prec<LinOp*, ValueType>& amat)
 {
     GKO_NOT_IMPLEMENTED;
 }
