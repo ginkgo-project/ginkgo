@@ -153,12 +153,9 @@ void generate_ell_rownorms_storage(
                 row_nnz[ibin]++;
             }
         }
-        printf("Row %d: bin nnz are: ", irow);
         for (int k = 0; k < q; k++) {
-            printf(" %d ", row_nnz[k]);
             max_nnz_per_row[k] = std::max(max_nnz_per_row[k], row_nnz[k]);
         }
-        printf("\n");
     }
 }
 
@@ -248,10 +245,6 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
                 ixj[ibin]++;
             }
         }
-        printf("Row %d: bin nnz are: ", irow);
-        for (int k = 0; k < q; k++) {
-        }
-        printf("\n");
     }
 }
 

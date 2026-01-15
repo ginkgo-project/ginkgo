@@ -18,6 +18,7 @@
 #include <ginkgo/core/matrix/ell.hpp>
 
 #include "core/test/utils.hpp"
+#include "ginkgo/core/base/amp_types.hpp"
 
 
 namespace {
@@ -167,6 +168,21 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
     auto max_nnzs = gko::amp::array_prec<int, T>{1, 1, 1};
     auto abins = gko::amp::allocate_bins<T, int>(
         this->exec, this->ell1->get_size(), max_nnzs);
+    constexpr auto num_bins = std::tuple_size<decltype(abins)>::value;
+    gko::amp::array_prec<gko::LinOp*, T> amat;
+    gko::constexpr_for<0, num_bins, 1>(
+        [&](auto k) { amat[k] = abins[k].get(); });
+
+    gko::kernels::reference::amp::generate_ell_scatter_bins(
+        rexec, this->ell1.get(), tol, amat);
+
+    using types_list = typename gko::amp::narrow_types<T>::type;
+    gko::constexpr_for<0, num_bins, 1>([&](auto k) {
+        using value_type = typename std::tuple_element<k, types_list>::type;
+        auto amat0 = dynamic_cast<gko::matrix::Ell<value_type, int>*>(amat[k]);
+        EXPECT_TRUE(amat0);
+        EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 1);
+    });
 }
 
 
