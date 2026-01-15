@@ -23,14 +23,6 @@ constexpr void constexpr_for(Functor1D&& f)
     }
 }
 
-// template <bool cond, int val>
-// struct enable_if_v {};
-
-// template <int val>
-// struct enable_if_v<true, val> {
-//     static constexpr int value = val;
-// };
-
 /**
  * Generates a tuple of types, where each type is the given template generator
  * instantiated with one of the give list of (scalar) types.
@@ -52,6 +44,41 @@ struct instantiation_tuple<Generator, std::tuple<Types...>> {
 // Helper alias
 template <typename T, typename... Types>
 using instantiation_tuple_t = typename instantiation_tuple<T, Types...>::type;
+
+
+/**
+ * Generates a transformed tuple of types,
+ * where each type is the given template generator
+ * instantiated with one of the give list of (scalar) types.
+ *
+ * @tparam TypeTransformer  A type will be parameterized by the generated
+ *                          template. An example is std::unique_ptr.
+ * @tparam Generator  A type that defines a `generate` template inside.
+ * @param Types  A list (pack or tuple) of (scalar) types.
+ */
+template <template <typename> class TypeTransformer, typename Generator,
+          typename... Types>
+struct transformed_instantiation_tuple {
+    using type = std::tuple<
+        TypeTransformer<typename Generator::template generate<Types>>...>;
+};
+
+// Specialization - handles std::tuple. See the instantiation_list above.
+template <template <typename> class TypeTransformer, typename Generator,
+          typename... Types>
+struct transformed_instantiation_tuple<TypeTransformer, Generator,
+                                       std::tuple<Types...>> {
+    using type = std::tuple<
+        TypeTransformer<typename Generator::template generate<Types>>...>;
+};
+
+// Helper alias
+template <template <typename> class TypeTransformer, typename T,
+          typename... Types>
+using transformed_instantiation_tuple_t =
+    typename transformed_instantiation_tuple<TypeTransformer, T,
+                                             Types...>::type;
+
 
 /**
  * Generates an instantiation of a given template.

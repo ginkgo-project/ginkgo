@@ -164,7 +164,9 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
     // gko::kernels::amp::array_prec<int, T, int> max_nnz;
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
-    gko::amp::array_prec<gko::LinOp*, T> amat = {};
+    auto max_nnzs = gko::amp::array_prec<int, T>{1, 1, 1};
+    auto abins = gko::amp::allocate_bins<T, int>(
+        this->exec, this->ell1->get_size(), max_nnzs);
 }
 
 
