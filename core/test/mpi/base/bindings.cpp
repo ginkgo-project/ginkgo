@@ -21,7 +21,7 @@ namespace detail {
 
 
 template <typename ValueType>
-inline void min(void* input, void* output, int* len, MPI_Datatype* datatype)
+inline void do_min(void* input, void* output, int* len, MPI_Datatype* datatype)
 {
     ValueType* input_ptr = static_cast<ValueType*>(input);
     ValueType* output_ptr = static_cast<ValueType*>(output);
@@ -34,7 +34,7 @@ inline void min(void* input, void* output, int* len, MPI_Datatype* datatype)
 
 
 template <typename ValueType>
-inline void max(void* input, void* output, int* len, MPI_Datatype* datatype)
+inline void do_max(void* input, void* output, int* len, MPI_Datatype* datatype)
 {
     ValueType* input_ptr = static_cast<ValueType*>(input);
     ValueType* output_ptr = static_cast<ValueType*>(output);
@@ -44,9 +44,6 @@ inline void max(void* input, void* output, int* len, MPI_Datatype* datatype)
         }
     }
 }
-
-
-}  // namespace detail
 
 
 using gko::experimental::mpi::op_manager;
@@ -71,7 +68,7 @@ public:
         op_ = op_manager(
             []() {
                 MPI_Op* operation = new MPI_Op;
-                MPI_Op_create(&detail::min<ValueType>, 1, operation);
+                MPI_Op_create(&do_min<ValueType>, 1, operation);
                 return operation;
             }(),
             [](MPI_Op* op) {
@@ -107,7 +104,7 @@ public:
         op_ = op_manager(
             []() {
                 MPI_Op* operation = new MPI_Op;
-                MPI_Op_create(&detail::max<ValueType>, 1, operation);
+                MPI_Op_create(&do_max<ValueType>, 1, operation);
                 return operation;
             }(),
             [](MPI_Op* op) {
@@ -123,6 +120,9 @@ private:
 };
 
 
+}  // namespace detail
+
+
 template <typename T>
 class MpiBindings : public ::testing::Test {
 protected:
@@ -130,14 +130,14 @@ protected:
     MpiBindings()
         : ref(gko::ReferenceExecutor::create()),
           sum_op(gko::experimental::mpi::sum<value_type>()),
-          max_op(max<value_type>()),
-          min_op(min<value_type>())
+          max_op(detail::max<value_type>()),
+          min_op(detail::min<value_type>())
     {}
 
     std::shared_ptr<gko::Executor> ref;
     gko::experimental::mpi::sum<value_type> sum_op;
-    max<value_type> max_op;
-    min<value_type> min_op;
+    detail::max<value_type> max_op;
+    detail::min<value_type> min_op;
 };
 
 using TestTypes = gko::test::merge_type_list_t<gko::test::RealValueTypes,
