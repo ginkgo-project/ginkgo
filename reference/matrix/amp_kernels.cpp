@@ -4,6 +4,8 @@
 
 #include "core/matrix/amp_kernels.hpp"
 
+#include <iostream>
+
 #include <ginkgo/core/base/amp_types.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -77,7 +79,7 @@ inline void get_all_bins_lower_bounds(const RealType row_norm,
         return;
     }
     if constexpr (k == q - 1) {
-        lbs[k] = 0;
+        lbs[k] = static_cast<float>(row_norm) * tolerance;
     } else {
         lbs[k] = get_bin_lower_bound<RealType, k>(row_norm, tolerance);
         get_all_bins_lower_bounds<RealType, q, k + 1>(row_norm, tolerance, lbs);
@@ -86,23 +88,20 @@ inline void get_all_bins_lower_bounds(const RealType row_norm,
 
 // Return the precision bin index that a number should go to.
 // Returns -1 if the number should be dropped.
-// TODO: Terminate recursion.
 template <typename RealType, int q>
 inline int get_precision_bin(const std::array<float, q>& lower_bounds,
                              const RealType abs_number, const int k)
 {
-    // static_assert(k < q, "Bin should be have been found by now!");
     if (k >= q) {
-        printf("!!! Finding precision bin failed!");
-        return -2;
+        return -1;
     }
-    if (k == q - 1) {
-        if (abs_number > std::numeric_limits<RealType>::min()) {
-            return q - 1;
-        } else {
-            return -1;
-        }
-    }
+    // if (k == q - 1) {
+    //     if (abs_number > std::numeric_limits<RealType>::min()) {
+    //         return q - 1;
+    //     } else {
+    //         return -1;
+    //     }
+    // }
     if (abs_number > static_cast<RealType>(lower_bounds[k])) {
         return k;
     } else {
@@ -163,20 +162,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_AMP_GENERATE_CWISE_ELL_STEP1_KERNEL);
 
 
-void somefunc()
-{
-    using suptypes = gko::amp::supported_types<double>::type;
-    static_assert(std::is_same_v<gko::amp::supported_precisions, suptypes>,
-                  "Wrong types!");
-
-    using csuptypes = gko::amp::supported_types<std::complex<float>>::type;
-    static_assert(
-        std::is_same_v<std::tuple<std::complex<double>, std::complex<float>,
-                                  std::complex<half>>,
-                       csuptypes>,
-        "Wrong types!");
-}
-
 template <typename ValueType, typename IndexType>
 void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
                                const matrix::Ell<ValueType, IndexType>* const a,
@@ -213,39 +198,41 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
             typename gko::amp::supported_types<ValueType>::type>;
         ScalarPtrTuple xvalues;
         gko::amp::array_prec<IndexType*, ValueType> xcol_idxs;
+        gko::amp::array_prec<size_type, ValueType> bin_strides;
+        std::array<int, q> ixj = {};
 
         // initialize bins
         gko::constexpr_for<0, q, 1>([&](auto k) {
-            // using b_value_type = gko::amp::type_at_idx<k>;
             auto ematk =
                 dynamic_cast<typename std::tuple_element<k, EllTuple>::type*>(
                     amat[k]);
             xcol_idxs[k] = ematk->get_col_idxs();
+            bin_strides[k] = ematk->get_stride();
             std::get<k>(xvalues) = ematk->get_values();
             const auto nnz_row = ematk->get_num_stored_elements_per_row();
             const auto stride = ematk->get_stride();
             for (int j = 0; j < nnz_row; j++) {
-                for (IndexType i = 0; i < stride; i++) {
-                    xcol_idxs[k][j * stride + i] =
-                        gko::invalid_index<IndexType>();
-                    std::get<k>(xvalues)[j * stride + i] = 0;
-                }
+                xcol_idxs[k][j * stride + irow] =
+                    gko::invalid_index<IndexType>();
+                std::get<k>(xvalues)[j * stride + irow] = 0;
             }
         });
 
-        std::array<int, q> ixj = {};
         for (int j = 0; j < omax_nnz; j++) {
+            const ptrdiff_t oloc = j * ostride + irow;
             const int ibin = get_precision_bin<real_type, q>(
-                min_bin, std::abs(ovals[j * ostride + irow]), 0);
-            if (ibin >= 0 && ibin < q) {
-                xcol_idxs[ibin][ixj[ibin]] = ocolidxs[j];
-                // TODO: xvalues[ibin][ixj[ibin]] = ovals[j];
-                assign_value_to_array_tuple<q, 0>(xvalues, ovals[j], ibin,
-                                                  ixj[ibin]);
+                min_bin, std::abs(ovals[oloc]), 0);
+            if (ibin >= 0) {
+                const auto nzloc =
+                    ixj[ibin] * static_cast<ptrdiff_t>(bin_strides[ibin]) +
+                    irow;
+                xcol_idxs[ibin][nzloc] = ocolidxs[oloc];
+                assign_value_to_array_tuple<q, 0>(xvalues, ovals[oloc], ibin,
+                                                  nzloc);
                 ixj[ibin]++;
             }
         }
-    }
+    }  // End loop over rows
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(

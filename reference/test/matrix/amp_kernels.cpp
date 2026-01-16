@@ -144,11 +144,6 @@ TYPED_TEST(AMPDouble, GenerateComputesCorrectBinNNZs)
     gko::kernels::reference::amp::generate_ell_rownorms_storage(
         rexec, this->ell1.get(), tol, max_nnz, rownorms);
 
-    std::cout << "max nnz of bins are ";
-    for (int i = 0; i < 3; i++) {
-        std::cout << ", " << max_nnz[i];
-    }
-    std::cout << std::endl;
     EXPECT_EQ(max_nnz[0], 1);
     EXPECT_EQ(max_nnz[1], 1);
     EXPECT_EQ(max_nnz[2], 1);
@@ -182,6 +177,42 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
         auto amat0 = dynamic_cast<gko::matrix::Ell<value_type, int>*>(amat[k]);
         EXPECT_TRUE(amat0);
         EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 1);
+        auto vals = amat0->get_const_values();
+        auto colids = amat0->get_const_col_idxs();
+        if (k == 0) {
+            EXPECT_EQ(colids[0], 0);
+            EXPECT_EQ(colids[1], 2);
+            EXPECT_EQ(colids[2], 2);
+            EXPECT_EQ(colids[3], 2);
+            EXPECT_EQ(colids[4], 2);
+            EXPECT_EQ(vals[0], static_cast<value_type>(1.1));
+            EXPECT_EQ(vals[1], static_cast<value_type>(2.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.8));
+            EXPECT_EQ(vals[3], static_cast<value_type>(1.6e-4));
+            EXPECT_EQ(vals[4], static_cast<value_type>(-2.0));
+        } else if (k == 1) {
+            EXPECT_EQ(colids[0], 3);
+            EXPECT_EQ(colids[1], gko::invalid_index<int>());
+            EXPECT_EQ(colids[2], gko::invalid_index<int>());
+            EXPECT_EQ(colids[3], gko::invalid_index<int>());
+            EXPECT_EQ(colids[4], 0);
+            EXPECT_EQ(vals[0], static_cast<value_type>(4.5e-4));
+            EXPECT_EQ(vals[1], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[3], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[4], static_cast<value_type>(-2e-5));
+        } else if (k == 2) {
+            EXPECT_EQ(colids[0], 1);
+            EXPECT_EQ(colids[1], gko::invalid_index<int>());
+            EXPECT_EQ(colids[2], gko::invalid_index<int>());
+            EXPECT_EQ(colids[3], 0);
+            EXPECT_EQ(colids[4], gko::invalid_index<int>());
+            EXPECT_EQ(vals[0], static_cast<value_type>(3e-9));
+            EXPECT_EQ(vals[1], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[3], static_cast<value_type>(1.2e-11));
+            EXPECT_EQ(vals[4], static_cast<value_type>(0.0));
+        }
     });
 }
 
