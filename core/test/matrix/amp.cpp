@@ -6,6 +6,7 @@
 
 #include <ginkgo/core/matrix/amp.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 
 #include "core/matrix/amp_helpers.hpp"
 #include "core/test/utils.hpp"
@@ -49,14 +50,17 @@ TEST(AMPHelpers, AllocatesEllBinsCorrectlyDouble)
     EXPECT_TRUE(p);
     EXPECT_EQ(p->get_size(), ds);
     EXPECT_EQ(p->get_num_stored_elements_per_row(), 3);
+    EXPECT_TRUE(p->get_col_idxs()[0] = 1);
     auto q = dynamic_cast<Ell<float, int>*>(bins[1].get());
     EXPECT_TRUE(q);
     EXPECT_EQ(q->get_size(), ds);
     EXPECT_EQ(q->get_num_stored_elements_per_row(), 4);
+    EXPECT_TRUE(q->get_col_idxs());
     auto r = dynamic_cast<Ell<gko::amp::half, int>*>(bins[2].get());
     EXPECT_TRUE(r);
     EXPECT_EQ(r->get_size(), ds);
     EXPECT_EQ(r->get_num_stored_elements_per_row(), 5);
+    EXPECT_TRUE(r->get_col_idxs());
 }
 
 TEST(AMPHelpers, AllocatesEllBinsCorrectlyComplexFloat)
@@ -120,6 +124,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::AMP<value_type, index_type>;
     using Dense = gko::matrix::Dense<value_type>;
+    using Ell = gko::matrix::Ell<value_type, index_type>;
 
     Amp() : exec(gko::ReferenceExecutor::create())
     {
@@ -143,18 +148,19 @@ protected:
 #endif
     }
 
-    std::unique_ptr<Mtx> create_amp_from_dense(gko::dim<2> size)
+    std::unique_ptr<Mtx> create_amp_from_one_dense(gko::dim<2> size)
     {
         auto input = gko::share(Dense::create(exec, size));
         input->fill(gko::one<value_type>());
+        auto inell = gko::share(Ell::create(exec));
+        input->convert_to(inell.get());
         auto factory = Mtx::build().on(exec);
-        return factory->generate(input);
+        return factory->generate(inell);
     }
 
     void assert_empty(const Mtx* m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
-        ASSERT_EQ(m->get_num_bins(), 0);
         for (int i = 0; i < Mtx::num_precisions; ++i) {
             ASSERT_EQ(m->get_bin_matrix(i), nullptr);
         }
@@ -181,9 +187,9 @@ TYPED_TEST(Amp, KnowsNumPrecisions)
 TYPED_TEST(Amp, HasCorrectExecutor)
 {
     using Mtx = typename TestFixture::Mtx;
-    using Dense = typename TestFixture::Dense;
+    using Ell = typename TestFixture::Ell;
 
-    auto empty_input = gko::share(Dense::create(this->exec, gko::dim<2>{0, 0}));
+    auto empty_input = gko::share(Ell::create(this->exec, gko::dim<2>{0, 0}));
     auto factory = Mtx::build().on(this->exec);
     auto mtx = factory->generate(empty_input);
 
@@ -195,9 +201,9 @@ TYPED_TEST(Amp, HasCorrectExecutor)
 TYPED_TEST(Amp, CanBeEmpty)
 {
     using Mtx = typename TestFixture::Mtx;
-    using Dense = typename TestFixture::Dense;
+    using Ell = typename TestFixture::Ell;
 
-    auto empty_input = gko::share(Dense::create(this->exec, gko::dim<2>{0, 0}));
+    auto empty_input = gko::share(Ell::create(this->exec, gko::dim<2>{0, 0}));
     auto factory = Mtx::build().on(this->exec);
     auto mtx = factory->generate(empty_input);
 
@@ -256,9 +262,11 @@ TYPED_TEST(Amp, FactoryGenerateCompletesWithoutError)
 {
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
-
-    auto input = gko::share(Dense::create(this->exec, gko::dim<2>{3, 3}));
-    input->fill(gko::one<typename TestFixture::value_type>());
+    using Ell = typename TestFixture::Ell;
+    auto dinput = Dense::create(this->exec, gko::dim<2>{3, 3});
+    dinput->fill(gko::one<typename TestFixture::value_type>());
+    auto input = gko::share(Ell::create(this->exec));
+    dinput->convert_to(input.get());
     auto factory = Mtx::build().on(this->exec);
 
     ASSERT_NO_THROW(auto mtx = factory->generate(input));
@@ -267,47 +275,54 @@ TYPED_TEST(Amp, FactoryGenerateCompletesWithoutError)
 
 TYPED_TEST(Amp, GeneratedMatrixHasCorrectSize)
 {
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    using Dense = typename TestFixture::Dense;
-
-    auto input = gko::share(Dense::create(this->exec, gko::dim<2>{4, 5}));
+    using Ell = typename TestFixture::Ell;
+    auto input = gko::share(Ell::create(this->exec, gko::dim<2>{4, 5}));
     auto factory = Mtx::build().on(this->exec);
 
     auto mtx = factory->generate(input);
 
     EXPECT_EQ(mtx->get_size(), gko::dim<2>(4, 5));
+    gko::constexpr_for<0, Mtx::num_precisions, 1>([&](auto k) {
+        using types_list = typename gko::amp::narrow_types<value_type>::type;
+        using vtype = typename std::tuple_element<k, types_list>::type;
+        auto mell = dynamic_cast<const gko::matrix::Ell<vtype, index_type>*>(
+            mtx->get_bin_matrix(k));
+        EXPECT_EQ(mell->get_size(), input->get_size());
+        EXPECT_GE(mell->get_num_stored_elements_per_row(), 0);
+    });
+    EXPECT_EQ(mtx->get_bin_matrix(Mtx::num_precisions), nullptr);
+    EXPECT_EQ(mtx->get_bin_matrix(-1), nullptr);
 }
 
 
 TYPED_TEST(Amp, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{2, 3});
 
-    auto mtx = this->create_amp_from_dense(gko::dim<2>{2, 3});
     auto copy = mtx->clone();
 
     auto copy_mtx = dynamic_cast<Mtx*>(copy.get());
     ASSERT_NE(copy_mtx, nullptr);
     EXPECT_EQ(copy_mtx->get_size(), mtx->get_size());
-    EXPECT_EQ(copy_mtx->get_num_bins(), mtx->get_num_bins());
 }
 
 
 TYPED_TEST(Amp, CanBeMoved)
 {
     using Mtx = typename TestFixture::Mtx;
-
-    auto mtx = this->create_amp_from_dense(gko::dim<2>{2, 3});
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{2, 3});
     auto original_size = mtx->get_size();
-    auto original_bins = mtx->get_num_bins();
-
     auto moved = mtx->clone();
+
     moved->move_from(mtx);
 
     auto moved_mtx = dynamic_cast<Mtx*>(moved.get());
     ASSERT_NE(moved_mtx, nullptr);
     EXPECT_EQ(moved_mtx->get_size(), original_size);
-    EXPECT_EQ(moved_mtx->get_num_bins(), original_bins);
 }
 
 
@@ -315,14 +330,13 @@ TYPED_TEST(Amp, CanBeCloned)
 {
     using Mtx = typename TestFixture::Mtx;
 
-    auto mtx = this->create_amp_from_dense(gko::dim<2>{3, 4});
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{3, 4});
 
     auto clone = mtx->clone();
 
     auto cloned_mtx = dynamic_cast<Mtx*>(clone.get());
     ASSERT_NE(cloned_mtx, nullptr);
     EXPECT_EQ(cloned_mtx->get_size(), mtx->get_size());
-    EXPECT_EQ(cloned_mtx->get_num_bins(), mtx->get_num_bins());
 }
 
 
@@ -330,7 +344,7 @@ TYPED_TEST(Amp, CanBeCleared)
 {
     using Mtx = typename TestFixture::Mtx;
 
-    auto mtx = this->create_amp_from_dense(gko::dim<2>{2, 3});
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{2, 3});
 
     mtx->clear();
 
@@ -338,22 +352,11 @@ TYPED_TEST(Amp, CanBeCleared)
 }
 
 
-TYPED_TEST(Amp, GetNumBinsReturnsValidValue)
-{
-    using Mtx = typename TestFixture::Mtx;
-
-    auto mtx = this->create_amp_from_dense(gko::dim<2>{2, 3});
-
-    EXPECT_GE(mtx->get_num_bins(), 0);
-    EXPECT_LE(mtx->get_num_bins(), Mtx::num_precisions);
-}
-
-
 TYPED_TEST(Amp, GetBinMatrixReturnsNullForInvalidIndex)
 {
     using Mtx = typename TestFixture::Mtx;
 
-    auto mtx = this->create_amp_from_dense(gko::dim<2>{2, 3});
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{2, 3});
 
     EXPECT_EQ(mtx->get_bin_matrix(Mtx::num_precisions), nullptr);
     EXPECT_EQ(mtx->get_bin_matrix(Mtx::num_precisions + 1), nullptr);
@@ -367,7 +370,7 @@ TYPED_TEST(Amp, CanConvertToDense)
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
 
-    auto mtx = this->create_amp_from_dense(gko::dim<2>{2, 3});
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{2, 3});
     auto dense = Dense::create(this->exec);
 
     mtx->convert_to(dense.get());
@@ -381,7 +384,7 @@ TYPED_TEST(Amp, CanMoveToDense)
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
 
-    auto mtx = this->create_amp_from_dense(gko::dim<2>{2, 3});
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{2, 3});
     auto original_size = mtx->get_size();
     auto dense = Dense::create(this->exec);
 
@@ -395,7 +398,7 @@ TYPED_TEST(Amp, CanExtractDiagonal)
 {
     using Mtx = typename TestFixture::Mtx;
 
-    auto mtx = this->create_amp_from_dense(gko::dim<2>{3, 4});
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{3, 4});
 
     auto diag = mtx->extract_diagonal();
 

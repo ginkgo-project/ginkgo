@@ -6,6 +6,8 @@
 #define GKO_PUBLIC_CORE_MATRIX_AMP_HPP_
 
 
+#include <limits>
+
 #include <ginkgo/core/base/amp_types.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
@@ -57,22 +59,18 @@ public:
 
     using value_type = ValueType;
     using index_type = IndexType;
+    using real_type = remove_complex<ValueType>;
 
     // Maximum number of supported precisions.
     static constexpr int num_precisions =
         gko::amp::num_amp_precisions -
-        gko::amp::precision_index<remove_complex<ValueType>>::index;
+        gko::amp::precision_index<real_type>::index;
 
     void convert_to(Dense<ValueType>* other) const override;
 
     void move_to(Dense<ValueType>* other) override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
-
-    /**
-     * Returns the number of precision bins currently in use.
-     */
-    int get_num_bins() const noexcept { return n_bins_; }
 
     /**
      * Returns a pointer to the i-th bin matrix.
@@ -100,7 +98,8 @@ public:
         /**
          * The tolerance "epsilon" for adaptive mixed precision generation.
          */
-        float GKO_FACTORY_PARAMETER_SCALAR(tolerance, 1e-12);
+        float GKO_FACTORY_PARAMETER_SCALAR(
+            tolerance, std::numeric_limits<real_type>::epsilon() * 100);
 
         /**
          * Meaning of the tolerance - componentwise or normwise tolerance.
@@ -143,7 +142,6 @@ protected:
      * Creates an AMP matrix from matrix bins of different precisions.
      */
     explicit AMP(
-        const int num_bins,
         std::array<std::unique_ptr<const LinOp>, num_precisions>&& matrix_bins);
 
     /**
@@ -152,28 +150,25 @@ protected:
      */
     explicit AMP(const Factory* factory, std::shared_ptr<const LinOp> lin_op)
         : EnableLinOp<AMP>(factory->get_executor(), lin_op->get_size()),
-          parameters_{factory->get_parameters()}
-    {
-        generate_amp(lin_op.get());
-    }
+          parameters_{factory->get_parameters()},
+          mat_bins_(generate_amp(lin_op.get()))
+    {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
+    /* Array of bins of the different precisions.
+     */
+    std::array<std::unique_ptr<const LinOp>, num_precisions> mat_bins_;
+
     /**
      * Generate binned adaptive precision matrix from given (fixed precision)
      * matrix.
      */
-    void generate_amp(const LinOp* matrix);
-
-private:
-    int n_bins_{};
-
-    /* Array of bins of the different precisions.
-     */
-    std::array<std::unique_ptr<const LinOp>, num_precisions> mat_bins_;
+    std::array<std::unique_ptr<const LinOp>, num_precisions> generate_amp(
+        const LinOp* matrix) const;
 };
 
 
