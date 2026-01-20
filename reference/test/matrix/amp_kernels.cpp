@@ -49,55 +49,13 @@ protected:
         // clang-format on
         ell1 = Ell::create(exec);
         mtx1->convert_to(ell1.get());
-        assert_equal_to_mtx1(ell1.get());
-    }
-
-    void assert_equal_to_mtx1(gko::ptr_param<const Ell> m)
-    {
-        auto v = m->get_const_values();
-        auto c = m->get_const_col_idxs();
-        const auto max_nnz_per_row = m->get_num_stored_elements_per_row();
-        const auto stride = m->get_stride();
-
-        ASSERT_EQ(m->get_size(), gko::dim<2>(5, 4));
-        ASSERT_EQ(m->get_num_stored_elements_per_row(), 3);
-        ASSERT_EQ(m->get_stride(), 5);
-        EXPECT_EQ(c[0], 0);
-        EXPECT_EQ(c[5], 1);
-        EXPECT_EQ(c[1], 1);
-        EXPECT_EQ(c[6], 2);
-        EXPECT_EQ(c[2], 2);
-        EXPECT_EQ(c[7], gko::invalid_index<index_type>());
-        EXPECT_EQ(c[3], 0);
-        EXPECT_EQ(c[8], 2);
-        EXPECT_EQ(c[4], 0);
-        EXPECT_EQ(c[9], 2);
-        EXPECT_EQ(c[10], 3);
-        EXPECT_EQ(c[11], gko::invalid_index<index_type>());
-        EXPECT_EQ(c[12], gko::invalid_index<index_type>());
-        EXPECT_EQ(c[13], gko::invalid_index<index_type>());
-        EXPECT_EQ(c[14], gko::invalid_index<index_type>());
-        EXPECT_EQ(v[0], value_type{1.1});
-        EXPECT_EQ(v[1], value_type{1.2e-11});
-        EXPECT_EQ(v[2], value_type{0.8});
-        EXPECT_EQ(v[3], value_type{1.2e-11});
-        EXPECT_EQ(v[4], value_type{-2.0e-5});
-        EXPECT_EQ(v[5], value_type{3.0e-9});
-        EXPECT_EQ(v[6], value_type{2.0});
-        EXPECT_EQ(v[7], value_type{0.0});
-        EXPECT_EQ(v[8], value_type{1.6e-4});
-        EXPECT_EQ(v[9], value_type{-2.0});
-        EXPECT_EQ(v[10], value_type{4.5e-4});
-        EXPECT_EQ(v[11], value_type{0.0});
-        EXPECT_EQ(v[12], value_type{0.0});
-        EXPECT_EQ(v[13], value_type{0.0});
-        EXPECT_EQ(v[14], value_type{0.0});
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Dns> mtx1;
     std::unique_ptr<Dns> mtx2;
     std::unique_ptr<Ell> ell1;
+    const float tol = 1e-10;
 };
 
 using double_types = ::testing::Types<double, std::complex<double>>;
@@ -109,14 +67,13 @@ TYPED_TEST(AMPDouble, GenerateComputesCorrectRowNorms)
     using T = typename TestFixture::value_type;
     using real_T = gko::remove_complex<typename TestFixture::value_type>;
     static_assert(std::is_same<real_T, double>::value, "double only!");
-    const float tol = 1e-10;
     gko::amp::array_prec<int, T> max_nnz;
     gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
 
     gko::kernels::reference::amp::generate_ell_rownorms_storage(
-        rexec, this->ell1.get(), tol, max_nnz, rownorms);
+        rexec, this->ell1.get(), this->tol, max_nnz, rownorms);
 
     auto rnv = rownorms.get_const_data();
     EXPECT_EQ(rnv[0], static_cast<real_T>(1.1) + static_cast<real_T>(3e-9) +
@@ -135,14 +92,13 @@ TYPED_TEST(AMPDouble, GenerateComputesCorrectBinNNZs)
     static_assert(std::is_same<real_T, double>::value, "double only!");
     static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 3,
                   "should be 3 available precisions");
-    const float tol = 1e-10;
     gko::amp::array_prec<int, T> max_nnz;
     gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
 
     gko::kernels::reference::amp::generate_ell_rownorms_storage(
-        rexec, this->ell1.get(), tol, max_nnz, rownorms);
+        rexec, this->ell1.get(), this->tol, max_nnz, rownorms);
 
     EXPECT_EQ(max_nnz[0], 1);
     EXPECT_EQ(max_nnz[1], 1);
@@ -156,7 +112,6 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
     static_assert(std::is_same<real_T, double>::value, "double only!");
     static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 3,
                   "should be 3 available precisions");
-    const float tol = 1e-10;
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
     auto max_nnzs = gko::amp::array_prec<int, T>{1, 1, 1};
@@ -168,7 +123,7 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
         [&](auto k) { amat[k] = abins[k].get(); });
 
     gko::kernels::reference::amp::generate_ell_scatter_bins(
-        rexec, this->ell1.get(), tol, amat);
+        rexec, this->ell1.get(), this->tol, amat);
 
     using types_list = typename gko::amp::narrow_types<T>::type;
     gko::constexpr_for<0, num_bins, 1>([&](auto k) {
@@ -211,6 +166,140 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
             EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
             EXPECT_EQ(vals[3], static_cast<value_type>(1.2e-11));
             EXPECT_EQ(vals[4], static_cast<value_type>(0.0));
+        }
+    });
+}
+
+
+template <typename ValueType>
+class AMPFloat : public ::testing::Test {
+protected:
+    using value_type = ValueType;
+    using real_T = gko::remove_complex<value_type>;
+    static_assert(std::is_same<real_T, float>::value, "float only!");
+    using index_type = int;
+    using Mtx = gko::matrix::AMP<value_type, index_type>;
+    using Ell = gko::matrix::Ell<value_type, index_type>;
+    using Dns = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+    using MixedVec = gko::matrix::Dense<gko::next_precision<value_type>>;
+
+    AMPFloat() : exec(gko::ReferenceExecutor::create())
+    {
+        // clang-format off
+        mtx1 = gko::initialize<Dns>({{1.1, 3.0e-9, 0.0, 4.5e-4},
+                                     {0.0, 1.2e-11, 2.0, 0.0},
+                                     {0.0, 0.0, 0.8, 0.0},
+                                     {1.2e-11, 0.0, 1.6e-4, 0.0},
+                                     {-2e-5, 0.0, -2.0, 0.0}}, exec);
+        mtx2 = gko::initialize<Dns>(
+            {{1.0, 3.0, 2.0},
+             {0.0, 5.0, 0.0}}, exec);
+        // clang-format on
+        ell1 = Ell::create(exec);
+        mtx1->convert_to(ell1.get());
+    }
+
+    std::shared_ptr<const gko::Executor> exec;
+    std::unique_ptr<Dns> mtx1;
+    std::unique_ptr<Dns> mtx2;
+    std::unique_ptr<Ell> ell1;
+    const float tol = 1e-6;
+};
+
+using float_types = ::testing::Types<float, std::complex<float>>;
+TYPED_TEST_SUITE(AMPFloat, float_types, TypenameNameGenerator);
+
+
+TYPED_TEST(AMPFloat, GenerateComputesCorrectRowNorms)
+{
+    using T = typename TestFixture::value_type;
+    using real_T = typename TestFixture::real_T;
+    gko::amp::array_prec<int, T> max_nnz;
+    gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
+    auto rexec =
+        std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
+
+    gko::kernels::reference::amp::generate_ell_rownorms_storage(
+        rexec, this->ell1.get(), this->tol, max_nnz, rownorms);
+
+    auto rnv = rownorms.get_const_data();
+    EXPECT_EQ(rnv[0], static_cast<real_T>(1.1) + static_cast<real_T>(3e-9) +
+                          static_cast<real_T>(4.5e-4));
+    EXPECT_EQ(rnv[1], static_cast<real_T>(2.0) + static_cast<real_T>(1.2e-11));
+    EXPECT_EQ(rnv[2], static_cast<real_T>(0.8));
+    EXPECT_EQ(rnv[3],
+              static_cast<real_T>(1.2e-11) + static_cast<real_T>(1.6e-4));
+    EXPECT_EQ(rnv[4], static_cast<real_T>(2.0) + static_cast<real_T>(2e-5));
+}
+
+TYPED_TEST(AMPFloat, GenerateComputesCorrectBinNNZs)
+{
+    using T = typename TestFixture::value_type;
+    using real_T = typename TestFixture::real_T;
+    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
+                  "should be 2 available precisions");
+    gko::amp::array_prec<int, T> max_nnz;
+    gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
+    auto rexec =
+        std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
+
+    gko::kernels::reference::amp::generate_ell_rownorms_storage(
+        rexec, this->ell1.get(), this->tol, max_nnz, rownorms);
+
+    EXPECT_EQ(max_nnz[0], 1);
+    EXPECT_EQ(max_nnz[1], 1);
+}
+
+TYPED_TEST(AMPFloat, GenerateEllScattersBinsCorrectly)
+{
+    using T = typename TestFixture::value_type;
+    using real_T = typename TestFixture::real_T;
+    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
+                  "should be 2 available precisions");
+    auto rexec =
+        std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
+    auto max_nnzs = gko::amp::array_prec<int, T>{1, 1};
+    auto abins = gko::amp::allocate_bins<T, int>(
+        this->exec, this->ell1->get_size(), max_nnzs);
+    constexpr auto num_bins = std::tuple_size<decltype(abins)>::value;
+    gko::amp::array_prec<gko::LinOp*, T> amat;
+    gko::constexpr_for<0, num_bins, 1>(
+        [&](auto k) { amat[k] = abins[k].get(); });
+
+    gko::kernels::reference::amp::generate_ell_scatter_bins(
+        rexec, this->ell1.get(), this->tol, amat);
+
+    using types_list = typename gko::amp::narrow_types<T>::type;
+    gko::constexpr_for<0, num_bins, 1>([&](auto k) {
+        using value_type = typename std::tuple_element<k, types_list>::type;
+        auto amat0 = dynamic_cast<gko::matrix::Ell<value_type, int>*>(amat[k]);
+        ASSERT_TRUE(amat0);
+        EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 1);
+        auto vals = amat0->get_const_values();
+        auto colids = amat0->get_const_col_idxs();
+        if (k == 0) {
+            EXPECT_EQ(colids[0], 0);
+            EXPECT_EQ(colids[1], 2);
+            EXPECT_EQ(colids[2], 2);
+            EXPECT_EQ(colids[3], 2);
+            EXPECT_EQ(colids[4], 2);
+            EXPECT_EQ(vals[0], static_cast<value_type>(1.1));
+            EXPECT_EQ(vals[1], static_cast<value_type>(2.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.8));
+            EXPECT_EQ(vals[3], static_cast<value_type>(1.6e-4));
+            EXPECT_EQ(vals[4], static_cast<value_type>(-2.0));
+        } else if (k == 1) {
+            EXPECT_EQ(colids[0], 3);
+            EXPECT_EQ(colids[1], gko::invalid_index<int>());
+            EXPECT_EQ(colids[2], gko::invalid_index<int>());
+            EXPECT_EQ(colids[3], gko::invalid_index<int>());
+            EXPECT_EQ(colids[4], 0);
+            EXPECT_EQ(vals[0], static_cast<value_type>(4.5e-4));
+            EXPECT_EQ(vals[1], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[3], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[4], static_cast<value_type>(-2e-5));
         }
     });
 }

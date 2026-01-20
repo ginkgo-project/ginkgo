@@ -62,9 +62,9 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
 template <typename RealType, int prec_idx>
 inline float get_bin_lower_bound(const RealType row_norm, const float tolerance)
 {
+    using narrow_types = typename gko::amp::narrow_types<RealType>::type;
     using next_type =
-        typename std::tuple_element<prec_idx + 1,
-                                    gko::amp::supported_precisions>::type;
+        typename std::tuple_element<prec_idx + 1, narrow_types>::type;
     return static_cast<float>(tolerance * row_norm /
                               std::numeric_limits<next_type>::epsilon());
 }
