@@ -157,7 +157,6 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
     static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 3,
                   "should be 3 available precisions");
     const float tol = 1e-10;
-    // gko::kernels::amp::array_prec<int, T, int> max_nnz;
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
     auto max_nnzs = gko::amp::array_prec<int, T>{1, 1, 1};
@@ -175,7 +174,7 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
     gko::constexpr_for<0, num_bins, 1>([&](auto k) {
         using value_type = typename std::tuple_element<k, types_list>::type;
         auto amat0 = dynamic_cast<gko::matrix::Ell<value_type, int>*>(amat[k]);
-        EXPECT_TRUE(amat0);
+        ASSERT_TRUE(amat0);
         EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 1);
         auto vals = amat0->get_const_values();
         auto colids = amat0->get_const_col_idxs();

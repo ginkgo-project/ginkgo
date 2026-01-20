@@ -95,13 +95,6 @@ inline int get_precision_bin(const std::array<float, q>& lower_bounds,
     if (k >= q) {
         return -1;
     }
-    // if (k == q - 1) {
-    //     if (abs_number > std::numeric_limits<RealType>::min()) {
-    //         return q - 1;
-    //     } else {
-    //         return -1;
-    //     }
-    // }
     if (abs_number > static_cast<RealType>(lower_bounds[k])) {
         return k;
     } else {
@@ -192,10 +185,10 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
 
         using EllTuple = gko::instantiation_tuple_t<
             gko::generator_partial<gko::matrix::Ell, IndexType>,
-            typename gko::amp::supported_types<ValueType>::type>;
+            typename gko::amp::narrow_types<ValueType>::type>;
         using ScalarPtrTuple = gko::instantiation_tuple_t<
             gko::generator<gko::ptr_type>,
-            typename gko::amp::supported_types<ValueType>::type>;
+            typename gko::amp::narrow_types<ValueType>::type>;
         ScalarPtrTuple xvalues;
         gko::amp::array_prec<IndexType*, ValueType> xcol_idxs;
         gko::amp::array_prec<size_type, ValueType> bin_strides;
@@ -203,9 +196,8 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
 
         // initialize bins
         gko::constexpr_for<0, q, 1>([&](auto k) {
-            auto ematk =
-                dynamic_cast<typename std::tuple_element<k, EllTuple>::type*>(
-                    amat[k]);
+            using EllType = typename std::tuple_element<k, EllTuple>::type;
+            auto ematk = dynamic_cast<EllType*>(amat[k]);
             xcol_idxs[k] = ematk->get_col_idxs();
             bin_strides[k] = ematk->get_stride();
             std::get<k>(xvalues) = ematk->get_values();
