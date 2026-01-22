@@ -65,7 +65,7 @@ void launch_apply_kernel(
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
                 subgroup_size)]] [[intel::kernel_args_restrict]] {
                 auto batch_id = item_ct1.get_group_linear_id();
                 const auto mat_global_entry =

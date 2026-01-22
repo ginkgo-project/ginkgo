@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -95,7 +95,7 @@ void extract_common_blocks_pattern(
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1)
-                [[intel::reqd_sub_group_size(subgroup_size)]] {
+                [[sycl::reqd_sub_group_size(subgroup_size)]] {
                     batch_single_kernels::extract_common_block_pattern_kernel(
                         static_cast<int>(nrows), row_ptrs, col_idxs, num_blocks,
                         cumulative_block_storage, block_pointers, map_block_row,
@@ -141,7 +141,7 @@ void compute_block_jacobi_helper(
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1)
-                [[intel::reqd_sub_group_size(subgroup_size)]] {
+                [[sycl::reqd_sub_group_size(subgroup_size)]] {
                     batch_single_kernels::compute_block_jacobi_kernel(
                         nbatch, static_cast<int>(nnz), sys_csr_values,
                         num_blocks, cumulative_block_storage, block_pointers,
