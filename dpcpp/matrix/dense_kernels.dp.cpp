@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -113,9 +113,11 @@ void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
         auto out_stride = trans->get_stride();
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                transpose<DeviceConfig>(size[0], size[1], in, in_stride, out,
-                                        out_stride, item_ct1,
-                                        *space_acc_ct1.get_pointer());
+                transpose<DeviceConfig>(
+                    size[0], size[1], in, in_stride, out, out_stride, item_ct1,
+                    *space_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
             });
     });
 }
@@ -154,9 +156,11 @@ void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
-                conj_transpose<DeviceConfig>(nrows, ncols, in, in_stride, out,
-                                             out_stride, item_ct1,
-                                             *space_acc_ct1.get_pointer());
+                conj_transpose<DeviceConfig>(
+                    nrows, ncols, in, in_stride, out, out_stride, item_ct1,
+                    *space_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
             });
     });
 }

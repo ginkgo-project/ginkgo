@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -249,13 +249,16 @@ void generate_l_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(subwarp_size)]] {
-                    generate_l_inverse<subwarp_size, subwarps_per_block>(
-                        num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
-                        i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
-                        item_ct1, *storage_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                subwarp_size)]] {
+                generate_l_inverse<subwarp_size, subwarps_per_block>(
+                    num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
+                    i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
+                    item_ct1,
+                    *storage_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 
@@ -319,13 +322,16 @@ void generate_u_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(subwarp_size)]] {
-                    generate_u_inverse<subwarp_size, subwarps_per_block>(
-                        num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
-                        i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
-                        item_ct1, *storage_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                subwarp_size)]] {
+                generate_u_inverse<subwarp_size, subwarps_per_block>(
+                    num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
+                    i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
+                    item_ct1,
+                    *storage_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 
@@ -401,13 +407,16 @@ void generate_general_inverse(
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(subwarp_size)]] {
-                    generate_general_inverse<subwarp_size, subwarps_per_block>(
-                        num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
-                        i_col_idxs, i_values, excess_rhs_sizes, excess_nnz, spd,
-                        item_ct1, *storage_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                subwarp_size)]] {
+                generate_general_inverse<subwarp_size, subwarps_per_block>(
+                    num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
+                    i_col_idxs, i_values, excess_rhs_sizes, excess_nnz, spd,
+                    item_ct1,
+                    *storage_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 

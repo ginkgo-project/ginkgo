@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -187,15 +187,17 @@ kernel.get_info<num_query>(*queue, wg_size); gtd::cout << "wg_size " << wg_size
                                         IndexType>::shared_storage,
             0>
             sh_dep_storage_acc_ct1(cgh);
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                                 factorize<full_fillin>(
-                                     row_ptrs, cols, storage_offsets, storage,
-                                     row_descs, diag_idxs, vals, dep_storage,
-                                     num_rows, item_ct1,
-                                     *sh_dep_storage_acc_ct1.get_pointer());
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                factorize<full_fillin>(
+                    row_ptrs, cols, storage_offsets, storage, row_descs,
+                    diag_idxs, vals, dep_storage, num_rows, item_ct1,
+                    *sh_dep_storage_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 };
 
@@ -300,14 +302,16 @@ void symbolic_factorize_simple(
             sh_dep_storage_acc_ct1(cgh);
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    symbolic_factorize_simple(
-                        mtx_row_ptrs, mtx_cols, factor_row_ptrs, factor_cols,
-                        storage_offsets, storage, row_descs, diag_idxs,
-                        factor_vals, out_row_nnz, dep_storage, num_rows,
-                        item_ct1, *sh_dep_storage_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                symbolic_factorize_simple(
+                    mtx_row_ptrs, mtx_cols, factor_row_ptrs, factor_cols,
+                    storage_offsets, storage, row_descs, diag_idxs, factor_vals,
+                    out_row_nnz, dep_storage, num_rows, item_ct1,
+                    *sh_dep_storage_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 };
 

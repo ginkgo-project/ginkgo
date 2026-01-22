@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -66,13 +66,16 @@ void build_searchtree(dim3 grid, dim3 block, size_type dynamic_shared_memory,
         sycl::local_accessor<remove_complex<ValueType>, 1> sh_samples_acc_ct1(
             sycl::range<1>(1024 /*sample_size*/), cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                                 build_searchtree(
-                                     input, size, tree_output, item_ct1,
-                                     sh_samples_acc_ct1.get_pointer());
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                build_searchtree(
+                    input, size, tree_output, item_ct1,
+                    sh_samples_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get());
+            });
     });
 }
 
@@ -153,8 +156,12 @@ void count_buckets(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                 count_buckets(
                     input, size, tree, counter, oracles, items_per_thread,
                     item_ct1,
-                    (remove_complex<ValueType>*)sh_tree_acc_ct1.get_pointer(),
-                    (IndexType*)sh_counter_acc_ct1.get_pointer());
+                    (remove_complex<ValueType>*)sh_tree_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get(),
+                    (IndexType*)sh_counter_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get());
             });
     });
 }
@@ -251,12 +258,14 @@ void block_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    block_prefix_sum(
-                        counters, totals, num_blocks, item_ct1,
-                        (IndexType*)warp_sums_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                block_prefix_sum(
+                    counters, totals, num_blocks, item_ct1,
+                    (IndexType*)warp_sums_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get());
+            });
     });
 }
 
@@ -314,9 +323,12 @@ void filter_bucket(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                filter_bucket(input, size, bucket, oracles, block_offsets,
-                              output, items_per_thread, item_ct1,
-                              (IndexType*)counter_acc_ct1.get_pointer());
+                filter_bucket(
+                    input, size, bucket, oracles, block_offsets, output,
+                    items_per_thread, item_ct1,
+                    (IndexType*)counter_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get());
             });
     });
 }
@@ -356,11 +368,14 @@ void basecase_select(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    basecase_select(input, size, rank, out, item_ct1,
-                                    (ValueType*)sh_local_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                basecase_select(
+                    input, size, rank, out, item_ct1,
+                    (ValueType*)sh_local_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get());
+            });
     });
 }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -160,13 +160,15 @@ void sptrsv_naive_legacy_kernel(
         sycl::local_accessor<IndexType, 0> shared_block_base_idx_acc_ct1(cgh);
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    sptrsv_naive_legacy_kernel<is_upper>(
-                        rowptrs, colidxs, vals, b, b_stride, x, x_stride, n,
-                        nrhs, unit_diag, nan_produced, atomic_counter, item_ct1,
-                        *shared_block_base_idx_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                sptrsv_naive_legacy_kernel<is_upper>(
+                    rowptrs, colidxs, vals, b, b_stride, x, x_stride, n, nrhs,
+                    unit_diag, nan_produced, atomic_counter, item_ct1,
+                    *shared_block_base_idx_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 

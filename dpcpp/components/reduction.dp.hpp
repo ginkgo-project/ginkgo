@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -201,12 +201,15 @@ void reduce_add_array(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(DeviceConfig::subgroup_size)]] {
-                    reduce_add_array<DeviceConfig>(
-                        size, as_device_type(source), as_device_type(result),
-                        item_ct1, *block_sum_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                DeviceConfig::subgroup_size)]] {
+                reduce_add_array<DeviceConfig>(
+                    size, as_device_type(source), as_device_type(result),
+                    item_ct1,
+                    *block_sum_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 

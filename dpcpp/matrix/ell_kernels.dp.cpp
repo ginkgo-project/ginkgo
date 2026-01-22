@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -193,13 +193,15 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
             0>
             storage_acc_ct1(cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             spmv<num_thread_per_worker, atomic>(
-                                 num_rows, num_worker_per_row, val, col, stride,
-                                 num_stored_elements_per_row, b, c, c_stride,
-                                 item_ct1, *storage_acc_ct1.get_pointer());
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                spmv<num_thread_per_worker, atomic>(
+                    num_rows, num_worker_per_row, val, col, stride,
+                    num_stored_elements_per_row, b, c, c_stride, item_ct1,
+                    *storage_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 
@@ -278,7 +280,9 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                 spmv<num_thread_per_worker, atomic>(
                     num_rows, num_worker_per_row, alpha, val, col, stride,
                     num_stored_elements_per_row, b, beta, c, c_stride, item_ct1,
-                    *storage_acc_ct1.get_pointer());
+                    *storage_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
             });
     });
 }

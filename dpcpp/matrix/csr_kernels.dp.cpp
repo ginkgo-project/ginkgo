@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -458,14 +458,16 @@ void abstract_merge_path_spmv(
         sycl::local_accessor<IndexType, 1> shared_row_ptrs_acc_ct1(
             sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_merge_path_spmv<items_per_thread>(
-                                 num_rows, val, col_idxs, row_ptrs, srow, b, c,
-                                 row_out, val_out, item_ct1,
-                                 static_cast<IndexType*>(
-                                     shared_row_ptrs_acc_ct1.get_pointer()));
-                         });
+        cgh.parallel_for(sycl_nd_range(grid, block), [=](sycl::nd_item<3>
+                                                             item_ct1) {
+            abstract_merge_path_spmv<items_per_thread>(
+                num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+                item_ct1,
+                static_cast<IndexType*>(
+                    shared_row_ptrs_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get()));
+        });
     });
 }
 
@@ -518,14 +520,16 @@ void abstract_merge_path_spmv(
         sycl::local_accessor<IndexType, 1> shared_row_ptrs_acc_ct1(
             sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_merge_path_spmv<items_per_thread>(
-                                 num_rows, alpha, val, col_idxs, row_ptrs, srow,
-                                 b, beta, c, row_out, val_out, item_ct1,
-                                 static_cast<IndexType*>(
-                                     shared_row_ptrs_acc_ct1.get_pointer()));
-                         });
+        cgh.parallel_for(sycl_nd_range(grid, block), [=](sycl::nd_item<3>
+                                                             item_ct1) {
+            abstract_merge_path_spmv<items_per_thread>(
+                num_rows, alpha, val, col_idxs, row_ptrs, srow, b, beta, c,
+                row_out, val_out, item_ct1,
+                static_cast<IndexType*>(
+                    shared_row_ptrs_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get()));
+        });
     });
 }
 
@@ -561,9 +565,14 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, c, item_ct1,
-                                *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
+                abstract_reduce(
+                    nwarps, last_val, last_row, c, item_ct1,
+                    *tmp_ind_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get(),
+                    *tmp_val_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
             });
     });
 }
@@ -603,9 +612,14 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, alpha, c, item_ct1,
-                                *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
+                abstract_reduce(
+                    nwarps, last_val, last_row, alpha, c, item_ct1,
+                    *tmp_ind_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get(),
+                    *tmp_val_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
             });
     });
 }
@@ -815,8 +829,10 @@ void check_unsorted(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                check_unsorted(row_ptrs, col_idxs, num_rows, flag, item_ct1,
-                               sh_flag_acc_ct1.get_pointer());
+                check_unsorted(
+                    row_ptrs, col_idxs, num_rows, flag, item_ct1,
+                    sh_flag_acc_ct1.get_multi_ptr<sycl::access::decorated::no>()
+                        .get());
             });
     });
 }

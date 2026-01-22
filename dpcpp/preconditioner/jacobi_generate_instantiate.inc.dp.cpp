@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -135,13 +135,15 @@ void generate(
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(subwarp_size)]] {
-                    generate<max_block_size, subwarp_size, warps_per_block>(
-                        num_rows, row_ptrs, col_idxs, values, block_data,
-                        storage_scheme, block_ptrs, num_blocks, item_ct1,
-                        *workspace_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                subwarp_size)]] {
+                generate<max_block_size, subwarp_size, warps_per_block>(
+                    num_rows, row_ptrs, col_idxs, values, block_data,
+                    storage_scheme, block_ptrs, num_blocks, item_ct1,
+                    *workspace_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 
@@ -317,17 +319,19 @@ void adaptive_generate(
             uninitialized_array<ValueType, max_block_size * warps_per_block>, 0>
             workspace_acc_ct1(cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(subwarp_size)]] {
-                                 adaptive_generate<max_block_size, subwarp_size,
-                                                   warps_per_block>(
-                                     num_rows, row_ptrs, col_idxs, values,
-                                     accuracy, block_data, storage_scheme,
-                                     conditioning, block_precisions, block_ptrs,
-                                     num_blocks, item_ct1,
-                                     *workspace_acc_ct1.get_pointer());
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                subwarp_size)]] {
+                adaptive_generate<max_block_size, subwarp_size,
+                                  warps_per_block>(
+                    num_rows, row_ptrs, col_idxs, values, accuracy, block_data,
+                    storage_scheme, conditioning, block_precisions, block_ptrs,
+                    num_blocks, item_ct1,
+                    *workspace_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 

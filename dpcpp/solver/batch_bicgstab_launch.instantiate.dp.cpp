@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -74,7 +74,10 @@ void launch_apply_kernel(
                     b_global_entry, x_global_entry, num_rows,
                     mat.get_single_item_num_nnz(),
                     static_cast<device_type<ValueType>*>(
-                        slm_values.get_pointer()),
+                        slm_values
+                            .template get_multi_ptr<
+                                sycl::access::decorated::no>()
+                            .get()),
                     item_ct1, workspace);
             });
     });

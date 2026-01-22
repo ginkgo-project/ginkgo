@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -246,13 +246,15 @@ void multinorm2_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(default_dot_dim)]] {
-                    multinorm2_kernel(
-                        num_rows, num_cols, next_krylov_basis,
-                        stride_next_krylov, norms, stop_status, item_ct1,
-                        reduction_helper_array_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                default_dot_dim)]] {
+                multinorm2_kernel(
+                    num_rows, num_cols, next_krylov_basis, stride_next_krylov,
+                    norms, stop_status, item_ct1,
+                    reduction_helper_array_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get());
+            });
     });
 }
 
@@ -323,13 +325,15 @@ void multinorminf_without_stop_kernel(
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(default_dot_dim)]] {
-                    multinorminf_without_stop_kernel(
-                        num_rows, num_cols, next_krylov_basis,
-                        stride_next_krylov, norms, stride_norms, item_ct1,
-                        reduction_helper_array_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                default_dot_dim)]] {
+                multinorminf_without_stop_kernel(
+                    num_rows, num_cols, next_krylov_basis, stride_next_krylov,
+                    norms, stride_norms, item_ct1,
+                    reduction_helper_array_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get());
+            });
     });
 }
 
@@ -426,13 +430,15 @@ void multinorm2_inf_kernel(
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(default_dot_dim)]] {
-                    multinorm2_inf_kernel<compute_inf>(
-                        num_rows, num_cols, next_krylov_basis,
-                        stride_next_krylov, norms1, norms2, stop_status,
-                        item_ct1, reduction_helper_array_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                default_dot_dim)]] {
+                multinorm2_inf_kernel<compute_inf>(
+                    num_rows, num_cols, next_krylov_basis, stride_next_krylov,
+                    norms1, norms2, stop_status, item_ct1,
+                    reduction_helper_array_acc_ct1
+                        .template get_multi_ptr<sycl::access::decorated::no>()
+                        .get());
+            });
     });
 }
 
@@ -517,14 +523,16 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(dot_dim)]] {
-                    multidot_kernel<dot_dim>(
-                        num_rows, num_cols, next_krylov_basis,
-                        stride_next_krylov, krylov_bases, hessenberg_iter,
-                        stride_hessenberg, stop_status, item_ct1,
-                        *reduction_helper_array_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                dot_dim)]] {
+                multidot_kernel<dot_dim>(
+                    num_rows, num_cols, next_krylov_basis, stride_next_krylov,
+                    krylov_bases, hessenberg_iter, stride_hessenberg,
+                    stop_status, item_ct1,
+                    *reduction_helper_array_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 
@@ -597,14 +605,16 @@ void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    singledot_kernel<block_size>(
-                        num_rows, next_krylov_basis, stride_next_krylov,
-                        krylov_bases, hessenberg_iter, stride_hessenberg,
-                        stop_status, item_ct1,
-                        *reduction_helper_array_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                singledot_kernel<block_size>(
+                    num_rows, next_krylov_basis, stride_next_krylov,
+                    krylov_bases, hessenberg_iter, stride_hessenberg,
+                    stop_status, item_ct1,
+                    *reduction_helper_array_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 

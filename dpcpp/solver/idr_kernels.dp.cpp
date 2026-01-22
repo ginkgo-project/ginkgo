@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -148,12 +148,14 @@ void orthonormalize_subspace_vectors_kernel(
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    orthonormalize_subspace_vectors_kernel<block_size>(
-                        num_rows, num_cols, values, stride, item_ct1,
-                        *reduction_helper_array_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                orthonormalize_subspace_vectors_kernel<block_size>(
+                    num_rows, num_cols, values, stride, item_ct1,
+                    *reduction_helper_array_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 
@@ -366,13 +368,15 @@ void multidot_kernel(dim3 grid, dim3 block, size_t dynamic_shared_memory,
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(default_dot_dim)]] {
-                    multidot_kernel(
-                        num_rows, nrhs, p_i, g_k, g_k_stride, alpha,
-                        stop_status, item_ct1,
-                        *reduction_helper_array_acc_ct1.get_pointer());
-                });
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                default_dot_dim)]] {
+                multidot_kernel(
+                    num_rows, nrhs, p_i, g_k, g_k_stride, alpha, stop_status,
+                    item_ct1,
+                    *reduction_helper_array_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 }
 

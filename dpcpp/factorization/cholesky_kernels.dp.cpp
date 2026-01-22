@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -121,15 +121,18 @@ void factorize(dim3 grid, dim3 block, gko::size_type, sycl::queue* queue,
                                         IndexType>::shared_storage,
             0>
             sh_dep_storage_acc_ct1(cgh);
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1)
-                             [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                                 factorize<full_fillin>(
-                                     row_ptrs, cols, storage_offsets, storage,
-                                     row_descs, diag_idxs, transpose_idxs, vals,
-                                     dep_storage, num_rows, item_ct1,
-                                     *sh_dep_storage_acc_ct1.get_pointer());
-                             });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block),
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
+                config::warp_size)]] {
+                factorize<full_fillin>(
+                    row_ptrs, cols, storage_offsets, storage, row_descs,
+                    diag_idxs, transpose_idxs, vals, dep_storage, num_rows,
+                    item_ct1,
+                    *sh_dep_storage_acc_ct1
+                         .template get_multi_ptr<sycl::access::decorated::no>()
+                         .get());
+            });
     });
 };
 
