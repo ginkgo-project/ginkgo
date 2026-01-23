@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -161,7 +161,10 @@ public:
 
     __dpct_inline__ unsigned size() const noexcept { return Size; }
 
-    __dpct_inline__ void sync() const noexcept { this->barrier(); }
+    __dpct_inline__ void sync() const noexcept
+    {
+        sycl::group_barrier(static_cast<sycl::sub_group>(*this));
+    }
 #define GKO_BIND_SHFL(ShflOpName, ShflOp)                                      \
     template <typename ValueType, typename SelectorType>                       \
     __dpct_inline__ ValueType ShflOpName(ValueType var, SelectorType selector) \
