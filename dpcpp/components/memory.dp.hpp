@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,7 +58,7 @@ template <sycl::memory_order memorder, sycl::memory_scope scope,
           sycl::access::address_space space =
               sycl::access::address_space::generic_space,
           typename ValueType>
-__dpct_inline__ ValueType store_generic(ValueType* ptr, ValueType value)
+__dpct_inline__ void store_generic(ValueType* ptr, ValueType value)
 {
     sycl::atomic_ref<ValueType, memorder, scope, space> obj(*ptr);
     obj.store(value);
