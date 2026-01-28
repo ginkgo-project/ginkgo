@@ -8,23 +8,11 @@
 #include <ginkgo/core/matrix/amp.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
-#include "core/base/amp_utils.hpp"
-#include "ginkgo/core/base/amp_types.hpp"
+#include "core/base/utils.hpp"
 
 
 namespace gko {
 namespace amp {
-
-
-/**
- * A fixed-size array holding an item for each supported precision starting at
- * the precision of the template parameter ValueType as the highest precision.
- *
- * @tparam T  Type of object to hold for each supported precision.
- * @tparam HighestType  A scalar type of the highest precision needed.
- */
-template <typename T, typename HighestType>
-using array_prec = std::array<T, matrix::AMP<HighestType, int>::num_precisions>;
 
 
 /**

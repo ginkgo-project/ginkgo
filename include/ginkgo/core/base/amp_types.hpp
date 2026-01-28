@@ -15,19 +15,31 @@ namespace amp {
 
 
 #if GINKGO_ENABLE_BFLOAT16 || GINKGO_ENABLE_HALF
+
 #define GINKGO_HAVE_AMP_HALF 1
+
 #if GINKGO_ENABLE_HALF
+
+#define GKO_AMP_HALF_IS_FP16 1
 using half = gko::half;
+
 #else
+
+#define GKO_AMP_HALF_IS_BFLOAT16 1
 using half = gko::bfloat16;
+
 #endif
+
 /**
  * All the real-valued types of different precisions available for adaptive
  * precision algorithms.
  */
 using supported_precisions = std::tuple<double, float, half>;
+
 #else
+
 using supported_precisions = std::tuple<double, float>;
+
 #endif
 
 /**
@@ -119,11 +131,14 @@ struct precision_index {
  */
 template <typename HighestType>
 struct narrow_types {
+    /// Tuple of types including and narrower than HighestType.
     using type = decltype(std::tuple_cat(
         std::make_tuple(
             type_at_idx<precision_index<HighestType>::index, HighestType>{}),
         typename narrow_types<type_at_idx<
             precision_index<HighestType>::index + 1, HighestType>>::type{}));
+    /// Number of types in the list of types above.
+    static constexpr int num_types = std::tuple_size<type>::value;
 };
 
 /**
@@ -132,12 +147,25 @@ struct narrow_types {
 template <>
 struct narrow_types<half> {
     using type = std::tuple<half>;
+    static constexpr int num_types = 1;
 };
 
 template <>
 struct narrow_types<std::complex<half>> {
     using type = std::tuple<std::complex<half>>;
+    static constexpr int num_types = 1;
 };
+
+
+/**
+ * A fixed-size array holding an item for each supported precision starting at
+ * the precision of the template parameter ValueType as the highest precision.
+ *
+ * @tparam T  Type of object to hold for each supported precision.
+ * @tparam HighestType  A scalar type of the highest precision needed.
+ */
+template <typename T, typename HighestType>
+using array_prec = std::array<T, narrow_types<HighestType>::num_types>;
 
 
 }  // namespace amp

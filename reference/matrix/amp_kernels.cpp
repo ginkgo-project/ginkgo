@@ -4,6 +4,7 @@
 
 #include "core/matrix/amp_kernels.hpp"
 
+#include <cassert>
 #include <iostream>
 
 #include <ginkgo/core/base/amp_types.hpp>
@@ -13,8 +14,9 @@
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
-#include "core/base/amp_utils.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/utils.hpp"
+#include "core/matrix/amp_algorithms.hpp"
 
 
 namespace gko {
@@ -31,11 +33,63 @@ namespace amp {
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::AMP<MatrixValueType, IndexType>* a,
-          const matrix::Dense<InputValueType>* b,
-          matrix::Dense<OutputValueType>* c)
+          const matrix::AMP<MatrixValueType, IndexType>* const a,
+          const matrix::Dense<InputValueType>* const b,
+          matrix::Dense<OutputValueType>* const c)
 {
-    GKO_NOT_IMPLEMENTED;
+    constexpr int q = matrix::AMP<MatrixValueType, IndexType>::num_precisions;
+    static_assert(q > 0, "Need at least 1 bin!");
+    auto ell0 = dynamic_cast<const matrix::Ell<MatrixValueType, IndexType>*>(
+        a->get_bin_matrix(0));
+    if (!ell0) {
+        GKO_NOT_SUPPORTED(a->get_bin_matrix(0));
+    }
+    auto y = c->get_values();
+    auto x = b->get_const_values();
+    const auto nrows0 = static_cast<int>(a->get_size()[0]);
+    const auto stride0 = ell0->get_stride();
+    auto avals = ell0->get_const_values();
+    auto acols = ell0->get_const_col_idxs();
+    const auto max_nnz0 = ell0->get_num_stored_elements_per_row();
+    using highest_type =
+        gko::highest_precision<MatrixValueType, InputValueType>;
+    for (int i = 0; i < nrows0; i++) {
+        y[i] = 0;
+        for (int j = 0; j < max_nnz0; j++) {
+            if (acols[i + j * stride0] >= 0) {
+                y[i] += static_cast<OutputValueType>(
+                    static_cast<highest_type>(avals[i + j * stride0]) *
+                    static_cast<highest_type>(x[acols[i + j * stride0]]));
+            }
+        }
+    }
+    gko::constexpr_for<1, q, 1>([&](auto k) {
+        using value_type = typename std::tuple_element<
+            k, typename gko::amp::narrow_types<MatrixValueType>::type>::type;
+        auto ellk = dynamic_cast<const matrix::Ell<value_type, IndexType>*>(
+            a->get_bin_matrix(k));
+        if (!ellk) {
+            GKO_NOT_SUPPORTED(a->get_bin_matrix(0));
+        }
+        using high_type = gko::highest_precision<value_type, InputValueType>;
+        const auto nrows = static_cast<int>(a->get_size()[0]);
+        assert(nrows == nrows0);
+        const auto stride = ellk->get_stride();
+        auto avals = ellk->get_const_values();
+        auto acols = ellk->get_const_col_idxs();
+        const auto max_nnz = ellk->get_num_stored_elements_per_row();
+        if (max_nnz > 0) {
+            for (int i = 0; i < nrows; i++) {
+                for (int j = 0; j < max_nnz; j++) {
+                    if (acols[i + j * stride] >= 0) {
+                        y[i] += static_cast<OutputValueType>(
+                            static_cast<high_type>(avals[i + j * stride]) *
+                            static_cast<high_type>(x[acols[i + j * stride]]));
+                    }
+                }
+            }
+        }
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
@@ -58,51 +112,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_AMP_ADVANCED_SPMV_KERNEL);
 
 
-// Get the lower bound of precision bin index prec_idx.
-template <typename RealType, int prec_idx>
-inline float get_bin_lower_bound(const RealType row_norm, const float tolerance)
-{
-    using narrow_types = typename gko::amp::narrow_types<RealType>::type;
-    using next_type =
-        typename std::tuple_element<prec_idx + 1, narrow_types>::type;
-    return static_cast<float>(tolerance * row_norm /
-                              std::numeric_limits<next_type>::epsilon());
-}
-
-// Get the lower bounds for all available precision bins.
-template <typename RealType, int q, int k>
-inline void get_all_bins_lower_bounds(const RealType row_norm,
-                                      const float tolerance,
-                                      std::array<float, q>& lbs)
-{
-    if constexpr (k > q - 1) {
-        return;
-    }
-    if constexpr (k == q - 1) {
-        lbs[k] = static_cast<float>(row_norm) * tolerance;
-    } else {
-        lbs[k] = get_bin_lower_bound<RealType, k>(row_norm, tolerance);
-        get_all_bins_lower_bounds<RealType, q, k + 1>(row_norm, tolerance, lbs);
-    }
-}
-
-// Return the precision bin index that a number should go to.
-// Returns -1 if the number should be dropped.
-template <typename RealType, int q>
-inline int get_precision_bin(const std::array<float, q>& lower_bounds,
-                             const RealType abs_number, const int k)
-{
-    if (k >= q) {
-        return -1;
-    }
-    if (abs_number > static_cast<RealType>(lower_bounds[k])) {
-        return k;
-    } else {
-        return get_precision_bin<RealType, q>(lower_bounds, abs_number, k + 1);
-    }
-}
-
-
 template <typename ValueType, typename IndexType>
 void generate_ell_rownorms_storage(
     std::shared_ptr<const ReferenceExecutor> exec,
@@ -112,6 +121,10 @@ void generate_ell_rownorms_storage(
 {
     using real_type = remove_complex<ValueType>;
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
+    // Compute minimum representable values for each bin
+    const std::array<float, q> min_repr =
+        gko::amp::get_bins_min_representable<real_type>();
+
     const auto nrows = a->get_size()[0];
     const auto ostride = a->get_stride();
     const auto omax_nnz = a->get_num_stored_elements_per_row();
@@ -133,14 +146,15 @@ void generate_ell_rownorms_storage(
         rownorms.get_data()[irow] = rnorm;
 
         // Compute lower limits of each precision bin
-        std::array<float, q> min_bin;
-        get_all_bins_lower_bounds<real_type, q, 0>(rnorm, tolerance, min_bin);
+        const std::array<float, q> min_bin =
+            gko::amp::get_bins_precision_lower_bounds<real_type>(rnorm,
+                                                                 tolerance);
 
         // Get max nnz per row for each precision bin matrix
         std::array<int, q> row_nnz = {};
         for (int j = 0; j < omax_nnz; j++) {
-            const int ibin = get_precision_bin<real_type, q>(
-                min_bin, std::abs(ovals[j * ostride + irow]), 0);
+            const int ibin = gko::amp::get_adjusted_bin<real_type>(
+                min_bin, min_repr, std::abs(ovals[j * ostride + irow]));
             if (ibin >= 0) {
                 row_nnz[ibin]++;
             }
@@ -163,6 +177,10 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
 {
     using real_type = remove_complex<ValueType>;
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
+    // Compute minimum representable values for each bin
+    const std::array<float, q> min_repr =
+        gko::amp::get_bins_min_representable<real_type>();
+
     const auto nrows = a->get_size()[0];
     const auto ostride = a->get_stride();
     const auto omax_nnz = a->get_num_stored_elements_per_row();
@@ -180,8 +198,9 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
         }
 
         // Compute lower limits of each precision bin
-        std::array<float, q> min_bin;
-        get_all_bins_lower_bounds<real_type, q, 0>(rnorm, tolerance, min_bin);
+        const std::array<float, q> min_bin =
+            gko::amp::get_bins_precision_lower_bounds<real_type>(rnorm,
+                                                                 tolerance);
 
         using EllTuple = gko::instantiation_tuple_t<
             gko::generator_partial<gko::matrix::Ell, IndexType>,
@@ -212,15 +231,15 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
 
         for (int j = 0; j < omax_nnz; j++) {
             const ptrdiff_t oloc = j * ostride + irow;
-            const int ibin = get_precision_bin<real_type, q>(
-                min_bin, std::abs(ovals[oloc]), 0);
+            const int ibin = gko::amp::get_adjusted_bin<real_type>(
+                min_bin, min_repr, std::abs(ovals[oloc]));
             if (ibin >= 0) {
                 const auto nzloc =
                     ixj[ibin] * static_cast<ptrdiff_t>(bin_strides[ibin]) +
                     irow;
                 xcol_idxs[ibin][nzloc] = ocolidxs[oloc];
-                assign_value_to_array_tuple<q, 0>(xvalues, ovals[oloc], ibin,
-                                                  nzloc);
+                assign_value_to_array_tuple<0>(xvalues, ovals[oloc], ibin,
+                                               nzloc);
                 ixj[ibin]++;
             }
         }

@@ -8,6 +8,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
+#include "core/matrix/amp_algorithms.hpp"
 #include "core/matrix/amp_helpers.hpp"
 #include "core/test/utils.hpp"
 #include "ginkgo/core/base/executor.hpp"
@@ -15,6 +16,7 @@
 
 TEST(AMPTypes, NarrowTypesWorksCorrectly)
 {
+#if GINKGO_HAVE_AMP_HALF
     using mytypesd = gko::amp::narrow_types<double>::type;
     constexpr auto chkd =
         std::is_same<mytypesd,
@@ -31,10 +33,309 @@ TEST(AMPTypes, NarrowTypesWorksCorrectly)
         mytypescf,
         std::tuple<std::complex<float>, std::complex<gko::amp::half>>>::value;
     static_assert(chkcf, "Wrong types_list<cfloat>!");
+    static_assert(gko::amp::narrow_types<double>::num_types == 3);
+    static_assert(gko::amp::narrow_types<std::complex<float>>::num_types == 2);
+    static_assert(gko::amp::narrow_types<gko::amp::half>::num_types == 1);
+    static_assert(
+        gko::amp::narrow_types<std::complex<gko::amp::half>>::num_types == 1);
+#endif
 }
 
 template <typename T, typename I>
 using Ell = gko::matrix::Ell<T, I>;
+
+#if GKO_AMP_HALF_IS_FP16 || GKO_AMP_HALF_IS_BFLOAT16
+
+TEST(AMPAlgorithm, GetsCorrectBinLowerBoundsByPrecision)
+{
+    const double rownorm = 1.0;
+    const float tol = 1e-10;
+    const auto lbs1 =
+        gko::amp::get_bins_precision_lower_bounds<double>(rownorm, tol);
+    EXPECT_FLOAT_EQ(lbs1[0],
+                    rownorm * tol / std::numeric_limits<float>::epsilon());
+    EXPECT_FLOAT_EQ(
+        lbs1[1],
+        rownorm * tol / std::numeric_limits<gko::amp::half>::epsilon());
+    EXPECT_FLOAT_EQ(lbs1[2], rownorm * tol);
+
+    const auto lbs2 =
+        gko::amp::get_bins_precision_lower_bounds<float>(rownorm, tol);
+    EXPECT_FLOAT_EQ(
+        lbs2[0],
+        rownorm * tol / std::numeric_limits<gko::amp::half>::epsilon());
+    EXPECT_FLOAT_EQ(lbs2[1], rownorm * tol);
+}
+
+
+TEST(AMPAlgorithm, GetsCorrectBinMinRepresentable)
+{
+    const auto mins_d = gko::amp::get_bins_min_representable<double>();
+    EXPECT_FLOAT_EQ(mins_d[0], std::numeric_limits<double>::min());
+    EXPECT_FLOAT_EQ(mins_d[1], std::numeric_limits<float>::min());
+    EXPECT_FLOAT_EQ(mins_d[2], std::numeric_limits<gko::amp::half>::min());
+
+    const auto mins_f = gko::amp::get_bins_min_representable<float>();
+    EXPECT_FLOAT_EQ(mins_f[0], std::numeric_limits<float>::min());
+    EXPECT_FLOAT_EQ(mins_f[1], std::numeric_limits<gko::amp::half>::min());
+}
+
+
+TEST(AMPAlgorithm, GetsCorrectPrecisionBin)
+{
+    const double rownorm = 1.0;
+    const float tol = 1e-10;
+    const auto lbs =
+        gko::amp::get_bins_precision_lower_bounds<double>(rownorm, tol);
+
+    // Value larger than lb[0] goes to bin 0 (double)
+    auto bin0 = gko::amp::get_precision_bin<double>(lbs, lbs[0] * 2.0, 0);
+    EXPECT_EQ(bin0, 0);
+
+    // Value between lb[0] and lb[1] goes to bin 1 (float)
+    const double val_bin1 = (lbs[0] + lbs[1]) / 2.0;
+    const auto bin1 = gko::amp::get_precision_bin<double>(lbs, val_bin1, 0);
+    EXPECT_EQ(bin1, 1);
+
+    // Value between lb[1] and lb[2] goes to bin 2 (half)
+    const double val_bin2 = (lbs[1] + lbs[2]) / 2.0;
+    const auto bin2 = gko::amp::get_precision_bin<double>(lbs, val_bin2, 0);
+    EXPECT_EQ(bin2, 2);
+
+    // Value smaller than lb[2] gets dropped (returns -1)
+    const auto bin_drop =
+        gko::amp::get_precision_bin<double>(lbs, lbs[2] * 0.5, 0);
+    EXPECT_EQ(bin_drop, -1);
+
+    // Starting from bin 1 should skip bin 0
+    const auto bin_skip =
+        gko::amp::get_precision_bin<double>(lbs, lbs[0] * 2.0, 1);
+    EXPECT_EQ(bin_skip, 1);
+
+    // Test with float as base type
+    const auto lbs_f =
+        gko::amp::get_bins_precision_lower_bounds<float>(rownorm, tol);
+    const auto bin_f0 =
+        gko::amp::get_precision_bin<float>(lbs_f, lbs_f[0] * 2.0f, 0);
+    EXPECT_EQ(bin_f0, 0);
+    const auto bin_f_drop =
+        gko::amp::get_precision_bin<float>(lbs_f, lbs_f[1] * 0.5f, 0);
+    EXPECT_EQ(bin_f_drop, -1);
+}
+
+
+TEST(AMPAlgorithm, AdjustsBinForUnderflow)
+{
+    const auto mins = gko::amp::get_bins_min_representable<double>();
+
+    // Value representable in bin 2 stays in bin 2
+    double val_ok = static_cast<double>(mins[2]) * 2.0;
+    auto adj_ok = gko::amp::adjust_bin_for_underflow<double>(mins, val_ok, 2);
+    EXPECT_EQ(adj_ok, 2);
+
+    // Value below min of bin 2 should move to a higher-precision bin
+    double val_underflow_half = static_cast<double>(mins[2]) * 0.5;
+    int adjusted =
+        gko::amp::adjust_bin_for_underflow<double>(mins, val_underflow_half, 2);
+    EXPECT_LT(adjusted, 2);
+    EXPECT_EQ(adjusted, 1);
+    // Should be representable in the adjusted bin
+    if (adjusted >= 0) {
+        EXPECT_GE(val_underflow_half, static_cast<double>(mins[adjusted]));
+    }
+
+    // Too small a number that was originally in half bin goes to double bin.
+    const double val_underflow_fl = static_cast<double>(mins[1]) * 0.5;
+    const int adjusted_fl =
+        gko::amp::adjust_bin_for_underflow<double>(mins, val_underflow_fl, 2);
+    EXPECT_EQ(adjusted_fl, 0);
+    // Should be representable in the adjusted bin
+    EXPECT_GE(val_underflow_fl, static_cast<double>(mins[adjusted_fl]));
+
+    // Dropped values (bin -1) stay dropped
+    auto adj_drop =
+        gko::amp::adjust_bin_for_underflow<double>(mins, 1e-100, -1);
+    EXPECT_EQ(adj_drop, -1);
+
+    // Bin 0 stays at bin 0 even for tiny values
+    auto adj_tiny = gko::amp::adjust_bin_for_underflow<double>(mins, 1e-320, 0);
+    EXPECT_EQ(adj_tiny, 0);
+
+    // Test with float as base type
+    const auto mins_f = gko::amp::get_bins_min_representable<float>();
+    float val_ok_f = mins_f[1] * 2.0f;
+    auto adj_f = gko::amp::adjust_bin_for_underflow<float>(mins_f, val_ok_f, 1);
+    EXPECT_EQ(adj_f, 1);
+}
+
+
+TEST(AMPAlgorithm, GetsAdjustedBin)
+{
+    const double rownorm = 1.0;
+    const float tol = 1e-10;
+    const auto lbs =
+        gko::amp::get_bins_precision_lower_bounds<double>(rownorm, tol);
+    const auto mins = gko::amp::get_bins_min_representable<double>();
+
+    // Large value goes to bin 0
+    auto bin_large =
+        gko::amp::get_adjusted_bin<double>(lbs, mins, lbs[0] * 2.0);
+    EXPECT_EQ(bin_large, 0);
+
+    // Value in middle range: precision bin then adjusted for underflow
+    double val_mid = (lbs[0] + lbs[1]) / 2.0;
+    int bin_mid = gko::amp::get_adjusted_bin<double>(lbs, mins, val_mid);
+    // Should be assigned to some bin (precision determined, then underflow
+    // adjusted)
+    EXPECT_GE(bin_mid, 0);
+    // Should be representable in the assigned bin
+    EXPECT_GE(val_mid, static_cast<double>(mins[bin_mid]));
+
+    // Values just smaller than FP16 min are put in float bin
+    //  but those smaller than bfloat16 min are discarded.
+    const double val_under = mins[2] / 1.1;
+    const int bin_under =
+        gko::amp::get_adjusted_bin<double>(lbs, mins, val_under);
+#if GKO_AMP_HALF_IS_FP16
+    EXPECT_EQ(bin_under, 1);
+#else
+    EXPECT_EQ(bin_under, -1);
+#endif
+
+    // Very small value gets dropped
+    auto bin_drop = gko::amp::get_adjusted_bin<double>(lbs, mins, lbs[2] * 0.5);
+    EXPECT_EQ(bin_drop, -1);
+
+    // Test with float as base type
+    const auto lbs_f =
+        gko::amp::get_bins_precision_lower_bounds<float>(rownorm, tol);
+    const auto mins_f = gko::amp::get_bins_min_representable<float>();
+    auto bin_f0 =
+        gko::amp::get_adjusted_bin<float>(lbs_f, mins_f, lbs_f[0] * 2.0f);
+    EXPECT_EQ(bin_f0, 0);
+    auto bin_f_drop =
+        gko::amp::get_adjusted_bin<float>(lbs_f, mins_f, lbs_f[1] * 0.5f);
+    EXPECT_EQ(bin_f_drop, -1);
+}
+
+
+#else  // Only double and float available
+
+TEST(AMPAlgorithm, GetsCorrectBinLowerBoundsByPrecision)
+{
+    const double rownorm = 1.0;
+    const float tol = 1e-10;
+    const auto lbs1 =
+        gko::amp::get_bins_precision_lower_bounds<double>(rownorm, tol);
+    EXPECT_FLOAT_EQ(lbs1[0],
+                    rownorm * tol / std::numeric_limits<float>::epsilon());
+    EXPECT_FLOAT_EQ(lbs1[1], rownorm * tol);
+
+    const auto lbs2 =
+        gko::amp::get_bins_precision_lower_bounds<float>(rownorm, tol);
+    EXPECT_FLOAT_EQ(lbs2[0], rownorm * tol);
+}
+
+
+TEST(AMPAlgorithm, GetsCorrectBinMinRepresentable)
+{
+    const auto mins_d = gko::amp::get_bins_min_representable<double>();
+    EXPECT_FLOAT_EQ(mins_d[0], std::numeric_limits<double>::min());
+    EXPECT_FLOAT_EQ(mins_d[1], std::numeric_limits<float>::min());
+
+    const auto mins_f = gko::amp::get_bins_min_representable<float>();
+    EXPECT_FLOAT_EQ(mins_f[0], std::numeric_limits<float>::min());
+}
+
+
+TEST(AMPAlgorithm, GetsCorrectPrecisionBin)
+{
+    const double rownorm = 1.0;
+    const float tol = 1e-10;
+    const auto lbs =
+        gko::amp::get_bins_precision_lower_bounds<double>(rownorm, tol);
+
+    // Value larger than lb[0] goes to bin 0 (double)
+    auto bin0 = gko::amp::get_precision_bin<double>(lbs, lbs[0] * 2.0, 0);
+    EXPECT_EQ(bin0, 0);
+
+    // Value between lb[0] and lb[1] goes to bin 1 (float)
+    double val_bin1 = (lbs[0] + lbs[1]) / 2.0;
+    auto bin1 = gko::amp::get_precision_bin<double>(lbs, val_bin1, 0);
+    EXPECT_EQ(bin1, 1);
+
+    // Value smaller than lb[1] gets dropped (returns -1)
+    auto bin_drop = gko::amp::get_precision_bin<double>(lbs, lbs[1] * 0.5, 0);
+    EXPECT_EQ(bin_drop, -1);
+
+    // Starting from bin 1 should skip bin 0
+    auto bin_skip = gko::amp::get_precision_bin<double>(lbs, lbs[0] * 2.0, 1);
+    EXPECT_EQ(bin_skip, 1);
+
+    // Test with float as base type (1 bin only)
+    const auto lbs_f =
+        gko::amp::get_bins_precision_lower_bounds<float>(rownorm, tol);
+    auto bin_f0 = gko::amp::get_precision_bin<float>(lbs_f, lbs_f[0] * 2.0f, 0);
+    EXPECT_EQ(bin_f0, 0);
+    auto bin_f_drop =
+        gko::amp::get_precision_bin<float>(lbs_f, lbs_f[0] * 0.5f, 0);
+    EXPECT_EQ(bin_f_drop, -1);
+}
+
+
+TEST(AMPAlgorithm, AdjustsBinForUnderflow)
+{
+    const auto mins = gko::amp::get_bins_min_representable<double, 2>();
+
+    // Value representable in bin 1 stays in bin 1
+    double val_ok = static_cast<double>(mins[1]) * 2.0;
+    auto adj_ok = gko::amp::adjust_bin_for_underflow<double>(mins, val_ok, 1);
+    EXPECT_EQ(adj_ok, 1);
+
+    // Value below min of bin 1 but above min of bin 0 moves to bin 0
+    double val_underflow_float = static_cast<double>(mins[1]) * 0.5;
+    auto adj_underflow = gko::amp::adjust_bin_for_underflow<double>(
+        mins, val_underflow_float, 1);
+    EXPECT_EQ(adj_underflow, 0);
+
+    // Dropped values (bin -1) stay dropped
+    auto adj_drop =
+        gko::amp::adjust_bin_for_underflow<double>(mins, 1e-100, -1);
+    EXPECT_EQ(adj_drop, -1);
+
+    // Bin 0 stays at bin 0 even for tiny values
+    auto adj_tiny = gko::amp::adjust_bin_for_underflow<double>(mins, 1e-320, 0);
+    EXPECT_EQ(adj_tiny, 0);
+}
+
+
+TEST(AMPAlgorithm, GetsAdjustedBin)
+{
+    const double rownorm = 1.0;
+    const float tol = 1e-10;
+    const auto lbs =
+        gko::amp::get_bins_precision_lower_bounds<double>(rownorm, tol);
+    const auto mins = gko::amp::get_bins_min_representable<double>();
+
+    // Large value goes to bin 0
+    auto bin_large =
+        gko::amp::get_adjusted_bin<double>(lbs, mins, lbs[0] * 2.0);
+    EXPECT_EQ(bin_large, 0);
+
+    // Value that would go to bin 1 and is representable stays in bin 1
+    double val_bin1 = (lbs[0] + lbs[1]) / 2.0;
+    if (val_bin1 >= static_cast<double>(mins[1])) {
+        auto bin1 = gko::amp::get_adjusted_bin<double>(lbs, mins, val_bin1);
+        EXPECT_EQ(bin1, 1);
+    }
+
+    // Very small value gets dropped
+    auto bin_drop = gko::amp::get_adjusted_bin<double>(lbs, mins, lbs[1] * 0.5);
+    EXPECT_EQ(bin_drop, -1);
+}
+
+
+#endif
 
 TEST(AMPHelpers, AllocatesEllBinsCorrectlyDouble)
 {
@@ -171,17 +472,6 @@ protected:
 
 TYPED_TEST_SUITE(Amp, gko::test::ValueIndexTypesBase,
                  PairTypenameNameGenerator);
-
-
-TYPED_TEST(Amp, KnowsNumPrecisions)
-{
-    using Mtx = typename TestFixture::Mtx;
-
-    // num_precisions is a compile-time constant based on supported_precisions
-    // tuple. Typically 2 (float, double) or up to 4 with half/bfloat16 enabled.
-    ASSERT_GE(Mtx::num_precisions, 2);
-    ASSERT_LE(Mtx::num_precisions, 4);
-}
 
 
 TYPED_TEST(Amp, HasCorrectExecutor)

@@ -47,14 +47,14 @@ protected:
             {{1.0, 3.0, 2.0},
              {0.0, 5.0, 0.0}}, exec);
         // clang-format on
-        ell1 = Ell::create(exec);
+        ell1 = gko::share(Ell::create(exec));
         mtx1->convert_to(ell1.get());
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Dns> mtx1;
     std::unique_ptr<Dns> mtx2;
-    std::unique_ptr<Ell> ell1;
+    std::shared_ptr<Ell> ell1;
     const float tol = 1e-10;
 };
 
@@ -100,9 +100,15 @@ TYPED_TEST(AMPDouble, GenerateComputesCorrectBinNNZs)
     gko::kernels::reference::amp::generate_ell_rownorms_storage(
         rexec, this->ell1.get(), this->tol, max_nnz, rownorms);
 
+#if GKO_AMP_HALF_IS_FP16
+    EXPECT_EQ(max_nnz[0], 1);
+    EXPECT_EQ(max_nnz[1], 2);
+    EXPECT_EQ(max_nnz[2], 0);
+#elif GKO_AMP_IS_BFLOAT16
     EXPECT_EQ(max_nnz[0], 1);
     EXPECT_EQ(max_nnz[1], 1);
     EXPECT_EQ(max_nnz[2], 1);
+#endif
 }
 
 TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
@@ -114,7 +120,13 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
                   "should be 3 available precisions");
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
+#if GKO_AMP_HALF_IS_FP16
+    auto max_nnzs = gko::amp::array_prec<int, T>{1, 2, 0};
+#elif GKO_AMP_IS_BFLOAT16
     auto max_nnzs = gko::amp::array_prec<int, T>{1, 1, 1};
+#else
+    auto max_nnzs = gko::amp::array_prec<int, T>{1, 2};
+#endif
     auto abins = gko::amp::allocate_bins<T, int>(
         this->exec, this->ell1->get_size(), max_nnzs);
     constexpr auto num_bins = std::tuple_size<decltype(abins)>::value;
@@ -130,10 +142,11 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
         using value_type = typename std::tuple_element<k, types_list>::type;
         auto amat0 = dynamic_cast<gko::matrix::Ell<value_type, int>*>(amat[k]);
         ASSERT_TRUE(amat0);
-        EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 1);
+        const auto nnzrow = amat0->get_num_stored_elements_per_row();
         auto vals = amat0->get_const_values();
         auto colids = amat0->get_const_col_idxs();
         if (k == 0) {
+            EXPECT_EQ(nnzrow, 1);
             EXPECT_EQ(colids[0], 0);
             EXPECT_EQ(colids[1], 2);
             EXPECT_EQ(colids[2], 2);
@@ -144,30 +157,104 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
             EXPECT_EQ(vals[2], static_cast<value_type>(0.8));
             EXPECT_EQ(vals[3], static_cast<value_type>(1.6e-4));
             EXPECT_EQ(vals[4], static_cast<value_type>(-2.0));
-        } else if (k == 1) {
+        }
+#if GKO_AMP_HALF_IS_FP16
+        else if (k == 1) {
+            EXPECT_EQ(nnzrow, 2);
+            EXPECT_EQ(colids[0], 1);
+            EXPECT_EQ(colids[1], gko::invalid_index<int>());
+            EXPECT_EQ(colids[2], gko::invalid_index<int>());
+            EXPECT_EQ(colids[3], 0);
+            EXPECT_EQ(colids[4], 0);
+            EXPECT_EQ(colids[5], 3);
+            EXPECT_EQ(colids[6], gko::invalid_index<int>());
+            EXPECT_EQ(colids[7], gko::invalid_index<int>());
+            EXPECT_EQ(colids[8], gko::invalid_index<int>());
+            EXPECT_EQ(colids[9], gko::invalid_index<int>());
+            EXPECT_EQ(vals[0], static_cast<value_type>(3e-9));
+            EXPECT_EQ(vals[1], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[3], static_cast<value_type>(1.2e-11));
+            EXPECT_EQ(vals[4], static_cast<value_type>(-2e-5));
+            EXPECT_EQ(vals[5], static_cast<value_type>(4.5e-4));
+            EXPECT_EQ(vals[6], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[7], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[8], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[9], static_cast<value_type>(0.0));
+        } else if (k == 2) {
+            EXPECT_EQ(nnzrow, 0);
+            EXPECT_FALSE(vals);
+            EXPECT_FALSE(colids);
+        }
+#elif GKO_AMP_HALF_IS_BFLOAT16
+        else if (k == 1) {
+            EXPECT_EQ(nnzrow, 1);
             EXPECT_EQ(colids[0], 3);
             EXPECT_EQ(colids[1], gko::invalid_index<int>());
             EXPECT_EQ(colids[2], gko::invalid_index<int>());
-            EXPECT_EQ(colids[3], gko::invalid_index<int>());
+            EXPECT_EQ(colids[3], 0);
             EXPECT_EQ(colids[4], 0);
             EXPECT_EQ(vals[0], static_cast<value_type>(4.5e-4));
             EXPECT_EQ(vals[1], static_cast<value_type>(0.0));
             EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
-            EXPECT_EQ(vals[3], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[3], static_cast<value_type>(1.2e-11));
             EXPECT_EQ(vals[4], static_cast<value_type>(-2e-5));
         } else if (k == 2) {
             EXPECT_EQ(colids[0], 1);
             EXPECT_EQ(colids[1], gko::invalid_index<int>());
             EXPECT_EQ(colids[2], gko::invalid_index<int>());
-            EXPECT_EQ(colids[3], 0);
+            EXPECT_EQ(colids[3], gko::invalid_index<int>());
             EXPECT_EQ(colids[4], gko::invalid_index<int>());
             EXPECT_EQ(vals[0], static_cast<value_type>(3e-9));
             EXPECT_EQ(vals[1], static_cast<value_type>(0.0));
             EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
-            EXPECT_EQ(vals[3], static_cast<value_type>(1.2e-11));
+            EXPECT_EQ(vals[3], static_cast<value_type>(0.0));
             EXPECT_EQ(vals[4], static_cast<value_type>(0.0));
         }
+#endif
     });
+}
+
+TYPED_TEST(AMPDouble, ApplyHasCorrectRelativeError)
+{
+    using T = typename TestFixture::value_type;
+    using real_T = gko::remove_complex<T>;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    // Create AMP matrix from the ELL matrix
+    auto amp_mtx = Mtx::build()
+                       .with_tolerance(this->tol)
+                       .on(this->exec)
+                       ->generate(gko::share(this->ell1->clone()));
+    // Create test vector (matrix is 5x4)
+    auto x = gko::initialize<Vec>({1.0, 1.0, 1.0, 1.0}, this->exec);
+    // Compute y_amp = AMP * x
+    auto y_amp =
+        Vec::create(this->exec, gko::dim<2>{this->ell1->get_size()[0], 1});
+
+    amp_mtx->apply(x, y_amp);
+
+    // Compute y_ref = original * x
+    auto y_ref =
+        Vec::create(this->exec, gko::dim<2>{this->ell1->get_size()[0], 1});
+    this->ell1->apply(x, y_ref);
+    // Check relative componentwise error
+    auto y_amp_vals = y_amp->get_const_values();
+    auto y_ref_vals = y_ref->get_const_values();
+    for (gko::size_type i = 0; i < y_ref->get_size()[0]; i++) {
+        auto ref_val = y_ref_vals[i];
+        auto amp_val = y_amp_vals[i];
+        // real_T abs_ref = 0;
+        // for(int j = 0; j < this->mtx1->get_size()[1]; j++) {
+        //     abs_ref += std::abs(this->mtx1->at(i,j)*x->at(j));
+        // }
+        const auto abs_ref = std::abs(ref_val);
+        ASSERT_GT(abs_ref, real_T{1e-14});
+        auto rel_error =
+            std::abs(amp_val - ref_val) / static_cast<real_T>(abs_ref);
+        EXPECT_LE(rel_error, static_cast<real_T>(this->tol))
+            << "Component " << i << ": amp=" << amp_val << ", ref=" << ref_val;
+    }
 }
 
 
@@ -247,8 +334,12 @@ TYPED_TEST(AMPFloat, GenerateComputesCorrectBinNNZs)
     gko::kernels::reference::amp::generate_ell_rownorms_storage(
         rexec, this->ell1.get(), this->tol, max_nnz, rownorms);
 
-    EXPECT_EQ(max_nnz[0], 1);
+#if GINKGO_HAVE_AMP_HALF
+    EXPECT_EQ(max_nnz[0], 2);
     EXPECT_EQ(max_nnz[1], 1);
+#else
+    EXPECT_EQ(max_nnz[0], 3);
+#endif
 }
 
 TYPED_TEST(AMPFloat, GenerateEllScattersBinsCorrectly)
@@ -259,11 +350,23 @@ TYPED_TEST(AMPFloat, GenerateEllScattersBinsCorrectly)
                   "should be 2 available precisions");
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
-    auto max_nnzs = gko::amp::array_prec<int, T>{1, 1};
+    const auto max_nnzs =
+#if GINKGO_HAVE_AMP_HALF
+        gko::amp::array_prec<int, T>{2, 1};
+#else
+        gko::amp::array_prec<int, T>{3};
+#endif
     auto abins = gko::amp::allocate_bins<T, int>(
         this->exec, this->ell1->get_size(), max_nnzs);
     constexpr auto num_bins = std::tuple_size<decltype(abins)>::value;
     gko::amp::array_prec<gko::LinOp*, T> amat;
+#if GINKGO_HAVE_AMP_HALF
+    static_assert(num_bins == 2, "Wrong num bins!");
+    ASSERT_EQ(amat.size(), 2);
+#else
+    static_assert(num_bins == 1, "Wrong num bins!");
+    ASSERT_EQ(amat.size(), 1);
+#endif
     gko::constexpr_for<0, num_bins, 1>(
         [&](auto k) { amat[k] = abins[k].get(); });
 
@@ -275,33 +378,124 @@ TYPED_TEST(AMPFloat, GenerateEllScattersBinsCorrectly)
         using value_type = typename std::tuple_element<k, types_list>::type;
         auto amat0 = dynamic_cast<gko::matrix::Ell<value_type, int>*>(amat[k]);
         ASSERT_TRUE(amat0);
-        EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 1);
         auto vals = amat0->get_const_values();
         auto colids = amat0->get_const_col_idxs();
+#if GKO_AMP_HALF_IS_FP16
         if (k == 0) {
+            EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 2);
             EXPECT_EQ(colids[0], 0);
             EXPECT_EQ(colids[1], 2);
             EXPECT_EQ(colids[2], 2);
             EXPECT_EQ(colids[3], 2);
-            EXPECT_EQ(colids[4], 2);
+            EXPECT_EQ(colids[4], 0);
+            EXPECT_EQ(colids[5], gko::invalid_index<int>());
+            EXPECT_EQ(colids[6], gko::invalid_index<int>());
+            EXPECT_EQ(colids[7], gko::invalid_index<int>());
+            EXPECT_EQ(colids[8], gko::invalid_index<int>());
+            EXPECT_EQ(colids[9], 2);
             EXPECT_EQ(vals[0], static_cast<value_type>(1.1));
             EXPECT_EQ(vals[1], static_cast<value_type>(2.0));
             EXPECT_EQ(vals[2], static_cast<value_type>(0.8));
             EXPECT_EQ(vals[3], static_cast<value_type>(1.6e-4));
-            EXPECT_EQ(vals[4], static_cast<value_type>(-2.0));
+            EXPECT_EQ(vals[4], static_cast<value_type>(-2e-5));
+            for (int j = 5; j < 9; j++) {
+                EXPECT_EQ(vals[j], static_cast<value_type>(0));
+            }
+            EXPECT_EQ(vals[9], static_cast<value_type>(-2.0));
         } else if (k == 1) {
+            EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 1);
             EXPECT_EQ(colids[0], 3);
             EXPECT_EQ(colids[1], gko::invalid_index<int>());
             EXPECT_EQ(colids[2], gko::invalid_index<int>());
             EXPECT_EQ(colids[3], gko::invalid_index<int>());
-            EXPECT_EQ(colids[4], 0);
+            EXPECT_EQ(colids[4], gko::invalid_index<int>());
             EXPECT_EQ(vals[0], static_cast<value_type>(4.5e-4));
+            EXPECT_EQ(vals[1], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[3], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[4], static_cast<value_type>(0));
+        }
+#elif GKO_AMP_HALF_IS_BFLOAT16
+        if (k == 0) {
+            EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 2);
+            EXPECT_EQ(colids[0], 0);
+            EXPECT_EQ(colids[1], 2);
+            EXPECT_EQ(colids[2], 2);
+            EXPECT_EQ(colids[3], 2);
+            EXPECT_EQ(colids[4], gko::invalid_index<int>());
+            EXPECT_EQ(colids[5], 3);
+            EXPECT_EQ(colids[6], gko::invalid_index<int>());
+            EXPECT_EQ(colids[7], gko::invalid_index<int>());
+            EXPECT_EQ(colids[8], gko::invalid_index<int>());
+            EXPECT_EQ(colids[9], gko::invalid_index<int>());
+            EXPECT_EQ(vals[0], static_cast<value_type>(1.1));
+            EXPECT_EQ(vals[1], static_cast<value_type>(2.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.8));
+            EXPECT_EQ(vals[3], static_cast<value_type>(1.6e-4));
+            EXPECT_EQ(vals[4], static_cast<value_type>(0));
+            EXPECT_EQ(vals[5], static_cast<value_type>(4.5e-4));
+            for (int j = 6; j < 9; j++) {
+                EXPECT_EQ(vals[j], static_cast<value_type>(0));
+            }
+            EXPECT_EQ(vals[9], static_cast<value_type>(-2.0));
+        } else if (k == 1) {
+            EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 1);
+            EXPECT_EQ(colids[0], gko::invalid_index<int>());
+            EXPECT_EQ(colids[1], gko::invalid_index<int>());
+            EXPECT_EQ(colids[2], gko::invalid_index<int>());
+            EXPECT_EQ(colids[3], gko::invalid_index<int>());
+            EXPECT_EQ(colids[4], 0);
+            EXPECT_EQ(vals[0], static_cast<value_type>(0));
             EXPECT_EQ(vals[1], static_cast<value_type>(0.0));
             EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
             EXPECT_EQ(vals[3], static_cast<value_type>(0.0));
             EXPECT_EQ(vals[4], static_cast<value_type>(-2e-5));
         }
+#else
+#endif
     });
+}
+
+TYPED_TEST(AMPFloat, ApplyHasCorrectRelativeError)
+{
+    using T = typename TestFixture::value_type;
+    using real_T = typename TestFixture::real_T;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    // Create AMP matrix from the ELL matrix
+    auto amp_mtx = Mtx::build()
+                       .with_tolerance(this->tol)
+                       .on(this->exec)
+                       ->generate(gko::share(this->ell1->clone()));
+    // Create test vector (matrix is 5x4)
+    auto x = gko::initialize<Vec>({1.0, 2.0, 1.0, 2.0}, this->exec);
+    // Compute y_amp = AMP * x
+    auto y_amp =
+        Vec::create(this->exec, gko::dim<2>{this->ell1->get_size()[0], 1});
+
+    amp_mtx->apply(x, y_amp);
+
+    // Compute y_ref = original * x
+    auto y_ref =
+        Vec::create(this->exec, gko::dim<2>{this->ell1->get_size()[0], 1});
+    this->ell1->apply(x, y_ref);
+    // Check relative componentwise error
+    auto y_amp_vals = y_amp->get_const_values();
+    auto y_ref_vals = y_ref->get_const_values();
+    for (gko::size_type i = 0; i < y_ref->get_size()[0]; i++) {
+        const auto ref_val = y_ref_vals[i];
+        const auto amp_val = y_amp_vals[i];
+        const auto abs_ref = std::abs(ref_val);
+        // real_T abs_ref = 0;
+        // for(int j = 0; j < this->mtx1->get_size()[1]; j++) {
+        //     abs_ref += std::abs(this->mtx1->at(i,j)*x->at(j));
+        // }
+        ASSERT_GT(abs_ref, real_T{1e-6});
+        auto rel_error =
+            std::abs(amp_val - ref_val) / static_cast<real_T>(abs_ref);
+        EXPECT_LE(rel_error, static_cast<real_T>(this->tol))
+            << "Component " << i << ": amp=" << amp_val << ", ref=" << ref_val;
+    }
 }
 
 

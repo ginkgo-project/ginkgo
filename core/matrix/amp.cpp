@@ -36,8 +36,8 @@ using bin_mtx_type = gko::matrix::Ell<ValueType, IndexType>;
 namespace {
 
 
-// GKO_REGISTER_OPERATION(spmv, amp::spmv);
-// GKO_REGISTER_OPERATION(advanced_spmv, amp::advanced_spmv);
+GKO_REGISTER_OPERATION(spmv, amp::spmv);
+GKO_REGISTER_OPERATION(advanced_spmv, amp::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(fill_in_dense, amp::fill_in_dense);
 GKO_REGISTER_OPERATION(generate_ell_rownorms_storage,
@@ -59,9 +59,7 @@ AMP<ValueType, IndexType>& AMP<ValueType, IndexType>::operator=(
     const AMP& other)
 {
     if (&other != this) {
-        // const auto old_size = this->get_size();
         EnableLinOp<AMP>::operator=(other);
-        // this->n_bins_ = other.n_bins_;
         for (int i = 0; i < num_precisions; i++) {
             auto tmtx = amp::bin_mtx_type<ValueType, IndexType>::create(
                 this->get_executor());
@@ -79,7 +77,6 @@ AMP<ValueType, IndexType>& AMP<ValueType, IndexType>::operator=(AMP&& other)
     if (&other != this) {
         EnableLinOp<AMP>::operator=(std::move(other));
         mat_bins_ = std::move(other.mat_bins_);
-        // n_bins_ = std::exchange(other.n_bins_, 0);
     }
     return *this;
 }
@@ -88,18 +85,11 @@ AMP<ValueType, IndexType>& AMP<ValueType, IndexType>::operator=(AMP&& other)
 template <typename ValueType, typename IndexType>
 void AMP<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    GKO_NOT_IMPLEMENTED;
-    auto exec = this->get_executor();
-    auto one = Dense<ValueType>::create(exec, dim<2>{1, 1},
-                                        array<ValueType>(exec, {1.0}), 1);
-    constexpr int first_idx =
-        gko::amp::precision_index<remove_complex<ValueType>>::index;
-
-    mat_bins_[first_idx]->apply(b, x);
-
-    for (int ip = first_idx + 1; ip < num_precisions; ip++) {
-        mat_bins_[ip]->apply(one.get(), b, one.get(), x);
-    }
+    mixed_precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_b, auto dense_x) {
+            this->get_executor()->run(amp::make_spmv(this, dense_b, dense_x));
+        },
+        b, x);
 }
 
 
