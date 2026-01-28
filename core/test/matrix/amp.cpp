@@ -654,6 +654,37 @@ TYPED_TEST(Amp, GetBinMatrixReturnsNullForInvalidIndex)
 }
 
 
+TYPED_TEST(Amp, ApplyCompletesWithoutError)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{3, 4});
+    auto x = Dense::create(this->exec, gko::dim<2>{4, 1});
+    x->fill(gko::one<value_type>());
+    auto y = Dense::create(this->exec, gko::dim<2>{3, 1});
+
+    ASSERT_NO_THROW(mtx->apply(x, y));
+}
+
+
+TYPED_TEST(Amp, AdvancedApplyCompletesWithoutError)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
+    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{3, 4});
+    auto alpha = gko::initialize<Dense>({2.0}, this->exec);
+    auto beta = gko::initialize<Dense>({-1.0}, this->exec);
+    auto x = Dense::create(this->exec, gko::dim<2>{4, 1});
+    x->fill(gko::one<value_type>());
+    auto y = Dense::create(this->exec, gko::dim<2>{3, 1});
+    y->fill(gko::one<value_type>());
+
+    ASSERT_NO_THROW(mtx->apply(alpha, x, beta, y));
+}
+
+
 #if 0
 TYPED_TEST(Amp, CanConvertToDense)
 {

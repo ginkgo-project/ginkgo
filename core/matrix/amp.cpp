@@ -97,15 +97,15 @@ template <typename ValueType, typename IndexType>
 void AMP<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                            const LinOp* beta, LinOp* x) const
 {
-    GKO_NOT_IMPLEMENTED;
-    // constexpr int first_idx =
-    //     gko::amp::precision_index<remove_complex<ValueType>>::index;
-
-    // mat_bins_[first_idx]->apply(alpha, b, beta x);
-
-    // for(int ip = first_idx+1; ip < num_precisions; ip++) {
-    //     mat_bins_[ip]->apply(one.get(), b, one.get(), x);
-    // }
+    mixed_precision_dispatch_real_complex<ValueType>(
+        [this, alpha, beta](auto dense_b, auto dense_x) {
+            auto d_alpha = make_temporary_conversion<ValueType>(alpha);
+            auto d_beta = make_temporary_conversion<
+                typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
+            this->get_executor()->run(amp::make_advanced_spmv(
+                d_alpha.get(), this, dense_b, d_beta.get(), dense_x));
+        },
+        b, x);
 }
 
 

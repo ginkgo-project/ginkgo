@@ -51,17 +51,20 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto avals = ell0->get_const_values();
     auto acols = ell0->get_const_col_idxs();
     const auto max_nnz0 = ell0->get_num_stored_elements_per_row();
-    using highest_type =
-        gko::highest_precision<MatrixValueType, InputValueType>;
+    // We need mult type because complex numbers of different precisions don't
+    // get automatically promoted.
+    using mult_type0 = gko::highest_precision<MatrixValueType, InputValueType>;
+    using highest_type0 = gko::highest_precision<mult_type0, OutputValueType>;
     for (int i = 0; i < nrows0; i++) {
-        y[i] = 0;
+        highest_type0 sum = 0;
         for (int j = 0; j < max_nnz0; j++) {
             if (acols[i + j * stride0] >= 0) {
-                y[i] += static_cast<OutputValueType>(
-                    static_cast<highest_type>(avals[i + j * stride0]) *
-                    static_cast<highest_type>(x[acols[i + j * stride0]]));
+                sum += static_cast<highest_type0>(
+                    static_cast<mult_type0>(avals[i + j * stride0]) *
+                    static_cast<mult_type0>(x[acols[i + j * stride0]]));
             }
         }
+        y[i] = static_cast<OutputValueType>(sum);
     }
     gko::constexpr_for<1, q, 1>([&](auto k) {
         using value_type = typename std::tuple_element<
@@ -71,7 +74,8 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
         if (!ellk) {
             GKO_NOT_SUPPORTED(a->get_bin_matrix(0));
         }
-        using high_type = gko::highest_precision<value_type, InputValueType>;
+        using mult_type = gko::highest_precision<value_type, InputValueType>;
+        using highest_type = gko::highest_precision<mult_type, OutputValueType>;
         const auto nrows = static_cast<int>(a->get_size()[0]);
         assert(nrows == nrows0);
         const auto stride = ellk->get_stride();
@@ -80,13 +84,15 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
         const auto max_nnz = ellk->get_num_stored_elements_per_row();
         if (max_nnz > 0) {
             for (int i = 0; i < nrows; i++) {
+                OutputValueType sum = 0;
                 for (int j = 0; j < max_nnz; j++) {
                     if (acols[i + j * stride] >= 0) {
-                        y[i] += static_cast<OutputValueType>(
-                            static_cast<high_type>(avals[i + j * stride]) *
-                            static_cast<high_type>(x[acols[i + j * stride]]));
+                        y[i] += static_cast<highest_type>(
+                            static_cast<mult_type>(avals[i + j * stride]) *
+                            static_cast<mult_type>(x[acols[i + j * stride]]));
                     }
                 }
+                y[i] += static_cast<OutputValueType>(sum);
             }
         }
     });
@@ -105,7 +111,70 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Dense<OutputValueType>* beta,
                    matrix::Dense<OutputValueType>* c)
 {
-    GKO_NOT_IMPLEMENTED;
+    constexpr int q = matrix::AMP<MatrixValueType, IndexType>::num_precisions;
+    static_assert(q > 0, "Need at least 1 bin!");
+    auto ell0 = dynamic_cast<const matrix::Ell<MatrixValueType, IndexType>*>(
+        a->get_bin_matrix(0));
+    if (!ell0) {
+        GKO_NOT_SUPPORTED(a->get_bin_matrix(0));
+    }
+    auto y = c->get_values();
+    auto x = b->get_const_values();
+    const auto alph = alpha->at(0, 0);
+    const auto bet = beta->at(0, 0);
+    const auto nrows0 = static_cast<int>(a->get_size()[0]);
+    const auto stride0 = ell0->get_stride();
+    auto avals = ell0->get_const_values();
+    auto acols = ell0->get_const_col_idxs();
+    const auto max_nnz0 = ell0->get_num_stored_elements_per_row();
+    // We need mult type because complex numbers of different precisions don't
+    // get automatically promoted.
+    using mult_type0 = gko::highest_precision<MatrixValueType, InputValueType>;
+    using highest_type0 = gko::highest_precision<mult_type0, OutputValueType>;
+    for (int i = 0; i < nrows0; i++) {
+        y[i] = bet * y[i];
+        highest_type0 sum = 0;
+        for (int j = 0; j < max_nnz0; j++) {
+            if (acols[i + j * stride0] >= 0) {
+                sum += static_cast<highest_type0>(
+                    static_cast<mult_type0>(avals[i + j * stride0]) *
+                    static_cast<mult_type0>(x[acols[i + j * stride0]]));
+            }
+        }
+        y[i] += static_cast<OutputValueType>(static_cast<highest_type0>(alph) *
+                                             sum);
+    }
+    gko::constexpr_for<1, q, 1>([&](auto k) {
+        using value_type = typename std::tuple_element<
+            k, typename gko::amp::narrow_types<MatrixValueType>::type>::type;
+        auto ellk = dynamic_cast<const matrix::Ell<value_type, IndexType>*>(
+            a->get_bin_matrix(k));
+        if (!ellk) {
+            GKO_NOT_SUPPORTED(a->get_bin_matrix(0));
+        }
+        using mult_type = gko::highest_precision<value_type, InputValueType>;
+        using highest_type = gko::highest_precision<mult_type, OutputValueType>;
+        const auto nrows = static_cast<int>(a->get_size()[0]);
+        assert(nrows == nrows0);
+        const auto stride = ellk->get_stride();
+        auto avals = ellk->get_const_values();
+        auto acols = ellk->get_const_col_idxs();
+        const auto max_nnz = ellk->get_num_stored_elements_per_row();
+        if (max_nnz > 0) {
+            for (int i = 0; i < nrows; i++) {
+                highest_type sum = 0;
+                for (int j = 0; j < max_nnz; j++) {
+                    if (acols[i + j * stride] >= 0) {
+                        sum += static_cast<highest_type>(
+                            static_cast<mult_type>(avals[i + j * stride]) *
+                            static_cast<mult_type>(x[acols[i + j * stride]]));
+                    }
+                }
+                y[i] += static_cast<OutputValueType>(
+                    static_cast<highest_type>(alph) * sum);
+            }
+        }
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(

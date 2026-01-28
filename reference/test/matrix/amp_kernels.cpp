@@ -257,6 +257,46 @@ TYPED_TEST(AMPDouble, ApplyHasCorrectRelativeError)
     }
 }
 
+TYPED_TEST(AMPDouble, AdvancedApplyHasCorrectRelativeError)
+{
+    using T = typename TestFixture::value_type;
+    using real_T = gko::remove_complex<T>;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    // Create AMP matrix from the ELL matrix
+    auto amp_mtx = Mtx::build()
+                       .with_tolerance(this->tol)
+                       .on(this->exec)
+                       ->generate(gko::share(this->ell1->clone()));
+    // Create alpha and beta scalars
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    // Create test vector (matrix is 5x4)
+    auto x = gko::initialize<Vec>({1.0, 1.0, 1.0, 1.0}, this->exec);
+    // Initialize y_amp with some values
+    auto y_amp = gko::initialize<Vec>({1.0, 2.0, 3.0, 4.0, 5.0}, this->exec);
+    // Initialize y_ref with the same values
+    auto y_ref = gko::initialize<Vec>({1.0, 2.0, 3.0, 4.0, 5.0}, this->exec);
+
+    amp_mtx->apply(alpha, x, beta, y_amp);
+
+    // Compute y_ref = alpha * original * x + beta * y_ref
+    this->ell1->apply(alpha, x, beta, y_ref);
+    // Check relative componentwise error
+    auto y_amp_vals = y_amp->get_const_values();
+    auto y_ref_vals = y_ref->get_const_values();
+    for (gko::size_type i = 0; i < y_ref->get_size()[0]; i++) {
+        auto ref_val = y_ref_vals[i];
+        auto amp_val = y_amp_vals[i];
+        const auto abs_ref = std::abs(ref_val);
+        ASSERT_GT(abs_ref, real_T{1e-14});
+        auto rel_error =
+            std::abs(amp_val - ref_val) / static_cast<real_T>(abs_ref);
+        EXPECT_LE(rel_error, static_cast<real_T>(this->tol))
+            << "Component " << i << ": amp=" << amp_val << ", ref=" << ref_val;
+    }
+}
+
 
 template <typename ValueType>
 class AMPFloat : public ::testing::Test {
@@ -490,6 +530,46 @@ TYPED_TEST(AMPFloat, ApplyHasCorrectRelativeError)
         // for(int j = 0; j < this->mtx1->get_size()[1]; j++) {
         //     abs_ref += std::abs(this->mtx1->at(i,j)*x->at(j));
         // }
+        ASSERT_GT(abs_ref, real_T{1e-6});
+        auto rel_error =
+            std::abs(amp_val - ref_val) / static_cast<real_T>(abs_ref);
+        EXPECT_LE(rel_error, static_cast<real_T>(this->tol))
+            << "Component " << i << ": amp=" << amp_val << ", ref=" << ref_val;
+    }
+}
+
+TYPED_TEST(AMPFloat, AdvancedApplyHasCorrectRelativeError)
+{
+    using T = typename TestFixture::value_type;
+    using real_T = typename TestFixture::real_T;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    // Create AMP matrix from the ELL matrix
+    auto amp_mtx = Mtx::build()
+                       .with_tolerance(this->tol)
+                       .on(this->exec)
+                       ->generate(gko::share(this->ell1->clone()));
+    // Create alpha and beta scalars
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    // Create test vector (matrix is 5x4)
+    auto x = gko::initialize<Vec>({1.0, 2.0, 1.0, 2.0}, this->exec);
+    // Initialize y_amp with some values
+    auto y_amp = gko::initialize<Vec>({1.0, 2.0, 3.0, 4.0, 5.0}, this->exec);
+    // Initialize y_ref with the same values
+    auto y_ref = gko::initialize<Vec>({1.0, 2.0, 3.0, 4.0, 5.0}, this->exec);
+
+    amp_mtx->apply(alpha, x, beta, y_amp);
+
+    // Compute y_ref = alpha * original * x + beta * y_ref
+    this->ell1->apply(alpha, x, beta, y_ref);
+    // Check relative componentwise error
+    auto y_amp_vals = y_amp->get_const_values();
+    auto y_ref_vals = y_ref->get_const_values();
+    for (gko::size_type i = 0; i < y_ref->get_size()[0]; i++) {
+        const auto ref_val = y_ref_vals[i];
+        const auto amp_val = y_amp_vals[i];
+        const auto abs_ref = std::abs(ref_val);
         ASSERT_GT(abs_ref, real_T{1e-6});
         auto rel_error =
             std::abs(amp_val - ref_val) / static_cast<real_T>(abs_ref);
