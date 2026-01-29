@@ -394,11 +394,6 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     const auto diag_size = diag->get_size()[0];
     auto diag_values = diag->get_values();
 
-    // Zero out the diagonal first
-    for (gko::size_type i = 0; i < diag_size; i++) {
-        diag_values[i] = zero<ValueType>();
-    }
-
     // Process bin 0 (full precision)
     auto ell0 = dynamic_cast<const matrix::Ell<ValueType, IndexType>*>(
         orig->get_bin_matrix(0));
@@ -410,10 +405,11 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     auto vals0 = ell0->get_const_values();
     auto cols0 = ell0->get_const_col_idxs();
     for (gko::size_type row = 0; row < diag_size; row++) {
+        diag_values[row] = 0;
         for (IndexType j = 0; j < max_nnz0; j++) {
             const auto col = cols0[row + j * stride0];
             if (col == static_cast<IndexType>(row)) {
-                diag_values[row] += vals0[row + j * stride0];
+                diag_values[row] = vals0[row + j * stride0];
             }
         }
     }

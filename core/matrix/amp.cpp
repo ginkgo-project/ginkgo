@@ -202,8 +202,6 @@ AMP<ValueType, IndexType>::extract_diagonal() const
 
     const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
-    exec->run(amp::make_fill_array(diag->get_values(), diag->get_size()[0],
-                                   zero<ValueType>()));
     exec->run(amp::make_extract_diagonal(this, diag.get()));
     return diag;
 }
