@@ -297,6 +297,60 @@ TYPED_TEST(AMPDouble, AdvancedApplyHasCorrectRelativeError)
     }
 }
 
+TYPED_TEST(AMPDouble, FillInDenseReconstructsOriginalMatrix)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Dns = typename TestFixture::Dns;
+    auto rexec =
+        std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
+    // Create AMP matrix from the ELL matrix
+    auto amp_mtx = Mtx::build()
+                       .with_tolerance(this->tol)
+                       .on(this->exec)
+                       ->generate(gko::share(this->ell1->clone()));
+    // Create result dense matrix with same size
+    auto result = Dns::create(this->exec, this->ell1->get_size());
+
+    gko::kernels::reference::amp::fill_in_dense(rexec, amp_mtx.get(),
+                                                result.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, result, this->tol);
+}
+
+TYPED_TEST(AMPDouble, ExtractDiagonalSumsOverBins)
+{
+    using T = typename TestFixture::value_type;
+    using real_T = gko::remove_complex<T>;
+    using Mtx = typename TestFixture::Mtx;
+    using Diag = gko::matrix::Diagonal<T>;
+    auto rexec =
+        std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
+    // Create AMP matrix from the ELL matrix
+    auto amp_mtx = Mtx::build()
+                       .with_tolerance(this->tol)
+                       .on(this->exec)
+                       ->generate(gko::share(this->ell1->clone()));
+    // The matrix is 5x4, so diagonal size is min(5,4) = 4
+    auto diag = Diag::create(this->exec, 4);
+
+    gko::kernels::reference::amp::extract_diagonal(rexec, amp_mtx.get(),
+                                                   diag.get());
+
+    // Diagonal entries from mtx1:
+    // diag[0] = 1.1
+    // diag[1] = 0 (dropped from 1.2e-11)
+    // diag[2] = 0.8
+    // diag[3] = 0.0
+    auto diag_vals = diag->get_const_values();
+    EXPECT_NEAR(std::abs(diag_vals[0] - static_cast<T>(1.1)), real_T{0},
+                static_cast<real_T>(this->tol));
+    EXPECT_NEAR(std::abs(diag_vals[1]), real_T{0}, 0.0);
+    EXPECT_NEAR(std::abs(diag_vals[2] - static_cast<T>(0.8)), real_T{0},
+                static_cast<real_T>(this->tol));
+    EXPECT_NEAR(std::abs(diag_vals[3]), real_T{0}, 0.0);
+}
+
 
 template <typename ValueType>
 class AMPFloat : public ::testing::Test {
@@ -576,6 +630,60 @@ TYPED_TEST(AMPFloat, AdvancedApplyHasCorrectRelativeError)
         EXPECT_LE(rel_error, static_cast<real_T>(this->tol))
             << "Component " << i << ": amp=" << amp_val << ", ref=" << ref_val;
     }
+}
+
+TYPED_TEST(AMPFloat, FillInDenseReconstructsOriginalMatrix)
+{
+    using T = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Dns = typename TestFixture::Dns;
+    auto rexec =
+        std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
+    // Create AMP matrix from the ELL matrix
+    auto amp_mtx = Mtx::build()
+                       .with_tolerance(this->tol)
+                       .on(this->exec)
+                       ->generate(gko::share(this->ell1->clone()));
+    // Create result dense matrix with same size
+    auto result = Dns::create(this->exec, this->ell1->get_size());
+
+    gko::kernels::reference::amp::fill_in_dense(rexec, amp_mtx.get(),
+                                                result.get());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx1, result, this->tol);
+}
+
+TYPED_TEST(AMPFloat, ExtractDiagonalSumsOverBins)
+{
+    using T = typename TestFixture::value_type;
+    using real_T = typename TestFixture::real_T;
+    using Mtx = typename TestFixture::Mtx;
+    using Diag = gko::matrix::Diagonal<T>;
+    auto rexec =
+        std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
+    // Create AMP matrix from the ELL matrix
+    auto amp_mtx = Mtx::build()
+                       .with_tolerance(this->tol)
+                       .on(this->exec)
+                       ->generate(gko::share(this->ell1->clone()));
+    // The matrix is 5x4, so diagonal size is min(5,4) = 4
+    auto diag = Diag::create(this->exec, 4);
+
+    gko::kernels::reference::amp::extract_diagonal(rexec, amp_mtx.get(),
+                                                   diag.get());
+
+    // Diagonal entries from mtx1:
+    // diag[0] = 1.1
+    // diag[1] = 0 (dropped from 1.2e-11)
+    // diag[2] = 0.8
+    // diag[3] = 0.0
+    auto diag_vals = diag->get_const_values();
+    EXPECT_NEAR(std::abs(diag_vals[0] - static_cast<T>(1.1)), real_T{0},
+                static_cast<real_T>(this->tol));
+    EXPECT_NEAR(std::abs(diag_vals[1]), real_T{0}, 0.0);
+    EXPECT_NEAR(std::abs(diag_vals[2] - static_cast<T>(0.8)), real_T{0},
+                static_cast<real_T>(this->tol));
+    EXPECT_NEAR(std::abs(diag_vals[3]), real_T{0}, 0.0);
 }
 
 

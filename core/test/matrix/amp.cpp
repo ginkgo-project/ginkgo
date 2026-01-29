@@ -685,18 +685,21 @@ TYPED_TEST(Amp, AdvancedApplyCompletesWithoutError)
 }
 
 
-#if 0
 TYPED_TEST(Amp, CanConvertToDense)
 {
+    using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
-
-    auto mtx = this->create_amp_from_one_dense(gko::dim<2>{2, 3});
+    auto size = gko::dim<2>{2, 3};
+    auto mtx = this->create_amp_from_one_dense(size);
     auto dense = Dense::create(this->exec);
+    auto ref = gko::share(Dense::create(this->exec, size));
+    ref->fill(gko::one<value_type>());
 
     mtx->convert_to(dense.get());
 
     EXPECT_EQ(dense->get_size(), mtx->get_size());
+    GKO_ASSERT_MTX_NEAR(dense, ref, 0.0);
 }
 
 
@@ -704,9 +707,9 @@ TYPED_TEST(Amp, CanMoveToDense)
 {
     using Mtx = typename TestFixture::Mtx;
     using Dense = typename TestFixture::Dense;
-
     auto mtx = this->create_amp_from_one_dense(gko::dim<2>{2, 3});
-    auto original_size = mtx->get_size();
+    const auto original_size = mtx->get_size();
+    const auto zero_size = gko::dim<2>{0, 0};
     auto dense = Dense::create(this->exec);
 
     mtx->move_to(dense.get());
@@ -727,4 +730,3 @@ TYPED_TEST(Amp, CanExtractDiagonal)
     EXPECT_EQ(diag->get_size()[0],
               std::min(mtx->get_size()[0], mtx->get_size()[1]));
 }
-#endif

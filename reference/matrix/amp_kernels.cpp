@@ -324,7 +324,61 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::AMP<ValueType, IndexType>* source,
                    matrix::Dense<ValueType>* result)
 {
-    GKO_NOT_IMPLEMENTED;
+    constexpr int q = matrix::AMP<ValueType, IndexType>::num_precisions;
+    const auto nrows = source->get_size()[0];
+    const auto ncols = source->get_size()[1];
+
+    // Zero out the result matrix
+    for (gko::size_type i = 0; i < nrows; i++) {
+        for (gko::size_type j = 0; j < ncols; j++) {
+            result->at(i, j) = zero<ValueType>();
+        }
+    }
+
+    // Process bin 0 (full precision)
+    auto ell0 = dynamic_cast<const matrix::Ell<ValueType, IndexType>*>(
+        source->get_bin_matrix(0));
+    if (!ell0) {
+        GKO_NOT_SUPPORTED(source->get_bin_matrix(0));
+    }
+    const auto stride0 = ell0->get_stride();
+    const auto max_nnz0 = ell0->get_num_stored_elements_per_row();
+    auto vals0 = ell0->get_const_values();
+    auto cols0 = ell0->get_const_col_idxs();
+    for (gko::size_type i = 0; i < nrows; i++) {
+        for (IndexType j = 0; j < max_nnz0; j++) {
+            const auto col = cols0[i + j * stride0];
+            if (col >= 0) {
+                result->at(i, col) += vals0[i + j * stride0];
+            }
+        }
+    }
+
+    // Process remaining bins (lower precision)
+    gko::constexpr_for<1, q, 1>([&](auto k) {
+        using bin_value_type = typename std::tuple_element<
+            k, typename gko::amp::narrow_types<ValueType>::type>::type;
+        auto ellk = dynamic_cast<const matrix::Ell<bin_value_type, IndexType>*>(
+            source->get_bin_matrix(k));
+        if (!ellk) {
+            GKO_NOT_SUPPORTED(source->get_bin_matrix(k));
+        }
+        const auto stride = ellk->get_stride();
+        const auto max_nnz = ellk->get_num_stored_elements_per_row();
+        auto vals = ellk->get_const_values();
+        auto cols = ellk->get_const_col_idxs();
+        if (max_nnz > 0) {
+            for (gko::size_type i = 0; i < nrows; i++) {
+                for (IndexType j = 0; j < max_nnz; j++) {
+                    const auto col = cols[i + j * stride];
+                    if (col >= 0) {
+                        result->at(i, col) +=
+                            static_cast<ValueType>(vals[i + j * stride]);
+                    }
+                }
+            }
+        }
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
@@ -336,7 +390,59 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
                       const matrix::AMP<ValueType, IndexType>* orig,
                       matrix::Diagonal<ValueType>* diag)
 {
-    GKO_NOT_IMPLEMENTED;
+    constexpr int q = matrix::AMP<ValueType, IndexType>::num_precisions;
+    const auto diag_size = diag->get_size()[0];
+    auto diag_values = diag->get_values();
+
+    // Zero out the diagonal first
+    for (gko::size_type i = 0; i < diag_size; i++) {
+        diag_values[i] = zero<ValueType>();
+    }
+
+    // Process bin 0 (full precision)
+    auto ell0 = dynamic_cast<const matrix::Ell<ValueType, IndexType>*>(
+        orig->get_bin_matrix(0));
+    if (!ell0) {
+        GKO_NOT_SUPPORTED(orig->get_bin_matrix(0));
+    }
+    const auto stride0 = ell0->get_stride();
+    const auto max_nnz0 = ell0->get_num_stored_elements_per_row();
+    auto vals0 = ell0->get_const_values();
+    auto cols0 = ell0->get_const_col_idxs();
+    for (gko::size_type row = 0; row < diag_size; row++) {
+        for (IndexType j = 0; j < max_nnz0; j++) {
+            const auto col = cols0[row + j * stride0];
+            if (col == static_cast<IndexType>(row)) {
+                diag_values[row] += vals0[row + j * stride0];
+            }
+        }
+    }
+
+    // Process remaining bins (lower precision)
+    gko::constexpr_for<1, q, 1>([&](auto k) {
+        using bin_value_type = typename std::tuple_element<
+            k, typename gko::amp::narrow_types<ValueType>::type>::type;
+        auto ellk = dynamic_cast<const matrix::Ell<bin_value_type, IndexType>*>(
+            orig->get_bin_matrix(k));
+        if (!ellk) {
+            GKO_NOT_SUPPORTED(orig->get_bin_matrix(k));
+        }
+        const auto stride = ellk->get_stride();
+        const auto max_nnz = ellk->get_num_stored_elements_per_row();
+        auto vals = ellk->get_const_values();
+        auto cols = ellk->get_const_col_idxs();
+        if (max_nnz > 0) {
+            for (gko::size_type row = 0; row < diag_size; row++) {
+                for (IndexType j = 0; j < max_nnz; j++) {
+                    const auto col = cols[row + j * stride];
+                    if (col == static_cast<IndexType>(row)) {
+                        diag_values[row] +=
+                            static_cast<ValueType>(vals[row + j * stride]);
+                    }
+                }
+            }
+        }
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(

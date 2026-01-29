@@ -177,7 +177,7 @@ AMP<ValueType, IndexType>::generate_amp(const LinOp* const mtx) const
 
 
 template <typename ValueType, typename IndexType>
-void AMP<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
+void AMP<ValueType, IndexType>::convert_to(Dense<ValueType>* const result) const
 {
     auto exec = this->get_executor();
     auto tmp_result = make_temporary_output_clone(exec, result);
@@ -188,7 +188,7 @@ void AMP<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 
 
 template <typename ValueType, typename IndexType>
-void AMP<ValueType, IndexType>::move_to(Dense<ValueType>* result)
+void AMP<ValueType, IndexType>::move_to(Dense<ValueType>* const result)
 {
     this->convert_to(result);
 }
