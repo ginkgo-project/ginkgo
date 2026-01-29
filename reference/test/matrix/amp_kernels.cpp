@@ -122,7 +122,7 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
 #if GKO_AMP_HALF_IS_FP16
     auto max_nnzs = gko::amp::array_prec<int, T>{1, 2, 0};
-#elif GKO_AMP_IS_BFLOAT16
+#elif GKO_AMP_HALF_IS_BFLOAT16
     auto max_nnzs = gko::amp::array_prec<int, T>{1, 1, 1};
 #else
     auto max_nnzs = gko::amp::array_prec<int, T>{1, 2};
@@ -516,7 +516,7 @@ TYPED_TEST(AMPFloat, GenerateEllScattersBinsCorrectly)
             EXPECT_EQ(colids[1], 2);
             EXPECT_EQ(colids[2], 2);
             EXPECT_EQ(colids[3], 2);
-            EXPECT_EQ(colids[4], gko::invalid_index<int>());
+            EXPECT_EQ(colids[4], 2);
             EXPECT_EQ(colids[5], 3);
             EXPECT_EQ(colids[6], gko::invalid_index<int>());
             EXPECT_EQ(colids[7], gko::invalid_index<int>());
@@ -526,12 +526,11 @@ TYPED_TEST(AMPFloat, GenerateEllScattersBinsCorrectly)
             EXPECT_EQ(vals[1], static_cast<value_type>(2.0));
             EXPECT_EQ(vals[2], static_cast<value_type>(0.8));
             EXPECT_EQ(vals[3], static_cast<value_type>(1.6e-4));
-            EXPECT_EQ(vals[4], static_cast<value_type>(0));
+            EXPECT_EQ(vals[4], static_cast<value_type>(-2.0));
             EXPECT_EQ(vals[5], static_cast<value_type>(4.5e-4));
-            for (int j = 6; j < 9; j++) {
+            for (int j = 6; j < 10; j++) {
                 EXPECT_EQ(vals[j], static_cast<value_type>(0));
             }
-            EXPECT_EQ(vals[9], static_cast<value_type>(-2.0));
         } else if (k == 1) {
             EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 1);
             EXPECT_EQ(colids[0], gko::invalid_index<int>());

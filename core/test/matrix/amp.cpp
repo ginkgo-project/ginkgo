@@ -137,12 +137,15 @@ TEST(AMPAlgorithm, AdjustsBinForUnderflow)
     double val_underflow_half = static_cast<double>(mins[2]) * 0.5;
     int adjusted =
         gko::amp::adjust_bin_for_underflow<double>(mins, val_underflow_half, 2);
+    ASSERT_GE(adjusted, 0);
     EXPECT_LT(adjusted, 2);
+#if GKO_AMP_HALF_IS_FP16
     EXPECT_EQ(adjusted, 1);
+#else
+    EXPECT_EQ(adjusted, 0);
+#endif
     // Should be representable in the adjusted bin
-    if (adjusted >= 0) {
-        EXPECT_GE(val_underflow_half, static_cast<double>(mins[adjusted]));
-    }
+    EXPECT_GE(val_underflow_half, static_cast<double>(mins[adjusted]));
 
     // Too small a number that was originally in half bin goes to double bin.
     const double val_underflow_fl = static_cast<double>(mins[1]) * 0.5;

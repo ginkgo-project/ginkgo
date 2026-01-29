@@ -18,15 +18,15 @@ namespace amp {
 
 #define GINKGO_HAVE_AMP_HALF 1
 
-#if GINKGO_ENABLE_HALF
-
-#define GKO_AMP_HALF_IS_FP16 1
-using half = gko::half;
-
-#else
+#if GINKGO_ENABLE_BFLOAT16
 
 #define GKO_AMP_HALF_IS_BFLOAT16 1
 using half = gko::bfloat16;
+
+#else
+
+#define GKO_AMP_HALF_IS_FP16 1
+using half = gko::half;
 
 #endif
 
