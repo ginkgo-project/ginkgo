@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 
     auto ir16 =
         Ir16::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(2))
+            .with_criteria(gko::stop::max_iters(2))
             .with_solver(gko::preconditioner::Ilu<gko::float16>::build()
                              .with_factorization(
                                  gko::factorization::Ilu<gko::float16>::build()
@@ -123,25 +123,26 @@ int main(int argc, char* argv[])
                                              incomplete_algorithm::syncfree)))
             .on(exec)
             ->generate(A_16);
-    auto gmres32_16 =
-        Gmres32::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(4))
-            .with_flexible(true)
-            .with_generated_preconditioner(std::move(ir16))
-            .on(exec)
-            ->generate(A_16);
-    auto gmres32 =
-        Gmres32::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(8))
-            .with_flexible(true)
-            .with_generated_preconditioner(std::move(gmres32_16))
-            .on(exec)
-            ->generate(A_32);
+    auto gmres32_16 = Gmres32::build()
+                          .with_criteria(gko::stop::max_iters(4))
+                          .with_krylov_dim(4u)
+                          .with_flexible(true)
+                          .with_generated_preconditioner(std::move(ir16))
+                          .on(exec)
+                          ->generate(A_16);
+    auto gmres32 = Gmres32::build()
+                       .with_criteria(gko::stop::max_iters(8))
+                       .with_krylov_dim(8u)
+                       .with_flexible(true)
+                       .with_generated_preconditioner(std::move(gmres32_16))
+                       .on(exec)
+                       ->generate(A_32);
     auto solver =
         Gmres64::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(10),
+            .with_criteria(gko::stop::max_iters(10),
                            gko::stop::ResidualNorm<gko::float64>::build()
                                .with_reduction_factor(reduction_factor))
+            .with_krylov_dim(10u)
             .with_flexible(true)
             .with_generated_preconditioner(std::move(gmres32))
             .on(exec)
