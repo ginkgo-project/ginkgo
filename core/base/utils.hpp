@@ -299,64 +299,6 @@ struct generator_partial {
 template <typename T>
 using ptr_type = T*;
 
-/**
- * Assigns a given value to the given index in a tuple.
- *
- * @tparam k  Position in the tuple to check against the runtime index.
- * @tparam ValueType  scalar type to assign to the tuple position.
- * @tparam Args  Types that make up the tuple.
- *
- * @param t  The tuple to be modified.
- * @param value  The value to be assigned.
- * @param idx  The runtime position of the tuple that should be assigned to.
- */
-template <int k, typename ValueType, typename... Args>
-void assign_value_to_tuple(std::tuple<Args...>& t, const ValueType& value,
-                           const int idx)
-{
-    constexpr int len = sizeof...(Args);
-    if constexpr (k < 0 || k >= len) {
-        return;
-    } else if constexpr (k == len - 1) {
-        if (k == idx) {
-            std::get<k>(t) = value;
-        }
-        return;
-    } else {
-        if (k == idx) {
-            std::get<k>(t) = value;
-        } else {
-            assign_value_to_tuple<k + 1>(t, value, idx);
-        }
-    }
-}
-
-/**
- * Assigns a given value to the given location of the given index
- * in a tuple of arrays.
- */
-template <int k, typename ValueType, typename... Args>
-inline void assign_value_to_array_tuple(const std::tuple<Args...>& t,
-                                        const ValueType& value, const int t_idx,
-                                        const int loc)
-{
-    constexpr int len = sizeof...(Args);
-    if constexpr (k < 0 || k >= len) {
-        return;
-    } else if constexpr (k == len - 1) {
-        if (k == t_idx) {
-            std::get<k>(t)[loc] = value;
-        }
-        return;
-    } else {
-        if (k == t_idx) {
-            std::get<k>(t)[loc] = value;
-        } else {
-            assign_value_to_array_tuple<k + 1>(t, value, t_idx, loc);
-        }
-    }
-}
-
 
 }  // namespace gko
 

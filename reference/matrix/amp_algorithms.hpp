@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_CORE_MATRIX_AMP_ALGORITHMS_H_
-#define GKO_CORE_MATRIX_AMP_ALGORITHMS_H_
+#ifndef GKO_REFERENCE_MATRIX_AMP_ALGORITHMS_H_
+#define GKO_REFERENCE_MATRIX_AMP_ALGORITHMS_H_
 
 #include <ginkgo/core/base/amp_types.hpp>
 
@@ -11,7 +11,13 @@
 
 
 namespace gko {
+namespace kernels {
+namespace reference {
 namespace amp {
+
+
+template <typename T, typename U>
+using array_prec = gko::amp::array_prec<T, U>;
 
 
 template <typename RealType, int k>
@@ -148,8 +154,75 @@ inline int get_adjusted_bin(
                                               ibin);
 }
 
+/**
+ * Assigns a given value to the given index in a tuple.
+ *
+ * @tparam k  Position in the tuple to check against the runtime index.
+ * @tparam ValueType  scalar type to assign to the tuple position.
+ * @tparam Args  Types that make up the tuple.
+ *
+ * @param t  The tuple to be modified.
+ * @param value  The value to be assigned.
+ * @param idx  The runtime position of the tuple that should be assigned to.
+ */
+template <int k, typename ValueType, typename... Args>
+void assign_value_to_tuple(std::tuple<Args...>& t, const ValueType& value,
+                           const int idx)
+{
+    constexpr int len = sizeof...(Args);
+    if constexpr (k < 0 || k >= len) {
+        return;
+    } else if constexpr (k == len - 1) {
+        if (k == idx) {
+            std::get<k>(t) = value;
+        }
+        return;
+    } else {
+        if (k == idx) {
+            std::get<k>(t) = value;
+        } else {
+            assign_value_to_tuple<k + 1>(t, value, idx);
+        }
+    }
+}
+
+/**
+ * Assigns a given value to the given location of the given index
+ * in a tuple of arrays.
+ *
+ * @tparam k  The index of the tuple-element to check. Starts at 0.
+ *
+ * @param t  The tuple whose element is to be to assign to.
+ * @param value  The value to be assigned.
+ * @param t_idx  The index of the tuple-element to be modified.
+ * @param loc  The offset at which the value should be placed.
+ */
+template <int k, typename ValueType, typename... Args>
+inline void assign_value_to_array_tuple(const std::tuple<Args...>& t,
+                                        const ValueType& value, const int t_idx,
+                                        const int loc)
+{
+    constexpr int len = sizeof...(Args);
+    if constexpr (k < 0 || k >= len) {
+        return;
+    } else if constexpr (k == len - 1) {
+        if (k == t_idx) {
+            std::get<k>(t)[loc] = value;
+        }
+        return;
+    } else {
+        if (k == t_idx) {
+            std::get<k>(t)[loc] = value;
+        } else {
+            assign_value_to_array_tuple<k + 1>(t, value, t_idx, loc);
+        }
+    }
+}
+
 
 }  // namespace amp
+}  // namespace reference
+}  // namespace kernels
 }  // namespace gko
 
 #endif  // GKO_CORE_MATRIX_AMP_ALGORITHMS_H_

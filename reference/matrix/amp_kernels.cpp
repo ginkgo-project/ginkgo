@@ -16,7 +16,7 @@
 
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
-#include "core/matrix/amp_algorithms.hpp"
+#include "reference/matrix/amp_algorithms.hpp"
 
 
 namespace gko {
@@ -192,7 +192,7 @@ void generate_ell_rownorms_storage(
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
     // Compute minimum representable values for each bin
     const std::array<float, q> min_repr =
-        gko::amp::get_bins_min_representable<real_type>();
+        get_bins_min_representable<real_type>();
 
     const auto nrows = a->get_size()[0];
     const auto ostride = a->get_stride();
@@ -216,13 +216,12 @@ void generate_ell_rownorms_storage(
 
         // Compute lower limits of each precision bin
         const std::array<float, q> min_bin =
-            gko::amp::get_bins_precision_lower_bounds<real_type>(rnorm,
-                                                                 tolerance);
+            get_bins_precision_lower_bounds<real_type>(rnorm, tolerance);
 
         // Get max nnz per row for each precision bin matrix
         std::array<int, q> row_nnz = {};
         for (int j = 0; j < omax_nnz; j++) {
-            const int ibin = gko::amp::get_adjusted_bin<real_type>(
+            const int ibin = get_adjusted_bin<real_type>(
                 min_bin, min_repr, std::abs(ovals[j * ostride + irow]));
             if (ibin >= 0) {
                 row_nnz[ibin]++;
@@ -248,7 +247,7 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
     // Compute minimum representable values for each bin
     const std::array<float, q> min_repr =
-        gko::amp::get_bins_min_representable<real_type>();
+        get_bins_min_representable<real_type>();
 
     const auto nrows = a->get_size()[0];
     const auto ostride = a->get_stride();
@@ -268,8 +267,7 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
 
         // Compute lower limits of each precision bin
         const std::array<float, q> min_bin =
-            gko::amp::get_bins_precision_lower_bounds<real_type>(rnorm,
-                                                                 tolerance);
+            get_bins_precision_lower_bounds<real_type>(rnorm, tolerance);
 
         using EllTuple = gko::instantiation_tuple_t<
             gko::generator_partial<gko::matrix::Ell, IndexType>,
@@ -300,8 +298,8 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
 
         for (int j = 0; j < omax_nnz; j++) {
             const ptrdiff_t oloc = j * ostride + irow;
-            const int ibin = gko::amp::get_adjusted_bin<real_type>(
-                min_bin, min_repr, std::abs(ovals[oloc]));
+            const int ibin = get_adjusted_bin<real_type>(min_bin, min_repr,
+                                                         std::abs(ovals[oloc]));
             if (ibin >= 0) {
                 const auto nzloc =
                     ixj[ibin] * static_cast<ptrdiff_t>(bin_strides[ibin]) +
