@@ -139,12 +139,6 @@ protected:
     explicit AMP(std::shared_ptr<const Executor>);
 
     /**
-     * Creates an AMP matrix from matrix bins of different precisions.
-     */
-    explicit AMP(
-        std::array<std::unique_ptr<const LinOp>, num_precisions>&& matrix_bins);
-
-    /**
      * Constructs an AMP matrix from a given (high-precision) matrix.
      * Inherits the executor and size; runs an analysis step.
      */

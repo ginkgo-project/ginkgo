@@ -227,23 +227,6 @@ AMP<ValueType, IndexType>::AMP(AMP&& other) : AMP(other.get_executor())
 }
 
 
-template <typename ValueType, typename IndexType>
-AMP<ValueType, IndexType>::AMP(
-    std::array<std::unique_ptr<const LinOp>, num_precisions>&& matrix_bins)
-    : EnableLinOp<AMP<ValueType, IndexType>>(matrix_bins[0]->get_executor(),
-                                             matrix_bins[0]->get_size()),
-      mat_bins_{std::move(matrix_bins)}
-{
-    GKO_ENSURE_ALLOCATED(mat_bins_[0].get(),
-                         this->get_executor()->get_description(), 1);
-    for (int i = 0; i < num_precisions - 1; i++) {
-        GKO_ENSURE_ALLOCATED(mat_bins_[i + 1].get(),
-                             this->get_executor()->get_description(), 1);
-        GKO_ASSERT_EQUAL_DIMENSIONS(mat_bins_[i], mat_bins_[i + 1]);
-    }
-}
-
-
 #define GKO_DECLARE_AMP_MATRIX(ValueType, IndexType) \
     class AMP<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_AMP_MATRIX);
