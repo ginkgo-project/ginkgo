@@ -266,7 +266,7 @@ TEST(AMPAlgorithm, GetsCorrectPrecisionBin)
 
 TEST(AMPAlgorithm, AdjustsBinForUnderflow)
 {
-    const auto mins = gkra::get_bins_min_representable<double, 2>();
+    const auto mins = gkra::get_bins_min_representable<double>();
 
     // Value representable in bin 1 stays in bin 1
     double val_ok = static_cast<double>(mins[1]) * 2.0;
@@ -428,8 +428,13 @@ TYPED_TEST(AMPDouble, GenerateComputesCorrectBinNNZs)
     using T = typename TestFixture::value_type;
     using real_T = gko::remove_complex<typename TestFixture::value_type>;
     static_assert(std::is_same<real_T, double>::value, "double only!");
+#if GINKGO_HAVE_AMP_HALF
     static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 3,
                   "should be 3 available precisions");
+#else
+    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
+                  "should be 2 available precisions");
+#endif
     gko::amp::array_prec<int, T> max_nnz;
     gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
     auto rexec =
@@ -442,10 +447,13 @@ TYPED_TEST(AMPDouble, GenerateComputesCorrectBinNNZs)
     EXPECT_EQ(max_nnz[0], 1);
     EXPECT_EQ(max_nnz[1], 2);
     EXPECT_EQ(max_nnz[2], 0);
-#elif GKO_AMP_IS_BFLOAT16
+#elif GKO_AMP_HALF_IS_BFLOAT16
     EXPECT_EQ(max_nnz[0], 1);
     EXPECT_EQ(max_nnz[1], 1);
     EXPECT_EQ(max_nnz[2], 1);
+#else
+    EXPECT_EQ(max_nnz[0], 1);
+    EXPECT_EQ(max_nnz[1], 2);
 #endif
 }
 
@@ -454,8 +462,13 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
     using T = typename TestFixture::value_type;
     using real_T = gko::remove_complex<typename TestFixture::value_type>;
     static_assert(std::is_same<real_T, double>::value, "double only!");
+#if GINKGO_HAVE_AMP_HALF
     static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 3,
                   "should be 3 available precisions");
+#else
+    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
+                  "should be 2 available precisions");
+#endif
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
 #if GKO_AMP_HALF_IS_FP16
@@ -548,6 +561,31 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
             EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
             EXPECT_EQ(vals[3], static_cast<value_type>(0.0));
             EXPECT_EQ(vals[4], static_cast<value_type>(0.0));
+        }
+#else
+        // Only double and float available (no half)
+        else if (k == 1) {
+            EXPECT_EQ(nnzrow, 2);
+            EXPECT_EQ(colids[0], 1);
+            EXPECT_EQ(colids[1], gko::invalid_index<int>());
+            EXPECT_EQ(colids[2], gko::invalid_index<int>());
+            EXPECT_EQ(colids[3], 0);
+            EXPECT_EQ(colids[4], 0);
+            EXPECT_EQ(colids[5], 3);
+            EXPECT_EQ(colids[6], gko::invalid_index<int>());
+            EXPECT_EQ(colids[7], gko::invalid_index<int>());
+            EXPECT_EQ(colids[8], gko::invalid_index<int>());
+            EXPECT_EQ(colids[9], gko::invalid_index<int>());
+            EXPECT_EQ(vals[0], static_cast<value_type>(3e-9));
+            EXPECT_EQ(vals[1], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[3], static_cast<value_type>(1.2e-11));
+            EXPECT_EQ(vals[4], static_cast<value_type>(-2e-5));
+            EXPECT_EQ(vals[5], static_cast<value_type>(4.5e-4));
+            EXPECT_EQ(vals[6], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[7], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[8], static_cast<value_type>(0.0));
+            EXPECT_EQ(vals[9], static_cast<value_type>(0.0));
         }
 #endif
     });
@@ -756,8 +794,13 @@ TYPED_TEST(AMPFloat, GenerateComputesCorrectBinNNZs)
 {
     using T = typename TestFixture::value_type;
     using real_T = typename TestFixture::real_T;
+#if GINKGO_HAVE_AMP_HALF
     static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
                   "should be 2 available precisions");
+#else
+    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 1,
+                  "should be 1 available precision");
+#endif
     gko::amp::array_prec<int, T> max_nnz;
     gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
     auto rexec =
@@ -770,7 +813,7 @@ TYPED_TEST(AMPFloat, GenerateComputesCorrectBinNNZs)
     EXPECT_EQ(max_nnz[0], 2);
     EXPECT_EQ(max_nnz[1], 1);
 #else
-    EXPECT_EQ(max_nnz[0], 3);
+    EXPECT_EQ(max_nnz[0], 2);
 #endif
 }
 
@@ -778,15 +821,20 @@ TYPED_TEST(AMPFloat, GenerateEllScattersBinsCorrectly)
 {
     using T = typename TestFixture::value_type;
     using real_T = typename TestFixture::real_T;
+#if GINKGO_HAVE_AMP_HALF
     static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
                   "should be 2 available precisions");
+#else
+    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 1,
+                  "should be 1 available precision");
+#endif
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
     const auto max_nnzs =
 #if GINKGO_HAVE_AMP_HALF
         gko::amp::array_prec<int, T>{2, 1};
 #else
-        gko::amp::array_prec<int, T>{3};
+        gko::amp::array_prec<int, T>{2};
 #endif
     auto abins = gko::amp::allocate_bins<T, int>(
         this->exec, this->ell1->get_size(), max_nnzs);
@@ -883,6 +931,30 @@ TYPED_TEST(AMPFloat, GenerateEllScattersBinsCorrectly)
             EXPECT_EQ(vals[4], static_cast<value_type>(-2e-5));
         }
 #else
+        // Only float available (no half)
+        if (k == 0) {
+            EXPECT_EQ(amat0->get_num_stored_elements_per_row(), 2);
+            EXPECT_EQ(colids[0], 0);
+            EXPECT_EQ(colids[1], 2);
+            EXPECT_EQ(colids[2], 2);
+            EXPECT_EQ(colids[3], 2);
+            EXPECT_EQ(colids[4], 0);
+            EXPECT_EQ(colids[5], 3);
+            EXPECT_EQ(colids[6], gko::invalid_index<int>());
+            EXPECT_EQ(colids[7], gko::invalid_index<int>());
+            EXPECT_EQ(colids[8], gko::invalid_index<int>());
+            EXPECT_EQ(colids[9], 2);
+            EXPECT_EQ(vals[0], static_cast<value_type>(1.1));
+            EXPECT_EQ(vals[1], static_cast<value_type>(2.0));
+            EXPECT_EQ(vals[2], static_cast<value_type>(0.8));
+            EXPECT_EQ(vals[3], static_cast<value_type>(1.6e-4));
+            EXPECT_EQ(vals[4], static_cast<value_type>(-2e-5));
+            EXPECT_EQ(vals[5], static_cast<value_type>(4.5e-4));
+            for (int j = 6; j < 9; j++) {
+                EXPECT_EQ(vals[j], static_cast<value_type>(0));
+            }
+            EXPECT_EQ(vals[9], static_cast<value_type>(-2.0));
+        }
 #endif
     });
 }

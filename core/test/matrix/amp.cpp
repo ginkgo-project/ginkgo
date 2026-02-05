@@ -36,6 +36,24 @@ TEST(AMPTypes, NarrowTypesWorksCorrectly)
     static_assert(gko::amp::narrow_types<gko::amp::half>::num_types == 1);
     static_assert(
         gko::amp::narrow_types<std::complex<gko::amp::half>>::num_types == 1);
+#else
+    using mytypesd = gko::amp::narrow_types<double>::type;
+    constexpr auto chkd =
+        std::is_same<mytypesd, std::tuple<double, float>>::value;
+    static_assert(chkd, "Wrong types_list<double>!");
+    using mytypescd = gko::amp::narrow_types<std::complex<double>>::type;
+    constexpr auto chkcd =
+        std::is_same<mytypescd, std::tuple<std::complex<double>,
+                                           std::complex<float>>>::value;
+    static_assert(chkcd, "Wrong types_list<cdouble>!");
+    using mytypescf = gko::amp::narrow_types<std::complex<float>>::type;
+    constexpr auto chkcf =
+        std::is_same<mytypescf, std::tuple<std::complex<float>>>::value;
+    static_assert(chkcf, "Wrong types_list<cfloat>!");
+    static_assert(gko::amp::narrow_types<double>::num_types == 2);
+    static_assert(gko::amp::narrow_types<std::complex<double>>::num_types == 2);
+    static_assert(gko::amp::narrow_types<float>::num_types == 1);
+    static_assert(gko::amp::narrow_types<std::complex<float>>::num_types == 1);
 #endif
 }
 
@@ -47,6 +65,7 @@ TEST(AMPHelpers, AllocatesEllBinsCorrectlyDouble)
 {
     auto exec = gko::ReferenceExecutor::create();
     const gko::dim<2> ds{10, 12};
+#if GINKGO_HAVE_AMP_HALF
     auto mnpr = gko::amp::array_prec<int, double>{3, 4, 5};
 
     auto bins = gko::amp::allocate_bins<double, int>(exec, ds, mnpr);
@@ -68,8 +87,27 @@ TEST(AMPHelpers, AllocatesEllBinsCorrectlyDouble)
     EXPECT_EQ(r->get_size(), ds);
     EXPECT_EQ(r->get_num_stored_elements_per_row(), 5);
     EXPECT_TRUE(r->get_col_idxs());
+#else
+    auto mnpr = gko::amp::array_prec<int, double>{3, 4};
+
+    auto bins = gko::amp::allocate_bins<double, int>(exec, ds, mnpr);
+
+    static_assert(std::tuple_size<decltype(bins)>{} == 2,
+                  "wrong number of bins!");
+    auto p = dynamic_cast<Ell<double, int>*>(bins[0].get());
+    EXPECT_TRUE(p);
+    EXPECT_EQ(p->get_size(), ds);
+    EXPECT_EQ(p->get_num_stored_elements_per_row(), 3);
+    EXPECT_TRUE(p->get_col_idxs()[0] = 1);
+    auto q = dynamic_cast<Ell<float, int>*>(bins[1].get());
+    EXPECT_TRUE(q);
+    EXPECT_EQ(q->get_size(), ds);
+    EXPECT_EQ(q->get_num_stored_elements_per_row(), 4);
+    EXPECT_TRUE(q->get_col_idxs());
+#endif
 }
 
+#if GINKGO_HAVE_AMP_HALF
 TEST(AMPHelpers, AllocatesEllBinsCorrectlyComplexFloat)
 {
     using value_type = std::complex<float>;
@@ -92,6 +130,26 @@ TEST(AMPHelpers, AllocatesEllBinsCorrectlyComplexFloat)
     EXPECT_EQ(r->get_size(), ds);
     EXPECT_EQ(r->get_num_stored_elements_per_row(), 5);
 }
+#else
+TEST(AMPHelpers, AllocatesEllBinsCorrectlyComplexFloat)
+{
+    using value_type = std::complex<float>;
+    auto exec = gko::ReferenceExecutor::create();
+    const gko::dim<2> ds{10, 12};
+    auto mnpr = gko::amp::array_prec<int, value_type>{4};
+
+    auto bins = gko::amp::allocate_bins<value_type, int>(exec, ds, mnpr);
+
+    static_assert(std::tuple_size<decltype(bins)>{} == 1,
+                  "wrong number of bins!");
+    auto p = dynamic_cast<gko::matrix::Ell<value_type, int>*>(bins[0].get());
+    EXPECT_TRUE(p);
+    EXPECT_EQ(p->get_size(), ds);
+    EXPECT_EQ(p->get_num_stored_elements_per_row(), 4);
+}
+#endif
+
+#if GINKGO_HAVE_AMP_HALF
 
 TEST(AMPHelpers, AllocatesEllBinsTupleCorrectlyComplexFloat)
 {
@@ -120,6 +178,31 @@ TEST(AMPHelpers, AllocatesEllBinsTupleCorrectlyComplexFloat)
     EXPECT_EQ(std::get<1>(bins)->get_size(), ds);
     EXPECT_EQ(std::get<1>(bins)->get_num_stored_elements_per_row(), 5);
 }
+
+#else
+
+TEST(AMPHelpers, AllocatesEllBinsTupleCorrectlyComplexFloat)
+{
+    using value_type = std::complex<float>;
+
+    auto exec = gko::ReferenceExecutor::create();
+    const gko::dim<2> ds{10, 12};
+    auto mnpr = gko::amp::array_prec<int, value_type>{4};
+
+    auto bins = gko::amp::allocate_bins_tuple<value_type, int>(exec, ds, mnpr);
+
+    static_assert(std::tuple_size<decltype(bins)>{} == 1,
+                  "wrong number of bins!");
+    using bin0type = decltype(std::get<0>(bins));
+    static_assert(
+        std::is_same<bin0type,
+                     std::unique_ptr<Ell<std::complex<float>, int>>&>::value,
+        "Wrong static type of bin!");
+    EXPECT_EQ(std::get<0>(bins)->get_size(), ds);
+    EXPECT_EQ(std::get<0>(bins)->get_num_stored_elements_per_row(), 4);
+}
+
+#endif
 
 
 template <typename ValueIndexType>

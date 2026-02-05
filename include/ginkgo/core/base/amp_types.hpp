@@ -141,8 +141,12 @@ struct narrow_types {
     static constexpr int num_types = std::tuple_size<type>::value;
 };
 
+
+#ifdef GINKGO_HAVE_AMP_HALF
+
 /**
- * Currently, gko::amp::half is the narrowest precision supported.
+ * Currently, gko::amp::half is the narrowest precision supported,
+ * if enabled.
  */
 template <>
 struct narrow_types<half> {
@@ -156,6 +160,21 @@ struct narrow_types<std::complex<half>> {
     static constexpr int num_types = 1;
 };
 
+#else
+
+template <>
+struct narrow_types<float> {
+    using type = std::tuple<float>;
+    static constexpr int num_types = 1;
+};
+
+template <>
+struct narrow_types<std::complex<float>> {
+    using type = std::tuple<std::complex<float>>;
+    static constexpr int num_types = 1;
+};
+
+#endif
 
 /**
  * A fixed-size array holding an item for each supported precision starting at
