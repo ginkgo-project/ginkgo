@@ -219,30 +219,26 @@ TYPED_TEST(Cg, PassExplicitFactory)
 TYPED_TEST(Cg, RecognizesInvalidSystemMatrix)
 {
     using value_type = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename TestFixture::value_type;
-
-    std::shared_ptr<const gko::LinOp> m = gko::initialize<Mtx>(
-        {{value_type{1.0}, INFINITY}, {value_type{3.0}, value_type{4.0}}},
-        this->exec);
+    std::shared_ptr<const gko::LinOp> m =
+        gko::matrix::Identity<value_type>::create(this->exec, 3);
 
     ASSERT_THROW(this->cg_factory->generate(m)->validate_data(),
                  gko::InvalidData);
 }
 
 
-TYPED_TEST(Cg, RecognizesNonSymmetricSystemMatrix)
+TYPED_TEST(Cg, Cg_RecognizesNonSymmetricSystemMatrix)
 {
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
 
-    std::shared_ptr<const gko::LinOp> m =
+    std::shared_ptr<const gko::LinOp> mtx =
         gko::initialize<Mtx>({{value_type{1.0}, value_type{2.0}},
                               {value_type{3.0}, value_type{4.0}}},
                              this->exec);
 
-    ASSERT_THROW(this->cg_factory->generate(m)->validate_data(),
+    ASSERT_THROW(this->cg_factory->generate(mtx)->validate_data(),
                  gko::InvalidData);
 }
 
