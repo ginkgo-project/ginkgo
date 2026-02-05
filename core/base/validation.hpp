@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,8 +10,14 @@
 #include <unordered_set>
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/permutation.hpp>
 
 
 namespace gko {
@@ -126,7 +132,7 @@ void validate_system_matrix(std::shared_ptr<const LinOp> mtx)
     }
 
     auto try_validate = [&](auto&& ptr, const char* name) {
-        using PtrType = decltype(ptr);
+        using PtrType = typename std::remove_reference<decltype(ptr)>::type;
         if (auto typed =
                 std::dynamic_pointer_cast<const typename PtrType::element_type>(
                     mtx)) {
