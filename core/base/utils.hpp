@@ -251,7 +251,7 @@ using instantiation_tuple_t = typename instantiation_tuple<T, Types...>::type;
  * @tparam Generator  A type that defines a `generate` template inside.
  * @param Types  A list (pack or tuple) of (scalar) types.
  */
-template <template <typename> class TypeTransformer, typename Generator,
+template <template <typename...> class TypeTransformer, typename Generator,
           typename... Types>
 struct transformed_instantiation_tuple {
     using type = std::tuple<
@@ -259,7 +259,7 @@ struct transformed_instantiation_tuple {
 };
 
 // Specialization - handles std::tuple. See the instantiation_list above.
-template <template <typename> class TypeTransformer, typename Generator,
+template <template <typename...> class TypeTransformer, typename Generator,
           typename... Types>
 struct transformed_instantiation_tuple<TypeTransformer, Generator,
                                        std::tuple<Types...>> {
@@ -268,7 +268,7 @@ struct transformed_instantiation_tuple<TypeTransformer, Generator,
 };
 
 // Helper alias
-template <template <typename> class TypeTransformer, typename T,
+template <template <typename...> class TypeTransformer, typename T,
           typename... Types>
 using transformed_instantiation_tuple_t =
     typename transformed_instantiation_tuple<TypeTransformer, T,
