@@ -55,57 +55,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_AMP_ADVANCED_SPMV_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void generate_ell_rownorms_storage(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
-    gko::amp::array_prec<int, ValueType>& max_nnz,
-    array<remove_complex<ValueType>>& rownorms)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
-    GKO_DECLARE_AMP_GENERATE_CWISE_ELL_STEP1_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void generate_ell_scatter_bins(std::shared_ptr<const DefaultExecutor> exec,
-                               const matrix::Ell<ValueType, IndexType>* a,
-                               const float tolerance,
-                               gko::amp::array_prec<LinOp*, ValueType>& amat)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
-    GKO_DECLARE_AMP_GENERATE_ELL_SCATTER_BINS_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::AMP<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
-    GKO_DECLARE_AMP_FILL_IN_DENSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::AMP<ValueType, IndexType>* orig,
-                      matrix::Diagonal<ValueType>* diag)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
-    GKO_DECLARE_AMP_EXTRACT_DIAGONAL_KERNEL);
-
-
 }  // namespace amp
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
