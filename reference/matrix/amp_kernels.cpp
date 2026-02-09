@@ -185,7 +185,7 @@ template <typename ValueType, typename IndexType>
 void generate_ell_rownorms_storage(
     std::shared_ptr<const ReferenceExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
-    gko::amp::array_prec<int, ValueType>& max_nnz_per_row,
+    gko::amp::precision_array<int, ValueType>& max_nnz_per_row,
     array<remove_complex<ValueType>>& rownorms)
 {
     using real_type = remove_complex<ValueType>;
@@ -238,10 +238,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
-                               const matrix::Ell<ValueType, IndexType>* const a,
-                               const float tolerance,
-                               gko::amp::array_prec<LinOp*, ValueType>& amat)
+void generate_ell_scatter_bins(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Ell<ValueType, IndexType>* const a, const float tolerance,
+    gko::amp::precision_array<LinOp*, ValueType>& amat)
 {
     using real_type = remove_complex<ValueType>;
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
@@ -276,8 +276,8 @@ void generate_ell_scatter_bins(std::shared_ptr<const ReferenceExecutor> exec,
             gko::generator<gko::ptr_type>,
             typename gko::amp::narrow_types<ValueType>::type>;
         ScalarPtrTuple xvalues;
-        gko::amp::array_prec<IndexType*, ValueType> xcol_idxs;
-        gko::amp::array_prec<size_type, ValueType> bin_strides;
+        gko::amp::precision_array<IndexType*, ValueType> xcol_idxs;
+        gko::amp::precision_array<size_type, ValueType> bin_strides;
         std::array<int, q> ixj = {};
 
         // initialize bins

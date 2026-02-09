@@ -17,13 +17,13 @@ namespace amp {
 
 
 template <typename T, typename U>
-using array_prec = gko::amp::array_prec<T, U>;
+using precision_array = gko::amp::precision_array<T, U>;
 
 
 template <typename RealType, int k>
-inline void bins_precision_lower_bounds_impl(const RealType row_norm,
-                                             const float tolerance,
-                                             array_prec<float, RealType>& lbs)
+inline void bins_precision_lower_bounds_impl(
+    const RealType row_norm, const float tolerance,
+    precision_array<float, RealType>& lbs)
 {
     using narrow_types = typename gko::amp::narrow_types<RealType>::type;
     constexpr int q = gko::amp::narrow_types<RealType>::num_types;
@@ -88,8 +88,9 @@ inline auto get_bins_min_representable()
  *         Returns -1 if the number should be dropped.
  */
 template <typename RealType>
-inline int get_precision_bin(const array_prec<float, RealType>& lower_bounds,
-                             const RealType abs_number, const int k)
+inline int get_precision_bin(
+    const precision_array<float, RealType>& lower_bounds,
+    const RealType abs_number, const int k)
 {
     constexpr int q = gko::amp::narrow_types<RealType>::num_types;
     if (k >= q) {
@@ -116,7 +117,7 @@ inline int get_precision_bin(const array_prec<float, RealType>& lower_bounds,
  */
 template <typename RealType>
 inline int adjust_bin_for_underflow(
-    const array_prec<float, RealType>& min_representable,
+    const precision_array<float, RealType>& min_representable,
     const RealType abs_number, int ibin)
 {
     constexpr int q = gko::amp::narrow_types<RealType>::num_types;
@@ -145,8 +146,8 @@ inline int adjust_bin_for_underflow(
  */
 template <typename RealType>
 inline int get_adjusted_bin(
-    const array_prec<float, RealType>& lower_bounds,
-    const array_prec<float, RealType>& min_representable,
+    const precision_array<float, RealType>& lower_bounds,
+    const precision_array<float, RealType>& min_representable,
     const RealType abs_number)
 {
     int ibin = get_precision_bin<RealType>(lower_bounds, abs_number, 0);

@@ -58,7 +58,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
 // void generate_ell_rownorms_storage(
 //     std::shared_ptr<const OmpExecutor> exec,
 //     const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
-//     gko::amp::array_prec<int, ValueType>& max_nnz,
+//     gko::amp::precision_array<int, ValueType>& max_nnz,
 //     array<remove_complex<ValueType>>& rownorms)
 //{
 //     GKO_NOT_IMPLEMENTED;
@@ -72,7 +72,8 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
 // void generate_ell_scatter_bins(std::shared_ptr<const OmpExecutor> exec,
 //                                const matrix::Ell<ValueType, IndexType>* a,
 //                                const float tolerance,
-//                                gko::amp::array_prec<LinOp*, ValueType>& amat)
+//                                gko::amp::precision_array<LinOp*, ValueType>&
+//                                amat)
 //{
 //     GKO_NOT_IMPLEMENTED;
 // }

@@ -405,7 +405,7 @@ TYPED_TEST(AMPDouble, GenerateComputesCorrectRowNorms)
     using T = typename TestFixture::value_type;
     using real_T = gko::remove_complex<typename TestFixture::value_type>;
     static_assert(std::is_same<real_T, double>::value, "double only!");
-    gko::amp::array_prec<int, T> max_nnz;
+    gko::amp::precision_array<int, T> max_nnz;
     gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
@@ -429,13 +429,15 @@ TYPED_TEST(AMPDouble, GenerateComputesCorrectBinNNZs)
     using real_T = gko::remove_complex<typename TestFixture::value_type>;
     static_assert(std::is_same<real_T, double>::value, "double only!");
 #if GINKGO_HAVE_AMP_HALF
-    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 3,
-                  "should be 3 available precisions");
+    static_assert(
+        std::tuple_size<gko::amp::precision_array<int, T>>::value == 3,
+        "should be 3 available precisions");
 #else
-    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
-                  "should be 2 available precisions");
+    static_assert(
+        std::tuple_size<gko::amp::precision_array<int, T>>::value == 2,
+        "should be 2 available precisions");
 #endif
-    gko::amp::array_prec<int, T> max_nnz;
+    gko::amp::precision_array<int, T> max_nnz;
     gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
@@ -463,25 +465,27 @@ TYPED_TEST(AMPDouble, GenerateEllScattersBinsCorrectly)
     using real_T = gko::remove_complex<typename TestFixture::value_type>;
     static_assert(std::is_same<real_T, double>::value, "double only!");
 #if GINKGO_HAVE_AMP_HALF
-    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 3,
-                  "should be 3 available precisions");
+    static_assert(
+        std::tuple_size<gko::amp::precision_array<int, T>>::value == 3,
+        "should be 3 available precisions");
 #else
-    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
-                  "should be 2 available precisions");
+    static_assert(
+        std::tuple_size<gko::amp::precision_array<int, T>>::value == 2,
+        "should be 2 available precisions");
 #endif
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
 #if GKO_AMP_HALF_IS_FP16
-    auto max_nnzs = gko::amp::array_prec<int, T>{1, 2, 0};
+    auto max_nnzs = gko::amp::precision_array<int, T>{1, 2, 0};
 #elif GKO_AMP_HALF_IS_BFLOAT16
-    auto max_nnzs = gko::amp::array_prec<int, T>{1, 1, 1};
+    auto max_nnzs = gko::amp::precision_array<int, T>{1, 1, 1};
 #else
-    auto max_nnzs = gko::amp::array_prec<int, T>{1, 2};
+    auto max_nnzs = gko::amp::precision_array<int, T>{1, 2};
 #endif
     auto abins = gko::amp::allocate_bins<T, int>(
         this->exec, this->ell1->get_size(), max_nnzs);
     constexpr auto num_bins = std::tuple_size<decltype(abins)>::value;
-    gko::amp::array_prec<gko::LinOp*, T> amat;
+    gko::amp::precision_array<gko::LinOp*, T> amat;
     gko::constexpr_for<0, num_bins, 1>(
         [&](auto k) { amat[k] = abins[k].get(); });
 
@@ -772,7 +776,7 @@ TYPED_TEST(AMPFloat, GenerateComputesCorrectRowNorms)
 {
     using T = typename TestFixture::value_type;
     using real_T = typename TestFixture::real_T;
-    gko::amp::array_prec<int, T> max_nnz;
+    gko::amp::precision_array<int, T> max_nnz;
     gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
@@ -795,13 +799,15 @@ TYPED_TEST(AMPFloat, GenerateComputesCorrectBinNNZs)
     using T = typename TestFixture::value_type;
     using real_T = typename TestFixture::real_T;
 #if GINKGO_HAVE_AMP_HALF
-    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
-                  "should be 2 available precisions");
+    static_assert(
+        std::tuple_size<gko::amp::precision_array<int, T>>::value == 2,
+        "should be 2 available precisions");
 #else
-    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 1,
-                  "should be 1 available precision");
+    static_assert(
+        std::tuple_size<gko::amp::precision_array<int, T>>::value == 1,
+        "should be 1 available precision");
 #endif
-    gko::amp::array_prec<int, T> max_nnz;
+    gko::amp::precision_array<int, T> max_nnz;
     gko::array<real_T> rownorms(this->exec, this->ell1->get_size()[0]);
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
@@ -822,24 +828,26 @@ TYPED_TEST(AMPFloat, GenerateEllScattersBinsCorrectly)
     using T = typename TestFixture::value_type;
     using real_T = typename TestFixture::real_T;
 #if GINKGO_HAVE_AMP_HALF
-    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 2,
-                  "should be 2 available precisions");
+    static_assert(
+        std::tuple_size<gko::amp::precision_array<int, T>>::value == 2,
+        "should be 2 available precisions");
 #else
-    static_assert(std::tuple_size<gko::amp::array_prec<int, T>>::value == 1,
-                  "should be 1 available precision");
+    static_assert(
+        std::tuple_size<gko::amp::precision_array<int, T>>::value == 1,
+        "should be 1 available precision");
 #endif
     auto rexec =
         std::dynamic_pointer_cast<const gko::ReferenceExecutor>(this->exec);
     const auto max_nnzs =
 #if GINKGO_HAVE_AMP_HALF
-        gko::amp::array_prec<int, T>{2, 1};
+        gko::amp::precision_array<int, T>{2, 1};
 #else
-        gko::amp::array_prec<int, T>{2};
+        gko::amp::precision_array<int, T>{2};
 #endif
     auto abins = gko::amp::allocate_bins<T, int>(
         this->exec, this->ell1->get_size(), max_nnzs);
     constexpr auto num_bins = std::tuple_size<decltype(abins)>::value;
-    gko::amp::array_prec<gko::LinOp*, T> amat;
+    gko::amp::precision_array<gko::LinOp*, T> amat;
 #if GINKGO_HAVE_AMP_HALF
     static_assert(num_bins == 2, "Wrong num bins!");
     ASSERT_EQ(amat.size(), 2);

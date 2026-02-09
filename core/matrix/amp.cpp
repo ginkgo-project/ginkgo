@@ -132,7 +132,7 @@ template <typename ValueType, typename IndexType>
 auto generate_amp_impl(const matrix::Ell<ValueType, IndexType>* const mtx,
                        std::shared_ptr<const Executor> exec, const float tol)
 {
-    gko::amp::array_prec<int, ValueType> max_nnz;
+    gko::amp::precision_array<int, ValueType> max_nnz;
     gko::array<remove_complex<ValueType>> rownorms(exec, mtx->get_size()[0]);
     exec->run(
         amp::make_generate_ell_rownorms_storage(mtx, tol, max_nnz, rownorms));
@@ -142,13 +142,13 @@ auto generate_amp_impl(const matrix::Ell<ValueType, IndexType>* const mtx,
     constexpr auto num_bins = std::tuple_size<decltype(abins)>::value;
     static_assert(num_bins == AMP<ValueType, IndexType>::num_precisions,
                   "Wrong number of bins!");
-    gko::amp::array_prec<gko::LinOp*, ValueType> amat;
+    gko::amp::precision_array<gko::LinOp*, ValueType> amat;
     gko::constexpr_for<0, num_bins, 1>(
         [&](auto k) { amat[k] = abins[k].get(); });
 
     exec->run(amp::make_generate_ell_scatter_bins(mtx, tol, amat));
 
-    gko::amp::array_prec<std::unique_ptr<const LinOp>, ValueType> cabins;
+    gko::amp::precision_array<std::unique_ptr<const LinOp>, ValueType> cabins;
     for (int i = 0; i < matrix::AMP<ValueType, IndexType>::num_precisions;
          i++) {
         cabins[i] = std::move(abins[i]);

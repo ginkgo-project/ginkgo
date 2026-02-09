@@ -39,14 +39,14 @@ namespace kernels {
     void generate_ell_rownorms_storage(                                       \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const matrix::Ell<ValueType, IndexType>* a, const float tolerance,    \
-        gko::amp::array_prec<int, ValueType>& max_nnz_per_row,                \
+        gko::amp::precision_array<int, ValueType>& max_nnz_per_row,           \
         array<remove_complex<ValueType>>& rownorms)
 
 #define GKO_DECLARE_AMP_GENERATE_ELL_SCATTER_BINS_KERNEL(ValueType, IndexType) \
     void generate_ell_scatter_bins(                                            \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::Ell<ValueType, IndexType>* a, const float tolerance,     \
-        gko::amp::array_prec<LinOp*, ValueType>& amat)
+        gko::amp::precision_array<LinOp*, ValueType>& amat)
 
 #define GKO_DECLARE_AMP_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \

@@ -184,7 +184,7 @@ struct narrow_types<std::complex<float>> {
  * @tparam HighestType  A scalar type of the highest precision needed.
  */
 template <typename T, typename HighestType>
-using array_prec = std::array<T, narrow_types<HighestType>::num_types>;
+using precision_array = std::array<T, narrow_types<HighestType>::num_types>;
 
 
 }  // namespace amp

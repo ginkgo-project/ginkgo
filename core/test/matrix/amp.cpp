@@ -66,7 +66,7 @@ TEST(AMPHelpers, AllocatesEllBinsCorrectlyDouble)
     auto exec = gko::ReferenceExecutor::create();
     const gko::dim<2> ds{10, 12};
 #if GINKGO_HAVE_AMP_HALF
-    auto mnpr = gko::amp::array_prec<int, double>{3, 4, 5};
+    auto mnpr = gko::amp::precision_array<int, double>{3, 4, 5};
 
     auto bins = gko::amp::allocate_bins<double, int>(exec, ds, mnpr);
 
@@ -88,7 +88,7 @@ TEST(AMPHelpers, AllocatesEllBinsCorrectlyDouble)
     EXPECT_EQ(r->get_num_stored_elements_per_row(), 5);
     EXPECT_TRUE(r->get_col_idxs());
 #else
-    auto mnpr = gko::amp::array_prec<int, double>{3, 4};
+    auto mnpr = gko::amp::precision_array<int, double>{3, 4};
 
     auto bins = gko::amp::allocate_bins<double, int>(exec, ds, mnpr);
 
@@ -114,7 +114,7 @@ TEST(AMPHelpers, AllocatesEllBinsCorrectlyComplexFloat)
     using half = gko::amp::half;
     auto exec = gko::ReferenceExecutor::create();
     const gko::dim<2> ds{10, 12};
-    auto mnpr = gko::amp::array_prec<int, value_type>{4, 5};
+    auto mnpr = gko::amp::precision_array<int, value_type>{4, 5};
 
     auto bins = gko::amp::allocate_bins<value_type, int>(exec, ds, mnpr);
 
@@ -136,7 +136,7 @@ TEST(AMPHelpers, AllocatesEllBinsCorrectlyComplexFloat)
     using value_type = std::complex<float>;
     auto exec = gko::ReferenceExecutor::create();
     const gko::dim<2> ds{10, 12};
-    auto mnpr = gko::amp::array_prec<int, value_type>{4};
+    auto mnpr = gko::amp::precision_array<int, value_type>{4};
 
     auto bins = gko::amp::allocate_bins<value_type, int>(exec, ds, mnpr);
 
@@ -158,7 +158,7 @@ TEST(AMPHelpers, AllocatesEllBinsTupleCorrectlyComplexFloat)
 
     auto exec = gko::ReferenceExecutor::create();
     const gko::dim<2> ds{10, 12};
-    auto mnpr = gko::amp::array_prec<int, value_type>{4, 5};
+    auto mnpr = gko::amp::precision_array<int, value_type>{4, 5};
 
     auto bins = gko::amp::allocate_bins_tuple<value_type, int>(exec, ds, mnpr);
 
@@ -187,7 +187,7 @@ TEST(AMPHelpers, AllocatesEllBinsTupleCorrectlyComplexFloat)
 
     auto exec = gko::ReferenceExecutor::create();
     const gko::dim<2> ds{10, 12};
-    auto mnpr = gko::amp::array_prec<int, value_type>{4};
+    auto mnpr = gko::amp::precision_array<int, value_type>{4};
 
     auto bins = gko::amp::allocate_bins_tuple<value_type, int>(exec, ds, mnpr);
 
