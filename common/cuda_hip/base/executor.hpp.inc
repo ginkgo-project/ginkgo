@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,6 +36,7 @@ inline int convert_sm_ver_to_cores(int major, int minor)
         {0x87, 128},  // Ampere Generation (SM 8.7)
         {0x89, 128},  // Ada Generation (SM 8.9)
         {0x90, 128},  // Hopper Generation (SM 9.0)
+        {0xc1, 128},  // Blackwell GB10 (SM 12.1)
         {-1, -1}};
 
     int index = 0;
