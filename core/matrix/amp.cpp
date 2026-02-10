@@ -85,11 +85,15 @@ AMP<ValueType, IndexType>& AMP<ValueType, IndexType>::operator=(AMP&& other)
 template <typename ValueType, typename IndexType>
 void AMP<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    mixed_precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(amp::make_spmv(this, dense_b, dense_x));
-        },
-        b, x);
+    // mixed_precision_dispatch_real_complex<ValueType>(
+    //     [this](auto dense_b, auto dense_x) {
+    //         this->get_executor()->run(amp::make_spmv(this, dense_b,
+    //         dense_x));
+    //     },
+    //     b, x);
+    this->get_executor()->run(
+        amp::make_spmv(this, gko::as<matrix::Dense<ValueType>>(b),
+                       gko::as<matrix::Dense<ValueType>>(x)));
 }
 
 
@@ -97,15 +101,20 @@ template <typename ValueType, typename IndexType>
 void AMP<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                            const LinOp* beta, LinOp* x) const
 {
-    mixed_precision_dispatch_real_complex<ValueType>(
-        [this, alpha, beta](auto dense_b, auto dense_x) {
-            auto d_alpha = make_temporary_conversion<ValueType>(alpha);
-            auto d_beta = make_temporary_conversion<
-                typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
-            this->get_executor()->run(amp::make_advanced_spmv(
-                d_alpha.get(), this, dense_b, d_beta.get(), dense_x));
-        },
-        b, x);
+    // mixed_precision_dispatch_real_complex<ValueType>(
+    //     [this, alpha, beta](auto dense_b, auto dense_x) {
+    //         auto d_alpha = make_temporary_conversion<ValueType>(alpha);
+    //         auto d_beta = make_temporary_conversion<
+    //             typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
+    //         this->get_executor()->run(amp::make_advanced_spmv(
+    //             d_alpha.get(), this, dense_b, d_beta.get(), dense_x));
+    //     },
+    //     b, x);
+    this->get_executor()->run(
+        amp::make_advanced_spmv(gko::as<matrix::Dense<ValueType>>(alpha), this,
+                                gko::as<matrix::Dense<ValueType>>(b),
+                                gko::as<matrix::Dense<ValueType>>(beta),
+                                gko::as<matrix::Dense<ValueType>>(x)));
 }
 
 
