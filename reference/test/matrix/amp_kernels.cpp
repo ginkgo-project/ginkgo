@@ -317,6 +317,23 @@ TEST(AMPAlgorithm, GetsAdjustedBin)
 #endif
 
 
+TEST(AMPAlgorithm, AssignsValueToTuple)
+{
+    auto t = std::make_tuple(3.0, -2.0f, -3, 'd');
+
+    gkra::assign_value_to_tuple<0>(t, 1.0f, 1);
+    gkra::assign_value_to_tuple<0>(t, 5, 2);
+    gkra::assign_value_to_tuple<0>(t, 5, 3);
+    // should do nothing:
+    gkra::assign_value_to_tuple<0>(t, -6.4, 10);
+    gkra::assign_value_to_tuple<0>(t, 'y', -2);
+
+    EXPECT_EQ(std::get<0>(t), 3.0);
+    EXPECT_EQ(std::get<1>(t), 1.0f);
+    EXPECT_EQ(std::get<2>(t), 5);
+    EXPECT_EQ(std::get<3>(t), 5);
+}
+
 TEST(AMPAlgorithm, AssignsValueToArrayTuple)
 {
     double arr0[3] = {0.0, 0.0, 0.0};

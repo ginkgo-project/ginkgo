@@ -50,6 +50,9 @@ inline void bins_precision_lower_bounds_impl(
  *
  * @param row_norm  The sum of absolute values in a row of a matrix.
  * @param tolerance  Tolerance for SpMV.
+ *                   `float` should be enough for this since we normally only
+ *                   need an order of magnitude like 1e-14, and the exponent
+ *                   range down to 1e-38 should also be sufficient.
  */
 template <typename RealType>
 inline auto get_bins_precision_lower_bounds(const RealType row_norm,
