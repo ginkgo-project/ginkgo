@@ -104,8 +104,8 @@ public:
         /**
          * Meaning of the tolerance - componentwise or normwise tolerance.
          */
-        tolerance_type GKO_FACTORY_PARAMETER_SCALAR(strategy,
-                                                    tolerance_type::normwise);
+        tolerance_type GKO_FACTORY_PARAMETER_SCALAR(
+            strategy, tolerance_type::componentwise);
     };
     GKO_ENABLE_LIN_OP_FACTORY(AMP, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
