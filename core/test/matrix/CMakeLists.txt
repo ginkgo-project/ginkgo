@@ -1,3 +1,4 @@
+ginkgo_create_test(amp)
 ginkgo_create_test(batch_csr)
 ginkgo_create_test(batch_dense)
 ginkgo_create_test(batch_ell)

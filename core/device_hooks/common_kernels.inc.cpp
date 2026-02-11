@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,6 +36,7 @@
 #include "core/factorization/par_ict_kernels.hpp"
 #include "core/factorization/par_ilu_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
+#include "core/matrix/amp_kernels.hpp"
 #include "core/matrix/batch_csr_kernels.hpp"
 #include "core/matrix/batch_dense_kernels.hpp"
 #include "core/matrix/batch_ell_kernels.hpp"
@@ -869,6 +870,22 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL);
 
 
 }  // namespace ell
+
+
+namespace amp {
+
+
+GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_AMP_SPMV_KERNEL);
+GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_AMP_ADVANCED_SPMV_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_AMP_FILL_IN_DENSE_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE_BASE(
+    GKO_DECLARE_AMP_GENERATE_CWISE_ELL_STEP1_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE_BASE(
+    GKO_DECLARE_AMP_GENERATE_ELL_SCATTER_BINS_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_AMP_EXTRACT_DIAGONAL_KERNEL);
+
+
+}  // namespace amp
 
 
 namespace fft {
