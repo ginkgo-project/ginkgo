@@ -9,9 +9,10 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
-#include "common/cuda_hip/base/types.hpp"
 #include "cuda/test/utils.hpp"
 
+// put the test in gko namespace to easily adapt the thrust/cub in gko or not
+namespace gko {
 
 template <typename T, typename U>
 __global__ void test_types_are_same(bool* result)
