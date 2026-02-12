@@ -13,6 +13,9 @@
 #include "hip/test/utils.hip.hpp"
 
 
+namespace gko {
+
+
 template <typename T, typename U>
 __global__ void test_types_are_same(bool* result)
 {
@@ -43,14 +46,14 @@ __global__ void test_narrow_types(bool* result)
 }
 
 
-class AMPTypes : public CudaTestFixture {};
+class AMPTypes : public HipTestFixture {};
 
 #ifdef GINKGO_HAVE_AMP_HALF
 
 #ifdef GKO_AMP_HALF_IS_BFLOAT16
-using testhalf = bfloat16;
+using testhalf = __hip_bfloat16;
 #else
-using testhalf = half;
+using testhalf = __half;
 #endif
 
 TEST_F(AMPTypes, SupportsCorrectPrecisions)
