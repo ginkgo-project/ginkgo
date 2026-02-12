@@ -220,21 +220,17 @@ std::unique_ptr<const MultiVector> MultiVector::create_subview(
 
 
 std::unique_ptr<const MultiVector> MultiVector::create_subview(
-    local_span rows, local_span columns, size_type global_rows,
-    size_type globals_cols) const
+    local_span rows, local_span columns, dim<2> global_size) const
 {
-    return this->create_subview_generic_impl(rows, columns, global_rows,
-                                             globals_cols);
+    return this->create_subview_generic_impl(rows, columns, global_size);
 }
 
 
 std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
                                                          local_span columns,
-                                                         size_type global_rows,
-                                                         size_type globals_cols)
+                                                         dim<2> global_size)
 {
-    return this->create_subview_generic_impl(rows, columns, global_rows,
-                                             globals_cols);
+    return this->create_subview_generic_impl(rows, columns, global_size);
 }
 
 

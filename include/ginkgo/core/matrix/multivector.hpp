@@ -122,12 +122,10 @@ public:
         local_span rows, local_span columns) const;
 
     [[nodiscard]] std::unique_ptr<MultiVector> create_subview(
-        local_span rows, local_span columns, size_type global_rows,
-        size_type globals_cols);
+        local_span rows, local_span columns, dim<2> global_size);
 
     [[nodiscard]] std::unique_ptr<const MultiVector> create_subview(
-        local_span rows, local_span columns, size_type global_rows,
-        size_type globals_cols) const;
+        local_span rows, local_span columns, dim<2> global_size) const;
 
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
@@ -217,13 +215,11 @@ protected:
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector>
     create_subview_generic_impl(local_span rows, local_span columns,
-                                size_type global_rows,
-                                size_type globals_cols) = 0;
+                                dim<2> global_size) = 0;
 
     [[nodiscard]] virtual std::unique_ptr<const MultiVector>
     create_subview_generic_impl(local_span rows, local_span columns,
-                                size_type global_rows,
-                                size_type globals_cols) const = 0;
+                                dim<2> global_size) const = 0;
 };
 
 
@@ -260,12 +256,10 @@ public:
         local_span rows, local_span columns) const;
 
     [[nodiscard]] std::unique_ptr<ConcreteType> create_subview(
-        local_span rows, local_span columns, size_type global_rows,
-        size_type globals_cols);
+        local_span rows, local_span columns, dim<2> global_size);
 
     [[nodiscard]] std::unique_ptr<const ConcreteType> create_subview(
-        local_span rows, local_span columns, size_type global_rows,
-        size_type globals_cols) const;
+        local_span rows, local_span columns, dim<2> global_size) const;
 
     [[nodiscard]] std::unique_ptr<const real_type> create_real_view() const;
 
@@ -301,13 +295,11 @@ protected:
     create_subview_impl(local_span rows, local_span columns) const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<ConcreteType> create_subview_impl(
-        local_span rows, local_span columns, size_type global_rows,
-        size_type globals_cols) = 0;
+        local_span rows, local_span columns, dim<2> global_size) = 0;
 
     [[nodiscard]] virtual std::unique_ptr<const ConcreteType>
     create_subview_impl(local_span rows, local_span columns,
-                        size_type global_rows,
-                        size_type globals_cols) const = 0;
+                        dim<2> global_size) const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<const real_type>
     create_real_view_impl() const = 0;
@@ -376,13 +368,11 @@ private:
                                 local_span columns) const final;
 
     [[nodiscard]] std::unique_ptr<MultiVector> create_subview_generic_impl(
-        local_span rows, local_span columns, size_type global_rows,
-        size_type globals_cols) final;
+        local_span rows, local_span columns, dim<2> global_size) final;
 
     [[nodiscard]] std::unique_ptr<const MultiVector>
     create_subview_generic_impl(local_span rows, local_span columns,
-                                size_type global_rows,
-                                size_type globals_cols) const final;
+                                dim<2> global_size) const final;
 
     [[nodiscard]] std::unique_ptr<const MultiVector>
     create_real_view_generic_impl() const final;
@@ -502,10 +492,9 @@ EnableMultiVector<ConcreteType>::create_subview(local_span rows,
 
 template <typename ConcreteType>
 std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::create_subview(
-    local_span rows, local_span columns, size_type global_rows,
-    size_type globals_cols)
+    local_span rows, local_span columns, dim<2> global_size)
 {
-    return this->create_subview_impl(rows, columns, global_rows, globals_cols);
+    return this->create_subview_impl(rows, columns, global_size);
 }
 
 
@@ -513,10 +502,9 @@ template <typename ConcreteType>
 std::unique_ptr<const ConcreteType>
 EnableMultiVector<ConcreteType>::create_subview(local_span rows,
                                                 local_span columns,
-                                                size_type global_rows,
-                                                size_type globals_cols) const
+                                                dim<2> global_size) const
 {
-    return this->create_subview_impl(rows, columns, global_rows, globals_cols);
+    return this->create_subview_impl(rows, columns, global_size);
 }
 
 
@@ -607,21 +595,20 @@ EnableMultiVector<ConcreteType>::create_subview_generic_impl(
 
 template <typename ConcreteType>
 std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::create_subview_generic_impl(
-    local_span rows, local_span columns, size_type global_rows,
-    size_type globals_cols)
+EnableMultiVector<ConcreteType>::create_subview_generic_impl(local_span rows,
+                                                             local_span columns,
+                                                             dim<2> global_size)
 {
-    return this->create_subview_impl(rows, columns, global_rows, globals_cols);
+    return this->create_subview_impl(rows, columns, global_size);
 }
 
 
 template <typename ConcreteType>
 std::unique_ptr<const MultiVector>
 EnableMultiVector<ConcreteType>::create_subview_generic_impl(
-    local_span rows, local_span columns, size_type global_rows,
-    size_type globals_cols) const
+    local_span rows, local_span columns, dim<2> global_size) const
 {
-    return this->create_subview_impl(rows, columns, global_rows, globals_cols);
+    return this->create_subview_impl(rows, columns, global_size);
 }
 
 
