@@ -6,6 +6,7 @@
 
 #include "common/unified/matrix/amp_algorithms.hpp"
 
+#include <iostream>
 #include <limits>
 
 #include <gtest/gtest.h>
@@ -41,7 +42,7 @@ void bins_precision_lower_bounds(std::shared_ptr<gko::EXEC_TYPE> exec,
 
 template <typename highest_real_type>
 void bins_min_representable(std::shared_ptr<gko::EXEC_TYPE> exec,
-                            gko::array<float>& result_array)
+                            gko::array<highest_real_type>& result_array)
 {
     gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
@@ -183,9 +184,9 @@ TEST_F(AMPAlgorithms, GetsCorrectBinLowerBoundsByPrecisionStartingDouble)
     gko::array<float> expected_arr(ref, sz);
     auto expect = expected_arr.get_data();
     expect[0] = rownorm * tol / std::numeric_limits<float>::epsilon();
-    expect[1] =
-        rownorm * tol /
-        static_cast<float>(std::numeric_limits<gko::amp::half>::epsilon());
+    expect[1] = rownorm * tol /
+                static_cast<float>(
+                    gko::device_numeric_limits<gko::amp::half>::epsilon());
     expect[2] = rownorm * tol;
 
     bins_precision_lower_bounds<double>(exec, rownorm, tol, result_arr);
@@ -201,9 +202,9 @@ TEST_F(AMPAlgorithms, GetsCorrectBinLowerBoundsByPrecisionStartingFloat)
     gko::array<float> result_arr(exec, sz);
     gko::array<float> expected_arr(ref, sz);
     auto expect = expected_arr.get_data();
-    expect[0] =
-        rownorm * tol /
-        static_cast<float>(std::numeric_limits<gko::amp::half>::epsilon());
+    expect[0] = rownorm * tol /
+                static_cast<float>(
+                    gko::device_numeric_limits<gko::amp::half>::epsilon());
     expect[1] = rownorm * tol;
 
     bins_precision_lower_bounds<float>(exec, rownorm, tol, result_arr);
@@ -214,12 +215,13 @@ TEST_F(AMPAlgorithms, GetsCorrectBinLowerBoundsByPrecisionStartingFloat)
 TEST_F(AMPAlgorithms, GetsCorrectBinMinRepresentableStartingDouble)
 {
     const int sz = 3;
-    gko::array<float> result_arr(exec, sz);
-    gko::array<float> expected_arr(ref, sz);
+    gko::array<double> result_arr(exec, sz);
+    gko::array<double> expected_arr(ref, sz);
     auto expect = expected_arr.get_data();
-    expect[0] = static_cast<float>(std::numeric_limits<double>::min());
+    expect[0] = std::numeric_limits<double>::min();
     expect[1] = std::numeric_limits<float>::min();
-    expect[2] = static_cast<float>(std::numeric_limits<gko::amp::half>::min());
+    expect[2] =
+        static_cast<double>(gko::device_numeric_limits<gko::amp::half>::min());
 
     bins_min_representable<double>(exec, result_arr);
 
@@ -233,7 +235,8 @@ TEST_F(AMPAlgorithms, GetsCorrectBinMinRepresentableStartingFloat)
     gko::array<float> expected_arr(ref, sz);
     auto expect = expected_arr.get_data();
     expect[0] = std::numeric_limits<float>::min();
-    expect[1] = static_cast<float>(std::numeric_limits<gko::amp::half>::min());
+    expect[1] =
+        static_cast<float>(gko::device_numeric_limits<gko::amp::half>::min());
 
     bins_min_representable<float>(exec, result_arr);
 
@@ -304,7 +307,7 @@ TEST_F(AMPAlgorithms, GetsCorrectPrecisionBinFloat)
 TEST_F(AMPAlgorithms, AdjustsBinForUnderflowDouble)
 {
     // Get device-computed min representable values
-    gko::array<float> mins_arr(exec, 3);
+    gko::array<double> mins_arr(exec, 3);
     bins_min_representable<double>(exec, mins_arr);
     mins_arr.set_executor(ref);
     const auto mins = mins_arr.get_const_data();
@@ -313,12 +316,11 @@ TEST_F(AMPAlgorithms, AdjustsBinForUnderflowDouble)
 
     // Value representable in bin 2 stays in bin 2
     expected_arr.get_data()[0] = 2;
-    adjust_bin_underflow<double>(exec, static_cast<double>(mins[2]) * 2.0, 2,
-                                 result_arr);
+    adjust_bin_underflow<double>(exec, mins[2] * 2.0, 2, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Value below min of bin 2 moves to higher-precision bin
-    const double val_underflow_half = static_cast<double>(mins[2]) * 0.5;
+    const double val_underflow_half = mins[2] * 0.5;
 #if GKO_AMP_HALF_IS_FP16
     expected_arr.get_data()[0] = 1;
 #else
@@ -329,8 +331,7 @@ TEST_F(AMPAlgorithms, AdjustsBinForUnderflowDouble)
 
     // Value below min of bin 1 moves to bin 0
     expected_arr.get_data()[0] = 0;
-    adjust_bin_underflow<double>(exec, static_cast<double>(mins[1]) * 0.5, 2,
-                                 result_arr);
+    adjust_bin_underflow<double>(exec, mins[1] * 0.5, 2, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Dropped values stay dropped
@@ -368,7 +369,7 @@ TEST_F(AMPAlgorithms, GetsAdjustedBinDouble)
     bins_precision_lower_bounds<double>(exec, rownorm, tol, lbs_arr);
     lbs_arr.set_executor(ref);
     const auto lb = lbs_arr.get_const_data();
-    gko::array<float> mins_arr(exec, 3);
+    gko::array<double> mins_arr(exec, 3);
     bins_min_representable<double>(exec, mins_arr);
     mins_arr.set_executor(ref);
     const auto mins = mins_arr.get_const_data();
@@ -381,7 +382,7 @@ TEST_F(AMPAlgorithms, GetsAdjustedBinDouble)
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Values just smaller than half min
-    const double val_under = static_cast<double>(mins[2]) / 1.1;
+    const double val_under = mins[2] / 1.1;
 #if GKO_AMP_HALF_IS_FP16
     expected_arr.get_data()[0] = 1;
 #else
@@ -533,7 +534,7 @@ TEST_F(AMPAlgorithms, GetsCorrectPrecisionBinFloat)
 TEST_F(AMPAlgorithms, AdjustsBinForUnderflowDouble)
 {
     // Get device-computed min representable values
-    gko::array<float> mins_arr(exec, 2);
+    gko::array<double> mins_arr(exec, 2);
     bins_min_representable<double>(exec, mins_arr);
     mins_arr.set_executor(ref);
     const auto mins = mins_arr.get_const_data();
@@ -542,14 +543,12 @@ TEST_F(AMPAlgorithms, AdjustsBinForUnderflowDouble)
 
     // Value representable in bin 1 stays in bin 1
     expected_arr.get_data()[0] = 1;
-    adjust_bin_underflow<double>(exec, static_cast<double>(mins[1]) * 2.0, 1,
-                                 result_arr);
+    adjust_bin_underflow<double>(exec, mins[1] * 2.0, 1, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Value below min of bin 1 moves to bin 0
     expected_arr.get_data()[0] = 0;
-    adjust_bin_underflow<double>(exec, static_cast<double>(mins[1]) * 0.5, 1,
-                                 result_arr);
+    adjust_bin_underflow<double>(exec, mins[1] * 0.5, 1, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Dropped values stay dropped
@@ -572,7 +571,7 @@ TEST_F(AMPAlgorithms, GetsAdjustedBinDouble)
     bins_precision_lower_bounds<double>(exec, rownorm, tol, lbs_arr);
     lbs_arr.set_executor(ref);
     const auto lb = lbs_arr.get_const_data();
-    gko::array<float> mins_arr(exec, 2);
+    gko::array<double> mins_arr(exec, 2);
     bins_min_representable<double>(exec, mins_arr);
     mins_arr.set_executor(ref);
     const auto mins = mins_arr.get_const_data();
@@ -586,7 +585,7 @@ TEST_F(AMPAlgorithms, GetsAdjustedBinDouble)
 
     // Value that would go to bin 1 and is representable stays in bin 1
     const double val_bin1 = (double{lb[0]} + lb[1]) / 2.0;
-    if (val_bin1 >= static_cast<double>(mins[1])) {
+    if (val_bin1 >= mins[1]) {
         expected_arr.get_data()[0] = 1;
         adjusted_bin<double>(exec, rownorm, tol, val_bin1, result_arr);
         GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
