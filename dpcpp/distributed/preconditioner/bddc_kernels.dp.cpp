@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,11 +19,16 @@ namespace dpcpp {
 namespace bddc {
 
 
-template <typename ValueType, typename IndexType>
-void classify_dofs(
-    std::shared_ptr<const DefaultExecutor> exec,
-    matrix::Dense<ValueType>* labels, const array<IndexType>& tags,
-    comm_index_type local_part,
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
+void classify_dofs_1(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* row_ptrs,
+    const IndexType* col_idxs, array<GlobalIndexType> global_idxs,
+    matrix::Dense<ValueType>* labels, array<IndexType>& tags,
+    std::map<std::pair<std::vector<typename gko::detail::float_traits<
+                           ValueType>::bits_type>,
+                       IndexType>,
+             IndexType>& occurences,
+    ValueType* vertex_flags, comm_index_type local_part,
     array<experimental::distributed::preconditioner::dof_type>& dof_types,
     array<IndexType>& permutation_array, array<IndexType>& interface_sizes,
     array<ValueType>& unique_labels, array<IndexType>& unique_tags,
@@ -33,8 +38,31 @@ void classify_dofs(
     size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
     bool use_edges) GKO_NOT_IMPLEMENTED;
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
-    GKO_DECLARE_CLASSIFY_DOFS);
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+    GKO_DECLARE_CLASSIFY_DOFS1);
+
+
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
+void classify_dofs_2(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* row_ptrs,
+    const IndexType* col_idxs, array<GlobalIndexType> global_idxs,
+    matrix::Dense<ValueType>* labels, array<IndexType>& tags,
+    std::map<std::pair<std::vector<typename gko::detail::float_traits<
+                           ValueType>::bits_type>,
+                       IndexType>,
+             IndexType>& occurences,
+    ValueType* vertex_flags, comm_index_type local_part,
+    array<experimental::distributed::preconditioner::dof_type>& dof_types,
+    array<IndexType>& permutation_array, array<IndexType>& interface_sizes,
+    array<ValueType>& unique_labels, array<IndexType>& unique_tags,
+    array<ValueType>& owning_labels, array<IndexType>& owning_tags,
+    size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
+    size_type& n_vertices, size_type& n_faces, size_type& n_edges,
+    size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
+    bool use_edges) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+    GKO_DECLARE_CLASSIFY_DOFS2);
 
 
 template <typename ValueType, typename IndexType>

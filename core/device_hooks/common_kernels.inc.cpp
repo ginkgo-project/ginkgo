@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -196,6 +196,14 @@
     template <typename IndexType>                        \
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_BASE(_macro)
+
+#define GKO_STUB_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(_macro)      \
+    template <typename ValueType, typename LocalIndexType,                       \
+              typename GlobalIndexType>                                          \
+    _macro(ValueType, LocalIndexType, GlobalIndexType)                           \
+        GKO_NOT_COMPILED(GKO_HOOK_MODULE);                                       \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE( \
+        _macro)
 
 #define GKO_STUB_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)      \
     template <typename ValueType, typename LocalIndexType,                  \
@@ -405,7 +413,10 @@ GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
 namespace bddc {
 
 
-GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_CLASSIFY_DOFS);
+GKO_STUB_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+    GKO_DECLARE_CLASSIFY_DOFS1);
+GKO_STUB_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+    GKO_DECLARE_CLASSIFY_DOFS2);
 GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_GENERATE_CONSTRAINTS);
 GKO_STUB_VALUE_TYPE_BASE(GKO_DECLARE_FILL_COARSE_DATA);

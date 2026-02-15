@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -71,7 +71,8 @@ namespace bddc {
 namespace {
 
 
-GKO_REGISTER_OPERATION(classify_dofs, bddc::classify_dofs);
+GKO_REGISTER_OPERATION(classify_dofs_1, bddc::classify_dofs_1);
+GKO_REGISTER_OPERATION(classify_dofs_2, bddc::classify_dofs_2);
 GKO_REGISTER_OPERATION(generate_constraints, bddc::generate_constraints);
 GKO_REGISTER_OPERATION(fill_coarse_data, bddc::fill_coarse_data);
 GKO_REGISTER_OPERATION(build_coarse_contribution,
@@ -91,7 +92,7 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const DdMatrix<ValueType, LocalIndexType, GlobalIndexType>>
         system_matrix,
-    const array<LocalIndexType>& tags, array<dof_type>& dof_types,
+    array<LocalIndexType>& tags, array<dof_type>& dof_types,
     array<LocalIndexType>& permutation_array,
     array<LocalIndexType>& interface_sizes,
     array<remove_complex<ValueType>>& unique_labels,
@@ -116,6 +117,11 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     dof_types.resize_and_reset(n_local_rows);
     permutation_array.resize_and_reset(n_local_rows);
 
+    array<LocalIndexType> local_idxs{exec, n_local_rows};
+    std::iota(local_idxs.get_data(), local_idxs.get_data() + n_local_rows, 0);
+    auto global_idxs = system_matrix->get_map().map_to_global(
+        local_idxs, gko::experimental::distributed::index_space::combined);
+
     auto local_buffer = gko::matrix::Dense<remove_complex<ValueType>>::create(
         exec, dim<2>{n_local_rows, width});
     local_buffer->fill(zero<remove_complex<ValueType>>());
@@ -139,16 +145,43 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
                    ->get_local_matrix()
                    ->get_size()[0],
                width});
+    auto buffer_3 = share(clone(buffer_1));
+    buffer_3->fill(zero<remove_complex<ValueType>>());
 
     system_matrix->get_prolongation()->apply(buffer_1, buffer_2);
     system_matrix->get_restriction()->apply(buffer_2, buffer_1);
     auto labels = clone(buffer_1->get_local_vector());
+    auto local_csr = gko::as<gko::matrix::Csr<ValueType, LocalIndexType>>(
+        system_matrix->get_local_matrix());
+    auto row_ptrs = local_csr->get_const_row_ptrs();
+    auto col_idxs = local_csr->get_const_col_idxs();
+    std::map<std::pair<std::vector<typename gko::detail::float_traits<
+                           remove_complex<ValueType>>::bits_type>,
+                       LocalIndexType>,
+             LocalIndexType>
+        occurences;
 
-    exec->run(bddc::make_classify_dofs(
-        labels.get(), tags, local_part, dof_types, permutation_array,
+    exec->run(bddc::make_classify_dofs_1(
+        row_ptrs, col_idxs, global_idxs, labels.get(), tags, occurences,
+        buffer_3->get_local_values(), local_part, dof_types, permutation_array,
         interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
         n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
         n_constraints, n_owning_interfaces, use_faces, use_edges));
+
+    // Exchange endpoint vertex information
+    system_matrix->get_prolongation()->apply(buffer_3, buffer_2);
+    system_matrix->get_restriction()->apply(buffer_2, buffer_3);
+
+    exec->run(bddc::make_classify_dofs_2(
+        row_ptrs, col_idxs, global_idxs, labels.get(), tags, occurences,
+        buffer_3->get_local_values(), local_part, dof_types, permutation_array,
+        interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
+        n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
+        n_constraints, n_owning_interfaces, use_faces, use_edges));
+
+    // std::cout << "RANK " << comm.rank() << ": " << n_vertices << " VERTICES,
+    // " << n_edges << " EDGES, " << n_faces << " FACES ==> " << n_constraints
+    // << " CONSTRAINTS." << std::endl;
 
     comm.synchronize();
     return buffer_1;
@@ -362,11 +395,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     }
     prolongation_->apply(one_, buf_1_, one_, dense_x);
 
-    if (parameters_.constant_nullspace) {
-        dense_x->compute_dot(nsp, LL_scal_3);
-        LL_scal_3->inv_scale(n_op);
-        dense_x->add_scaled(LL_scal_3, nsp);
-    }
+    // if (parameters_.constant_nullspace) {
+    //     dense_x->compute_dot(nsp, LL_scal_3);
+    //     LL_scal_3->inv_scale(n_op);
+    //     dense_x->add_scaled(LL_scal_3, nsp);
+    // }
 }
 
 
@@ -473,6 +506,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     array<LocalIndexType> tags{host_exec, local_size};
     norm_op = local_real_vec::create(host_exec, gko::dim<2>{1, 1});
 
+    bool multilevel =
+        dynamic_cast<const typename Bddc<ValueType, LocalIndexType,
+                                         LocalIndexType>::Factory*>(
+            parameters_.coarse_solver.get()) != nullptr;
+
     // A processor can be inactive if the local problem has size 0, this happens
     // in particular on lower levels of a multilevel BDDC.
     active = local_size > 0;
@@ -554,6 +592,24 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto phi = local_vec::create(exec, dim<2>{local_size, n_constraints});
     auto lambda = local_vec::create(exec, dim<2>{n_constraints, n_constraints});
     LL_scal_3 = gko::initialize<local_vec>({one<ValueType>()}, exec);
+
+    if (multilevel) {
+        // Interface output
+        auto g_perm = dd_system_matrix->get_map().map_to_global(
+            permutation_array,
+            gko::experimental::distributed::index_space::combined);
+        g_perm.set_executor(host_exec);
+        std::ofstream out{"IF_" + std::to_string(comm.rank()) + ".txt"};
+        size_t start = n_inner_idxs;
+        for (auto i = 0; i < n_faces + n_edges + n_vertices; i++) {
+            auto is = interface_sizes.get_const_data()[i];
+            for (auto j = start; j < start + is; j++) {
+                out << g_perm.get_data()[j] << " ";
+            }
+            out << std::endl;
+            start += is;
+        }
+    }
 
     if (active) {
         permutation_array.set_executor(host_exec);
@@ -739,19 +795,19 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         //     gko::write(out, A_LL);
         //     out.close();
         // }
-        auto condest_LL = share(
-            gko::solver::Cg<ValueType>::build()
-                .with_criteria(
-                    gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(1e-4)
-                        .with_baseline(gko::stop::mode::initial_resnorm)
-                        .on(exec),
-                    gko::stop::Iteration::build().with_max_iters(100u).on(exec))
-                .with_generated_preconditioner(local_solver_)
-                .on(exec)
-                ->generate(A_LL_backup));
-        auto eigs_LL = share(local_vec::create(host_exec, dim<2>{2, 1}));
-        condest_LL->condest(condest_rhs_LL.get(), eigs_LL.get());
+        // auto condest_LL = share(
+        //     gko::solver::Cg<ValueType>::build()
+        //         .with_criteria(
+        //             gko::stop::ResidualNorm<ValueType>::build()
+        //                 .with_reduction_factor(1e-4)
+        //                 .with_baseline(gko::stop::mode::initial_resnorm)
+        //                 .on(exec),
+        //             gko::stop::Iteration::build().with_max_iters(100u).on(exec))
+        //         .with_generated_preconditioner(local_solver_)
+        //         .on(exec)
+        //         ->generate(A_LL_backup));
+        // auto eigs_LL = share(local_vec::create(host_exec, dim<2>{2, 1}));
+        // condest_LL->condest(condest_rhs_LL.get(), eigs_LL.get());
         // auto prec_scaling_LL = share(diag::create(exec,
         // A_LL->get_size()[0])); auto vals_LL = make_array_view(exec,
         // A_LL->get_size()[0], prec_scaling_LL->get_values());
@@ -765,19 +821,19 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         //     .on(exec)->generate(A_LL));
         // auto eigs_LL_2 = clone(eigs_LL);
         // condest_LL->condest(condest_rhs_LL.get(), eigs_LL_2.get());
-        auto condest_II = share(
-            gko::solver::Cg<ValueType>::build()
-                .with_criteria(
-                    gko::stop::ResidualNorm<ValueType>::build()
-                        .with_reduction_factor(1e-4)
-                        .with_baseline(gko::stop::mode::initial_resnorm)
-                        .on(exec),
-                    gko::stop::Iteration::build().with_max_iters(100u).on(exec))
-                .with_generated_preconditioner(inner_solver_)
-                .on(exec)
-                ->generate(A_II_backup));
-        auto eigs_II = share(local_vec::create(host_exec, dim<2>{2, 1}));
-        condest_II->condest(condest_rhs_II.get(), eigs_II.get());
+        // auto condest_II = share(
+        //     gko::solver::Cg<ValueType>::build()
+        //         .with_criteria(
+        //             gko::stop::ResidualNorm<ValueType>::build()
+        //                 .with_reduction_factor(1e-4)
+        //                 .with_baseline(gko::stop::mode::initial_resnorm)
+        //                 .on(exec),
+        //             gko::stop::Iteration::build().with_max_iters(100u).on(exec))
+        //         .with_generated_preconditioner(inner_solver_)
+        //         .on(exec)
+        //         ->generate(A_II_backup));
+        // auto eigs_II = share(local_vec::create(host_exec, dim<2>{2, 1}));
+        // condest_II->condest(condest_rhs_II.get(), eigs_II.get());
         // auto prec_scaling_II = share(diag::create(exec,
         // A_II->get_size()[0])); auto vals_II = make_array_view(exec,
         // A_II->get_size()[0], prec_scaling_II->get_values());
@@ -791,10 +847,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         //     .on(exec)->generate(A_II));
         // auto eigs_II_2 = clone(eigs_II);
         // condest_II->condest(condest_rhs_II.get(), eigs_II_2.get());
-        std::cout << "RANK " << comm.rank() << ": "
-                  << "LL COND: " << eigs_LL->at(1, 0) / eigs_LL->at(0, 0)
-                  << ", II COND: " << eigs_II->at(1, 0) / eigs_II->at(0, 0)
-                  << std::endl;
+        // std::cout << "RANK " << comm.rank() << ": "
+        //           << "LL COND: " << eigs_LL->at(1, 0) / eigs_LL->at(0, 0)
+        //           << ", II COND: " << eigs_II->at(1, 0) / eigs_II->at(0, 0)
+        //           << std::endl;
 
         // Set up constraints for faces and edges.
         // One row per constraint, one column per degree of freedom that is not
@@ -968,10 +1024,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         host_lambda.get(), coarse_contribution, coarse_global_idxs));
 
     coarse_contribution.sort_row_major();
-    if (comm.rank() == 0) {
-        std::cout << "COARSE SPACE: " << coarse_contribution.get_size()
-                  << std::endl;
-    }
+    // if (comm.rank() == 0) {
+    //     std::cout << "COARSE SPACE: " << coarse_contribution.get_size()
+    //               << std::endl;
+    // }
     auto coarse_matrix =
         share(DdMatrix<ValueType, LocalIndexType, LocalIndexType>::create(
             exec, comm));
@@ -1008,14 +1064,15 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             min_size = std::min(
                 min_size, static_cast<int>(local_sizes.get_const_data()[i]));
         }
-        // int nparts = 1;
-        int nparts = std::pow(
-            2,
-            std::ceil(std::log(std::ceil(
-                          static_cast<remove_complex<ValueType>>(
-                              n_global_interfaces) /
-                          static_cast<remove_complex<ValueType>>(min_size))) /
-                      std::log(2)));
+        int nparts = 1;
+        // int nparts = std::pow(
+        //     2,
+        //     std::ceil(std::log(std::ceil(
+        //                   static_cast<remove_complex<ValueType>>(
+        //                       n_global_interfaces) /
+        //                   static_cast<remove_complex<ValueType>>(min_size)))
+        //                   /
+        //               std::log(2)));
         // std::cout << "RANK " << comm.rank() << ": " << local_size << ", "
         // << min_size << ", " << n_global_interfaces << " ==> "
         // << nparts << std::endl;
@@ -1169,10 +1226,6 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         // }
 
         // Read coarse matrix with new partition and set up coarse solver
-        bool multilevel =
-            dynamic_cast<const typename Bddc<ValueType, LocalIndexType,
-                                             LocalIndexType>::Factory*>(
-                parameters_.coarse_solver.get()) != nullptr;
         std::shared_ptr<LinOp> coarse_solver;
         if (multilevel) {
             auto complete_coarse_matrix = share(
@@ -1199,10 +1252,6 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         coarse_solver_ = gko::Composition<ValueType>::create(
             map_from_new, coarse_solver, map_to_new);
     } else {
-        bool multilevel =
-            dynamic_cast<const typename Bddc<ValueType, LocalIndexType,
-                                             LocalIndexType>::Factory*>(
-                parameters_.coarse_solver.get()) != nullptr;
         if (multilevel) {
             auto complete_coarse_matrix = share(
                 DdMatrix<ValueType, LocalIndexType, LocalIndexType>::create(

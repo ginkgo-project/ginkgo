@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,11 +22,38 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CLASSIFY_DOFS(ValueType, IndexType)                        \
-    void classify_dofs(                                                        \
+#define GKO_DECLARE_CLASSIFY_DOFS1(ValueType, IndexType, GlobalIndexType)      \
+    void classify_dofs_1(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                           \
-        matrix::Dense<ValueType>* labels, const array<IndexType>& tags,        \
-        comm_index_type local_part,                                            \
+        const IndexType* row_ptrs, const IndexType* col_idxs,                  \
+        array<GlobalIndexType> global_idxs, matrix::Dense<ValueType>* labels,  \
+        array<IndexType>& tags,                                                \
+        std::map<std::pair<std::vector<typename gko::detail::float_traits<     \
+                               ValueType>::bits_type>,                         \
+                           IndexType>,                                         \
+                 IndexType>& occurences,                                       \
+        ValueType* vertex_flags, comm_index_type local_part,                   \
+        array<experimental::distributed::preconditioner::dof_type>& dof_types, \
+        array<IndexType>& permutation_array,                                   \
+        array<IndexType>& interface_sizes, array<ValueType>& unique_labels,    \
+        array<IndexType>& unique_tags, array<ValueType>& owning_labels,        \
+        array<IndexType>& owning_tags, size_type& n_inner_idxs,                \
+        size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices, \
+        size_type& n_faces, size_type& n_edges, size_type& n_constraints,      \
+        int& n_owning_interfaces, bool use_faces, bool use_edges)
+
+
+#define GKO_DECLARE_CLASSIFY_DOFS2(ValueType, IndexType, GlobalIndexType)      \
+    void classify_dofs_2(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const IndexType* row_ptrs, const IndexType* col_idxs,                  \
+        array<GlobalIndexType> global_idxs, matrix::Dense<ValueType>* labels,  \
+        array<IndexType>& tags,                                                \
+        std::map<std::pair<std::vector<typename gko::detail::float_traits<     \
+                               ValueType>::bits_type>,                         \
+                           IndexType>,                                         \
+                 IndexType>& occurences,                                       \
+        ValueType* vertex_flags, comm_index_type local_part,                   \
         array<experimental::distributed::preconditioner::dof_type>& dof_types, \
         array<IndexType>& permutation_array,                                   \
         array<IndexType>& interface_sizes, array<ValueType>& unique_labels,    \
@@ -67,8 +94,12 @@ namespace kernels {
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     using comm_index_type = experimental::distributed::comm_index_type; \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_CLASSIFY_DOFS(ValueType, IndexType);                    \
+    template <typename ValueType, typename IndexType,                   \
+              typename GlobalIndexType>                                 \
+    GKO_DECLARE_CLASSIFY_DOFS1(ValueType, IndexType, GlobalIndexType);  \
+    template <typename ValueType, typename IndexType,                   \
+              typename GlobalIndexType>                                 \
+    GKO_DECLARE_CLASSIFY_DOFS2(ValueType, IndexType, GlobalIndexType);  \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_GENERATE_CONSTRAINTS(ValueType, IndexType);             \
     template <typename ValueType>                                       \
