@@ -57,21 +57,10 @@ public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**
-         * This array specifies the rows of the fine matrix which should be
-         * selected as rows for the coarse matrix.
+         * Strength-of-connection threshold, theta
          */
-        array<IndexType> GKO_FACTORY_PARAMETER_VECTOR(coarse_rows, nullptr);
+        value_type GKO_FACTORY_PARAMETER_SCALAR(strength_threshold, 0.25);
 
-        /**
-         * The `system_matrix`, which will be given to this factory, must be
-         * sorted (first by row, then by column) in order for the algorithm
-         * to work. If it is known that the matrix will be sorted, this
-         * parameter can be set to `true` to skip the sorting (therefore,
-         * shortening the runtime).
-         * However, if it is unknown or if the matrix is known to be not sorted,
-         * it must remain `false`, otherwise, this multigrid_level might be
-         * incorrect.
-         */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Rs, parameters, Factory);
