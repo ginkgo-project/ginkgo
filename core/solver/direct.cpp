@@ -11,12 +11,21 @@
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 
 
 namespace gko {
 namespace experimental {
 namespace solver {
+
+
+template <typename ValueType, typename IndexType>
+void Direct<ValueType, IndexType>::validate_data() const
+{
+    validation::validate_system_matrix<ValueType, int32>(
+        this->get_system_matrix());
+}
 
 
 template <typename ValueType, typename IndexType>
