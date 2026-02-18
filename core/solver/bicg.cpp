@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 
 #include "core/config/config_helper.hpp"
+#include "core/base/validation.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -31,6 +32,14 @@ GKO_REGISTER_OPERATION(step_2, bicg::step_2);
 
 }  // anonymous namespace
 }  // namespace bicg
+
+
+template <typename ValueType>
+void Bicg<ValueType>::validate_data() const
+{
+    validation::validate_system_matrix<ValueType, int32>(
+        this->get_system_matrix());
+}
 
 
 template <typename ValueType>

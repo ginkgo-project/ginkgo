@@ -216,4 +216,19 @@ TYPED_TEST(Cgs, PassExplicitFactory)
 }
 
 
+TYPED_TEST(Cgs, RecognizesInvalidSystemMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    std::shared_ptr<const gko::LinOp> m = gko::initialize<Mtx>(
+        {{value_type{1.0}, INFINITY}, {value_type{3.0}, value_type{4.0}}},
+        this->exec);
+
+    ASSERT_THROW(this->cgs_factory->generate(m)->validate_data(),
+                 gko::InvalidData);
+}
+
+
 }  // namespace

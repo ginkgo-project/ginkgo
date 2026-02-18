@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/identity.hpp>
 
 #include "core/config/config_helper.hpp"
+#include "core/base/validation.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"
@@ -34,6 +35,14 @@ GKO_REGISTER_OPERATION(step_1, gcr::step_1);
 
 }  // anonymous namespace
 }  // namespace gcr
+
+
+template <typename ValueType>
+void Gcr<ValueType>::validate_data() const
+{
+    validation::validate_system_matrix<ValueType, int32>(
+        this->get_system_matrix());
+}
 
 
 template <typename ValueType>

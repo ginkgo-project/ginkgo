@@ -10,6 +10,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
@@ -29,6 +30,14 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 }  // anonymous namespace
 }  // namespace ir
+
+
+template <typename ValueType>
+void Ir<ValueType>::validate_data() const
+{
+    validation::validate_system_matrix<ValueType, int32>(
+        this->get_system_matrix());
+}
 
 
 template <typename ValueType>

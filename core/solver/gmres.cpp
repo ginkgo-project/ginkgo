@@ -18,6 +18,7 @@
 #include <ginkgo/core/matrix/identity.hpp>
 
 #include "core/config/config_helper.hpp"
+#include "core/base/validation.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/mpi/mpi_op.hpp"
@@ -58,6 +59,14 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho)
 
 
 }  // namespace gmres
+
+
+template <typename ValueType>
+void Gmres<ValueType>::validate_data() const
+{
+    validation::validate_system_matrix<ValueType, int32>(
+        this->get_system_matrix());
+}
 
 
 template <typename ValueType>
