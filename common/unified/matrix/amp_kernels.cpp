@@ -144,7 +144,58 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::AMP<ValueType, IndexType>* source,
                    matrix::Dense<ValueType>* result)
 {
-    GKO_NOT_IMPLEMENTED;
+    using DValueType =
+        gko::kernels::GKO_DEVICE_NAMESPACE::device_type<ValueType>;
+    using d_real_type = gko::remove_complex<DValueType>;
+    constexpr int q = narrow_types<DValueType>::num_types;
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto col, auto result) {
+            result(row, col) = zero<DValueType>();
+        },
+        result->get_size(), result);
+
+    auto fill_kernel = [] GKO_KERNEL(auto i, auto j, const auto stride,
+                                     auto vals, auto cols, auto result) {
+        const auto col = cols[i + j * stride];
+        if (col >= 0) {
+            result(i, col) += static_cast<DValueType>(vals[i + j * stride]);
+        }
+    };
+
+    // Process bin 0 (full precision)
+    auto ell0 = dynamic_cast<const matrix::Ell<ValueType, IndexType>*>(
+        source->get_bin_matrix(0));
+    if (!ell0) {
+        GKO_NOT_SUPPORTED(source->get_bin_matrix(0));
+    }
+    const auto nrows = source->get_size()[0];
+    const auto stride0 = ell0->get_stride();
+    const auto max_nnz0 = ell0->get_num_stored_elements_per_row();
+    auto vals0 = ell0->get_const_values();
+    auto cols0 = ell0->get_const_col_idxs();
+    run_kernel(exec, fill_kernel, gko::dim<2>{nrows, max_nnz0}, stride0, vals0,
+               cols0, result);
+
+    // remaining bins
+    gko::constexpr_for<1, q, 1>([&](auto k) {
+        // use the host value type only to get the concrete Ell matrix.
+        using bin_value_type = typename std::tuple_element<
+            k, typename gko::amp::narrow_types<ValueType>::type>::type;
+        auto ellk = dynamic_cast<const matrix::Ell<bin_value_type, IndexType>*>(
+            source->get_bin_matrix(k));
+        if (!ellk) {
+            GKO_NOT_SUPPORTED(source->get_bin_matrix(k));
+        }
+        const auto stride = ellk->get_stride();
+        const auto max_nnz = ellk->get_num_stored_elements_per_row();
+        auto vals = ellk->get_const_values();
+        auto cols = ellk->get_const_col_idxs();
+        if (max_nnz > 0) {
+            run_kernel(exec, fill_kernel, gko::dim<2>{nrows, max_nnz}, stride,
+                       vals, cols, result);
+        }
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
@@ -156,7 +207,66 @@ void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::AMP<ValueType, IndexType>* orig,
                       matrix::Diagonal<ValueType>* diag)
 {
-    GKO_NOT_IMPLEMENTED;
+    using DValueType =
+        gko::kernels::GKO_DEVICE_NAMESPACE::device_type<ValueType>;
+    using d_real_type = gko::remove_complex<DValueType>;
+    constexpr int q = narrow_types<DValueType>::num_types;
+    const auto diag_size = diag->get_size()[0];
+    auto diag_values = diag->get_values();
+
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto diag) { diag[i] = zero<DValueType>(); },
+        diag_size, diag_values);
+
+    // Process bin 0 (full precision)
+    auto ell0 = dynamic_cast<const matrix::Ell<ValueType, IndexType>*>(
+        orig->get_bin_matrix(0));
+    if (!ell0) {
+        GKO_NOT_SUPPORTED(orig->get_bin_matrix(0));
+    }
+    const auto nrows = orig->get_size()[0];
+    const auto stride0 = ell0->get_stride();
+    const auto max_nnz0 = ell0->get_num_stored_elements_per_row();
+    auto vals0 = ell0->get_const_values();
+    auto cols0 = ell0->get_const_col_idxs();
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, const auto stride, auto vals, auto cols,
+                      auto diag) {
+            const auto col = cols[i + j * stride];
+            if (col == static_cast<IndexType>(i)) {
+                diag[i] = static_cast<DValueType>(vals[i + j * stride]);
+            }
+        },
+        gko::dim<2>{diag_size, max_nnz0}, stride0, vals0, cols0, diag_values);
+
+    // remaining bins
+    auto fill_kernel = [] GKO_KERNEL(auto i, auto j, const auto stride,
+                                     auto vals, auto cols, auto diag) {
+        const auto col = cols[i + j * stride];
+        if (col == static_cast<IndexType>(i)) {
+            diag[i] += static_cast<DValueType>(vals[i + j * stride]);
+        }
+    };
+    gko::constexpr_for<1, q, 1>([&](auto k) {
+        // use the host value type only to get the concrete Ell matrix.
+        using bin_value_type = typename std::tuple_element<
+            k, typename gko::amp::narrow_types<ValueType>::type>::type;
+        auto ellk = dynamic_cast<const matrix::Ell<bin_value_type, IndexType>*>(
+            orig->get_bin_matrix(k));
+        if (!ellk) {
+            GKO_NOT_SUPPORTED(orig->get_bin_matrix(k));
+        }
+        const auto stride = ellk->get_stride();
+        const auto max_nnz = ellk->get_num_stored_elements_per_row();
+        auto vals = ellk->get_const_values();
+        auto cols = ellk->get_const_col_idxs();
+        if (max_nnz > 0) {
+            run_kernel(exec, fill_kernel, gko::dim<2>{diag_size, max_nnz},
+                       stride, vals, cols, diag_values);
+        }
+    });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(

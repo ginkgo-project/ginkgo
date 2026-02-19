@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/amp.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
 #include "core/matrix/amp_helpers.hpp"
@@ -38,22 +39,51 @@ protected:
 };
 
 
+TEST_F(Amp, CanBeClonedToAnotherExecutor)
+{
+    using T = value_type;
+    using IndexType = index_type;
+    using AmpMtx = gko::matrix::AMP<T, IndexType>;
+    const float tol = 1e-10;
+    auto ell = gen_mtx(532, 231);
+    auto amp_ref = AmpMtx::build().with_tolerance(tol).on(ref)->generate(
+        gko::share(std::move(ell)));
+
+    auto amp_exec = gko::clone(exec, amp_ref);
+
+    auto cloned_mtx = dynamic_cast<AmpMtx*>(amp_exec.get());
+    ASSERT_NE(cloned_mtx, nullptr);
+    EXPECT_NE(cloned_mtx, amp_ref.get());
+    EXPECT_EQ(cloned_mtx->get_executor(), exec);
+    EXPECT_EQ(cloned_mtx->get_size(), amp_ref->get_size());
+    // Verify each precision bin's data matches
+    using types_list = typename gko::amp::narrow_types<T>::type;
+    gko::constexpr_for<0, AmpMtx::num_precisions, 1>([&](auto k) {
+        using vt = typename std::tuple_element<k, types_list>::type;
+        auto ref_bin = dynamic_cast<const gko::matrix::Ell<vt, IndexType>*>(
+            amp_ref->get_bin_matrix(k));
+        auto exec_bin = dynamic_cast<const gko::matrix::Ell<vt, IndexType>*>(
+            cloned_mtx->get_bin_matrix(k));
+        ASSERT_TRUE(ref_bin);
+        ASSERT_TRUE(exec_bin);
+        GKO_ASSERT_MTX_NEAR(ref_bin, exec_bin, 0);
+    });
+}
+
+
 TEST_F(Amp, GenerateEllScatterBinsIsEquivalentToRef)
 {
-    SKIP_IF_SINGLE_MODE;
     using T = value_type;
     using IndexType = index_type;
     constexpr int q = gko::matrix::AMP<T, IndexType>::num_precisions;
     const float tol = 1e-10;
     auto mtx = gen_mtx(532, 231);
     auto dmtx = gko::clone(exec, mtx);
-
     // Compute max_nnz per bin using reference kernel
     gko::amp::precision_array<int, T> max_nnz;
     gko::array<gko::remove_complex<T>> rownorms(ref, mtx->get_size()[0]);
     gko::kernels::reference::amp::generate_ell_rownorms_storage(
         ref, mtx.get(), tol, max_nnz, rownorms);
-
     // Allocate bins on ref and exec with the same max_nnz
     auto ref_bins =
         gko::amp::allocate_bins<T, IndexType>(ref, mtx->get_size(), max_nnz);
@@ -61,7 +91,6 @@ TEST_F(Amp, GenerateEllScatterBinsIsEquivalentToRef)
         gko::amp::allocate_bins<T, IndexType>(exec, dmtx->get_size(), max_nnz);
     constexpr auto num_bins = std::tuple_size<decltype(ref_bins)>::value;
     static_assert(num_bins == q, "Wrong number of bins!");
-
     gko::amp::precision_array<gko::LinOp*, T> ref_amat;
     gko::amp::precision_array<gko::LinOp*, T> exec_amat;
     for (int k = 0; k < num_bins; k++) {
@@ -87,4 +116,55 @@ TEST_F(Amp, GenerateEllScatterBinsIsEquivalentToRef)
         ASSERT_TRUE(exec_ell);
         GKO_ASSERT_MTX_NEAR(ref_ell, exec_ell, 0);
     });
+}
+
+
+TEST_F(Amp, FillInDenseIsEquivalentToRef)
+{
+    SKIP_IF_SINGLE_MODE;
+    using T = value_type;
+    using IndexType = index_type;
+    using AmpMtx = gko::matrix::AMP<T, IndexType>;
+    const float tol = 1e-10;
+    auto ell = gen_mtx(532, 231);
+    // Build AMP matrix on ref, then clone to exec
+    auto amp_ref = AmpMtx::build().with_tolerance(tol).on(ref)->generate(
+        gko::share(std::move(ell)));
+    auto amp_exec = gko::clone(exec, amp_ref);
+    auto result_ref = Vec::create(ref, amp_ref->get_size());
+    auto result_exec = Vec::create(exec, amp_exec->get_size());
+
+    gko::kernels::reference::amp::fill_in_dense(ref, amp_ref.get(),
+                                                result_ref.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::amp::fill_in_dense(exec, amp_exec.get(),
+                                                           result_exec.get());
+
+    GKO_ASSERT_MTX_NEAR(result_ref, result_exec, 0);
+}
+
+
+TEST_F(Amp, ExtractDiagonalIsEquivalentToRef)
+{
+    SKIP_IF_SINGLE_MODE;
+    using T = value_type;
+    using IndexType = index_type;
+    using AmpMtx = gko::matrix::AMP<T, IndexType>;
+    using Diag = gko::matrix::Diagonal<T>;
+    const float tol = 1e-10;
+    auto ell = gen_mtx(532, 231);
+    // Build AMP matrix on ref, then clone to exec
+    auto amp_ref = AmpMtx::build().with_tolerance(tol).on(ref)->generate(
+        gko::share(std::move(ell)));
+    auto amp_exec = gko::clone(exec, amp_ref);
+    const auto diag_size =
+        std::min(amp_ref->get_size()[0], amp_ref->get_size()[1]);
+    auto diag_ref = Diag::create(ref, diag_size);
+    auto diag_exec = Diag::create(exec, diag_size);
+
+    gko::kernels::reference::amp::extract_diagonal(ref, amp_ref.get(),
+                                                   diag_ref.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::amp::extract_diagonal(
+        exec, amp_exec.get(), diag_exec.get());
+
+    GKO_ASSERT_MTX_NEAR(diag_ref, diag_exec, 0);
 }
