@@ -156,14 +156,6 @@ public:
     [[nodiscard]] std::unique_ptr<const Dense<ValueType>> create_local_view()
         const;
 
-    template <typename ValueType>
-    [[nodiscard]] auto temporary_precision() const
-        -> std::unique_ptr<const MultiVector>;
-
-    template <typename ValueType>
-    [[nodiscard]] auto temporary_precision()
-        -> std::unique_ptr<MultiVector, std::function<void(MultiVector*)>>;
-
     [[nodiscard]] size_type get_stride() const noexcept;
 
 protected:
@@ -272,14 +264,6 @@ protected:
             syn::apply_to_list<std::add_const_t, dense_types>>> = 0;
 
     [[nodiscard]] virtual auto get_stride_impl() const -> size_type = 0;
-
-    [[nodiscard]] virtual auto temporary_precision_impl(
-        syn::variant_from_tuple<supported_value_types> type)
-        -> std::unique_ptr<MultiVector, std::function<void(MultiVector*)>> = 0;
-
-    [[nodiscard]] virtual auto temporary_precision_impl(
-        syn::variant_from_tuple<supported_value_types> type) const
-        -> std::unique_ptr<const MultiVector> = 0;
 };
 
 
