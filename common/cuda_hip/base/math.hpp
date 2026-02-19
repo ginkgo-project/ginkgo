@@ -477,6 +477,43 @@ GKO_INLINE thrust::complex<vendor_bf16> one<thrust::complex<vendor_bf16>>()
 #endif  // defined(__CUDACC__) || defined(GKO_COMPILING_HIP)
 
 
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+
+
+namespace detail {
+
+template <typename T>
+struct device_to_complex_s {
+    using type = thrust::complex<T>;
+};
+
+template <typename T>
+struct device_to_complex_s<thrust::complex<T>> {
+    using type = thrust::complex<T>;
+};
+
+template <typename... Args>
+struct device_to_complex_s<std::tuple<Args...>> {
+    using type = std::tuple<typename device_to_complex_s<Args>::type...>;
+};
+
+}  // namespace detail
+
+
+template <typename T>
+using to_complex = typename detail::device_to_complex_s<T>::type;
+
+// for common unified half
+using device_half = __half;
+// for common unified bf16
+using device_bfloat16 = vendor_bf16;
+
+
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+
+
 }  // namespace gko
 
 

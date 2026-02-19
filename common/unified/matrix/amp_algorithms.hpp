@@ -6,44 +6,17 @@
 #define GKO_COMMON_UNIFIED_MATRIX_AMP_ALGORITHMS_H_
 
 
+#include "common/unified/base/amp_types.hpp"
+// For contexpr_for
 #include "core/base/utils.hpp"
 
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
 
 #define GKO_KERNEL __device__
-#include "common/cuda_hip/base/amp_types.hpp"
-
-// namespace gko {
-// namespace kernels {
-// namespace GKO_DEVICE_NAMESPACE {
-// namespace amp {
-//
-// using tuple = thrust::tuple;
-//
-// }
-// }
-// }
-// }
 
 #else
 
-#include <ginkgo/core/base/amp_types.hpp>
-
-#include "omp/base/math.hpp"
-
 #define GKO_KERNEL
-
-// namespace gko {
-// namespace kernels {
-// namespace GKO_DEVICE_NAMESPACE {
-// namespace amp {
-//
-// using tuple = std::tuple;
-//
-// }
-// }
-// }
-// }
 
 #endif
 
@@ -56,10 +29,10 @@ namespace amp {
 template <typename RealType, int k>
 GKO_INLINE GKO_KERNEL void bins_precision_lower_bounds_impl(
     const RealType row_norm, const float tolerance,
-    gko::amp::precision_array<float, RealType>& lbs)
+    precision_array<float, RealType>& lbs)
 {
-    using narrow_types = typename gko::amp::narrow_types<RealType>::type;
-    constexpr int q = gko::amp::narrow_types<RealType>::num_types;
+    using narrow_types_t = typename narrow_types<RealType>::type;
+    constexpr int q = narrow_types<RealType>::num_types;
     if constexpr (k > q - 1) {
         return;
     }
@@ -67,7 +40,7 @@ GKO_INLINE GKO_KERNEL void bins_precision_lower_bounds_impl(
         lbs[k] = static_cast<float>(row_norm) * tolerance;
     } else {
         using next_type =
-            typename std::tuple_element<k + 1, narrow_types>::type;
+            typename std::tuple_element<k + 1, narrow_types_t>::type;
         lbs[k] = static_cast<float>(
             tolerance * row_norm /
             static_cast<float>(
@@ -93,7 +66,7 @@ template <typename RealType>
 GKO_INLINE GKO_KERNEL auto get_bins_precision_lower_bounds(
     const RealType row_norm, const float tolerance)
 {
-    constexpr int q = gko::amp::narrow_types<RealType>::num_types;
+    constexpr int q = narrow_types<RealType>::num_types;
     std::array<float, q> lbs;
     bins_precision_lower_bounds_impl<RealType, 0>(row_norm, tolerance, lbs);
     return lbs;
@@ -105,14 +78,14 @@ GKO_INLINE GKO_KERNEL auto get_bins_precision_lower_bounds(
  * @tparam RealType  The highest precision real type to be considered.
  */
 template <typename RealType>
-GKO_INLINE GKO_KERNEL auto get_bins_min_representable()
+GKO_INLINE GKO_ATTRIBUTES auto get_bins_min_representable()
 {
-    using narrow_types = typename gko::amp::narrow_types<RealType>::type;
-    constexpr int q = gko::amp::narrow_types<RealType>::num_types;
+    using narrow_types_t = typename narrow_types<RealType>::type;
+    constexpr int q = narrow_types<RealType>::num_types;
     std::array<RealType, q> mins = {};
     // get_bins_min_representable_impl<RealType, q, 0>(mins);
     gko::constexpr_for<0, q, 1>([&](auto k) {
-        using bin_type = typename std::tuple_element<k, narrow_types>::type;
+        using bin_type = typename std::tuple_element<k, narrow_types_t>::type;
         mins[k] =
             static_cast<RealType>(gko::device_numeric_limits<bin_type>::min());
     });
@@ -128,10 +101,10 @@ GKO_INLINE GKO_KERNEL auto get_bins_min_representable()
  */
 template <typename RealType>
 GKO_INLINE GKO_KERNEL int get_precision_bin(
-    const gko::amp::precision_array<float, RealType>& lower_bounds,
+    const precision_array<float, RealType>& lower_bounds,
     const RealType abs_number, const int k)
 {
-    constexpr int q = gko::amp::narrow_types<RealType>::num_types;
+    constexpr int q = narrow_types<RealType>::num_types;
     if (k >= q) {
         return -1;
     }
@@ -156,7 +129,7 @@ GKO_INLINE GKO_KERNEL int get_precision_bin(
  */
 template <typename RealType>
 GKO_INLINE GKO_KERNEL int adjust_bin_for_underflow(
-    const gko::amp::precision_array<RealType, RealType>& min_representable,
+    const precision_array<RealType, RealType>& min_representable,
     const RealType abs_number, int ibin)
 {
     if (ibin < 0) {
@@ -183,8 +156,8 @@ GKO_INLINE GKO_KERNEL int adjust_bin_for_underflow(
  */
 template <typename RealType>
 GKO_INLINE GKO_KERNEL int get_adjusted_bin(
-    const gko::amp::precision_array<float, RealType>& lower_bounds,
-    const gko::amp::precision_array<RealType, RealType>& min_representable,
+    const precision_array<float, RealType>& lower_bounds,
+    const precision_array<RealType, RealType>& min_representable,
     const RealType abs_number)
 {
     int ibin = get_precision_bin<RealType>(lower_bounds, abs_number, 0);

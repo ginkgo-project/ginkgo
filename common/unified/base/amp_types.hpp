@@ -2,12 +2,29 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_COMMON_CUDA_HIP_BASE_AMP_TYPES_H_
-#define GKO_COMMON_CUDA_HIP_BASE_AMP_TYPES_H_
+#ifndef GKO_COMMON_UNIFIED_BASE_AMP_TYPES_H_
+#define GKO_COMMON_UNIFIED_BASE_AMP_TYPES_H_
+
+
+#include <tuple>
+
+// for device_std
+#include "common/unified/base/kernel_launch.hpp"
+
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
 
 #include "common/cuda_hip/base/types.hpp"
 
+#else
+
+#include "omp/base/math.hpp"
+
+#endif
+
+
 namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
 namespace amp {
 
 
@@ -18,14 +35,16 @@ namespace amp {
 #if GINKGO_ENABLE_BFLOAT16
 
 #define GKO_AMP_HALF_IS_BFLOAT16 1
-using half = vendor_bf16;
+using half = gko::kernels::GKO_DEVICE_NAMESPACE::device_bfloat16;
 
 #else
 
 #define GKO_AMP_HALF_IS_FP16 1
-using half = __half;
+using half = gko::kernels::GKO_DEVICE_NAMESPACE::device_half;
 
 #endif
+
+namespace gkerdev = gko::kernels::GKO_DEVICE_NAMESPACE;
 
 /**
  * All the real-valued types of different precisions available for adaptive
@@ -42,41 +61,6 @@ using supported_precisions = std::tuple<double, float>;
 
 #endif
 
-namespace detail {
-
-template <typename T>
-struct device_to_complex_s {
-    using type = thrust::complex<T>;
-};
-
-template <typename T>
-struct device_to_complex_s<thrust::complex<T>> {
-    using type = thrust::complex<T>;
-};
-
-template <typename... Args>
-struct device_to_complex_s<std::tuple<Args...>> {
-    using type = std::tuple<typename device_to_complex_s<Args>::type...>;
-};
-
-template <typename T>
-struct device_remove_complex_s {
-    using type = T;
-};
-
-template <typename T>
-struct device_remove_complex_s<thrust::complex<T>> {
-    using type = T;
-};
-
-}  // namespace detail
-
-template <typename T>
-using device_to_complex = typename detail::device_to_complex_s<T>::type;
-
-template <typename T>
-using device_remove_complex = typename detail::device_remove_complex_s<T>::type;
-
 /**
  * All the real or complex types of different precisions available for adaptive
  * precision algorithms.
@@ -87,8 +71,8 @@ struct supported_types {
 };
 
 template <typename RealValueType>
-struct supported_types<thrust::complex<RealValueType>> {
-    using type = device_to_complex<supported_precisions>;
+struct supported_types<gkerdev::device_std::complex<RealValueType>> {
+    using type = gkerdev::to_complex<supported_precisions>;
 };
 
 /// Total number of supported precision formats.
@@ -154,7 +138,7 @@ struct prec_idx_helper<RealType, i, std::enable_if_t<(i < 0)>> {};
 template <typename ValueType>
 struct precision_index {
     static constexpr int index =
-        detail::prec_idx_helper<device_remove_complex<ValueType>,
+        detail::prec_idx_helper<gko::remove_complex<ValueType>,
                                 num_amp_precisions - 1>::index;
 };
 
@@ -180,8 +164,7 @@ struct narrow_types {
 #ifdef GINKGO_HAVE_AMP_HALF
 
 /**
- * Currently, gko::amp::half is the narrowest precision supported,
- * if enabled.
+ * Currently, half is the narrowest precision supported, * if enabled.
  */
 template <>
 struct narrow_types<half> {
@@ -190,8 +173,8 @@ struct narrow_types<half> {
 };
 
 template <>
-struct narrow_types<thrust::complex<half>> {
-    using type = std::tuple<thrust::complex<half>>;
+struct narrow_types<gkerdev::device_type<std::complex<half>>> {
+    using type = std::tuple<gkerdev::device_type<std::complex<half>>>;
     static constexpr int num_types = 1;
 };
 
@@ -204,8 +187,8 @@ struct narrow_types<float> {
 };
 
 template <>
-struct narrow_types<thrust::complex<float>> {
-    using type = std::tuple<thrust::complex<float>>;
+struct narrow_types<gkerdev::device_type<std::complex<float>>> {
+    using type = std::tuple<gkerdev::device_type<std::complex<float>>>;
     static constexpr int num_types = 1;
 };
 
@@ -223,7 +206,9 @@ using precision_array = std::array<T, narrow_types<HighestType>::num_types>;
 
 
 }  // namespace amp
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
 }  // namespace gko
 
 
-#endif  // GKO_COMMON_CUDA_HIP_BASE_AMP_TYPES_H_
+#endif  // GKO_COMMON_UNIFIED_BASE_AMP_TYPES_H_

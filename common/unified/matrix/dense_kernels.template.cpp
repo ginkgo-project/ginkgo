@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -731,7 +731,7 @@ void outplace_absolute_dense(std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType>
 void make_complex(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Dense<ValueType>* source,
-                  matrix::Dense<to_complex<ValueType>>* result)
+                  matrix::Dense<gko::to_complex<ValueType>>* result)
 {
     run_kernel(
         exec,

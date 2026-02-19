@@ -40,7 +40,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const matrix::Ell<ValueType, IndexType>* a, const float tolerance,    \
         gko::amp::precision_array<int, ValueType>& max_nnz_per_row,           \
-        array<remove_complex<ValueType>>& rownorms)
+        array<gko::remove_complex<ValueType>>& rownorms)
 
 #define GKO_DECLARE_AMP_GENERATE_ELL_SCATTER_BINS_KERNEL(ValueType, IndexType) \
     void generate_ell_scatter_bins(                                            \

@@ -173,6 +173,8 @@ void assign_to_array_tuple_oob(std::shared_ptr<gko::EXEC_TYPE> exec,
         gko::size_type{1}, result_array);
 }
 
+namespace gkda = gko::kernels::GKO_DEVICE_NAMESPACE::amp;
+
 #if GKO_AMP_HALF_IS_FP16 || GKO_AMP_HALF_IS_BFLOAT16
 
 TEST_F(AMPAlgorithms, GetsCorrectBinLowerBoundsByPrecisionStartingDouble)
@@ -184,9 +186,9 @@ TEST_F(AMPAlgorithms, GetsCorrectBinLowerBoundsByPrecisionStartingDouble)
     gko::array<float> expected_arr(ref, sz);
     auto expect = expected_arr.get_data();
     expect[0] = rownorm * tol / std::numeric_limits<float>::epsilon();
-    expect[1] = rownorm * tol /
-                static_cast<float>(
-                    gko::device_numeric_limits<gko::amp::half>::epsilon());
+    expect[1] =
+        rownorm * tol /
+        static_cast<float>(gko::device_numeric_limits<gkda::half>::epsilon());
     expect[2] = rownorm * tol;
 
     bins_precision_lower_bounds<double>(exec, rownorm, tol, result_arr);
@@ -202,9 +204,9 @@ TEST_F(AMPAlgorithms, GetsCorrectBinLowerBoundsByPrecisionStartingFloat)
     gko::array<float> result_arr(exec, sz);
     gko::array<float> expected_arr(ref, sz);
     auto expect = expected_arr.get_data();
-    expect[0] = rownorm * tol /
-                static_cast<float>(
-                    gko::device_numeric_limits<gko::amp::half>::epsilon());
+    expect[0] =
+        rownorm * tol /
+        static_cast<float>(gko::device_numeric_limits<gkda::half>::epsilon());
     expect[1] = rownorm * tol;
 
     bins_precision_lower_bounds<float>(exec, rownorm, tol, result_arr);
@@ -221,7 +223,7 @@ TEST_F(AMPAlgorithms, GetsCorrectBinMinRepresentableStartingDouble)
     expect[0] = std::numeric_limits<double>::min();
     expect[1] = std::numeric_limits<float>::min();
     expect[2] =
-        static_cast<double>(gko::device_numeric_limits<gko::amp::half>::min());
+        static_cast<double>(gko::device_numeric_limits<gkda::half>::min());
 
     bins_min_representable<double>(exec, result_arr);
 
@@ -236,7 +238,7 @@ TEST_F(AMPAlgorithms, GetsCorrectBinMinRepresentableStartingFloat)
     auto expect = expected_arr.get_data();
     expect[0] = std::numeric_limits<float>::min();
     expect[1] =
-        static_cast<float>(gko::device_numeric_limits<gko::amp::half>::min());
+        static_cast<float>(gko::device_numeric_limits<gkda::half>::min());
 
     bins_min_representable<float>(exec, result_arr);
 
