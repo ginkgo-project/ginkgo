@@ -28,20 +28,6 @@ namespace amp {
 
 
 template <typename ValueType, typename IndexType>
-void generate_ell_rownorms_storage(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
-    gko::amp::precision_array<int, ValueType>& max_nnz,
-    array<gko::remove_complex<ValueType>>& rownorms)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
-    GKO_DECLARE_AMP_GENERATE_CWISE_ELL_STEP1_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
 void generate_ell_scatter_bins(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
