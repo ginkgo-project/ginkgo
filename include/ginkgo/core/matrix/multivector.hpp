@@ -9,6 +9,8 @@
 #include <ginkgo/core/matrix/device_views.hpp>
 
 
+#include "ginkgo/core/base/temporary_ptr.hpp"
+
 
 namespace gko {
 
@@ -160,6 +162,11 @@ public:
     [[nodiscard]] device_view<const ValueType> get_const_local_device_view()
         const;
 
+    [[nodiscard]] TemporaryPtr<MultiVector> as_precision(precision p);
+
+    [[nodiscard]] TemporaryPtr<const MultiVector> as_precision(
+        precision p) const;
+
     [[nodiscard]] size_type get_stride() const noexcept;
 
 protected:
@@ -279,6 +286,12 @@ protected:
         device_view<const double>, device_view<const std::complex<double>>> = 0;
 
     [[nodiscard]] virtual auto get_stride_impl() const -> size_type = 0;
+
+    [[nodiscard]] virtual TemporaryPtr<MultiVector> as_precision_impl(
+        precision p) = 0;
+
+    [[nodiscard]] virtual TemporaryPtr<const MultiVector> as_precision_impl(
+        precision p) const = 0;
 };
 
 
