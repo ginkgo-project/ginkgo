@@ -38,6 +38,7 @@ target_sources(
         base/device_matrix_data.cpp
         base/executor.cpp
         base/index_set.cpp
+        base/lin_op.cpp
         base/memory.cpp
         base/mpi.cpp
         base/mtx_io.cpp
