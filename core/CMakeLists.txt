@@ -40,6 +40,7 @@ target_sources(
         base/index_set.cpp
         base/lin_op.cpp
         base/memory.cpp
+        base/mixed_precision.cpp
         base/mpi.cpp
         base/mtx_io.cpp
         base/perturbation.cpp
