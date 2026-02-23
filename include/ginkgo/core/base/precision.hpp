@@ -27,6 +27,23 @@ enum struct precision {
 };
 
 
+// Equality comparison operator.
+// The precision::none is not equal to any other precision, including none.
+constexpr bool operator==(precision a, precision b)
+{
+    auto int_a = static_cast<int>(a);
+    auto int_b = static_cast<int>(b);
+    if (int_a == static_cast<int>(precision::none) ||
+        int_b == static_cast<int>(precision::none)) {
+        return false;
+    }
+    return int_a == int_b;
+}
+
+
+constexpr bool operator!=(precision a, precision b) { return !(a == b); }
+
+
 template <typename T>
 inline precision type_to_precision;
 
