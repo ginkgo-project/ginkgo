@@ -6,7 +6,9 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/precision.hpp>
 #include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
 
 #include "ginkgo/core/base/type_traits.hpp"
@@ -157,6 +159,35 @@ public:
     [[nodiscard]] device_view<const ValueType> get_const_local_device_view()
         const;
 
+    /**
+     * Converts this vector into another precision.
+     *
+     * Allowed conversions:
+     * - bf16 <-> fp16 <-> fp32 <-> fp64
+     * - complex_bf16 <-> complex_fp16 <-> complex_fp32 <-> complex_fp64
+     * - complex_P -> P, where P = bf16, fp16, fp32, fp64
+     *
+     * @param p The requested precision
+     * @return A vector with the requested precision
+     */
+    [[nodiscard]] detail::temporary_conversion<MultiVector> as_precision(
+        precision p);
+
+    [[nodiscard]] detail::temporary_conversion<MultiVector> as_precision(
+        ptr_param<const MultiVector> p);
+
+    [[nodiscard]] detail::temporary_conversion<MultiVector> as_precision(
+        ptr_param<const LinOp> p);
+
+    [[nodiscard]] detail::temporary_conversion<const MultiVector>
+    as_precision(precision p) const;
+
+    [[nodiscard]] detail::temporary_conversion<const MultiVector> as_precision(
+        ptr_param<const MultiVector> p) const;
+
+    [[nodiscard]] detail::temporary_conversion<const MultiVector> as_precision(
+        ptr_param<const LinOp> p) const;
+
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
                          const dim<2>& size = dim<2>{},
@@ -275,6 +306,12 @@ protected:
         device_view<const float>, device_view<const std::complex<float>>,
         device_view<const double>, device_view<const std::complex<double>>>
     get_const_local_device_view_generic_impl() const = 0;
+
+    [[nodiscard]] virtual gko::detail::temporary_conversion<MultiVector>
+    as_precision_impl(precision p) = 0;
+
+    [[nodiscard]] virtual gko::detail::temporary_conversion<const MultiVector>
+    as_precision_impl(precision p) const = 0;
 };
 
 
@@ -441,6 +478,12 @@ protected:
     virtual void compute_norm1_impl(matrix::Dense<absolute_value_type>* result,
                                     array<char>& tmp) const = 0;
 
+    [[nodiscard]] detail::temporary_conversion<MultiVector>
+    as_precision_impl(precision p) override;
+
+    [[nodiscard]] detail::temporary_conversion<const MultiVector>
+    as_precision_impl(precision p) const override;
+
     virtual MultiVector::device_view<value_type>
     get_local_device_view_impl() = 0;
 
@@ -559,6 +602,8 @@ private:
     void compute_norm1_impl(MultiVector* result) const final;
 
     void compute_norm1_impl(MultiVector* result, array<char>& tmp) const final;
+
+    GKO_ENABLE_SELF(ConcreteType);
 };
 
 
@@ -1022,6 +1067,71 @@ void EnableMultiVector<ConcreteType>::compute_norm1_impl(MultiVector* result,
 {
     this->compute_norm1_impl(as<ConcreteType>(result), tmp);
 }
+
+
+template <typename ConcreteType>
+detail::temporary_conversion<MultiVector>
+EnableMultiVector<ConcreteType>::as_precision_impl(precision p)
+{
+    return std::visit(
+        [this](auto v) -> detail::temporary_conversion<MultiVector> {
+            using source_value_type = typename ConcreteType::value_type;
+            using target_value_type = std::decay_t<decltype(v)>;
+            if constexpr (is_complex<source_value_type>() ==
+                          is_complex<target_value_type>()) {
+                return detail::temporary_conversion<MultiVector>::
+                    create_from_derived(
+                        self()->template as_precision<target_value_type>());
+            } else if constexpr (!is_complex<target_value_type>() &&
+                                 std::is_same_v<
+                                     remove_complex<source_value_type>,
+                                     target_value_type>) {
+                // The as_precision is a noop, but necessary to convert
+                // the real view to a temporary_conversion
+                return detail::temporary_conversion<MultiVector>::
+                    create_from_derived(
+                        self()
+                            ->create_real_view()
+                            ->template as_precision<target_value_type>());
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        },
+        precision_to_variant(p));
+}
+
+
+template <typename ConcreteType>
+detail::temporary_conversion<const MultiVector>
+EnableMultiVector<ConcreteType>::as_precision_impl(precision p) const
+{
+    return std::visit(
+        [this](auto v) -> detail::temporary_conversion<const MultiVector> {
+            using source_value_type = typename ConcreteType::value_type;
+            using target_value_type = std::decay_t<decltype(v)>;
+            if constexpr (is_complex<source_value_type>() ==
+                          is_complex<target_value_type>()) {
+                return detail::temporary_conversion<const MultiVector>::
+                    create_from_derived(
+                        self()->template as_precision<target_value_type>());
+            } else if constexpr (!is_complex<target_value_type>() &&
+                                 std::is_same_v<
+                                     remove_complex<source_value_type>,
+                                     target_value_type>) {
+                // The as_precision is a noop, but necessary to convert
+                // the real view to a temporary_conversion
+                return detail::temporary_conversion<const MultiVector>::
+                    create_from_derived(
+                        self()
+                            ->create_real_view()
+                            ->template as_precision<target_value_type>());
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        },
+        precision_to_variant(p));
+}
+
 
 template <typename ConcreteType>
 std::variant<
