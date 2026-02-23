@@ -52,16 +52,17 @@ TEST(AMPAlgorithm, GetsCorrectBinLowerBoundsByPrecision)
 TEST(AMPAlgorithm, GetsCorrectBinMinRepresentable)
 {
     const auto mins_d = gkra::get_bins_min_representable<double>();
-    auto doublemin = static_cast<float>(std::numeric_limits<double>::min());
+    auto doublemin = std::numeric_limits<double>::min();
     auto halfmin =
-        static_cast<float>(std::numeric_limits<gko::amp::half>::min());
+        static_cast<double>(std::numeric_limits<gko::amp::half>::min());
     EXPECT_EQ(mins_d[0], doublemin);
-    EXPECT_EQ(mins_d[1], std::numeric_limits<float>::min());
-    EXPECT_EQ(mins_d[2], halfmin);
+    EXPECT_EQ(mins_d[1],
+              static_cast<double>(std::numeric_limits<float>::min()));
+    EXPECT_EQ(mins_d[2], static_cast<double>(halfmin));
 
     const auto mins_f = gkra::get_bins_min_representable<float>();
     EXPECT_EQ(mins_f[0], std::numeric_limits<float>::min());
-    EXPECT_EQ(mins_f[1], halfmin);
+    EXPECT_EQ(mins_f[1], static_cast<float>(halfmin));
 }
 
 
@@ -221,9 +222,10 @@ TEST(AMPAlgorithm, GetsCorrectBinLowerBoundsByPrecision)
 TEST(AMPAlgorithm, GetsCorrectBinMinRepresentable)
 {
     const auto mins_d = gkra::get_bins_min_representable<double>();
-    auto doublemin = static_cast<float>(std::numeric_limits<double>::min());
+    auto doublemin = std::numeric_limits<double>::min();
     EXPECT_EQ(mins_d[0], doublemin);
-    EXPECT_EQ(mins_d[1], std::numeric_limits<float>::min());
+    EXPECT_EQ(mins_d[1],
+              static_cast<double>(std::numeric_limits<float>::min()));
 
     const auto mins_f = gkra::get_bins_min_representable<float>();
     EXPECT_EQ(mins_f[0], std::numeric_limits<float>::min());

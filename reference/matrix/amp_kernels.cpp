@@ -191,7 +191,7 @@ void generate_ell_rownorms_storage(
     using real_type = remove_complex<ValueType>;
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
     // Compute minimum representable values for each bin
-    const std::array<float, q> min_repr =
+    const std::array<real_type, q> min_repr =
         get_bins_min_representable<real_type>();
 
     const auto nrows = a->get_size()[0];
@@ -246,7 +246,7 @@ void generate_ell_scatter_bins(
     using real_type = remove_complex<ValueType>;
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
     // Compute minimum representable values for each bin
-    const std::array<float, q> min_repr =
+    const std::array<real_type, q> min_repr =
         get_bins_min_representable<real_type>();
 
     const auto nrows = a->get_size()[0];
