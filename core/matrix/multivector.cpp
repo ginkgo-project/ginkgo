@@ -10,8 +10,9 @@ namespace matrix {
 
 
 MultiVector::MultiVector(std::shared_ptr<const Executor> exec,
-                         const dim<2>& size)
-    : EnableAbstractPolymorphicObject<MultiVector, LinOp>(std::move(exec), size)
+                         const dim<2>& size, precision p)
+    : EnableAbstractPolymorphicObject<MultiVector, LinOp>(std::move(exec), size,
+                                                          p)
 {}
 
 

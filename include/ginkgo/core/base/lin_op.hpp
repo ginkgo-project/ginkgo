@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,6 +21,8 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
+
+#include "precision.hpp"
 
 
 namespace gko {
@@ -218,6 +220,10 @@ public:
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
+    [[nodiscard]] virtual bool supports_mixed_precision() const noexcept;
+
+    [[nodiscard]] precision get_precision() const noexcept;
+
     /** Copy-assigns a LinOp. Preserves the executor and copies the size. */
     LinOp& operator=(const LinOp&) = default;
 
@@ -256,8 +262,8 @@ protected:
      * @param size  the size of the operator
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dim<2>& size = dim<2>{})
-        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
+                   const dim<2>& size = dim<2>{}, precision p = precision::none)
+        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}, value_t_(p)
     {}
 
     /**
@@ -324,6 +330,7 @@ protected:
 
 private:
     dim<2> size_{};
+    precision value_t_{precision::none};
 };
 
 
