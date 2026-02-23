@@ -41,6 +41,7 @@ target_sources(
         base/mpi.cpp
         base/mtx_io.cpp
         base/perturbation.cpp
+        base/precision.cpp
         base/segmented_array.cpp
         base/timer.cpp
         base/version.cpp
