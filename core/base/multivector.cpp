@@ -386,6 +386,49 @@ std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
     return this->create_subview_generic_impl(rows, columns, global_size);
 }
 
+
+gko::detail::temporary_conversion<MultiVector> MultiVector::as_precision(
+    precision p)
+{
+    return this->as_precision_impl(p);
+}
+
+
+detail::temporary_conversion<MultiVector> MultiVector::as_precision(
+    ptr_param<const MultiVector> p)
+{
+    return this->as_precision_impl(p->get_precision());
+}
+
+
+detail::temporary_conversion<MultiVector> MultiVector::as_precision(
+    ptr_param<const LinOp> p)
+{
+    return this->as_precision_impl(p->get_precision());
+}
+
+
+gko::detail::temporary_conversion<const MultiVector> MultiVector::as_precision(
+    precision p) const
+{
+    return this->as_precision_impl(p);
+}
+
+
+detail::temporary_conversion<const MultiVector> MultiVector::as_precision(
+    ptr_param<const MultiVector> p) const
+{
+    return this->as_precision_impl(p->get_precision());
+}
+
+
+detail::temporary_conversion<const MultiVector> MultiVector::as_precision(
+    ptr_param<const LinOp> p) const
+{
+    return this->as_precision_impl(p->get_precision());
+}
+
+
 template <typename ValueType>
 MultiVector::device_view<ValueType> MultiVector::get_local_device_view()
 {
