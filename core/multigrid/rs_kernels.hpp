@@ -21,12 +21,18 @@ namespace gko {
 namespace kernels {
 namespace rs {
 
-#define GKO_DECLARE_RS_BUILD_SYMMETRIC_SOC_KERNEL(ValueType, IndexType) \
-    void build_symmetric_soc(                                           \
-        std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Csr<ValueType, IndexType>* A,                     \
-        remove_complex<ValueType> strength_threshold,                   \
-        matrix::Csr<ValueType, IndexType>*                              \
+#define GKO_DECLARE_RS_COMPUTE_SOC_ROW_PTRS_KERNEL(ValueType, IndexType)    \
+    void compute_soc_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,  \
+                              const matrix::Csr<ValueType, IndexType>* A,   \
+                              remove_complex<ValueType> strength_threshold, \
+                              IndexType* row_ptrs)
+
+#define GKO_DECLARE_RS_FILL_SOC_KERNEL(ValueType, IndexType) \
+    void fill_soc(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,         \
+        const matrix::Csr<ValueType, IndexType>* A,          \
+        remove_complex<ValueType> strength_threshold,        \
+        matrix::Csr<ValueType, IndexType>*                   \
             soc)  // I tried using SparsityCsr here but it doesn't support all
                   // the types. Not sure what'd be the difference either way.
 
@@ -59,20 +65,22 @@ namespace rs {
                           IndexType* coarse_rows)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_RS_BUILD_SYMMETRIC_SOC_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_RS_COMPUTE_LAMBDA_KERNEL(ValueType, IndexType);      \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_RS_INIT_CF_KERNEL(IndexType);                        \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_RS_COARSENING_KERNEL(ValueType, IndexType);          \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_RS_CLEANUP_KERNEL(IndexType);                        \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_RS_COUNT_COARSE_KERNEL(IndexType);                   \
-    template <typename IndexType>                                    \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_RS_COMPUTE_SOC_ROW_PTRS_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_RS_FILL_SOC_KERNEL(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_RS_COMPUTE_LAMBDA_KERNEL(ValueType, IndexType);       \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_RS_INIT_CF_KERNEL(IndexType);                         \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_RS_COARSENING_KERNEL(ValueType, IndexType);           \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_RS_CLEANUP_KERNEL(IndexType);                         \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_RS_COUNT_COARSE_KERNEL(IndexType);                    \
+    template <typename IndexType>                                     \
     GKO_DECLARE_RS_FILL_COARSE_ROWS_KERNEL(IndexType)
 
 

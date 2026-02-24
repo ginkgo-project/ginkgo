@@ -6,8 +6,6 @@
 #define GKO_PUBLIC_CORE_MULTIGRID_RS_HPP_
 
 
-#include <vector>
-
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
@@ -15,6 +13,8 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
+
+#include "ginkgo/core/base/math.hpp"
 
 
 namespace gko {
@@ -59,7 +59,8 @@ public:
         /**
          * Strength-of-connection threshold, theta
          */
-        value_type GKO_FACTORY_PARAMETER_SCALAR(strength_threshold, 0.25);
+        remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
+            strength_threshold, 0.25);
 
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };

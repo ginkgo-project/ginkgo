@@ -32,52 +32,86 @@ namespace rs {
 
 
 template <typename ValueType, typename IndexType>
-void build_symmetric_soc(std::shared_ptr<const ReferenceExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType>* A,
-                         remove_complex<ValueType> theta,
-                         matrix::Csr<ValueType, IndexType>* S)
+void compute_soc_row_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
+                          const matrix::Csr<ValueType, IndexType>* A,
+                          remove_complex<ValueType> theta, IndexType* row_ptrs)
 {
     using real_type = remove_complex<ValueType>;
 
     const auto n = A->get_size()[0];
-    const auto* row_ptrs = A->get_const_row_ptrs();
-    const auto* col_idxs = A->get_const_col_idxs();
-    const auto* vals = A->get_const_values();
+    const auto* a_row_ptrs = A->get_const_row_ptrs();
+    const auto* a_col_idxs = A->get_const_col_idxs();
+    const auto* a_vals = A->get_const_values();
 
-    auto* s_row_ptrs = S->get_row_ptrs();
-    auto* s_col_idxs = S->get_col_idxs();
-    auto* s_vals = S->get_values();
-
-    size_type nnz = 0;
-    s_row_ptrs[0] = 0;
+    row_ptrs[0] = 0;
 
     for (IndexType i = 0; i < n; ++i) {
         real_type max_offdiag = zero<real_type>();
+        IndexType row_nnz = 0;
 
-        // Find maximum negative off-diagonal magnitude
-        for (IndexType jj = row_ptrs[i]; jj < row_ptrs[i + 1]; ++jj) {
-            const auto j = col_idxs[jj];
+        for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+            const auto j = a_col_idxs[jj];
             if (j != i) {
-                max_offdiag = std::max(max_offdiag, -real(vals[jj]));
+                max_offdiag = std::max(max_offdiag, -real(a_vals[jj]));
             }
         }
 
-        // Determine strong connections
-        for (IndexType jj = row_ptrs[i]; jj < row_ptrs[i + 1]; ++jj) {
-            const auto j = col_idxs[jj];
-            if (j != i && -real(vals[jj]) >= theta * max_offdiag) {
-                s_col_idxs[nnz] = j;
-                s_vals[nnz] = one<ValueType>();
-                nnz++;
+        for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+            const auto j = a_col_idxs[jj];
+            if (j != i && -real(a_vals[jj]) >= theta * max_offdiag) {
+                row_nnz++;
             }
         }
 
-        s_row_ptrs[i + 1] = nnz;
+        row_ptrs[i + 1] = row_ptrs[i] + row_nnz;
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RS_BUILD_SYMMETRIC_SOC_KERNEL);
+    GKO_DECLARE_RS_COMPUTE_SOC_ROW_PTRS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void fill_soc(std::shared_ptr<const ReferenceExecutor> exec,
+              const matrix::Csr<ValueType, IndexType>* A,
+              remove_complex<ValueType> theta,
+              matrix::Csr<ValueType, IndexType>* S)
+{
+    using real_type = remove_complex<ValueType>;
+
+    const auto n = A->get_size()[0];
+    const auto* a_row_ptrs = A->get_const_row_ptrs();
+    const auto* a_col_idxs = A->get_const_col_idxs();
+    const auto* a_vals = A->get_const_values();
+
+    const auto* s_row_ptrs = S->get_const_row_ptrs();
+    auto* s_col_idxs = S->get_col_idxs();
+    auto* s_vals = S->get_values();
+
+    for (IndexType i = 0; i < n; ++i) {
+        real_type max_offdiag = zero<real_type>();
+
+        for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+            const auto j = a_col_idxs[jj];
+            if (j != i) {
+                max_offdiag = std::max(max_offdiag, -real(a_vals[jj]));
+            }
+        }
+
+        IndexType write_pos = s_row_ptrs[i];
+
+        for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+            const auto j = a_col_idxs[jj];
+            if (j != i && -real(a_vals[jj]) >= theta * max_offdiag) {
+                s_col_idxs[write_pos] = j;
+                s_vals[write_pos] = one<ValueType>();
+                write_pos++;
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_FILL_SOC_KERNEL);
 
 
 // Compute lambda_i = number of strong neighbors
