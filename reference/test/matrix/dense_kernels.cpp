@@ -22,6 +22,7 @@
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/core/matrix/row_scatterer.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -2697,6 +2698,103 @@ TYPED_TEST(DenseWithIndexType,
 
     ASSERT_THROW(this->mtx5->row_gather(&permute_idxs, Mtx::create(exec)),
                  gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(DenseWithIndexType, MatrixCanScatterRowsIntoDense)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto row_collection =
+        gko::initialize<Mtx>({{3.0, 2.7, 6.5}, {0.7, 1.1, 4.0}}, exec);
+    auto scatter = gko::matrix::RowScatterer<index_type>::create(
+        exec, gko::array<index_type>{exec, {2, 0}}, this->mtx5->get_size()[0]);
+
+    row_collection->row_scatter(scatter, this->mtx5);
+
+    GKO_ASSERT_MTX_NEAR(
+        this->mtx5, l<T>({{0.7, 1.1, 4.0}, {-2.0, 2.0, 4.5}, {3.0, 2.7, 6.5}}),
+        0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, MatrixCanScatterRowsIntoDenseSubmatrix)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto row_collection = gko::initialize<Mtx>(I<I<T>>{{3.0, 2.7}}, exec);
+    auto submtx = this->mtx5->create_submatrix({2}, {1, 3});
+    auto scatter = gko::matrix::RowScatterer<index_type>::create(
+        exec, gko::array<index_type>{exec, {0}}, submtx->get_size()[0]);
+
+    row_collection->row_scatter(scatter, submtx);
+
+    GKO_ASSERT_MTX_NEAR(
+        this->mtx5,
+        l<T>({{1.0, -1.0, -0.5}, {-2.0, 2.0, 4.5}, {2.1, 3.0, 2.7}}), 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, MatrixScatterRowsFailsWithWrongDimensions)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto row_collection1 =
+        gko::initialize<Mtx>(I<I<T>>{{3.0, 2.7}, {0.7, 1.1}}, exec);
+    auto row_collection2 =
+        gko::initialize<Mtx>({{3.0, 2.7, 6.5}, {0.7, 1.1, 4.0}}, exec);
+    auto scatter1 = gko::matrix::RowScatterer<index_type>::create(
+        exec, gko::array<index_type>{exec, {2, 0}}, this->mtx5->get_size()[0]);
+    auto scatter2 = gko::matrix::RowScatterer<index_type>::create(
+        exec, gko::array<index_type>{exec, {1}}, 2);
+
+    ASSERT_THROW(row_collection1->row_scatter(scatter1, this->mtx5),
+                 gko::DimensionMismatch);
+    ASSERT_THROW(row_collection2->row_scatter(scatter2, this->mtx5),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(DenseWithIndexType, MatrixScatterRowsFailsWithInvalidState)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto row_collection =
+        gko::initialize<Mtx>({{3.0, 2.7, 6.5}, {0.7, 1.1, 4.0}}, exec);
+    auto scatter = gko::matrix::RowScatterer<index_type>::create(
+        exec, gko::array<index_type>{exec, {200, 0}},
+        this->mtx5->get_size()[0]);
+
+    ASSERT_THROW(row_collection->row_scatter(scatter, this->mtx5),
+                 gko::InvalidStateError);
+}
+
+
+TYPED_TEST(DenseWithIndexType, MatrixGatherScatterIsIdentity)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto mtx = this->template gen_mtx<Mtx>(23, 4);
+    auto idxs = gko::array<index_type>{exec, {3, 6, 11, 9, 22, 8}};
+    auto scatter = gko::matrix::RowScatterer<index_type>::create(
+        exec, idxs, mtx->get_size()[0]);
+
+    auto gather = mtx->row_gather(&idxs);
+    mtx->fill(-gko::one<T>());
+    gather->row_scatter(scatter, mtx);
+    auto result = mtx->row_gather(&idxs);
+
+    GKO_ASSERT_MTX_NEAR(gather, result, 0.0);
 }
 
 

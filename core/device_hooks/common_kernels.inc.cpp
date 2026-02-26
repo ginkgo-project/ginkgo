@@ -4,6 +4,8 @@
 
 #include <type_traits>
 
+#include <core/matrix/row_scatterer_kernels.hpp>
+
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -1167,6 +1169,16 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
 
 
 }  // namespace implicit_residual_norm
+
+
+namespace row_scatter {
+
+
+GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_2(GKO_DECLARE_ROW_SCATTER_SIMPLE_APPLY);
+GKO_STUB_MIXED_VALUE_AND_INDEX_TYPE_2(GKO_DECLARE_ROW_SCATTER_ADVANCED_APPLY);
+
+
+}  // namespace row_scatter
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko
