@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -152,6 +152,18 @@ TYPED_TEST(Permutation, CanBeCleared)
     this->mtx->clear();
 
     this->assert_empty(this->mtx.get());
+}
+
+
+TYPED_TEST(Permutation, RecognizesDuplicatePermutationIndices)
+{
+    using index_type = typename TestFixture::index_type;
+    index_type data[] = {1, 0, 2, 2};
+
+    auto m = gko::matrix::Permutation<index_type>::create_const(
+        this->exec, gko::array<index_type>::const_view(this->exec, 4, data));
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
 
 

@@ -961,6 +961,8 @@ public:
      */
     void inv_scale(ptr_param<const LinOp> alpha);
 
+    void validate_data() const override;
+
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *

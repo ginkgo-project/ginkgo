@@ -248,6 +248,9 @@ public:
     const LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
                         ptr_param<LinOp> x) const;
 
+
+    void validate_data() const override;
+
     /**
      * Creates an uninitialized COO matrix of the specified size.
      *
