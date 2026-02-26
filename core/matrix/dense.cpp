@@ -40,17 +40,18 @@ namespace dense {
 namespace {
 
 
-GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(simple_apply, dense::simple_apply);
 GKO_REGISTER_OPERATION(apply, dense::apply);
-GKO_REGISTER_OPERATION(copy, dense::copy);
-GKO_REGISTER_OPERATION(fill, dense::fill);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(copy, dense::copy);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(fill, dense::fill);
 GKO_REGISTER_OPERATION(scale, dense::scale);
 GKO_REGISTER_OPERATION(inv_scale, dense::inv_scale);
 GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
 GKO_REGISTER_OPERATION(sub_scaled, dense::sub_scaled);
 GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
 GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
-GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot_dispatch);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_dot,
+                                          dense::compute_dot_dispatch);
 GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot_dispatch);
 GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2_dispatch);
 GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
