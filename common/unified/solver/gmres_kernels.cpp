@@ -24,12 +24,13 @@ namespace gmres {
 
 template <typename ValueType>
 void restart(std::shared_ptr<const DefaultExecutor> exec,
-             const matrix::Dense<ValueType>* residual,
-             const matrix::Dense<remove_complex<ValueType>>* residual_norm,
-             matrix::Dense<ValueType>* residual_norm_collection,
-             matrix::Dense<ValueType>* krylov_bases, size_type* final_iter_nums)
+             matrix::view::dense<const ValueType> residual,
+             matrix::view::dense<const remove_complex<ValueType>> residual_norm,
+             matrix::view::dense<ValueType> residual_norm_collection,
+             matrix::view::dense<ValueType> krylov_bases,
+             size_type* final_iter_nums)
 {
-    if (residual->get_size()[0] == 0) {
+    if (residual.size[0] == 0) {
         run_kernel(
             exec,
             [] GKO_KERNEL(auto j, auto residual_norm,
@@ -37,7 +38,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                 residual_norm_collection(0, j) = residual_norm(0, j);
                 final_iter_nums[j] = 0;
             },
-            residual->get_size()[1], residual_norm, residual_norm_collection,
+            residual.size[1], residual_norm, residual_norm_collection,
             final_iter_nums);
     } else {
         run_kernel(
@@ -51,8 +52,8 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                 }
                 krylov_bases(i, j) = residual(i, j) / residual_norm(0, j);
             },
-            residual->get_size(), residual, residual_norm,
-            residual_norm_collection, krylov_bases, final_iter_nums);
+            residual.size, residual, residual_norm, residual_norm_collection,
+            krylov_bases, final_iter_nums);
     }
 }
 
@@ -61,9 +62,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_KERNEL);
 
 template <typename ValueType>
 void multi_axpy(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Dense<ValueType>* krylov_bases,
-                const matrix::Dense<ValueType>* y,
-                matrix::Dense<ValueType>* before_preconditioner,
+                matrix::view::dense<const ValueType> krylov_bases,
+                matrix::view::dense<const ValueType> y,
+                matrix::view::dense<ValueType> before_preconditioner,
                 const size_type* final_iter_nums, stopping_status* stop_status)
 {
     run_kernel(
@@ -79,9 +80,8 @@ void multi_axpy(std::shared_ptr<const DefaultExecutor> exec,
             }
             out(row, col) = value;
         },
-        before_preconditioner->get_size(), krylov_bases, y,
-        before_preconditioner, final_iter_nums, stop_status,
-        before_preconditioner->get_size()[0]);
+        before_preconditioner.size, krylov_bases, y, before_preconditioner,
+        final_iter_nums, stop_status, before_preconditioner.size[0]);
     run_kernel(
         exec,
         [] GKO_KERNEL(auto col, auto stop) {
@@ -89,7 +89,7 @@ void multi_axpy(std::shared_ptr<const DefaultExecutor> exec,
                 stop[col].finalize();
             }
         },
-        before_preconditioner->get_size()[1], stop_status);
+        before_preconditioner.size[1], stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL);
@@ -97,9 +97,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL);
 
 template <typename ValueType>
 void multi_dot(std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Dense<ValueType>* krylov_bases,
-               const matrix::Dense<ValueType>* next_krylov,
-               matrix::Dense<ValueType>* hessenberg_col)
+               matrix::view::dense<const ValueType> krylov_bases,
+               matrix::view::dense<const ValueType> next_krylov,
+               matrix::view::dense<ValueType> hessenberg_col)
 {
     run_kernel_col_reduction(
         exec,
@@ -110,13 +110,11 @@ void multi_dot(std::shared_ptr<const DefaultExecutor> exec,
             return conj(bases(ivec * num_rows + row, irhs)) *
                    next_krylov(row, irhs);
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), hessenberg_col->get_values(),
-        gko::dim<2>{
-            next_krylov->get_size()[0],
-            hessenberg_col->get_size()[0] * hessenberg_col->get_size()[1] -
-                next_krylov->get_size()[1]},
-        krylov_bases, next_krylov, next_krylov->get_size()[1],
-        next_krylov->get_size()[0]);
+        GKO_KERNEL_REDUCE_SUM(ValueType), hessenberg_col.data,
+        gko::dim<2>{next_krylov.size[0],
+                    hessenberg_col.size[0] * hessenberg_col.size[1] -
+                        next_krylov.size[1]},
+        krylov_bases, next_krylov, next_krylov.size[1], next_krylov.size[0]);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_DOT_KERNEL);

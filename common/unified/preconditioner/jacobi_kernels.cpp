@@ -55,12 +55,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
 template <typename ValueType>
 void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const array<ValueType>& diag,
-                  const matrix::Dense<ValueType>* alpha,
-                  const matrix::Dense<ValueType>* b,
-                  const matrix::Dense<ValueType>* beta,
-                  matrix::Dense<ValueType>* x)
+                  matrix::view::dense<const ValueType> alpha,
+                  matrix::view::dense<const ValueType> b,
+                  matrix::view::dense<const ValueType> beta,
+                  matrix::view::dense<ValueType> x)
 {
-    if (alpha->get_size()[1] > 1) {
+    if (alpha.size[1] > 1) {
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto diag, auto alpha, auto b,
@@ -68,8 +68,7 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                 x(row, col) = beta[col] * x(row, col) +
                               alpha[col] * b(row, col) * diag[row];
             },
-            x->get_size(), diag, alpha->get_const_values(), b,
-            beta->get_const_values(), x);
+            x.size, diag, alpha.data, b, beta.data, x);
     } else {
         run_kernel(
             exec,
@@ -78,8 +77,7 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                 x(row, col) =
                     beta[0] * x(row, col) + alpha[0] * b(row, col) * diag[row];
             },
-            x->get_size(), diag, alpha->get_const_values(), b,
-            beta->get_const_values(), x);
+            x.size, diag, alpha.data, b, beta.data, x);
     }
 }
 
@@ -89,15 +87,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
 template <typename ValueType>
 void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                          const array<ValueType>& diag,
-                         const matrix::Dense<ValueType>* b,
-                         matrix::Dense<ValueType>* x)
+                         matrix::view::dense<const ValueType> b,
+                         matrix::view::dense<ValueType> x)
 {
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto diag, auto b, auto x) {
             x(row, col) = b(row, col) * diag[row];
         },
-        x->get_size(), diag, b, x);
+        x.size, diag, b, x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -107,7 +105,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType>
 void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
                              const array<ValueType>& blocks,
-                             matrix::Dense<ValueType>* result)
+                             matrix::view::dense<ValueType> result)
 {
     run_kernel(
         exec,
@@ -117,7 +115,7 @@ void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
                 result(row, col) = diag[row];
             }
         },
-        result->get_size(), blocks, result);
+        result.size, blocks, result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

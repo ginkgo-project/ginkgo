@@ -23,18 +23,18 @@ namespace bicgstab {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* r,
-                matrix::Dense<ValueType>* rr, matrix::Dense<ValueType>* y,
-                matrix::Dense<ValueType>* s, matrix::Dense<ValueType>* t,
-                matrix::Dense<ValueType>* z, matrix::Dense<ValueType>* v,
-                matrix::Dense<ValueType>* p, matrix::Dense<ValueType>* prev_rho,
-                matrix::Dense<ValueType>* rho, matrix::Dense<ValueType>* alpha,
-                matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* gamma,
-                matrix::Dense<ValueType>* omega,
-                array<stopping_status>* stop_status)
+void initialize(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::dense<const ValueType> b, matrix::view::dense<ValueType> r,
+    matrix::view::dense<ValueType> rr, matrix::view::dense<ValueType> y,
+    matrix::view::dense<ValueType> s, matrix::view::dense<ValueType> t,
+    matrix::view::dense<ValueType> z, matrix::view::dense<ValueType> v,
+    matrix::view::dense<ValueType> p, matrix::view::dense<ValueType> prev_rho,
+    matrix::view::dense<ValueType> rho, matrix::view::dense<ValueType> alpha,
+    matrix::view::dense<ValueType> beta, matrix::view::dense<ValueType> gamma,
+    matrix::view::dense<ValueType> omega, array<stopping_status>* stop_status)
 {
-    for (size_type j = 0; j < b->get_size()[1]; ++j) {
+    for (size_type j = 0; j < b.size[1]; ++j) {
         rho->at(j) = one<ValueType>();
         prev_rho->at(j) = one<ValueType>();
         alpha->at(j) = one<ValueType>();
@@ -43,16 +43,16 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
         omega->at(j) = one<ValueType>();
         stop_status->get_data()[j].reset();
     }
-    for (size_type i = 0; i < b->get_size()[0]; ++i) {
-        for (size_type j = 0; j < b->get_size()[1]; ++j) {
-            r->at(i, j) = b->at(i, j);
-            rr->at(i, j) = zero<ValueType>();
-            z->at(i, j) = zero<ValueType>();
-            v->at(i, j) = zero<ValueType>();
-            s->at(i, j) = zero<ValueType>();
-            t->at(i, j) = zero<ValueType>();
-            y->at(i, j) = zero<ValueType>();
-            p->at(i, j) = zero<ValueType>();
+    for (size_type i = 0; i < b.size[0]; ++i) {
+        for (size_type j = 0; j < b.size[1]; ++j) {
+            r(i, j) = b(i, j);
+            rr(i, j) = zero<ValueType>();
+            z(i, j) = zero<ValueType>();
+            v(i, j) = zero<ValueType>();
+            s(i, j) = zero<ValueType>();
+            t(i, j) = zero<ValueType>();
+            y(i, j) = zero<ValueType>();
+            p(i, j) = zero<ValueType>();
         }
     }
 }
@@ -62,26 +62,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType>* r, matrix::Dense<ValueType>* p,
-            const matrix::Dense<ValueType>* v,
-            const matrix::Dense<ValueType>* rho,
-            const matrix::Dense<ValueType>* prev_rho,
-            const matrix::Dense<ValueType>* alpha,
-            const matrix::Dense<ValueType>* omega,
+            matrix::view::dense<const ValueType> r,
+            matrix::view::dense<ValueType> p,
+            matrix::view::dense<const ValueType> v,
+            matrix::view::dense<const ValueType> rho,
+            matrix::view::dense<const ValueType> prev_rho,
+            matrix::view::dense<const ValueType> alpha,
+            matrix::view::dense<const ValueType> omega,
             const array<stopping_status>* stop_status)
 {
-    for (size_type i = 0; i < p->get_size()[0]; ++i) {
-        for (size_type j = 0; j < p->get_size()[1]; ++j) {
+    for (size_type i = 0; i < p.size[0]; ++i) {
+        for (size_type j = 0; j < p.size[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (is_nonzero(prev_rho->at(j) * omega->at(j))) {
                 const auto tmp =
                     rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
-                p->at(i, j) = r->at(i, j) +
-                              tmp * (p->at(i, j) - omega->at(j) * v->at(i, j));
+                p(i, j) = r(i, j) + tmp * (p(i, j) - omega->at(j) * v(i, j));
             } else {
-                p->at(i, j) = r->at(i, j);
+                p(i, j) = r(i, j);
             }
         }
     }
@@ -92,24 +92,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Dense<ValueType>* r, matrix::Dense<ValueType>* s,
-            const matrix::Dense<ValueType>* v,
-            const matrix::Dense<ValueType>* rho,
-            matrix::Dense<ValueType>* alpha,
-            const matrix::Dense<ValueType>* beta,
+            matrix::view::dense<const ValueType> r,
+            matrix::view::dense<ValueType> s,
+            matrix::view::dense<const ValueType> v,
+            matrix::view::dense<const ValueType> rho,
+            matrix::view::dense<ValueType> alpha,
+            matrix::view::dense<const ValueType> beta,
             const array<stopping_status>* stop_status)
 {
-    for (size_type i = 0; i < s->get_size()[0]; ++i) {
-        for (size_type j = 0; j < s->get_size()[1]; ++j) {
+    for (size_type i = 0; i < s.size[0]; ++i) {
+        for (size_type j = 0; j < s.size[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (is_nonzero(beta->at(j))) {
                 alpha->at(j) = rho->at(j) / beta->at(j);
-                s->at(i, j) = r->at(i, j) - alpha->at(j) * v->at(i, j);
+                s(i, j) = r(i, j) - alpha->at(j) * v(i, j);
             } else {
                 alpha->at(j) = zero<ValueType>();
-                s->at(i, j) = r->at(i, j);
+                s(i, j) = r(i, j);
             }
         }
     }
@@ -119,15 +120,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_2_KERNEL);
 
 
 template <typename ValueType>
-void step_3(
-    std::shared_ptr<const ReferenceExecutor> exec, matrix::Dense<ValueType>* x,
-    matrix::Dense<ValueType>* r, const matrix::Dense<ValueType>* s,
-    const matrix::Dense<ValueType>* t, const matrix::Dense<ValueType>* y,
-    const matrix::Dense<ValueType>* z, const matrix::Dense<ValueType>* alpha,
-    const matrix::Dense<ValueType>* beta, const matrix::Dense<ValueType>* gamma,
-    matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
+void step_3(std::shared_ptr<const ReferenceExecutor> exec,
+            matrix::view::dense<ValueType> x, matrix::view::dense<ValueType> r,
+            matrix::view::dense<const ValueType> s,
+            matrix::view::dense<const ValueType> t,
+            matrix::view::dense<const ValueType> y,
+            matrix::view::dense<const ValueType> z,
+            matrix::view::dense<const ValueType> alpha,
+            matrix::view::dense<const ValueType> beta,
+            matrix::view::dense<const ValueType> gamma,
+            matrix::view::dense<ValueType> omega,
+            const array<stopping_status>* stop_status)
 {
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+    for (size_type j = 0; j < x.size[1]; ++j) {
         if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
@@ -137,14 +142,13 @@ void step_3(
             omega->at(j) = zero<ValueType>();
         }
     }
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
-        for (size_type j = 0; j < x->get_size()[1]; ++j) {
+    for (size_type i = 0; i < x.size[0]; ++i) {
+        for (size_type j = 0; j < x.size[1]; ++j) {
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            x->at(i, j) +=
-                alpha->at(j) * y->at(i, j) + omega->at(j) * z->at(i, j);
-            r->at(i, j) = s->at(i, j) - omega->at(j) * t->at(i, j);
+            x(i, j) += alpha->at(j) * y(i, j) + omega->at(j) * z(i, j);
+            r(i, j) = s(i, j) - omega->at(j) * t(i, j);
         }
     }
 }
@@ -154,15 +158,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_STEP_3_KERNEL);
 
 template <typename ValueType>
 void finalize(std::shared_ptr<const ReferenceExecutor> exec,
-              matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* y,
-              const matrix::Dense<ValueType>* alpha,
+              matrix::view::dense<ValueType> x,
+              matrix::view::dense<const ValueType> y,
+              matrix::view::dense<const ValueType> alpha,
               array<stopping_status>* stop_status)
 {
-    for (size_type j = 0; j < x->get_size()[1]; ++j) {
+    for (size_type j = 0; j < x.size[1]; ++j) {
         if (stop_status->get_const_data()[j].has_stopped() &&
             !stop_status->get_const_data()[j].is_finalized()) {
-            for (size_type i = 0; i < x->get_size()[0]; ++i) {
-                x->at(i, j) += alpha->at(j) * y->at(i, j);
+            for (size_type i = 0; i < x.size[0]; ++i) {
+                x(i, j) += alpha->at(j) * y(i, j);
                 stop_status->get_data()[j].finalize();
             }
         }

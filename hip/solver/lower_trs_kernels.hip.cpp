@@ -63,8 +63,10 @@ void solve(std::shared_ptr<const HipExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
-           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+           matrix::view::dense<ValueType> trans_b,
+           matrix::view::dense<ValueType> trans_x,
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<ValueType> x)
 {
     solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
                                        trans_x, b, x);

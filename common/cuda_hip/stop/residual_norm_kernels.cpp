@@ -62,8 +62,8 @@ __global__ __launch_bounds__(1) void init_kernel(
 
 template <typename ValueType>
 void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType>* tau,
-                   const matrix::Dense<ValueType>* orig_tau,
+                   matrix::view::dense<const ValueType> tau,
+                   matrix::view::dense<const ValueType> orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
                    bool setFinalized, array<stopping_status>* stop_status,
                    array<bool>* device_storage, bool* all_converged,
@@ -75,13 +75,12 @@ void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
         as_device_type(device_storage->get_data()));
 
     const auto block_size = default_block_size;
-    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
+    const auto grid_size = ceildiv(tau.size[1], block_size);
 
     if (grid_size > 0) {
         residual_norm_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
-            tau->get_size()[1], as_device_type(rel_residual_goal),
-            as_device_type(tau->get_const_values()),
-            as_device_type(orig_tau->get_const_values()), stoppingId,
+            tau.size[1], as_device_type(rel_residual_goal),
+            as_device_type(tau.data), as_device_type(orig_tau.data), stoppingId,
             setFinalized, as_device_type(stop_status->get_data()),
             as_device_type(device_storage->get_data()));
     }
@@ -144,8 +143,8 @@ __global__ __launch_bounds__(1) void init_kernel(
 template <typename ValueType>
 void implicit_residual_norm(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Dense<ValueType>* tau,
-    const matrix::Dense<remove_complex<ValueType>>* orig_tau,
+    matrix::view::dense<const ValueType> tau,
+    matrix::view::dense<const remove_complex<ValueType>> orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, array<stopping_status>* stop_status,
     array<bool>* device_storage, bool* all_converged, bool* one_changed)
@@ -154,14 +153,13 @@ void implicit_residual_norm(
         as_device_type(device_storage->get_data()));
 
     const auto block_size = default_block_size;
-    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
+    const auto grid_size = ceildiv(tau.size[1], block_size);
 
     if (grid_size > 0) {
         implicit_residual_norm_kernel<<<grid_size, block_size, 0,
                                         exec->get_stream()>>>(
-            tau->get_size()[1], as_device_type(rel_residual_goal),
-            as_device_type(tau->get_const_values()),
-            as_device_type(orig_tau->get_const_values()), stoppingId,
+            tau.size[1], as_device_type(rel_residual_goal),
+            as_device_type(tau.data), as_device_type(orig_tau.data), stoppingId,
             setFinalized, as_device_type(stop_status->get_data()),
             as_device_type(device_storage->get_data()));
     }

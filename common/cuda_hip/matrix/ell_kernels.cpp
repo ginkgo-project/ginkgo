@@ -377,8 +377,8 @@ template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Ell<MatrixValueType, IndexType>* a,
-          const matrix::Dense<InputValueType>* b,
-          matrix::Dense<OutputValueType>* c)
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -408,11 +408,11 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<MatrixValueType>* alpha,
+                   matrix::view::dense<const MatrixValueType> alpha,
                    const matrix::Ell<MatrixValueType, IndexType>* a,
-                   const matrix::Dense<InputValueType>* b,
-                   const matrix::Dense<OutputValueType>* beta,
-                   matrix::Dense<OutputValueType>* c)
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);

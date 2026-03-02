@@ -112,21 +112,21 @@ void calculate_next_residual_norm(
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType>* b,
-                matrix::Dense<ValueType>* residual,
-                matrix::Dense<ValueType>* givens_sin,
-                matrix::Dense<ValueType>* givens_cos,
+                matrix::view::dense<const ValueType> b,
+                matrix::view::dense<ValueType> residual,
+                matrix::view::dense<ValueType> givens_sin,
+                matrix::view::dense<ValueType> givens_cos,
                 stopping_status* stop_status)
 {
-    const auto krylov_dim = givens_sin->get_size()[0];
+    const auto krylov_dim = givens_sin.size[0];
     using NormValueType = remove_complex<ValueType>;
-    for (size_type j = 0; j < b->get_size()[1]; ++j) {
-        for (size_type i = 0; i < b->get_size()[0]; ++i) {
-            residual->at(i, j) = b->at(i, j);
+    for (size_type j = 0; j < b.size[1]; ++j) {
+        for (size_type i = 0; i < b.size[0]; ++i) {
+            residual(i, j) = b(i, j);
         }
         for (size_type i = 0; i < krylov_dim; ++i) {
-            givens_sin->at(i, j) = zero<ValueType>();
-            givens_cos->at(i, j) = zero<ValueType>();
+            givens_sin(i, j) = zero<ValueType>();
+            givens_cos(i, j) = zero<ValueType>();
         }
         stop_status[j].reset();
     }
@@ -137,15 +137,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void hessenberg_qr(std::shared_ptr<const ReferenceExecutor> exec,
-                   matrix::Dense<ValueType>* givens_sin,
-                   matrix::Dense<ValueType>* givens_cos,
-                   matrix::Dense<remove_complex<ValueType>>* residual_norm,
-                   matrix::Dense<ValueType>* residual_norm_collection,
-                   matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
-                   size_type* final_iter_nums,
+                   matrix::view::dense<ValueType> givens_sin,
+                   matrix::view::dense<ValueType> givens_cos,
+                   matrix::view::dense<remove_complex<ValueType>> residual_norm,
+                   matrix::view::dense<ValueType> residual_norm_collection,
+                   matrix::view::dense<ValueType> hessenberg_iter,
+                   size_type iter, size_type* final_iter_nums,
                    const stopping_status* stop_status)
 {
-    for (size_type i = 0; i < givens_sin->get_size()[1]; ++i) {
+    for (size_type i = 0; i < givens_sin.size[1]; ++i) {
         if (!stop_status[i].has_stopped()) {
             final_iter_nums[i]++;
         }
@@ -162,26 +162,27 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void solve_krylov(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Dense<ValueType>* residual_norm_collection,
-                  const matrix::Dense<ValueType>* hessenberg,
-                  matrix::Dense<ValueType>* y, const size_type* final_iter_nums,
+                  matrix::view::dense<const ValueType> residual_norm_collection,
+                  matrix::view::dense<const ValueType> hessenberg,
+                  matrix::view::dense<ValueType> y,
+                  const size_type* final_iter_nums,
                   const stopping_status* stop_status)
 {
-    for (size_type k = 0; k < residual_norm_collection->get_size()[1]; ++k) {
+    for (size_type k = 0; k < residual_norm_collection.size[1]; ++k) {
         if (stop_status[k].is_finalized()) {
             continue;
         }
         for (int i = final_iter_nums[k] - 1; i >= 0; --i) {
-            auto temp = residual_norm_collection->at(i, k);
+            auto temp = residual_norm_collection(i, k);
             for (size_type j = i + 1; j < final_iter_nums[k]; ++j) {
                 temp -=
-                    hessenberg->at(
+                    hessenberg(
                         j, i * residual_norm_collection->get_size()[1] + k) *
-                    y->at(j, k);
+                    y(j, k);
             }
-            y->at(i, k) =
-                temp / hessenberg->at(
-                           i, i * residual_norm_collection->get_size()[1] + k);
+            y(i, k) =
+                temp /
+                hessenberg(i, i * residual_norm_collection->get_size()[1] + k);
         }
     }
 }

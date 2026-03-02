@@ -439,7 +439,7 @@ __global__ __launch_bounds__(default_block_size) void fill_in_sellp(
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Dense<ValueType>* source,
+                    matrix::view::dense<const ValueType> source,
                     const int64* row_ptrs,
                     matrix::Coo<ValueType, IndexType>* result)
 {
@@ -450,16 +450,15 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
 
-    auto stride = source->get_stride();
+    auto stride = source.stride;
 
     const auto grid_dim =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
         kernel::fill_in_coo<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
-            num_rows, num_cols, stride,
-            as_device_type(source->get_const_values()), row_ptrs, row_idxs,
-            col_idxs, as_device_type(values));
+            num_rows, num_cols, stride, as_device_type(source.data), row_ptrs,
+            row_idxs, col_idxs, as_device_type(values));
     }
 }
 
@@ -469,7 +468,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Dense<ValueType>* source,
+                    matrix::view::dense<const ValueType> source,
                     matrix::Csr<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
@@ -479,15 +478,14 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
 
-    auto stride = source->get_stride();
+    auto stride = source.stride;
 
     const auto grid_dim =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
         kernel::fill_in_csr<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
-            num_rows, num_cols, stride,
-            as_device_type(source->get_const_values()),
+            num_rows, num_cols, stride, as_device_type(source.data),
             as_device_type(row_ptrs), as_device_type(col_idxs),
             as_device_type(values));
     }
@@ -499,7 +497,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Dense<ValueType>* source,
+                    matrix::view::dense<const ValueType> source,
                     matrix::Ell<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
@@ -509,7 +507,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     auto col_idxs = result->get_col_idxs();
     auto values = result->get_values();
 
-    auto source_stride = source->get_stride();
+    auto source_stride = source.stride;
     auto result_stride = result->get_stride();
 
     const auto grid_dim =
@@ -517,9 +515,8 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::fill_in_ell<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
-            num_rows, num_cols, source_stride,
-            as_device_type(source->get_const_values()), max_nnz_per_row,
-            result_stride, col_idxs, as_device_type(values));
+            num_rows, num_cols, source_stride, as_device_type(source.data),
+            max_nnz_per_row, result_stride, col_idxs, as_device_type(values));
     }
 }
 
@@ -529,7 +526,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Dense<ValueType>* source,
+                      matrix::view::dense<const ValueType> source,
                       matrix::Fbcsr<ValueType, IndexType>* result)
 {
     const auto num_block_rows = result->get_num_block_rows();
@@ -538,9 +535,8 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
             ceildiv(num_block_rows, default_block_size / config::warp_size);
         kernel::convert_to_fbcsr<<<num_blocks, default_block_size, 0,
                                    exec->get_stream()>>>(
-            num_block_rows, result->get_num_block_cols(), source->get_stride(),
-            result->get_block_size(),
-            as_device_type(source->get_const_values()),
+            num_block_rows, result->get_num_block_cols(), source.stride,
+            result->get_block_size(), as_device_type(source.data),
             result->get_const_row_ptrs(), result->get_col_idxs(),
             as_device_type(result->get_values()));
     }
@@ -552,18 +548,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
-                                  const matrix::Dense<ValueType>* source,
+                                  matrix::view::dense<const ValueType> source,
                                   int bs, IndexType* result)
 {
-    const auto num_block_rows = source->get_size()[0] / bs;
-    const auto num_block_cols = source->get_size()[1] / bs;
+    const auto num_block_rows = source.size[0] / bs;
+    const auto num_block_cols = source.size[1] / bs;
     if (num_block_rows > 0) {
         const auto num_blocks =
             ceildiv(num_block_rows, default_block_size / config::warp_size);
         kernel::count_nonzero_blocks_per_row<<<num_blocks, default_block_size,
                                                0, exec->get_stream()>>>(
-            num_block_rows, num_block_cols, source->get_stride(), bs,
-            as_device_type(source->get_const_values()), result);
+            num_block_rows, num_block_cols, source.stride, bs,
+            as_device_type(source.data), result);
     }
 }
 
@@ -573,7 +569,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Dense<ValueType>* source,
+                       matrix::view::dense<const ValueType> source,
                        const int64* coo_row_ptrs,
                        matrix::Hybrid<ValueType, IndexType>* result)
 {
@@ -581,7 +577,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_cols = result->get_size()[1];
     const auto ell_max_nnz_per_row =
         result->get_ell_num_stored_elements_per_row();
-    const auto source_stride = source->get_stride();
+    const auto source_stride = source.stride;
     const auto ell_stride = result->get_ell_stride();
     auto ell_col_idxs = result->get_ell_col_idxs();
     auto ell_values = result->get_ell_values();
@@ -593,10 +589,10 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::fill_in_hybrid<<<grid_dim, default_block_size, 0,
                                  exec->get_stream()>>>(
-            num_rows, num_cols, source_stride,
-            as_device_type(source->get_const_values()), ell_max_nnz_per_row,
-            ell_stride, ell_col_idxs, as_device_type(ell_values), coo_row_ptrs,
-            coo_row_idxs, coo_col_idxs, as_device_type(coo_values));
+            num_rows, num_cols, source_stride, as_device_type(source.data),
+            ell_max_nnz_per_row, ell_stride, ell_col_idxs,
+            as_device_type(ell_values), coo_row_ptrs, coo_row_idxs,
+            coo_col_idxs, as_device_type(coo_values));
     }
 }
 
@@ -606,10 +602,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Dense<ValueType>* source,
+                      matrix::view::dense<const ValueType> source,
                       matrix::Sellp<ValueType, IndexType>* result)
 {
-    const auto stride = source->get_stride();
+    const auto stride = source.stride;
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
 
@@ -624,8 +620,7 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::fill_in_sellp<<<grid_dim, default_block_size, 0,
                                 exec->get_stream()>>>(
-            num_rows, num_cols, slice_size, stride,
-            as_device_type(source->get_const_values()),
+            num_rows, num_cols, slice_size, stride, as_device_type(source.data),
             as_device_type(slice_sets), as_device_type(col_idxs),
             as_device_type(vals));
     }
@@ -637,7 +632,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Dense<ValueType>* source,
+                             matrix::view::dense<const ValueType> source,
                              matrix::SparsityCsr<ValueType, IndexType>* result)
 {
     auto num_rows = result->get_size()[0];
@@ -646,15 +641,14 @@ void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
     auto row_ptrs = result->get_row_ptrs();
     auto col_idxs = result->get_col_idxs();
 
-    auto stride = source->get_stride();
+    auto stride = source.stride;
 
     const auto grid_dim =
         ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
         kernel::fill_in_sparsity_csr<<<grid_dim, default_block_size, 0,
                                        exec->get_stream()>>>(
-            num_rows, num_cols, stride,
-            as_device_type(source->get_const_values()),
+            num_rows, num_cols, stride, as_device_type(source.data),
             as_device_type(row_ptrs), as_device_type(col_idxs));
     }
 }
@@ -665,16 +659,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Dense<ValueType>* x,
-                          const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result, array<char>& tmp)
+                          matrix::view::dense<const ValueType> x,
+                          matrix::view::dense<const ValueType> y,
+                          matrix::view::dense<ValueType> result,
+                          array<char>& tmp)
 {
-    if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
+    if (x.size[1] == 1 && y.size[1] == 1) {
         if (blas::is_supported<ValueType>::value) {
             auto handle = exec->get_blas_handle();
-            blas::dot(handle, x->get_size()[0], x->get_const_values(),
-                      x->get_stride(), y->get_const_values(), y->get_stride(),
-                      result->get_values());
+            blas::dot(handle, x.size[0], x.data, x.stride, y.data, y.stride,
+                      result.data);
         } else {
             compute_dot(exec, x, y, result, tmp);
         }
@@ -689,17 +683,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                               const matrix::Dense<ValueType>* x,
-                               const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result,
+                               matrix::view::dense<const ValueType> x,
+                               matrix::view::dense<const ValueType> y,
+                               matrix::view::dense<ValueType> result,
                                array<char>& tmp)
 {
-    if (x->get_size()[1] == 1 && y->get_size()[1] == 1) {
+    if (x.size[1] == 1 && y.size[1] == 1) {
         if (blas::is_supported<ValueType>::value) {
             auto handle = exec->get_blas_handle();
-            blas::conj_dot(handle, x->get_size()[0], x->get_const_values(),
-                           x->get_stride(), y->get_const_values(),
-                           y->get_stride(), result->get_values());
+            blas::conj_dot(handle, x.size[0], x.data, x.stride, y.data,
+                           y.stride, result.data);
         } else {
             compute_conj_dot(exec, x, y, result, tmp);
         }
@@ -713,16 +706,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result,
-                            array<char>& tmp)
+void compute_norm2_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::dense<const ValueType> x,
+    matrix::view::dense<remove_complex<ValueType>> result, array<char>& tmp)
 {
-    if (x->get_size()[1] == 1) {
+    if (x.size[1] == 1) {
         if (blas::is_supported<ValueType>::value) {
             auto handle = exec->get_blas_handle();
-            blas::norm2(handle, x->get_size()[0], x->get_const_values(),
-                        x->get_stride(), result->get_values());
+            blas::norm2(handle, x.size[0], x.data, x.stride, result.data);
         } else {
             compute_norm2(exec, x, result, tmp);
         }
@@ -737,22 +729,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Dense<ValueType>* a,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* c)
+                  matrix::view::dense<const ValueType> a,
+                  matrix::view::dense<const ValueType> b,
+                  matrix::view::dense<ValueType> c)
 {
     if (blas::is_supported<ValueType>::value) {
         auto handle = exec->get_blas_handle();
-        if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
-            if (a->get_size()[1] > 0) {
+        if (c.size[0] > 0 && c.size[1] > 0) {
+            if (a.size[1] > 0) {
                 blas::pointer_mode_guard pm_guard(handle);
                 auto alpha = one<ValueType>();
                 auto beta = zero<ValueType>();
-                blas::gemm(handle, BLAS_OP_N, BLAS_OP_N, c->get_size()[1],
-                           c->get_size()[0], a->get_size()[1], &alpha,
-                           b->get_const_values(), b->get_stride(),
-                           a->get_const_values(), a->get_stride(), &beta,
-                           c->get_values(), c->get_stride());
+                blas::gemm(handle, BLAS_OP_N, BLAS_OP_N, c.size[1], c.size[0],
+                           a.size[1], &alpha, b.data, b.stride, a.data,
+                           a.stride, &beta, c.data, c.stride);
             } else {
                 dense::fill(exec, c, zero<ValueType>());
             }
@@ -767,19 +757,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::Dense<ValueType>* alpha,
-           const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
+           matrix::view::dense<const ValueType> alpha,
+           matrix::view::dense<const ValueType> a,
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<const ValueType> beta,
+           matrix::view::dense<ValueType> c)
 {
     if (blas::is_supported<ValueType>::value) {
-        if (c->get_size()[0] > 0 && c->get_size()[1] > 0) {
-            if (a->get_size()[1] > 0) {
+        if (c.size[0] > 0 && c.size[1] > 0) {
+            if (a.size[1] > 0) {
                 blas::gemm(exec->get_blas_handle(), BLAS_OP_N, BLAS_OP_N,
-                           c->get_size()[1], c->get_size()[0], a->get_size()[1],
-                           alpha->get_const_values(), b->get_const_values(),
-                           b->get_stride(), a->get_const_values(),
-                           a->get_stride(), beta->get_const_values(),
-                           c->get_values(), c->get_stride());
+                           c.size[1], c.size[0], a.size[1], alpha.data, b.data,
+                           b.stride, a.data, a.stride, beta.data, c.data,
+                           c.stride);
             } else {
                 dense::scale(exec, beta, c);
             }
@@ -794,20 +784,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Dense<ValueType>* orig,
-               matrix::Dense<ValueType>* trans)
+               matrix::view::dense<const ValueType> orig,
+               matrix::view::dense<ValueType> trans)
 {
     if (blas::is_supported<ValueType>::value) {
         auto handle = exec->get_blas_handle();
-        if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
+        if (orig.size[0] > 0 && orig.size[1] > 0) {
             blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            blas::geam(handle, BLAS_OP_T, BLAS_OP_N, orig->get_size()[0],
-                       orig->get_size()[1], &alpha, orig->get_const_values(),
-                       orig->get_stride(), &beta, trans->get_const_values(),
-                       trans->get_stride(), trans->get_values(),
-                       trans->get_stride());
+            blas::geam(handle, BLAS_OP_T, BLAS_OP_N, orig.size[0], orig.size[1],
+                       &alpha, orig.data, orig.stride, &beta, trans.data,
+                       trans.stride, trans.data, trans.stride);
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -819,20 +807,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Dense<ValueType>* orig,
-                    matrix::Dense<ValueType>* trans)
+                    matrix::view::dense<const ValueType> orig,
+                    matrix::view::dense<ValueType> trans)
 {
     if (blas::is_supported<ValueType>::value) {
         auto handle = exec->get_blas_handle();
-        if (orig->get_size()[0] > 0 && orig->get_size()[1] > 0) {
+        if (orig.size[0] > 0 && orig.size[1] > 0) {
             blas::pointer_mode_guard pm_guard(handle);
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
-            blas::geam(handle, BLAS_OP_C, BLAS_OP_N, orig->get_size()[0],
-                       orig->get_size()[1], &alpha, orig->get_const_values(),
-                       orig->get_stride(), &beta, trans->get_const_values(),
-                       trans->get_stride(), trans->get_values(),
-                       trans->get_stride());
+            blas::geam(handle, BLAS_OP_C, BLAS_OP_N, orig.size[0], orig.size[1],
+                       &alpha, orig.data, orig.stride, &beta, trans.data,
+                       trans.stride, trans.data, trans.stride);
         }
     } else {
         GKO_NOT_IMPLEMENTED;

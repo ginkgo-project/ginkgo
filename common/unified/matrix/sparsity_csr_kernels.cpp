@@ -24,7 +24,7 @@ namespace sparsity_csr {
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::SparsityCsr<ValueType, IndexType>* input,
-                   matrix::Dense<ValueType>* output)
+                   matrix::view::dense<ValueType> output)
 {
     run_kernel(
         exec,

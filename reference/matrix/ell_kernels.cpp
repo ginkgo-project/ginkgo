@@ -28,8 +28,8 @@ template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Ell<MatrixValueType, IndexType>* a,
-          const matrix::Dense<InputValueType>* b,
-          matrix::Dense<OutputValueType>* c)
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
@@ -46,14 +46,12 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
             static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(b->get_size()[0]),
-             static_cast<acc::size_type>(b->get_size()[1])}},
-        b->get_const_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(b->get_stride())}});
+        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
+                                       static_cast<acc::size_type>(b.size[1])}},
+        b.data,
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
 
-    for (size_type j = 0; j < c->get_size()[1]; j++) {
+    for (size_type j = 0; j < c.size[1]; j++) {
         for (size_type row = 0; row < a->get_size()[0]; row++) {
             arithmetic_type result{};
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
@@ -63,7 +61,7 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
                     result += val * b_vals(col, j);
                 }
             }
-            c->at(row, j) = result;
+            c(row, j) = result;
         }
     }
 }
@@ -75,11 +73,11 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<MatrixValueType>* alpha,
+                   matrix::view::dense<const MatrixValueType> alpha,
                    const matrix::Ell<MatrixValueType, IndexType>* a,
-                   const matrix::Dense<InputValueType>* b,
-                   const matrix::Dense<OutputValueType>* beta,
-                   matrix::Dense<OutputValueType>* c)
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
@@ -96,21 +94,19 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
             static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
         a->get_const_values());
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(b->get_size()[0]),
-             static_cast<acc::size_type>(b->get_size()[1])}},
-        b->get_const_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(b->get_stride())}});
-    const auto alpha_val = arithmetic_type{alpha->at(0, 0)};
-    const auto beta_val = arithmetic_type{beta->at(0, 0)};
+        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
+                                       static_cast<acc::size_type>(b.size[1])}},
+        b.data,
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
+    const auto alpha_val = arithmetic_type{alpha(0, 0)};
+    const auto beta_val = arithmetic_type{beta(0, 0)};
 
-    for (size_type j = 0; j < c->get_size()[1]; j++) {
+    for (size_type j = 0; j < c.size[1]; j++) {
         for (size_type row = 0; row < a->get_size()[0]; row++) {
             arithmetic_type result =
                 is_zero(beta_val)
                     ? zero<arithmetic_type>()
-                    : beta_val * static_cast<arithmetic_type>(c->at(row, j));
+                    : beta_val * static_cast<arithmetic_type>(c(row, j));
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
                 arithmetic_type val = a_vals(row + i * stride);
                 auto col = a->col_at(row, i);
@@ -118,7 +114,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                     result += alpha_val * val * b_vals(col, j);
                 }
             }
-            c->at(row, j) = result;
+            c(row, j) = result;
         }
     }
 }
@@ -170,7 +166,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Ell<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
+                   matrix::view::dense<ValueType> result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -181,7 +177,7 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             const auto col = source->col_at(row, i);
             if (col != invalid_index<IndexType>()) {
-                result->at(row, col) = source->val_at(row, i);
+                result(row, col) = source->val_at(row, i);
             }
         }
     }

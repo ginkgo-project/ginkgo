@@ -276,19 +276,19 @@ void calculate_qy(ConstAccessor3d krylov_bases,
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                const matrix::Dense<ValueType>* b,
-                matrix::Dense<ValueType>* residual,
-                matrix::Dense<ValueType>* givens_sin,
-                matrix::Dense<ValueType>* givens_cos,
+                matrix::view::dense<const ValueType> b,
+                matrix::view::dense<ValueType> residual,
+                matrix::view::dense<ValueType> givens_sin,
+                matrix::view::dense<ValueType> givens_cos,
                 array<stopping_status>* stop_status, size_type krylov_dim)
 {
-    for (size_type j = 0; j < b->get_size()[1]; ++j) {
-        for (size_type i = 0; i < b->get_size()[0]; ++i) {
-            residual->at(i, j) = b->at(i, j);
+    for (size_type j = 0; j < b.size[1]; ++j) {
+        for (size_type i = 0; i < b.size[0]; ++i) {
+            residual(i, j) = b(i, j);
         }
         for (size_type i = 0; i < krylov_dim; ++i) {
-            givens_sin->at(i, j) = zero<ValueType>();
-            givens_cos->at(i, j) = zero<ValueType>();
+            givens_sin(i, j) = zero<ValueType>();
+            givens_cos(i, j) = zero<ValueType>();
         }
         stop_status->get_data()[j].reset();
     }
@@ -300,12 +300,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(
 
 template <typename ValueType, typename Accessor3d>
 void restart(std::shared_ptr<const ReferenceExecutor> exec,
-             const matrix::Dense<ValueType>* residual,
-             matrix::Dense<remove_complex<ValueType>>* residual_norm,
-             matrix::Dense<ValueType>* residual_norm_collection,
-             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+             matrix::view::dense<const ValueType> residual,
+             matrix::view::dense<remove_complex<ValueType>> residual_norm,
+             matrix::view::dense<ValueType> residual_norm_collection,
+             matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,
              Accessor3d krylov_bases,
-             matrix::Dense<ValueType>* next_krylov_basis,
+             matrix::view::dense<ValueType> next_krylov_basis,
              array<size_type>* final_iter_nums, array<char>&,
              size_type krylov_dim)
 {
@@ -317,47 +317,43 @@ void restart(std::shared_ptr<const ReferenceExecutor> exec,
     constexpr bool has_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
-    for (size_type j = 0; j < residual->get_size()[1]; ++j) {
+    for (size_type j = 0; j < residual.size[1]; ++j) {
         // Calculate residual norm
-        residual_norm->at(0, j) = zero<rc_vtype>();
+        residual_norm(0, j) = zero<rc_vtype>();
         if (has_scalar) {
-            arnoldi_norm->at(2, j) = zero<rc_vtype>();
+            arnoldi_norm(2, j) = zero<rc_vtype>();
         }
-        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            residual_norm->at(0, j) += squared_norm(residual->at(i, j));
+        for (size_type i = 0; i < residual.size[0]; ++i) {
+            residual_norm(0, j) += squared_norm(residual(i, j));
             if (has_scalar) {
-                arnoldi_norm->at(2, j) =
-                    (arnoldi_norm->at(2, j) >= abs(residual->at(i, j)))
-                        ? arnoldi_norm->at(2, j)
-                        : abs(residual->at(i, j));
+                arnoldi_norm(2, j) = (arnoldi_norm(2, j) >= abs(residual(i, j)))
+                                         ? arnoldi_norm(2, j)
+                                         : abs(residual(i, j));
             }
         }
-        residual_norm->at(0, j) = sqrt(residual_norm->at(0, j));
+        residual_norm(0, j) = sqrt(residual_norm(0, j));
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
-            krylov_bases, {0}, j,
-            arnoldi_norm->at(2, j) / residual_norm->at(0, j));
+            krylov_bases, {0}, j, arnoldi_norm(2, j) / residual_norm(0, j));
 
         for (size_type i = 0; i < krylov_dim + 1; ++i) {
             if (i == 0) {
-                residual_norm_collection->at(i, j) = residual_norm->at(0, j);
+                residual_norm_collection(i, j) = residual_norm(0, j);
             } else {
-                residual_norm_collection->at(i, j) = zero<ValueType>();
+                residual_norm_collection(i, j) = zero<ValueType>();
             }
         }
-        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            krylov_bases(0, i, j) =
-                residual->at(i, j) / residual_norm->at(0, j);
-            next_krylov_basis->at(i, j) =
-                residual->at(i, j) / residual_norm->at(0, j);
+        for (size_type i = 0; i < residual.size[0]; ++i) {
+            krylov_bases(0, i, j) = residual(i, j) / residual_norm(0, j);
+            next_krylov_basis(i, j) = residual(i, j) / residual_norm(0, j);
         }
         final_iter_nums->get_data()[j] = 0;
     }
 
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
-        for (size_type j = 0; j < residual->get_size()[1]; ++j) {
+        for (size_type j = 0; j < residual.size[1]; ++j) {
             gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, k, j, one<rc_vtype>());
-            for (size_type i = 0; i < residual->get_size()[0]; ++i) {
+            for (size_type i = 0; i < residual.size[0]; ++i) {
                 krylov_bases(k, i, j) = zero<ValueType>();
             }
         }
@@ -369,14 +365,15 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
 
 template <typename ValueType, typename Accessor3d>
 void arnoldi(std::shared_ptr<const ReferenceExecutor> exec,
-             matrix::Dense<ValueType>* next_krylov_basis,
-             matrix::Dense<ValueType>* givens_sin,
-             matrix::Dense<ValueType>* givens_cos,
-             matrix::Dense<remove_complex<ValueType>>* residual_norm,
-             matrix::Dense<ValueType>* residual_norm_collection,
-             Accessor3d krylov_bases, matrix::Dense<ValueType>* hessenberg_iter,
-             matrix::Dense<ValueType>* buffer_iter,
-             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+             matrix::view::dense<ValueType> next_krylov_basis,
+             matrix::view::dense<ValueType> givens_sin,
+             matrix::view::dense<ValueType> givens_cos,
+             matrix::view::dense<remove_complex<ValueType>> residual_norm,
+             matrix::view::dense<ValueType> residual_norm_collection,
+             Accessor3d krylov_bases,
+             matrix::view::dense<ValueType> hessenberg_iter,
+             matrix::view::dense<ValueType> buffer_iter,
+             matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,
              size_type iter, array<size_type>* final_iter_nums,
              const array<stopping_status>* stop_status, array<stopping_status>*,
              array<size_type>*)
@@ -405,11 +402,11 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
 
 template <typename ValueType, typename ConstAccessor3d>
 void solve_krylov(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Dense<ValueType>* residual_norm_collection,
+                  matrix::view::dense<const ValueType> residual_norm_collection,
                   ConstAccessor3d krylov_bases,
-                  const matrix::Dense<ValueType>* hessenberg,
-                  matrix::Dense<ValueType>* y,
-                  matrix::Dense<ValueType>* before_preconditioner,
+                  matrix::view::dense<const ValueType> hessenberg,
+                  matrix::view::dense<ValueType> y,
+                  matrix::view::dense<ValueType> before_preconditioner,
                   const array<size_type>* final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,

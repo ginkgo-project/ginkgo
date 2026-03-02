@@ -36,14 +36,14 @@ GKO_INLINE GKO_ATTRIBUTES void swap(T& a, T& b)
 template <typename ValueType>
 void initialize(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Dense<ValueType>* r, matrix::Dense<ValueType>* z,
-    matrix::Dense<ValueType>* p, matrix::Dense<ValueType>* p_prev,
-    matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* q_prev,
-    matrix::Dense<ValueType>* v, matrix::Dense<ValueType>* beta,
-    matrix::Dense<ValueType>* gamma, matrix::Dense<ValueType>* delta,
-    matrix::Dense<ValueType>* cos_prev, matrix::Dense<ValueType>* cos,
-    matrix::Dense<ValueType>* sin_prev, matrix::Dense<ValueType>* sin,
-    matrix::Dense<ValueType>* eta_next, matrix::Dense<ValueType>* eta,
+    matrix::view::dense<const ValueType> r, matrix::view::dense<ValueType> z,
+    matrix::view::dense<ValueType> p, matrix::view::dense<ValueType> p_prev,
+    matrix::view::dense<ValueType> q, matrix::view::dense<ValueType> q_prev,
+    matrix::view::dense<ValueType> v, matrix::view::dense<ValueType> beta,
+    matrix::view::dense<ValueType> gamma, matrix::view::dense<ValueType> delta,
+    matrix::view::dense<ValueType> cos_prev, matrix::view::dense<ValueType> cos,
+    matrix::view::dense<ValueType> sin_prev, matrix::view::dense<ValueType> sin,
+    matrix::view::dense<ValueType> eta_next, matrix::view::dense<ValueType> eta,
     array<stopping_status>* stop_status)
 {
     run_kernel(
@@ -71,7 +71,7 @@ void initialize(
             p(row, col) = p_prev(row, col) = q_prev(row, col) = v(row, col) =
                 zero(p(row, col));
         },
-        r->get_size(), r->get_stride(), default_stride(r), default_stride(z),
+        r.size, r.stride, default_stride(r), default_stride(z),
         default_stride(p), default_stride(p_prev), default_stride(q),
         default_stride(q_prev), default_stride(v), row_vector(beta),
         *stop_status);
@@ -100,14 +100,15 @@ GKO_KERNEL void update_givens_rotation(ValueType& alpha, const ValueType& beta,
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType>* alpha, matrix::Dense<ValueType>* beta,
-            matrix::Dense<ValueType>* gamma, matrix::Dense<ValueType>* delta,
-            matrix::Dense<ValueType>* cos_prev, matrix::Dense<ValueType>* cos,
-            matrix::Dense<ValueType>* sin_prev, matrix::Dense<ValueType>* sin,
-            matrix::Dense<ValueType>* eta, matrix::Dense<ValueType>* eta_next,
-            matrix::Dense<ValueType>* tau,
-            const array<stopping_status>* stop_status)
+void step_1(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::dense<ValueType> alpha, matrix::view::dense<ValueType> beta,
+    matrix::view::dense<ValueType> gamma, matrix::view::dense<ValueType> delta,
+    matrix::view::dense<ValueType> cos_prev, matrix::view::dense<ValueType> cos,
+    matrix::view::dense<ValueType> sin_prev, matrix::view::dense<ValueType> sin,
+    matrix::view::dense<ValueType> eta, matrix::view::dense<ValueType> eta_next,
+    matrix::view::dense<ValueType> tau,
+    const array<stopping_status>* stop_status)
 {
     run_kernel(
         exec,
@@ -145,16 +146,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* p,
-            const matrix::Dense<ValueType>* p_prev, matrix::Dense<ValueType>* z,
-            const matrix::Dense<ValueType>* z_tilde,
-            matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* q_prev,
-            matrix::Dense<ValueType>* v, const matrix::Dense<ValueType>* alpha,
-            const matrix::Dense<ValueType>* beta,
-            const matrix::Dense<ValueType>* gamma,
-            const matrix::Dense<ValueType>* delta,
-            const matrix::Dense<ValueType>* cos,
-            const matrix::Dense<ValueType>* eta,
+            matrix::view::dense<ValueType> x, matrix::view::dense<ValueType> p,
+            matrix::view::dense<const ValueType> p_prev,
+            matrix::view::dense<ValueType> z,
+            matrix::view::dense<const ValueType> z_tilde,
+            matrix::view::dense<ValueType> q,
+            matrix::view::dense<ValueType> q_prev,
+            matrix::view::dense<ValueType> v,
+            matrix::view::dense<const ValueType> alpha,
+            matrix::view::dense<const ValueType> beta,
+            matrix::view::dense<const ValueType> gamma,
+            matrix::view::dense<const ValueType> delta,
+            matrix::view::dense<const ValueType> cos,
+            matrix::view::dense<const ValueType> eta,
             const array<stopping_status>* stop_status)
 {
     run_kernel_solver(
@@ -177,11 +181,11 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 v(row, col) = tmp * beta[col];
             }
         },
-        x->get_size(), p->get_stride(), x, default_stride(p),
-        default_stride(p_prev), default_stride(q), default_stride(q_prev),
-        default_stride(v), default_stride(z), default_stride(z_tilde),
-        row_vector(alpha), row_vector(beta), row_vector(gamma),
-        row_vector(delta), row_vector(cos), row_vector(eta), *stop_status);
+        x.size, p.stride, x, default_stride(p), default_stride(p_prev),
+        default_stride(q), default_stride(q_prev), default_stride(v),
+        default_stride(z), default_stride(z_tilde), row_vector(alpha),
+        row_vector(beta), row_vector(gamma), row_vector(delta), row_vector(cos),
+        row_vector(eta), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_2_KERNEL);

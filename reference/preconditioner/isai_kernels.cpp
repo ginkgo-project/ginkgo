@@ -325,7 +325,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
                             const IndexType* excess_rhs_ptrs,
                             const IndexType* excess_nz_ptrs,
                             matrix::Csr<ValueType, IndexType>* excess_system,
-                            matrix::Dense<ValueType>* excess_rhs,
+                            matrix::view::dense<ValueType> excess_rhs,
                             size_type e_start, size_type e_end)
 {
     const auto num_rows = input->get_size()[0];
@@ -334,11 +334,11 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
     const auto m_vals = input->get_const_values();
     const auto i_row_ptrs = inverse->get_const_row_ptrs();
     const auto i_cols = inverse->get_const_col_idxs();
-    const auto e_dim = excess_rhs->get_size()[0];
+    const auto e_dim = excess_rhs.size[0];
     auto e_row_ptrs = excess_system->get_row_ptrs();
     auto e_cols = excess_system->get_col_idxs();
     auto e_vals = excess_system->get_values();
-    auto e_rhs = excess_rhs->get_values();
+    auto e_rhs = excess_rhs.data;
 
     for (size_type row = e_start; row < e_end; ++row) {
         const auto i_begin = i_row_ptrs[row];
@@ -384,10 +384,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
                            const IndexType* excess_block_ptrs,
-                           matrix::Dense<ValueType>* excess_solution,
+                           matrix::view::dense<ValueType> excess_solution,
                            size_type e_start, size_type e_end)
 {
-    auto excess_values = excess_solution->get_values();
+    auto excess_values = excess_solution.data;
     IndexType block_start = 0;
     IndexType block_end = 0;
     auto offset = excess_block_ptrs[e_start];
@@ -410,13 +410,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void scatter_excess_solution(std::shared_ptr<const DefaultExecutor>,
-                             const IndexType* excess_block_ptrs,
-                             const matrix::Dense<ValueType>* excess_solution,
-                             matrix::Csr<ValueType, IndexType>* inverse,
-                             size_type e_start, size_type e_end)
+void scatter_excess_solution(
+    std::shared_ptr<const DefaultExecutor>, const IndexType* excess_block_ptrs,
+    matrix::view::dense<const ValueType> excess_solution,
+    matrix::Csr<ValueType, IndexType>* inverse, size_type e_start,
+    size_type e_end)
 {
-    auto excess_values = excess_solution->get_const_values();
+    auto excess_values = excess_solution.data;
     auto values = inverse->get_values();
     auto row_ptrs = inverse->get_const_row_ptrs();
     auto offset = excess_block_ptrs[e_start];

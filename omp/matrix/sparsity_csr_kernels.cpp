@@ -35,8 +35,8 @@ template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
-          const matrix::Dense<InputValueType>* b,
-          matrix::Dense<OutputValueType>* c)
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
@@ -46,14 +46,14 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        for (size_type j = 0; j < c->get_size()[1]; ++j) {
+        for (size_type j = 0; j < c.size[1]; ++j) {
             auto temp_val = gko::zero<arithmetic_type>();
             for (size_type k = row_ptrs[row];
                  k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
                 temp_val +=
-                    val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
+                    val * static_cast<arithmetic_type>(b(col_idxs[k], j));
             }
-            c->at(row, j) = static_cast<OutputValueType>(temp_val);
+            c(row, j) = static_cast<OutputValueType>(temp_val);
         }
     }
 }
@@ -65,33 +65,33 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<MatrixValueType>* alpha,
+                   matrix::view::dense<const MatrixValueType> alpha,
                    const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
-                   const matrix::Dense<InputValueType>* b,
-                   const matrix::Dense<OutputValueType>* beta,
-                   matrix::Dense<OutputValueType>* c)
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    const auto valpha = static_cast<arithmetic_type>(alpha->at(0, 0));
-    const auto vbeta = static_cast<arithmetic_type>(beta->at(0, 0));
+    const auto valpha = static_cast<arithmetic_type>(alpha(0, 0));
+    const auto vbeta = static_cast<arithmetic_type>(beta(0, 0));
     const auto val = static_cast<arithmetic_type>(a->get_const_value()[0]);
 
 #pragma omp parallel for
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
-        for (size_type j = 0; j < c->get_size()[1]; ++j) {
+        for (size_type j = 0; j < c.size[1]; ++j) {
             auto temp_val = gko::zero<arithmetic_type>();
             for (size_type k = row_ptrs[row];
                  k < static_cast<size_type>(row_ptrs[row + 1]); ++k) {
                 temp_val +=
-                    val * static_cast<arithmetic_type>(b->at(col_idxs[k], j));
+                    val * static_cast<arithmetic_type>(b(col_idxs[k], j));
             }
-            c->at(row, j) = static_cast<OutputValueType>(
+            c(row, j) = static_cast<OutputValueType>(
                 (is_zero(vbeta)
                      ? zero(vbeta)
-                     : vbeta * static_cast<arithmetic_type>(c->at(row, j))) +
+                     : vbeta * static_cast<arithmetic_type>(c(row, j))) +
                 valpha * temp_val);
         }
     }

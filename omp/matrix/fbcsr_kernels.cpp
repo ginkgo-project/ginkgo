@@ -40,10 +40,11 @@ namespace fbcsr {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::Fbcsr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
 {
     const int bs = a->get_block_size();
-    const auto nvecs = static_cast<IndexType>(b->get_size()[1]);
+    const auto nvecs = static_cast<IndexType>(b.size[1]);
     const IndexType nbrows = a->get_num_block_rows();
     const size_type nbnz = a->get_num_stored_blocks();
     auto row_ptrs = a->get_const_row_ptrs();
@@ -55,7 +56,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
             for (IndexType rhs = 0; rhs < nvecs; rhs++) {
-                c->at(row, rhs) = zero<ValueType>();
+                c(row, rhs) = zero<ValueType>();
             }
         }
         for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
@@ -66,7 +67,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
                     const auto val = avalues(inz, ib, jb);
                     const auto col = col_idxs[inz] * bs + jb;
                     for (size_type j = 0; j < nvecs; ++j) {
-                        c->at(row, j) += val * b->at(col, j);
+                        c(row, j) += val * b(col, j);
                     }
                 }
             }
@@ -79,20 +80,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
+                   matrix::view::dense<const ValueType> alpha,
                    const matrix::Fbcsr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
 {
     const int bs = a->get_block_size();
-    const auto nvecs = static_cast<IndexType>(b->get_size()[1]);
+    const auto nvecs = static_cast<IndexType>(b.size[1]);
     const IndexType nbrows = a->get_num_block_rows();
     const size_type nbnz = a->get_num_stored_blocks();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto valpha = alpha->at(0, 0);
-    auto vbeta = beta->at(0, 0);
+    auto valpha = alpha(0, 0);
+    auto vbeta = beta(0, 0);
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
         to_std_array<acc::size_type>(nbnz, bs, bs), a->get_const_values()};
 
@@ -101,9 +102,9 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
         for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
             for (IndexType rhs = 0; rhs < nvecs; rhs++) {
                 if (is_zero(vbeta)) {
-                    c->at(row, rhs) = zero(vbeta);
+                    c(row, rhs) = zero(vbeta);
                 } else {
-                    c->at(row, rhs) *= vbeta;
+                    c(row, rhs) *= vbeta;
                 }
             }
         }
@@ -115,7 +116,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                     const auto val = avalues(inz, ib, jb);
                     const auto col = col_idxs[inz] * bs + jb;
                     for (size_type j = 0; j < nvecs; ++j)
-                        c->at(row, j) += valpha * val * b->at(col, j);
+                        c(row, j) += valpha * val * b(col, j);
                 }
             }
         }
@@ -187,7 +188,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::Fbcsr<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
+                   matrix::view::dense<ValueType> result)
 {
     const auto bs = source->get_block_size();
     const auto nbrows = source->get_num_block_rows();
@@ -206,7 +207,7 @@ void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
                 const auto row = block_row * bs + local_row;
                 for (int local_col = 0; local_col < bs; local_col++) {
                     const auto col = block_col * bs + local_col;
-                    result->at(row, col) = values(block, local_row, local_col);
+                    result(row, col) = values(block, local_row, local_col);
                 }
             }
         }

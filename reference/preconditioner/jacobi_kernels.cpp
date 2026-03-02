@@ -470,27 +470,27 @@ void apply(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
            const array<precision_reduction>& block_precisions,
            const array<IndexType>& block_pointers,
            const array<ValueType>& blocks,
-           const matrix::Dense<ValueType>* alpha,
-           const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)
+           matrix::view::dense<const ValueType> alpha,
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<const ValueType> beta,
+           matrix::view::dense<ValueType> x)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group =
             blocks.get_const_data() + storage_scheme.get_group_offset(i);
-        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
-        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
+        const auto block_b = b.data + b.stride * ptrs[i];
+        const auto block_x = x.data + x.stride * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
         const auto p = prec ? prec[i] : precision_reduction();
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
-            apply_block(block_size, b->get_size()[1],
+            apply_block(block_size, b.size[1],
                         reinterpret_cast<const resolved_precision*>(group) +
                             storage_scheme.get_block_offset(i),
-                        storage_scheme.get_stride(), alpha->at(0, 0), block_b,
-                        b->get_stride(), beta->at(0, 0), block_x,
-                        x->get_stride()));
+                        storage_scheme.get_stride(), alpha(0, 0), block_b,
+                        b.stride, beta(0, 0), block_x, x.stride));
     }
 }
 
@@ -505,25 +505,24 @@ void simple_apply(
         storage_scheme,
     const array<precision_reduction>& block_precisions,
     const array<IndexType>& block_pointers, const array<ValueType>& blocks,
-    const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+    matrix::view::dense<const ValueType> b, matrix::view::dense<ValueType> x)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group =
             blocks.get_const_data() + storage_scheme.get_group_offset(i);
-        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
-        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
+        const auto block_b = b.data + b.stride * ptrs[i];
+        const auto block_x = x.data + x.stride * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
         const auto p = prec ? prec[i] : precision_reduction();
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
-            apply_block(block_size, b->get_size()[1],
+            apply_block(block_size, b.size[1],
                         reinterpret_cast<const resolved_precision*>(group) +
                             storage_scheme.get_block_offset(i),
                         storage_scheme.get_stride(), one<ValueType>(), block_b,
-                        b->get_stride(), zero<ValueType>(), block_x,
-                        x->get_stride()));
+                        b.stride, zero<ValueType>(), block_x, x.stride));
     }
 }
 
@@ -534,15 +533,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType>
 void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                   const array<ValueType>& diag,
-                  const matrix::Dense<ValueType>* alpha,
-                  const matrix::Dense<ValueType>* b,
-                  const matrix::Dense<ValueType>* beta,
-                  matrix::Dense<ValueType>* x)
+                  matrix::view::dense<const ValueType> alpha,
+                  matrix::view::dense<const ValueType> b,
+                  matrix::view::dense<const ValueType> beta,
+                  matrix::view::dense<ValueType> x)
 {
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
-        for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            x->at(i, j) = beta->at(0) * x->at(i, j) +
-                          alpha->at(0) * b->at(i, j) * diag.get_const_data()[i];
+    for (size_type i = 0; i < x.size[0]; ++i) {
+        for (size_type j = 0; j < x.size[1]; ++j) {
+            x(i, j) = beta->at(0) * x(i, j) +
+                      alpha->at(0) * b(i, j) * diag.get_const_data()[i];
         }
     }
 }
@@ -553,12 +552,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL);
 template <typename ValueType>
 void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                          const array<ValueType>& diag,
-                         const matrix::Dense<ValueType>* b,
-                         matrix::Dense<ValueType>* x)
+                         matrix::view::dense<const ValueType> b,
+                         matrix::view::dense<ValueType> x)
 {
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
-        for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            x->at(i, j) = b->at(i, j) * diag.get_const_data()[i];
+    for (size_type i = 0; i < x.size[0]; ++i) {
+        for (size_type j = 0; j < x.size[1]; ++j) {
+            x(i, j) = b(i, j) * diag.get_const_data()[i];
         }
     }
 }
@@ -669,14 +668,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType>
 void scalar_convert_to_dense(std::shared_ptr<const DefaultExecutor> exec,
                              const array<ValueType>& blocks,
-                             matrix::Dense<ValueType>* result)
+                             matrix::view::dense<ValueType> result)
 {
-    auto matrix_size = result->get_size();
+    auto matrix_size = result.size;
     for (size_type i = 0; i < matrix_size[0]; ++i) {
         for (size_type j = 0; j < matrix_size[1]; ++j) {
-            result->at(i, j) = zero<ValueType>();
+            result(i, j) = zero<ValueType>();
             if (i == j) {
-                result->at(i, j) = blocks.get_const_data()[i];
+                result(i, j) = blocks.get_const_data()[i];
             }
         }
     }

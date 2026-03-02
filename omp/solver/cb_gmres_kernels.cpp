@@ -30,20 +30,20 @@ namespace {
 
 
 template <typename ValueType, typename Accessor3d>
-void finish_arnoldi_CGS(std::shared_ptr<const OmpExecutor> exec,
-                        matrix::Dense<ValueType>* next_krylov_basis,
-                        Accessor3d krylov_bases,
-                        matrix::Dense<ValueType>* hessenberg_iter,
-                        matrix::Dense<ValueType>* buffer_iter,
-                        matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
-                        size_type iter, const stopping_status* stop_status)
+void finish_arnoldi_CGS(
+    std::shared_ptr<const OmpExecutor> exec,
+    matrix::view::dense<ValueType> next_krylov_basis, Accessor3d krylov_bases,
+    matrix::view::dense<ValueType> hessenberg_iter,
+    matrix::view::dense<ValueType> buffer_iter,
+    matrix::view::dense<remove_complex<ValueType>> arnoldi_norm, size_type iter,
+    const stopping_status* stop_status)
 {
     using rc_vtype = remove_complex<ValueType>;
     constexpr bool has_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
     const rc_vtype eta = 1.0 / sqrt(2.0);
 
-    for (size_type i = 0; i < next_krylov_basis->get_size()[1]; ++i) {
+    for (size_type i = 0; i < next_krylov_basis.size[1]; ++i) {
         if (stop_status[i].has_stopped()) {
             continue;
         }
@@ -54,28 +54,27 @@ void finish_arnoldi_CGS(std::shared_ptr<const OmpExecutor> exec,
             [](auto row, auto col, auto next_krylov_basis) {
                 return squared_norm(next_krylov_basis(row, col));
             },
-            GKO_KERNEL_REDUCE_SUM(rc_vtype), &nrm,
-            next_krylov_basis->get_size()[0], static_cast<int64>(i),
-            next_krylov_basis);
-        arnoldi_norm->at(0, i) = eta * sqrt(nrm);
+            GKO_KERNEL_REDUCE_SUM(rc_vtype), &nrm, next_krylov_basis.size[0],
+            static_cast<int64>(i), next_krylov_basis);
+        arnoldi_norm(0, i) = eta * sqrt(nrm);
         // nrmP = norm(next_krylov_basis)
 #pragma omp parallel for
         for (size_type k = 0; k < iter + 1; ++k) {
             ValueType hessenberg_iter_entry = zero<ValueType>();
-            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            for (size_type j = 0; j < next_krylov_basis.size[0]; ++j) {
                 hessenberg_iter_entry +=
-                    next_krylov_basis->at(j, i) * conj(krylov_bases(k, j, i));
+                    next_krylov_basis(j, i) * conj(krylov_bases(k, j, i));
             }
-            hessenberg_iter->at(k, i) = hessenberg_iter_entry;
+            hessenberg_iter(k, i) = hessenberg_iter_entry;
         }
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
         for (size_type k = 0; k < iter + 1; ++k) {
 #pragma omp parallel for
-            for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-                next_krylov_basis->at(j, i) -=
-                    hessenberg_iter->at(k, i) * krylov_bases(k, j, i);
+            for (size_type j = 0; j < next_krylov_basis.size[0]; ++j) {
+                next_krylov_basis(j, i) -=
+                    hessenberg_iter(k, i) * krylov_bases(k, j, i);
             }
         }
         // for i in 1:iter
@@ -95,39 +94,36 @@ void finish_arnoldi_CGS(std::shared_ptr<const OmpExecutor> exec,
                                       std::max(a.second, b.second));
             },
             [](auto a) { return a; }, std::make_pair(rc_vtype{}, rc_vtype{}),
-            &result_pair, next_krylov_basis->get_size()[0],
-            static_cast<int64>(i), next_krylov_basis);
+            &result_pair, next_krylov_basis.size[0], static_cast<int64>(i),
+            next_krylov_basis);
         nrm = result_pair.first;
         inf = result_pair.second;
-        arnoldi_norm->at(1, i) = sqrt(nrm);
+        arnoldi_norm(1, i) = sqrt(nrm);
         if (has_scalar) {
-            arnoldi_norm->at(2, i) = inf;
+            arnoldi_norm(2, i) = inf;
         }
 
         for (size_type l = 1;
-             (arnoldi_norm->at(1, i)) < (arnoldi_norm->at(0, i)) && l < 3;
-             l++) {
-            arnoldi_norm->at(0, i) = eta * arnoldi_norm->at(1, i);
+             (arnoldi_norm(1, i)) < (arnoldi_norm(0, i)) && l < 3; l++) {
+            arnoldi_norm(0, i) = eta * arnoldi_norm(1, i);
             // nrmP = nrmN
 #pragma omp parallel for
             for (size_type k = 0; k < iter + 1; ++k) {
                 ValueType hessenberg_iter_entry = zero<ValueType>();
-                for (size_type j = 0; j < next_krylov_basis->get_size()[0];
-                     ++j) {
-                    hessenberg_iter_entry += next_krylov_basis->at(j, i) *
-                                             conj(krylov_bases(k, j, i));
+                for (size_type j = 0; j < next_krylov_basis.size[0]; ++j) {
+                    hessenberg_iter_entry +=
+                        next_krylov_basis(j, i) * conj(krylov_bases(k, j, i));
                 }
-                buffer_iter->at(k, i) = hessenberg_iter_entry;
+                buffer_iter(k, i) = hessenberg_iter_entry;
             }
             // for i in 1:iter
             //     buffer(iter, i) = next_krylov_basis' * krylov_bases(:, i)
             // end
             for (size_type k = 0; k < iter + 1; ++k) {
 #pragma omp parallel for
-                for (size_type j = 0; j < next_krylov_basis->get_size()[0];
-                     ++j) {
-                    next_krylov_basis->at(j, i) -=
-                        buffer_iter->at(k, i) * conj(krylov_bases(k, j, i));
+                for (size_type j = 0; j < next_krylov_basis.size[0]; ++j) {
+                    next_krylov_basis(j, i) -=
+                        buffer_iter(k, i) * conj(krylov_bases(k, j, i));
                 }
             }
             // for i in 1:iter
@@ -147,27 +143,26 @@ void finish_arnoldi_CGS(std::shared_ptr<const OmpExecutor> exec,
                 },
                 [](auto a) { return a; },
                 std::make_pair(rc_vtype{}, rc_vtype{}), &result_pair,
-                next_krylov_basis->get_size()[0], static_cast<int64>(i),
+                next_krylov_basis.size[0], static_cast<int64>(i),
                 next_krylov_basis);
             nrm = result_pair.first;
             inf = result_pair.second;
-            arnoldi_norm->at(1, i) = sqrt(nrm);
+            arnoldi_norm(1, i) = sqrt(nrm);
             if (has_scalar) {
-                arnoldi_norm->at(2, i) = inf;
+                arnoldi_norm(2, i) = inf;
             }
             // nrmN = norm(next_krylov_basis)
             // nrmI = infnorm(next_krylov_basis)
         }
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
-            krylov_bases, iter + 1, i,
-            arnoldi_norm->at(2, i) / arnoldi_norm->at(1, i));
+            krylov_bases, iter + 1, i, arnoldi_norm(2, i) / arnoldi_norm(1, i));
         // reorthogonalization
-        hessenberg_iter->at(iter + 1, i) = (arnoldi_norm->at(1, i));
+        hessenberg_iter(iter + 1, i) = (arnoldi_norm(1, i));
         // hessenberg(iter, iter + 1) = norm(next_krylov_basis)
 #pragma omp parallel for
-        for (size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
-            next_krylov_basis->at(j, i) /= hessenberg_iter->at(iter + 1, i);
-            krylov_bases(iter + 1, j, i) = next_krylov_basis->at(j, i);
+        for (size_type j = 0; j < next_krylov_basis.size[0]; ++j) {
+            next_krylov_basis(j, i) /= hessenberg_iter(iter + 1, i);
+            krylov_bases(iter + 1, j, i) = next_krylov_basis(j, i);
         }
         // next_krylov_basis /= hessenberg(iter, iter + 1)
         // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -307,24 +302,24 @@ void calculate_qy(ConstAccessor3d krylov_bases,
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const OmpExecutor> exec,
-                const matrix::Dense<ValueType>* b,
-                matrix::Dense<ValueType>* residual,
-                matrix::Dense<ValueType>* givens_sin,
-                matrix::Dense<ValueType>* givens_cos,
+                matrix::view::dense<const ValueType> b,
+                matrix::view::dense<ValueType> residual,
+                matrix::view::dense<ValueType> givens_sin,
+                matrix::view::dense<ValueType> givens_cos,
                 array<stopping_status>* stop_status, size_type krylov_dim)
 {
     using rc_vtype = remove_complex<ValueType>;
 
-    for (size_type j = 0; j < b->get_size()[1]; ++j) {
+    for (size_type j = 0; j < b.size[1]; ++j) {
 #pragma omp parallel for
-        for (size_type i = 0; i < b->get_size()[0]; ++i) {
-            residual->at(i, j) = b->at(i, j);
+        for (size_type i = 0; i < b.size[0]; ++i) {
+            residual(i, j) = b(i, j);
         }
 
 #pragma omp parallel for
         for (size_type i = 0; i < krylov_dim; ++i) {
-            givens_sin->at(i, j) = zero<ValueType>();
-            givens_cos->at(i, j) = zero<ValueType>();
+            givens_sin(i, j) = zero<ValueType>();
+            givens_cos(i, j) = zero<ValueType>();
         }
         stop_status->get_data()[j].reset();
     }
@@ -336,12 +331,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(
 
 template <typename ValueType, typename Accessor3d>
 void restart(std::shared_ptr<const OmpExecutor> exec,
-             const matrix::Dense<ValueType>* residual,
-             matrix::Dense<remove_complex<ValueType>>* residual_norm,
-             matrix::Dense<ValueType>* residual_norm_collection,
-             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+             matrix::view::dense<const ValueType> residual,
+             matrix::view::dense<remove_complex<ValueType>> residual_norm,
+             matrix::view::dense<ValueType> residual_norm_collection,
+             matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,
              Accessor3d krylov_bases,
-             matrix::Dense<ValueType>* next_krylov_basis,
+             matrix::view::dense<ValueType> next_krylov_basis,
              array<size_type>* final_iter_nums, array<char>&,
              size_type krylov_dim)
 {
@@ -349,7 +344,7 @@ void restart(std::shared_ptr<const OmpExecutor> exec,
     constexpr bool has_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
-    for (size_type j = 0; j < residual->get_size()[1]; ++j) {
+    for (size_type j = 0; j < residual.size[1]; ++j) {
         // Calculate residual norm
         auto res_norm = zero<rc_vtype>();
         auto res_inf = zero<rc_vtype>();
@@ -366,44 +361,43 @@ void restart(std::shared_ptr<const OmpExecutor> exec,
                                       std::max(a.second, b.second));
             },
             [](auto a) { return a; }, std::make_pair(rc_vtype{}, rc_vtype{}),
-            &result_pair, next_krylov_basis->get_size()[0],
-            static_cast<int64>(j), residual);
+            &result_pair, next_krylov_basis.size[0], static_cast<int64>(j),
+            residual);
         res_norm = result_pair.first;
         res_inf = result_pair.second;
-        residual_norm->at(0, j) = sqrt(res_norm);
+        residual_norm(0, j) = sqrt(res_norm);
         if (has_scalar) {
-            arnoldi_norm->at(2, j) = res_inf;
+            arnoldi_norm(2, j) = res_inf;
         }
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
-            krylov_bases, {0}, j,
-            arnoldi_norm->at(2, j) / residual_norm->at(0, j));
+            krylov_bases, {0}, j, arnoldi_norm(2, j) / residual_norm(0, j));
 
 #pragma omp parallel for
         for (size_type i = 0; i < krylov_dim + 1; ++i) {
             if (i == 0) {
-                residual_norm_collection->at(i, j) = residual_norm->at(0, j);
+                residual_norm_collection(i, j) = residual_norm(0, j);
             } else {
-                residual_norm_collection->at(i, j) = zero<ValueType>();
+                residual_norm_collection(i, j) = zero<ValueType>();
             }
         }
 
 #pragma omp parallel for
-        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            auto value = residual->at(i, j) / residual_norm->at(0, j);
+        for (size_type i = 0; i < residual.size[0]; ++i) {
+            auto value = residual(i, j) / residual_norm(0, j);
             krylov_bases(0, i, j) = value;
-            next_krylov_basis->at(i, j) = value;
+            next_krylov_basis(i, j) = value;
         }
         final_iter_nums->get_data()[j] = 0;
     }
 
 #pragma omp parallel for
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
-        for (size_type j = 0; j < residual->get_size()[1]; ++j) {
+        for (size_type j = 0; j < residual.size[1]; ++j) {
             gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, k, j, one<rc_vtype>());
         }
-        for (size_type i = 0; i < residual->get_size()[0]; ++i) {
-            for (size_type j = 0; j < residual->get_size()[1]; ++j) {
+        for (size_type i = 0; i < residual.size[0]; ++i) {
+            for (size_type j = 0; j < residual.size[1]; ++j) {
                 krylov_bases(k, i, j) = zero<ValueType>();
             }
         }
@@ -415,14 +409,15 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
 
 template <typename ValueType, typename Accessor3d>
 void arnoldi(std::shared_ptr<const OmpExecutor> exec,
-             matrix::Dense<ValueType>* next_krylov_basis,
-             matrix::Dense<ValueType>* givens_sin,
-             matrix::Dense<ValueType>* givens_cos,
-             matrix::Dense<remove_complex<ValueType>>* residual_norm,
-             matrix::Dense<ValueType>* residual_norm_collection,
-             Accessor3d krylov_bases, matrix::Dense<ValueType>* hessenberg_iter,
-             matrix::Dense<ValueType>* buffer_iter,
-             matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
+             matrix::view::dense<ValueType> next_krylov_basis,
+             matrix::view::dense<ValueType> givens_sin,
+             matrix::view::dense<ValueType> givens_cos,
+             matrix::view::dense<remove_complex<ValueType>> residual_norm,
+             matrix::view::dense<ValueType> residual_norm_collection,
+             Accessor3d krylov_bases,
+             matrix::view::dense<ValueType> hessenberg_iter,
+             matrix::view::dense<ValueType> buffer_iter,
+             matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,
              size_type iter, array<size_type>* final_iter_nums,
              const array<stopping_status>* stop_status, array<stopping_status>*,
              array<size_type>*)
@@ -448,11 +443,11 @@ GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
 
 template <typename ValueType, typename ConstAccessor3d>
 void solve_krylov(std::shared_ptr<const OmpExecutor> exec,
-                  const matrix::Dense<ValueType>* residual_norm_collection,
+                  matrix::view::dense<const ValueType> residual_norm_collection,
                   ConstAccessor3d krylov_bases,
-                  const matrix::Dense<ValueType>* hessenberg,
-                  matrix::Dense<ValueType>* y,
-                  matrix::Dense<ValueType>* before_preconditioner,
+                  matrix::view::dense<const ValueType> hessenberg,
+                  matrix::view::dense<ValueType> y,
+                  matrix::view::dense<ValueType> before_preconditioner,
                   const array<size_type>* final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,

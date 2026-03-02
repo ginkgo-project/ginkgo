@@ -152,15 +152,14 @@ private:
 
 template <typename ValueType>
 void fft(std::shared_ptr<const DefaultExecutor> exec,
-         const matrix::Dense<std::complex<ValueType>>* b,
-         matrix::Dense<std::complex<ValueType>>* x, bool inverse,
+         matrix::view::dense<const complex<ValueType>> b,
+         matrix::view::dense<complex<ValueType>> x, bool inverse,
          array<char>& buffer)
 {
     hipfft_handle handle{exec->get_stream()};
     handle.template setup<1, std::complex<ValueType>, std::complex<ValueType>>(
-        {b->get_size()[0]}, b->get_stride(), x->get_stride(), b->get_size()[1],
-        buffer);
-    handle.execute(b->get_const_values(), x->get_values(), inverse);
+        {b.size[0]}, b.stride, x.stride, b.size[1], buffer);
+    handle.execute(b.data, x.data, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT_KERNEL);
@@ -168,15 +167,14 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT_KERNEL);
 
 template <typename ValueType>
 void fft2(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<std::complex<ValueType>>* b,
-          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          matrix::view::dense<const complex<ValueType>> b,
+          matrix::view::dense<complex<ValueType>> x, size_type size1,
           size_type size2, bool inverse, array<char>& buffer)
 {
     hipfft_handle handle{exec->get_stream()};
     handle.template setup<2, std::complex<ValueType>, std::complex<ValueType>>(
-        {size1, size2}, b->get_stride(), x->get_stride(), b->get_size()[1],
-        buffer);
-    handle.execute(b->get_const_values(), x->get_values(), inverse);
+        {size1, size2}, b.stride, x.stride, b.size[1], buffer);
+    handle.execute(b.data, x.data, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT2_KERNEL);
@@ -184,15 +182,14 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT2_KERNEL);
 
 template <typename ValueType>
 void fft3(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<std::complex<ValueType>>* b,
-          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          matrix::view::dense<const complex<ValueType>> b,
+          matrix::view::dense<complex<ValueType>> x, size_type size1,
           size_type size2, size_type size3, bool inverse, array<char>& buffer)
 {
     hipfft_handle handle{exec->get_stream()};
     handle.template setup<3, std::complex<ValueType>, std::complex<ValueType>>(
-        {size1, size2, size3}, b->get_stride(), x->get_stride(),
-        b->get_size()[1], buffer);
-    handle.execute(b->get_const_values(), x->get_values(), inverse);
+        {size1, size2, size3}, b.stride, x.stride, b.size[1], buffer);
+    handle.execute(b.data, x.data, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT3_KERNEL);

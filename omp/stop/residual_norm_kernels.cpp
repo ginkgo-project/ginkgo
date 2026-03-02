@@ -23,8 +23,8 @@ namespace residual_norm {
 
 template <typename ValueType>
 void residual_norm(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType>* tau,
-                   const matrix::Dense<ValueType>* orig_tau,
+                   matrix::view::dense<const ValueType> tau,
+                   matrix::view::dense<const ValueType> orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
                    bool setFinalized, array<stopping_status>* stop_status,
                    array<bool>* device_storage, bool* all_converged,
@@ -34,7 +34,7 @@ void residual_norm(std::shared_ptr<const OmpExecutor> exec,
                   "ValueType must not be complex in this function!");
     bool local_one_changed = false;
 #pragma omp parallel for reduction(|| : local_one_changed)
-    for (size_type i = 0; i < tau->get_size()[1]; ++i) {
+    for (size_type i = 0; i < tau.size[1]; ++i) {
         if (tau->at(i) <= rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             local_one_changed = true;
@@ -71,15 +71,15 @@ namespace implicit_residual_norm {
 template <typename ValueType>
 void implicit_residual_norm(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Dense<ValueType>* tau,
-    const matrix::Dense<remove_complex<ValueType>>* orig_tau,
+    matrix::view::dense<const ValueType> tau,
+    matrix::view::dense<const remove_complex<ValueType>> orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, array<stopping_status>* stop_status,
     array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
     bool local_one_changed = false;
 #pragma omp parallel for reduction(|| : local_one_changed)
-    for (size_type i = 0; i < tau->get_size()[1]; ++i) {
+    for (size_type i = 0; i < tau.size[1]; ++i) {
         if (sqrt(abs(tau->at(i))) <= rel_residual_goal * orig_tau->at(i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             local_one_changed = true;

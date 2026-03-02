@@ -112,9 +112,9 @@ get_rand_value(Distribution&& dist, Generator&& gen)
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
-                matrix::Dense<ValueType>* m,
-                matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
-                array<stopping_status>* stop_status)
+                matrix::view::dense<ValueType> m,
+                matrix::view::dense<ValueType> subspace_vectors,
+                bool deterministic, array<stopping_status>* stop_status)
 {
     if (nrhs == 0) {
         return;
@@ -127,23 +127,23 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
     }
 
 #pragma omp parallel for
-    for (size_type row = 0; row < m->get_size()[0]; row++) {
-        for (size_type col = 0; col < m->get_size()[1]; col++) {
-            m->at(row, col) =
+    for (size_type row = 0; row < m.size[0]; row++) {
+        for (size_type col = 0; col < m.size[1]; col++) {
+            m(row, col) =
                 (row == col / nrhs) ? one<ValueType>() : zero<ValueType>();
         }
     }
 
     // Initialize and Orthonormalize P
-    const auto num_rows = subspace_vectors->get_size()[0];
-    const auto num_cols = subspace_vectors->get_size()[1];
+    const auto num_rows = subspace_vectors.size[0];
+    const auto num_cols = subspace_vectors.size[1];
     auto dist = std::normal_distribution<>(0.0, 1.0);
     auto seed = std::random_device{}();
     auto gen = std::default_random_engine(seed);
     for (size_type row = 0; row < num_rows; row++) {
         if (!deterministic) {
             for (size_type col = 0; col < num_cols; col++) {
-                subspace_vectors->at(row, col) =
+                subspace_vectors(row, col) =
                     get_rand_value<ValueType>(dist, gen);
             }
         }
@@ -161,8 +161,7 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
                 subspace_vectors);
 #pragma omp parallel for
             for (size_type j = 0; j < num_cols; j++) {
-                subspace_vectors->at(row, j) -=
-                    dot * subspace_vectors->at(i, j);
+                subspace_vectors(row, j) -= dot * subspace_vectors(i, j);
             }
         }
 
@@ -179,7 +178,7 @@ void initialize(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
 
 #pragma omp parallel for
         for (size_type j = 0; j < num_cols; j++) {
-            subspace_vectors->at(row, j) /= norm;
+            subspace_vectors(row, j) /= norm;
         }
     }
 }
@@ -189,14 +188,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType>* m,
-            const matrix::Dense<ValueType>* f,
-            const matrix::Dense<ValueType>* residual,
-            const matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* c,
-            matrix::Dense<ValueType>* v,
+            const size_type k, matrix::view::dense<const ValueType> m,
+            matrix::view::dense<const ValueType> f,
+            matrix::view::dense<const ValueType> residual,
+            matrix::view::dense<const ValueType> g,
+            matrix::view::dense<ValueType> c, matrix::view::dense<ValueType> v,
             const array<stopping_status>* stop_status)
 {
-    const auto m_size = m->get_size();
+    const auto m_size = m.size;
 
     // Compute c = M \ f
     solve_lower_triangular(nrhs, m, f, c, stop_status);
@@ -208,12 +207,12 @@ void step_1(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
 
         // v = residual - c_k * g_k - ... - c_s * g_s
 #pragma omp parallel for
-        for (size_type row = 0; row < v->get_size()[0]; row++) {
-            auto temp = residual->at(row, i);
-            for (size_type j = k; j < m->get_size()[0]; j++) {
-                temp -= c->at(j, i) * g->at(row, j * nrhs + i);
+        for (size_type row = 0; row < v.size[0]; row++) {
+            auto temp = residual(row, i);
+            for (size_type j = k; j < m.size[0]; j++) {
+                temp -= c(j, i) * g(row, j * nrhs + i);
             }
-            v->at(row, i) = temp;
+            v(row, i) = temp;
         }
     }
 }
@@ -223,9 +222,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType>* omega,
-            const matrix::Dense<ValueType>* preconditioned_vector,
-            const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
+            const size_type k, matrix::view::dense<const ValueType> omega,
+            matrix::view::dense<const ValueType> preconditioned_vector,
+            matrix::view::dense<const ValueType> c,
+            matrix::view::dense<ValueType> u,
             const array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
@@ -234,12 +234,12 @@ void step_2(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
         }
 
 #pragma omp parallel for
-        for (size_type row = 0; row < u->get_size()[0]; row++) {
-            auto temp = omega->at(0, i) * preconditioned_vector->at(row, i);
-            for (size_type j = k; j < c->get_size()[0]; j++) {
-                temp += c->at(j, i) * u->at(row, j * nrhs + i);
+        for (size_type row = 0; row < u.size[0]; row++) {
+            auto temp = omega(0, i) * preconditioned_vector(row, i);
+            for (size_type j = k; j < c.size[0]; j++) {
+                temp += c(j, i) * u(row, j * nrhs + i);
             }
-            u->at(row, k * nrhs + i) = temp;
+            u(row, k * nrhs + i) = temp;
         }
     }
 }
@@ -249,11 +249,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
 
 template <typename ValueType>
 void step_3(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
-            const size_type k, const matrix::Dense<ValueType>* p,
-            matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
-            matrix::Dense<ValueType>* u, matrix::Dense<ValueType>* m,
-            matrix::Dense<ValueType>* f, matrix::Dense<ValueType>*,
-            matrix::Dense<ValueType>* residual, matrix::Dense<ValueType>* x,
+            const size_type k, matrix::view::dense<const ValueType> p,
+            matrix::view::dense<ValueType> g,
+            matrix::view::dense<ValueType> g_k,
+            matrix::view::dense<ValueType> u, matrix::view::dense<ValueType> m,
+            matrix::view::dense<ValueType> f, matrix::Dense<ValueType>*,
+            matrix::view::dense<ValueType> residual,
+            matrix::view::dense<ValueType> x,
             const array<stopping_status>* stop_status)
 {
     update_g_and_u(nrhs, k, p, m, g, g_k, u, stop_status);
@@ -264,27 +266,27 @@ void step_3(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
         }
 
 #pragma omp parallel for
-        for (size_type j = k; j < m->get_size()[0]; j++) {
+        for (size_type j = k; j < m.size[0]; j++) {
             auto temp = zero<ValueType>();
-            for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
-                temp += p->at(j, ind) * g->at(ind, k * nrhs + i);
+            for (size_type ind = 0; ind < p.size[1]; ind++) {
+                temp += p(j, ind) * g(ind, k * nrhs + i);
             }
-            m->at(j, k * nrhs + i) = temp;
+            m(j, k * nrhs + i) = temp;
         }
 
-        auto beta = f->at(k, i) / m->at(k, k * nrhs + i);
+        auto beta = f(k, i) / m(k, k * nrhs + i);
 
 #pragma omp parallel for
-        for (size_type row = 0; row < g->get_size()[0]; row++) {
-            residual->at(row, i) -= beta * g->at(row, k * nrhs + i);
-            x->at(row, i) += beta * u->at(row, k * nrhs + i);
+        for (size_type row = 0; row < g.size[0]; row++) {
+            residual(row, i) -= beta * g(row, k * nrhs + i);
+            x(row, i) += beta * u(row, k * nrhs + i);
         }
 
-        if (k + 1 < f->get_size()[0]) {
-            f->at(k, i) = zero<ValueType>();
+        if (k + 1 < f.size[0]) {
+            f(k, i) = zero<ValueType>();
 #pragma omp parallel for
-            for (size_type j = k + 1; j < f->get_size()[0]; j++) {
-                f->at(j, i) -= beta * m->at(j, k * nrhs + i);
+            for (size_type j = k + 1; j < f.size[0]; j++) {
+                f(j, i) -= beta * m(j, k * nrhs + i);
             }
         }
     }
@@ -296,9 +298,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);
 template <typename ValueType>
 void compute_omega(
     std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
-    const remove_complex<ValueType> kappa, const matrix::Dense<ValueType>* tht,
-    const matrix::Dense<remove_complex<ValueType>>* residual_norm,
-    matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
+    const remove_complex<ValueType> kappa,
+    matrix::view::dense<const ValueType> tht,
+    matrix::view::dense<const remove_complex<ValueType>> residual_norm,
+    matrix::view::dense<ValueType> omega,
+    const array<stopping_status>* stop_status)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < nrhs; i++) {
@@ -306,17 +310,17 @@ void compute_omega(
             continue;
         }
 
-        auto thr = omega->at(0, i);
-        auto normt = sqrt(real(tht->at(0, i)));
+        auto thr = omega(0, i);
+        auto normt = sqrt(real(tht(0, i)));
         if (normt == zero<remove_complex<ValueType>>()) {
-            omega->at(0, i) = 0;
+            omega(0, i) = 0;
             continue;
         }
-        omega->at(0, i) /= tht->at(0, i);
-        auto absrho = abs(thr / (normt * residual_norm->at(0, i)));
+        omega(0, i) /= tht(0, i);
+        auto absrho = abs(thr / (normt * residual_norm(0, i)));
 
         if (absrho < kappa) {
-            omega->at(0, i) *= kappa / absrho;
+            omega(0, i) *= kappa / absrho;
         }
     }
 }
