@@ -186,8 +186,8 @@ public:
     using absolute_type = remove_complex<Dense>;
     using real_type = absolute_type;
     using complex_type = to_complex<Dense>;
-    using device_view = matrix::device_view::dense<value_type>;
-    using const_device_view = matrix::device_view::dense<const value_type>;
+    using device_view = matrix::view::dense<value_type>;
+    using const_device_view = matrix::view::dense<const value_type>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 

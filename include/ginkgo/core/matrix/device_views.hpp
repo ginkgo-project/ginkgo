@@ -10,11 +10,11 @@
 
 namespace gko {
 namespace matrix {
-namespace device_view {
+namespace view {
 
 
 /**
- * non-owning view of a matrix::Dense to be used inside device kernels.
+ * Non-owning view of a matrix::Dense to be used inside device kernels.
  * This type is used to provide a simple and stable ABI for passing data between
  * libraries.
  *
@@ -26,14 +26,14 @@ struct dense {
     size_type stride;
     ValueType* data;
 
-    ValueType& operator()(size_type row, size_type col) const
+    constexpr ValueType& operator()(size_type row, size_type col) const
     {
         return data[row * stride + col];
     }
 };
 
 
-}  // namespace device_view
+}  // namespace view
 }  // namespace matrix
 }  // namespace gko
 
