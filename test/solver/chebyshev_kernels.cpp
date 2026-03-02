@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,9 +55,11 @@ TEST_F(Chebyshev, KernelInitUpdate)
     auto d_output = gko::clone(exec, output);
 
     gko::kernels::reference::chebyshev::init_update(
-        ref, alpha, inner_sol.get(), update_sol.get(), output.get());
+        ref, alpha, inner_sol.get(), update_sol->get_device_view(),
+        output->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::chebyshev::init_update(
-        exec, alpha, d_inner_sol.get(), d_update_sol.get(), d_output.get());
+        exec, alpha, d_inner_sol.get(), d_update_sol->get_device_view(),
+        d_output->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_update_sol, d_inner_sol, 0);
     GKO_ASSERT_MTX_NEAR(d_update_sol, update_sol, 0);
@@ -78,10 +80,11 @@ TEST_F(Chebyshev, KernelUpdate)
     auto d_output = gko::clone(exec, output);
 
     gko::kernels::reference::chebyshev::update(
-        ref, alpha, beta, inner_sol.get(), update_sol.get(), output.get());
+        ref, alpha, beta, inner_sol->get_device_view(),
+        update_sol->get_device_view(), output->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::chebyshev::update(
-        exec, alpha, beta, d_inner_sol.get(), d_update_sol.get(),
-        d_output.get());
+        exec, alpha, beta, d_inner_sol->get_device_view(),
+        d_update_sol->get_device_view(), d_output->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_update_sol, d_inner_sol, 0);
     GKO_ASSERT_MTX_NEAR(d_inner_sol, inner_sol, r<value_type>::value);

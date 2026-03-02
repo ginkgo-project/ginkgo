@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -69,8 +69,8 @@ TYPED_TEST(Chebyshev, KernelInitUpdate)
     using Mtx = typename TestFixture::Mtx;
 
     gko::kernels::reference::chebyshev::init_update(
-        this->exec, this->alpha, this->inner_sol.get(), this->update_sol.get(),
-        this->output.get());
+        this->exec, this->alpha, this->inner_sol.get(),
+        this->update_sol->get_device_view(), this->output->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->update_sol, this->inner_sol, 0);
     GKO_ASSERT_MTX_NEAR(this->output,
@@ -88,8 +88,8 @@ TYPED_TEST(Chebyshev, KernelUpdate)
     using Mtx = typename TestFixture::Mtx;
 
     gko::kernels::reference::chebyshev::update(
-        this->exec, this->alpha, this->beta, this->inner_sol.get(),
-        this->update_sol.get(), this->output.get());
+        this->exec, this->alpha, this->beta, this->inner_sol->get_device_view(),
+        this->update_sol->get_device_view(), this->output->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->update_sol, this->inner_sol, 0);
     GKO_ASSERT_MTX_NEAR(

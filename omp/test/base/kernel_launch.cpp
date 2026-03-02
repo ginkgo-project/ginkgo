@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -151,8 +151,9 @@ TEST_F(KernelLaunch, Runs1DDense)
                 d(i / 4, i % 4) = 0;
             }
         },
-        16, zero_dense2.get(),
-        static_cast<const gko::matrix::Dense<>*>(zero_dense2.get()),
+        16, zero_dense2->get_device_view(),
+        static_cast<const gko::matrix::Dense<>*>(zero_dense2.get())
+            ->get_const_device_view(),
         zero_dense2->get_const_values(), move_only_val);
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
@@ -232,11 +233,12 @@ TEST_F(KernelLaunch, Runs2DDense)
                 d(i, j) = 0;
             }
         },
-        dim<2>{4, 4}, zero_dense->get_stride(), zero_dense2.get(),
-        static_cast<const gko::matrix::Dense<>*>(zero_dense2.get()),
+        dim<2>{4, 4}, zero_dense->get_stride(), zero_dense2->get_device_view(),
+        static_cast<const gko::matrix::Dense<>*>(zero_dense2.get())
+            ->get_const_device_view(),
         zero_dense2->get_const_values(),
-        gko::kernels::omp::default_stride(zero_dense.get()),
-        gko::kernels::omp::row_vector(vec_dense.get()),
+        gko::kernels::omp::default_stride(zero_dense->get_device_view()),
+        gko::kernels::omp::row_vector(vec_dense->get_device_view()),
         zero_dense->get_values(), vec_dense->get_values(), move_only_val);
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -2005,9 +2005,9 @@ TEST_F(Dense, ComputeNorm2SquaredIsEquivalentToRef)
     gko::array<char> dtmp{exec};
 
     gko::kernels::reference::dense::compute_squared_norm2(
-        ref, x.get(), norm_expected.get(), tmp);
+        ref, x.get(), norm_expected->get_device_view(), tmp);
     gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_squared_norm2(
-        exec, dx.get(), dnorm.get(), dtmp);
+        exec, dx.get(), dnorm->get_device_view(), dtmp);
 
     GKO_ASSERT_MTX_NEAR(dnorm, norm_expected, r<value_type>::value);
 }
@@ -2021,8 +2021,9 @@ TEST_F(Dense, ComputesSqrt)
         rand_engine, ref);
     auto dmtx = gko::clone(exec, mtx);
 
-    gko::kernels::reference::dense::compute_sqrt(ref, mtx.get());
-    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_sqrt(exec, dmtx.get());
+    gko::kernels::reference::dense::compute_sqrt(ref, mtx->get_device_view());
+    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_sqrt(
+        exec, dmtx->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);
 }

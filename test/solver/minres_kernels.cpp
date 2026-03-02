@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -162,15 +162,23 @@ TEST_F(Minres, MinresInitializeIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::minres::initialize(
-        ref, r.get(), z.get(), p.get(), p_prev.get(), q.get(), q_prev.get(),
-        v.get(), beta.get(), gamma.get(), delta.get(), cos_prev.get(),
-        cos.get(), sin_prev.get(), sin.get(), eta_next.get(), eta.get(),
-        stop_status.get());
+        ref, r.get(), z->get_device_view(), p->get_device_view(),
+        p_prev->get_device_view(), q->get_device_view(),
+        q_prev->get_device_view(), v->get_device_view(),
+        beta->get_device_view(), gamma->get_device_view(),
+        delta->get_device_view(), cos_prev->get_device_view(),
+        cos->get_device_view(), sin_prev->get_device_view(),
+        sin->get_device_view(), eta_next->get_device_view(),
+        eta->get_device_view(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::minres::initialize(
-        exec, d_r.get(), d_z.get(), d_p.get(), d_p_prev.get(), d_q.get(),
-        d_q_prev.get(), d_v.get(), d_beta.get(), d_gamma.get(), d_delta.get(),
-        d_cos_prev.get(), d_cos.get(), d_sin_prev.get(), d_sin.get(),
-        d_eta_next.get(), d_eta.get(), d_stop_status.get());
+        exec, d_r.get(), d_z->get_device_view(), d_p->get_device_view(),
+        d_p_prev->get_device_view(), d_q->get_device_view(),
+        d_q_prev->get_device_view(), d_v->get_device_view(),
+        d_beta->get_device_view(), d_gamma->get_device_view(),
+        d_delta->get_device_view(), d_cos_prev->get_device_view(),
+        d_cos->get_device_view(), d_sin_prev->get_device_view(),
+        d_sin->get_device_view(), d_eta_next->get_device_view(),
+        d_eta->get_device_view(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
@@ -198,13 +206,19 @@ TEST_F(Minres, MinresStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::minres::step_1(
-        ref, alpha.get(), beta.get(), gamma.get(), delta.get(), cos_prev.get(),
-        cos.get(), sin_prev.get(), sin.get(), eta.get(), eta_next.get(),
-        tau.get(), stop_status.get());
+        ref, alpha->get_device_view(), beta->get_device_view(),
+        gamma->get_device_view(), delta->get_device_view(),
+        cos_prev->get_device_view(), cos->get_device_view(),
+        sin_prev->get_device_view(), sin->get_device_view(),
+        eta->get_device_view(), eta_next->get_device_view(),
+        tau->get_device_view(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::minres::step_1(
-        exec, d_alpha.get(), d_beta.get(), d_gamma.get(), d_delta.get(),
-        d_cos_prev.get(), d_cos.get(), d_sin_prev.get(), d_sin.get(),
-        d_eta.get(), d_eta_next.get(), d_tau.get(), d_stop_status.get());
+        exec, d_alpha->get_device_view(), d_beta->get_device_view(),
+        d_gamma->get_device_view(), d_delta->get_device_view(),
+        d_cos_prev->get_device_view(), d_cos->get_device_view(),
+        d_sin_prev->get_device_view(), d_sin->get_device_view(),
+        d_eta->get_device_view(), d_eta_next->get_device_view(),
+        d_tau->get_device_view(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_alpha, alpha, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_beta, beta, ::r<value_type>::value);
@@ -225,13 +239,16 @@ TEST_F(Minres, MinresStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::minres::step_2(
-        ref, x.get(), p.get(), p_prev.get(), z.get(), z_tilde.get(), q.get(),
-        q_prev.get(), v.get(), alpha.get(), beta.get(), gamma.get(),
-        delta.get(), cos.get(), eta.get(), stop_status.get());
+        ref, x->get_device_view(), p->get_device_view(), p_prev.get(),
+        z->get_device_view(), z_tilde.get(), q->get_device_view(),
+        q_prev->get_device_view(), v->get_device_view(), alpha.get(),
+        beta.get(), gamma.get(), delta.get(), cos.get(), eta.get(),
+        stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::minres::step_2(
-        exec, d_x.get(), d_p.get(), d_p_prev.get(), d_z.get(), d_z_tilde.get(),
-        d_q.get(), d_q_prev.get(), d_v.get(), d_alpha.get(), d_beta.get(),
-        d_gamma.get(), d_delta.get(), d_cos.get(), d_eta.get(),
+        exec, d_x->get_device_view(), d_p->get_device_view(), d_p_prev.get(),
+        d_z->get_device_view(), d_z_tilde.get(), d_q->get_device_view(),
+        d_q_prev->get_device_view(), d_v->get_device_view(), d_alpha.get(),
+        d_beta.get(), d_gamma.get(), d_delta.get(), d_cos.get(), d_eta.get(),
         d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);

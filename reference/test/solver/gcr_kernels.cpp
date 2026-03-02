@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -131,9 +131,9 @@ TYPED_TEST(Gcr, KernelInitialize)
     std::fill_n(this->small_stop.get_data(), this->small_stop.get_size(),
                 this->stopped);
 
-    gko::kernels::reference::gcr::initialize(this->exec, this->small_b.get(),
-                                             this->small_residual.get(),
-                                             this->small_stop.get_data());
+    gko::kernels::reference::gcr::initialize(
+        this->exec, this->small_b.get(),
+        this->small_residual->get_device_view(), this->small_stop.get_data());
 
     GKO_ASSERT_MTX_NEAR(this->small_residual, this->small_b, 0);
     for (int i = 0; i < this->small_stop.get_size(); ++i) {
@@ -170,8 +170,8 @@ TYPED_TEST(Gcr, KernelRestart)
 
     gko::kernels::reference::gcr::restart(
         this->exec, this->small_residual.get(), this->small_A_residual.get(),
-        this->small_krylov_bases_p.get(),
-        this->small_mapped_krylov_bases_Ap.get(),
+        this->small_krylov_bases_p->get_device_view(),
+        this->small_mapped_krylov_bases_Ap->get_device_view(),
         this->small_final_iter_nums.get_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_size(),
@@ -202,7 +202,8 @@ TYPED_TEST(Gcr, KernelStep1)
     this->small_tmp_rAp = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
 
     gko::kernels::reference::gcr::step_1(
-        this->exec, this->small_x.get(), this->small_residual.get(),
+        this->exec, this->small_x->get_device_view(),
+        this->small_residual->get_device_view(),
         this->small_krylov_bases_p.get(),
         this->small_mapped_krylov_bases_Ap.get(), this->small_Ap_norm.get(),
         this->small_tmp_rAp.get(), this->small_stop.get_data());

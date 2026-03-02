@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -133,12 +133,16 @@ TEST_F(Bicg, BicgInitializeIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicg::initialize(
-        ref, b.get(), r.get(), z.get(), p.get(), q.get(), prev_rho.get(),
-        rho.get(), r2.get(), z2.get(), p2.get(), q2.get(), stop_status.get());
+        ref, b.get(), r->get_device_view(), z->get_device_view(),
+        p->get_device_view(), q->get_device_view(), prev_rho->get_device_view(),
+        rho->get_device_view(), r2->get_device_view(), z2->get_device_view(),
+        p2->get_device_view(), q2->get_device_view(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::bicg::initialize(
-        exec, d_b.get(), d_r.get(), d_z.get(), d_p.get(), d_q.get(),
-        d_prev_rho.get(), d_rho.get(), d_r2.get(), d_z2.get(), d_p2.get(),
-        d_q2.get(), d_stop_status.get());
+        exec, d_b.get(), d_r->get_device_view(), d_z->get_device_view(),
+        d_p->get_device_view(), d_q->get_device_view(),
+        d_prev_rho->get_device_view(), d_rho->get_device_view(),
+        d_r2->get_device_view(), d_z2->get_device_view(),
+        d_p2->get_device_view(), d_q2->get_device_view(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
@@ -158,12 +162,12 @@ TEST_F(Bicg, BicgStep1IsEquivalentToRef)
 {
     initialize_data();
 
-    gko::kernels::reference::bicg::step_1(ref, p.get(), z.get(), p2.get(),
-                                          z2.get(), rho.get(), prev_rho.get(),
-                                          stop_status.get());
+    gko::kernels::reference::bicg::step_1(
+        ref, p->get_device_view(), z.get(), p2->get_device_view(), z2.get(),
+        rho.get(), prev_rho.get(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::bicg::step_1(
-        exec, d_p.get(), d_z.get(), d_p2.get(), d_z2.get(), d_rho.get(),
-        d_prev_rho.get(), d_stop_status.get());
+        exec, d_p->get_device_view(), d_z.get(), d_p2->get_device_view(),
+        d_z2.get(), d_rho.get(), d_prev_rho.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
@@ -177,11 +181,12 @@ TEST_F(Bicg, BicgStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicg::step_2(
-        ref, x.get(), r.get(), r2.get(), p.get(), q.get(), q2.get(), beta.get(),
-        rho.get(), stop_status.get());
+        ref, x->get_device_view(), r->get_device_view(), r2->get_device_view(),
+        p.get(), q.get(), q2.get(), beta.get(), rho.get(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::bicg::step_2(
-        exec, d_x.get(), d_r.get(), d_r2.get(), d_p.get(), d_q.get(),
-        d_q2.get(), d_beta.get(), d_rho.get(), d_stop_status.get());
+        exec, d_x->get_device_view(), d_r->get_device_view(),
+        d_r2->get_device_view(), d_p.get(), d_q.get(), d_q2.get(), d_beta.get(),
+        d_rho.get(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);

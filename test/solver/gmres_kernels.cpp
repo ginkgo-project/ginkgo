@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -154,11 +154,13 @@ TEST_F(Gmres, GmresKernelInitializeIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::common_gmres::initialize(
-        ref, b.get(), residual.get(), givens_sin.get(), givens_cos.get(),
+        ref, b.get(), residual->get_device_view(),
+        givens_sin->get_device_view(), givens_cos->get_device_view(),
         stop_status.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::initialize(
-        exec, d_b.get(), d_residual.get(), d_givens_sin.get(),
-        d_givens_cos.get(), d_stop_status.get_data());
+        exec, d_b.get(), d_residual->get_device_view(),
+        d_givens_sin->get_device_view(), d_givens_cos->get_device_view(),
+        d_stop_status.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
@@ -175,12 +177,12 @@ TEST_F(Gmres, GmresKernelRestartIsEquivalentToRef)
 
     gko::kernels::reference::gmres::restart(
         ref, residual.get(), residual_norm.get(),
-        residual_norm_collection.get(), krylov_bases.get(),
-        final_iter_nums.get_data());
+        residual_norm_collection->get_device_view(),
+        krylov_bases->get_device_view(), final_iter_nums.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::gmres::restart(
         exec, d_residual.get(), d_residual_norm.get(),
-        d_residual_norm_collection.get(), d_krylov_bases.get(),
-        d_final_iter_nums.get_data());
+        d_residual_norm_collection->get_device_view(),
+        d_krylov_bases->get_device_view(), d_final_iter_nums.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_residual_norm, residual_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
@@ -196,12 +198,16 @@ TEST_F(Gmres, GmresKernelHessenbergQRIsEquivalentToRef)
     int iter = 5;
 
     gko::kernels::reference::common_gmres::hessenberg_qr(
-        ref, givens_sin.get(), givens_cos.get(), residual_norm.get(),
-        residual_norm_collection.get(), hessenberg_iter.get(), iter,
-        final_iter_nums.get_data(), stop_status.get_const_data());
+        ref, givens_sin->get_device_view(), givens_cos->get_device_view(),
+        residual_norm->get_device_view(),
+        residual_norm_collection->get_device_view(),
+        hessenberg_iter->get_device_view(), iter, final_iter_nums.get_data(),
+        stop_status.get_const_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::hessenberg_qr(
-        exec, d_givens_sin.get(), d_givens_cos.get(), d_residual_norm.get(),
-        d_residual_norm_collection.get(), d_hessenberg_iter.get(), iter,
+        exec, d_givens_sin->get_device_view(), d_givens_cos->get_device_view(),
+        d_residual_norm->get_device_view(),
+        d_residual_norm_collection->get_device_view(),
+        d_hessenberg_iter->get_device_view(), iter,
         d_final_iter_nums.get_data(), d_stop_status.get_const_data());
 
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
@@ -222,12 +228,16 @@ TEST_F(Gmres, GmresKernelHessenbergQROnSingleRHSIsEquivalentToRef)
     int iter = 5;
 
     gko::kernels::reference::common_gmres::hessenberg_qr(
-        ref, givens_sin.get(), givens_cos.get(), residual_norm.get(),
-        residual_norm_collection.get(), hessenberg_iter.get(), iter,
-        final_iter_nums.get_data(), stop_status.get_const_data());
+        ref, givens_sin->get_device_view(), givens_cos->get_device_view(),
+        residual_norm->get_device_view(),
+        residual_norm_collection->get_device_view(),
+        hessenberg_iter->get_device_view(), iter, final_iter_nums.get_data(),
+        stop_status.get_const_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::hessenberg_qr(
-        exec, d_givens_sin.get(), d_givens_cos.get(), d_residual_norm.get(),
-        d_residual_norm_collection.get(), d_hessenberg_iter.get(), iter,
+        exec, d_givens_sin->get_device_view(), d_givens_cos->get_device_view(),
+        d_residual_norm->get_device_view(),
+        d_residual_norm_collection->get_device_view(),
+        d_hessenberg_iter->get_device_view(), iter,
         d_final_iter_nums.get_data(), d_stop_status.get_const_data());
 
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
@@ -247,11 +257,13 @@ TEST_F(Gmres, GmresKernelSolveKrylovIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::common_gmres::solve_krylov(
-        ref, residual_norm_collection.get(), hessenberg.get(), y.get(),
-        final_iter_nums.get_const_data(), stop_status.get_const_data());
+        ref, residual_norm_collection.get(), hessenberg.get(),
+        y->get_device_view(), final_iter_nums.get_const_data(),
+        stop_status.get_const_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::solve_krylov(
-        exec, d_residual_norm_collection.get(), d_hessenberg.get(), d_y.get(),
-        d_final_iter_nums.get_const_data(), d_stop_status.get_const_data());
+        exec, d_residual_norm_collection.get(), d_hessenberg.get(),
+        d_y->get_device_view(), d_final_iter_nums.get_const_data(),
+        d_stop_status.get_const_data());
 
     GKO_ASSERT_MTX_NEAR(d_y, y, r<value_type>::value);
 }
@@ -262,10 +274,12 @@ TEST_F(Gmres, GmresKernelMultiAxpyIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::gmres::multi_axpy(
-        ref, krylov_bases.get(), y.get(), before_preconditioner.get(),
+        ref, krylov_bases.get(), y.get(),
+        before_preconditioner->get_device_view(),
         final_iter_nums.get_const_data(), stop_status.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::gmres::multi_axpy(
-        exec, d_krylov_bases.get(), d_y.get(), d_before_preconditioner.get(),
+        exec, d_krylov_bases.get(), d_y.get(),
+        d_before_preconditioner->get_device_view(),
         d_final_iter_nums.get_const_data(), d_stop_status.get_data());
 
     GKO_ASSERT_MTX_NEAR(d_before_preconditioner, before_preconditioner,
@@ -296,10 +310,11 @@ TEST_F(Gmres, GmresKernelMultiDotIsEquivalentToRef)
             d_x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
         gko::span{0, d_x->get_size()[1]});
     gko::kernels::reference::gmres::multi_dot(
-        ref, krylov_basis.get(), next_krylov.get(), hessenberg_iter.get());
+        ref, krylov_basis.get(), next_krylov.get(),
+        hessenberg_iter->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::gmres::multi_dot(
         exec, d_krylov_basis.get(), d_next_krylov.get(),
-        d_hessenberg_iter.get());
+        d_hessenberg_iter->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
                         r<value_type>::value);

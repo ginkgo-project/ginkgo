@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -130,10 +130,12 @@ TYPED_TEST(Fcg, KernelInitialize)
                 this->stopped);
 
     gko::kernels::reference::fcg::initialize(
-        this->exec, this->small_b.get(), this->small_r.get(),
-        this->small_z.get(), this->small_p.get(), this->small_q.get(),
-        this->small_t.get(), this->small_prev_rho.get(), this->small_rho.get(),
-        this->small_rho_t.get(), &this->small_stop);
+        this->exec, this->small_b.get(), this->small_r->get_device_view(),
+        this->small_z->get_device_view(), this->small_p->get_device_view(),
+        this->small_q->get_device_view(), this->small_t->get_device_view(),
+        this->small_prev_rho->get_device_view(),
+        this->small_rho->get_device_view(),
+        this->small_rho_t->get_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_r, this->small_b, 0);
     GKO_ASSERT_MTX_NEAR(this->small_t, this->small_b, 0);
@@ -159,7 +161,7 @@ TYPED_TEST(Fcg, KernelStep1)
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::fcg::step_1(
-        this->exec, this->small_p.get(), this->small_z.get(),
+        this->exec, this->small_p->get_device_view(), this->small_z.get(),
         this->small_rho_t.get(), this->small_prev_rho.get(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-1.25, 3.0}, {-1.25, 3.0}}), 0);
@@ -174,7 +176,7 @@ TYPED_TEST(Fcg, KernelStep1DivByZero)
     this->small_prev_rho->fill(0);
 
     gko::kernels::reference::fcg::step_1(
-        this->exec, this->small_p.get(), this->small_z.get(),
+        this->exec, this->small_p->get_device_view(), this->small_z.get(),
         this->small_rho_t.get(), this->small_prev_rho.get(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
@@ -195,9 +197,10 @@ TYPED_TEST(Fcg, KernelStep2)
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::fcg::step_2(
-        this->exec, this->small_x.get(), this->small_r.get(),
-        this->small_t.get(), this->small_p.get(), this->small_q.get(),
-        this->small_beta.get(), this->small_rho.get(), &this->small_stop);
+        this->exec, this->small_x->get_device_view(),
+        this->small_r->get_device_view(), this->small_t->get_device_view(),
+        this->small_p.get(), this->small_q.get(), this->small_beta.get(),
+        this->small_rho.get(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{-1.25, -2.0}, {-1.25, -2.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{5.25, 4.0}, {5.25, 4.0}}), 0);
@@ -216,9 +219,10 @@ TYPED_TEST(Fcg, KernelStep2DivByZero)
     this->small_beta->fill(0);
 
     gko::kernels::reference::fcg::step_2(
-        this->exec, this->small_x.get(), this->small_r.get(),
-        this->small_t.get(), this->small_p.get(), this->small_q.get(),
-        this->small_beta.get(), this->small_rho.get(), &this->small_stop);
+        this->exec, this->small_x->get_device_view(),
+        this->small_r->get_device_view(), this->small_t->get_device_view(),
+        this->small_p.get(), this->small_q.get(), this->small_beta.get(),
+        this->small_rho.get(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{4.0, 4.0}, {4.0, 4.0}}), 0);
