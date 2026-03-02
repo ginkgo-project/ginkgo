@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,14 +21,14 @@ namespace kernels {
 #define GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL(value_type)       \
     void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
                         const matrix::Diagonal<value_type>* a,       \
-                        const matrix::Dense<value_type>* b,          \
-                        matrix::Dense<value_type>* c, bool inverse)
+                        matrix::view::dense<const ValueType> b,      \
+                        matrix::view::dense<ValueType> c, bool inverse)
 
 #define GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL(value_type)       \
     void right_apply_to_dense(std::shared_ptr<const DefaultExecutor> exec, \
                               const matrix::Diagonal<value_type>* a,       \
-                              const matrix::Dense<value_type>* b,          \
-                              matrix::Dense<value_type>* c)
+                              matrix::view::dense<const ValueType> b,      \
+                              matrix::view::dense<ValueType> c)
 
 #define GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(value_type, index_type) \
     void apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \

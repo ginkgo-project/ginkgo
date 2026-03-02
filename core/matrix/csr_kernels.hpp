@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,17 +30,17 @@ namespace kernels {
                                     OutputValueType, IndexType)      \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,           \
               const matrix::Csr<MatrixValueType, IndexType>* a,      \
-              const matrix::Dense<InputValueType>* b,                \
-              matrix::Dense<OutputValueType>* c)
+              matrix::view::dense<const InputValueType> b,           \
+              matrix::view::dense<OutputValueType> c)
 
 #define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(MatrixValueType, InputValueType, \
                                              OutputValueType, IndexType)      \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,           \
-                       const matrix::Dense<MatrixValueType>* alpha,           \
+                       matrix::view::dense<const MatrixValueType> alpha,      \
                        const matrix::Csr<MatrixValueType, IndexType>* a,      \
-                       const matrix::Dense<InputValueType>* b,                \
-                       const matrix::Dense<OutputValueType>* beta,            \
-                       matrix::Dense<OutputValueType>* c)
+                       matrix::view::dense<const InputValueType> b,           \
+                       matrix::view::dense<const OutputValueType> beta,       \
+                       matrix::view::dense<OutputValueType> c)
 
 #define GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType)  \
     void spgemm(std::shared_ptr<const DefaultExecutor> exec, \
@@ -50,10 +50,10 @@ namespace kernels {
 
 #define GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType)  \
     void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec, \
-                         const matrix::Dense<ValueType>* alpha,       \
+                         matrix::view::dense<const ValueType> alpha,  \
                          const matrix::Csr<ValueType, IndexType>* a,  \
                          const matrix::Csr<ValueType, IndexType>* b,  \
-                         const matrix::Dense<ValueType>* beta,        \
+                         matrix::view::dense<const ValueType> beta,   \
                          const matrix::Csr<ValueType, IndexType>* d,  \
                          matrix::Csr<ValueType, IndexType>* c)
 
@@ -67,34 +67,34 @@ namespace kernels {
 #define GKO_DECLARE_CSR_ADVANCED_SPGEMM_REUSE_KERNEL(ValueType, IndexType) \
     void advanced_spgemm_reuse(                                            \
         std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Dense<ValueType>* alpha,                             \
+        matrix::view::dense<const ValueType> alpha,                        \
         const matrix::Csr<ValueType, IndexType>* a,                        \
         const matrix::Csr<ValueType, IndexType>* b,                        \
-        const matrix::Dense<ValueType>* beta,                              \
+        matrix::view::dense<const ValueType> beta,                         \
         const matrix::Csr<ValueType, IndexType>* d,                        \
         const matrix::csr::lookup_data<IndexType>& c_lookup,               \
         matrix::Csr<ValueType, IndexType>* c)
 
 #define GKO_DECLARE_CSR_SPGEAM_KERNEL(ValueType, IndexType)  \
     void spgeam(std::shared_ptr<const DefaultExecutor> exec, \
-                const matrix::Dense<ValueType>* alpha,       \
+                matrix::view::dense<const ValueType> alpha,  \
                 const matrix::Csr<ValueType, IndexType>* a,  \
-                const matrix::Dense<ValueType>* beta,        \
+                matrix::view::dense<const ValueType> beta,   \
                 const matrix::Csr<ValueType, IndexType>* b,  \
                 matrix::Csr<ValueType, IndexType>* c)
 
 #define GKO_DECLARE_CSR_SPGEAM_NUMERIC_KERNEL(ValueType, IndexType)  \
     void spgeam_numeric(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::Dense<ValueType>* alpha,       \
+                        matrix::view::dense<const ValueType> alpha,  \
                         const matrix::Csr<ValueType, IndexType>* a,  \
-                        const matrix::Dense<ValueType>* beta,        \
+                        matrix::view::dense<const ValueType> beta,   \
                         const matrix::Csr<ValueType, IndexType>* b,  \
                         matrix::Csr<ValueType, IndexType>* c)
 
 #define GKO_DECLARE_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \
                        const matrix::Csr<ValueType, IndexType>* source, \
-                       matrix::Dense<ValueType>* result)
+                       matrix::view::dense<ValueType> result)
 
 #define GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType)      \
     void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,     \
@@ -242,12 +242,12 @@ namespace kernels {
 
 #define GKO_DECLARE_CSR_SCALE_KERNEL(ValueType, IndexType)  \
     void scale(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::Dense<ValueType>* alpha,       \
+               matrix::view::dense<const ValueType> alpha,  \
                matrix::Csr<ValueType, IndexType>* to_scale)
 
 #define GKO_DECLARE_CSR_INV_SCALE_KERNEL(ValueType, IndexType)  \
     void inv_scale(std::shared_ptr<const DefaultExecutor> exec, \
-                   const matrix::Dense<ValueType>* alpha,       \
+                   matrix::view::dense<const ValueType> alpha,  \
                    matrix::Csr<ValueType, IndexType>* to_scale)
 
 #define GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType, IndexType) \
@@ -257,8 +257,8 @@ namespace kernels {
 
 #define GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)  \
     void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec, \
-                             const matrix::Dense<ValueType>* alpha,       \
-                             const matrix::Dense<ValueType>* beta,        \
+                             matrix::view::dense<const ValueType> alpha,  \
+                             matrix::view::dense<const ValueType> beta,   \
                              matrix::Csr<ValueType, IndexType>* mtx)
 
 #define GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL(IndexType)               \

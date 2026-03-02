@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -34,13 +34,15 @@ namespace lower_trs {
                   const size_type num_rhs)
 
 
-#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(_vtype, _itype)                     \
-    void solve(std::shared_ptr<const DefaultExecutor> exec,                    \
-               const matrix::Csr<_vtype, _itype>* matrix,                      \
-               const solver::SolveStruct* solve_struct, bool unit_diag,        \
-               const solver::trisolve_algorithm algorithm,                     \
-               matrix::Dense<_vtype>* trans_b, matrix::Dense<_vtype>* trans_x, \
-               const matrix::Dense<_vtype>* b, matrix::Dense<_vtype>* x)
+#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(_vtype, _itype)              \
+    void solve(std::shared_ptr<const DefaultExecutor> exec,             \
+               const matrix::Csr<_vtype, _itype>* matrix,               \
+               const solver::SolveStruct* solve_struct, bool unit_diag, \
+               const solver::trisolve_algorithm algorithm,              \
+               matrix::view::dense<ValueType> trans_b,                  \
+               matrix::view::dense<ValueType> trans_x,                  \
+               matrix::view::dense<const ValueType> b,                  \
+               matrix::view::dense<ValueType> x)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \

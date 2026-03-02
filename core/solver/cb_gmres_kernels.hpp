@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -96,48 +96,50 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(_type)                       \
-    void initialize(                                                        \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::Dense<_type>* b, matrix::Dense<_type>* residual,      \
-        matrix::Dense<_type>* givens_sin, matrix::Dense<_type>* givens_cos, \
-        array<stopping_status>* stop_status, size_type krylov_dim)
+#define GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(_type)            \
+    void initialize(std::shared_ptr<const DefaultExecutor> exec, \
+                    matrix::view::dense<const ValueType> b,      \
+                    matrix::view::dense<ValueType> residual,     \
+                    matrix::view::dense<ValueType> givens_sin,   \
+                    matrix::view::dense<ValueType> givens_cos,   \
+                    array<stopping_status>* stop_status, size_type krylov_dim)
 
 
-#define GKO_DECLARE_CB_GMRES_RESTART_KERNEL(_type1, _range)            \
-    void restart(std::shared_ptr<const DefaultExecutor> exec,          \
-                 const matrix::Dense<_type1>* residual,                \
-                 matrix::Dense<remove_complex<_type1>>* residual_norm, \
-                 matrix::Dense<_type1>* residual_norm_collection,      \
-                 matrix::Dense<remove_complex<_type1>>* arnoldi_norm,  \
-                 _range krylov_bases,                                  \
-                 matrix::Dense<_type1>* next_krylov_basis,             \
-                 array<size_type>* final_iter_nums,                    \
+#define GKO_DECLARE_CB_GMRES_RESTART_KERNEL(_type1, _range)               \
+    void restart(std::shared_ptr<const DefaultExecutor> exec,             \
+                 matrix::view::dense<const ValueType> residual,           \
+                 matrix::Dense<remove_complex<_type1>>* residual_norm,    \
+                 matrix::view::dense<ValueType> residual_norm_collection, \
+                 matrix::Dense<remove_complex<_type1>>* arnoldi_norm,     \
+                 _range krylov_bases,                                     \
+                 matrix::view::dense<ValueType> next_krylov_basis,        \
+                 array<size_type>* final_iter_nums,                       \
                  array<char>& reduction_tmp, size_type krylov_dim)
 
 
-#define GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(_type1, _range)                   \
-    void arnoldi(                                                             \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        matrix::Dense<_type1>* next_krylov_basis,                             \
-        matrix::Dense<_type1>* givens_sin, matrix::Dense<_type1>* givens_cos, \
-        matrix::Dense<remove_complex<_type1>>* residual_norm,                 \
-        matrix::Dense<_type1>* residual_norm_collection, _range krylov_bases, \
-        matrix::Dense<_type1>* hessenberg_iter,                               \
-        matrix::Dense<_type1>* buffer_iter,                                   \
-        matrix::Dense<remove_complex<_type1>>* arnoldi_norm, size_type iter,  \
-        array<size_type>* final_iter_nums,                                    \
-        const array<stopping_status>* stop_status,                            \
+#define GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(_type1, _range)                  \
+    void arnoldi(                                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        matrix::view::dense<ValueType> next_krylov_basis,                    \
+        matrix::view::dense<ValueType> givens_sin,                           \
+        matrix::view::dense<ValueType> givens_cos,                           \
+        matrix::Dense<remove_complex<_type1>>* residual_norm,                \
+        matrix::view::dense<ValueType> residual_norm_collection,             \
+        _range krylov_bases, matrix::view::dense<ValueType> hessenberg_iter, \
+        matrix::view::dense<ValueType> buffer_iter,                          \
+        matrix::Dense<remove_complex<_type1>>* arnoldi_norm, size_type iter, \
+        array<size_type>* final_iter_nums,                                   \
+        const array<stopping_status>* stop_status,                           \
         array<stopping_status>* reorth_status, array<size_type>* num_reorth)
 
-#define GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(_type1, _range)             \
-    void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,           \
-                      const matrix::Dense<_type1>* residual_norm_collection, \
-                      _range krylov_bases,                                   \
-                      const matrix::Dense<_type1>* hessenberg,               \
-                      matrix::Dense<_type1>* y,                              \
-                      matrix::Dense<_type1>* before_preconditioner,          \
-                      const array<size_type>* final_iter_nums)
+#define GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(_type1, _range)              \
+    void solve_krylov(                                                        \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        matrix::view::dense<const ValueType> residual_norm_collection,        \
+        _range krylov_bases, matrix::view::dense<const ValueType> hessenberg, \
+        matrix::view::dense<ValueType> y,                                     \
+        matrix::view::dense<ValueType> before_preconditioner,                 \
+        const array<size_type>* final_iter_nums)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                            \

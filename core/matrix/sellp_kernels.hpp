@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,15 +21,16 @@ namespace kernels {
 #define GKO_DECLARE_SELLP_SPMV_KERNEL(ValueType, IndexType) \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,  \
               const matrix::Sellp<ValueType, IndexType>* a, \
-              const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+              matrix::view::dense<const ValueType> b,       \
+              matrix::view::dense<ValueType> c)
 
 #define GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL(ValueType, IndexType) \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,  \
-                       const matrix::Dense<ValueType>* alpha,        \
+                       matrix::view::dense<const ValueType> alpha,   \
                        const matrix::Sellp<ValueType, IndexType>* a, \
-                       const matrix::Dense<ValueType>* b,            \
-                       const matrix::Dense<ValueType>* beta,         \
-                       matrix::Dense<ValueType>* c)
+                       matrix::view::dense<const ValueType> b,       \
+                       matrix::view::dense<const ValueType> beta,    \
+                       matrix::view::dense<ValueType> c)
 
 #define GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
     void fill_in_matrix_data(                                              \
@@ -46,7 +47,7 @@ namespace kernels {
 #define GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,       \
                        const matrix::Sellp<ValueType, IndexType>* source, \
-                       matrix::Dense<ValueType>* result)
+                       matrix::view::dense<ValueType> result)
 
 #define GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,       \

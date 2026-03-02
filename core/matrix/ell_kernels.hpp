@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,17 +22,17 @@ namespace kernels {
                                     OutputValueType, IndexType)      \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,           \
               const matrix::Ell<MatrixValueType, IndexType>* a,      \
-              const matrix::Dense<InputValueType>* b,                \
-              matrix::Dense<OutputValueType>* c)
+              matrix::view::dense<const InputValueType> b,           \
+              matrix::view::dense<OutputValueType> c)
 
 #define GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(InputValueType, MatrixValueType, \
                                              OutputValueType, IndexType)      \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,           \
-                       const matrix::Dense<MatrixValueType>* alpha,           \
+                       matrix::view::dense<const MatrixValueType> alpha,      \
                        const matrix::Ell<MatrixValueType, IndexType>* a,      \
-                       const matrix::Dense<InputValueType>* b,                \
-                       const matrix::Dense<OutputValueType>* beta,            \
-                       matrix::Dense<OutputValueType>* c)
+                       matrix::view::dense<const InputValueType> b,           \
+                       matrix::view::dense<const OutputValueType> beta,       \
+                       matrix::view::dense<OutputValueType> c)
 
 #define GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL(IndexType)             \
     void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec, \
@@ -48,7 +48,7 @@ namespace kernels {
 #define GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \
                        const matrix::Ell<ValueType, IndexType>* source, \
-                       matrix::Dense<ValueType>* result)
+                       matrix::view::dense<ValueType> result)
 
 #define GKO_DECLARE_ELL_COPY_KERNEL(ValueType, IndexType)      \
     void copy(std::shared_ptr<const DefaultExecutor> exec,     \
