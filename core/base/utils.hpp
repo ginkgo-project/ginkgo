@@ -299,6 +299,9 @@ struct generator_partial {
 template <typename T>
 using ptr_type = T*;
 
+template <typename T>
+using ptr_to_const_type = const T*;
+
 
 }  // namespace gko
 

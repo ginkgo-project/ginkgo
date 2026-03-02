@@ -84,10 +84,10 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
         const auto max_nnz = ellk->get_num_stored_elements_per_row();
         if (max_nnz > 0) {
             for (int i = 0; i < nrows; i++) {
-                OutputValueType sum = 0;
+                highest_type sum = 0;
                 for (int j = 0; j < max_nnz; j++) {
                     if (acols[i + j * stride] >= 0) {
-                        y[i] += static_cast<highest_type>(
+                        sum += static_cast<highest_type>(
                             static_cast<mult_type>(avals[i + j * stride]) *
                             static_cast<mult_type>(x[acols[i + j * stride]]));
                     }
