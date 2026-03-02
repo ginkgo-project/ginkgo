@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -168,9 +168,10 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
             std::default_random_engine(15));
         subspace_vectors->read(subspace_vectors_data);
     }
-    exec->run(idr::make_initialize(nrhs, gko::detail::get_local(m),
-                                   gko::detail::get_local(subspace_vectors),
-                                   is_deterministic, &stop_status));
+    exec->run(idr::make_initialize(
+        nrhs, gko::detail::get_local(m)->get_device_view(),
+        gko::detail::get_local(subspace_vectors)->get_device_view(),
+        is_deterministic, &stop_status));
 
     // omega = 1
     omega->fill(one<SubspaceType>());
@@ -233,18 +234,21 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - sum i=[k,s) of (c_i * g_i)
             exec->run(idr::make_step_1(
-                nrhs, k, gko::detail::get_local(m), gko::detail::get_local(f),
-                gko::detail::get_local(residual), gko::detail::get_local(g),
-                gko::detail::get_local(c), gko::detail::get_local(v),
-                &stop_status));
+                nrhs, k, gko::detail::get_local(m)->get_device_view(),
+                gko::detail::get_local(f)->get_device_view(),
+                gko::detail::get_local(residual)->get_device_view(),
+                gko::detail::get_local(g)->get_device_view(),
+                gko::detail::get_local(c)->get_device_view(),
+                gko::detail::get_local(v)->get_device_view(), &stop_status));
 
             this->get_preconditioner()->apply(v, helper);
 
             // u_k = omega * precond_vector + sum i=[k,s) of (c_i * u_i)
             exec->run(idr::make_step_2(
-                nrhs, k, gko::detail::get_local(omega),
-                gko::detail::get_local(helper), gko::detail::get_local(c),
-                gko::detail::get_local(u), &stop_status));
+                nrhs, k, gko::detail::get_local(omega)->get_device_view(),
+                gko::detail::get_local(helper)->get_device_view(),
+                gko::detail::get_local(c)->get_device_view(),
+                gko::detail::get_local(u)->get_device_view(), &stop_status));
 
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
@@ -266,12 +270,17 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
             // dense_x += beta * u_k
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s-1 - beta * m_s-1,k)
             exec->run(idr::make_step_3(
-                nrhs, k, gko::detail::get_local(subspace_vectors),
-                gko::detail::get_local(g), gko::detail::get_local(helper),
-                gko::detail::get_local(u), gko::detail::get_local(m),
-                gko::detail::get_local(f), gko::detail::get_local(alpha),
-                gko::detail::get_local(residual),
-                gko::detail::get_local(dense_x), &stop_status));
+                nrhs, k,
+                gko::detail::get_local(subspace_vectors)->get_device_view(),
+                gko::detail::get_local(g)->get_device_view(),
+                gko::detail::get_local(helper)->get_device_view(),
+                gko::detail::get_local(u)->get_device_view(),
+                gko::detail::get_local(m)->get_device_view(),
+                gko::detail::get_local(f)->get_device_view(),
+                gko::detail::get_local(alpha)->get_device_view(),
+                gko::detail::get_local(residual)->get_device_view(),
+                gko::detail::get_local(dense_x)->get_device_view(),
+                &stop_status));
         }
 
         this->get_preconditioner()->apply(residual, helper);
@@ -291,9 +300,9 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
         // residual -= omega * t
         // dense_x += omega * v
         exec->run(idr::make_compute_omega(
-            nrhs, kappa, gko::detail::get_local(tht),
-            gko::detail::get_local(residual_norm),
-            gko::detail::get_local(omega), &stop_status));
+            nrhs, kappa, gko::detail::get_local(tht)->get_device_view(),
+            gko::detail::get_local(residual_norm)->get_device_view(),
+            gko::detail::get_local(omega)->get_device_view(), &stop_status));
 
         t->scale(subspace_neg_one_op);
         residual->add_scaled(omega, t);

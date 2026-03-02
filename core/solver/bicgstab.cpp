@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -128,12 +128,18 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
     exec->run(bicgstab::make_initialize(
-        gko::detail::get_local(dense_b), gko::detail::get_local(r),
-        gko::detail::get_local(rr), gko::detail::get_local(y),
-        gko::detail::get_local(s), gko::detail::get_local(t),
-        gko::detail::get_local(z), gko::detail::get_local(v),
-        gko::detail::get_local(p), prev_rho, rho, alpha, beta, gamma, omega,
-        &stop_status));
+        gko::detail::get_local(dense_b)->get_const_device_view(),
+        gko::detail::get_local(r)->get_device_view(),
+        gko::detail::get_local(rr)->get_device_view(),
+        gko::detail::get_local(y)->get_device_view(),
+        gko::detail::get_local(s)->get_device_view(),
+        gko::detail::get_local(t)->get_device_view(),
+        gko::detail::get_local(z)->get_device_view(),
+        gko::detail::get_local(v)->get_device_view(),
+        gko::detail::get_local(p)->get_device_view(),
+        prev_rho->get_device_view(), rho->get_device_view(),
+        alpha->get_device_view(), beta->get_device_view(),
+        gamma->get_device_view(), omega->get_device_view(), &stop_status));
 
     // r = b - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
@@ -176,10 +182,12 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
-        exec->run(bicgstab::make_step_1(gko::detail::get_local(r),
-                                        gko::detail::get_local(p),
-                                        gko::detail::get_local(v), rho,
-                                        prev_rho, alpha, omega, &stop_status));
+        exec->run(bicgstab::make_step_1(
+            gko::detail::get_local(r)->get_device_view(),
+            gko::detail::get_local(p)->get_device_view(),
+            gko::detail::get_local(v)->get_device_view(),
+            rho->get_device_view(), prev_rho->get_device_view(),
+            alpha->get_device_view(), omega->get_device_view(), &stop_status));
 
         // y = preconditioner * p
         this->get_preconditioner()->apply(p, y);
@@ -190,8 +198,11 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // alpha = rho / beta
         // s = r - alpha * v
         exec->run(bicgstab::make_step_2(
-            gko::detail::get_local(r), gko::detail::get_local(s),
-            gko::detail::get_local(v), rho, alpha, beta, &stop_status));
+            gko::detail::get_local(r)->get_device_view(),
+            gko::detail::get_local(s)->get_device_view(),
+            gko::detail::get_local(v)->get_device_view(),
+            rho->get_device_view(), alpha->get_device_view(),
+            beta->get_device_view(), &stop_status));
 
         all_stopped =
             stop_criterion->update()
@@ -201,9 +212,10 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
         if (one_changed) {
-            exec->run(bicgstab::make_finalize(gko::detail::get_local(dense_x),
-                                              gko::detail::get_local(y), alpha,
-                                              &stop_status));
+            exec->run(bicgstab::make_finalize(
+                gko::detail::get_local(dense_x)->get_device_view(),
+                gko::detail::get_local(y)->get_device_view(),
+                alpha->get_device_view(), &stop_status));
         }
         this->template log<log::Logger::iteration_complete>(
             this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
@@ -224,10 +236,14 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         exec->run(bicgstab::make_step_3(
-            gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(s), gko::detail::get_local(t),
-            gko::detail::get_local(y), gko::detail::get_local(z), alpha, beta,
-            gamma, omega, &stop_status));
+            gko::detail::get_local(dense_x)->get_device_view(),
+            gko::detail::get_local(r)->get_device_view(),
+            gko::detail::get_local(s)->get_device_view(),
+            gko::detail::get_local(t)->get_device_view(),
+            gko::detail::get_local(y)->get_device_view(),
+            gko::detail::get_local(z)->get_device_view(),
+            alpha->get_device_view(), beta->get_device_view(),
+            gamma->get_device_view(), omega->get_device_view(), &stop_status));
         swap(prev_rho, rho);
     }
 }

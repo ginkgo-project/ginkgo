@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -275,10 +275,10 @@ void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     result->resize(this->get_size());
     result->fill(zero<ValueType>());
     auto result_local = make_temporary_clone(exec, result);
-    exec->run(
-        hybrid::make_ell_fill_in_dense(this->get_ell(), result_local.get()));
-    exec->run(
-        hybrid::make_coo_fill_in_dense(this->get_coo(), result_local.get()));
+    exec->run(hybrid::make_ell_fill_in_dense(this->get_ell(),
+                                             result_local->get_device_view()));
+    exec->run(hybrid::make_coo_fill_in_dense(this->get_coo(),
+                                             result_local->get_device_view()));
 }
 
 

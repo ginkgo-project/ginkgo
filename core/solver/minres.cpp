@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -177,15 +177,22 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // z = z / beta
     // p = p_prev = q_prev = v = 0
     exec->run(minres::make_initialize(
-        gko::detail::get_local(r), gko::detail::get_local(z),
-        gko::detail::get_local(p), gko::detail::get_local(p_prev),
-        gko::detail::get_local(q), gko::detail::get_local(q_prev),
-        gko::detail::get_local(v), gko::detail::get_local(beta),
-        gko::detail::get_local(gamma), gko::detail::get_local(delta),
-        gko::detail::get_local(cos_prev), gko::detail::get_local(cos),
-        gko::detail::get_local(sin_prev), gko::detail::get_local(sin),
-        gko::detail::get_local(eta_next), gko::detail::get_local(eta),
-        &stop_status));
+        gko::detail::get_local(r)->get_device_view(),
+        gko::detail::get_local(z)->get_device_view(),
+        gko::detail::get_local(p)->get_device_view(),
+        gko::detail::get_local(p_prev)->get_device_view(),
+        gko::detail::get_local(q)->get_device_view(),
+        gko::detail::get_local(q_prev)->get_device_view(),
+        gko::detail::get_local(v)->get_device_view(),
+        gko::detail::get_local(beta)->get_device_view(),
+        gko::detail::get_local(gamma)->get_device_view(),
+        gko::detail::get_local(delta)->get_device_view(),
+        gko::detail::get_local(cos_prev)->get_device_view(),
+        gko::detail::get_local(cos)->get_device_view(),
+        gko::detail::get_local(sin_prev)->get_device_view(),
+        gko::detail::get_local(sin)->get_device_view(),
+        gko::detail::get_local(eta_next)->get_device_view(),
+        gko::detail::get_local(eta)->get_device_view(), &stop_status));
 
     int iter = -1;
     /* Memory movement summary:
@@ -248,12 +255,17 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // update the squared residual norm approximation:
         // tau = abs(sin)^2 * tau
         exec->run(minres::make_step_1(
-            gko::detail::get_local(alpha), gko::detail::get_local(beta),
-            gko::detail::get_local(gamma), gko::detail::get_local(delta),
-            gko::detail::get_local(cos_prev), gko::detail::get_local(cos),
-            gko::detail::get_local(sin_prev), gko::detail::get_local(sin),
-            gko::detail::get_local(eta), gko::detail::get_local(eta_next),
-            gko::detail::get_local(tau), &stop_status));
+            gko::detail::get_local(alpha)->get_device_view(),
+            gko::detail::get_local(beta)->get_device_view(),
+            gko::detail::get_local(gamma)->get_device_view(),
+            gko::detail::get_local(delta)->get_device_view(),
+            gko::detail::get_local(cos_prev)->get_device_view(),
+            gko::detail::get_local(cos)->get_device_view(),
+            gko::detail::get_local(sin_prev)->get_device_view(),
+            gko::detail::get_local(sin)->get_device_view(),
+            gko::detail::get_local(eta)->get_device_view(),
+            gko::detail::get_local(eta_next)->get_device_view(),
+            gko::detail::get_local(tau)->get_device_view(), &stop_status));
 
 
         // update vectors
@@ -273,14 +285,20 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // gamma = beta
         swap(p, p_prev);
         exec->run(minres::make_step_2(
-            gko::detail::get_local(dense_x), gko::detail::get_local(p),
-            gko::detail::get_local(p_prev), gko::detail::get_local(z),
-            gko::detail::get_local(z_tilde), gko::detail::get_local(q),
-            gko::detail::get_local(q_prev), gko::detail::get_local(v),
-            gko::detail::get_local(alpha), gko::detail::get_local(beta),
-            gko::detail::get_local(gamma), gko::detail::get_local(delta),
-            gko::detail::get_local(cos), gko::detail::get_local(eta),
-            &stop_status));
+            gko::detail::get_local(dense_x)->get_device_view(),
+            gko::detail::get_local(p)->get_device_view(),
+            gko::detail::get_local(p_prev)->get_device_view(),
+            gko::detail::get_local(z)->get_device_view(),
+            gko::detail::get_local(z_tilde)->get_device_view(),
+            gko::detail::get_local(q)->get_device_view(),
+            gko::detail::get_local(q_prev)->get_device_view(),
+            gko::detail::get_local(v)->get_device_view(),
+            gko::detail::get_local(alpha)->get_device_view(),
+            gko::detail::get_local(beta)->get_device_view(),
+            gko::detail::get_local(gamma)->get_device_view(),
+            gko::detail::get_local(delta)->get_device_view(),
+            gko::detail::get_local(cos)->get_device_view(),
+            gko::detail::get_local(eta)->get_device_view(), &stop_status));
         swap(gamma, beta);
     }
 }

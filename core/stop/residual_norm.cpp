@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -197,9 +197,9 @@ bool ResidualNormBase<ValueType>::check_impl(
     bool all_converged = true;
 
     this->get_executor()->run(residual_norm::make_residual_norm(
-        dense_tau, starting_tau_.get(), reduction_factor_, stopping_id,
-        set_finalized, stop_status, &device_storage_, &all_converged,
-        one_changed));
+        dense_tau->get_const_device_view(), starting_tau_->get_device_view(),
+        reduction_factor_, stopping_id, set_finalized, stop_status,
+        &device_storage_, &all_converged, one_changed));
 
     return all_converged;
 }
@@ -220,7 +220,8 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
 
     this->get_executor()->run(
         implicit_residual_norm::make_implicit_residual_norm(
-            dense_tau, this->starting_tau_.get(), this->reduction_factor_,
+            dense_tau->get_const_device_view(),
+            this->starting_tau_->get_device_view(), this->reduction_factor_,
             stopping_id, set_finalized, stop_status, &this->device_storage_,
             &all_converged, one_changed));
 

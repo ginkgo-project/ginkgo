@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -266,7 +266,8 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         mixed_precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
                 this->get_executor()->run(
-                    csr::make_spmv(this, dense_b, dense_x));
+                    csr::make_spmv(this, dense_b->get_const_device_view(),
+                                   dense_x->get_device_view()));
             },
             b, x);
     }
@@ -285,15 +286,17 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
         this->get_executor()->run(csr::make_advanced_spgemm(
-            as<Dense<ValueType>>(alpha), this, b_csr,
-            as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
+            as<Dense<ValueType>>(alpha)->get_const_device_view(), this, b_csr,
+            as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
+            x_csr));
     } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
-        this->get_executor()->run(
-            csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
-                             as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
+        this->get_executor()->run(csr::make_spgeam(
+            as<Dense<ValueType>>(alpha)->get_const_device_view(), this,
+            as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
+            x_csr));
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this, alpha, beta](auto dense_b, auto dense_x) {
@@ -301,9 +304,11 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                 auto dense_beta = make_temporary_conversion<
                     typename std::decay_t<decltype(*dense_x)>::value_type>(
                     beta);
-                this->get_executor()->run(
-                    csr::make_advanced_spmv(dense_alpha.get(), this, dense_b,
-                                            dense_beta.get(), dense_x));
+                this->get_executor()->run(csr::make_advanced_spmv(
+                    dense_alpha->get_const_device_view(), this,
+                    dense_b->get_const_device_view(),
+                    dense_beta->get_const_device_view(),
+                    dense_x->get_device_view()));
             },
             b, x);
     }
@@ -402,7 +407,7 @@ void Csr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(csr::make_fill_in_dense(this, tmp_result.get()));
+    exec->run(csr::make_fill_in_dense(this, tmp_result->get_device_view()));
 }
 
 
@@ -769,8 +774,9 @@ Csr<ValueType, IndexType>::multiply_add(
     auto local_mtx_add = make_temporary_clone(exec, mtx_add);
     auto result = Csr::create(exec, result_size);
     exec->run(csr::make_advanced_spgemm(
-        local_scale_mult.get(), this, local_mtx_mult.get(),
-        local_scale_add.get(), local_mtx_add.get(), result.get()));
+        local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
+        local_scale_add->get_const_device_view(), local_mtx_add.get(),
+        result.get()));
     return result;
 }
 
@@ -845,8 +851,9 @@ void Csr<ValueType, IndexType>::multiply_add_reuse_info::update_values(
     auto local_alpha = make_temporary_clone(exec, alpha);
     auto local_beta = make_temporary_clone(exec, beta);
     exec->run(csr::make_advanced_spgemm_reuse(
-        local_alpha.get(), local_mtx1.get(), local_mtx2.get(), local_beta.get(),
-        local_mtx3.get(), internal->data, local_out.get()));
+        local_alpha->get_const_device_view(), local_mtx1.get(),
+        local_mtx2.get(), local_beta->get_const_device_view(), local_mtx3.get(),
+        internal->data, local_out.get()));
 }
 
 
@@ -871,8 +878,9 @@ Csr<ValueType, IndexType>::multiply_add_reuse(
     auto local_mtx_add = make_temporary_clone(exec, mtx_add);
     auto result = Csr::create(exec, result_size);
     exec->run(csr::make_advanced_spgemm(
-        local_scale_mult.get(), this, local_mtx_mult.get(),
-        local_scale_add.get(), local_mtx_add.get(), result.get()));
+        local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
+        local_scale_add->get_const_device_view(), local_mtx_add.get(),
+        result.get()));
     auto lookup = csr::build_lookup(result.get());
     auto reuse_info = multiply_add_reuse_info{
         std::make_unique<typename multiply_add_reuse_info::lookup_data>(
@@ -900,9 +908,9 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::scale_add(
     auto local_scale_other = make_temporary_clone(exec, scale_other);
     auto local_mtx_other = make_temporary_clone(exec, mtx_other);
     auto result = Csr::create(exec, this->get_size());
-    exec->run(csr::make_spgeam(local_scale_this.get(), this,
-                               local_scale_other.get(), local_mtx_other.get(),
-                               result.get()));
+    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
+                               local_scale_other->get_const_device_view(),
+                               local_mtx_other.get(), result.get()));
     return result;
 }
 
@@ -960,9 +968,10 @@ void Csr<ValueType, IndexType>::scale_add_reuse_info::update_values(
     auto local_mtx1 = make_temporary_clone(exec, mtx1);
     auto local_mtx2 = make_temporary_clone(exec, mtx2);
     auto local_mtx_out = make_temporary_clone(exec, out);
-    exec->run(csr::make_spgeam_numeric(local_scale1.get(), local_mtx1.get(),
-                                       local_scale2.get(), local_mtx2.get(),
-                                       local_mtx_out.get()));
+    exec->run(csr::make_spgeam_numeric(local_scale1->get_const_device_view(),
+                                       local_mtx1.get(),
+                                       local_scale2->get_const_device_view(),
+                                       local_mtx2.get(), local_mtx_out.get()));
 }
 
 
@@ -993,9 +1002,9 @@ Csr<ValueType, IndexType>::add_scale_reuse(
     auto local_scale_other = make_temporary_clone(exec, scale_other);
     auto local_mtx_other = make_temporary_clone(exec, mtx_other);
     auto result = Csr::create(exec, this->get_size());
-    exec->run(csr::make_spgeam(local_scale_this.get(), this,
-                               local_scale_other.get(), local_mtx_other.get(),
-                               result.get()));
+    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
+                               local_scale_other->get_const_device_view(),
+                               local_mtx_other.get(), result.get()));
     return std::make_pair(
         std::move(result),
         scale_add_reuse_info{
@@ -1558,8 +1567,9 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::scale_impl(const LinOp* alpha)
 {
     auto exec = this->get_executor();
-    exec->run(csr::make_scale(make_temporary_conversion<ValueType>(alpha).get(),
-                              this));
+    exec->run(csr::make_scale(
+        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
+        this));
 }
 
 
@@ -1568,7 +1578,8 @@ void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
 {
     auto exec = this->get_executor();
     exec->run(csr::make_inv_scale(
-        make_temporary_conversion<ValueType>(alpha).get(), this));
+        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
+        this));
 }
 
 
@@ -1584,8 +1595,9 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
             "The matrix has one or more structurally zero diagonal entries!");
     }
     this->get_executor()->run(csr::make_add_scaled_identity(
-        make_temporary_conversion<ValueType>(a).get(),
-        make_temporary_conversion<ValueType>(b).get(), this));
+        make_temporary_conversion<ValueType>(a)->get_const_device_view(),
+        make_temporary_conversion<ValueType>(b)->get_const_device_view(),
+        this));
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -171,7 +171,9 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(coo::make_spmv(this, dense_b, dense_x));
+            this->get_executor()->run(
+                coo::make_spmv(this, dense_b->get_const_device_view(),
+                               dense_x->get_device_view()));
         },
         b, x);
 }
@@ -183,8 +185,11 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(coo::make_advanced_spmv(
-                dense_alpha, this, dense_b, dense_beta, dense_x));
+            this->get_executor()->run(
+                coo::make_advanced_spmv(dense_alpha->get_const_device_view(),
+                                        this, dense_b->get_const_device_view(),
+                                        dense_beta->get_const_device_view(),
+                                        dense_x->get_device_view()));
         },
         alpha, b, beta, x);
 }
@@ -195,7 +200,9 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(coo::make_spmv2(this, dense_b, dense_x));
+            this->get_executor()->run(
+                coo::make_spmv2(this, dense_b->get_const_device_view(),
+                                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -207,8 +214,9 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp* alpha, const LinOp* b,
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_x) {
-            this->get_executor()->run(
-                coo::make_advanced_spmv2(dense_alpha, this, dense_b, dense_x));
+            this->get_executor()->run(coo::make_advanced_spmv2(
+                dense_alpha->get_const_device_view(), this,
+                dense_b->get_const_device_view(), dense_x->get_device_view()));
         },
         alpha, b, x);
 }
@@ -315,7 +323,7 @@ void Coo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(coo::make_fill_in_dense(this, tmp_result.get()));
+    exec->run(coo::make_fill_in_dense(this, tmp_result->get_device_view()));
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -153,12 +153,15 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         [this](auto dense_b, auto dense_x) {
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_simple_scalar_apply(
-                    this->blocks_, dense_b, dense_x));
+                    this->blocks_, dense_b->get_const_device_view(),
+                    dense_x->get_device_view()));
             } else {
                 this->get_executor()->run(jacobi::make_simple_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
-                    parameters_.block_pointers, blocks_, dense_b, dense_x));
+                    parameters_.block_pointers, blocks_,
+                    dense_b->get_const_device_view(),
+                    dense_x->get_device_view()));
             }
         },
         b, x);
@@ -174,13 +177,19 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* alpha,
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_scalar_apply(
-                    this->blocks_, dense_alpha, dense_b, dense_beta, dense_x));
+                    this->blocks_, dense_alpha->get_const_device_view(),
+                    dense_b->get_const_device_view(),
+                    dense_beta->get_const_device_view(),
+                    dense_x->get_device_view()));
             } else {
                 this->get_executor()->run(jacobi::make_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
-                    parameters_.block_pointers, blocks_, dense_alpha, dense_b,
-                    dense_beta, dense_x));
+                    parameters_.block_pointers, blocks_,
+                    dense_alpha->get_const_device_view(),
+                    dense_b->get_const_device_view(),
+                    dense_beta->get_const_device_view(),
+                    dense_x->get_device_view()));
             }
         },
         alpha, b, beta, x);
@@ -194,7 +203,8 @@ void Jacobi<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
     if (parameters_.max_block_size == 1) {
-        exec->run(jacobi::make_scalar_convert_to_dense(blocks_, tmp.get()));
+        exec->run(jacobi::make_scalar_convert_to_dense(blocks_,
+                                                       tmp->get_device_view()));
     } else {
         exec->run(jacobi::make_convert_to_dense(
             num_blocks_, parameters_.storage_optimization.block_wise,

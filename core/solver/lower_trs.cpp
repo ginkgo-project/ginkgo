@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -169,7 +169,8 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             exec->run(lower_trs::make_solve(
                 this->get_system_matrix().get(), this->solve_struct_.get(),
                 this->get_parameters().unit_diagonal, parameters_.algorithm,
-                trans_b, trans_x, dense_b, dense_x));
+                trans_b->get_device_view(), trans_x->get_device_view(),
+                dense_b->get_const_device_view(), dense_x->get_device_view()));
         },
         b, x);
 }

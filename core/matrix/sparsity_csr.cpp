@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -50,7 +50,8 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* b,
     mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->get_executor()->run(
-                sparsity_csr::make_spmv(this, dense_b, dense_x));
+                sparsity_csr::make_spmv(this, dense_b->get_const_device_view(),
+                                        dense_x->get_device_view()));
         },
         b, x);
 }
@@ -68,7 +69,10 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* alpha,
             auto dense_beta = make_temporary_conversion<
                 typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
             this->get_executor()->run(sparsity_csr::make_advanced_spmv(
-                dense_alpha.get(), this, dense_b, dense_beta.get(), dense_x));
+                dense_alpha->get_const_device_view(), this,
+                dense_b->get_const_device_view(),
+                dense_beta->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -222,7 +226,8 @@ void SparsityCsr<ValueType, IndexType>::convert_to(
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(sparsity_csr::make_fill_in_dense(this, tmp_result.get()));
+    exec->run(
+        sparsity_csr::make_fill_in_dense(this, tmp_result->get_device_view()));
 }
 
 

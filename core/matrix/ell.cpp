@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -130,7 +130,9 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(ell::make_spmv(this, dense_b, dense_x));
+            this->get_executor()->run(
+                ell::make_spmv(this, dense_b->get_const_device_view(),
+                               dense_x->get_device_view()));
         },
         b, x);
 }
@@ -145,8 +147,11 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
             auto dense_beta = make_temporary_conversion<
                 typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
-            this->get_executor()->run(ell::make_advanced_spmv(
-                dense_alpha.get(), this, dense_b, dense_beta.get(), dense_x));
+            this->get_executor()->run(
+                ell::make_advanced_spmv(dense_alpha->get_const_device_view(),
+                                        this, dense_b->get_const_device_view(),
+                                        dense_beta->get_const_device_view(),
+                                        dense_x->get_device_view()));
         },
         b, x);
 }
@@ -223,7 +228,7 @@ void Ell<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(ell::make_fill_in_dense(this, tmp_result.get()));
+    exec->run(ell::make_fill_in_dense(this, tmp_result->get_device_view()));
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -232,8 +232,9 @@ void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get()),
-        gko::detail::get_local(next_krylov), hessenberg_iter));
+        gko::detail::get_local(krylov_basis_small.get())->get_device_view(),
+        gko::detail::get_local(next_krylov)->get_device_view(),
+        hessenberg_iter->get_device_view()));
     finish_reduce(hessenberg_iter, next_krylov, num_rhs, restart_iter);
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
@@ -263,8 +264,9 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get()),
-        gko::detail::get_local(next_krylov), hessenberg_iter));
+        gko::detail::get_local(krylov_basis_small.get())->get_device_view(),
+        gko::detail::get_local(next_krylov)->get_device_view(),
+        hessenberg_iter->get_device_view()));
     finish_reduce(hessenberg_iter, next_krylov, num_rhs, restart_iter);
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
@@ -280,8 +282,9 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
     auto hessenberg_aux_iter = hessenberg_aux->create_submatrix(
         span{0, restart_iter + 2}, span{0, num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get()),
-        gko::detail::get_local(next_krylov), hessenberg_aux_iter.get()));
+        gko::detail::get_local(krylov_basis_small.get())->get_device_view(),
+        gko::detail::get_local(next_krylov)->get_device_view(),
+        hessenberg_aux_iter->get_device_view()));
     finish_reduce(hessenberg_aux_iter.get(), next_krylov, num_rhs,
                   restart_iter);
 
@@ -401,8 +404,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // givens_sin = givens_cos = 0
     // reset stop status
     exec->run(gmres::make_initialize(
-        gko::detail::get_local(dense_b), gko::detail::get_local(residual),
-        givens_sin, givens_cos, stop_status.get_data()));
+        gko::detail::get_local(dense_b)->get_const_device_view(),
+        gko::detail::get_local(residual)->get_device_view(),
+        givens_sin->get_device_view(), givens_cos->get_device_view(),
+        stop_status.get_data()));
     // residual = residual - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
 
@@ -411,10 +416,12 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // residual_norm_collection = {residual_norm, unchanged}
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
-    exec->run(gmres::make_restart(gko::detail::get_local(residual),
-                                  residual_norm, residual_norm_collection,
-                                  gko::detail::get_local(krylov_bases),
-                                  final_iter_nums.get_data()));
+    exec->run(gmres::make_restart(
+        gko::detail::get_local(residual)->get_device_view(),
+        residual_norm->get_device_view(),
+        residual_norm_collection->get_device_view(),
+        gko::detail::get_local(krylov_bases)->get_device_view(),
+        final_iter_nums.get_data()));
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -462,14 +469,17 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // Restart
             // Solve upper triangular.
             // y = hessenberg \ residual_norm_collection
-            exec->run(gmres::make_solve_krylov(residual_norm_collection,
-                                               hessenberg, y,
-                                               final_iter_nums.get_const_data(),
-                                               stop_status.get_const_data()));
+            exec->run(gmres::make_solve_krylov(
+                residual_norm_collection->get_device_view(),
+                hessenberg->get_device_view(), y->get_device_view(),
+                final_iter_nums.get_const_data(),
+                stop_status.get_const_data()));
             // before_preconditioner = krylov_bases * y
             exec->run(gmres::make_multi_axpy(
-                gko::detail::get_local(krylov_bases), y,
-                gko::detail::get_local(before_preconditioner),
+                gko::detail::get_local(krylov_bases)->get_device_view(),
+                y->get_device_view(),
+                gko::detail::get_local(before_preconditioner)
+                    ->get_device_view(),
                 final_iter_nums.get_const_data(), stop_status.get_data()));
 
             // x = x + get_preconditioner() * before_preconditioner
@@ -487,8 +497,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             exec->run(gmres::make_restart(
-                gko::detail::get_local(residual), residual_norm,
-                residual_norm_collection, gko::detail::get_local(krylov_bases),
+                gko::detail::get_local(residual)->get_device_view(),
+                residual_norm->get_device_view(),
+                residual_norm_collection->get_device_view(),
+                gko::detail::get_local(krylov_bases)->get_device_view(),
                 final_iter_nums.get_data()));
             restart_iter = 0;
         }
@@ -579,9 +591,11 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // residual_norm_collection(restart_iter + 1) =
         //              -conj(sin(restart_iter)) * this_rnc
         exec->run(gmres::make_hessenberg_qr(
-            givens_sin, givens_cos, residual_norm, residual_norm_collection,
-            hessenberg_iter.get(), restart_iter, final_iter_nums.get_data(),
-            stop_status.get_const_data()));
+            givens_sin->get_device_view(), givens_cos->get_device_view(),
+            residual_norm->get_device_view(),
+            residual_norm_collection->get_device_view(),
+            hessenberg_iter->get_device_view(), restart_iter,
+            final_iter_nums.get_data(), stop_status.get_const_data()));
 
         restart_iter++;
     }
@@ -592,7 +606,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // Solve upper triangular.
     // y = hessenberg \ residual_norm_collection
     exec->run(gmres::make_solve_krylov(
-        residual_norm_collection, hessenberg_small.get(), y,
+        residual_norm_collection->get_device_view(),
+        hessenberg_small->get_device_view(), y->get_device_view(),
         final_iter_nums.get_const_data(), stop_status.get_const_data()));
     if (is_flexible) {
         auto preconditioned_krylov_bases_small =
@@ -602,8 +617,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 dim<2>{num_rows * (restart_iter + 1), num_rhs});
         // after_preconditioner = preconditioned_krylov_bases * y
         exec->run(gmres::make_multi_axpy(
-            gko::detail::get_local(preconditioned_krylov_bases_small.get()), y,
-            gko::detail::get_local(after_preconditioner),
+            gko::detail::get_local(preconditioned_krylov_bases_small.get())
+                ->get_device_view(),
+            y->get_device_view(),
+            gko::detail::get_local(after_preconditioner)->get_device_view(),
             final_iter_nums.get_const_data(), stop_status.get_data()));
     } else {
         auto krylov_bases_small = krylov_bases->create_submatrix(
@@ -612,8 +629,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             dim<2>{num_rows * (restart_iter + 1), num_rhs});
         // before_preconditioner = krylov_bases * y
         exec->run(gmres::make_multi_axpy(
-            gko::detail::get_local(krylov_bases_small.get()), y,
-            gko::detail::get_local(before_preconditioner),
+            gko::detail::get_local(krylov_bases_small.get())->get_device_view(),
+            y->get_device_view(),
+            gko::detail::get_local(before_preconditioner)->get_device_view(),
             final_iter_nums.get_const_data(), stop_status.get_data()));
 
         // after_preconditioner = get_preconditioner() * before_preconditioner

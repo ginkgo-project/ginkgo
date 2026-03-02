@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -267,9 +267,10 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // x = x + alpha * inner_solution
             // update_solultion = inner_solution
             exec->run(chebyshev::make_init_update(
-                alpha_host, gko::detail::get_local(inner_solution),
-                gko::detail::get_local(update_solution),
-                gko::detail::get_local(dense_x)));
+                alpha_host,
+                gko::detail::get_local(inner_solution)->get_device_view(),
+                gko::detail::get_local(update_solution)->get_device_view(),
+                gko::detail::get_local(dense_x)->get_device_view()));
             continue;
         }
         // beta_host for iter == 1 is initialized in the beginning
@@ -282,9 +283,10 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // p = z
         // x += alpha * p
         exec->run(chebyshev::make_update(
-            alpha_host, beta_host, gko::detail::get_local(inner_solution),
-            gko::detail::get_local(update_solution),
-            gko::detail::get_local(dense_x)));
+            alpha_host, beta_host,
+            gko::detail::get_local(inner_solution)->get_device_view(),
+            gko::detail::get_local(update_solution)->get_device_view(),
+            gko::detail::get_local(dense_x)->get_device_view()));
     }
 }
 

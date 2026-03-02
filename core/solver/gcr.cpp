@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -144,9 +144,10 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // Initialization
     // residual = dense_b
     // reset stop status
-    exec->run(gcr::make_initialize(::gko::detail::get_local(dense_b),
-                                   ::gko::detail::get_local(residual),
-                                   stop_status.get_data()));
+    exec->run(gcr::make_initialize(
+        ::gko::detail::get_local(dense_b)->get_const_device_view(),
+        ::gko::detail::get_local(residual)->get_device_view(),
+        stop_status.get_data()));
     // residual = residual - Ax
     // Note: x is passed in with initial guess
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
@@ -158,12 +159,12 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // p(:, 1) = precon_residual(:, 1)
     // Ap(:, 1) = A_precon_residual(:, 1)
     // final_iter_nums = {0, ..., 0}
-    exec->run(
-        gcr::make_restart(::gko::detail::get_local(precon_residual),
-                          ::gko::detail::get_local(A_precon_residual),
-                          ::gko::detail::get_local(krylov_bases_p),
-                          ::gko::detail::get_local(mapped_krylov_bases_Ap),
-                          final_iter_nums.get_data()));
+    exec->run(gcr::make_restart(
+        ::gko::detail::get_local(precon_residual)->get_device_view(),
+        ::gko::detail::get_local(A_precon_residual)->get_device_view(),
+        ::gko::detail::get_local(krylov_bases_p)->get_device_view(),
+        ::gko::detail::get_local(mapped_krylov_bases_Ap)->get_device_view(),
+        final_iter_nums.get_data()));
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -220,10 +221,11 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // Ap(:, 1) = A_precon_residual(:)
             // final_iter_nums = {0, ..., 0}
             exec->run(gcr::make_restart(
-                ::gko::detail::get_local(precon_residual),
-                ::gko::detail::get_local(A_precon_residual),
-                ::gko::detail::get_local(krylov_bases_p),
-                ::gko::detail::get_local(mapped_krylov_bases_Ap),
+                ::gko::detail::get_local(precon_residual)->get_device_view(),
+                ::gko::detail::get_local(A_precon_residual)->get_device_view(),
+                ::gko::detail::get_local(krylov_bases_p)->get_device_view(),
+                ::gko::detail::get_local(mapped_krylov_bases_Ap)
+                    ->get_device_view(),
                 final_iter_nums.get_data()));
             restart_iter = 0;
         }
@@ -246,12 +248,13 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // alpha = r*Ap / Ap_norm
         // x = x + alpha * p
         // r = r - alpha * Ap
-        exec->run(gcr::make_step_1(::gko::detail::get_local(dense_x),
-                                   ::gko::detail::get_local(residual),
-                                   ::gko::detail::get_local(p.get()),
-                                   ::gko::detail::get_local(Ap.get()),
-                                   Ap_norm.get(), tmp_rAp,
-                                   stop_status.get_const_data()));
+        exec->run(gcr::make_step_1(
+            ::gko::detail::get_local(dense_x)->get_device_view(),
+            ::gko::detail::get_local(residual)->get_device_view(),
+            ::gko::detail::get_local(p.get())->get_device_view(),
+            ::gko::detail::get_local(Ap.get())->get_device_view(),
+            Ap_norm->get_device_view(), tmp_rAp->get_device_view(),
+            stop_status.get_const_data()));
 
         // apply preconditioner to residual
         this->get_preconditioner()->apply(residual, precon_residual);
