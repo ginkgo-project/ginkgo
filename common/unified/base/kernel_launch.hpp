@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -201,32 +201,21 @@ struct to_device_type_impl {
 };
 
 template <typename ValueType>
-struct to_device_type_impl<matrix::Dense<ValueType>*&> {
+struct to_device_type_impl<matrix::view::dense<ValueType>&> {
     using type = matrix_accessor<device_type<ValueType>>;
-    static type map_to_device(matrix::Dense<ValueType>* mtx)
+    static type map_to_device(matrix::view::dense<ValueType> mtx)
     {
         return to_device_type_impl<
-            matrix::Dense<ValueType>* const&>::map_to_device(mtx);
+            matrix::view::dense<ValueType> const&>::map_to_device(mtx);
     }
 };
 
 template <typename ValueType>
-struct to_device_type_impl<matrix::Dense<ValueType>* const&> {
+struct to_device_type_impl<matrix::view::dense<ValueType> const&> {
     using type = matrix_accessor<device_type<ValueType>>;
-    static type map_to_device(matrix::Dense<ValueType>* mtx)
+    static type map_to_device(matrix::view::dense<ValueType> mtx)
     {
-        return {as_device_type(mtx->get_values()),
-                static_cast<int64>(mtx->get_stride())};
-    }
-};
-
-template <typename ValueType>
-struct to_device_type_impl<const matrix::Dense<ValueType>*&> {
-    using type = matrix_accessor<const device_type<ValueType>>;
-    static type map_to_device(const matrix::Dense<ValueType>* mtx)
-    {
-        return {as_device_type(mtx->get_const_values()),
-                static_cast<int64>(mtx->get_stride())};
+        return {as_device_type(mtx.data), static_cast<int64>(mtx.stride)};
     }
 };
 

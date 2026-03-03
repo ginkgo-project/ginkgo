@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,8 +16,8 @@ namespace GKO_DEVICE_NAMESPACE {
 
 /**
  * @internal
- * Wrapper class used by default_stride(matrix::Dense<ValueType>*) to wrap a
- * dense matrix using the default stride.
+ * Wrapper class used by default_stride(matrix::view::dense<ValueType>) to wrap
+ * a dense matrix using the default stride.
  */
 template <typename ValueType>
 struct default_stride_dense_wrapper {
@@ -30,7 +30,7 @@ struct default_stride_dense_wrapper {
  * Helper that creates a device representation of the input object based on the
  * default stride that was passed to run_kernel_solver.
  * @see default_stride_dense_wrapper
- * @see default_stride(matrix::Dense<ValueType>*)
+ * @see default_stride(matrix::view::dense<ValueType>)
  */
 template <typename T>
 struct device_unpack_solver_impl {
@@ -60,20 +60,20 @@ struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
  */
 template <typename ValueType>
 default_stride_dense_wrapper<device_type<ValueType>> default_stride(
-    matrix::Dense<ValueType>* mtx)
+    matrix::view::dense<ValueType> mtx)
 {
-    return {as_device_type(mtx->get_values())};
+    return {as_device_type(mtx.data)};
 }
 
 /**
  * @internal
- * @copydoc default_stride(matrix::Dense<ValueType>*)
+ * @copydoc default_stride(matrix::view::dense<ValueType>)
  */
 template <typename ValueType>
 default_stride_dense_wrapper<const device_type<ValueType>> default_stride(
-    const matrix::Dense<ValueType>* mtx)
+    matrix::view::dense<const ValueType> mtx)
 {
-    return {as_device_type(mtx->get_const_values())};
+    return {as_device_type(mtx.data)};
 }
 
 
@@ -84,21 +84,22 @@ default_stride_dense_wrapper<const device_type<ValueType>> default_stride(
  * pointer.
  */
 template <typename ValueType>
-device_type<ValueType>* row_vector(matrix::Dense<ValueType>* mtx)
+device_type<ValueType>* row_vector(matrix::view::dense<ValueType> mtx)
 {
-    GKO_ASSERT(mtx->get_size()[0] == 1);
-    return as_device_type(mtx->get_values());
+    GKO_ASSERT(mtx.size[0] == 1);
+    return as_device_type(mtx.data);
 }
 
 /**
  * @internal
- * @copydoc row_vector(matrix::Dense<ValueType>*)
+ * @copydoc row_vector(matrix::view::dense<ValueType>)
  */
 template <typename ValueType>
-const device_type<ValueType>* row_vector(const matrix::Dense<ValueType>* mtx)
+const device_type<ValueType>* row_vector(
+    matrix::view::dense<const ValueType> mtx)
 {
-    GKO_ASSERT(mtx->get_size()[0] == 1);
-    return as_device_type(mtx->get_const_values());
+    GKO_ASSERT(mtx.size[0] == 1);
+    return as_device_type(mtx.data);
 }
 
 
