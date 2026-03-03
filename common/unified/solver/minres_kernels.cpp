@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -57,10 +57,9 @@ void initialize(
             eta_next[col] = eta[col] = beta[col] = sqrt(beta[col]);
             stop[col].reset();
         },
-        beta->get_num_stored_elements(), row_vector(beta), row_vector(gamma),
-        row_vector(delta), row_vector(cos_prev), row_vector(cos),
-        row_vector(sin_prev), row_vector(sin), row_vector(eta_next),
-        row_vector(eta), *stop_status);
+        beta.size[1], row_vector(beta), row_vector(gamma), row_vector(delta),
+        row_vector(cos_prev), row_vector(cos), row_vector(sin_prev),
+        row_vector(sin), row_vector(eta_next), row_vector(eta), *stop_status);
 
     run_kernel_solver(
         exec,
@@ -135,10 +134,10 @@ void step_1(
                 eta_next[col] = -conj(sin[col]) * eta[col];
             }
         },
-        alpha->get_num_stored_elements(), row_vector(alpha), row_vector(beta),
-        row_vector(gamma), row_vector(delta), row_vector(cos_prev),
-        row_vector(cos), row_vector(sin_prev), row_vector(sin),
-        row_vector(eta_next), row_vector(eta), row_vector(tau), *stop_status);
+        alpha.size[1], row_vector(alpha), row_vector(beta), row_vector(gamma),
+        row_vector(delta), row_vector(cos_prev), row_vector(cos),
+        row_vector(sin_prev), row_vector(sin), row_vector(eta_next),
+        row_vector(eta), row_vector(tau), *stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_1_KERNEL);
