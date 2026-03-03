@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,16 +37,16 @@ void initialize(
     array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < r.size[1]; ++j) {
-        delta->at(j) = gamma->at(j) = cos_prev->at(j) = sin_prev->at(j) =
-            sin->at(j) = zero<ValueType>();
-        cos->at(j) = one<ValueType>();
-        eta_next->at(j) = eta->at(j) = beta->at(j) = sqrt(beta->at(j));
+        delta(0, j) = gamma(0, j) = cos_prev(0, j) = sin_prev(0, j) =
+            sin(0, j) = zero<ValueType>();
+        cos(0, j) = one<ValueType>();
+        eta_next(0, j) = eta(0, j) = beta(0, j) = sqrt(beta(0, j));
         stop_status->get_data()[j].reset();
     }
     for (size_type i = 0; i < r.size[0]; ++i) {
         for (size_type j = 0; j < r.size[1]; ++j) {
-            q(i, j) = safe_divide(r(i, j), beta->at(j));
-            z(i, j) = safe_divide(z(i, j), beta->at(j));
+            q(i, j) = safe_divide(r(i, j), beta(0, j));
+            z(i, j) = safe_divide(z(i, j), beta(0, j));
             p(i, j) = p_prev(i, j) = q_prev(i, j) = q_tilde(i, j) =
                 zero<ValueType>();
         }
@@ -90,23 +90,21 @@ void step_1(
         if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
-        beta->at(j) = sqrt(beta->at(j));
-        delta->at(j) = sin_prev->at(j) * gamma->at(j);
-        auto tmp_d = gamma->at(j);
-        auto tmp_a = alpha->at(j);
-        gamma->at(j) =
-            cos_prev->at(j) * cos->at(j) * tmp_d + sin->at(j) * tmp_a;
-        alpha->at(j) =
-            -conj(sin->at(j)) * cos_prev->at(j) * tmp_d + cos->at(j) * tmp_a;
+        beta(0, j) = sqrt(beta(0, j));
+        delta(0, j) = sin_prev(0, j) * gamma(0, j);
+        auto tmp_d = gamma(0, j);
+        auto tmp_a = alpha(0, j);
+        gamma(0, j) = cos_prev(0, j) * cos(0, j) * tmp_d + sin(0, j) * tmp_a;
+        alpha(0, j) =
+            -conj(sin(0, j)) * cos_prev(0, j) * tmp_d + cos(0, j) * tmp_a;
 
-        std::swap(cos->at(j), cos_prev->at(j));
-        std::swap(sin->at(j), sin_prev->at(j));
-        update_givens_rotation(alpha->at(j), beta->at(j), cos->at(j),
-                               sin->at(j));
+        std::swap(cos(0, j), cos_prev(0, j));
+        std::swap(sin(0, j), sin_prev(0, j));
+        update_givens_rotation(alpha(0, j), beta(0, j), cos(0, j), sin(0, j));
 
-        tau->at(j) = sin->at(j) * sin->at(j) * tau->at(j);
-        eta->at(j) = eta_next->at(j);
-        eta_next->at(j) = -conj(sin->at(j)) * eta->at(j);
+        tau(0, j) = sin(0, j) * sin(0, j) * tau(0, j);
+        eta(0, j) = eta_next(0, j);
+        eta_next(0, j) = -conj(sin(0, j)) * eta(0, j);
     }
 }
 
@@ -136,15 +134,15 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 continue;
             }
             p(i, j) = safe_divide(
-                z(i, j) - gamma->at(j) * p_prev(i, j) - delta->at(j) * p(i, j),
-                alpha->at(j));
-            x(i, j) = x(i, j) + cos->at(j) * eta->at(j) * p(i, j);
+                z(i, j) - gamma(0, j) * p_prev(i, j) - delta(0, j) * p(i, j),
+                alpha(0, j));
+            x(i, j) = x(i, j) + cos(0, j) * eta(0, j) * p(i, j);
 
             q_prev(i, j) = v(i, j);
             const auto tmp = q(i, j);
-            q(i, j) = safe_divide(v(i, j), beta->at(j));
-            v(i, j) = tmp * beta->at(j);
-            z(i, j) = safe_divide(z_tilde(i, j), beta->at(j));
+            q(i, j) = safe_divide(v(i, j), beta(0, j));
+            v(i, j) = tmp * beta(0, j);
+            z(i, j) = safe_divide(z_tilde(i, j), beta(0, j));
         }
     }
 }

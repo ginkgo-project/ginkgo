@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,7 +29,7 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < b.size[1]; ++j) {
-        prev_rho->at(j) = one<ValueType>();
+        prev_rho(0, j) = one<ValueType>();
         stop_status->get_data()[j].reset();
     }
     for (size_type i = 0; i < b.size[0]; ++i) {
@@ -57,7 +57,7 @@ void initialize_2(std::shared_ptr<const ReferenceExecutor> exec,
 {
     for (size_type j = 0; j < p.size[1]; ++j) {
         // beta = delta
-        beta->at(j) = delta->at(j);
+        beta(0, j) = delta(0, j);
     }
     for (size_type i = 0; i < p.size[0]; ++i) {
         // p = z
@@ -99,8 +99,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (is_nonzero(beta->at(j))) {
-                auto tmp = rho->at(j) / beta->at(j);
+            if (is_nonzero(beta(0, j))) {
+                auto tmp = rho(0, j) / beta(0, j);
                 x(i, j) += tmp * p(i, j);
                 r(i, j) -= tmp * q(i, j);
                 z1(i, j) -= tmp * f(i, j);
@@ -138,12 +138,12 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
         if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
-        if (is_nonzero(prev_rho->at(j))) {
-            auto tmp = rho->at(j) / prev_rho->at(j);
+        if (is_nonzero(prev_rho(0, j))) {
+            auto tmp = rho(0, j) / prev_rho(0, j);
             auto abs_tmp = abs(tmp);
-            beta->at(j) = delta->at(j) - abs_tmp * abs_tmp * beta->at(j);
-            if (is_zero(beta->at(j))) {
-                beta->at(j) = delta->at(j);
+            beta(0, j) = delta(0, j) - abs_tmp * abs_tmp * beta(0, j);
+            if (is_zero(beta(0, j))) {
+                beta(0, j) = delta(0, j);
             }
 
             for (size_type i = 0; i < p.size[0]; ++i) {
@@ -153,7 +153,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
                 g(i, j) = n(i, j) + tmp * g(i, j);
             }
         } else {
-            beta->at(j) = delta->at(j);
+            beta(0, j) = delta(0, j);
             for (size_type i = 0; i < p.size[0]; ++i) {
                 p(i, j) = z(i, j);
                 q(i, j) = w(i, j);

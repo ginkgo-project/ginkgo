@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -75,8 +75,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             if (stop_status[j].has_stopped()) {
                 continue;
             }
-            if (Ap_norm->at(j) != zero<ValueType>()) {
-                auto tmp = rAp->at(j) / Ap_norm->at(j);
+            if (Ap_norm(0, j) != zero<ValueType>()) {
+                auto tmp = rAp(0, j) / Ap_norm(0, j);
                 x(i, j) += tmp * p(i, j);
                 residual(i, j) -= tmp * Ap(i, j);
             }

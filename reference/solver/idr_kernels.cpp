@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,22 +29,22 @@ namespace {
 
 template <typename ValueType>
 void solve_lower_triangular(const size_type nrhs,
-                            const matrix::Dense<ValueType>* m,
-                            const matrix::Dense<ValueType>* f,
-                            matrix::Dense<ValueType>* c,
+                            matrix::view::dense<const ValueType> m,
+                            matrix::view::dense<const ValueType> f,
+                            matrix::view::dense<ValueType> c,
                             const array<stopping_status>* stop_status)
 {
-    for (size_type i = 0; i < f->get_size()[1]; i++) {
+    for (size_type i = 0; i < f.size[1]; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {
             continue;
         }
 
-        for (size_type row = 0; row < m->get_size()[0]; row++) {
-            auto temp = f->at(row, i);
+        for (size_type row = 0; row < m.size[0]; row++) {
+            auto temp = f(row, i);
             for (size_type col = 0; col < row; col++) {
-                temp -= m->at(row, col * nrhs + i) * c->at(col, i);
+                temp -= m(row, col * nrhs + i) * c(col, i);
             }
-            c->at(row, i) = temp / m->at(row, row * nrhs + i);
+            c(row, i) = temp / m(row, row * nrhs + i);
         }
     }
 }
@@ -52,10 +52,11 @@ void solve_lower_triangular(const size_type nrhs,
 
 template <typename ValueType>
 void update_g_and_u(const size_type nrhs, const size_type k,
-                    const matrix::Dense<ValueType>* p,
-                    const matrix::Dense<ValueType>* m,
-                    matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
-                    matrix::Dense<ValueType>* u,
+                    matrix::view::dense<const ValueType> p,
+                    matrix::view::dense<const ValueType> m,
+                    matrix::view::dense<ValueType> g,
+                    matrix::view::dense<ValueType> g_k,
+                    matrix::view::dense<ValueType> u,
                     const array<stopping_status>* stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
@@ -65,18 +66,18 @@ void update_g_and_u(const size_type nrhs, const size_type k,
 
         for (size_type j = 0; j < k; j++) {
             auto alpha = zero<ValueType>();
-            for (size_type ind = 0; ind < p->get_size()[1]; ind++) {
-                alpha += p->at(j, ind) * g_k->at(ind, i);
+            for (size_type ind = 0; ind < p.size[1]; ind++) {
+                alpha += p(j, ind) * g_k(ind, i);
             }
-            alpha /= m->at(j, j * nrhs + i);
-            for (size_type row = 0; row < g->get_size()[0]; row++) {
-                g_k->at(row, i) -= alpha * g->at(row, j * nrhs + i);
-                u->at(row, k * nrhs + i) -= alpha * u->at(row, j * nrhs + i);
+            alpha /= m(j, j * nrhs + i);
+            for (size_type row = 0; row < g.size[0]; row++) {
+                g_k(row, i) -= alpha * g(row, j * nrhs + i);
+                u(row, k * nrhs + i) -= alpha * u(row, j * nrhs + i);
             }
         }
 
-        for (size_type row = 0; row < g->get_size()[0]; row++) {
-            g->at(row, k * nrhs + i) = g_k->at(row, i);
+        for (size_type row = 0; row < g.size[0]; row++) {
+            g(row, k * nrhs + i) = g_k(row, i);
         }
     }
 }
@@ -223,12 +224,12 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
             matrix::view::dense<ValueType> g,
             matrix::view::dense<ValueType> g_k,
             matrix::view::dense<ValueType> u, matrix::view::dense<ValueType> m,
-            matrix::view::dense<ValueType> f, matrix::Dense<ValueType>*,
+            matrix::view::dense<ValueType> f, matrix::view::dense<ValueType>,
             matrix::view::dense<ValueType> residual,
             matrix::view::dense<ValueType> x,
             const array<stopping_status>* stop_status)
 {
-    update_g_and_u(nrhs, k, p, m, g, g_k, u, stop_status);
+    update_g_and_u(nrhs, k, p, m.as_const(), g, g_k, u, stop_status);
 
     for (size_type i = 0; i < nrhs; i++) {
         if (stop_status->get_const_data()[i].has_stopped()) {

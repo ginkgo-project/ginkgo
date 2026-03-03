@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -298,7 +298,8 @@ void generic_spmv2(std::shared_ptr<const OmpExecutor> exec,
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const OmpExecutor> exec,
            const matrix::Coo<ValueType, IndexType>* a,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<ValueType> c)
 {
     generic_spmv2(exec, a, b, c, one<ValueType>());
 }
@@ -308,10 +309,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Dense<ValueType>* alpha,
+                    matrix::view::dense<const ValueType> alpha,
                     const matrix::Coo<ValueType, IndexType>* a,
-                    const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c)
+                    matrix::view::dense<const ValueType> b,
+                    matrix::view::dense<ValueType> c)
 {
     generic_spmv2(exec, a, b, c, alpha(0, 0));
 }

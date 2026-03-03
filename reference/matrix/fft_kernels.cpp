@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,36 +23,37 @@ namespace fft {
 
 
 template <typename InValueType, typename OutValueType>
-void bfly(const matrix::Dense<InValueType>* b, matrix::Dense<OutValueType>* x,
-          int64 lo, int64 hi, OutValueType root)
+void bfly(matrix::view::dense<const InValueType> b,
+          matrix::view::dense<OutValueType> x, int64 lo, int64 hi,
+          OutValueType root)
 {
-    for (size_type rhs = 0; rhs < x->get_size()[1]; rhs++) {
-        auto lo_val = b->at(lo, rhs);
-        auto hi_val = b->at(hi, rhs);
-        x->at(lo, rhs) = lo_val + hi_val;
-        x->at(hi, rhs) = (lo_val - hi_val) * root;
+    for (size_type rhs = 0; rhs < x.size[1]; rhs++) {
+        auto lo_val = b(lo, rhs);
+        auto hi_val = b(hi, rhs);
+        x(lo, rhs) = lo_val + hi_val;
+        x(hi, rhs) = (lo_val - hi_val) * root;
     }
 }
 
 
 template <typename ValueType>
-void bfly(matrix::Dense<ValueType>* x, int64 lo, int64 hi, ValueType root)
+void bfly(matrix::view::dense<ValueType> x, int64 lo, int64 hi, ValueType root)
 {
-    for (size_type rhs = 0; rhs < x->get_size()[1]; rhs++) {
-        auto lo_val = x->at(lo, rhs);
-        auto hi_val = x->at(hi, rhs);
-        x->at(lo, rhs) = lo_val + hi_val;
-        x->at(hi, rhs) = (lo_val - hi_val) * root;
+    for (size_type rhs = 0; rhs < x.size[1]; rhs++) {
+        auto lo_val = x(lo, rhs);
+        auto hi_val = x(hi, rhs);
+        x(lo, rhs) = lo_val + hi_val;
+        x(hi, rhs) = (lo_val - hi_val) * root;
     }
 }
 
 
 template <typename ValueType>
-void bit_rev_swap(matrix::Dense<ValueType>* x, int64 i, int64 rev_i)
+void bit_rev_swap(matrix::view::dense<ValueType> x, int64 i, int64 rev_i)
 {
-    for (size_type rhs = 0; rhs < x->get_size()[1]; rhs++) {
+    for (size_type rhs = 0; rhs < x.size[1]; rhs++) {
         if (i < rev_i) {
-            std::swap(x->at(i, rhs), x->at(rev_i, rhs));
+            std::swap(x(i, rhs), x(rev_i, rhs));
         }
     }
 }

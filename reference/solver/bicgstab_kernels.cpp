@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,12 +35,12 @@ void initialize(
     matrix::view::dense<ValueType> omega, array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < b.size[1]; ++j) {
-        rho->at(j) = one<ValueType>();
-        prev_rho->at(j) = one<ValueType>();
-        alpha->at(j) = one<ValueType>();
-        beta->at(j) = one<ValueType>();
-        gamma->at(j) = one<ValueType>();
-        omega->at(j) = one<ValueType>();
+        rho(0, j) = one<ValueType>();
+        prev_rho(0, j) = one<ValueType>();
+        alpha(0, j) = one<ValueType>();
+        beta(0, j) = one<ValueType>();
+        gamma(0, j) = one<ValueType>();
+        omega(0, j) = one<ValueType>();
         stop_status->get_data()[j].reset();
     }
     for (size_type i = 0; i < b.size[0]; ++i) {
@@ -76,10 +76,10 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (is_nonzero(prev_rho->at(j) * omega->at(j))) {
+            if (is_nonzero(prev_rho(0, j) * omega(0, j))) {
                 const auto tmp =
-                    rho->at(j) / prev_rho->at(j) * alpha->at(j) / omega->at(j);
-                p(i, j) = r(i, j) + tmp * (p(i, j) - omega->at(j) * v(i, j));
+                    rho(0, j) / prev_rho(0, j) * alpha(0, j) / omega(0, j);
+                p(i, j) = r(i, j) + tmp * (p(i, j) - omega(0, j) * v(i, j));
             } else {
                 p(i, j) = r(i, j);
             }
@@ -105,11 +105,11 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (is_nonzero(beta->at(j))) {
-                alpha->at(j) = rho->at(j) / beta->at(j);
-                s(i, j) = r(i, j) - alpha->at(j) * v(i, j);
+            if (is_nonzero(beta(0, j))) {
+                alpha(0, j) = rho(0, j) / beta(0, j);
+                s(i, j) = r(i, j) - alpha(0, j) * v(i, j);
             } else {
-                alpha->at(j) = zero<ValueType>();
+                alpha(0, j) = zero<ValueType>();
                 s(i, j) = r(i, j);
             }
         }
@@ -136,10 +136,10 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec,
         if (stop_status->get_const_data()[j].has_stopped()) {
             continue;
         }
-        if (is_nonzero(beta->at(j))) {
-            omega->at(j) = gamma->at(j) / beta->at(j);
+        if (is_nonzero(beta(0, j))) {
+            omega(0, j) = gamma(0, j) / beta(0, j);
         } else {
-            omega->at(j) = zero<ValueType>();
+            omega(0, j) = zero<ValueType>();
         }
     }
     for (size_type i = 0; i < x.size[0]; ++i) {
@@ -147,8 +147,8 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec,
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            x(i, j) += alpha->at(j) * y(i, j) + omega->at(j) * z(i, j);
-            r(i, j) = s(i, j) - omega->at(j) * t(i, j);
+            x(i, j) += alpha(0, j) * y(i, j) + omega(0, j) * z(i, j);
+            r(i, j) = s(i, j) - omega(0, j) * t(i, j);
         }
     }
 }
@@ -167,7 +167,7 @@ void finalize(std::shared_ptr<const ReferenceExecutor> exec,
         if (stop_status->get_const_data()[j].has_stopped() &&
             !stop_status->get_const_data()[j].is_finalized()) {
             for (size_type i = 0; i < x.size[0]; ++i) {
-                x(i, j) += alpha->at(j) * y(i, j);
+                x(i, j) += alpha(0, j) * y(i, j);
                 stop_status->get_data()[j].finalize();
             }
         }

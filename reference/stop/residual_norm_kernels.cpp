@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,7 +37,7 @@ void residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
     *all_converged = true;
     *one_changed = false;
     for (size_type i = 0; i < tau.size[1]; ++i) {
-        if (tau->at(i) <= rel_residual_goal * orig_tau->at(i)) {
+        if (tau(0, i) <= rel_residual_goal * orig_tau(0, i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             *one_changed = true;
         }
@@ -77,7 +77,7 @@ void implicit_residual_norm(
     *all_converged = true;
     *one_changed = false;
     for (size_type i = 0; i < tau.size[1]; ++i) {
-        if (sqrt(abs(tau->at(i))) <= rel_residual_goal * orig_tau->at(i)) {
+        if (sqrt(abs(tau(0, i))) <= rel_residual_goal * orig_tau(0, i)) {
             stop_status->get_data()[i].converge(stoppingId, setFinalized);
             *one_changed = true;
         }

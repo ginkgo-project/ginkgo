@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -540,8 +540,8 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
 {
     for (size_type i = 0; i < x.size[0]; ++i) {
         for (size_type j = 0; j < x.size[1]; ++j) {
-            x(i, j) = beta->at(0) * x(i, j) +
-                      alpha->at(0) * b(i, j) * diag.get_const_data()[i];
+            x(i, j) = beta(0, 0) * x(i, j) +
+                      alpha(0, 0) * b(i, j) * diag.get_const_data()[i];
         }
     }
 }

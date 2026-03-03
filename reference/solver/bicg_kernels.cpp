@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,8 +32,8 @@ void initialize(
     matrix::view::dense<ValueType> q2, array<stopping_status>* stop_status)
 {
     for (size_type j = 0; j < b.size[1]; ++j) {
-        rho->at(j) = zero<ValueType>();
-        prev_rho->at(j) = one<ValueType>();
+        rho(0, j) = zero<ValueType>();
+        prev_rho(0, j) = one<ValueType>();
         stop_status->get_data()[j].reset();
     }
     for (size_type i = 0; i < b.size[0]; ++i) {
@@ -64,11 +64,11 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (is_zero(prev_rho->at(j))) {
+            if (is_zero(prev_rho(0, j))) {
                 p(i, j) = z(i, j);
                 p2(i, j) = z2(i, j);
             } else {
-                auto tmp = rho->at(j) / prev_rho->at(j);
+                auto tmp = rho(0, j) / prev_rho(0, j);
                 p(i, j) = z(i, j) + tmp * p(i, j);
                 p2(i, j) = z2(i, j) + tmp * p2(i, j);
             }
@@ -95,8 +95,8 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             if (stop_status->get_const_data()[j].has_stopped()) {
                 continue;
             }
-            if (is_nonzero(beta->at(j))) {
-                auto tmp = rho->at(j) / beta->at(j);
+            if (is_nonzero(beta(0, j))) {
+                auto tmp = rho(0, j) / beta(0, j);
                 x(i, j) += tmp * p(i, j);
                 r(i, j) -= tmp * q(i, j);
                 r2(i, j) -= tmp * q2(i, j);
