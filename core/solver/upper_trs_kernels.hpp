@@ -7,6 +7,7 @@
 
 
 #include <memory>
+#include <optional>
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -39,8 +40,8 @@ namespace upper_trs {
                const matrix::Csr<ValueType, IndexType>* matrix,         \
                const solver::SolveStruct* solve_struct, bool unit_diag, \
                const solver::trisolve_algorithm algorithm,              \
-               matrix::view::dense<ValueType> trans_b,                  \
-               matrix::view::dense<ValueType> trans_x,                  \
+               std::optional<matrix::view::dense<ValueType>> trans_b,   \
+               std::optional<matrix::view::dense<ValueType>> trans_x,   \
                matrix::view::dense<const ValueType> b,                  \
                matrix::view::dense<ValueType> x)
 

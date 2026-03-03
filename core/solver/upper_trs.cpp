@@ -161,6 +161,7 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             // pointers.
             Vector* trans_b{};
             Vector* trans_x{};
+            using optional_view = std::optional<matrix::view::dense<ValueType>>;
             if (needs_transpose(exec)) {
                 trans_b = this->template create_workspace_op<Vector>(
                     ws::transposed_b, gko::transpose(dense_b->get_size()));
@@ -170,7 +171,10 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             exec->run(upper_trs::make_solve(
                 this->get_system_matrix().get(), this->solve_struct_.get(),
                 this->get_parameters().unit_diagonal, parameters_.algorithm,
-                trans_b->get_device_view(), trans_x->get_device_view(),
+                trans_b ? optional_view{trans_b->get_device_view()}
+                        : optional_view{},
+                trans_x ? optional_view{trans_x->get_device_view()}
+                        : optional_view{},
                 dense_b->get_const_device_view(), dense_x->get_device_view()));
         },
         b, x);
