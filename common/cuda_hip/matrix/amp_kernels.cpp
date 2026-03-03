@@ -55,6 +55,20 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_AMP_ADVANCED_SPMV_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void generate_ell_rownorms_storage(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
+    gko::amp::precision_array<int, ValueType>& max_nnz_per_row,
+    array<remove_complex<ValueType>>& rownorms)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(
+    GKO_DECLARE_AMP_GENERATE_CWISE_ELL_STEP1_KERNEL);
+
+
 }  // namespace amp
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
