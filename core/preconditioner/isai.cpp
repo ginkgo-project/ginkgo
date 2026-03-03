@@ -257,7 +257,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             // and copy the results back to the original ISAI
             exec->run(isai::make_scatter_excess_solution(
                 excess_block_ptrs.get_const_data(),
-                excess_solution->get_device_view(), inverted.get(),
+                excess_solution->get_const_device_view(), inverted.get(),
                 excess_start, block));
         }
     }

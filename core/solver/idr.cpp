@@ -234,10 +234,10 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - sum i=[k,s) of (c_i * g_i)
             exec->run(idr::make_step_1(
-                nrhs, k, gko::detail::get_local(m)->get_device_view(),
-                gko::detail::get_local(f)->get_device_view(),
-                gko::detail::get_local(residual)->get_device_view(),
-                gko::detail::get_local(g)->get_device_view(),
+                nrhs, k, gko::detail::get_local(m)->get_const_device_view(),
+                gko::detail::get_local(f)->get_const_device_view(),
+                gko::detail::get_local(residual)->get_const_device_view(),
+                gko::detail::get_local(g)->get_const_device_view(),
                 gko::detail::get_local(c)->get_device_view(),
                 gko::detail::get_local(v)->get_device_view(), &stop_status));
 
@@ -245,9 +245,9 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
 
             // u_k = omega * precond_vector + sum i=[k,s) of (c_i * u_i)
             exec->run(idr::make_step_2(
-                nrhs, k, gko::detail::get_local(omega)->get_device_view(),
-                gko::detail::get_local(helper)->get_device_view(),
-                gko::detail::get_local(c)->get_device_view(),
+                nrhs, k, gko::detail::get_local(omega)->get_const_device_view(),
+                gko::detail::get_local(helper)->get_const_device_view(),
+                gko::detail::get_local(c)->get_const_device_view(),
                 gko::detail::get_local(u)->get_device_view(), &stop_status));
 
             auto u_k = u->create_submatrix(span{0, problem_size},
@@ -271,7 +271,8 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s-1 - beta * m_s-1,k)
             exec->run(idr::make_step_3(
                 nrhs, k,
-                gko::detail::get_local(subspace_vectors)->get_device_view(),
+                gko::detail::get_local(subspace_vectors)
+                    ->get_const_device_view(),
                 gko::detail::get_local(g)->get_device_view(),
                 gko::detail::get_local(helper)->get_device_view(),
                 gko::detail::get_local(u)->get_device_view(),
@@ -300,8 +301,8 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
         // residual -= omega * t
         // dense_x += omega * v
         exec->run(idr::make_compute_omega(
-            nrhs, kappa, gko::detail::get_local(tht)->get_device_view(),
-            gko::detail::get_local(residual_norm)->get_device_view(),
+            nrhs, kappa, gko::detail::get_local(tht)->get_const_device_view(),
+            gko::detail::get_local(residual_norm)->get_const_device_view(),
             gko::detail::get_local(omega)->get_device_view(), &stop_status));
 
         t->scale(subspace_neg_one_op);

@@ -168,11 +168,11 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
-        exec->run(
-            fcg::make_step_1(gko::detail::get_local(p)->get_device_view(),
-                             gko::detail::get_local(z)->get_device_view(),
-                             gko::detail::get_local(rho_t)->get_device_view(),
-                             prev_rho->get_device_view(), &stop_status));
+        exec->run(fcg::make_step_1(
+            gko::detail::get_local(p)->get_device_view(),
+            gko::detail::get_local(z)->get_const_device_view(),
+            gko::detail::get_local(rho_t)->get_const_device_view(),
+            prev_rho->get_const_device_view(), &stop_status));
         this->get_system_matrix()->apply(p, q);
         p->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
@@ -180,13 +180,14 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
-        exec->run(fcg::make_step_2(
-            gko::detail::get_local(dense_x)->get_device_view(),
-            gko::detail::get_local(r)->get_device_view(),
-            gko::detail::get_local(t)->get_device_view(),
-            gko::detail::get_local(p)->get_device_view(),
-            gko::detail::get_local(q)->get_device_view(),
-            beta->get_device_view(), rho->get_device_view(), &stop_status));
+        exec->run(
+            fcg::make_step_2(gko::detail::get_local(dense_x)->get_device_view(),
+                             gko::detail::get_local(r)->get_device_view(),
+                             gko::detail::get_local(t)->get_device_view(),
+                             gko::detail::get_local(p)->get_const_device_view(),
+                             gko::detail::get_local(q)->get_const_device_view(),
+                             beta->get_const_device_view(),
+                             rho->get_const_device_view(), &stop_status));
         swap(prev_rho, rho);
     }
 }

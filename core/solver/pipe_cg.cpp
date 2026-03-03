@@ -225,11 +225,11 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         gko::detail::get_local(q)->get_device_view(),
         gko::detail::get_local(f)->get_device_view(),
         gko::detail::get_local(g)->get_device_view(), beta->get_device_view(),
-        gko::detail::get_local(z1)->get_device_view(),
-        gko::detail::get_local(w)->get_device_view(),
-        gko::detail::get_local(m)->get_device_view(),
-        gko::detail::get_local(n)->get_device_view(),
-        delta->get_device_view()));
+        gko::detail::get_local(z1)->get_const_device_view(),
+        gko::detail::get_local(w)->get_const_device_view(),
+        gko::detail::get_local(m)->get_const_device_view(),
+        gko::detail::get_local(n)->get_const_device_view(),
+        delta->get_const_device_view()));
 
     /* Memory movement summary:
      TODO
@@ -248,11 +248,12 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(z1)->get_device_view(),
             gko::detail::get_local(z2)->get_device_view(),
             gko::detail::get_local(w)->get_device_view(),
-            gko::detail::get_local(p)->get_device_view(),
-            gko::detail::get_local(q)->get_device_view(),
-            gko::detail::get_local(f)->get_device_view(),
-            gko::detail::get_local(g)->get_device_view(),
-            rho->get_device_view(), beta->get_device_view(), &stop_status));
+            gko::detail::get_local(p)->get_const_device_view(),
+            gko::detail::get_local(q)->get_const_device_view(),
+            gko::detail::get_local(f)->get_const_device_view(),
+            gko::detail::get_local(g)->get_const_device_view(),
+            rho->get_const_device_view(), beta->get_const_device_view(),
+            &stop_status));
 
         // m = preconditioner * w
         this->get_preconditioner()->apply(w, m);
@@ -292,12 +293,12 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(q)->get_device_view(),
             gko::detail::get_local(f)->get_device_view(),
             gko::detail::get_local(g)->get_device_view(),
-            gko::detail::get_local(z1)->get_device_view(),
-            gko::detail::get_local(w)->get_device_view(),
-            gko::detail::get_local(m)->get_device_view(),
-            gko::detail::get_local(n)->get_device_view(),
-            prev_rho->get_device_view(), rho->get_device_view(),
-            delta->get_device_view(), &stop_status));
+            gko::detail::get_local(z1)->get_const_device_view(),
+            gko::detail::get_local(w)->get_const_device_view(),
+            gko::detail::get_local(m)->get_const_device_view(),
+            gko::detail::get_local(n)->get_const_device_view(),
+            prev_rho->get_const_device_view(), rho->get_const_device_view(),
+            delta->get_const_device_view(), &stop_status));
     }
 }
 

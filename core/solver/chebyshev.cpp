@@ -265,10 +265,10 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_preconditioner()->apply(residual_ptr, inner_solution);
         if (iter == 0) {
             // x = x + alpha * inner_solution
-            // update_solultion = inner_solution
+            // update_solution = inner_solution
             exec->run(chebyshev::make_init_update(
                 alpha_host,
-                gko::detail::get_local(inner_solution)->get_device_view(),
+                gko::detail::get_local(inner_solution)->get_const_device_view(),
                 gko::detail::get_local(update_solution)->get_device_view(),
                 gko::detail::get_local(dense_x)->get_device_view()));
             continue;

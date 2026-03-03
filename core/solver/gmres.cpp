@@ -232,8 +232,9 @@ void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get())->get_device_view(),
-        gko::detail::get_local(next_krylov)->get_device_view(),
+        gko::detail::get_local(krylov_basis_small.get())
+            ->get_const_device_view(),
+        gko::detail::get_local(next_krylov)->get_const_device_view(),
         hessenberg_iter->get_device_view()));
     finish_reduce(hessenberg_iter, next_krylov, num_rhs, restart_iter);
     for (size_type i = 0; i <= restart_iter; i++) {
@@ -264,8 +265,9 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get())->get_device_view(),
-        gko::detail::get_local(next_krylov)->get_device_view(),
+        gko::detail::get_local(krylov_basis_small.get())
+            ->get_const_device_view(),
+        gko::detail::get_local(next_krylov)->get_const_device_view(),
         hessenberg_iter->get_device_view()));
     finish_reduce(hessenberg_iter, next_krylov, num_rhs, restart_iter);
     for (size_type i = 0; i <= restart_iter; i++) {
@@ -282,8 +284,9 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
     auto hessenberg_aux_iter = hessenberg_aux->create_submatrix(
         span{0, restart_iter + 2}, span{0, num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get())->get_device_view(),
-        gko::detail::get_local(next_krylov)->get_device_view(),
+        gko::detail::get_local(krylov_basis_small.get())
+            ->get_const_device_view(),
+        gko::detail::get_local(next_krylov)->get_const_device_view(),
         hessenberg_aux_iter->get_device_view()));
     finish_reduce(hessenberg_aux_iter.get(), next_krylov, num_rhs,
                   restart_iter);
@@ -417,8 +420,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
     exec->run(gmres::make_restart(
-        gko::detail::get_local(residual)->get_device_view(),
-        residual_norm->get_device_view(),
+        gko::detail::get_local(residual)->get_const_device_view(),
+        residual_norm->get_const_device_view(),
         residual_norm_collection->get_device_view(),
         gko::detail::get_local(krylov_bases)->get_device_view(),
         final_iter_nums.get_data()));
@@ -470,14 +473,14 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // Solve upper triangular.
             // y = hessenberg \ residual_norm_collection
             exec->run(gmres::make_solve_krylov(
-                residual_norm_collection->get_device_view(),
-                hessenberg->get_device_view(), y->get_device_view(),
+                residual_norm_collection->get_const_device_view(),
+                hessenberg->get_const_device_view(), y->get_device_view(),
                 final_iter_nums.get_const_data(),
                 stop_status.get_const_data()));
             // before_preconditioner = krylov_bases * y
             exec->run(gmres::make_multi_axpy(
-                gko::detail::get_local(krylov_bases)->get_device_view(),
-                y->get_device_view(),
+                gko::detail::get_local(krylov_bases)->get_const_device_view(),
+                y->get_const_device_view(),
                 gko::detail::get_local(before_preconditioner)
                     ->get_device_view(),
                 final_iter_nums.get_const_data(), stop_status.get_data()));
@@ -497,8 +500,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             exec->run(gmres::make_restart(
-                gko::detail::get_local(residual)->get_device_view(),
-                residual_norm->get_device_view(),
+                gko::detail::get_local(residual)->get_const_device_view(),
+                residual_norm->get_const_device_view(),
                 residual_norm_collection->get_device_view(),
                 gko::detail::get_local(krylov_bases)->get_device_view(),
                 final_iter_nums.get_data()));
@@ -606,8 +609,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // Solve upper triangular.
     // y = hessenberg \ residual_norm_collection
     exec->run(gmres::make_solve_krylov(
-        residual_norm_collection->get_device_view(),
-        hessenberg_small->get_device_view(), y->get_device_view(),
+        residual_norm_collection->get_const_device_view(),
+        hessenberg_small->get_const_device_view(), y->get_device_view(),
         final_iter_nums.get_const_data(), stop_status.get_const_data()));
     if (is_flexible) {
         auto preconditioned_krylov_bases_small =
@@ -618,8 +621,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // after_preconditioner = preconditioned_krylov_bases * y
         exec->run(gmres::make_multi_axpy(
             gko::detail::get_local(preconditioned_krylov_bases_small.get())
-                ->get_device_view(),
-            y->get_device_view(),
+                ->get_const_device_view(),
+            y->get_const_device_view(),
             gko::detail::get_local(after_preconditioner)->get_device_view(),
             final_iter_nums.get_const_data(), stop_status.get_data()));
     } else {
@@ -629,8 +632,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             dim<2>{num_rows * (restart_iter + 1), num_rhs});
         // before_preconditioner = krylov_bases * y
         exec->run(gmres::make_multi_axpy(
-            gko::detail::get_local(krylov_bases_small.get())->get_device_view(),
-            y->get_device_view(),
+            gko::detail::get_local(krylov_bases_small.get())
+                ->get_const_device_view(),
+            y->get_const_device_view(),
             gko::detail::get_local(before_preconditioner)->get_device_view(),
             final_iter_nums.get_const_data(), stop_status.get_data()));
 

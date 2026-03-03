@@ -177,7 +177,7 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // z = z / beta
     // p = p_prev = q_prev = v = 0
     exec->run(minres::make_initialize(
-        gko::detail::get_local(r)->get_device_view(),
+        gko::detail::get_local(r)->get_const_device_view(),
         gko::detail::get_local(z)->get_device_view(),
         gko::detail::get_local(p)->get_device_view(),
         gko::detail::get_local(p_prev)->get_device_view(),
@@ -287,18 +287,19 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         exec->run(minres::make_step_2(
             gko::detail::get_local(dense_x)->get_device_view(),
             gko::detail::get_local(p)->get_device_view(),
-            gko::detail::get_local(p_prev)->get_device_view(),
+            gko::detail::get_local(p_prev)->get_const_device_view(),
             gko::detail::get_local(z)->get_device_view(),
-            gko::detail::get_local(z_tilde)->get_device_view(),
+            gko::detail::get_local(z_tilde)->get_const_device_view(),
             gko::detail::get_local(q)->get_device_view(),
             gko::detail::get_local(q_prev)->get_device_view(),
             gko::detail::get_local(v)->get_device_view(),
-            gko::detail::get_local(alpha)->get_device_view(),
-            gko::detail::get_local(beta)->get_device_view(),
-            gko::detail::get_local(gamma)->get_device_view(),
-            gko::detail::get_local(delta)->get_device_view(),
-            gko::detail::get_local(cos)->get_device_view(),
-            gko::detail::get_local(eta)->get_device_view(), &stop_status));
+            gko::detail::get_local(alpha)->get_const_device_view(),
+            gko::detail::get_local(beta)->get_const_device_view(),
+            gko::detail::get_local(gamma)->get_const_device_view(),
+            gko::detail::get_local(delta)->get_const_device_view(),
+            gko::detail::get_local(cos)->get_const_device_view(),
+            gko::detail::get_local(eta)->get_const_device_view(),
+            &stop_status));
         swap(gamma, beta);
     }
 }

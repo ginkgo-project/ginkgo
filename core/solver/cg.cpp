@@ -165,10 +165,11 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
         // tmp = rho / prev_rho
         // p = z + tmp * p
-        exec->run(cg::make_step_1(gko::detail::get_local(p)->get_device_view(),
-                                  gko::detail::get_local(z)->get_device_view(),
-                                  rho->get_device_view(),
-                                  prev_rho->get_device_view(), &stop_status));
+        exec->run(
+            cg::make_step_1(gko::detail::get_local(p)->get_device_view(),
+                            gko::detail::get_local(z)->get_const_device_view(),
+                            rho->get_const_device_view(),
+                            prev_rho->get_const_device_view(), &stop_status));
         // q = A * p
         this->get_system_matrix()->apply(p, q);
         // beta = dot(p, q)
@@ -176,12 +177,13 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
-        exec->run(cg::make_step_2(
-            gko::detail::get_local(dense_x)->get_device_view(),
-            gko::detail::get_local(r)->get_device_view(),
-            gko::detail::get_local(p)->get_device_view(),
-            gko::detail::get_local(q)->get_device_view(),
-            beta->get_device_view(), rho->get_device_view(), &stop_status));
+        exec->run(
+            cg::make_step_2(gko::detail::get_local(dense_x)->get_device_view(),
+                            gko::detail::get_local(r)->get_device_view(),
+                            gko::detail::get_local(p)->get_const_device_view(),
+                            gko::detail::get_local(q)->get_const_device_view(),
+                            beta->get_const_device_view(),
+                            rho->get_const_device_view(), &stop_status));
         swap(prev_rho, rho);
     }
 }

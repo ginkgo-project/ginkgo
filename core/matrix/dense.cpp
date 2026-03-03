@@ -580,8 +580,8 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
                   make_array_view(exec, exec_values_array->get_size(),
                                   exec_values_array->get_data()),
                   this->get_stride()};
-        exec->run(dense::make_copy(&other->get_const_device_view(),
-                                   &exec_this_view->get_device_view()));
+        exec->run(dense::make_copy(other.get_const_device_view(),
+                                   exec_this_view.get_device_view()));
     }
     return *this;
 }

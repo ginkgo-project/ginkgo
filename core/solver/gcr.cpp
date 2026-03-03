@@ -160,8 +160,8 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // Ap(:, 1) = A_precon_residual(:, 1)
     // final_iter_nums = {0, ..., 0}
     exec->run(gcr::make_restart(
-        ::gko::detail::get_local(precon_residual)->get_device_view(),
-        ::gko::detail::get_local(A_precon_residual)->get_device_view(),
+        ::gko::detail::get_local(precon_residual)->get_const_device_view(),
+        ::gko::detail::get_local(A_precon_residual)->get_const_device_view(),
         ::gko::detail::get_local(krylov_bases_p)->get_device_view(),
         ::gko::detail::get_local(mapped_krylov_bases_Ap)->get_device_view(),
         final_iter_nums.get_data()));
@@ -221,8 +221,10 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // Ap(:, 1) = A_precon_residual(:)
             // final_iter_nums = {0, ..., 0}
             exec->run(gcr::make_restart(
-                ::gko::detail::get_local(precon_residual)->get_device_view(),
-                ::gko::detail::get_local(A_precon_residual)->get_device_view(),
+                ::gko::detail::get_local(precon_residual)
+                    ->get_const_device_view(),
+                ::gko::detail::get_local(A_precon_residual)
+                    ->get_const_device_view(),
                 ::gko::detail::get_local(krylov_bases_p)->get_device_view(),
                 ::gko::detail::get_local(mapped_krylov_bases_Ap)
                     ->get_device_view(),
@@ -251,9 +253,9 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
         exec->run(gcr::make_step_1(
             ::gko::detail::get_local(dense_x)->get_device_view(),
             ::gko::detail::get_local(residual)->get_device_view(),
-            ::gko::detail::get_local(p.get())->get_device_view(),
-            ::gko::detail::get_local(Ap.get())->get_device_view(),
-            Ap_norm->get_device_view(), tmp_rAp->get_device_view(),
+            ::gko::detail::get_local(p.get())->get_const_device_view(),
+            ::gko::detail::get_local(Ap.get())->get_const_device_view(),
+            Ap_norm->get_const_device_view(), tmp_rAp->get_const_device_view(),
             stop_status.get_const_data()));
 
         // apply preconditioner to residual

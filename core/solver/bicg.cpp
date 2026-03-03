@@ -217,9 +217,10 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
         exec->run(bicg::make_step_1(
-            p->get_device_view(), z->get_device_view(), p2->get_device_view(),
-            z2->get_device_view(), rho->get_device_view(),
-            prev_rho->get_device_view(), &stop_status));
+            p->get_device_view(), z->get_const_device_view(),
+            p2->get_device_view(), z2->get_const_device_view(),
+            rho->get_const_device_view(), prev_rho->get_const_device_view(),
+            &stop_status));
         // q = A * p
         this->get_system_matrix()->apply(p, q);
         // q2 = A^T * p2
@@ -232,9 +233,10 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // r2 = r2 - tmp * q2
         exec->run(bicg::make_step_2(
             dense_x->get_device_view(), r->get_device_view(),
-            r2->get_device_view(), p->get_device_view(), q->get_device_view(),
-            q2->get_device_view(), beta->get_device_view(),
-            rho->get_device_view(), &stop_status));
+            r2->get_device_view(), p->get_const_device_view(),
+            q->get_const_device_view(), q2->get_const_device_view(),
+            beta->get_const_device_view(), rho->get_const_device_view(),
+            &stop_status));
         swap(prev_rho, rho);
     }
 }
