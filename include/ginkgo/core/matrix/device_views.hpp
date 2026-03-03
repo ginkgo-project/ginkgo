@@ -26,6 +26,15 @@ struct dense {
     size_type stride;
     ValueType* data;
 
+    constexpr dense(dim<2> size, size_type stride, ValueType* data)
+        : size{size}, stride{stride}, data{data}
+    {}
+
+    constexpr dense<const ValueType> as_const() const
+    {
+        return dense<const ValueType>{size, stride, data};
+    }
+
     constexpr ValueType& operator()(size_type row, size_type col) const
     {
         return data[row * stride + col];
