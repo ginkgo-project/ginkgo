@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -654,9 +654,11 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
             matrix::view::dense<ValueType> x,
             const array<stopping_status>* stop_status)
 {
-    update_g_and_u(exec, nrhs, k, p, m, alpha, g, g_k, u, stop_status);
-    update_m(exec, nrhs, k, p, g_k, m, stop_status);
-    update_x_r_and_f(exec, nrhs, k, m, g, u, f, residual, x, stop_status);
+    update_g_and_u(exec, nrhs, k, p, m.as_const(), alpha, g, g_k, u,
+                   stop_status);
+    update_m(exec, nrhs, k, p.as_const(), g_k.as_const(), m, stop_status);
+    update_x_r_and_f(exec, nrhs, k, m.as_const(), g.as_const(), u.as_const(), f,
+                     residual, x, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_3_KERNEL);

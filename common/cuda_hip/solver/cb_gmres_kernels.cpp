@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1030,8 +1030,8 @@ void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_krylov_bases = iters + 1;
     solve_upper_triangular(exec, residual_norm_collection, hessenberg, y,
                            final_iter_nums);
-    calculate_qy(exec, krylov_bases, num_krylov_bases, y, before_preconditioner,
-                 final_iter_nums);
+    calculate_qy(exec, krylov_bases, num_krylov_bases, y.as_const(),
+                 before_preconditioner, final_iter_nums);
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(

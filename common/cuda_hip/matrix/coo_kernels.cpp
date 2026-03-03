@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -261,7 +261,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const DefaultExecutor> exec,
            const matrix::Coo<ValueType, IndexType>* a,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<ValueType> c)
 {
     const auto nnz = a->get_num_stored_elements();
     const auto b_ncols = b.size[1];
@@ -319,10 +320,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Dense<ValueType>* alpha,
+                    matrix::view::dense<const ValueType> alpha,
                     const matrix::Coo<ValueType, IndexType>* a,
-                    const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c)
+                    matrix::view::dense<const ValueType> b,
+                    matrix::view::dense<ValueType> c)
 {
     const auto nnz = a->get_num_stored_elements();
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);

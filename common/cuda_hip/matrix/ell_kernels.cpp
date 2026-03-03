@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -222,14 +223,17 @@ namespace {
 
 template <int info, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
-void abstract_spmv(syn::value_list<int, info>,
-                   std::shared_ptr<const DefaultExecutor> exec,
-                   int num_worker_per_row,
-                   const matrix::Ell<MatrixValueType, IndexType>* a,
-                   const matrix::Dense<InputValueType>* b,
-                   matrix::Dense<OutputValueType>* c,
-                   const matrix::Dense<MatrixValueType>* alpha = nullptr,
-                   const matrix::Dense<OutputValueType>* beta = nullptr)
+void abstract_spmv(
+    syn::value_list<int, info>, std::shared_ptr<const DefaultExecutor> exec,
+    int num_worker_per_row, const matrix::Ell<MatrixValueType, IndexType>* a,
+    matrix::view::dense<const InputValueType> b,
+    matrix::view::dense<OutputValueType> c,
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const MatrixValueType>>>
+        alpha = {},
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const OutputValueType>>>
+        beta = {})
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
@@ -249,7 +253,7 @@ void abstract_spmv(syn::value_list<int, info>,
     const dim3 block_size(default_block_size / num_thread_per_worker,
                           num_thread_per_worker, 1);
     const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
-                         b->get_size()[1], 1);
+                         b.size[1], 1);
 
 // not support 16 bit atomic
 #if !defined(CUDA_VERSION)
@@ -290,25 +294,25 @@ void abstract_spmv(syn::value_list<int, info>,
             a->get_const_values());
         const auto b_vals = acc::range<b_accessor>(
             std::array<acc::size_type, 2>{
-                {static_cast<acc::size_type>(b->get_size()[0]),
-                 static_cast<acc::size_type>(b->get_size()[1])}},
-            b->get_const_values(),
+                {static_cast<acc::size_type>(b.size[0]),
+                 static_cast<acc::size_type>(b.size[1])}},
+            b.data,
             std::array<acc::size_type, 1>{
-                {static_cast<acc::size_type>(b->get_stride())}});
+                {static_cast<acc::size_type>(b.stride)}});
 
-        if (alpha == nullptr && beta == nullptr) {
+        if (!alpha && !beta) {
             if (grid_size.x > 0 && grid_size.y > 0) {
                 kernel::spmv<num_thread_per_worker, atomic>
                     <<<grid_size, block_size, 0, exec->get_stream()>>>(
                         nrows, num_worker_per_row, acc::as_device_range(a_vals),
                         a->get_const_col_idxs(), stride,
                         num_stored_elements_per_row,
-                        acc::as_device_range(b_vals),
-                        as_device_type(c->get_values()), c->get_stride());
+                        acc::as_device_range(b_vals), as_device_type(c.data),
+                        c.stride);
             }
-        } else if (alpha != nullptr && beta != nullptr) {
+        } else if (alpha && beta) {
             const auto alpha_val = acc::range<a_accessor>(
-                std::array<acc::size_type, 1>{1}, alpha->get_const_values());
+                std::array<acc::size_type, 1>{1}, alpha->data);
             if (grid_size.x > 0 && grid_size.y > 0) {
                 kernel::spmv<num_thread_per_worker, atomic>
                     <<<grid_size, block_size, 0, exec->get_stream()>>>(
@@ -317,8 +321,8 @@ void abstract_spmv(syn::value_list<int, info>,
                         acc::as_device_range(a_vals), a->get_const_col_idxs(),
                         stride, num_stored_elements_per_row,
                         acc::as_device_range(b_vals),
-                        as_device_type(beta->get_const_values()),
-                        as_device_type(c->get_values()), c->get_stride());
+                        as_device_type(beta->data), as_device_type(c.data),
+                        c.stride);
             }
         } else {
             GKO_KERNEL_NOT_FOUND;
