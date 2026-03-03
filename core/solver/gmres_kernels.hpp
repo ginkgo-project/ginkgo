@@ -20,16 +20,17 @@ namespace kernels {
 namespace gmres {
 
 
-#define GKO_DECLARE_GMRES_RESTART_KERNEL(_type)                             \
-    void restart(std::shared_ptr<const DefaultExecutor> exec,               \
-                 matrix::view::dense<const ValueType> residual,             \
-                 const matrix::Dense<remove_complex<_type>>* residual_norm, \
-                 matrix::view::dense<ValueType> residual_norm_collection,   \
-                 matrix::view::dense<ValueType> krylov_bases,               \
-                 size_type* final_iter_nums)
+#define GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType)                         \
+    void restart(                                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        matrix::view::dense<const ValueType> residual,                      \
+        matrix::view::dense<const remove_complex<ValueType>> residual_norm, \
+        matrix::view::dense<ValueType> residual_norm_collection,            \
+        matrix::view::dense<ValueType> krylov_bases,                        \
+        size_type* final_iter_nums)
 
 
-#define GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(_type)                        \
+#define GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType)                    \
     void multi_axpy(std::shared_ptr<const DefaultExecutor> exec,          \
                     matrix::view::dense<const ValueType> krylov_bases,    \
                     matrix::view::dense<const ValueType> y,               \
@@ -38,7 +39,7 @@ namespace gmres {
                     stopping_status* stop_status)
 
 
-#define GKO_DECLARE_GMRES_MULTI_DOT_KERNEL(_type)                     \
+#define GKO_DECLARE_GMRES_MULTI_DOT_KERNEL(ValueType)                 \
     void multi_dot(std::shared_ptr<const DefaultExecutor> exec,       \
                    matrix::view::dense<const ValueType> krylov_bases, \
                    matrix::view::dense<const ValueType> next_krylov,  \

@@ -21,7 +21,7 @@ namespace kernels {
 namespace fcg {
 
 
-#define GKO_DECLARE_FCG_INITIALIZE_KERNEL(_type)                            \
+#define GKO_DECLARE_FCG_INITIALIZE_KERNEL(ValueType)                        \
     void initialize(                                                        \
         std::shared_ptr<const DefaultExecutor> exec,                        \
         matrix::view::dense<const ValueType> b,                             \
@@ -34,7 +34,7 @@ namespace fcg {
         array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_FCG_STEP_1_KERNEL(_type)                   \
+#define GKO_DECLARE_FCG_STEP_1_KERNEL(ValueType)               \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,   \
                 matrix::view::dense<ValueType> p,              \
                 matrix::view::dense<const ValueType> z,        \
@@ -43,7 +43,7 @@ namespace fcg {
                 const array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_FCG_STEP_2_KERNEL(_type)                 \
+#define GKO_DECLARE_FCG_STEP_2_KERNEL(ValueType)             \
     void step_2(std::shared_ptr<const DefaultExecutor> exec, \
                 matrix::view::dense<ValueType> x,            \
                 matrix::view::dense<ValueType> r,            \

@@ -96,7 +96,7 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(_type)            \
+#define GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType)        \
     void initialize(std::shared_ptr<const DefaultExecutor> exec, \
                     matrix::view::dense<const ValueType> b,      \
                     matrix::view::dense<ValueType> residual,     \
@@ -105,40 +105,42 @@ namespace kernels {
                     array<stopping_status>* stop_status, size_type krylov_dim)
 
 
-#define GKO_DECLARE_CB_GMRES_RESTART_KERNEL(_type1, _range)               \
-    void restart(std::shared_ptr<const DefaultExecutor> exec,             \
-                 matrix::view::dense<const ValueType> residual,           \
-                 matrix::Dense<remove_complex<_type1>>* residual_norm,    \
-                 matrix::view::dense<ValueType> residual_norm_collection, \
-                 matrix::Dense<remove_complex<_type1>>* arnoldi_norm,     \
-                 _range krylov_bases,                                     \
-                 matrix::view::dense<ValueType> next_krylov_basis,        \
-                 array<size_type>* final_iter_nums,                       \
+#define GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d)             \
+    void restart(std::shared_ptr<const DefaultExecutor> exec,                  \
+                 matrix::view::dense<const ValueType> residual,                \
+                 matrix::view::dense<remove_complex<ValueType>> residual_norm, \
+                 matrix::view::dense<ValueType> residual_norm_collection,      \
+                 matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,  \
+                 Accessor3d krylov_bases,                                      \
+                 matrix::view::dense<ValueType> next_krylov_basis,             \
+                 array<size_type>* final_iter_nums,                            \
                  array<char>& reduction_tmp, size_type krylov_dim)
 
 
-#define GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(_type1, _range)                  \
-    void arnoldi(                                                            \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        matrix::view::dense<ValueType> next_krylov_basis,                    \
-        matrix::view::dense<ValueType> givens_sin,                           \
-        matrix::view::dense<ValueType> givens_cos,                           \
-        matrix::Dense<remove_complex<_type1>>* residual_norm,                \
-        matrix::view::dense<ValueType> residual_norm_collection,             \
-        _range krylov_bases, matrix::view::dense<ValueType> hessenberg_iter, \
-        matrix::view::dense<ValueType> buffer_iter,                          \
-        matrix::Dense<remove_complex<_type1>>* arnoldi_norm, size_type iter, \
-        array<size_type>* final_iter_nums,                                   \
-        const array<stopping_status>* stop_status,                           \
-        array<stopping_status>* reorth_status, array<size_type>* num_reorth)
+#define GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(ValueType, Accessor3d)             \
+    void arnoldi(std::shared_ptr<const DefaultExecutor> exec,                  \
+                 matrix::view::dense<ValueType> next_krylov_basis,             \
+                 matrix::view::dense<ValueType> givens_sin,                    \
+                 matrix::view::dense<ValueType> givens_cos,                    \
+                 matrix::view::dense<remove_complex<ValueType>> residual_norm, \
+                 matrix::view::dense<ValueType> residual_norm_collection,      \
+                 Accessor3d krylov_bases,                                      \
+                 matrix::view::dense<ValueType> hessenberg_iter,               \
+                 matrix::view::dense<ValueType> buffer_iter,                   \
+                 matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,  \
+                 size_type iter, array<size_type>* final_iter_nums,            \
+                 const array<stopping_status>* stop_status,                    \
+                 array<stopping_status>* reorth_status,                        \
+                 array<size_type>* num_reorth)
 
-#define GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(_type1, _range)              \
-    void solve_krylov(                                                        \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        matrix::view::dense<const ValueType> residual_norm_collection,        \
-        _range krylov_bases, matrix::view::dense<const ValueType> hessenberg, \
-        matrix::view::dense<ValueType> y,                                     \
-        matrix::view::dense<ValueType> before_preconditioner,                 \
+#define GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType, Accessor3d) \
+    void solve_krylov(                                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        matrix::view::dense<const ValueType> residual_norm_collection,  \
+        Accessor3d krylov_bases,                                        \
+        matrix::view::dense<const ValueType> hessenberg,                \
+        matrix::view::dense<ValueType> y,                               \
+        matrix::view::dense<ValueType> before_preconditioner,           \
         const array<size_type>* final_iter_nums)
 
 

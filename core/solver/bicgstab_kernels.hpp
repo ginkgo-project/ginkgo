@@ -22,7 +22,7 @@ namespace kernels {
 namespace bicgstab {
 
 
-#define GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(_type)                        \
+#define GKO_DECLARE_BICGSTAB_INITIALIZE_KERNEL(ValueType)                    \
     void initialize(                                                         \
         std::shared_ptr<const DefaultExecutor> exec,                         \
         matrix::view::dense<const ValueType> b,                              \
@@ -39,7 +39,7 @@ namespace bicgstab {
         array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(_type)              \
+#define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType)          \
     void step_1(std::shared_ptr<const DefaultExecutor> exec,   \
                 matrix::view::dense<const ValueType> r,        \
                 matrix::view::dense<ValueType> p,              \
@@ -51,7 +51,7 @@ namespace bicgstab {
                 const array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(_type)            \
+#define GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType)        \
     void step_2(std::shared_ptr<const DefaultExecutor> exec, \
                 matrix::view::dense<const ValueType> r,      \
                 matrix::view::dense<ValueType> s,            \
@@ -62,7 +62,7 @@ namespace bicgstab {
                 const array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(_type)            \
+#define GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType)        \
     void step_3(std::shared_ptr<const DefaultExecutor> exec, \
                 matrix::view::dense<ValueType> x,            \
                 matrix::view::dense<ValueType> r,            \
@@ -77,7 +77,7 @@ namespace bicgstab {
                 const array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(_type)            \
+#define GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(ValueType)        \
     void finalize(std::shared_ptr<const DefaultExecutor> exec, \
                   matrix::view::dense<ValueType> x,            \
                   matrix::view::dense<const ValueType> y,      \

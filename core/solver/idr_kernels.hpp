@@ -20,14 +20,14 @@ namespace kernels {
 namespace idr {
 
 
-#define GKO_DECLARE_IDR_INITIALIZE_KERNEL(_type)                            \
+#define GKO_DECLARE_IDR_INITIALIZE_KERNEL(ValueType)                        \
     void initialize(std::shared_ptr<const DefaultExecutor> exec,            \
                     const size_type nrhs, matrix::view::dense<ValueType> m, \
                     matrix::view::dense<ValueType> subspace_vectors,        \
                     bool deterministic, array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_IDR_STEP_1_KERNEL(_type)                                \
+#define GKO_DECLARE_IDR_STEP_1_KERNEL(ValueType)                            \
     void step_1(                                                            \
         std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,  \
         const size_type k, matrix::view::dense<const ValueType> m,          \
@@ -38,7 +38,7 @@ namespace idr {
         const array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_IDR_STEP_2_KERNEL(_type)                                \
+#define GKO_DECLARE_IDR_STEP_2_KERNEL(ValueType)                            \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,                \
                 const size_type nrhs, const size_type k,                    \
                 matrix::view::dense<const ValueType> omega,                 \
@@ -48,7 +48,7 @@ namespace idr {
                 const array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_IDR_STEP_3_KERNEL(_type)                                  \
+#define GKO_DECLARE_IDR_STEP_3_KERNEL(ValueType)                              \
     void step_3(                                                              \
         std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,    \
         const size_type k, matrix::view::dense<const ValueType> p,            \
@@ -61,13 +61,13 @@ namespace idr {
         const array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(_type)                        \
-    void compute_omega(                                                    \
-        std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs, \
-        const remove_complex<_type> kappa,                                 \
-        matrix::view::dense<const ValueType> tht,                          \
-        const matrix::Dense<remove_complex<_type>>* residual_norm,         \
-        matrix::view::dense<ValueType> omega,                              \
+#define GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(ValueType)                     \
+    void compute_omega(                                                     \
+        std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,  \
+        const remove_complex<ValueType> kappa,                              \
+        matrix::view::dense<const ValueType> tht,                           \
+        matrix::view::dense<const remove_complex<ValueType>> residual_norm, \
+        matrix::view::dense<ValueType> omega,                               \
         const array<stopping_status>* stop_status)
 
 

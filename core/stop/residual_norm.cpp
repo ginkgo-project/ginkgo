@@ -229,12 +229,12 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
 }
 
 
-#define GKO_DECLARE_RESIDUAL_NORM(_type) class ResidualNormBase<_type>
+#define GKO_DECLARE_RESIDUAL_NORM(ValueType) class ResidualNormBase<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 
 
-#define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM(_type) \
-    class ImplicitResidualNorm<_type>
+#define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM(ValueType) \
+    class ImplicitResidualNorm<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM);
 
 class ResidualNormFactory;

@@ -18,11 +18,11 @@ namespace kernels {
 namespace residual_norm {
 
 
-#define GKO_DECLARE_RESIDUAL_NORM_KERNEL(_type)                                \
+#define GKO_DECLARE_RESIDUAL_NORM_KERNEL(ValueType)                            \
     void residual_norm(std::shared_ptr<const DefaultExecutor> exec,            \
                        matrix::view::dense<const ValueType> tau,               \
                        matrix::view::dense<const ValueType> orig_tau,          \
-                       _type rel_residual_goal, uint8 stoppingId,              \
+                       ValueType rel_residual_goal, uint8 stoppingId,          \
                        bool setFinalized, array<stopping_status>* stop_status, \
                        array<bool>* device_storage, bool* all_converged,       \
                        bool* one_changed)
@@ -39,13 +39,13 @@ namespace residual_norm {
 namespace implicit_residual_norm {
 
 
-#define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(_type)           \
-    void implicit_residual_norm(                                   \
-        std::shared_ptr<const DefaultExecutor> exec,               \
-        matrix::view::dense<const ValueType> tau,                  \
-        const matrix::Dense<remove_complex<_type>>* orig_tau,      \
-        remove_complex<_type> rel_residual_goal, uint8 stoppingId, \
-        bool setFinalized, array<stopping_status>* stop_status,    \
+#define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(ValueType)           \
+    void implicit_residual_norm(                                       \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        matrix::view::dense<const ValueType> tau,                      \
+        matrix::view::dense<const remove_complex<ValueType>> orig_tau, \
+        remove_complex<ValueType> rel_residual_goal, uint8 stoppingId, \
+        bool setFinalized, array<stopping_status>* stop_status,        \
         array<bool>* device_storage, bool* all_converged, bool* one_changed)
 
 

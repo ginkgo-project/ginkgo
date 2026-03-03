@@ -93,7 +93,7 @@ void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
 }
 
 
-#define GKO_DECLARE_ROWGATHERER_MATRIX(_type) class RowGatherer<_type>
+#define GKO_DECLARE_ROWGATHERER_MATRIX(ValueType) class RowGatherer<ValueType>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ROWGATHERER_MATRIX);
 
 

@@ -727,8 +727,9 @@ std::vector<int> workspace_traits<Gmres<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_GMRES(_type) class Gmres<_type>
-#define GKO_DECLARE_GMRES_TRAITS(_type) struct workspace_traits<Gmres<_type>>
+#define GKO_DECLARE_GMRES(ValueType) class Gmres<ValueType>
+#define GKO_DECLARE_GMRES_TRAITS(ValueType) \
+    struct workspace_traits<Gmres<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_TRAITS);
 

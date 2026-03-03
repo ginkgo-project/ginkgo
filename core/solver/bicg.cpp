@@ -305,8 +305,9 @@ std::vector<int> workspace_traits<Bicg<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_BICG(_type) class Bicg<_type>
-#define GKO_DECLARE_BICG_TRAITS(_type) struct workspace_traits<Bicg<_type>>
+#define GKO_DECLARE_BICG(ValueType) class Bicg<ValueType>
+#define GKO_DECLARE_BICG_TRAITS(ValueType) \
+    struct workspace_traits<Bicg<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_TRAITS);
 

@@ -315,9 +315,9 @@ std::vector<int> workspace_traits<Bicgstab<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_BICGSTAB(_type) class Bicgstab<_type>
-#define GKO_DECLARE_BICGSTAB_TRAITS(_type) \
-    struct workspace_traits<Bicgstab<_type>>
+#define GKO_DECLARE_BICGSTAB(ValueType) class Bicgstab<ValueType>
+#define GKO_DECLARE_BICGSTAB_TRAITS(ValueType) \
+    struct workspace_traits<Bicgstab<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_TRAITS);
 

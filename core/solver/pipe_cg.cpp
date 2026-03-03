@@ -367,8 +367,9 @@ std::vector<int> workspace_traits<PipeCg<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_PIPE_CG(_type) class PipeCg<_type>
-#define GKO_DECLARE_PIPE_CG_TRAITS(_type) struct workspace_traits<PipeCg<_type>>
+#define GKO_DECLARE_PIPE_CG(ValueType) class PipeCg<ValueType>
+#define GKO_DECLARE_PIPE_CG_TRAITS(ValueType) \
+    struct workspace_traits<PipeCg<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_TRAITS);
 

@@ -61,7 +61,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Coo<ValueType, IndexType>* a,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<ValueType> c)
 {
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();
@@ -79,10 +80,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Dense<ValueType>* alpha,
+                    matrix::view::dense<const ValueType> alpha,
                     const matrix::Coo<ValueType, IndexType>* a,
-                    const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c)
+                    matrix::view::dense<const ValueType> b,
+                    matrix::view::dense<ValueType> c)
 {
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();

@@ -366,9 +366,9 @@ std::vector<int> workspace_traits<Chebyshev<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_CHEBYSHEV(_type) class Chebyshev<_type>
-#define GKO_DECLARE_CHEBYSHEV_TRAITS(_type) \
-    struct workspace_traits<Chebyshev<_type>>
+#define GKO_DECLARE_CHEBYSHEV(ValueType) class Chebyshev<ValueType>
+#define GKO_DECLARE_CHEBYSHEV_TRAITS(ValueType) \
+    struct workspace_traits<Chebyshev<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CHEBYSHEV);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CHEBYSHEV_TRAITS);
 

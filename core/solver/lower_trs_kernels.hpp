@@ -26,17 +26,17 @@ namespace lower_trs {
                                   bool& do_transpose)
 
 
-#define GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(_vtype, _itype)                 \
+#define GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(ValueType, IndexType)           \
     void generate(std::shared_ptr<const DefaultExecutor> exec,                \
-                  const matrix::Csr<_vtype, _itype>* matrix,                  \
+                  const matrix::Csr<ValueType, IndexType>* matrix,            \
                   std::shared_ptr<solver::SolveStruct>& solve_struct,         \
                   bool unit_diag, const solver::trisolve_algorithm algorithm, \
                   const size_type num_rhs)
 
 
-#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(_vtype, _itype)              \
+#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType)        \
     void solve(std::shared_ptr<const DefaultExecutor> exec,             \
-               const matrix::Csr<_vtype, _itype>* matrix,               \
+               const matrix::Csr<ValueType, IndexType>* matrix,         \
                const solver::SolveStruct* solve_struct, bool unit_diag, \
                const solver::trisolve_algorithm algorithm,              \
                matrix::view::dense<ValueType> trans_b,                  \

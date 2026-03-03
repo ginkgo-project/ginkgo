@@ -174,7 +174,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
 }
 
 
-#define GKO_DECLARE_BATCH_JACOBI(_type) class Jacobi<_type, int32>
+#define GKO_DECLARE_BATCH_JACOBI(ValueType) class Jacobi<ValueType, int32>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI);
 
 

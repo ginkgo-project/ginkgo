@@ -20,14 +20,14 @@ namespace kernels {
 namespace gcr {
 
 
-#define GKO_DECLARE_GCR_INITIALIZE_KERNEL(_type)                 \
+#define GKO_DECLARE_GCR_INITIALIZE_KERNEL(ValueType)             \
     void initialize(std::shared_ptr<const DefaultExecutor> exec, \
                     matrix::view::dense<const ValueType> b,      \
                     matrix::view::dense<ValueType> residual,     \
                     stopping_status* stop_status)
 
 
-#define GKO_DECLARE_GCR_RESTART_KERNEL(_type)                     \
+#define GKO_DECLARE_GCR_RESTART_KERNEL(ValueType)                 \
     void restart(std::shared_ptr<const DefaultExecutor> exec,     \
                  matrix::view::dense<const ValueType> residual,   \
                  matrix::view::dense<const ValueType> A_residual, \
@@ -36,14 +36,14 @@ namespace gcr {
                  size_type* final_iter_nums)
 
 
-#define GKO_DECLARE_GCR_STEP_1_KERNEL(_type)                         \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,         \
-                matrix::view::dense<ValueType> x,                    \
-                matrix::view::dense<ValueType> residual,             \
-                matrix::view::dense<const ValueType> p,              \
-                matrix::view::dense<const ValueType> Ap,             \
-                const matrix::Dense<remove_complex<_type>>* Ap_norm, \
-                matrix::view::dense<const ValueType> rAp,            \
+#define GKO_DECLARE_GCR_STEP_1_KERNEL(ValueType)                              \
+    void step_1(std::shared_ptr<const DefaultExecutor> exec,                  \
+                matrix::view::dense<ValueType> x,                             \
+                matrix::view::dense<ValueType> residual,                      \
+                matrix::view::dense<const ValueType> p,                       \
+                matrix::view::dense<const ValueType> Ap,                      \
+                matrix::view::dense<const remove_complex<ValueType>> Ap_norm, \
+                matrix::view::dense<const ValueType> rAp,                     \
                 const stopping_status* stop_status)
 
 

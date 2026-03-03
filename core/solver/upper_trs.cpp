@@ -250,9 +250,10 @@ std::vector<int> workspace_traits<UpperTrs<ValueType, IndexType>>::vectors(
 }
 
 
-#define GKO_DECLARE_UPPER_TRS(_vtype, _itype) class UpperTrs<_vtype, _itype>
-#define GKO_DECLARE_UPPER_TRS_TRAITS(_vtype, _itype) \
-    struct workspace_traits<UpperTrs<_vtype, _itype>>
+#define GKO_DECLARE_UPPER_TRS(ValueType, IndexType) \
+    class UpperTrs<ValueType, IndexType>
+#define GKO_DECLARE_UPPER_TRS_TRAITS(ValueType, IndexType) \
+    struct workspace_traits<UpperTrs<ValueType, IndexType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_TRS);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_TRS_TRAITS);
 

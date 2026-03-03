@@ -387,8 +387,9 @@ std::vector<int> workspace_traits<Minres<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_MINRES(_type) class Minres<_type>
-#define GKO_DECLARE_MINRES_TRAITS(_type) struct workspace_traits<Minres<_type>>
+#define GKO_DECLARE_MINRES(ValueType) class Minres<ValueType>
+#define GKO_DECLARE_MINRES_TRAITS(ValueType) \
+    struct workspace_traits<Minres<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_TRAITS);
 

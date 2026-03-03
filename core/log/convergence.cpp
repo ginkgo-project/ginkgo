@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -109,7 +109,7 @@ void Convergence<ValueType>::on_iteration_complete(
 }
 
 
-#define GKO_DECLARE_CONVERGENCE(_type) class Convergence<_type>
+#define GKO_DECLARE_CONVERGENCE(ValueType) class Convergence<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONVERGENCE);
 
 

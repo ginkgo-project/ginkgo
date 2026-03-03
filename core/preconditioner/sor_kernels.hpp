@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,19 +16,21 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L(_vtype, _itype) \
-    void initialize_weighted_l(                               \
-        std::shared_ptr<const DefaultExecutor> exec,          \
-        const matrix::Csr<_vtype, _itype>* system_matrix,     \
-        remove_complex<_vtype> weight, matrix::Csr<_vtype, _itype>* l_factor)
+#define GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L(ValueType, IndexType) \
+    void initialize_weighted_l(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        const matrix::Csr<ValueType, IndexType>* system_matrix,     \
+        remove_complex<ValueType> weight,                           \
+        matrix::Csr<ValueType, IndexType>* l_factor)
 
 
-#define GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L_U(_vtype, _itype)               \
-    void initialize_weighted_l_u(                                             \
-        std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::Csr<_vtype, _itype>* system_matrix,                     \
-        remove_complex<_vtype> weight, matrix::Csr<_vtype, _itype>* l_factor, \
-        matrix::Csr<_vtype, _itype>* u_factor)
+#define GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L_U(ValueType, IndexType) \
+    void initialize_weighted_l_u(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        const matrix::Csr<ValueType, IndexType>* system_matrix,       \
+        remove_complex<ValueType> weight,                             \
+        matrix::Csr<ValueType, IndexType>* l_factor,                  \
+        matrix::Csr<ValueType, IndexType>* u_factor)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \

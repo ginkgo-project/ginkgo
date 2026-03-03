@@ -20,7 +20,7 @@ namespace kernels {
 namespace common_gmres {
 
 
-#define GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL(_type)        \
+#define GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL(ValueType)    \
     void initialize(std::shared_ptr<const DefaultExecutor> exec, \
                     matrix::view::dense<const ValueType> b,      \
                     matrix::view::dense<ValueType> residual,     \
@@ -29,18 +29,18 @@ namespace common_gmres {
                     stopping_status* stop_status)
 
 
-#define GKO_DECLARE_COMMON_GMRES_HESSENBERG_QR_KERNEL(_type)            \
+#define GKO_DECLARE_COMMON_GMRES_HESSENBERG_QR_KERNEL(ValueType)        \
     void hessenberg_qr(                                                 \
         std::shared_ptr<const DefaultExecutor> exec,                    \
         matrix::view::dense<ValueType> givens_sin,                      \
         matrix::view::dense<ValueType> givens_cos,                      \
-        matrix::Dense<remove_complex<_type>>* residual_norm,            \
+        matrix::view::dense<remove_complex<ValueType>> residual_norm,   \
         matrix::view::dense<ValueType> residual_norm_collection,        \
         matrix::view::dense<ValueType> hessenberg_iter, size_type iter, \
         size_type* final_iter_nums, const stopping_status* stop_status)
 
 
-#define GKO_DECLARE_COMMON_GMRES_SOLVE_KRYLOV_KERNEL(_type1)                \
+#define GKO_DECLARE_COMMON_GMRES_SOLVE_KRYLOV_KERNEL(ValueType)             \
     void solve_krylov(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                        \
         matrix::view::dense<const ValueType> residual_norm_collection,      \

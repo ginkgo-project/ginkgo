@@ -22,63 +22,66 @@ namespace kernels {
 namespace pipe_cg {
 
 
-#define GKO_DECLARE_PIPE_CG_INITIALIZE_1_KERNEL(_type)             \
+#define GKO_DECLARE_PIPE_CG_INITIALIZE_1_KERNEL(ValueType)         \
     void initialize_1(std::shared_ptr<const DefaultExecutor> exec, \
-                      matrix::view::dense<const _type> b,          \
-                      matrix::view::dense<_type> r,                \
-                      matrix::view::dense<_type> prev_rho,         \
+                      matrix::view::dense<const ValueType> b,      \
+                      matrix::view::dense<ValueType> r,            \
+                      matrix::view::dense<ValueType> prev_rho,     \
                       array<stopping_status>* stop_status)
 
-#define GKO_DECLARE_PIPE_CG_INITIALIZE_2_KERNEL(_type)                       \
-    void initialize_2(                                                       \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        matrix::view::dense<_type> p, matrix::view::dense<_type> q,          \
-        matrix::view::dense<_type> f, matrix::view::dense<_type> g,          \
-        matrix::view::dense<_type> beta, matrix::view::dense<const _type> z, \
-        matrix::view::dense<const _type> w,                                  \
-        matrix::view::dense<const _type> m,                                  \
-        matrix::view::dense<const _type> n,                                  \
-        matrix::view::dense<const _type> delta)
+#define GKO_DECLARE_PIPE_CG_INITIALIZE_2_KERNEL(ValueType)                  \
+    void initialize_2(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        matrix::view::dense<ValueType> p, matrix::view::dense<ValueType> q, \
+        matrix::view::dense<ValueType> f, matrix::view::dense<ValueType> g, \
+        matrix::view::dense<ValueType> beta,                                \
+        matrix::view::dense<const ValueType> z,                             \
+        matrix::view::dense<const ValueType> w,                             \
+        matrix::view::dense<const ValueType> m,                             \
+        matrix::view::dense<const ValueType> n,                             \
+        matrix::view::dense<const ValueType> delta)
 
 
-#define GKO_DECLARE_PIPE_CG_STEP_1_KERNEL(_type)                              \
-    void step_1(std::shared_ptr<const DefaultExecutor> exec,                  \
-                matrix::view::dense<_type> x, matrix::view::dense<_type> r,   \
-                matrix::view::dense<_type> z1, matrix::view::dense<_type> z2, \
-                matrix::view::dense<_type> w,                                 \
-                matrix::view::dense<const _type> p,                           \
-                matrix::view::dense<const _type> q,                           \
-                matrix::view::dense<const _type> f,                           \
-                matrix::view::dense<const _type> g,                           \
-                matrix::view::dense<const _type> rho,                         \
-                matrix::view::dense<const _type> beta,                        \
-                const array<stopping_status>* stop_status)
+#define GKO_DECLARE_PIPE_CG_STEP_1_KERNEL(ValueType)                          \
+    void step_1(                                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                          \
+        matrix::view::dense<ValueType> x, matrix::view::dense<ValueType> r,   \
+        matrix::view::dense<ValueType> z1, matrix::view::dense<ValueType> z2, \
+        matrix::view::dense<ValueType> w,                                     \
+        matrix::view::dense<const ValueType> p,                               \
+        matrix::view::dense<const ValueType> q,                               \
+        matrix::view::dense<const ValueType> f,                               \
+        matrix::view::dense<const ValueType> g,                               \
+        matrix::view::dense<const ValueType> rho,                             \
+        matrix::view::dense<const ValueType> beta,                            \
+        const array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_PIPE_CG_STEP_2_KERNEL(_type)                               \
-    void step_2(std::shared_ptr<const DefaultExecutor> exec,                   \
-                matrix::view::dense<_type> beta, matrix::view::dense<_type> p, \
-                matrix::view::dense<_type> q, matrix::view::dense<_type> f,    \
-                matrix::view::dense<_type> g,                                  \
-                matrix::view::dense<const _type> z,                            \
-                matrix::view::dense<const _type> w,                            \
-                matrix::view::dense<const _type> m,                            \
-                matrix::view::dense<const _type> n,                            \
-                matrix::view::dense<const _type> prev_rho,                     \
-                matrix::view::dense<const _type> rho,                          \
-                matrix::view::dense<const _type> delta,                        \
-                const array<stopping_status>* stop_status)
+#define GKO_DECLARE_PIPE_CG_STEP_2_KERNEL(ValueType)                           \
+    void step_2(                                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        matrix::view::dense<ValueType> beta, matrix::view::dense<ValueType> p, \
+        matrix::view::dense<ValueType> q, matrix::view::dense<ValueType> f,    \
+        matrix::view::dense<ValueType> g,                                      \
+        matrix::view::dense<const ValueType> z,                                \
+        matrix::view::dense<const ValueType> w,                                \
+        matrix::view::dense<const ValueType> m,                                \
+        matrix::view::dense<const ValueType> n,                                \
+        matrix::view::dense<const ValueType> prev_rho,                         \
+        matrix::view::dense<const ValueType> rho,                              \
+        matrix::view::dense<const ValueType> delta,                            \
+        const array<stopping_status>* stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                \
-    template <typename _type>                       \
-    GKO_DECLARE_PIPE_CG_INITIALIZE_1_KERNEL(_type); \
-    template <typename _type>                       \
-    GKO_DECLARE_PIPE_CG_INITIALIZE_2_KERNEL(_type); \
-    template <typename _type>                       \
-    GKO_DECLARE_PIPE_CG_STEP_1_KERNEL(_type);       \
-    template <typename _type>                       \
-    GKO_DECLARE_PIPE_CG_STEP_2_KERNEL(_type)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                    \
+    template <typename ValueType>                       \
+    GKO_DECLARE_PIPE_CG_INITIALIZE_1_KERNEL(ValueType); \
+    template <typename ValueType>                       \
+    GKO_DECLARE_PIPE_CG_INITIALIZE_2_KERNEL(ValueType); \
+    template <typename ValueType>                       \
+    GKO_DECLARE_PIPE_CG_STEP_1_KERNEL(ValueType);       \
+    template <typename ValueType>                       \
+    GKO_DECLARE_PIPE_CG_STEP_2_KERNEL(ValueType)
 
 
 }  // namespace pipe_cg

@@ -335,8 +335,8 @@ std::vector<int> workspace_traits<Ir<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_IR(_type) class Ir<_type>
-#define GKO_DECLARE_IR_TRAITS(_type) struct workspace_traits<Ir<_type>>
+#define GKO_DECLARE_IR(ValueType) class Ir<ValueType>
+#define GKO_DECLARE_IR_TRAITS(ValueType) struct workspace_traits<Ir<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR_TRAITS);
 

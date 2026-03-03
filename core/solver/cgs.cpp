@@ -279,8 +279,9 @@ std::vector<int> workspace_traits<Cgs<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_CGS(_type) class Cgs<_type>
-#define GKO_DECLARE_CGS_TRAITS(_type) struct workspace_traits<Cgs<_type>>
+#define GKO_DECLARE_CGS(ValueType) class Cgs<ValueType>
+#define GKO_DECLARE_CGS_TRAITS(ValueType) \
+    struct workspace_traits<Cgs<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_TRAITS);
 

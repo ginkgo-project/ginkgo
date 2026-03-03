@@ -2168,7 +2168,7 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 }
 
 
-#define GKO_DECLARE_DENSE_MATRIX(_type) class Dense<_type>
+#define GKO_DECLARE_DENSE_MATRIX(ValueType) class Dense<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
 
 

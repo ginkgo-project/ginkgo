@@ -20,7 +20,7 @@ namespace kernels {
 namespace multigrid {
 
 
-#define GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL(_type)           \
+#define GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL(ValueType)       \
     void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec, \
                        matrix::view::dense<const ValueType> alpha,  \
                        matrix::view::dense<const ValueType> rho,    \
@@ -29,7 +29,7 @@ namespace multigrid {
                        matrix::view::dense<ValueType> d,            \
                        matrix::view::dense<ValueType> e)
 
-#define GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL(_type)           \
+#define GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL(ValueType)       \
     void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec, \
                        matrix::view::dense<const ValueType> alpha,  \
                        matrix::view::dense<const ValueType> rho,    \
@@ -39,11 +39,11 @@ namespace multigrid {
                        matrix::view::dense<const ValueType> d,      \
                        matrix::view::dense<ValueType> e)
 
-#define GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL(_type)             \
+#define GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL(ValueType)         \
     void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,   \
                            matrix::view::dense<const ValueType> old_norm, \
                            matrix::view::dense<const ValueType> new_norm, \
-                           const _type rel_tol, bool& is_stop)
+                           const ValueType rel_tol, bool& is_stop)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                       \
