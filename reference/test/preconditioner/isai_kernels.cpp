@@ -1018,7 +1018,8 @@ TYPED_TEST(Isai, KernelScatterExcessSolution)
         gko::array<value_type>{this->exec, {11, 12, 13, 14, 15, 16, 17}}, 1);
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        this->exec, ptrs.get_const_data(), sol.get(), mtx.get(), 0, 6);
+        this->exec, ptrs.get_const_data(), sol->get_const_device_view(),
+        mtx.get(), 0, 6);
 
     GKO_ASSERT_MTX_NEAR(mtx, expect, 0);
 }

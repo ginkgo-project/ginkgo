@@ -139,10 +139,12 @@ TEST_F(Multigrid, MultigridKCycleStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::multigrid::kcycle_step_1(
-        ref, alpha.get(), rho.get(), v.get(), g->get_device_view(),
-        d->get_device_view(), e->get_device_view());
+        ref, alpha->get_const_device_view(), rho->get_const_device_view(),
+        v->get_const_device_view(), g->get_device_view(), d->get_device_view(),
+        e->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::multigrid::kcycle_step_1(
-        exec, d_alpha.get(), d_rho.get(), d_v.get(), d_g->get_device_view(),
+        exec, d_alpha->get_const_device_view(), d_rho->get_const_device_view(),
+        d_v->get_const_device_view(), d_g->get_device_view(),
         d_d->get_device_view(), d_e->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_g, g, 1e-14);
@@ -156,11 +158,15 @@ TEST_F(Multigrid, MultigridKCycleStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::multigrid::kcycle_step_2(
-        ref, alpha.get(), rho.get(), gamma.get(), beta.get(), zeta.get(),
-        d.get(), e->get_device_view());
+        ref, alpha->get_const_device_view(), rho->get_const_device_view(),
+        gamma->get_const_device_view(), beta->get_const_device_view(),
+        zeta->get_const_device_view(), d->get_const_device_view(),
+        e->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::multigrid::kcycle_step_2(
-        exec, d_alpha.get(), d_rho.get(), d_gamma.get(), d_beta.get(),
-        d_zeta.get(), d_d.get(), d_e->get_device_view());
+        exec, d_alpha->get_const_device_view(), d_rho->get_const_device_view(),
+        d_gamma->get_const_device_view(), d_beta->get_const_device_view(),
+        d_zeta->get_const_device_view(), d_d->get_const_device_view(),
+        d_e->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
 }
@@ -175,13 +181,17 @@ TEST_F(Multigrid, MultigridKCycleCheckStopIsEquivalentToRef)
     bool d_is_stop_5;
 
     gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, old_norm.get(), new_norm.get(), 1.0, is_stop_10);
+        ref, old_norm->get_const_device_view(),
+        new_norm->get_const_device_view(), 1.0, is_stop_10);
     gko::kernels::GKO_DEVICE_NAMESPACE::multigrid::kcycle_check_stop(
-        exec, d_old_norm.get(), d_new_norm.get(), 1.0, d_is_stop_10);
+        exec, d_old_norm->get_const_device_view(),
+        d_new_norm->get_const_device_view(), 1.0, d_is_stop_10);
     gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, old_norm.get(), new_norm.get(), 0.5, is_stop_5);
+        ref, old_norm->get_const_device_view(),
+        new_norm->get_const_device_view(), 0.5, is_stop_5);
     gko::kernels::GKO_DEVICE_NAMESPACE::multigrid::kcycle_check_stop(
-        exec, d_old_norm.get(), d_new_norm.get(), 0.5, d_is_stop_5);
+        exec, d_old_norm->get_const_device_view(),
+        d_new_norm->get_const_device_view(), 0.5, d_is_stop_5);
 
     GKO_ASSERT_EQ(d_is_stop_10, is_stop_10);
     GKO_ASSERT_EQ(d_is_stop_10, true);

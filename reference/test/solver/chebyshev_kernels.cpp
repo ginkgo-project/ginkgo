@@ -69,7 +69,7 @@ TYPED_TEST(Chebyshev, KernelInitUpdate)
     using Mtx = typename TestFixture::Mtx;
 
     gko::kernels::reference::chebyshev::init_update(
-        this->exec, this->alpha, this->inner_sol.get(),
+        this->exec, this->alpha, this->inner_sol->get_const_device_view(),
         this->update_sol->get_device_view(), this->output->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->update_sol, this->inner_sol, 0);
@@ -115,7 +115,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystem)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -129,7 +129,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemMixed)
     auto b = gko::initialize<MixedMtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<MixedMtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}),
                         (r_mixed<mixed_type, TypeParam>()) * 1e1);
@@ -148,7 +148,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemComplex)
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
@@ -172,7 +172,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemMixedComplex)
          mixed_complex_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -204,7 +204,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemWithIterativeInnerSolver)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver_factory->generate(this->mtx)->apply(b.get(), x.get());
+    solver_factory->generate(this->mtx)->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -221,7 +221,7 @@ TYPED_TEST(Chebyshev, SolvesMultipleTriangularSystems)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}),
                         r<value_type>::value * 1e1);
@@ -238,7 +238,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApply)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -254,7 +254,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyMixed)
     auto b = gko::initialize<MixedMtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<MixedMtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}),
                         (r_mixed<mixed_type, TypeParam>()) * 1e1);
@@ -276,7 +276,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyComplex)
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
@@ -303,7 +303,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
          mixed_complex_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(
         x,
@@ -326,7 +326,7 @@ TYPED_TEST(Chebyshev, SolvesMultipleStencilSystemsUsingAdvancedApply)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}),
                         r<value_type>::value * 1e1);
@@ -341,7 +341,7 @@ TYPED_TEST(Chebyshev, SolvesTransposedTriangularSystem)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->transpose()->apply(b.get(), x.get());
+    solver->transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -356,7 +356,7 @@ TYPED_TEST(Chebyshev, SolvesConjTransposedTriangularSystem)
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->conj_transpose()->apply(b.get(), x.get());
+    solver->conj_transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }

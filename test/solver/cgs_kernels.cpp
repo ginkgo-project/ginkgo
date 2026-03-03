@@ -160,15 +160,17 @@ TEST_F(Cgs, CgsInitializeIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cgs::initialize(
-        ref, b.get(), r->get_device_view(), r_tld->get_device_view(),
-        p->get_device_view(), q->get_device_view(), u->get_device_view(),
-        u_hat->get_device_view(), v_hat->get_device_view(),
-        t->get_device_view(), alpha->get_device_view(), beta->get_device_view(),
+        ref, b->get_const_device_view(), r->get_device_view(),
+        r_tld->get_device_view(), p->get_device_view(), q->get_device_view(),
+        u->get_device_view(), u_hat->get_device_view(),
+        v_hat->get_device_view(), t->get_device_view(),
+        alpha->get_device_view(), beta->get_device_view(),
         gamma->get_device_view(), rho_prev->get_device_view(),
         rho->get_device_view(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::cgs::initialize(
-        exec, d_b.get(), d_r->get_device_view(), d_r_tld->get_device_view(),
-        d_p->get_device_view(), d_q->get_device_view(), d_u->get_device_view(),
+        exec, d_b->get_const_device_view(), d_r->get_device_view(),
+        d_r_tld->get_device_view(), d_p->get_device_view(),
+        d_q->get_device_view(), d_u->get_device_view(),
         d_u_hat->get_device_view(), d_v_hat->get_device_view(),
         d_t->get_device_view(), d_alpha->get_device_view(),
         d_beta->get_device_view(), d_gamma->get_device_view(),
@@ -197,12 +199,15 @@ TEST_F(Cgs, CgsStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cgs::step_1(
-        ref, r.get(), u->get_device_view(), p->get_device_view(), q.get(),
-        beta->get_device_view(), rho.get(), rho_prev.get(), stop_status.get());
+        ref, r->get_const_device_view(), u->get_device_view(),
+        p->get_device_view(), q->get_const_device_view(),
+        beta->get_device_view(), rho->get_const_device_view(),
+        rho_prev->get_const_device_view(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::cgs::step_1(
-        exec, d_r.get(), d_u->get_device_view(), d_p->get_device_view(),
-        d_q.get(), d_beta->get_device_view(), d_rho.get(), d_rho_prev.get(),
-        d_stop_status.get());
+        exec, d_r->get_const_device_view(), d_u->get_device_view(),
+        d_p->get_device_view(), d_q->get_const_device_view(),
+        d_beta->get_device_view(), d_rho->get_const_device_view(),
+        d_rho_prev->get_const_device_view(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_beta, beta, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_u, u, ::r<value_type>::value);
@@ -215,12 +220,15 @@ TEST_F(Cgs, CgsStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cgs::step_2(
-        ref, u.get(), v_hat.get(), q->get_device_view(), t->get_device_view(),
-        alpha->get_device_view(), rho.get(), gamma.get(), stop_status.get());
+        ref, u->get_const_device_view(), v_hat->get_const_device_view(),
+        q->get_device_view(), t->get_device_view(), alpha->get_device_view(),
+        rho->get_const_device_view(), gamma->get_const_device_view(),
+        stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::cgs::step_2(
-        exec, d_u.get(), d_v_hat.get(), d_q->get_device_view(),
-        d_t->get_device_view(), d_alpha->get_device_view(), d_rho.get(),
-        d_gamma.get(), d_stop_status.get());
+        exec, d_u->get_const_device_view(), d_v_hat->get_const_device_view(),
+        d_q->get_device_view(), d_t->get_device_view(),
+        d_alpha->get_device_view(), d_rho->get_const_device_view(),
+        d_gamma->get_const_device_view(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_alpha, alpha, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_t, t, ::r<value_type>::value);
@@ -233,11 +241,13 @@ TEST_F(Cgs, CgsStep3IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cgs::step_3(
-        ref, t.get(), u_hat.get(), r->get_device_view(), x->get_device_view(),
-        alpha.get(), stop_status.get());
+        ref, t->get_const_device_view(), u_hat->get_const_device_view(),
+        r->get_device_view(), x->get_device_view(),
+        alpha->get_const_device_view(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::cgs::step_3(
-        exec, d_t.get(), d_u_hat.get(), d_r->get_device_view(),
-        d_x->get_device_view(), d_alpha.get(), d_stop_status.get());
+        exec, d_t->get_const_device_view(), d_u_hat->get_const_device_view(),
+        d_r->get_device_view(), d_x->get_device_view(),
+        d_alpha->get_const_device_view(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);

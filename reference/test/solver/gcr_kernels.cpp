@@ -132,7 +132,7 @@ TYPED_TEST(Gcr, KernelInitialize)
                 this->stopped);
 
     gko::kernels::reference::gcr::initialize(
-        this->exec, this->small_b.get(),
+        this->exec, this->small_b->get_const_device_view(),
         this->small_residual->get_device_view(), this->small_stop.get_data());
 
     GKO_ASSERT_MTX_NEAR(this->small_residual, this->small_b, 0);
@@ -148,8 +148,8 @@ TYPED_TEST(Gcr, KernelRestart)
     using Mtx = typename TestFixture::Mtx;
     const value_type nan =
         std::numeric_limits<gko::remove_complex<value_type>>::quiet_NaN();
-    this->small_residual->copy_from(this->small_b.get());
-    this->mtx->apply(this->small_residual.get(), this->small_A_residual.get());
+    this->small_residual->copy_from(this->small_b);
+    this->mtx->apply(this->small_residual, this->small_A_residual);
     this->small_krylov_bases_p->fill(nan);
     this->small_mapped_krylov_bases_Ap->fill(nan);
     std::fill_n(this->small_final_iter_nums.get_data(),
@@ -169,7 +169,8 @@ TYPED_TEST(Gcr, KernelRestart)
     }
 
     gko::kernels::reference::gcr::restart(
-        this->exec, this->small_residual.get(), this->small_A_residual.get(),
+        this->exec, this->small_residual->get_const_device_view(),
+        this->small_A_residual->get_const_device_view(),
         this->small_krylov_bases_p->get_device_view(),
         this->small_mapped_krylov_bases_Ap->get_device_view(),
         this->small_final_iter_nums.get_data());
@@ -195,18 +196,19 @@ TYPED_TEST(Gcr, KernelStep1)
     this->small_residual->fill(nan);
     this->small_krylov_bases_p = gko::initialize<Mtx>(
         {I<T>{0.5, -0.75}, I<T>{1.25, 1.5}, I<T>{-0.5, 1}}, this->exec);
-    this->mtx->apply(this->small_krylov_bases_p.get(),
-                     this->small_mapped_krylov_bases_Ap.get());
-    this->small_mapped_krylov_bases_Ap->compute_norm2(
-        this->small_Ap_norm.get());
+    this->mtx->apply(this->small_krylov_bases_p,
+                     this->small_mapped_krylov_bases_Ap);
+    this->small_mapped_krylov_bases_Ap->compute_norm2(this->small_Ap_norm);
     this->small_tmp_rAp = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
 
     gko::kernels::reference::gcr::step_1(
         this->exec, this->small_x->get_device_view(),
         this->small_residual->get_device_view(),
-        this->small_krylov_bases_p.get(),
-        this->small_mapped_krylov_bases_Ap.get(), this->small_Ap_norm.get(),
-        this->small_tmp_rAp.get(), this->small_stop.get_data());
+        this->small_krylov_bases_p->get_const_device_view(),
+        this->small_mapped_krylov_bases_Ap->get_const_device_view(),
+        this->small_Ap_norm->get_const_device_view(),
+        this->small_tmp_rAp->get_const_device_view(),
+        this->small_stop.get_data());
 }
 
 
@@ -218,7 +220,7 @@ TYPED_TEST(Gcr, SolvesStencilSystem)
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
@@ -232,7 +234,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemMixed)
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}),
                         (r_mixed<value_type, TypeParam>() * 1e1));
@@ -252,7 +254,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemComplex)
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
@@ -275,7 +277,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemMixedComplex)
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
@@ -295,7 +297,7 @@ TYPED_TEST(Gcr, SolvesMultipleStencilSystems)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{1.0, 1.0}, {3.0, 1.0}, {2.0, 1.0}}),
                         r<value_type>::value * 1e1);
@@ -312,7 +314,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApply)
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}), r<value_type>::value * 1e2);
 }
@@ -328,7 +330,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApplyMixed)
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}),
                         (r_mixed<value_type, TypeParam>() * 2e1));
@@ -351,7 +353,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApplyComplex)
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
@@ -377,7 +379,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
                         l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
@@ -399,7 +401,7 @@ TYPED_TEST(Gcr, SolvesMultipleStencilSystemsUsingAdvancedApply)
     auto x = gko::initialize<Mtx>(
         {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
-    solver->apply(alpha.get(), b.get(), beta.get(), x.get());
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{1.5, 1.0}, {5.0, 0.0}, {2.0, -1.0}}),
                         r<value_type>::value * 1e2);
@@ -418,7 +420,7 @@ TYPED_TEST(Gcr, SolvesBigDenseSystem1)
         this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
                         r<value_type>::value * 1e3);
@@ -437,7 +439,7 @@ TYPED_TEST(Gcr, SolvesBigDenseSystem2)
         this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         r<value_type>::value * 1e3);
@@ -456,7 +458,7 @@ TYPED_TEST(Gcr, SolveWithImplicitResNormCritIsDisabled)
         this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    ASSERT_THROW(solver->apply(b.get(), x.get()), gko::NotSupported);
+    ASSERT_THROW(solver->apply(b, x), gko::NotSupported);
 }
 
 
@@ -503,9 +505,9 @@ TYPED_TEST(Gcr, SolvesMultipleDenseSystemForDivergenceCheck)
         xc->at(i, 1) = x2->at(i);
     }
 
-    solver->apply(b1.get(), x1.get());
-    solver->apply(b2.get(), x2.get());
-    solver->apply(bc.get(), xc.get());
+    solver->apply(b1, x1);
+    solver->apply(b2, x2);
+    solver->apply(bc, xc);
     auto mergedRes = Mtx::create(this->exec, gko::dim<2>{b1->get_size()[0], 2});
     for (size_t i = 0; i < mergedRes->get_size()[0]; ++i) {
         mergedRes->at(i, 0) = x1->at(i);
@@ -519,9 +521,9 @@ TYPED_TEST(Gcr, SolvesMultipleDenseSystemForDivergenceCheck)
     auto residual2 = gko::clone(this->exec, b2);
     auto residualC = gko::clone(this->exec, bc);
 
-    this->mtx_big->apply(alpha.get(), x1.get(), beta.get(), residual1.get());
-    this->mtx_big->apply(alpha.get(), x2.get(), beta.get(), residual2.get());
-    this->mtx_big->apply(alpha.get(), xc.get(), beta.get(), residualC.get());
+    this->mtx_big->apply(alpha, x1, beta, residual1);
+    this->mtx_big->apply(alpha, x2, beta, residual2);
+    this->mtx_big->apply(alpha, xc, beta, residualC);
 
     auto normS1 = infNorm(residual1.get());
     auto normS2 = infNorm(residual2.get());
@@ -561,7 +563,7 @@ TYPED_TEST(Gcr, SolvesBigDenseSystem1WithRestart)
         {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
                         half_tol * 1e2);
@@ -590,7 +592,7 @@ TYPED_TEST(Gcr, SolvesWithPreconditioner)
         this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->apply(b.get(), x.get());
+    solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         r<value_type>::value * 1e3);
@@ -609,7 +611,7 @@ TYPED_TEST(Gcr, SolvesTransposedBigDenseSystem)
         this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->transpose()->apply(b.get(), x.get());
+    solver->transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
                         r<value_type>::value * 1e3);
@@ -629,7 +631,7 @@ TYPED_TEST(Gcr, SolvesConjTransposedBigDenseSystem)
         this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
-    solver->conj_transpose()->apply(b.get(), x.get());
+    solver->conj_transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
                         r<value_type>::value * 1e3);

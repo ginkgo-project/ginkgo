@@ -145,11 +145,11 @@ TYPED_TEST(Bicgstab, KernelInitialize)
                 this->stopped);
 
     gko::kernels::reference::bicgstab::initialize(
-        this->exec, this->small_b.get(), this->small_r->get_device_view(),
-        this->small_rr->get_device_view(), this->small_y->get_device_view(),
-        this->small_s->get_device_view(), this->small_t->get_device_view(),
-        this->small_z->get_device_view(), this->small_v->get_device_view(),
-        this->small_p->get_device_view(),
+        this->exec, this->small_b->get_const_device_view(),
+        this->small_r->get_device_view(), this->small_rr->get_device_view(),
+        this->small_y->get_device_view(), this->small_s->get_device_view(),
+        this->small_t->get_device_view(), this->small_z->get_device_view(),
+        this->small_v->get_device_view(), this->small_p->get_device_view(),
         this->small_prev_rho->get_device_view(),
         this->small_rho->get_device_view(),
         this->small_alpha->get_device_view(),
@@ -192,9 +192,13 @@ TYPED_TEST(Bicgstab, KernelStep1)
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::bicgstab::step_1(
-        this->exec, this->small_r.get(), this->small_p->get_device_view(),
-        this->small_v.get(), this->small_rho.get(), this->small_prev_rho.get(),
-        this->small_alpha.get(), this->small_omega.get(), &this->small_stop);
+        this->exec, this->small_r->get_const_device_view(),
+        this->small_p->get_device_view(),
+        this->small_v->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_prev_rho->get_const_device_view(),
+        this->small_alpha->get_const_device_view(),
+        this->small_omega->get_const_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-3.25, 3.0}, {-3.25, 3.0}}), 0);
 }
@@ -211,9 +215,13 @@ TYPED_TEST(Bicgstab, KernelStep1DivRhoZero)
     this->small_omega->fill(1);
 
     gko::kernels::reference::bicgstab::step_1(
-        this->exec, this->small_r.get(), this->small_p->get_device_view(),
-        this->small_v.get(), this->small_rho.get(), this->small_prev_rho.get(),
-        this->small_alpha.get(), this->small_omega.get(), &this->small_stop);
+        this->exec, this->small_r->get_const_device_view(),
+        this->small_p->get_device_view(),
+        this->small_v->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_prev_rho->get_const_device_view(),
+        this->small_alpha->get_const_device_view(),
+        this->small_omega->get_const_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
 }
@@ -230,9 +238,13 @@ TYPED_TEST(Bicgstab, KernelStep1DivOmegaZero)
     this->small_omega->fill(0);
 
     gko::kernels::reference::bicgstab::step_1(
-        this->exec, this->small_r.get(), this->small_p->get_device_view(),
-        this->small_v.get(), this->small_rho.get(), this->small_prev_rho.get(),
-        this->small_alpha.get(), this->small_omega.get(), &this->small_stop);
+        this->exec, this->small_r->get_const_device_view(),
+        this->small_p->get_device_view(),
+        this->small_v->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_prev_rho->get_const_device_view(),
+        this->small_alpha->get_const_device_view(),
+        this->small_omega->get_const_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
 }
@@ -249,9 +261,13 @@ TYPED_TEST(Bicgstab, KernelStep1DivBothZero)
     this->small_omega->fill(0);
 
     gko::kernels::reference::bicgstab::step_1(
-        this->exec, this->small_r.get(), this->small_p->get_device_view(),
-        this->small_v.get(), this->small_rho.get(), this->small_prev_rho.get(),
-        this->small_alpha.get(), this->small_omega.get(), &this->small_stop);
+        this->exec, this->small_r->get_const_device_view(),
+        this->small_p->get_device_view(),
+        this->small_v->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_prev_rho->get_const_device_view(),
+        this->small_alpha->get_const_device_view(),
+        this->small_omega->get_const_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
 }
@@ -270,10 +286,12 @@ TYPED_TEST(Bicgstab, KernelStep2)
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::bicgstab::step_2(
-        this->exec, this->small_r.get(), this->small_s->get_device_view(),
-        this->small_v.get(), this->small_rho.get(),
-        this->small_alpha->get_device_view(), this->small_beta.get(),
-        &this->small_stop);
+        this->exec, this->small_r->get_const_device_view(),
+        this->small_s->get_device_view(),
+        this->small_v->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_alpha->get_device_view(),
+        this->small_beta->get_const_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_s, l({{-2.25, 5.0}, {-2.25, 5.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_alpha, l({{0.25, 0.0}}), 0);
@@ -290,10 +308,12 @@ TYPED_TEST(Bicgstab, KernelStep2DivZero)
     this->small_beta->fill(0);
 
     gko::kernels::reference::bicgstab::step_2(
-        this->exec, this->small_r.get(), this->small_s->get_device_view(),
-        this->small_v.get(), this->small_rho.get(),
-        this->small_alpha->get_device_view(), this->small_beta.get(),
-        &this->small_stop);
+        this->exec, this->small_r->get_const_device_view(),
+        this->small_s->get_device_view(),
+        this->small_v->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_alpha->get_device_view(),
+        this->small_beta->get_const_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_s, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_alpha, l({{0.0, 0.0}}), 0);
@@ -319,11 +339,15 @@ TYPED_TEST(Bicgstab, KernelStep3)
 
     gko::kernels::reference::bicgstab::step_3(
         this->exec, this->small_x->get_device_view(),
-        this->small_r->get_device_view(), this->small_s.get(),
-        this->small_t.get(), this->small_y.get(), this->small_z.get(),
-        this->small_alpha.get(), this->small_beta.get(),
-        this->small_gamma.get(), this->small_omega->get_device_view(),
-        &this->small_stop);
+        this->small_r->get_device_view(),
+        this->small_s->get_const_device_view(),
+        this->small_t->get_const_device_view(),
+        this->small_y->get_const_device_view(),
+        this->small_z->get_const_device_view(),
+        this->small_alpha->get_const_device_view(),
+        this->small_beta->get_const_device_view(),
+        this->small_gamma->get_const_device_view(),
+        this->small_omega->get_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{-15.0, 5.0}, {-15.0, 5.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{-27.0, -2.0}, {-27.0, -2.0}}), 0);
@@ -348,11 +372,15 @@ TYPED_TEST(Bicgstab, KernelStep3DivZero)
 
     gko::kernels::reference::bicgstab::step_3(
         this->exec, this->small_x->get_device_view(),
-        this->small_r->get_device_view(), this->small_s.get(),
-        this->small_t.get(), this->small_y.get(), this->small_z.get(),
-        this->small_alpha.get(), this->small_beta.get(),
-        this->small_gamma.get(), this->small_omega->get_device_view(),
-        &this->small_stop);
+        this->small_r->get_device_view(),
+        this->small_s->get_const_device_view(),
+        this->small_t->get_const_device_view(),
+        this->small_y->get_const_device_view(),
+        this->small_z->get_const_device_view(),
+        this->small_alpha->get_const_device_view(),
+        this->small_beta->get_const_device_view(),
+        this->small_gamma->get_const_device_view(),
+        this->small_omega->get_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{9.0, -3.0}, {9.0, -3.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_omega, l({{0.0, 0.0}}), 0);
@@ -369,8 +397,9 @@ TYPED_TEST(Bicgstab, KernelFinalize)
     this->small_stop.get_data()[1] = this->finalized;
 
     gko::kernels::reference::bicgstab::finalize(
-        this->exec, this->small_x->get_device_view(), this->small_y.get(),
-        this->small_alpha.get(), &this->small_stop);
+        this->exec, this->small_x->get_device_view(),
+        this->small_y->get_const_device_view(),
+        this->small_alpha->get_const_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{9.0, 5.0}, {9.0, 5.0}}), 0);
     ASSERT_EQ(this->small_stop.get_data()[0], this->finalized);

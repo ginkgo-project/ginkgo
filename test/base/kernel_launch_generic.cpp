@@ -277,11 +277,11 @@ void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m1, Mtx* m2, Mtx* m3)
             }
         },
         dim<2>{4, 4}, m2->get_stride(), m1->get_device_view(),
-        static_cast<const Mtx*>(m1)->get_const_device_view(),
-        m1->get_const_values(),
-        gko::kernels::GKO_DEVICE_NAMESPACE::default_stride(m2),
-        gko::kernels::GKO_DEVICE_NAMESPACE::row_vector(m3), m2->get_values(),
-        m3->get_values(), move_only_val);
+        m1->get_const_device_view(), m1->get_const_values(),
+        gko::kernels::GKO_DEVICE_NAMESPACE::default_stride(
+            m2->get_device_view()),
+        gko::kernels::GKO_DEVICE_NAMESPACE::row_vector(m3->get_device_view()),
+        m2->get_values(), m3->get_values(), move_only_val);
 }
 
 TEST_F(KernelLaunch, Runs2DDense)

@@ -137,11 +137,11 @@ TEST_F(PipeCg, PipeCgInitialize1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::pipe_cg::initialize_1(
-        ref, b.get(), r->get_device_view(), prev_rho->get_device_view(),
-        stop_status.get());
+        ref, b->get_const_device_view(), r->get_device_view(),
+        prev_rho->get_device_view(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::pipe_cg::initialize_1(
-        exec, d_b.get(), d_r->get_device_view(), d_prev_rho->get_device_view(),
-        d_stop_status.get());
+        exec, d_b->get_const_device_view(), d_r->get_device_view(),
+        d_prev_rho->get_device_view(), d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_r, r, 0);
     GKO_ASSERT_MTX_NEAR(d_prev_rho, prev_rho, 0);
@@ -157,13 +157,16 @@ TEST_F(PipeCg, PipeCgInitialize2IsEquivalentToRef)
     gko::kernels::reference::pipe_cg::initialize_2(
         ref, this->p->get_device_view(), this->q->get_device_view(),
         this->f->get_device_view(), this->g->get_device_view(),
-        this->beta->get_device_view(), this->z1.get(), this->w.get(),
-        this->m.get(), this->n.get(), this->delta.get());
+        this->beta->get_device_view(), this->z1->get_const_device_view(),
+        this->w->get_const_device_view(), this->m->get_const_device_view(),
+        this->n->get_const_device_view(), this->delta->get_const_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::pipe_cg::initialize_2(
         this->exec, this->d_p->get_device_view(), this->d_q->get_device_view(),
         this->d_f->get_device_view(), this->d_g->get_device_view(),
-        this->d_beta->get_device_view(), this->d_z1.get(), this->d_w.get(),
-        this->d_m.get(), this->d_n.get(), this->d_delta.get());
+        this->d_beta->get_device_view(), this->d_z1->get_const_device_view(),
+        this->d_w->get_const_device_view(), this->d_m->get_const_device_view(),
+        this->d_n->get_const_device_view(),
+        this->d_delta->get_const_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_p, p, 0);
     GKO_ASSERT_MTX_NEAR(d_q, q, 0);
@@ -180,15 +183,18 @@ TEST_F(PipeCg, PipeCgStep1IsEquivalentToRef)
     gko::kernels::reference::pipe_cg::step_1(
         ref, this->x->get_device_view(), this->r->get_device_view(),
         this->z1->get_device_view(), this->z2->get_device_view(),
-        this->w->get_device_view(), this->p.get(), this->q.get(), this->f.get(),
-        this->g.get(), this->rho.get(), this->beta.get(),
-        this->stop_status.get());
+        this->w->get_device_view(), this->p->get_const_device_view(),
+        this->q->get_const_device_view(), this->f->get_const_device_view(),
+        this->g->get_const_device_view(), this->rho->get_const_device_view(),
+        this->beta->get_const_device_view(), this->stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::pipe_cg::step_1(
         this->exec, this->d_x->get_device_view(), this->d_r->get_device_view(),
         this->d_z1->get_device_view(), this->d_z2->get_device_view(),
-        this->d_w->get_device_view(), this->d_p.get(), this->d_q.get(),
-        this->d_f.get(), this->d_g.get(), this->d_rho.get(), this->d_beta.get(),
-        this->d_stop_status.get());
+        this->d_w->get_device_view(), this->d_p->get_const_device_view(),
+        this->d_q->get_const_device_view(), this->d_f->get_const_device_view(),
+        this->d_g->get_const_device_view(),
+        this->d_rho->get_const_device_view(),
+        this->d_beta->get_const_device_view(), this->d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
@@ -205,16 +211,21 @@ TEST_F(PipeCg, PipeCgStep2IsEquivalentToRef)
     gko::kernels::reference::pipe_cg::step_2(
         ref, this->beta->get_device_view(), this->p->get_device_view(),
         this->q->get_device_view(), this->f->get_device_view(),
-        this->g->get_device_view(), this->z1.get(), this->w.get(),
-        this->m.get(), this->n.get(), this->prev_rho.get(), this->rho.get(),
-        this->delta.get(), this->stop_status.get());
+        this->g->get_device_view(), this->z1->get_const_device_view(),
+        this->w->get_const_device_view(), this->m->get_const_device_view(),
+        this->n->get_const_device_view(),
+        this->prev_rho->get_const_device_view(),
+        this->rho->get_const_device_view(),
+        this->delta->get_const_device_view(), this->stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::pipe_cg::step_2(
         this->exec, this->d_beta->get_device_view(),
         this->d_p->get_device_view(), this->d_q->get_device_view(),
         this->d_f->get_device_view(), this->d_g->get_device_view(),
-        this->d_z1.get(), this->d_w.get(), this->d_m.get(), this->d_n.get(),
-        this->d_prev_rho.get(), this->d_rho.get(), this->d_delta.get(),
-        this->d_stop_status.get());
+        this->d_z1->get_const_device_view(), this->d_w->get_const_device_view(),
+        this->d_m->get_const_device_view(), this->d_n->get_const_device_view(),
+        this->d_prev_rho->get_const_device_view(),
+        this->d_rho->get_const_device_view(),
+        this->d_delta->get_const_device_view(), this->d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_beta, beta, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);

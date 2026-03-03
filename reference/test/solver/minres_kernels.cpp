@@ -148,15 +148,15 @@ TYPED_TEST(Minres, KernelInitialize)
                 this->stopped);
 
     gko::kernels::reference::minres::initialize(
-        this->exec, this->small_r.get(), this->small_z->get_device_view(),
-        this->small_p->get_device_view(), this->small_p_prev->get_device_view(),
-        this->small_q->get_device_view(), this->small_q_prev->get_device_view(),
-        this->small_v->get_device_view(), this->beta->get_device_view(),
-        this->gamma->get_device_view(), this->delta->get_device_view(),
-        this->cos_prev->get_device_view(), this->cos->get_device_view(),
-        this->sin_prev->get_device_view(), this->sin->get_device_view(),
-        this->eta_next->get_device_view(), this->eta->get_device_view(),
-        &this->small_stop);
+        this->exec, this->small_r->get_const_device_view(),
+        this->small_z->get_device_view(), this->small_p->get_device_view(),
+        this->small_p_prev->get_device_view(), this->small_q->get_device_view(),
+        this->small_q_prev->get_device_view(), this->small_v->get_device_view(),
+        this->beta->get_device_view(), this->gamma->get_device_view(),
+        this->delta->get_device_view(), this->cos_prev->get_device_view(),
+        this->cos->get_device_view(), this->sin_prev->get_device_view(),
+        this->sin->get_device_view(), this->eta_next->get_device_view(),
+        this->eta->get_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{1. / 2, 2. / 5}, {3. / 2, 4. / 5}}),
                         r<vt>::value);
@@ -192,15 +192,15 @@ TYPED_TEST(Minres, KernelInitializeWithSafeDivide)
     this->small_q->fill(1);
 
     gko::kernels::reference::minres::initialize(
-        this->exec, this->small_r.get(), this->small_z->get_device_view(),
-        this->small_p->get_device_view(), this->small_p_prev->get_device_view(),
-        this->small_q->get_device_view(), this->small_q_prev->get_device_view(),
-        this->small_v->get_device_view(), this->beta->get_device_view(),
-        this->gamma->get_device_view(), this->delta->get_device_view(),
-        this->cos_prev->get_device_view(), this->cos->get_device_view(),
-        this->sin_prev->get_device_view(), this->sin->get_device_view(),
-        this->eta_next->get_device_view(), this->eta->get_device_view(),
-        &this->small_stop);
+        this->exec, this->small_r->get_const_device_view(),
+        this->small_z->get_device_view(), this->small_p->get_device_view(),
+        this->small_p_prev->get_device_view(), this->small_q->get_device_view(),
+        this->small_q_prev->get_device_view(), this->small_v->get_device_view(),
+        this->beta->get_device_view(), this->gamma->get_device_view(),
+        this->delta->get_device_view(), this->cos_prev->get_device_view(),
+        this->cos->get_device_view(), this->sin_prev->get_device_view(),
+        this->sin->get_device_view(), this->eta_next->get_device_view(),
+        this->eta->get_device_view(), &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{0.0, 0.0}, {0.0, 0.0}}),
                         r<vt>::value);
@@ -289,11 +289,16 @@ TYPED_TEST(Minres, KernelStep2)
 
     gko::kernels::reference::minres::step_2(
         this->exec, this->small_x->get_device_view(),
-        this->small_p->get_device_view(), this->small_p_prev.get(),
-        this->small_z->get_device_view(), this->small_z_tilde.get(),
+        this->small_p->get_device_view(),
+        this->small_p_prev->get_const_device_view(),
+        this->small_z->get_device_view(),
+        this->small_z_tilde->get_const_device_view(),
         this->small_q->get_device_view(), this->small_q_prev->get_device_view(),
-        this->small_v->get_device_view(), this->alpha.get(), this->beta.get(),
-        this->gamma.get(), this->delta.get(), this->cos.get(), this->eta.get(),
+        this->small_v->get_device_view(), this->alpha->get_const_device_view(),
+        this->beta->get_const_device_view(),
+        this->gamma->get_const_device_view(),
+        this->delta->get_const_device_view(),
+        this->cos->get_const_device_view(), this->eta->get_const_device_view(),
         &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q_prev, old_small_v, 0.);
@@ -325,11 +330,16 @@ TYPED_TEST(Minres, KernelStep2WithSafeDivide)
 
     gko::kernels::reference::minres::step_2(
         this->exec, this->small_x->get_device_view(),
-        this->small_p->get_device_view(), this->small_p_prev.get(),
-        this->small_z->get_device_view(), this->small_z_tilde.get(),
+        this->small_p->get_device_view(),
+        this->small_p_prev->get_const_device_view(),
+        this->small_z->get_device_view(),
+        this->small_z_tilde->get_const_device_view(),
         this->small_q->get_device_view(), this->small_q_prev->get_device_view(),
-        this->small_v->get_device_view(), this->alpha.get(), this->beta.get(),
-        this->gamma.get(), this->delta.get(), this->cos.get(), this->eta.get(),
+        this->small_v->get_device_view(), this->alpha->get_const_device_view(),
+        this->beta->get_const_device_view(),
+        this->gamma->get_const_device_view(),
+        this->delta->get_const_device_view(),
+        this->cos->get_const_device_view(), this->eta->get_const_device_view(),
         &this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{0.0, 0.0}, {0.0, 0.0}}), 0.);

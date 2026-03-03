@@ -203,11 +203,11 @@ TEST_F(CbGmres, CbGmresInitialize1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cb_gmres::initialize(
-        ref, b.get(), residual->get_device_view(),
+        ref, b->get_const_device_view(), residual->get_device_view(),
         givens_sin->get_device_view(), givens_cos->get_device_view(),
         stop_status.get(), default_krylov_dim_mixed);
     gko::kernels::GKO_DEVICE_NAMESPACE::cb_gmres::initialize(
-        exec, d_b.get(), d_residual->get_device_view(),
+        exec, d_b->get_const_device_view(), d_residual->get_device_view(),
         d_givens_sin->get_device_view(), d_givens_cos->get_device_view(),
         d_stop_status.get(), default_krylov_dim_mixed);
 
@@ -224,13 +224,15 @@ TEST_F(CbGmres, CbGmresInitialize2IsEquivalentToRef)
     gko::array<char> dtmp{exec};
 
     gko::kernels::reference::cb_gmres::restart(
-        ref, residual.get(), residual_norm->get_device_view(),
+        ref, residual->get_const_device_view(),
+        residual_norm->get_device_view(),
         residual_norm_collection->get_device_view(),
         arnoldi_norm->get_device_view(), range_helper.get_range(),
         next_krylov_basis->get_device_view(), final_iter_nums.get(), tmp,
         default_krylov_dim_mixed);
     gko::kernels::GKO_DEVICE_NAMESPACE::cb_gmres::restart(
-        exec, d_residual.get(), d_residual_norm->get_device_view(),
+        exec, d_residual->get_const_device_view(),
+        d_residual_norm->get_device_view(),
         d_residual_norm_collection->get_device_view(),
         d_arnoldi_norm->get_device_view(), d_range_helper.get_range(),
         d_next_krylov_basis->get_device_view(), d_final_iter_nums.get(), dtmp,
@@ -286,14 +288,14 @@ TEST_F(CbGmres, CbGmresStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::cb_gmres::solve_krylov(
-        ref, residual_norm_collection.get(),
-        range_helper.get_range().get_accessor().to_const(), hessenberg.get(),
-        y->get_device_view(), before_preconditioner->get_device_view(),
-        final_iter_nums.get());
+        ref, residual_norm_collection->get_const_device_view(),
+        range_helper.get_range().get_accessor().to_const(),
+        hessenberg->get_const_device_view(), y->get_device_view(),
+        before_preconditioner->get_device_view(), final_iter_nums.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::cb_gmres::solve_krylov(
-        exec, d_residual_norm_collection.get(),
+        exec, d_residual_norm_collection->get_const_device_view(),
         d_range_helper.get_range().get_accessor().to_const(),
-        d_hessenberg.get(), d_y->get_device_view(),
+        d_hessenberg->get_const_device_view(), d_y->get_device_view(),
         d_before_preconditioner->get_device_view(), d_final_iter_nums.get());
 
     GKO_ASSERT_MTX_NEAR(d_y, y, r<value_type>::value);

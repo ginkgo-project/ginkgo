@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -165,7 +165,7 @@ void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<>* m)
                 d(i / 4, i % 4) = 0;
             }
         },
-        16, m, static_cast<const gko::matrix::Dense<>*>(m),
+        16, m->get_device_view(), m->get_const_device_view(),
         m->get_const_values(), move_only_val);
 }
 
@@ -261,11 +261,11 @@ void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<>* m1,
                 d(i, j) = 0;
             }
         },
-        dim<2>{4, 4}, m2->get_stride(), m1,
-        static_cast<const gko::matrix::Dense<>*>(m1), m1->get_const_values(),
-        gko::kernels::cuda::default_stride(m2),
-        gko::kernels::cuda::row_vector(m3), m2->get_values(), m3->get_values(),
-        move_only_val);
+        dim<2>{4, 4}, m2->get_stride(), m1->get_device_view(),
+        m1->get_const_device_view(), m1->get_const_values(),
+        gko::kernels::cuda::default_stride(m2->get_device_view()),
+        gko::kernels::cuda::row_vector(m3->get_device_view()), m2->get_values(),
+        m3->get_values(), move_only_val);
 }
 
 TEST_F(KernelLaunch, Runs2DDense)

@@ -154,7 +154,7 @@ TYPED_TEST(Gmres, KernelInitialize)
     expected_sin_cos->fill(gko::zero<T>());
 
     gko::kernels::reference::common_gmres::initialize(
-        this->exec, this->small_b.get(),
+        this->exec, this->small_b->get_const_device_view(),
         this->small_residual->get_device_view(),
         this->small_givens_sin->get_device_view(),
         this->small_givens_cos->get_device_view(), this->small_stop.get_data());
@@ -193,7 +193,8 @@ TYPED_TEST(Gmres, KernelRestart)
     }
 
     gko::kernels::reference::gmres::restart(
-        this->exec, this->small_residual.get(), this->small_residual_norm.get(),
+        this->exec, this->small_residual->get_const_device_view(),
+        this->small_residual_norm->get_const_device_view(),
         this->small_residual_norm_collection->get_device_view(),
         this->small_krylov_bases->get_device_view(),
         this->small_final_iter_nums.get_data());
@@ -337,8 +338,10 @@ TYPED_TEST(Gmres, KernelSolveKrylov)
         gko::initialize<Mtx>({I<T>{12, 3}, I<T>{-3, 15}}, this->exec);
 
     gko::kernels::reference::common_gmres::solve_krylov(
-        this->exec, this->small_residual_norm_collection.get(),
-        this->small_hessenberg.get(), this->small_y->get_device_view(),
+        this->exec,
+        this->small_residual_norm_collection->get_const_device_view(),
+        this->small_hessenberg->get_const_device_view(),
+        this->small_y->get_device_view(),
         this->small_final_iter_nums.get_const_data(),
         this->small_stop.get_const_data());
 
@@ -375,7 +378,8 @@ TYPED_TEST(Gmres, KernelMultiAxpy)
     expected_stop.stop(7, true);
 
     gko::kernels::reference::gmres::multi_axpy(
-        this->exec, this->small_krylov_bases.get(), this->small_y.get(),
+        this->exec, this->small_krylov_bases->get_const_device_view(),
+        this->small_y->get_const_device_view(),
         this->small_x->get_device_view(),
         this->small_final_iter_nums.get_const_data(),
         this->small_stop.get_data());
@@ -417,7 +421,8 @@ TYPED_TEST(Gmres, KernelMultiDot)
         },
         this->exec);
     gko::kernels::reference::gmres::multi_dot(
-        this->exec, this->small_krylov_bases.get(), this->small_x.get(),
+        this->exec, this->small_krylov_bases->get_const_device_view(),
+        this->small_x->get_const_device_view(),
         hessenberg_iter->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(hessenberg_iter,

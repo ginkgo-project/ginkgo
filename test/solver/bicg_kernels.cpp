@@ -133,13 +133,14 @@ TEST_F(Bicg, BicgInitializeIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicg::initialize(
-        ref, b.get(), r->get_device_view(), z->get_device_view(),
-        p->get_device_view(), q->get_device_view(), prev_rho->get_device_view(),
-        rho->get_device_view(), r2->get_device_view(), z2->get_device_view(),
-        p2->get_device_view(), q2->get_device_view(), stop_status.get());
+        ref, b->get_const_device_view(), r->get_device_view(),
+        z->get_device_view(), p->get_device_view(), q->get_device_view(),
+        prev_rho->get_device_view(), rho->get_device_view(),
+        r2->get_device_view(), z2->get_device_view(), p2->get_device_view(),
+        q2->get_device_view(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::bicg::initialize(
-        exec, d_b.get(), d_r->get_device_view(), d_z->get_device_view(),
-        d_p->get_device_view(), d_q->get_device_view(),
+        exec, d_b->get_const_device_view(), d_r->get_device_view(),
+        d_z->get_device_view(), d_p->get_device_view(), d_q->get_device_view(),
         d_prev_rho->get_device_view(), d_rho->get_device_view(),
         d_r2->get_device_view(), d_z2->get_device_view(),
         d_p2->get_device_view(), d_q2->get_device_view(), d_stop_status.get());
@@ -163,11 +164,15 @@ TEST_F(Bicg, BicgStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::bicg::step_1(
-        ref, p->get_device_view(), z.get(), p2->get_device_view(), z2.get(),
-        rho.get(), prev_rho.get(), stop_status.get());
+        ref, p->get_device_view(), z->get_const_device_view(),
+        p2->get_device_view(), z2->get_const_device_view(),
+        rho->get_const_device_view(), prev_rho->get_const_device_view(),
+        stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::bicg::step_1(
-        exec, d_p->get_device_view(), d_z.get(), d_p2->get_device_view(),
-        d_z2.get(), d_rho.get(), d_prev_rho.get(), d_stop_status.get());
+        exec, d_p->get_device_view(), d_z->get_const_device_view(),
+        d_p2->get_device_view(), d_z2->get_const_device_view(),
+        d_rho->get_const_device_view(), d_prev_rho->get_const_device_view(),
+        d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
@@ -182,11 +187,15 @@ TEST_F(Bicg, BicgStep2IsEquivalentToRef)
 
     gko::kernels::reference::bicg::step_2(
         ref, x->get_device_view(), r->get_device_view(), r2->get_device_view(),
-        p.get(), q.get(), q2.get(), beta.get(), rho.get(), stop_status.get());
+        p->get_const_device_view(), q->get_const_device_view(),
+        q2->get_const_device_view(), beta->get_const_device_view(),
+        rho->get_const_device_view(), stop_status.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::bicg::step_2(
         exec, d_x->get_device_view(), d_r->get_device_view(),
-        d_r2->get_device_view(), d_p.get(), d_q.get(), d_q2.get(), d_beta.get(),
-        d_rho.get(), d_stop_status.get());
+        d_r2->get_device_view(), d_p->get_const_device_view(),
+        d_q->get_const_device_view(), d_q2->get_const_device_view(),
+        d_beta->get_const_device_view(), d_rho->get_const_device_view(),
+        d_stop_status.get());
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);

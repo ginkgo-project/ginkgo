@@ -55,11 +55,11 @@ TEST_F(Chebyshev, KernelInitUpdate)
     auto d_output = gko::clone(exec, output);
 
     gko::kernels::reference::chebyshev::init_update(
-        ref, alpha, inner_sol.get(), update_sol->get_device_view(),
-        output->get_device_view());
+        ref, alpha, inner_sol->get_const_device_view(),
+        update_sol->get_device_view(), output->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::chebyshev::init_update(
-        exec, alpha, d_inner_sol.get(), d_update_sol->get_device_view(),
-        d_output->get_device_view());
+        exec, alpha, d_inner_sol->get_const_device_view(),
+        d_update_sol->get_device_view(), d_output->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_update_sol, d_inner_sol, 0);
     GKO_ASSERT_MTX_NEAR(d_update_sol, update_sol, 0);

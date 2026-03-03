@@ -514,9 +514,11 @@ TEST_F(Isai, IsaiScatterExcessSolutionLIsEquivalentToRef)
     d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
+        ref, a1.get_const_data(), e_rhs->get_const_device_view(), inverse.get(),
+        0, num_rows);
     gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
-        exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
+        exec, da1.get_const_data(), de_rhs->get_const_device_view(),
+        d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
@@ -540,9 +542,11 @@ TEST_F(Isai, IsaiScatterExcessSolutionUIsEquivalentToRef)
     d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
+        ref, a1.get_const_data(), e_rhs->get_const_device_view(), inverse.get(),
+        0, num_rows);
     gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
-        exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
+        exec, da1.get_const_data(), de_rhs->get_const_device_view(),
+        d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
@@ -566,9 +570,11 @@ TEST_F(Isai, IsaiScatterExcessSolutionAIsEquivalentToRef)
     d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
+        ref, a1.get_const_data(), e_rhs->get_const_device_view(), inverse.get(),
+        0, num_rows);
     gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
-        exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
+        exec, da1.get_const_data(), de_rhs->get_const_device_view(),
+        d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
@@ -592,9 +598,11 @@ TEST_F(Isai, IsaiScatterExcessSolutionSpdIsEquivalentToRef)
     d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 0, num_rows);
+        ref, a1.get_const_data(), e_rhs->get_const_device_view(), inverse.get(),
+        0, num_rows);
     gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
-        exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 0, num_rows);
+        exec, da1.get_const_data(), de_rhs->get_const_device_view(),
+        d_inverse.get(), 0, num_rows);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);
@@ -618,9 +626,11 @@ TEST_F(Isai, IsaiScatterPartialExcessSolutionIsEquivalentToRef)
     d_inverse->copy_from(inverse);
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        ref, a1.get_const_data(), e_rhs.get(), inverse.get(), 5u, 10u);
+        ref, a1.get_const_data(), e_rhs->get_const_device_view(), inverse.get(),
+        5u, 10u);
     gko::kernels::GKO_DEVICE_NAMESPACE::isai::scatter_excess_solution(
-        exec, da1.get_const_data(), de_rhs.get(), d_inverse.get(), 5u, 10u);
+        exec, da1.get_const_data(), de_rhs->get_const_device_view(),
+        d_inverse.get(), 5u, 10u);
 
     GKO_ASSERT_MTX_NEAR(inverse, d_inverse, 0);
     ASSERT_GT(e_dim, 0);

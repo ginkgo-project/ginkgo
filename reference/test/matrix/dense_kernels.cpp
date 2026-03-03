@@ -672,8 +672,8 @@ TYPED_TEST(Dense, ComputesNorm2Squared)
     auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
 
     gko::kernels::reference::dense::compute_squared_norm2(
-        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get(),
-        result->get_device_view(), tmp);
+        gko::as<gko::ReferenceExecutor>(this->exec),
+        mtx->get_const_device_view(), result->get_device_view(), tmp);
 
     EXPECT_EQ(result->at(0, 0), T_nc{9.0});
     EXPECT_EQ(result->at(0, 1), T_nc{25.0});

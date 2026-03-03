@@ -154,11 +154,11 @@ TEST_F(Gmres, GmresKernelInitializeIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::common_gmres::initialize(
-        ref, b.get(), residual->get_device_view(),
+        ref, b->get_const_device_view(), residual->get_device_view(),
         givens_sin->get_device_view(), givens_cos->get_device_view(),
         stop_status.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::initialize(
-        exec, d_b.get(), d_residual->get_device_view(),
+        exec, d_b->get_const_device_view(), d_residual->get_device_view(),
         d_givens_sin->get_device_view(), d_givens_cos->get_device_view(),
         d_stop_status.get_data());
 
@@ -176,11 +176,13 @@ TEST_F(Gmres, GmresKernelRestartIsEquivalentToRef)
     d_residual_norm->copy_from(residual_norm);
 
     gko::kernels::reference::gmres::restart(
-        ref, residual.get(), residual_norm.get(),
+        ref, residual->get_const_device_view(),
+        residual_norm->get_const_device_view(),
         residual_norm_collection->get_device_view(),
         krylov_bases->get_device_view(), final_iter_nums.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::gmres::restart(
-        exec, d_residual.get(), d_residual_norm.get(),
+        exec, d_residual->get_const_device_view(),
+        d_residual_norm->get_const_device_view(),
         d_residual_norm_collection->get_device_view(),
         d_krylov_bases->get_device_view(), d_final_iter_nums.get_data());
 
@@ -257,13 +259,13 @@ TEST_F(Gmres, GmresKernelSolveKrylovIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::common_gmres::solve_krylov(
-        ref, residual_norm_collection.get(), hessenberg.get(),
-        y->get_device_view(), final_iter_nums.get_const_data(),
-        stop_status.get_const_data());
+        ref, residual_norm_collection->get_const_device_view(),
+        hessenberg->get_const_device_view(), y->get_device_view(),
+        final_iter_nums.get_const_data(), stop_status.get_const_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::common_gmres::solve_krylov(
-        exec, d_residual_norm_collection.get(), d_hessenberg.get(),
-        d_y->get_device_view(), d_final_iter_nums.get_const_data(),
-        d_stop_status.get_const_data());
+        exec, d_residual_norm_collection->get_const_device_view(),
+        d_hessenberg->get_const_device_view(), d_y->get_device_view(),
+        d_final_iter_nums.get_const_data(), d_stop_status.get_const_data());
 
     GKO_ASSERT_MTX_NEAR(d_y, y, r<value_type>::value);
 }
@@ -274,11 +276,12 @@ TEST_F(Gmres, GmresKernelMultiAxpyIsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::gmres::multi_axpy(
-        ref, krylov_bases.get(), y.get(),
+        ref, krylov_bases->get_const_device_view(), y->get_const_device_view(),
         before_preconditioner->get_device_view(),
         final_iter_nums.get_const_data(), stop_status.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::gmres::multi_axpy(
-        exec, d_krylov_bases.get(), d_y.get(),
+        exec, d_krylov_bases->get_const_device_view(),
+        d_y->get_const_device_view(),
         d_before_preconditioner->get_device_view(),
         d_final_iter_nums.get_const_data(), d_stop_status.get_data());
 
@@ -310,10 +313,12 @@ TEST_F(Gmres, GmresKernelMultiDotIsEquivalentToRef)
             d_x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
         gko::span{0, d_x->get_size()[1]});
     gko::kernels::reference::gmres::multi_dot(
-        ref, krylov_basis.get(), next_krylov.get(),
+        ref, krylov_basis->get_const_device_view(),
+        next_krylov->get_const_device_view(),
         hessenberg_iter->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::gmres::multi_dot(
-        exec, d_krylov_basis.get(), d_next_krylov.get(),
+        exec, d_krylov_basis->get_const_device_view(),
+        d_next_krylov->get_const_device_view(),
         d_hessenberg_iter->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
