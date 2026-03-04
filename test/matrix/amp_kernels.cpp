@@ -25,6 +25,7 @@ class Amp : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Ell<value_type>;
     using Vec = gko::matrix::Dense<value_type>;
+    using AmpMtx = gko::matrix::AMP<value_type, index_type>;
 
     Amp() : rand_engine(42) {}
 
@@ -35,6 +36,13 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
     }
 
+    std::unique_ptr<Vec> gen_vec(int num_rows, int num_cols)
+    {
+        return gko::test::generate_random_dense_matrix<value_type>(
+            num_rows, num_cols, std::normal_distribution<>(-1.0, 1.0),
+            rand_engine, ref);
+    }
+
     std::default_random_engine rand_engine;
 };
 
@@ -43,7 +51,6 @@ TEST_F(Amp, CanBeClonedToAnotherExecutor)
 {
     using T = value_type;
     using IndexType = index_type;
-    using AmpMtx = gko::matrix::AMP<T, IndexType>;
     const float tol = 1e-10;
     auto ell = gen_mtx(532, 231);
     auto amp_ref = AmpMtx::build().with_tolerance(tol).on(ref)->generate(
@@ -146,12 +153,34 @@ TEST_F(Amp, GenerateEllScatterBinsIsEquivalentToRef)
 }
 
 
+TEST_F(Amp, SpmvIsEquivalentToRef)
+{
+    using T = value_type;
+    using IndexType = index_type;
+    const float tol = 1e-10;
+    auto ell = gen_mtx(532, 231);
+    auto amp_ref = AmpMtx::build().with_tolerance(tol).on(ref)->generate(
+        gko::share(std::move(ell)));
+    auto amp_d = gko::clone(exec, amp_ref);
+    auto b_ref = gen_vec(amp_ref->get_size()[1], 1);
+    auto b_d = gko::clone(exec, b_ref);
+    auto c_ref = Vec::create(ref, gko::dim<2>{amp_ref->get_size()[0], 1});
+    auto c_d = Vec::create(exec, gko::dim<2>{amp_d->get_size()[0], 1});
+
+    gko::kernels::reference::amp::spmv(ref, amp_ref.get(), b_ref.get(),
+                                       c_ref.get());
+    gko::kernels::GKO_DEVICE_NAMESPACE::amp::spmv(exec, amp_d.get(), b_d.get(),
+                                                  c_d.get());
+
+    GKO_ASSERT_MTX_NEAR(c_d, c_ref, r<T>::value);
+}
+
+
 TEST_F(Amp, FillInDenseIsEquivalentToRef)
 {
     SKIP_IF_SINGLE_MODE;
     using T = value_type;
     using IndexType = index_type;
-    using AmpMtx = gko::matrix::AMP<T, IndexType>;
     const float tol = 1e-10;
     auto ell = gen_mtx(532, 231);
     // Build AMP matrix on ref, then clone to exec
@@ -175,7 +204,6 @@ TEST_F(Amp, ExtractDiagonalIsEquivalentToRef)
     SKIP_IF_SINGLE_MODE;
     using T = value_type;
     using IndexType = index_type;
-    using AmpMtx = gko::matrix::AMP<T, IndexType>;
     using Diag = gko::matrix::Diagonal<T>;
     const float tol = 1e-10;
     auto ell = gen_mtx(532, 231);

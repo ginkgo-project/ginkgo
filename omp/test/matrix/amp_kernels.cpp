@@ -66,28 +66,6 @@ protected:
 };
 
 
-TEST_F(Amp, SpmvIsEquivalentToRef)
-{
-    using T = value_type;
-    using IndexType = index_type;
-    const float tol = 1e-10;
-    auto ell = gen_mtx(532, 231);
-    auto amp_ref = AmpMtx::build().with_tolerance(tol).on(ref)->generate(
-        gko::share(std::move(ell)));
-    auto amp_omp = gko::clone(omp, amp_ref);
-    auto b_ref = gen_vec(amp_ref->get_size()[1], 1);
-    auto b_omp = gko::clone(omp, b_ref);
-    auto c_ref = Vec::create(ref, gko::dim<2>{amp_ref->get_size()[0], 1});
-    auto c_omp = Vec::create(omp, gko::dim<2>{amp_omp->get_size()[0], 1});
-
-    gko::kernels::reference::amp::spmv(ref, amp_ref.get(), b_ref.get(),
-                                       c_ref.get());
-    gko::kernels::omp::amp::spmv(omp, amp_omp.get(), b_omp.get(), c_omp.get());
-
-    GKO_ASSERT_MTX_NEAR(c_omp, c_ref, r<T>::value);
-}
-
-
 TEST_F(Amp, AdvancedSpmvIsEquivalentToRef)
 {
     using T = value_type;
