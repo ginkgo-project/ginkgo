@@ -66,33 +66,6 @@ protected:
 };
 
 
-TEST_F(Amp, GenerateEllRownormsStorageIsEquivalentToRef)
-{
-    using T = value_type;
-    using IndexType = index_type;
-    using real_T = gko::remove_complex<T>;
-    constexpr int q = AmpMtx::num_precisions;
-    const float tol = 1e-10;
-    auto mtx = gen_mtx(532, 231);
-    auto dmtx = gko::clone(omp, mtx);
-    gko::amp::precision_array<int, T> ref_max_nnz;
-    gko::amp::precision_array<int, T> omp_max_nnz;
-    gko::array<real_T> ref_rownorms(ref, mtx->get_size()[0]);
-    gko::array<real_T> omp_rownorms(omp, dmtx->get_size()[0]);
-
-    gko::kernels::reference::amp::generate_ell_rownorms_storage(
-        ref, mtx.get(), tol, ref_max_nnz, ref_rownorms);
-    gko::kernels::omp::amp::generate_ell_rownorms_storage(
-        omp, dmtx.get(), tol, omp_max_nnz, omp_rownorms);
-
-    for (int k = 0; k < q; k++) {
-        EXPECT_EQ(omp_max_nnz[k], ref_max_nnz[k]);
-    }
-    GKO_ASSERT_ARRAY_NEAR(omp_rownorms, ref_rownorms,
-                          std::numeric_limits<real_T>::epsilon());
-}
-
-
 TEST_F(Amp, SpmvIsEquivalentToRef)
 {
     using T = value_type;

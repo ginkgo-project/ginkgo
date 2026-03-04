@@ -71,6 +71,33 @@ TEST_F(Amp, CanBeClonedToAnotherExecutor)
 }
 
 
+TEST_F(Amp, GenerateEllRownormsStorageIsEquivalentToRef)
+{
+    using T = value_type;
+    using IndexType = index_type;
+    using real_T = gko::remove_complex<T>;
+    constexpr int q = gko::matrix::AMP<T, IndexType>::num_precisions;
+    const float tol = 1e-10;
+    auto mtx = gen_mtx(532, 231);
+    auto dmtx = gko::clone(exec, mtx);
+    gko::amp::precision_array<int, T> ref_max_nnz;
+    gko::amp::precision_array<int, T> dev_max_nnz;
+    gko::array<real_T> ref_rownorms(ref, mtx->get_size()[0]);
+    gko::array<real_T> dev_rownorms(exec, dmtx->get_size()[0]);
+
+    gko::kernels::reference::amp::generate_ell_rownorms_storage(
+        ref, mtx.get(), tol, ref_max_nnz, ref_rownorms);
+    gko::kernels::GKO_DEVICE_NAMESPACE::amp::generate_ell_rownorms_storage(
+        exec, dmtx.get(), tol, dev_max_nnz, dev_rownorms);
+
+    for (int k = 0; k < q; k++) {
+        EXPECT_EQ(dev_max_nnz[k], ref_max_nnz[k]);
+    }
+    GKO_ASSERT_ARRAY_NEAR(dev_rownorms, ref_rownorms,
+                          std::numeric_limits<real_T>::epsilon());
+}
+
+
 TEST_F(Amp, GenerateEllScatterBinsIsEquivalentToRef)
 {
     using T = value_type;

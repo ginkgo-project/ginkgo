@@ -12,7 +12,6 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/matrix/amp_algorithms.hpp"
-//#include "core/base/mixed_precision_types.hpp"
 #include "core/matrix/amp_helpers.hpp"
 
 
