@@ -52,6 +52,7 @@ void compute_soc_row_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
             const auto j = a_col_idxs[jj];
             if (j != i) {
+                // assuming an M-matrix
                 max_offdiag = std::max(max_offdiag, -real(a_vals[jj]));
             }
         }

@@ -2,388 +2,187 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include "core/multigrid/rs_kernels.hpp"
+
 #include <memory>
 
 #include <gtest/gtest.h>
 
-#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/row_gatherer.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
-#include <ginkgo/core/multigrid/rs.hpp>
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm.hpp>
-#include <ginkgo/core/stop/time.hpp>
-
-#include "core/test/utils.hpp"
 
 
 namespace {
 
 
-// template <typename ValueIndexType>
-// class Rs : public ::testing::Test {
-// protected:
-//     using value_type =
-//         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
-//     using index_type =
-//         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-//     using Mtx = gko::matrix::Csr<value_type, index_type>;
-//     using CooMtx = gko::matrix::Coo<value_type, index_type>;
-//     using Vec = gko::matrix::Dense<value_type>;
-//     using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
-//     using MgLevel = gko::multigrid::Rs<value_type, index_type>;
-//     using VT = value_type;
-//     using real_type = gko::remove_complex<value_type>;
-//     Rs()
-//         : exec(gko::ReferenceExecutor::create()),
-//           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
-//                           std::make_shared<typename Mtx::classical>())),
-//           coarse(Mtx::create(exec, gko::dim<2>(3, 3), 5,
-//                              std::make_shared<typename Mtx::classical>())),
-//           coarse_rows(exec, {0, 2, 3}),
-//           gen_coarse_rows(exec, 5),
-//           coarse_b(gko::initialize<Vec>(
-//               {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
-//               exec)),
-//           fine_b(gko::initialize<Vec>(
-//               {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
-//                I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
-//               exec)),
-//           restrict_ans(gko::initialize<Vec>(
-//               {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({3.0, -2.0})},
-//               exec)),
-//           prolong_applyans(gko::initialize<Vec>(
-//               {I<VT>({2.0, -1.0}), I<VT>({0.0, 0.0}), I<VT>({3.0, 1.0}),
-//                I<VT>({0.0, -1.0}), I<VT>({0.0, 0.0})},
-//               exec)),
-//           fine_x(gko::initialize<Vec>(
-//               {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
-//                I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
-//               exec)),
-//           rs_factory(MgLevel::build()
-//                          .with_coarse_rows(coarse_rows)
-//                          .with_skip_sorting(true)
-//                          .on(exec))
-//     {
-//         this->create_mtx(mtx.get(), &gen_coarse_rows, coarse.get());
-//         mg_level = rs_factory->generate(mtx);
-//     }
-
-//     void create_mtx(Mtx* fine, gko::array<index_type>* coarse_rows, Mtx*
-//     coarse)
-//     {
-//         auto coarse_rows_val = coarse_rows->get_data();
-//         coarse_rows_val[0] = 0;
-//         coarse_rows_val[1] = -1;
-//         coarse_rows_val[2] = 1;
-//         coarse_rows_val[3] = 2;
-//         coarse_rows_val[4] = -1;
-
-//         /* this matrix is stored:
-//          *  5 -3 -3  0  0
-//          * -3  5  0 -2 -1
-//          * -3  0  5  0 -1
-//          *  0 -3  0  5  0
-//          *  0 -2 -2  0  5
-//          */
-//         fine->read({{5, 5},
-//                     {{0, 0, 5},
-//                      {0, 1, -3},
-//                      {0, 2, -3},
-//                      {1, 0, -3},
-//                      {1, 1, 5},
-//                      {1, 3, -2},
-//                      {1, 4, -1},
-//                      {2, 0, -3},
-//                      {2, 2, 5},
-//                      {2, 4, -1},
-//                      {3, 1, -3},
-//                      {3, 3, 5},
-//                      {4, 1, -2},
-//                      {4, 2, -2},
-//                      {4, 4, 5}}});
+using value_type = double;
+using index_type = int;
+using csr = gko::matrix::Csr<value_type, index_type>;
 
 
-//         /* this coarse is stored:
-//          *  5 -3  0
-//          * -3  5  0
-//          *  0  0  5
-//          */
-//         coarse->read(
-//             {{3, 3},
-//              {{0, 0, 5}, {0, 1, -3}, {1, 0, -3}, {1, 1, 5}, {2, 2, 5}}});
-//     }
+class Rs : public ::testing::Test {
+protected:
+    Rs() : exec(gko::ReferenceExecutor::create()) {}
 
-//     static void assert_same_coarse_rows(const index_type* m1,
-//                                         const index_type* m2,
-//                                         gko::size_type len)
-//     {
-//         for (gko::size_type i = 0; i < len; ++i) {
-//             EXPECT_EQ(m1[i], m2[i]);
-//         }
-//     }
-
-//     std::shared_ptr<const gko::ReferenceExecutor> exec;
-//     std::shared_ptr<Mtx> mtx;
-//     std::shared_ptr<Mtx> coarse;
-//     gko::array<index_type> coarse_rows;
-//     gko::array<index_type> gen_coarse_rows;
-//     std::shared_ptr<Vec> coarse_b;
-//     std::shared_ptr<Vec> fine_b;
-//     std::shared_ptr<Vec> restrict_ans;
-//     std::shared_ptr<Vec> prolong_applyans;
-//     std::shared_ptr<Vec> fine_x;
-//     std::unique_ptr<typename MgLevel::Factory> rs_factory;
-//     std::unique_ptr<MgLevel> mg_level;
-// };
-
-// TYPED_TEST_SUITE(Rs, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+    std::shared_ptr<gko::ReferenceExecutor> exec;
+};
 
 
-// TYPED_TEST(Rs, Generate)
-// {
-//     ASSERT_NO_THROW(this->rs_factory->generate(this->mtx));
-// }
+/**
+ * Test matrix (1D Laplacian, 3-point stencil):
+ *
+ * A =
+ * [  2  -1   0 ]
+ * [ -1   2  -1 ]
+ * [  0  -1   2 ]
+ *
+ * theta = 0.5
+ *
+ * consider for each row:
+ *
+ * row 0:
+ *   offdiag = {-1}
+ *   max_offdiag = 1
+ *   strong if 1 >= 0.5*1 -> true
+ *   -> S(0,:) = {1}
+ *
+ * row 1:
+ *   offdiag = {-1,-1}
+ *   max_offdiag = 1
+ *   both satisfy 1 >= 0.5*1
+ *   -> S(1,:) = {0,2}
+ *
+ * row 2:
+ *   offdiag = {-1}
+ *   -> S(2,:) = {1}
+ *
+ * S row_ptrs = {0,1,3,4}
+ */
 
 
-// TYPED_TEST(Rs, CanBeCopied)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using MgLevel = typename TestFixture::MgLevel;
-//     auto copy = this->rs_factory->generate(Mtx::create(this->exec));
+TEST_F(Rs, ComputeSocRowPtrs)
+{
+    auto A = csr::create(exec, gko::dim<2>{3, 3}, 7);
+    A->read({{2.0, -1.0, 0.0}, {-1.0, 2.0, -1.0}, {0.0, -1.0, 2.0}});
 
-//     copy->copy_from(this->mg_level);
-//     auto copy_mtx = copy->get_system_matrix();
-//     auto copy_coarse = copy->get_coarse_op();
+    gko::array<index_type> row_ptrs(exec, 4);
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
-// }
+    gko::kernels::reference::rs::compute_soc_row_ptrs(exec, A.get(), 0.5,
+                                                      row_ptrs.get_data());
 
+    std::vector<index_type> expected{0, 1, 3, 4};
 
-// TYPED_TEST(Rs, CanBeMoved)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using MgLevel = typename TestFixture::MgLevel;
-//     auto copy = this->rs_factory->generate(Mtx::create(this->exec));
-
-//     copy->move_from(this->mg_level);
-//     auto copy_mtx = copy->get_system_matrix();
-//     auto copy_coarse = copy->get_coarse_op();
-
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
-// }
+    for (int i = 0; i < 4; ++i) {
+        ASSERT_EQ(row_ptrs.get_const_data()[i], expected[i]);
+    }
+}
 
 
-// TYPED_TEST(Rs, CanBeCloned)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using MgLevel = typename TestFixture::MgLevel;
-//     auto clone = this->mg_level->clone();
-//     auto clone_mtx = clone->get_system_matrix();
-//     auto clone_coarse = clone->get_coarse_op();
+TEST_F(Rs, FillSoc)
+{
+    auto A = csr::create(exec, gko::dim<2>{3, 3}, 7);
+    A->read({{2.0, -1.0, 0.0}, {-1.0, 2.0, -1.0}, {0.0, -1.0, 2.0}});
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_coarse), this->coarse, 0.0);
-// }
+    gko::array<index_type> row_ptrs(exec, 4);
+    gko::kernels::reference::rs::compute_soc_row_ptrs(exec, A.get(), 0.5,
+                                                      row_ptrs.get_data());
 
+    auto S = csr::create(exec, gko::dim<2>{3, 3}, 4);
+    exec->copy_from(exec, 4, row_ptrs.get_const_data(), S->get_row_ptrs());
 
-// TYPED_TEST(Rs, CanBeCleared)
-// {
-//     using MgLevel = typename TestFixture::MgLevel;
+    gko::kernels::reference::rs::fill_soc(exec, A.get(), 0.5, S.get());
 
-//     this->mg_level->clear();
-//     auto mtx = this->mg_level->get_system_matrix();
-//     auto coarse = this->mg_level->get_coarse_op();
+    std::vector<index_type> expected_cols{1, 0, 2, 1};
 
-//     ASSERT_EQ(mtx, nullptr);
-//     ASSERT_EQ(coarse, nullptr);
-// }
+    for (int i = 0; i < 4; ++i) {
+        ASSERT_EQ(S->get_const_col_idxs()[i], expected_cols[i]);
+        ASSERT_EQ(S->get_const_values()[i], 1.0);
+    }
+}
 
 
-// TYPED_TEST(Rs, CoarseFineRestrictApply)
-// {
-//     auto rs = this->rs_factory->generate(this->mtx);
-//     using Vec = typename TestFixture::Vec;
-//     using value_type = typename TestFixture::value_type;
-//     auto x = Vec::create_with_config_of(this->coarse_b);
+TEST_F(Rs, ComputeLambda)
+{
+    auto S = csr::create(exec, gko::dim<2>{3, 3}, 4);
+    S->read({{0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}});
 
-//     rs->get_restrict_op()->apply(this->fine_b, x);
+    gko::array<index_type> lambda(exec, 3);
 
-//     GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
-// }
+    gko::kernels::reference::rs::compute_lambda(exec, S.get(),
+                                                lambda.get_data());
 
-
-// TYPED_TEST(Rs, CoarseFineProlongApply)
-// {
-//     using value_type = typename TestFixture::value_type;
-//     auto rs = this->rs_factory->generate(this->mtx);
-//     auto x = gko::clone(this->fine_x);
-
-//     rs->get_prolong_op()->apply(this->coarse_b, x);
-
-//     GKO_ASSERT_MTX_NEAR(x, this->prolong_applyans, r<value_type>::value);
-// }
+    ASSERT_EQ(lambda.get_const_data()[0], 1);
+    ASSERT_EQ(lambda.get_const_data()[1], 2);
+    ASSERT_EQ(lambda.get_const_data()[2], 1);
+}
 
 
-// TYPED_TEST(Rs, Apply)
-// {
-//     using VT = typename TestFixture::value_type;
-//     using Vec = typename TestFixture::Vec;
-//     auto rs = this->rs_factory->generate(this->mtx);
-//     auto b = gko::clone(this->fine_x);
-//     auto x = gko::clone(this->fine_x);
-//     auto exec = rs->get_executor();
-//     auto answer = gko::initialize<Vec>(
-//         {I<VT>({-7.0, -2.0}), I<VT>({0.0, 0.0}), I<VT>({1.0, -2.0}),
-//          I<VT>({0.0, 0.0}), I<VT>({0.0, 0.0})},
-//         exec);
+TEST_F(Rs, RsCoarsening)
+{
+    auto S = csr::create(exec, gko::dim<2>{3, 3}, 4);
+    S->read({{0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}});
 
-//     rs->apply(b, x);
+    gko::array<index_type> lambda(exec, 3);
+    lambda.get_data()[0] = 1;
+    lambda.get_data()[1] = 2;
+    lambda.get_data()[2] = 1;
 
-//     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
-// }
+    gko::array<index_type> cf(exec, 3);
+    gko::kernels::reference::rs::init_cf(exec, cf);
 
+    gko::kernels::reference::rs::rs_coarsening(exec, S.get(), lambda.get_data(),
+                                               cf);
 
-// TYPED_TEST(Rs, AdvancedApply)
-// {
-//     using VT = typename TestFixture::value_type;
-//     using Vec = typename TestFixture::Vec;
-//     auto rs = this->rs_factory->generate(this->mtx);
-//     auto b = gko::clone(this->fine_x);
-//     auto x = gko::clone(this->fine_x);
-//     auto exec = rs->get_executor();
-//     auto alpha = gko::initialize<Vec>({1.0}, exec);
-//     auto beta = gko::initialize<Vec>({2.0}, exec);
-//     auto answer = gko::initialize<Vec>(
-//         {I<VT>({-11.0, -4.0}), I<VT>({2.0, -2.0}), I<VT>({-1.0, -4.0}),
-//          I<VT>({0.0, 0.0}), I<VT>({0.0, 4.0})},
-//         exec);
-
-//     rs->apply(alpha, b, beta, x);
-
-//     GKO_ASSERT_MTX_NEAR(x, answer, r<VT>::value);
-// }
+    ASSERT_EQ(cf.get_const_data()[0], -1);
+    ASSERT_EQ(cf.get_const_data()[1], 1);
+    ASSERT_EQ(cf.get_const_data()[2], -1);
+}
 
 
-// TYPED_TEST(Rs, GenerateMgLevel)
-// {
-//     using value_type = typename TestFixture::value_type;
-//     using index_type = typename TestFixture::index_type;
-//     using Mtx = typename TestFixture::Mtx;
-//     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 3},
-//     0));
-//     // 0-2-3
-//     prolong_op->read({{5, 3}, {{0, 0, 1}, {2, 1, 1}, {3, 2, 1}}});
-//     auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
+TEST_F(Rs, RsCleanup)
+{
+    gko::array<index_type> cf(exec, 3);
+    cf.get_data()[0] = 0;
+    cf.get_data()[1] = 1;
+    cf.get_data()[2] = -1;
 
-//     auto coarse_fine = this->rs_factory->generate(this->mtx);
+    gko::kernels::reference::rs::rs_cleanup(exec, cf);
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
-//                         restrict_op, r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_prolong_op()),
-//     prolong_op,
-//                         r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
-//                         this->coarse, r<value_type>::value);
-// }
+    ASSERT_EQ(cf.get_const_data()[0], -1);
+    ASSERT_EQ(cf.get_const_data()[1], 1);
+    ASSERT_EQ(cf.get_const_data()[2], -1);
+}
 
 
-// TYPED_TEST(Rs, GenerateMgLevelOnUnsortedCsrMatrix)
-// {
-//     using value_type = typename TestFixture::value_type;
-//     using index_type = typename TestFixture::index_type;
-//     using Mtx = typename TestFixture::Mtx;
-//     using MgLevel = typename TestFixture::MgLevel;
-//     auto coarse_rows = gko::array<index_type>(this->exec, {0, 2, 3});
-//     auto mglevel_sort =
-//         MgLevel::build().with_coarse_rows(coarse_rows).on(this->exec);
-//     /* this unsorted matrix is stored as this->fine:
-//      *  5 -3 -3  0  0
-//      * -3  5  0 -2 -1
-//      * -3  0  5  0 -1
-//      *  0 -3  0  5  0
-//      *  0 -2 -2  0  5
-//      */
-//     auto matrix = gko::share(Mtx::create(
-//         this->exec, gko::dim<2>{5, 5},
-//         gko::array<value_type>{
-//             this->exec,
-//             {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, -3, 5, -2, -2, 5}},
-//         gko::array<index_type>{this->exec,
-//                                {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2,
-//                                4}},
-//         gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
-//     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 3},
-//     0));
-//     // 0-2-3
-//     prolong_op->read({{5, 3}, {{0, 0, 1}, {2, 1, 1}, {3, 2, 1}}});
-//     auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
+TEST_F(Rs, CountCoarse)
+{
+    gko::array<index_type> cf(exec, 3);
+    cf.get_data()[0] = -1;
+    cf.get_data()[1] = 1;
+    cf.get_data()[2] = -1;
 
-//     auto coarse_fine = mglevel_sort->generate(matrix);
+    index_type coarse{};
+    gko::kernels::reference::rs::count_coarse(exec, cf, &coarse);
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
-//                         restrict_op, r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_prolong_op()),
-//     prolong_op,
-//                         r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
-//                         this->coarse, r<value_type>::value);
-// }
+    ASSERT_EQ(coarse, 1);
+}
 
 
-// TYPED_TEST(Rs, GenerateMgLevelOnUnsortedCooMatrix)
-// {
-//     using value_type = typename TestFixture::value_type;
-//     using index_type = typename TestFixture::index_type;
-//     using CooMtx = typename TestFixture::CooMtx;
-//     using Mtx = typename TestFixture::Mtx;
-//     using MgLevel = typename TestFixture::MgLevel;
-//     auto coarse_rows = gko::array<index_type>(this->exec, {0, 2, 3});
-//     auto mglevel_sort =
-//         MgLevel::build().with_coarse_rows(coarse_rows).on(this->exec);
-//     /* this unsorted matrix is stored as this->fine:
-//      *  5 -3 -3  0  0
-//      * -3  5  0 -2 -1
-//      * -3  0  5  0 -1
-//      *  0 -3  0  5  0
-//      *  0 -2 -2  0  5
-//      */
-//     auto matrix = gko::share(CooMtx::create(
-//         this->exec, gko::dim<2>{5, 5},
-//         gko::array<value_type>{
-//             this->exec,
-//             {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, -3, 5, -2, -2, 5}},
-//         gko::array<index_type>{this->exec,
-//                                {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2,
-//                                4}},
-//         gko::array<index_type>{this->exec,
-//                                {0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 4,
-//                                4}}));
-//     auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 3},
-//     0));
-//     // 0-2-3
-//     prolong_op->read({{5, 3}, {{0, 0, 1}, {2, 1, 1}, {3, 2, 1}}});
-//     auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
+TEST_F(Rs, FillCoarseRows)
+{
+    gko::array<index_type> cf(exec, 3);
+    cf.get_data()[0] = -1;
+    cf.get_data()[1] = 1;
+    cf.get_data()[2] = -1;
 
-//     auto coarse_fine = mglevel_sort->generate(matrix);
+    gko::array<index_type> coarse(exec, 1);
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_restrict_op()),
-//                         restrict_op, r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_prolong_op()),
-//     prolong_op,
-//                         r<value_type>::value);
-//     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
-//                         this->coarse, r<value_type>::value);
-// }
+    gko::kernels::reference::rs::fill_coarse_rows(exec, cf, coarse.get_data());
+
+    ASSERT_EQ(coarse.get_const_data()[0], 1);
+}
 
 
 }  // namespace

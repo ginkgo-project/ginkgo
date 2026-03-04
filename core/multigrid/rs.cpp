@@ -115,7 +115,10 @@ void Rs<ValueType, IndexType>::generate()
     exec->run(rs::make_fill_seq_array(restrict_op->get_row_ptrs(),
                                       coarse_dim_size + 1));
 
-    auto prolong_op = gko::as<csr_type>(share(restrict_op->transpose()));
+    auto prolong_op = gko::as<csr_type>(
+        share(restrict_op->transpose()));  // is that correct? or should we use
+                                           // some interpolation to compute the
+                                           // prolongation operator?
 
     //
     auto coarse_matrix = share(
