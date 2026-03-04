@@ -151,7 +151,7 @@ TYPED_TEST(Cgs, KernelInitialize)
         this->small_beta->get_device_view(),
         this->small_gamma->get_device_view(),
         this->small_prev_rho->get_device_view(),
-        this->small_rho->get_device_view(), &this->small_stop);
+        this->small_rho->get_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_r, this->small_b, 0);
     GKO_ASSERT_MTX_NEAR(this->small_r_tld, this->small_b, 0);
@@ -190,7 +190,7 @@ TYPED_TEST(Cgs, KernelStep1)
         this->small_q->get_const_device_view(),
         this->small_beta->get_device_view(),
         this->small_rho->get_const_device_view(),
-        this->small_prev_rho->get_const_device_view(), &this->small_stop);
+        this->small_prev_rho->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_u, l({{-5.0, -4.0}, {-5.0, -4.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-19.0, -2.0}, {-19.0, -2.0}}), 0);
@@ -214,7 +214,7 @@ TYPED_TEST(Cgs, KernelStep1DivZero)
         this->small_q->get_const_device_view(),
         this->small_beta->get_device_view(),
         this->small_rho->get_const_device_view(),
-        this->small_prev_rho->get_const_device_view(), &this->small_stop);
+        this->small_prev_rho->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_u, l({{7.0, 7.0}, {7.0, 7.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{5.0, 5.0}, {5.0, 5.0}}), 0);
@@ -241,7 +241,7 @@ TYPED_TEST(Cgs, KernelStep2)
         this->small_q->get_device_view(), this->small_t->get_device_view(),
         this->small_alpha->get_device_view(),
         this->small_rho->get_const_device_view(),
-        this->small_gamma->get_const_device_view(), &this->small_stop);
+        this->small_gamma->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{4.0, 1.0}, {4.0, 1.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_t, l({{2.0, -4.0}, {2.0, -4.0}}), 0);
@@ -265,7 +265,7 @@ TYPED_TEST(Cgs, KernelStep2DivZero)
         this->small_q->get_device_view(), this->small_t->get_device_view(),
         this->small_alpha->get_device_view(),
         this->small_rho->get_const_device_view(),
-        this->small_gamma->get_const_device_view(), &this->small_stop);
+        this->small_gamma->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{-8.0, -8.0}, {-8.0, -8.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_t, l({{-10.0, -10.0}, {-10.0, -10.0}}), 0);
@@ -288,7 +288,7 @@ TYPED_TEST(Cgs, KernelStep3)
         this->exec, this->small_t->get_const_device_view(),
         this->small_u_hat->get_const_device_view(),
         this->small_r->get_device_view(), this->small_x->get_device_view(),
-        this->small_alpha->get_const_device_view(), &this->small_stop);
+        this->small_alpha->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{5.0, 1.0}, {5.0, 1.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{-5.0, 3.0}, {-5.0, 3.0}}), 0);

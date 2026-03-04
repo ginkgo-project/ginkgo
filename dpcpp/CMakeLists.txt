@@ -11,12 +11,12 @@ add_instantiation_files(
     DENSE_INSTANTIATE
 )
 add_instantiation_files(
-    .
+    ${CMAKE_CURRENT_SOURCE_DIR}
     solver/batch_bicgstab_launch.instantiate.dp.cpp
     BATCH_BICGSTAB_INSTANTIATE
 )
 add_instantiation_files(
-    .
+    ${CMAKE_CURRENT_SOURCE_DIR}
     solver/batch_cg_launch.instantiate.dp.cpp
     BATCH_CG_INSTANTIATE
 )

@@ -102,7 +102,7 @@ namespace kernels {
                     matrix::view::dense<ValueType> residual,     \
                     matrix::view::dense<ValueType> givens_sin,   \
                     matrix::view::dense<ValueType> givens_cos,   \
-                    array<stopping_status>* stop_status, size_type krylov_dim)
+                    array<stopping_status>& stop_status, size_type krylov_dim)
 
 
 #define GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d)             \
@@ -113,7 +113,7 @@ namespace kernels {
                  matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,  \
                  Accessor3d krylov_bases,                                      \
                  matrix::view::dense<ValueType> next_krylov_basis,             \
-                 array<size_type>* final_iter_nums,                            \
+                 array<size_type>& final_iter_nums,                            \
                  array<char>& reduction_tmp, size_type krylov_dim)
 
 
@@ -128,10 +128,10 @@ namespace kernels {
                  matrix::view::dense<ValueType> hessenberg_iter,               \
                  matrix::view::dense<ValueType> buffer_iter,                   \
                  matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,  \
-                 size_type iter, array<size_type>* final_iter_nums,            \
-                 const array<stopping_status>* stop_status,                    \
-                 array<stopping_status>* reorth_status,                        \
-                 array<size_type>* num_reorth)
+                 size_type iter, array<size_type>& final_iter_nums,            \
+                 const array<stopping_status>& stop_status,                    \
+                 array<stopping_status>& reorth_status,                        \
+                 array<size_type>& num_reorth)
 
 #define GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType, Accessor3d) \
     void solve_krylov(                                                  \
@@ -141,7 +141,7 @@ namespace kernels {
         matrix::view::dense<const ValueType> hessenberg,                \
         matrix::view::dense<ValueType> y,                               \
         matrix::view::dense<ValueType> before_preconditioner,           \
-        const array<size_type>* final_iter_nums)
+        const array<size_type>& final_iter_nums)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                            \

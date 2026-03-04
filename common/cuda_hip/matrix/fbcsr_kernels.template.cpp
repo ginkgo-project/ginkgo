@@ -373,12 +373,12 @@ void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::Fbcsr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
-    *is_sorted = true;
+    is_sorted = true;
     auto gpu_array = array<bool>(exec, 1);
     // need to initialize the GPU value to true
-    exec->copy_from(exec->get_master(), 1, is_sorted, gpu_array.get_data());
+    exec->copy_from(exec->get_master(), 1, &is_sorted, gpu_array.get_data());
     auto block_size = default_block_size;
     const auto num_brows =
         static_cast<IndexType>(to_check->get_num_block_rows());
@@ -389,7 +389,7 @@ void is_sorted_by_column_index(
                 to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
                 num_brows, gpu_array.get_data());
     }
-    *is_sorted = get_element(gpu_array, 0);
+    is_sorted = get_element(gpu_array, 0);
 }
 
 

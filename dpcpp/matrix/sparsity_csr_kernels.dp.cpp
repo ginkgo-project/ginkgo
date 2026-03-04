@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -312,10 +312,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
-    *is_sorted = true;
-    auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
+    is_sorted = true;
+    auto cpu_array = make_array_view(exec->get_master(), 1, &is_sorted);
     auto gpu_array = array<bool>{exec, cpu_array};
     const auto num_rows = to_check->get_size()[0];
     const auto row_ptrs = to_check->get_const_row_ptrs();

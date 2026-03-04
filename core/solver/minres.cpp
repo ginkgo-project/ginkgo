@@ -192,7 +192,7 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         gko::detail::get_local(sin_prev)->get_device_view(),
         gko::detail::get_local(sin)->get_device_view(),
         gko::detail::get_local(eta_next)->get_device_view(),
-        gko::detail::get_local(eta)->get_device_view(), &stop_status));
+        gko::detail::get_local(eta)->get_device_view(), stop_status));
 
     int iter = -1;
     /* Memory movement summary:
@@ -265,7 +265,7 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(sin)->get_device_view(),
             gko::detail::get_local(eta)->get_device_view(),
             gko::detail::get_local(eta_next)->get_device_view(),
-            gko::detail::get_local(tau)->get_device_view(), &stop_status));
+            gko::detail::get_local(tau)->get_device_view(), stop_status));
 
 
         // update vectors
@@ -298,8 +298,7 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(gamma)->get_const_device_view(),
             gko::detail::get_local(delta)->get_const_device_view(),
             gko::detail::get_local(cos)->get_const_device_view(),
-            gko::detail::get_local(eta)->get_const_device_view(),
-            &stop_status));
+            gko::detail::get_local(eta)->get_const_device_view(), stop_status));
         swap(gamma, beta);
     }
 }

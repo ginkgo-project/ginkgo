@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,7 +100,7 @@ template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
     const matrix::Fbcsr<ValueType, IndexType>* to_check,
-    bool* is_sorted) GKO_NOT_IMPLEMENTED;
+    bool& is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX);

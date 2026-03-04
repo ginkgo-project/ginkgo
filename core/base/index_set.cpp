@@ -36,8 +36,8 @@ void index_set<IndexType>::populate_subsets(
     auto exec = this->get_executor();
     this->num_stored_indices_ = indices.get_size();
     exec->run(idx_set::make_populate_subsets(
-        this->index_space_size_, &indices, &this->subsets_begin_,
-        &this->subsets_end_, &this->superset_cumulative_indices_, is_sorted));
+        this->index_space_size_, indices, this->subsets_begin_,
+        this->subsets_end_, this->superset_cumulative_indices_, is_sorted));
 }
 
 

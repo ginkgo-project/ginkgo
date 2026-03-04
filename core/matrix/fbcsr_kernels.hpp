@@ -69,7 +69,7 @@ namespace kernels {
 #define GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType) \
     void is_sorted_by_column_index(                                       \
         std::shared_ptr<const DefaultExecutor> exec,                      \
-        const matrix::Fbcsr<ValueType, IndexType>* to_check, bool* is_sorted)
+        const matrix::Fbcsr<ValueType, IndexType>* to_check, bool& is_sorted)
 
 #define GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL(ValueType, IndexType)           \
     void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,     \

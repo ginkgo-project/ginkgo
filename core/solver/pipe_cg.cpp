@@ -178,7 +178,7 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     exec->run(pipe_cg::make_initialize_1(
         gko::detail::get_local(dense_b)->get_const_device_view(),
         gko::detail::get_local(r)->get_device_view(),
-        prev_rho->get_device_view(), &stop_status));
+        prev_rho->get_device_view(), stop_status));
     // r = r - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     // z = preconditioner * r
@@ -253,7 +253,7 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(f)->get_const_device_view(),
             gko::detail::get_local(g)->get_const_device_view(),
             rho->get_const_device_view(), beta->get_const_device_view(),
-            &stop_status));
+            stop_status));
 
         // m = preconditioner * w
         this->get_preconditioner()->apply(w, m);
@@ -298,7 +298,7 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(m)->get_const_device_view(),
             gko::detail::get_local(n)->get_const_device_view(),
             prev_rho->get_const_device_view(), rho->get_const_device_view(),
-            delta->get_const_device_view(), &stop_status));
+            delta->get_const_device_view(), stop_status));
     }
 }
 

@@ -156,7 +156,7 @@ TYPED_TEST(Minres, KernelInitialize)
         this->delta->get_device_view(), this->cos_prev->get_device_view(),
         this->cos->get_device_view(), this->sin_prev->get_device_view(),
         this->sin->get_device_view(), this->eta_next->get_device_view(),
-        this->eta->get_device_view(), &this->small_stop);
+        this->eta->get_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{1. / 2, 2. / 5}, {3. / 2, 4. / 5}}),
                         r<vt>::value);
@@ -200,7 +200,7 @@ TYPED_TEST(Minres, KernelInitializeWithSafeDivide)
         this->delta->get_device_view(), this->cos_prev->get_device_view(),
         this->cos->get_device_view(), this->sin_prev->get_device_view(),
         this->sin->get_device_view(), this->eta_next->get_device_view(),
-        this->eta->get_device_view(), &this->small_stop);
+        this->eta->get_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{0.0, 0.0}, {0.0, 0.0}}),
                         r<vt>::value);
@@ -235,7 +235,7 @@ TYPED_TEST(Minres, KernelStep1)
         this->cos->get_device_view(), this->sin_prev->get_device_view(),
         this->sin->get_device_view(), this->eta->get_device_view(),
         this->eta_next->get_device_view(), this->tau->get_device_view(),
-        &this->small_stop);
+        this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->delta, l({{3 * 3., 7 * 6.}}), r<vt>::value);
     GKO_ASSERT_MTX_NEAR(this->gamma,
@@ -299,7 +299,7 @@ TYPED_TEST(Minres, KernelStep2)
         this->gamma->get_const_device_view(),
         this->delta->get_const_device_view(),
         this->cos->get_const_device_view(), this->eta->get_const_device_view(),
-        &this->small_stop);
+        this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q_prev, old_small_v, 0.);
     GKO_ASSERT_MTX_NEAR(this->small_v, old_small_v_scaled, 0.);
@@ -340,7 +340,7 @@ TYPED_TEST(Minres, KernelStep2WithSafeDivide)
         this->gamma->get_const_device_view(),
         this->delta->get_const_device_view(),
         this->cos->get_const_device_view(), this->eta->get_const_device_view(),
-        &this->small_stop);
+        this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_q, l({{0.0, 0.0}, {0.0, 0.0}}), 0.);
     GKO_ASSERT_MTX_NEAR(this->small_z, l({{0.0, 0.0}, {0.0, 0.0}}), 0.);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -254,21 +254,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto col_idxs = to_check->get_const_col_idxs();
     const auto size = to_check->get_size();
+    is_sorted = true;
     for (size_type i = 0; i < size[0]; ++i) {
         for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
             if (col_idxs[idx - 1] > col_idxs[idx]) {
-                *is_sorted = false;
+                is_sorted = false;
                 return;
             }
         }
     }
-    *is_sorted = true;
-    return;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

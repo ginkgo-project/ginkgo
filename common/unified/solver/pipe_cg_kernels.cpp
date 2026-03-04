@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,7 +25,7 @@ void initialize_1(std::shared_ptr<const DefaultExecutor> exec,
                   matrix::view::dense<const ValueType> b,
                   matrix::view::dense<ValueType> r,
                   matrix::view::dense<ValueType> prev_rho,
-                  array<stopping_status>* stop_status)
+                  array<stopping_status>& stop_status)
 {
     if (b.size) {
         run_kernel_solver(
@@ -38,7 +38,7 @@ void initialize_1(std::shared_ptr<const DefaultExecutor> exec,
                 }
                 r(row, col) = b(row, col);
             },
-            b.size, b.stride, b, r, row_vector(prev_rho), *stop_status);
+            b.size, b.stride, b, r, row_vector(prev_rho), stop_status);
     } else {
         run_kernel(
             exec,
@@ -46,7 +46,7 @@ void initialize_1(std::shared_ptr<const DefaultExecutor> exec,
                 prev_rho[col] = one(prev_rho[col]);
                 stop[col].reset();
             },
-            b.size[1], row_vector(prev_rho), *stop_status);
+            b.size[1], row_vector(prev_rho), stop_status);
     }
 }
 
@@ -111,7 +111,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             matrix::view::dense<const ValueType> g,
             matrix::view::dense<const ValueType> rho,
             matrix::view::dense<const ValueType> beta,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     // tmp = rho / beta
     // x = x + tmp * p
@@ -134,7 +134,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
         },
         x.size, x.stride, default_stride(x), r, z1, z2, w, default_stride(p),
         default_stride(q), default_stride(f), default_stride(g),
-        row_vector(rho), row_vector(beta), *stop_status);
+        row_vector(rho), row_vector(beta), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_1_KERNEL);
@@ -152,7 +152,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             matrix::view::dense<const ValueType> prev_rho,
             matrix::view::dense<const ValueType> rho,
             matrix::view::dense<const ValueType> delta,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     // tmp = rho / prev_rho
     // beta = delta - |tmp|^2 * beta
@@ -183,7 +183,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
         p.size, p.stride, row_vector(beta), default_stride(p),
         default_stride(q), default_stride(f), default_stride(g), z, w,
         default_stride(m), default_stride(n), row_vector(prev_rho),
-        row_vector(rho), row_vector(delta), *stop_status);
+        row_vector(rho), row_vector(delta), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_2_KERNEL);

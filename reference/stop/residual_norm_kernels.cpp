@@ -28,23 +28,23 @@ void residual_norm(std::shared_ptr<const ReferenceExecutor> exec,
                    matrix::view::dense<const ValueType> tau,
                    matrix::view::dense<const ValueType> orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
-                   bool setFinalized, array<stopping_status>* stop_status,
-                   array<bool>* device_storage, bool* all_converged,
-                   bool* one_changed)
+                   bool setFinalized, array<stopping_status>& stop_status,
+                   array<bool>& device_storage, bool& all_converged,
+                   bool& one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
-    *all_converged = true;
-    *one_changed = false;
+    all_converged = true;
+    one_changed = false;
     for (size_type i = 0; i < tau.size[1]; ++i) {
         if (tau(0, i) <= rel_residual_goal * orig_tau(0, i)) {
-            stop_status->get_data()[i].converge(stoppingId, setFinalized);
-            *one_changed = true;
+            stop_status.get_data()[i].converge(stoppingId, setFinalized);
+            one_changed = true;
         }
     }
-    for (size_type i = 0; i < stop_status->get_size(); ++i) {
-        if (!stop_status->get_const_data()[i].has_stopped()) {
-            *all_converged = false;
+    for (size_type i = 0; i < stop_status.get_size(); ++i) {
+        if (!stop_status.get_const_data()[i].has_stopped()) {
+            all_converged = false;
             break;
         }
     }
@@ -71,20 +71,20 @@ void implicit_residual_norm(
     matrix::view::dense<const ValueType> tau,
     matrix::view::dense<const remove_complex<ValueType>> orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
-    bool setFinalized, array<stopping_status>* stop_status,
-    array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    bool setFinalized, array<stopping_status>& stop_status,
+    array<bool>& device_storage, bool& all_converged, bool& one_changed)
 {
-    *all_converged = true;
-    *one_changed = false;
+    all_converged = true;
+    one_changed = false;
     for (size_type i = 0; i < tau.size[1]; ++i) {
         if (sqrt(abs(tau(0, i))) <= rel_residual_goal * orig_tau(0, i)) {
-            stop_status->get_data()[i].converge(stoppingId, setFinalized);
-            *one_changed = true;
+            stop_status.get_data()[i].converge(stoppingId, setFinalized);
+            one_changed = true;
         }
     }
-    for (size_type i = 0; i < stop_status->get_size(); ++i) {
-        if (!stop_status->get_const_data()[i].has_stopped()) {
-            *all_converged = false;
+    for (size_type i = 0; i < stop_status.get_size(); ++i) {
+        if (!stop_status.get_const_data()[i].has_stopped()) {
+            all_converged = false;
             break;
         }
     }

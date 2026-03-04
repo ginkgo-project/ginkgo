@@ -36,7 +36,7 @@ namespace bicgstab {
         matrix::view::dense<ValueType> beta,                                 \
         matrix::view::dense<ValueType> gamma,                                \
         matrix::view::dense<ValueType> omega,                                \
-        array<stopping_status>* stop_status)
+        array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_1_KERNEL(ValueType)          \
@@ -48,7 +48,7 @@ namespace bicgstab {
                 matrix::view::dense<const ValueType> prev_rho, \
                 matrix::view::dense<const ValueType> alpha,    \
                 matrix::view::dense<const ValueType> omega,    \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_2_KERNEL(ValueType)        \
@@ -59,7 +59,7 @@ namespace bicgstab {
                 matrix::view::dense<const ValueType> rho,    \
                 matrix::view::dense<ValueType> alpha,        \
                 matrix::view::dense<const ValueType> beta,   \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_STEP_3_KERNEL(ValueType)        \
@@ -74,7 +74,7 @@ namespace bicgstab {
                 matrix::view::dense<const ValueType> beta,   \
                 matrix::view::dense<const ValueType> gamma,  \
                 matrix::view::dense<ValueType> omega,        \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_BICGSTAB_FINALIZE_KERNEL(ValueType)        \
@@ -82,7 +82,7 @@ namespace bicgstab {
                   matrix::view::dense<ValueType> x,            \
                   matrix::view::dense<const ValueType> y,      \
                   matrix::view::dense<const ValueType> alpha,  \
-                  array<stopping_status>* stop_status)
+                  array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                   \

@@ -313,11 +313,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
-    *is_sorted = true;
-    auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
-    auto gpu_array = array<bool>{exec, cpu_array};
+    is_sorted = true;
+    auto gpu_array = array<bool>{exec, 1};
+    // need to initialize the GPU value to true
+    exec->copy_from(exec->get_master(), 1, &is_sorted, gpu_array.get_data());
     const auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
     auto num_blocks = ceildiv(num_rows, default_block_size);
     if (num_blocks > 0) {
@@ -326,7 +327,7 @@ void is_sorted_by_column_index(
             to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
             num_rows, gpu_array.get_data());
     }
-    cpu_array = gpu_array;
+    is_sorted = get_element(gpu_array, 0);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

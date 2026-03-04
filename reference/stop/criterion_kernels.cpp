@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,10 +20,10 @@ namespace set_all_statuses {
 
 void set_all_statuses(std::shared_ptr<const ReferenceExecutor> exec,
                       uint8 stoppingId, bool setFinalized,
-                      array<stopping_status>* stop_status)
+                      array<stopping_status>& stop_status)
 {
-    for (int i = 0; i < stop_status->get_size(); i++) {
-        stop_status->get_data()[i].stop(stoppingId, setFinalized);
+    for (int i = 0; i < stop_status.get_size(); i++) {
+        stop_status.get_data()[i].stop(stoppingId, setFinalized);
     }
 }
 

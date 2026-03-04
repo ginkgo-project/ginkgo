@@ -615,7 +615,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::view::dense<ValueType> residual,
                 matrix::view::dense<ValueType> givens_sin,
                 matrix::view::dense<ValueType> givens_cos,
-                array<stopping_status>* stop_status, size_type krylov_dim)
+                array<stopping_status>& stop_status, size_type krylov_dim)
 {
     const auto num_threads =
         std::max(b.size[0] * b.stride, krylov_dim * b.size[1]);
@@ -630,7 +630,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 b.stride, as_device_type(residual.data), residual.stride,
                 as_device_type(givens_sin.data), givens_sin.stride,
                 as_device_type(givens_cos.data), givens_cos.stride,
-                as_device_type(stop_status->get_data()));
+                as_device_type(stop_status.get_data()));
     }
 }
 
@@ -646,7 +646,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
              matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,
              Accessor3d krylov_bases,
              matrix::view::dense<ValueType> next_krylov_basis,
-             array<size_type>* final_iter_nums, array<char>& reduction_tmp,
+             array<size_type>& final_iter_nums, array<char>& reduction_tmp,
              size_type krylov_dim)
 {
     constexpr bool use_scalar =
@@ -708,7 +708,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                 acc::as_device_range(krylov_bases),
                 as_device_type(next_krylov_basis.data),
                 next_krylov_basis.stride,
-                as_device_type(final_iter_nums->get_data()));
+                as_device_type(final_iter_nums.get_data()));
     }
 }
 
@@ -723,7 +723,7 @@ void finish_arnoldi_CGS(
     matrix::view::dense<ValueType> buffer_iter,
     matrix::view::dense<remove_complex<ValueType>> arnoldi_norm, size_type iter,
     const stopping_status* stop_status, stopping_status* reorth_status,
-    array<size_type>* num_reorth)
+    array<size_type>& num_reorth)
 {
     const auto dim_size = next_krylov_basis.size;
     if (dim_size[1] == 0) {
@@ -807,7 +807,7 @@ void finish_arnoldi_CGS(
             as_device_type(arnoldi_norm.data + 2 * stride_arnoldi),
             as_device_type(stop_status));
     // nrmN = norm(next_krylov_basis)
-    components::fill_array(exec, num_reorth->get_data(), 1, zero<size_type>());
+    components::fill_array(exec, num_reorth.get_data(), 1, zero<size_type>());
     check_arnoldi_norms<default_block_size>
         <<<ceildiv(dim_size[1], default_block_size), default_block_size, 0,
            exec->get_stream()>>>(
@@ -815,8 +815,8 @@ void finish_arnoldi_CGS(
             as_device_type(hessenberg_iter.data), stride_hessenberg, iter + 1,
             acc::as_device_range(krylov_bases), as_device_type(stop_status),
             as_device_type(reorth_status),
-            as_device_type(num_reorth->get_data()));
-    num_reorth_host = get_element(*num_reorth, 0);
+            as_device_type(num_reorth.get_data()));
+    num_reorth_host = get_element(num_reorth, 0);
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
         zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
@@ -867,7 +867,7 @@ void finish_arnoldi_CGS(
                 as_device_type(arnoldi_norm.data + 2 * stride_arnoldi),
                 as_device_type(stop_status));
         // nrmN = norm(next_krylov_basis)
-        components::fill_array(exec, num_reorth->get_data(), 1,
+        components::fill_array(exec, num_reorth.get_data(), 1,
                                zero<size_type>());
         check_arnoldi_norms<default_block_size>
             <<<ceildiv(dim_size[1], default_block_size), default_block_size, 0,
@@ -876,8 +876,8 @@ void finish_arnoldi_CGS(
                 as_device_type(hessenberg_iter.data), stride_hessenberg,
                 iter + 1, acc::as_device_range(krylov_bases),
                 as_device_type(stop_status), as_device_type(reorth_status),
-                num_reorth->get_data());
-        num_reorth_host = get_element(*num_reorth, 0);
+                num_reorth.get_data());
+        num_reorth_host = get_element(num_reorth, 0);
         // num_reorth_host := number of next_krylov vector to be
         // reorthogonalization
     }
@@ -902,7 +902,7 @@ void givens_rotation(
     matrix::view::dense<ValueType> hessenberg_iter,
     matrix::view::dense<remove_complex<ValueType>> residual_norm,
     matrix::view::dense<ValueType> residual_norm_collection, size_type iter,
-    const array<stopping_status>* stop_status)
+    const array<stopping_status>& stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -919,7 +919,7 @@ void givens_rotation(
                 as_device_type(givens_cos.data), givens_cos.stride,
                 as_device_type(residual_norm.data),
                 as_device_type(residual_norm_collection.data),
-                residual_norm_collection.stride, stop_status->get_const_data());
+                residual_norm_collection.stride, stop_status.get_const_data());
     }
 }
 
@@ -935,22 +935,22 @@ void arnoldi(std::shared_ptr<const DefaultExecutor> exec,
              matrix::view::dense<ValueType> hessenberg_iter,
              matrix::view::dense<ValueType> buffer_iter,
              matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,
-             size_type iter, array<size_type>* final_iter_nums,
-             const array<stopping_status>* stop_status,
-             array<stopping_status>* reorth_status,
-             array<size_type>* num_reorth)
+             size_type iter, array<size_type>& final_iter_nums,
+             const array<stopping_status>& stop_status,
+             array<stopping_status>& reorth_status,
+             array<size_type>& num_reorth)
 {
-    if (final_iter_nums->get_size() != 0) {
+    if (final_iter_nums.get_size() != 0) {
         increase_final_iteration_numbers_kernel<<<
             static_cast<unsigned int>(
-                ceildiv(final_iter_nums->get_size(), default_block_size)),
+                ceildiv(final_iter_nums.get_size(), default_block_size)),
             default_block_size, 0, exec->get_stream()>>>(
-            as_device_type(final_iter_nums->get_data()),
-            stop_status->get_const_data(), final_iter_nums->get_size());
+            as_device_type(final_iter_nums.get_data()),
+            stop_status.get_const_data(), final_iter_nums.get_size());
     }
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
-                       stop_status->get_const_data(), reorth_status->get_data(),
+                       stop_status.get_const_data(), reorth_status.get_data(),
                        num_reorth);
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
                     residual_norm, residual_norm_collection, iter, stop_status);
@@ -964,7 +964,7 @@ void solve_upper_triangular(
     std::shared_ptr<const DefaultExecutor> exec,
     matrix::view::dense<const ValueType> residual_norm_collection,
     matrix::view::dense<const ValueType> hessenberg,
-    matrix::view::dense<ValueType> y, const array<size_type>* final_iter_nums)
+    matrix::view::dense<ValueType> y, const array<size_type>& final_iter_nums)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -979,7 +979,7 @@ void solve_upper_triangular(
             as_device_type(residual_norm_collection.data),
             residual_norm_collection.stride, as_device_type(hessenberg.data),
             hessenberg.stride, as_device_type(y.data), y.stride,
-            as_device_type(final_iter_nums->get_const_data()));
+            as_device_type(final_iter_nums.get_const_data()));
 }
 
 
@@ -988,7 +988,7 @@ void calculate_qy(std::shared_ptr<const DefaultExecutor> exec,
                   ConstAccessor3d krylov_bases, size_type num_krylov_bases,
                   matrix::view::dense<const ValueType> y,
                   matrix::view::dense<ValueType> before_preconditioner,
-                  const array<size_type>* final_iter_nums)
+                  const array<size_type>& final_iter_nums)
 {
     const auto num_rows = before_preconditioner.size[0];
     const auto num_cols = before_preconditioner.size[1];
@@ -1005,7 +1005,7 @@ void calculate_qy(std::shared_ptr<const DefaultExecutor> exec,
                 as_device_type(y.data), y.stride,
                 as_device_type(before_preconditioner.data),
                 stride_before_preconditioner,
-                as_device_type(final_iter_nums->get_const_data()));
+                as_device_type(final_iter_nums.get_const_data()));
     }
     // Calculate qy
     // before_preconditioner = krylov_bases * y
@@ -1019,7 +1019,7 @@ void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,
                   matrix::view::dense<const ValueType> hessenberg,
                   matrix::view::dense<ValueType> y,
                   matrix::view::dense<ValueType> before_preconditioner,
-                  const array<size_type>* final_iter_nums)
+                  const array<size_type>& final_iter_nums)
 {
     if (before_preconditioner.size[1] == 0) {
         return;

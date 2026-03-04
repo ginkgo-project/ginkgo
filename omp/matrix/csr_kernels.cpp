@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1006,17 +1006,17 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, array<IndexType>* row_nnz)
+    const span& col_span, array<IndexType>& row_nnz)
 {
     const auto row_ptrs = source->get_const_row_ptrs();
     const auto col_idxs = source->get_const_col_idxs();
 #pragma omp parallel for
     for (size_type row = row_span.begin; row < row_span.end; ++row) {
-        row_nnz->get_data()[row - row_span.begin] = zero<IndexType>();
+        row_nnz.get_data()[row - row_span.begin] = zero<IndexType>();
         for (auto nnz = row_ptrs[row]; nnz < row_ptrs[row + 1]; ++nnz) {
             if (col_idxs[nnz] >= col_span.begin &&
                 col_idxs[nnz] < col_span.end) {
-                row_nnz->get_data()[row - row_span.begin]++;
+                row_nnz.get_data()[row - row_span.begin]++;
             }
         }
     }
@@ -1461,7 +1461,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const OmpExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::Csr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto col_idxs = to_check->get_const_col_idxs();
@@ -1479,7 +1479,7 @@ void is_sorted_by_column_index(
             }
         }
     }
-    *is_sorted = local_is_sorted;
+    is_sorted = local_is_sorted;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

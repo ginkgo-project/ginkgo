@@ -167,7 +167,7 @@ TEST_F(Minres, MinresInitializeIsEquivalentToRef)
         delta->get_device_view(), cos_prev->get_device_view(),
         cos->get_device_view(), sin_prev->get_device_view(),
         sin->get_device_view(), eta_next->get_device_view(),
-        eta->get_device_view(), &stop_status);
+        eta->get_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::minres::initialize(
         exec, d_r->get_const_device_view(), d_z->get_device_view(),
         d_p->get_device_view(), d_p_prev->get_device_view(),
@@ -176,8 +176,7 @@ TEST_F(Minres, MinresInitializeIsEquivalentToRef)
         d_gamma->get_device_view(), d_delta->get_device_view(),
         d_cos_prev->get_device_view(), d_cos->get_device_view(),
         d_sin_prev->get_device_view(), d_sin->get_device_view(),
-        d_eta_next->get_device_view(), d_eta->get_device_view(),
-        &d_stop_status);
+        d_eta_next->get_device_view(), d_eta->get_device_view(), d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(d_r, r, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);
@@ -210,14 +209,14 @@ TEST_F(Minres, MinresStep1IsEquivalentToRef)
         cos_prev->get_device_view(), cos->get_device_view(),
         sin_prev->get_device_view(), sin->get_device_view(),
         eta->get_device_view(), eta_next->get_device_view(),
-        tau->get_device_view(), &stop_status);
+        tau->get_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::minres::step_1(
         exec, d_alpha->get_device_view(), d_beta->get_device_view(),
         d_gamma->get_device_view(), d_delta->get_device_view(),
         d_cos_prev->get_device_view(), d_cos->get_device_view(),
         d_sin_prev->get_device_view(), d_sin->get_device_view(),
         d_eta->get_device_view(), d_eta_next->get_device_view(),
-        d_tau->get_device_view(), &d_stop_status);
+        d_tau->get_device_view(), d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(d_alpha, alpha, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_beta, beta, ::r<value_type>::value);
@@ -245,7 +244,7 @@ TEST_F(Minres, MinresStep2IsEquivalentToRef)
         alpha->get_const_device_view(), beta->get_const_device_view(),
         gamma->get_const_device_view(), delta->get_const_device_view(),
         cos->get_const_device_view(), eta->get_const_device_view(),
-        &stop_status);
+        stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::minres::step_2(
         exec, d_x->get_device_view(), d_p->get_device_view(),
         d_p_prev->get_const_device_view(), d_z->get_device_view(),
@@ -254,7 +253,7 @@ TEST_F(Minres, MinresStep2IsEquivalentToRef)
         d_alpha->get_const_device_view(), d_beta->get_const_device_view(),
         d_gamma->get_const_device_view(), d_delta->get_const_device_view(),
         d_cos->get_const_device_view(), d_eta->get_const_device_view(),
-        &d_stop_status);
+        d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_z, z, ::r<value_type>::value);

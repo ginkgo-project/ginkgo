@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,10 +17,10 @@ namespace ir {
 
 
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
-                array<stopping_status>* stop_status)
+                array<stopping_status>& stop_status)
 {
-    for (size_type j = 0; j < stop_status->get_size(); ++j) {
-        stop_status->get_data()[j].reset();
+    for (size_type j = 0; j < stop_status.get_size(); ++j) {
+        stop_status.get_data()[j].reset();
     }
 }
 

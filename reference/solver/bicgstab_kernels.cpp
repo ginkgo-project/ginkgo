@@ -32,7 +32,7 @@ void initialize(
     matrix::view::dense<ValueType> p, matrix::view::dense<ValueType> prev_rho,
     matrix::view::dense<ValueType> rho, matrix::view::dense<ValueType> alpha,
     matrix::view::dense<ValueType> beta, matrix::view::dense<ValueType> gamma,
-    matrix::view::dense<ValueType> omega, array<stopping_status>* stop_status)
+    matrix::view::dense<ValueType> omega, array<stopping_status>& stop_status)
 {
     for (size_type j = 0; j < b.size[1]; ++j) {
         rho(0, j) = one<ValueType>();
@@ -41,7 +41,7 @@ void initialize(
         beta(0, j) = one<ValueType>();
         gamma(0, j) = one<ValueType>();
         omega(0, j) = one<ValueType>();
-        stop_status->get_data()[j].reset();
+        stop_status.get_data()[j].reset();
     }
     for (size_type i = 0; i < b.size[0]; ++i) {
         for (size_type j = 0; j < b.size[1]; ++j) {
@@ -69,11 +69,11 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::view::dense<const ValueType> prev_rho,
             matrix::view::dense<const ValueType> alpha,
             matrix::view::dense<const ValueType> omega,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     for (size_type i = 0; i < p.size[0]; ++i) {
         for (size_type j = 0; j < p.size[1]; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (is_nonzero(prev_rho(0, j) * omega(0, j))) {
@@ -98,11 +98,11 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::view::dense<const ValueType> rho,
             matrix::view::dense<ValueType> alpha,
             matrix::view::dense<const ValueType> beta,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     for (size_type i = 0; i < s.size[0]; ++i) {
         for (size_type j = 0; j < s.size[1]; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (is_nonzero(beta(0, j))) {
@@ -130,10 +130,10 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::view::dense<const ValueType> beta,
             matrix::view::dense<const ValueType> gamma,
             matrix::view::dense<ValueType> omega,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     for (size_type j = 0; j < x.size[1]; ++j) {
-        if (stop_status->get_const_data()[j].has_stopped()) {
+        if (stop_status.get_const_data()[j].has_stopped()) {
             continue;
         }
         if (is_nonzero(beta(0, j))) {
@@ -144,7 +144,7 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec,
     }
     for (size_type i = 0; i < x.size[0]; ++i) {
         for (size_type j = 0; j < x.size[1]; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
             x(i, j) += alpha(0, j) * y(i, j) + omega(0, j) * z(i, j);
@@ -161,14 +161,14 @@ void finalize(std::shared_ptr<const ReferenceExecutor> exec,
               matrix::view::dense<ValueType> x,
               matrix::view::dense<const ValueType> y,
               matrix::view::dense<const ValueType> alpha,
-              array<stopping_status>* stop_status)
+              array<stopping_status>& stop_status)
 {
     for (size_type j = 0; j < x.size[1]; ++j) {
-        if (stop_status->get_const_data()[j].has_stopped() &&
-            !stop_status->get_const_data()[j].is_finalized()) {
+        if (stop_status.get_const_data()[j].has_stopped() &&
+            !stop_status.get_const_data()[j].is_finalized()) {
             for (size_type i = 0; i < x.size[0]; ++i) {
                 x(i, j) += alpha(0, j) * y(i, j);
-                stop_status->get_data()[j].finalize();
+                stop_status.get_data()[j].finalize();
             }
         }
     }

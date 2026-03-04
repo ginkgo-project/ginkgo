@@ -129,7 +129,7 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         gko::detail::get_local(q)->get_device_view(),
         gko::detail::get_local(t)->get_device_view(),
         prev_rho->get_device_view(), rho->get_device_view(),
-        rho_t->get_device_view(), &stop_status));
+        rho_t->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -172,7 +172,7 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(p)->get_device_view(),
             gko::detail::get_local(z)->get_const_device_view(),
             gko::detail::get_local(rho_t)->get_const_device_view(),
-            prev_rho->get_const_device_view(), &stop_status));
+            prev_rho->get_const_device_view(), stop_status));
         this->get_system_matrix()->apply(p, q);
         p->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
@@ -187,7 +187,7 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
                              gko::detail::get_local(p)->get_const_device_view(),
                              gko::detail::get_local(q)->get_const_device_view(),
                              beta->get_const_device_view(),
-                             rho->get_const_device_view(), &stop_status));
+                             rho->get_const_device_view(), stop_status));
         swap(prev_rho, rho);
     }
 }

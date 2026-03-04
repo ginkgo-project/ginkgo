@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -582,7 +582,7 @@ namespace {
 template <typename ValueType>
 void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
                   const size_type nrhs, matrix::Dense<ValueType>* m,
-                  array<stopping_status>* stop_status)
+                  array<stopping_status>& stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
     const auto m_stride = m->get_stride();
@@ -590,7 +590,7 @@ void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
     const auto grid_dim = ceildiv(m_stride * subspace_dim, default_block_size);
     initialize_m_kernel(grid_dim, default_block_size, 0, exec->get_queue(),
                         subspace_dim, nrhs, as_device_type(m->get_values()),
-                        m_stride, stop_status->get_data());
+                        m_stride, stop_status.get_data());
 }
 
 
@@ -642,7 +642,7 @@ void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
                             const matrix::Dense<ValueType>* m,
                             const matrix::Dense<ValueType>* f,
                             matrix::Dense<ValueType>* c,
-                            const array<stopping_status>* stop_status)
+                            const array<stopping_status>& stop_status)
 {
     const auto subspace_dim = m->get_size()[0];
 
@@ -652,7 +652,7 @@ void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
         as_device_type(m->get_const_values()), m->get_stride(),
         as_device_type(f->get_const_values()), f->get_stride(),
         as_device_type(c->get_values()), c->get_stride(),
-        stop_status->get_const_data());
+        stop_status.get_const_data());
 }
 
 
@@ -664,7 +664,7 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
                     matrix::Dense<ValueType>* alpha,
                     matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* g_k,
                     matrix::Dense<ValueType>* u,
-                    const array<stopping_status>* stop_status)
+                    const array<stopping_status>& stop_status)
 {
     const auto size = g->get_size()[0];
     const auto p_stride = p->get_stride();
@@ -686,7 +686,7 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
                                 nrhs, p_i, as_device_type(g_k->get_values()),
                                 g_k->get_stride(),
                                 as_device_type(alpha->get_values()),
-                                stop_status->get_const_data());
+                                stop_status.get_const_data());
             } else {
                 onemkl::dot(*exec->get_queue(), size, p_i, 1, g_k->get_values(),
                             g_k->get_stride(),
@@ -701,14 +701,14 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
             as_device_type(g->get_const_values()), g->get_stride(),
             as_device_type(g_k->get_values()), g_k->get_stride(),
             as_device_type(u->get_values()), u->get_stride(),
-            stop_status->get_const_data());
+            stop_status.get_const_data());
     }
     update_g_kernel<default_block_size>(
         ceildiv(size * g_k->get_stride(), default_block_size),
         default_block_size, 0, exec->get_queue(), k, size, nrhs,
         as_device_type(g_k->get_const_values()), g_k->get_stride(),
         as_device_type(g->get_values()), g->get_stride(),
-        stop_status->get_const_data());
+        stop_status.get_const_data());
 }
 
 
@@ -716,7 +716,7 @@ template <typename ValueType>
 void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
               const size_type k, const matrix::Dense<ValueType>* p,
               const matrix::Dense<ValueType>* g_k, matrix::Dense<ValueType>* m,
-              const array<stopping_status>* stop_status)
+              const array<stopping_status>& stop_status)
 {
     const auto size = g_k->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
@@ -739,7 +739,7 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
                                 nrhs, as_device_type(p_i),
                                 as_device_type(g_k->get_const_values()),
                                 g_k->get_stride(), as_device_type(m_i),
-                                stop_status->get_const_data());
+                                stop_status.get_const_data());
             } else {
                 onemkl::dot(*exec->get_queue(), size, as_device_type(p_i), 1,
                             g_k->get_const_values(), g_k->get_stride(), m_i);
@@ -757,7 +757,7 @@ void update_x_r_and_f(std::shared_ptr<const DpcppExecutor> exec,
                       const matrix::Dense<ValueType>* u,
                       matrix::Dense<ValueType>* f, matrix::Dense<ValueType>* r,
                       matrix::Dense<ValueType>* x,
-                      const array<stopping_status>* stop_status)
+                      const array<stopping_status>& stop_status)
 {
     const auto size = x->get_size()[0];
     const auto subspace_dim = m->get_size()[0];
@@ -771,7 +771,7 @@ void update_x_r_and_f(std::shared_ptr<const DpcppExecutor> exec,
         as_device_type(f->get_values()), f->get_stride(),
         as_device_type(r->get_values()), r->get_stride(),
         as_device_type(x->get_values()), x->get_stride(),
-        stop_status->get_const_data());
+        stop_status.get_const_data());
     components::fill_array(exec, f->get_values() + k * f->get_stride(), nrhs,
                            zero<ValueType>());
 }
@@ -784,7 +784,7 @@ template <typename ValueType>
 void initialize(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
                 matrix::Dense<ValueType>* m,
                 matrix::Dense<ValueType>* subspace_vectors, bool deterministic,
-                array<stopping_status>* stop_status)
+                array<stopping_status>& stop_status)
 {
     initialize_m(exec, nrhs, m, stop_status);
     initialize_subspace_vectors(exec, subspace_vectors, deterministic);
@@ -801,7 +801,7 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
             const matrix::Dense<ValueType>* residual,
             const matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* c,
             matrix::Dense<ValueType>* v,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     solve_lower_triangular(exec, nrhs, m, f, c, stop_status);
 
@@ -815,7 +815,7 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
                   residual->get_stride(), as_device_type(c->get_const_values()),
                   c->get_stride(), as_device_type(g->get_const_values()),
                   g->get_stride(), as_device_type(v->get_values()),
-                  v->get_stride(), stop_status->get_const_data());
+                  v->get_stride(), stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
@@ -826,7 +826,7 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
             const size_type k, const matrix::Dense<ValueType>* omega,
             const matrix::Dense<ValueType>* preconditioned_vector,
             const matrix::Dense<ValueType>* c, matrix::Dense<ValueType>* u,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     if (nrhs == 0) {
         return;
@@ -842,7 +842,7 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
                   preconditioned_vector->get_stride(),
                   as_device_type(c->get_const_values()), c->get_stride(),
                   as_device_type(u->get_values()), u->get_stride(),
-                  stop_status->get_const_data());
+                  stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
@@ -855,7 +855,7 @@ void step_3(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
             matrix::Dense<ValueType>* u, matrix::Dense<ValueType>* m,
             matrix::Dense<ValueType>* f, matrix::Dense<ValueType>* alpha,
             matrix::Dense<ValueType>* residual, matrix::Dense<ValueType>* x,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     update_g_and_u(exec, nrhs, k, p, m, alpha, g, g_k, u, stop_status);
     update_m(exec, nrhs, k, p, g_k, m, stop_status);
@@ -870,14 +870,14 @@ void compute_omega(
     std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
     const remove_complex<ValueType> kappa, const matrix::Dense<ValueType>* tht,
     const matrix::Dense<remove_complex<ValueType>>* residual_norm,
-    matrix::Dense<ValueType>* omega, const array<stopping_status>* stop_status)
+    matrix::Dense<ValueType>* omega, const array<stopping_status>& stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
     compute_omega_kernel(
         grid_dim, config::warp_size, 0, exec->get_queue(), nrhs,
         as_device_type(kappa), as_device_type(tht->get_const_values()),
         as_device_type(residual_norm->get_const_values()),
-        as_device_type(omega->get_values()), stop_status->get_const_data());
+        as_device_type(omega->get_values()), stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);

@@ -145,7 +145,7 @@ TYPED_TEST(Bicg, KernelInitialize)
         this->small_prev_rho->get_device_view(),
         this->small_rho->get_device_view(), this->small_r2->get_device_view(),
         this->small_z2->get_device_view(), this->small_p2->get_device_view(),
-        this->small_q2->get_device_view(), &this->small_stop);
+        this->small_q2->get_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_r, this->small_b, 0);
     GKO_ASSERT_MTX_NEAR(this->small_z, this->small_zero, 0);
@@ -180,7 +180,7 @@ TYPED_TEST(Bicg, KernelStep1)
         this->small_p2->get_device_view(),
         this->small_z2->get_const_device_view(),
         this->small_rho->get_const_device_view(),
-        this->small_prev_rho->get_const_device_view(), &this->small_stop);
+        this->small_prev_rho->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-1.25, 3.0}, {-1.25, 3.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_p2, l({{-1.25, 3.0}, {-1.25, 3.0}}), 0);
@@ -202,7 +202,7 @@ TYPED_TEST(Bicg, KernelStep1DivByZero)
         this->small_p2->get_device_view(),
         this->small_z2->get_const_device_view(),
         this->small_rho->get_const_device_view(),
-        this->small_prev_rho->get_const_device_view(), &this->small_stop);
+        this->small_prev_rho->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_p2, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
@@ -230,7 +230,7 @@ TYPED_TEST(Bicg, KernelStep2)
         this->small_q->get_const_device_view(),
         this->small_q2->get_const_device_view(),
         this->small_beta->get_const_device_view(),
-        this->small_rho->get_const_device_view(), &this->small_stop);
+        this->small_rho->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{-1.25, -2.0}, {-1.25, -2.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{5.25, 4.0}, {5.25, 4.0}}), 0);
@@ -256,7 +256,7 @@ TYPED_TEST(Bicg, KernelStep2DivByZero)
         this->small_q->get_const_device_view(),
         this->small_q2->get_const_device_view(),
         this->small_beta->get_const_device_view(),
-        this->small_rho->get_const_device_view(), &this->small_stop);
+        this->small_rho->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{-2.0, -2.0}, {-2.0, -2.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{4.0, 4.0}, {4.0, 4.0}}), 0);

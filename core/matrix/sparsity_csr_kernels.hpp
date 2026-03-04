@@ -69,7 +69,7 @@ namespace kernels {
     void is_sorted_by_column_index(                                   \
         std::shared_ptr<const DefaultExecutor> exec,                  \
         const matrix::SparsityCsr<ValueType, IndexType>* to_check,    \
-        bool* is_sorted)
+        bool& is_sorted)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename MatrixValueType, typename InputValueType,            \

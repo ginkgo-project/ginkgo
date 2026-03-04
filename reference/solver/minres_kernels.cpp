@@ -34,14 +34,14 @@ void initialize(
     matrix::view::dense<ValueType> cos_prev, matrix::view::dense<ValueType> cos,
     matrix::view::dense<ValueType> sin_prev, matrix::view::dense<ValueType> sin,
     matrix::view::dense<ValueType> eta_next, matrix::view::dense<ValueType> eta,
-    array<stopping_status>* stop_status)
+    array<stopping_status>& stop_status)
 {
     for (size_type j = 0; j < r.size[1]; ++j) {
         delta(0, j) = gamma(0, j) = cos_prev(0, j) = sin_prev(0, j) =
             sin(0, j) = zero<ValueType>();
         cos(0, j) = one<ValueType>();
         eta_next(0, j) = eta(0, j) = beta(0, j) = sqrt(beta(0, j));
-        stop_status->get_data()[j].reset();
+        stop_status.get_data()[j].reset();
     }
     for (size_type i = 0; i < r.size[0]; ++i) {
         for (size_type j = 0; j < r.size[1]; ++j) {
@@ -84,10 +84,10 @@ void step_1(
     matrix::view::dense<ValueType> sin_prev, matrix::view::dense<ValueType> sin,
     matrix::view::dense<ValueType> eta, matrix::view::dense<ValueType> eta_next,
     matrix::view::dense<ValueType> tau,
-    const array<stopping_status>* stop_status)
+    const array<stopping_status>& stop_status)
 {
     for (size_type j = 0; j < alpha.size[1]; ++j) {
-        if (stop_status->get_const_data()[j].has_stopped()) {
+        if (stop_status.get_const_data()[j].has_stopped()) {
             continue;
         }
         beta(0, j) = sqrt(beta(0, j));
@@ -126,11 +126,11 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             matrix::view::dense<const ValueType> delta,
             matrix::view::dense<const ValueType> cos,
             matrix::view::dense<const ValueType> eta,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     for (size_type i = 0; i < x.size[0]; ++i) {
         for (size_type j = 0; j < x.size[1]; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
             p(i, j) = safe_divide(

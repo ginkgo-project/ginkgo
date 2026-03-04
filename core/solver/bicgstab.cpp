@@ -139,7 +139,7 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
         gko::detail::get_local(p)->get_device_view(),
         prev_rho->get_device_view(), rho->get_device_view(),
         alpha->get_device_view(), beta->get_device_view(),
-        gamma->get_device_view(), omega->get_device_view(), &stop_status));
+        gamma->get_device_view(), omega->get_device_view(), stop_status));
 
     // r = b - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
@@ -188,7 +188,7 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(v)->get_const_device_view(),
             rho->get_const_device_view(), prev_rho->get_const_device_view(),
             alpha->get_const_device_view(), omega->get_const_device_view(),
-            &stop_status));
+            stop_status));
 
         // y = preconditioner * p
         this->get_preconditioner()->apply(p, y);
@@ -203,7 +203,7 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(s)->get_device_view(),
             gko::detail::get_local(v)->get_const_device_view(),
             rho->get_const_device_view(), alpha->get_device_view(),
-            beta->get_const_device_view(), &stop_status));
+            beta->get_const_device_view(), stop_status));
 
         all_stopped =
             stop_criterion->update()
@@ -216,7 +216,7 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
             exec->run(bicgstab::make_finalize(
                 gko::detail::get_local(dense_x)->get_device_view(),
                 gko::detail::get_local(y)->get_const_device_view(),
-                alpha->get_const_device_view(), &stop_status));
+                alpha->get_const_device_view(), stop_status));
         }
         this->template log<log::Logger::iteration_complete>(
             this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
@@ -245,7 +245,7 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(z)->get_const_device_view(),
             alpha->get_const_device_view(), beta->get_const_device_view(),
             gamma->get_const_device_view(), omega->get_device_view(),
-            &stop_status));
+            stop_status));
         swap(prev_rho, rho);
     }
 }

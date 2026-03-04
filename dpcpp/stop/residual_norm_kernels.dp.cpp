@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,7 +33,7 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Dense<ValueType>* tau,
                    const matrix::Dense<ValueType>* orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
-                   bool setFinalized, array<stopping_status>* stop_status,
+                   bool setFinalized, array<stopping_status>& stop_status,
                    array<bool>* device_storage, bool* all_converged,
                    bool* one_changed)
 {
@@ -49,7 +49,7 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
 
     auto orig_tau_val = orig_tau->get_const_values();
     auto tau_val = as_device_type(tau->get_const_values());
-    auto stop_status_val = stop_status->get_data();
+    auto stop_status_val = stop_status.get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {
@@ -92,7 +92,7 @@ void implicit_residual_norm(
     const matrix::Dense<ValueType>* tau,
     const matrix::Dense<remove_complex<ValueType>>* orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
-    bool setFinalized, array<stopping_status>* stop_status,
+    bool setFinalized, array<stopping_status>& stop_status,
     array<bool>* device_storage, bool* all_converged, bool* one_changed)
 {
     auto device_storage_val = device_storage->get_data();
@@ -105,7 +105,7 @@ void implicit_residual_norm(
 
     auto orig_tau_val = orig_tau->get_const_values();
     auto tau_val = as_device_type(tau->get_const_values());
-    auto stop_status_val = stop_status->get_data();
+    auto stop_status_val = stop_status.get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(
             sycl::range<1>{tau->get_size()[1]}, [=](sycl::id<1> idx_id) {

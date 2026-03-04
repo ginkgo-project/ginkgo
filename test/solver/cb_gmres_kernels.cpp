@@ -95,23 +95,21 @@ protected:
         residual_norm_collection = gen_mtx(default_krylov_dim_mixed + 1, n);
         givens_sin = gen_mtx(default_krylov_dim_mixed, n);
         givens_cos = gen_mtx(default_krylov_dim_mixed, n);
-        stop_status =
-            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
-        for (size_t i = 0; i < stop_status->get_size(); ++i) {
-            stop_status->get_data()[i].reset();
+        stop_status = gko::array<gko::stopping_status>(ref, n);
+        for (size_t i = 0; i < stop_status.get_size(); ++i) {
+            stop_status.get_data()[i].reset();
         }
-        reorth_status =
-            std::make_unique<gko::array<gko::stopping_status>>(ref, n);
-        for (size_t i = 0; i < reorth_status->get_size(); ++i) {
-            reorth_status->get_data()[i].reset();
+        reorth_status = gko::array<gko::stopping_status>(ref, n);
+        for (size_t i = 0; i < reorth_status.get_size(); ++i) {
+            reorth_status.get_data()[i].reset();
         }
-        final_iter_nums = std::make_unique<gko::array<gko::size_type>>(ref, n);
-        for (size_t i = 0; i < final_iter_nums->get_size(); ++i) {
-            final_iter_nums->get_data()[i] = 5;
+        final_iter_nums = gko::array<gko::size_type>(ref, n);
+        for (size_t i = 0; i < final_iter_nums.get_size(); ++i) {
+            final_iter_nums.get_data()[i] = 5;
         }
-        num_reorth = std::make_unique<gko::array<gko::size_type>>(ref, n);
-        for (size_t i = 0; i < num_reorth->get_size(); ++i) {
-            num_reorth->get_data()[i] = 5;
+        num_reorth = gko::array<gko::size_type>(ref, n);
+        for (size_t i = 0; i < num_reorth.get_size(); ++i) {
+            num_reorth.get_data()[i] = 5;
         }
 
         d_x = gko::clone(exec, x);
@@ -130,14 +128,10 @@ protected:
         d_residual_norm_collection = gko::clone(exec, residual_norm_collection);
         d_givens_sin = gko::clone(exec, givens_sin);
         d_givens_cos = gko::clone(exec, givens_cos);
-        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
-            exec, *stop_status);
-        d_reorth_status = std::make_unique<gko::array<gko::stopping_status>>(
-            exec, *reorth_status);
-        d_final_iter_nums = std::make_unique<gko::array<gko::size_type>>(
-            exec, *final_iter_nums);
-        d_num_reorth =
-            std::make_unique<gko::array<gko::size_type>>(exec, *num_reorth);
+        d_stop_status = gko::array<gko::stopping_status>(exec, stop_status);
+        d_reorth_status = gko::array<gko::stopping_status>(exec, reorth_status);
+        d_final_iter_nums = gko::array<gko::size_type>(exec, final_iter_nums);
+        d_num_reorth = gko::array<gko::size_type>(exec, num_reorth);
     }
 
     void assert_krylov_bases_near()
@@ -171,10 +165,10 @@ protected:
     std::unique_ptr<Mtx> residual_norm_collection;
     std::unique_ptr<Mtx> givens_sin;
     std::unique_ptr<Mtx> givens_cos;
-    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
-    std::unique_ptr<gko::array<gko::stopping_status>> reorth_status;
-    std::unique_ptr<gko::array<gko::size_type>> final_iter_nums;
-    std::unique_ptr<gko::array<gko::size_type>> num_reorth;
+    gko::array<gko::stopping_status> stop_status;
+    gko::array<gko::stopping_status> reorth_status;
+    gko::array<gko::size_type> final_iter_nums;
+    gko::array<gko::size_type> num_reorth;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_before_preconditioner;
@@ -191,10 +185,10 @@ protected:
     std::unique_ptr<Mtx> d_residual_norm_collection;
     std::unique_ptr<Mtx> d_givens_sin;
     std::unique_ptr<Mtx> d_givens_cos;
-    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
-    std::unique_ptr<gko::array<gko::stopping_status>> d_reorth_status;
-    std::unique_ptr<gko::array<gko::size_type>> d_final_iter_nums;
-    std::unique_ptr<gko::array<gko::size_type>> d_num_reorth;
+    gko::array<gko::stopping_status> d_stop_status;
+    gko::array<gko::stopping_status> d_reorth_status;
+    gko::array<gko::size_type> d_final_iter_nums;
+    gko::array<gko::size_type> d_num_reorth;
 };
 
 
@@ -205,16 +199,16 @@ TEST_F(CbGmres, CbGmresInitialize1IsEquivalentToRef)
     gko::kernels::reference::cb_gmres::initialize(
         ref, b->get_const_device_view(), residual->get_device_view(),
         givens_sin->get_device_view(), givens_cos->get_device_view(),
-        stop_status.get(), default_krylov_dim_mixed);
+        stop_status, default_krylov_dim_mixed);
     gko::kernels::GKO_DEVICE_NAMESPACE::cb_gmres::initialize(
         exec, d_b->get_const_device_view(), d_residual->get_device_view(),
         d_givens_sin->get_device_view(), d_givens_cos->get_device_view(),
-        d_stop_status.get(), default_krylov_dim_mixed);
+        d_stop_status, default_krylov_dim_mixed);
 
     GKO_ASSERT_MTX_NEAR(d_residual, residual, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_givens_sin, givens_sin, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_givens_cos, givens_cos, r<value_type>::value);
-    GKO_ASSERT_ARRAY_EQ(*d_stop_status, *stop_status);
+    GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);
 }
 
 TEST_F(CbGmres, CbGmresInitialize2IsEquivalentToRef)
@@ -228,14 +222,14 @@ TEST_F(CbGmres, CbGmresInitialize2IsEquivalentToRef)
         residual_norm->get_device_view(),
         residual_norm_collection->get_device_view(),
         arnoldi_norm->get_device_view(), range_helper.get_range(),
-        next_krylov_basis->get_device_view(), final_iter_nums.get(), tmp,
+        next_krylov_basis->get_device_view(), final_iter_nums, tmp,
         default_krylov_dim_mixed);
     gko::kernels::GKO_DEVICE_NAMESPACE::cb_gmres::restart(
         exec, d_residual->get_const_device_view(),
         d_residual_norm->get_device_view(),
         d_residual_norm_collection->get_device_view(),
         d_arnoldi_norm->get_device_view(), d_range_helper.get_range(),
-        d_next_krylov_basis->get_device_view(), d_final_iter_nums.get(), dtmp,
+        d_next_krylov_basis->get_device_view(), d_final_iter_nums, dtmp,
         default_krylov_dim_mixed);
 
     GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, r<value_type>::value);
@@ -243,7 +237,7 @@ TEST_F(CbGmres, CbGmresInitialize2IsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_residual_norm_collection, residual_norm_collection,
                         r<value_type>::value);
     assert_krylov_bases_near();
-    GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
+    GKO_ASSERT_ARRAY_EQ(d_final_iter_nums, final_iter_nums);
 }
 
 TEST_F(CbGmres, CbGmresStep1IsEquivalentToRef)
@@ -257,8 +251,8 @@ TEST_F(CbGmres, CbGmresStep1IsEquivalentToRef)
         residual_norm->get_device_view(),
         residual_norm_collection->get_device_view(), range_helper.get_range(),
         hessenberg_iter->get_device_view(), buffer_iter->get_device_view(),
-        arnoldi_norm->get_device_view(), iter, final_iter_nums.get(),
-        stop_status.get(), reorth_status.get(), num_reorth.get());
+        arnoldi_norm->get_device_view(), iter, final_iter_nums, stop_status,
+        reorth_status, num_reorth);
     gko::kernels::GKO_DEVICE_NAMESPACE::cb_gmres::arnoldi(
         exec, d_next_krylov_basis->get_device_view(),
         d_givens_sin->get_device_view(), d_givens_cos->get_device_view(),
@@ -266,8 +260,7 @@ TEST_F(CbGmres, CbGmresStep1IsEquivalentToRef)
         d_residual_norm_collection->get_device_view(),
         d_range_helper.get_range(), d_hessenberg_iter->get_device_view(),
         d_buffer_iter->get_device_view(), d_arnoldi_norm->get_device_view(),
-        iter, d_final_iter_nums.get(), d_stop_status.get(),
-        d_reorth_status.get(), d_num_reorth.get());
+        iter, d_final_iter_nums, d_stop_status, d_reorth_status, d_num_reorth);
 
     GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis,
@@ -280,7 +273,7 @@ TEST_F(CbGmres, CbGmresStep1IsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(d_hessenberg_iter, hessenberg_iter,
                         r<value_type>::value);
     assert_krylov_bases_near();
-    GKO_ASSERT_ARRAY_EQ(*d_final_iter_nums, *final_iter_nums);
+    GKO_ASSERT_ARRAY_EQ(d_final_iter_nums, final_iter_nums);
 }
 
 TEST_F(CbGmres, CbGmresStep2IsEquivalentToRef)
@@ -291,12 +284,12 @@ TEST_F(CbGmres, CbGmresStep2IsEquivalentToRef)
         ref, residual_norm_collection->get_const_device_view(),
         range_helper.get_range().get_accessor().to_const(),
         hessenberg->get_const_device_view(), y->get_device_view(),
-        before_preconditioner->get_device_view(), final_iter_nums.get());
+        before_preconditioner->get_device_view(), final_iter_nums);
     gko::kernels::GKO_DEVICE_NAMESPACE::cb_gmres::solve_krylov(
         exec, d_residual_norm_collection->get_const_device_view(),
         d_range_helper.get_range().get_accessor().to_const(),
         d_hessenberg->get_const_device_view(), d_y->get_device_view(),
-        d_before_preconditioner->get_device_view(), d_final_iter_nums.get());
+        d_before_preconditioner->get_device_view(), d_final_iter_nums);
 
     GKO_ASSERT_MTX_NEAR(d_y, y, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);

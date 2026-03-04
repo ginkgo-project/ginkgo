@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -930,7 +930,7 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec,
                 matrix::Dense<ValueType>* residual,
                 matrix::Dense<ValueType>* givens_sin,
                 matrix::Dense<ValueType>* givens_cos,
-                array<stopping_status>* stop_status, size_type krylov_dim)
+                array<stopping_status>& stop_status, size_type krylov_dim)
 {
     const auto num_threads = std::max(b->get_size()[0] * b->get_stride(),
                                       krylov_dim * b->get_size()[1]);
@@ -944,7 +944,7 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec,
         b->get_stride(), as_device_type(residual->get_values()),
         residual->get_stride(), givens_sin->get_values(),
         givens_sin->get_stride(), givens_cos->get_values(),
-        givens_cos->get_stride(), stop_status->get_data());
+        givens_cos->get_stride(), stop_status.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(
@@ -1190,7 +1190,7 @@ void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
                      matrix::Dense<ValueType>* hessenberg_iter,
                      matrix::Dense<remove_complex<ValueType>>* residual_norm,
                      matrix::Dense<ValueType>* residual_norm_collection,
-                     size_type iter, const array<stopping_status>* stop_status)
+                     size_type iter, const array<stopping_status>& stop_status)
 {
     // TODO: tune block_size for optimal performance
     constexpr auto block_size = default_block_size;
@@ -1206,7 +1206,7 @@ void givens_rotation(std::shared_ptr<const DpcppExecutor> exec,
         givens_sin->get_values(), givens_sin->get_stride(),
         givens_cos->get_values(), givens_cos->get_stride(),
         residual_norm->get_values(), residual_norm_collection->get_values(),
-        residual_norm_collection->get_stride(), stop_status->get_const_data());
+        residual_norm_collection->get_stride(), stop_status.get_const_data());
 }
 
 
@@ -1221,7 +1221,7 @@ void arnoldi(std::shared_ptr<const DpcppExecutor> exec,
              matrix::Dense<ValueType>* buffer_iter,
              matrix::Dense<remove_complex<ValueType>>* arnoldi_norm,
              size_type iter, array<size_type>* final_iter_nums,
-             const array<stopping_status>* stop_status,
+             const array<stopping_status>& stop_status,
              array<stopping_status>* reorth_status,
              array<size_type>* num_reorth)
 {
@@ -1229,10 +1229,10 @@ void arnoldi(std::shared_ptr<const DpcppExecutor> exec,
         static_cast<unsigned int>(
             ceildiv(final_iter_nums->get_size(), default_block_size)),
         default_block_size, 0, exec->get_queue(), final_iter_nums->get_data(),
-        stop_status->get_const_data(), final_iter_nums->get_size());
+        stop_status.get_const_data(), final_iter_nums->get_size());
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
-                       stop_status->get_const_data(), reorth_status->get_data(),
+                       stop_status.get_const_data(), reorth_status->get_data(),
                        num_reorth);
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
                     residual_norm, residual_norm_collection, iter, stop_status);

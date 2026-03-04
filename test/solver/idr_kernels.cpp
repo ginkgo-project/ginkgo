@@ -83,10 +83,9 @@ protected:
         omega = gen_mtx(1, nrhs);
         tht = gen_mtx(1, nrhs);
         residual_norm = gen_mtx(1, nrhs);
-        stop_status =
-            std::make_unique<gko::array<gko::stopping_status>>(ref, nrhs);
+        stop_status = gko::array<gko::stopping_status>(ref, nrhs);
         for (size_t i = 0; i < nrhs; ++i) {
-            stop_status->get_data()[i].reset();
+            stop_status.get_data()[i].reset();
         }
 
         d_mtx = gko::clone(exec, mtx);
@@ -104,8 +103,7 @@ protected:
         d_omega = gko::clone(exec, omega);
         d_tht = gko::clone(exec, tht);
         d_residual_norm = gko::clone(exec, residual_norm);
-        d_stop_status = std::make_unique<gko::array<gko::stopping_status>>(
-            exec, *stop_status);
+        d_stop_status = gko::array<gko::stopping_status>(exec, stop_status);
     }
 
     std::default_random_engine rand_engine;
@@ -131,7 +129,7 @@ protected:
     std::unique_ptr<Mtx> omega;
     std::unique_ptr<Mtx> tht;
     std::unique_ptr<Mtx> residual_norm;
-    std::unique_ptr<gko::array<gko::stopping_status>> stop_status;
+    gko::array<gko::stopping_status> stop_status;
 
     std::unique_ptr<Mtx> d_x;
     std::unique_ptr<Mtx> d_b;
@@ -147,7 +145,7 @@ protected:
     std::unique_ptr<Mtx> d_omega;
     std::unique_ptr<Mtx> d_tht;
     std::unique_ptr<Mtx> d_residual_norm;
-    std::unique_ptr<gko::array<gko::stopping_status>> d_stop_status;
+    gko::array<gko::stopping_status> d_stop_status;
 };
 
 
@@ -157,10 +155,10 @@ TEST_F(Idr, IdrInitializeIsEquivalentToRef)
 
     gko::kernels::reference::idr::initialize(ref, nrhs, m->get_device_view(),
                                              p->get_device_view(), true,
-                                             stop_status.get());
+                                             stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::idr::initialize(
         exec, nrhs, d_m->get_device_view(), d_p->get_device_view(), true,
-        d_stop_status.get());
+        d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(m, d_m, rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(p, d_p, rr<value_type>::value);
@@ -175,12 +173,12 @@ TEST_F(Idr, IdrStep1IsEquivalentToRef)
     gko::kernels::reference::idr::step_1(
         ref, nrhs, k, m->get_const_device_view(), f->get_const_device_view(),
         r->get_const_device_view(), g->get_const_device_view(),
-        c->get_device_view(), v->get_device_view(), stop_status.get());
+        c->get_device_view(), v->get_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::idr::step_1(
         exec, nrhs, k, d_m->get_const_device_view(),
         d_f->get_const_device_view(), d_r->get_const_device_view(),
         d_g->get_const_device_view(), d_c->get_device_view(),
-        d_v->get_device_view(), d_stop_status.get());
+        d_v->get_device_view(), d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(c, d_c, rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(v, d_v, rr<value_type>::value);
@@ -195,11 +193,11 @@ TEST_F(Idr, IdrStep2IsEquivalentToRef)
     gko::kernels::reference::idr::step_2(
         ref, nrhs, k, omega->get_const_device_view(),
         v->get_const_device_view(), c->get_const_device_view(),
-        u->get_device_view(), stop_status.get());
+        u->get_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::idr::step_2(
         exec, nrhs, k, d_omega->get_const_device_view(),
         d_v->get_const_device_view(), d_c->get_const_device_view(),
-        d_u->get_device_view(), d_stop_status.get());
+        d_u->get_device_view(), d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(u, d_u, rr<value_type>::value);
 }
@@ -214,12 +212,12 @@ TEST_F(Idr, IdrStep3IsEquivalentToRef)
         ref, nrhs, k, p->get_const_device_view(), g->get_device_view(),
         v->get_device_view(), u->get_device_view(), m->get_device_view(),
         f->get_device_view(), alpha->get_device_view(), r->get_device_view(),
-        x->get_device_view(), stop_status.get());
+        x->get_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::idr::step_3(
         exec, nrhs, k, d_p->get_const_device_view(), d_g->get_device_view(),
         d_v->get_device_view(), d_u->get_device_view(), d_m->get_device_view(),
         d_f->get_device_view(), d_alpha->get_device_view(),
-        d_r->get_device_view(), d_x->get_device_view(), d_stop_status.get());
+        d_r->get_device_view(), d_x->get_device_view(), d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(g, d_g, 10 * rr<value_type>::value);
     GKO_ASSERT_MTX_NEAR(v, d_v, 10 * rr<value_type>::value);
@@ -239,11 +237,11 @@ TEST_F(Idr, IdrComputeOmegaIsEquivalentToRef)
     gko::kernels::reference::idr::compute_omega(
         ref, nrhs, kappa, tht->get_const_device_view(),
         residual_norm->get_const_device_view(), omega->get_device_view(),
-        stop_status.get());
+        stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::idr::compute_omega(
         exec, nrhs, kappa, d_tht->get_const_device_view(),
         d_residual_norm->get_const_device_view(), d_omega->get_device_view(),
-        d_stop_status.get());
+        d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(omega, d_omega, rr<value_type>::value);
 }

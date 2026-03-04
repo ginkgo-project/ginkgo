@@ -27,7 +27,7 @@ namespace pipe_cg {
                       matrix::view::dense<const ValueType> b,      \
                       matrix::view::dense<ValueType> r,            \
                       matrix::view::dense<ValueType> prev_rho,     \
-                      array<stopping_status>* stop_status)
+                      array<stopping_status>& stop_status)
 
 #define GKO_DECLARE_PIPE_CG_INITIALIZE_2_KERNEL(ValueType)                  \
     void initialize_2(                                                      \
@@ -54,7 +54,7 @@ namespace pipe_cg {
         matrix::view::dense<const ValueType> g,                               \
         matrix::view::dense<const ValueType> rho,                             \
         matrix::view::dense<const ValueType> beta,                            \
-        const array<stopping_status>* stop_status)
+        const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_PIPE_CG_STEP_2_KERNEL(ValueType)                           \
@@ -70,7 +70,7 @@ namespace pipe_cg {
         matrix::view::dense<const ValueType> prev_rho,                         \
         matrix::view::dense<const ValueType> rho,                              \
         matrix::view::dense<const ValueType> delta,                            \
-        const array<stopping_status>* stop_status)
+        const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                    \

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,7 +59,7 @@ TYPED_TEST(Ir, KernelInitialize)
     non_stopped.reset();
     std::fill_n(stop.get_data(), stop.get_size(), non_stopped);
 
-    gko::kernels::reference::ir::initialize(this->exec, &stop);
+    gko::kernels::reference::ir::initialize(this->exec, stop);
 
     ASSERT_EQ(stop.get_data()[0], non_stopped);
     ASSERT_EQ(stop.get_data()[1], non_stopped);

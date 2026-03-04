@@ -1745,7 +1745,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, array<IndexType>* row_nnz)
+    const span& col_span, array<IndexType>& row_nnz)
 {
     const auto num_rows = source->get_size()[0];
     auto row_ptrs = source->get_const_row_ptrs();
@@ -1755,7 +1755,7 @@ void calculate_nonzeros_per_row_in_span(
         kernel::calculate_nnz_per_row_in_span<<<grid_dim, default_block_size, 0,
                                                 exec->get_stream()>>>(
             row_span, col_span, as_device_type(row_ptrs),
-            as_device_type(col_idxs), as_device_type(row_nnz->get_data()));
+            as_device_type(col_idxs), as_device_type(row_nnz.get_data()));
     }
 }
 
@@ -1858,11 +1858,12 @@ void fallback_sort(std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::Csr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
-    *is_sorted = true;
-    auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
-    auto gpu_array = array<bool>{exec, cpu_array};
+    is_sorted = true;
+    auto gpu_array = array<bool>{exec, 1};
+    // need to initialize the GPU value to true
+    exec->copy_from(exec->get_master(), 1, &is_sorted, gpu_array.get_data());
     auto block_size = default_block_size;
     auto num_rows = static_cast<IndexType>(to_check->get_size()[0]);
     auto num_blocks = ceildiv(num_rows, block_size);
@@ -1872,7 +1873,7 @@ void is_sorted_by_column_index(
                 to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
                 num_rows, gpu_array.get_data());
     }
-    cpu_array = gpu_array;
+    is_sorted = get_element(gpu_array, 0);
 }
 
 

@@ -365,7 +365,7 @@ namespace {
 template <typename ValueType>
 void initialize_m(std::shared_ptr<const DefaultExecutor> exec,
                   const size_type nrhs, matrix::view::dense<ValueType> m,
-                  array<stopping_status>* stop_status)
+                  array<stopping_status>& stop_status)
 {
     const auto subspace_dim = m.size[0];
     const auto m_stride = m.stride;
@@ -374,7 +374,7 @@ void initialize_m(std::shared_ptr<const DefaultExecutor> exec,
     initialize_m_kernel<<<grid_dim, default_block_size, 0,
                           exec->get_stream()>>>(
         subspace_dim, nrhs, as_device_type(m.data), m_stride,
-        as_device_type(stop_status->get_data()));
+        as_device_type(stop_status.get_data()));
 }
 
 
@@ -413,7 +413,7 @@ void solve_lower_triangular(std::shared_ptr<const DefaultExecutor> exec,
                             matrix::view::dense<const ValueType> m,
                             matrix::view::dense<const ValueType> f,
                             matrix::view::dense<ValueType> c,
-                            const array<stopping_status>* stop_status)
+                            const array<stopping_status>& stop_status)
 {
     const auto subspace_dim = m.size[0];
 
@@ -422,7 +422,7 @@ void solve_lower_triangular(std::shared_ptr<const DefaultExecutor> exec,
                                     exec->get_stream()>>>(
         subspace_dim, nrhs, as_device_type(m.data), m.stride,
         as_device_type(f.data), f.stride, as_device_type(c.data), c.stride,
-        stop_status->get_const_data());
+        stop_status.get_const_data());
 }
 
 
@@ -435,7 +435,7 @@ void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::dense<ValueType> g,
                     matrix::view::dense<ValueType> g_k,
                     matrix::view::dense<ValueType> u,
-                    const array<stopping_status>* stop_status)
+                    const array<stopping_status>& stop_status)
 {
     if (nrhs == 0) {
         return;
@@ -471,7 +471,7 @@ void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
                 multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
                     size, nrhs, as_device_type(p_i), as_device_type(g_k.data),
                     g_k.stride, as_device_type(alpha.data),
-                    stop_status->get_const_data());
+                    stop_status.get_const_data());
             }
         } else {
             blas::dot(exec->get_blas_handle(), size, p_i, 1, g_k.data,
@@ -483,14 +483,13 @@ void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
                 k, i, size, nrhs, as_device_type(alpha.data),
                 as_device_type(m.data), m.stride, as_device_type(g.data),
                 g.stride, as_device_type(g_k.data), g_k.stride,
-                as_device_type(u.data), u.stride,
-                stop_status->get_const_data());
+                as_device_type(u.data), u.stride, stop_status.get_const_data());
     }
     update_g_kernel<default_block_size>
         <<<ceildiv(size * g_k.stride, default_block_size), default_block_size,
            0, exec->get_stream()>>>(k, size, nrhs, as_device_type(g_k.data),
                                     g_k.stride, as_device_type(g.data),
-                                    g.stride, stop_status->get_const_data());
+                                    g.stride, stop_status.get_const_data());
 }
 
 
@@ -499,7 +498,7 @@ void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
               const size_type k, matrix::view::dense<const ValueType> p,
               matrix::view::dense<const ValueType> g_k,
               matrix::view::dense<ValueType> m,
-              const array<stopping_status>* stop_status)
+              const array<stopping_status>& stop_status)
 {
     if (nrhs == 0) {
         return;
@@ -539,7 +538,7 @@ void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
                 multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
                     size, nrhs, as_device_type(p_i), as_device_type(g_k.data),
                     g_k.stride, as_device_type(m_i),
-                    stop_status->get_const_data());
+                    stop_status.get_const_data());
             }
         } else {
             blas::dot(exec->get_blas_handle(), size, p_i, 1, g_k.data,
@@ -558,7 +557,7 @@ void update_x_r_and_f(std::shared_ptr<const DefaultExecutor> exec,
                       matrix::view::dense<ValueType> f,
                       matrix::view::dense<ValueType> r,
                       matrix::view::dense<ValueType> x,
-                      const array<stopping_status>* stop_status)
+                      const array<stopping_status>& stop_status)
 {
     const auto size = x.size[0];
     const auto subspace_dim = m.size[0];
@@ -569,7 +568,7 @@ void update_x_r_and_f(std::shared_ptr<const DefaultExecutor> exec,
         k, size, subspace_dim, nrhs, as_device_type(m.data), m.stride,
         as_device_type(g.data), g.stride, as_device_type(u.data), u.stride,
         as_device_type(f.data), f.stride, as_device_type(r.data), r.stride,
-        as_device_type(x.data), x.stride, stop_status->get_const_data());
+        as_device_type(x.data), x.stride, stop_status.get_const_data());
     components::fill_array(exec, f.data + k * f.stride, nrhs,
                            zero<ValueType>());
 }
@@ -582,7 +581,7 @@ template <typename ValueType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 const size_type nrhs, matrix::view::dense<ValueType> m,
                 matrix::view::dense<ValueType> subspace_vectors,
-                bool deterministic, array<stopping_status>* stop_status)
+                bool deterministic, array<stopping_status>& stop_status)
 {
     initialize_m(exec, nrhs, m, stop_status);
     initialize_subspace_vectors(exec, subspace_vectors, deterministic);
@@ -599,7 +598,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
             matrix::view::dense<const ValueType> residual,
             matrix::view::dense<const ValueType> g,
             matrix::view::dense<ValueType> c, matrix::view::dense<ValueType> v,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     solve_lower_triangular(exec, nrhs, m, f, c, stop_status);
 
@@ -611,7 +610,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
         k, num_rows, subspace_dim, nrhs, as_device_type(residual.data),
         residual.stride, as_device_type(c.data), c.stride,
         as_device_type(g.data), g.stride, as_device_type(v.data), v.stride,
-        stop_status->get_const_data());
+        stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
@@ -623,7 +622,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
             matrix::view::dense<const ValueType> preconditioned_vector,
             matrix::view::dense<const ValueType> c,
             matrix::view::dense<ValueType> u,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     if (nrhs == 0) {
         return;
@@ -636,7 +635,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
         k, num_rows, subspace_dim, nrhs, as_device_type(omega.data),
         as_device_type(preconditioned_vector.data),
         preconditioned_vector.stride, as_device_type(c.data), c.stride,
-        as_device_type(u.data), u.stride, stop_status->get_const_data());
+        as_device_type(u.data), u.stride, stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
@@ -652,7 +651,7 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
             matrix::view::dense<ValueType> alpha,
             matrix::view::dense<ValueType> residual,
             matrix::view::dense<ValueType> x,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     update_g_and_u(exec, nrhs, k, p, m.as_const(), alpha, g, g_k, u,
                    stop_status);
@@ -671,14 +670,14 @@ void compute_omega(
     matrix::view::dense<const ValueType> tht,
     matrix::view::dense<const remove_complex<ValueType>> residual_norm,
     matrix::view::dense<ValueType> omega,
-    const array<stopping_status>* stop_status)
+    const array<stopping_status>& stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
     compute_omega_kernel<<<grid_dim, config::warp_size, 0,
                            exec->get_stream()>>>(
         nrhs, as_device_type(kappa), as_device_type(tht.data),
         as_device_type(residual_norm.data), as_device_type(omega.data),
-        stop_status->get_const_data());
+        stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);

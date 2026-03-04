@@ -147,7 +147,7 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         z->get_device_view(), p->get_device_view(), q->get_device_view(),
         prev_rho->get_device_view(), rho->get_device_view(),
         r2->get_device_view(), z2->get_device_view(), p2->get_device_view(),
-        q2->get_device_view(), &stop_status));
+        q2->get_device_view(), stop_status));
 
     std::unique_ptr<LinOp> conj_trans_A;
     auto conj_transposable_system_matrix =
@@ -220,7 +220,7 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             p->get_device_view(), z->get_const_device_view(),
             p2->get_device_view(), z2->get_const_device_view(),
             rho->get_const_device_view(), prev_rho->get_const_device_view(),
-            &stop_status));
+            stop_status));
         // q = A * p
         this->get_system_matrix()->apply(p, q);
         // q2 = A^T * p2
@@ -236,7 +236,7 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
             r2->get_device_view(), p->get_const_device_view(),
             q->get_const_device_view(), q2->get_const_device_view(),
             beta->get_const_device_view(), rho->get_const_device_view(),
-            &stop_status));
+            stop_status));
         swap(prev_rho, rho);
     }
 }

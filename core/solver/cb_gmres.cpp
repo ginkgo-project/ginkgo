@@ -283,7 +283,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         exec->run(cb_gmres::make_initialize(
             dense_b->get_const_device_view(), residual->get_device_view(),
             givens_sin->get_device_view(), givens_cos->get_device_view(),
-            &stop_status, krylov_dim));
+            stop_status, krylov_dim));
         // residual = dense_b
         // givens_sin = givens_cos = 0
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
@@ -293,7 +293,7 @@ void CbGmres<ValueType>::apply_dense_impl(
             residual->get_const_device_view(), residual_norm->get_device_view(),
             residual_norm_collection->get_device_view(),
             arnoldi_norm->get_device_view(), krylov_bases_range,
-            next_krylov_basis->get_device_view(), &final_iter_nums,
+            next_krylov_basis->get_device_view(), final_iter_nums,
             reduction_tmp, krylov_dim));
         // residual_norm = norm(residual)
         // residual_norm_collection = {residual_norm, 0, ..., 0}
@@ -408,8 +408,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                     krylov_bases_range.get_accessor().to_const(),
                     hessenberg_view->get_const_device_view(),
                     y->get_device_view(),
-                    before_preconditioner->get_device_view(),
-                    &final_iter_nums));
+                    before_preconditioner->get_device_view(), final_iter_nums));
                 // Solve upper triangular.
                 // y = hessenberg \ residual_norm_collection
 
@@ -428,7 +427,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                     residual_norm->get_device_view(),
                     residual_norm_collection->get_device_view(),
                     arnoldi_norm->get_device_view(), krylov_bases_range,
-                    next_krylov_basis->get_device_view(), &final_iter_nums,
+                    next_krylov_basis->get_device_view(), final_iter_nums,
                     reduction_tmp, krylov_dim));
                 // residual_norm = norm(residual)
                 // residual_norm_collection = {residual_norm, 0, ..., 0}
@@ -461,8 +460,8 @@ void CbGmres<ValueType>::apply_dense_impl(
                 residual_norm_collection->get_device_view(), krylov_bases_range,
                 hessenberg_iter->get_device_view(),
                 buffer_iter->get_device_view(), arnoldi_norm->get_device_view(),
-                restart_iter, &final_iter_nums, &stop_status, &reorth_status,
-                &num_reorth));
+                restart_iter, final_iter_nums, stop_status, reorth_status,
+                num_reorth));
             // for i in 0:restart_iter
             //     hessenberg(restart_iter, i) = next_krylov_basis' *
             //     krylov_bases(:, i) next_krylov_basis  -=
@@ -497,7 +496,7 @@ void CbGmres<ValueType>::apply_dense_impl(
             residual_norm_collection->get_const_device_view(),
             krylov_bases_range.get_accessor().to_const(),
             hessenberg_small->get_const_device_view(), y->get_device_view(),
-            before_preconditioner->get_device_view(), &final_iter_nums));
+            before_preconditioner->get_device_view(), final_iter_nums));
         // Solve upper triangular.
         // y = hessenberg \ residual_norm_collection
         this->get_preconditioner()->apply(before_preconditioner,

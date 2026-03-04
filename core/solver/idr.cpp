@@ -171,7 +171,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
     exec->run(idr::make_initialize(
         nrhs, gko::detail::get_local(m)->get_device_view(),
         gko::detail::get_local(subspace_vectors)->get_device_view(),
-        is_deterministic, &stop_status));
+        is_deterministic, stop_status));
 
     // omega = 1
     omega->fill(one<SubspaceType>());
@@ -239,7 +239,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                 gko::detail::get_local(residual)->get_const_device_view(),
                 gko::detail::get_local(g)->get_const_device_view(),
                 gko::detail::get_local(c)->get_device_view(),
-                gko::detail::get_local(v)->get_device_view(), &stop_status));
+                gko::detail::get_local(v)->get_device_view(), stop_status));
 
             this->get_preconditioner()->apply(v, helper);
 
@@ -248,7 +248,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                 nrhs, k, gko::detail::get_local(omega)->get_const_device_view(),
                 gko::detail::get_local(helper)->get_const_device_view(),
                 gko::detail::get_local(c)->get_const_device_view(),
-                gko::detail::get_local(u)->get_device_view(), &stop_status));
+                gko::detail::get_local(u)->get_device_view(), stop_status));
 
             auto u_k = u->create_submatrix(span{0, problem_size},
                                            span{k * nrhs, (k + 1) * nrhs});
@@ -281,7 +281,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                 gko::detail::get_local(alpha)->get_device_view(),
                 gko::detail::get_local(residual)->get_device_view(),
                 gko::detail::get_local(dense_x)->get_device_view(),
-                &stop_status));
+                stop_status));
         }
 
         this->get_preconditioner()->apply(residual, helper);
@@ -303,7 +303,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
         exec->run(idr::make_compute_omega(
             nrhs, kappa, gko::detail::get_local(tht)->get_const_device_view(),
             gko::detail::get_local(residual_norm)->get_const_device_view(),
-            gko::detail::get_local(omega)->get_device_view(), &stop_status));
+            gko::detail::get_local(omega)->get_device_view(), stop_status));
 
         t->scale(subspace_neg_one_op);
         residual->add_scaled(omega, t);

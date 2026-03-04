@@ -31,7 +31,7 @@ namespace fcg {
         matrix::view::dense<ValueType> prev_rho,                            \
         matrix::view::dense<ValueType> rho,                                 \
         matrix::view::dense<ValueType> rho_t,                               \
-        array<stopping_status>* stop_status)
+        array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_FCG_STEP_1_KERNEL(ValueType)               \
@@ -40,7 +40,7 @@ namespace fcg {
                 matrix::view::dense<const ValueType> z,        \
                 matrix::view::dense<const ValueType> rho_t,    \
                 matrix::view::dense<const ValueType> prev_rho, \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_FCG_STEP_2_KERNEL(ValueType)             \
@@ -52,7 +52,7 @@ namespace fcg {
                 matrix::view::dense<const ValueType> q,      \
                 matrix::view::dense<const ValueType> beta,   \
                 matrix::view::dense<const ValueType> rho,    \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES              \

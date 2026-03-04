@@ -40,7 +40,7 @@ namespace minres {
                     matrix::view::dense<ValueType> sin,          \
                     matrix::view::dense<ValueType> eta_next,     \
                     matrix::view::dense<ValueType> eta,          \
-                    array<stopping_status>* stop_status)
+                    array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_MINRES_STEP_1_KERNEL(ValueType)          \
@@ -56,7 +56,7 @@ namespace minres {
                 matrix::view::dense<ValueType> eta,          \
                 matrix::view::dense<ValueType> eta_next,     \
                 matrix::view::dense<ValueType> tau,          \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 #define GKO_DECLARE_MINRES_STEP_2_KERNEL(ValueType)           \
     void step_2(std::shared_ptr<const DefaultExecutor> exec,  \
@@ -74,7 +74,7 @@ namespace minres {
                 matrix::view::dense<const ValueType> delta,   \
                 matrix::view::dense<const ValueType> cos,     \
                 matrix::view::dense<const ValueType> eta,     \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                 \

@@ -271,7 +271,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 matrix::view::dense<ValueType> residual,
                 matrix::view::dense<ValueType> givens_sin,
                 matrix::view::dense<ValueType> givens_cos,
-                array<stopping_status>* stop_status, size_type krylov_dim)
+                array<stopping_status>& stop_status, size_type krylov_dim)
 {
     for (size_type j = 0; j < b.size[1]; ++j) {
         for (size_type i = 0; i < b.size[0]; ++i) {
@@ -281,7 +281,7 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
             givens_sin(i, j) = zero<ValueType>();
             givens_cos(i, j) = zero<ValueType>();
         }
-        stop_status->get_data()[j].reset();
+        stop_status.get_data()[j].reset();
     }
 }
 
@@ -297,7 +297,7 @@ void restart(std::shared_ptr<const ReferenceExecutor> exec,
              matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,
              Accessor3d krylov_bases,
              matrix::view::dense<ValueType> next_krylov_basis,
-             array<size_type>* final_iter_nums, array<char>&,
+             array<size_type>& final_iter_nums, array<char>&,
              size_type krylov_dim)
 {
     static_assert(
@@ -337,7 +337,7 @@ void restart(std::shared_ptr<const ReferenceExecutor> exec,
             krylov_bases(0, i, j) = residual(i, j) / residual_norm(0, j);
             next_krylov_basis(i, j) = residual(i, j) / residual_norm(0, j);
         }
-        final_iter_nums->get_data()[j] = 0;
+        final_iter_nums.get_data()[j] = 0;
     }
 
     for (size_type k = 1; k < krylov_dim + 1; ++k) {
@@ -365,27 +365,27 @@ void arnoldi(std::shared_ptr<const ReferenceExecutor> exec,
              matrix::view::dense<ValueType> hessenberg_iter,
              matrix::view::dense<ValueType> buffer_iter,
              matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,
-             size_type iter, array<size_type>* final_iter_nums,
-             const array<stopping_status>* stop_status, array<stopping_status>*,
-             array<size_type>*)
+             size_type iter, array<size_type>& final_iter_nums,
+             const array<stopping_status>& stop_status, array<stopping_status>&,
+             array<size_type>&)
 {
     static_assert(
         std::is_same<ValueType,
                      typename Accessor3d::accessor::arithmetic_type>::value,
         "ValueType must match arithmetic_type of accessor!");
-    for (size_type i = 0; i < final_iter_nums->get_size(); ++i) {
-        final_iter_nums->get_data()[i] +=
+    for (size_type i = 0; i < final_iter_nums.get_size(); ++i) {
+        final_iter_nums.get_data()[i] +=
             (1 - static_cast<size_type>(
-                     stop_status->get_const_data()[i].has_stopped()));
+                     stop_status.get_const_data()[i].has_stopped()));
     }
     finish_arnoldi_CGS(next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
-                       stop_status->get_const_data());
+                       stop_status.get_const_data());
     givens_rotation(givens_sin, givens_cos, hessenberg_iter, iter,
-                    stop_status->get_const_data());
+                    stop_status.get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
                                  residual_norm_collection, iter,
-                                 stop_status->get_const_data());
+                                 stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
@@ -398,12 +398,12 @@ void solve_krylov(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::view::dense<const ValueType> hessenberg,
                   matrix::view::dense<ValueType> y,
                   matrix::view::dense<ValueType> before_preconditioner,
-                  const array<size_type>* final_iter_nums)
+                  const array<size_type>& final_iter_nums)
 {
     solve_upper_triangular(residual_norm_collection, hessenberg, y,
-                           final_iter_nums->get_const_data());
+                           final_iter_nums.get_const_data());
     calculate_qy(krylov_bases, y.as_const(), before_preconditioner,
-                 final_iter_nums->get_const_data());
+                 final_iter_nums.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(

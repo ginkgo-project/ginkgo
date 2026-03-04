@@ -1420,7 +1420,7 @@ bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
 {
     auto exec = this->get_executor();
     bool is_sorted;
-    exec->run(csr::make_is_sorted_by_column_index(this, &is_sorted));
+    exec->run(csr::make_is_sorted_by_column_index(this, is_sorted));
     return is_sorted;
 }
 
@@ -1435,7 +1435,7 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
     auto sub_mat_size = gko::dim<2>(row_span.length(), column_span.length());
     array<IndexType> row_ptrs(exec, row_span.length() + 1);
     exec->run(csr::make_calculate_nonzeros_per_row_in_span(
-        this, row_span, column_span, &row_ptrs));
+        this, row_span, column_span, row_ptrs));
     exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
                                                row_span.length() + 1));
     auto num_nnz = get_element(row_ptrs, sub_mat_size[0]);

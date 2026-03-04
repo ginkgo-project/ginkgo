@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -159,7 +159,7 @@ bool Partition<LocalIndexType, GlobalIndexType>::has_ordered_parts() const
     if (this->has_connected_parts()) {
         auto exec = this->get_executor();
         bool has_ordered_parts;
-        exec->run(partition::make_has_ordered_parts(this, &has_ordered_parts));
+        exec->run(partition::make_has_ordered_parts(this, has_ordered_parts));
         return has_ordered_parts;
     } else {
         return false;

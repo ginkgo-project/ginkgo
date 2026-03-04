@@ -381,7 +381,7 @@ bool Fbcsr<ValueType, IndexType>::is_sorted_by_column_index() const
 {
     auto exec = this->get_executor();
     bool is_sorted;
-    exec->run(fbcsr::make_is_sorted_by_column_index(this, &is_sorted));
+    exec->run(fbcsr::make_is_sorted_by_column_index(this, is_sorted));
     return is_sorted;
 }
 

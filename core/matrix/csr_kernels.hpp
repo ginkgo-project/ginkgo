@@ -201,7 +201,7 @@ namespace kernels {
     void calculate_nonzeros_per_row_in_span(                                   \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const matrix::Csr<ValueType, IndexType>* source, const span& row_span, \
-        const span& col_span, array<IndexType>* row_nnz)
+        const span& col_span, array<IndexType>& row_nnz)
 
 #define GKO_DECLARE_CSR_CALC_NNZ_PER_ROW_IN_INDEX_SET_KERNEL(ValueType, \
                                                              IndexType) \
@@ -233,7 +233,7 @@ namespace kernels {
 #define GKO_DECLARE_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType) \
     void is_sorted_by_column_index(                                     \
         std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
+        const matrix::Csr<ValueType, IndexType>* to_check, bool& is_sorted)
 
 #define GKO_DECLARE_CSR_EXTRACT_DIAGONAL(ValueType, IndexType)           \
     void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \

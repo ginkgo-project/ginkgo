@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,7 +21,7 @@ namespace set_all_statuses {
 #define GKO_DECLARE_SET_ALL_STATUSES_KERNEL                            \
     void set_all_statuses(std::shared_ptr<const DefaultExecutor> exec, \
                           uint8 stoppingId, bool setFinalized,         \
-                          array<stopping_status>* stop_status)
+                          array<stopping_status>& stop_status)
 
 
 }  // namespace set_all_statuses

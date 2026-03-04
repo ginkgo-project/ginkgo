@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,8 +22,8 @@ namespace idx_set {
 
 template <typename IndexType>
 void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
-                      const array<IndexType>* local_indices,
-                      array<bool>* validity_array)
+                      const array<IndexType>& local_indices,
+                      array<bool>& validity_array)
 {
     run_kernel(
         exec,
@@ -31,7 +31,7 @@ void compute_validity(std::shared_ptr<const DefaultExecutor> exec,
             validity_array[elem] =
                 local_indices[elem] != invalid_index<IndexType>();
         },
-        local_indices->get_size(), *local_indices, *validity_array);
+        local_indices.get_size(), local_indices, validity_array);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

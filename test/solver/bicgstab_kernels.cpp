@@ -173,7 +173,7 @@ TEST_F(Bicgstab, BicgstabInitializeIsEquivalentToRef)
         p->get_device_view(), prev_rho->get_device_view(),
         rho->get_device_view(), alpha->get_device_view(),
         beta->get_device_view(), gamma->get_device_view(),
-        omega->get_device_view(), &stop_status);
+        omega->get_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::initialize(
         exec, d_b->get_const_device_view(), d_r->get_device_view(),
         d_rr->get_device_view(), d_y->get_device_view(), d_s->get_device_view(),
@@ -181,7 +181,7 @@ TEST_F(Bicgstab, BicgstabInitializeIsEquivalentToRef)
         d_p->get_device_view(), d_prev_rho->get_device_view(),
         d_rho->get_device_view(), d_alpha->get_device_view(),
         d_beta->get_device_view(), d_gamma->get_device_view(),
-        d_omega->get_device_view(), &d_stop_status);
+        d_omega->get_device_view(), d_stop_status);
 
     GKO_EXPECT_MTX_NEAR(d_r, r, ::r<value_type>::value);
     GKO_EXPECT_MTX_NEAR(d_z, z, ::r<value_type>::value);
@@ -209,12 +209,12 @@ TEST_F(Bicgstab, BicgstabStep1IsEquivalentToRef)
         ref, r->get_const_device_view(), p->get_device_view(),
         v->get_const_device_view(), rho->get_const_device_view(),
         prev_rho->get_const_device_view(), alpha->get_const_device_view(),
-        omega->get_const_device_view(), &stop_status);
+        omega->get_const_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::step_1(
         exec, d_r->get_const_device_view(), d_p->get_device_view(),
         d_v->get_const_device_view(), d_rho->get_const_device_view(),
         d_prev_rho->get_const_device_view(), d_alpha->get_const_device_view(),
-        d_omega->get_const_device_view(), &d_stop_status);
+        d_omega->get_const_device_view(), d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(d_p, p, ::r<value_type>::value);
 }
@@ -227,12 +227,12 @@ TEST_F(Bicgstab, BicgstabStep2IsEquivalentToRef)
     gko::kernels::reference::bicgstab::step_2(
         ref, r->get_const_device_view(), s->get_device_view(),
         v->get_const_device_view(), rho->get_const_device_view(),
-        alpha->get_device_view(), beta->get_const_device_view(), &stop_status);
+        alpha->get_device_view(), beta->get_const_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::step_2(
         exec, d_r->get_const_device_view(), d_s->get_device_view(),
         d_v->get_const_device_view(), d_rho->get_const_device_view(),
         d_alpha->get_device_view(), d_beta->get_const_device_view(),
-        &d_stop_status);
+        d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(d_alpha, alpha, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_s, s, ::r<value_type>::value);
@@ -248,14 +248,14 @@ TEST_F(Bicgstab, BicgstabStep3IsEquivalentToRef)
         s->get_const_device_view(), t->get_const_device_view(),
         y->get_const_device_view(), z->get_const_device_view(),
         alpha->get_const_device_view(), beta->get_const_device_view(),
-        gamma->get_const_device_view(), omega->get_device_view(), &stop_status);
+        gamma->get_const_device_view(), omega->get_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::step_3(
         exec, d_x->get_device_view(), d_r->get_device_view(),
         d_s->get_const_device_view(), d_t->get_const_device_view(),
         d_y->get_const_device_view(), d_z->get_const_device_view(),
         d_alpha->get_const_device_view(), d_beta->get_const_device_view(),
         d_gamma->get_const_device_view(), d_omega->get_device_view(),
-        &d_stop_status);
+        d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(d_omega, omega, ::r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
@@ -296,10 +296,10 @@ TEST_F(Bicgstab, BicgstabFinalizeIsEquivalentToRefWithoutRaceCondition)
 
     gko::kernels::reference::bicgstab::finalize(
         ref, x->get_device_view(), y->get_const_device_view(),
-        alpha->get_const_device_view(), &stop_status);
+        alpha->get_const_device_view(), stop_status);
     gko::kernels::GKO_DEVICE_NAMESPACE::bicgstab::finalize(
         exec, d_x->get_device_view(), d_y->get_const_device_view(),
-        d_alpha->get_const_device_view(), &d_stop_status);
+        d_alpha->get_const_device_view(), d_stop_status);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, ::r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_stop_status, stop_status);

@@ -26,11 +26,11 @@ void initialize_1(std::shared_ptr<const ReferenceExecutor> exec,
                   matrix::view::dense<const ValueType> b,
                   matrix::view::dense<ValueType> r,
                   matrix::view::dense<ValueType> prev_rho,
-                  array<stopping_status>* stop_status)
+                  array<stopping_status>& stop_status)
 {
     for (size_type j = 0; j < b.size[1]; ++j) {
         prev_rho(0, j) = one<ValueType>();
-        stop_status->get_data()[j].reset();
+        stop_status.get_data()[j].reset();
     }
     for (size_type i = 0; i < b.size[0]; ++i) {
         for (size_type j = 0; j < b.size[1]; ++j) {
@@ -87,7 +87,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::view::dense<const ValueType> g,
             matrix::view::dense<const ValueType> rho,
             matrix::view::dense<const ValueType> beta,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     // tmp = rho / beta
     // x = x + tmp * p
@@ -96,7 +96,7 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
     // w = w - tmp * g
     for (size_type i = 0; i < p.size[0]; ++i) {
         for (size_type j = 0; j < p.size[1]; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
             if (is_nonzero(beta(0, j))) {
@@ -126,7 +126,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::view::dense<const ValueType> prev_rho,
             matrix::view::dense<const ValueType> rho,
             matrix::view::dense<const ValueType> delta,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     // tmp = rho / prev_rho
     // beta = delta - |tmp|^2 * beta
@@ -135,7 +135,7 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec,
     // f = m + tmp * f
     // g = n + tmp * g
     for (size_type j = 0; j < p.size[1]; ++j) {
-        if (stop_status->get_const_data()[j].has_stopped()) {
+        if (stop_status.get_const_data()[j].has_stopped()) {
             continue;
         }
         if (is_nonzero(prev_rho(0, j))) {

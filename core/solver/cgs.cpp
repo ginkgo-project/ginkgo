@@ -137,7 +137,7 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
         gko::detail::get_local(v_hat)->get_device_view(),
         gko::detail::get_local(t)->get_device_view(), alpha->get_device_view(),
         beta->get_device_view(), gamma->get_device_view(),
-        prev_rho->get_device_view(), rho->get_device_view(), &stop_status));
+        prev_rho->get_device_view(), rho->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -183,7 +183,7 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(p)->get_device_view(),
             gko::detail::get_local(q)->get_const_device_view(),
             beta->get_device_view(), rho->get_const_device_view(),
-            prev_rho->get_const_device_view(), &stop_status));
+            prev_rho->get_const_device_view(), stop_status));
         this->get_preconditioner()->apply(p, t);
         this->get_system_matrix()->apply(t, v_hat);
         r_tld->compute_conj_dot(v_hat, gamma, reduction_tmp);
@@ -196,7 +196,7 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(q)->get_device_view(),
             gko::detail::get_local(t)->get_device_view(),
             alpha->get_device_view(), rho->get_const_device_view(),
-            gamma->get_const_device_view(), &stop_status));
+            gamma->get_const_device_view(), stop_status));
 
         this->get_preconditioner()->apply(t, u_hat);
         this->get_system_matrix()->apply(u_hat, t);
@@ -207,7 +207,7 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(u_hat)->get_const_device_view(),
             gko::detail::get_local(r)->get_device_view(),
             gko::detail::get_local(dense_x)->get_device_view(),
-            alpha->get_const_device_view(), &stop_status));
+            alpha->get_const_device_view(), stop_status));
 
         swap(prev_rho, rho);
     }

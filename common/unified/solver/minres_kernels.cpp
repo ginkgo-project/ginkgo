@@ -44,7 +44,7 @@ void initialize(
     matrix::view::dense<ValueType> cos_prev, matrix::view::dense<ValueType> cos,
     matrix::view::dense<ValueType> sin_prev, matrix::view::dense<ValueType> sin,
     matrix::view::dense<ValueType> eta_next, matrix::view::dense<ValueType> eta,
-    array<stopping_status>* stop_status)
+    array<stopping_status>& stop_status)
 {
     run_kernel(
         exec,
@@ -59,7 +59,7 @@ void initialize(
         },
         beta.size[1], row_vector(beta), row_vector(gamma), row_vector(delta),
         row_vector(cos_prev), row_vector(cos), row_vector(sin_prev),
-        row_vector(sin), row_vector(eta_next), row_vector(eta), *stop_status);
+        row_vector(sin), row_vector(eta_next), row_vector(eta), stop_status);
 
     run_kernel_solver(
         exec,
@@ -73,7 +73,7 @@ void initialize(
         r.size, r.stride, default_stride(r), default_stride(z),
         default_stride(p), default_stride(p_prev), default_stride(q),
         default_stride(q_prev), default_stride(v), row_vector(beta),
-        *stop_status);
+        stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_INITIALIZE_KERNEL);
@@ -107,7 +107,7 @@ void step_1(
     matrix::view::dense<ValueType> sin_prev, matrix::view::dense<ValueType> sin,
     matrix::view::dense<ValueType> eta, matrix::view::dense<ValueType> eta_next,
     matrix::view::dense<ValueType> tau,
-    const array<stopping_status>* stop_status)
+    const array<stopping_status>& stop_status)
 {
     run_kernel(
         exec,
@@ -137,7 +137,7 @@ void step_1(
         alpha.size[1], row_vector(alpha), row_vector(beta), row_vector(gamma),
         row_vector(delta), row_vector(cos_prev), row_vector(cos),
         row_vector(sin_prev), row_vector(sin), row_vector(eta_next),
-        row_vector(eta), row_vector(tau), *stop_status);
+        row_vector(eta), row_vector(tau), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_1_KERNEL);
@@ -158,7 +158,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             matrix::view::dense<const ValueType> delta,
             matrix::view::dense<const ValueType> cos,
             matrix::view::dense<const ValueType> eta,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     run_kernel_solver(
         exec,
@@ -184,7 +184,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
         default_stride(q), default_stride(q_prev), default_stride(v),
         default_stride(z), default_stride(z_tilde), row_vector(alpha),
         row_vector(beta), row_vector(gamma), row_vector(delta), row_vector(cos),
-        row_vector(eta), *stop_status);
+        row_vector(eta), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_2_KERNEL);

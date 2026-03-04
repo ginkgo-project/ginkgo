@@ -38,7 +38,7 @@ namespace cgs {
                     matrix::view::dense<ValueType> gamma,        \
                     matrix::view::dense<ValueType> prev_rho,     \
                     matrix::view::dense<ValueType> rho,          \
-                    array<stopping_status>* stop_status)
+                    array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_CGS_STEP_1_KERNEL(ValueType)               \
@@ -50,7 +50,7 @@ namespace cgs {
                 matrix::view::dense<ValueType> beta,           \
                 matrix::view::dense<const ValueType> rho,      \
                 matrix::view::dense<const ValueType> rho_prev, \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_CGS_STEP_2_KERNEL(ValueType)             \
@@ -62,7 +62,7 @@ namespace cgs {
                 matrix::view::dense<ValueType> alpha,        \
                 matrix::view::dense<const ValueType> rho,    \
                 matrix::view::dense<const ValueType> gamma,  \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_CGS_STEP_3_KERNEL(ValueType)             \
@@ -72,7 +72,7 @@ namespace cgs {
                 matrix::view::dense<ValueType> r,            \
                 matrix::view::dense<ValueType> x,            \
                 matrix::view::dense<const ValueType> alpha,  \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES              \

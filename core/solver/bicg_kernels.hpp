@@ -32,7 +32,7 @@ namespace bicg {
         matrix::view::dense<ValueType> rho, matrix::view::dense<ValueType> r2, \
         matrix::view::dense<ValueType> z2, matrix::view::dense<ValueType> p2,  \
         matrix::view::dense<ValueType> q2,                                     \
-        array<stopping_status>* stop_status)
+        array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_BICG_STEP_1_KERNEL(ValueType)              \
@@ -43,7 +43,7 @@ namespace bicg {
                 matrix::view::dense<const ValueType> z2,       \
                 matrix::view::dense<const ValueType> rho,      \
                 matrix::view::dense<const ValueType> prev_rho, \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_BICG_STEP_2_KERNEL(ValueType)            \
@@ -56,7 +56,7 @@ namespace bicg {
                 matrix::view::dense<const ValueType> q2,     \
                 matrix::view::dense<const ValueType> beta,   \
                 matrix::view::dense<const ValueType> rho,    \
-                const array<stopping_status>* stop_status)
+                const array<stopping_status>& stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES               \

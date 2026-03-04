@@ -224,7 +224,7 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
-    exec->run(ir::make_initialize(&stop_status));
+    exec->run(ir::make_initialize(stop_status));
     if (guess != initial_guess_mode::zero) {
         residual->copy_from(dense_b);
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);

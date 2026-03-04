@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -2866,7 +2866,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::Csr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
     array<bool> is_sorted_device_array{exec, {true}};
     const auto num_rows = to_check->get_size()[0];
@@ -2888,7 +2888,7 @@ void is_sorted_by_column_index(
             }
         });
     });
-    *is_sorted = get_element(is_sorted_device_array, 0);
+    is_sorted = get_element(is_sorted_device_array, 0);
 };
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

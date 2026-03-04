@@ -32,10 +32,10 @@ void solve_lower_triangular(const size_type nrhs,
                             matrix::view::dense<const ValueType> m,
                             matrix::view::dense<const ValueType> f,
                             matrix::view::dense<ValueType> c,
-                            const array<stopping_status>* stop_status)
+                            const array<stopping_status>& stop_status)
 {
     for (size_type i = 0; i < f.size[1]; i++) {
-        if (stop_status->get_const_data()[i].has_stopped()) {
+        if (stop_status.get_const_data()[i].has_stopped()) {
             continue;
         }
 
@@ -57,10 +57,10 @@ void update_g_and_u(const size_type nrhs, const size_type k,
                     matrix::view::dense<ValueType> g,
                     matrix::view::dense<ValueType> g_k,
                     matrix::view::dense<ValueType> u,
-                    const array<stopping_status>* stop_status)
+                    const array<stopping_status>& stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
-        if (stop_status->get_const_data()[i].has_stopped()) {
+        if (stop_status.get_const_data()[i].has_stopped()) {
             continue;
         }
 
@@ -108,11 +108,11 @@ template <typename ValueType>
 void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 const size_type nrhs, matrix::view::dense<ValueType> m,
                 matrix::view::dense<ValueType> subspace_vectors,
-                bool deterministic, array<stopping_status>* stop_status)
+                bool deterministic, array<stopping_status>& stop_status)
 {
     // Initialize M
     for (size_type i = 0; i < nrhs; i++) {
-        stop_status->get_data()[i].reset();
+        stop_status.get_data()[i].reset();
     }
 
     for (size_type row = 0; row < m.size[0]; row++) {
@@ -169,13 +169,13 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
             matrix::view::dense<const ValueType> residual,
             matrix::view::dense<const ValueType> g,
             matrix::view::dense<ValueType> c, matrix::view::dense<ValueType> v,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     // Compute c = M \ f
     solve_lower_triangular(nrhs, m, f, c, stop_status);
 
     for (size_type i = 0; i < nrhs; i++) {
-        if (stop_status->get_const_data()[i].has_stopped()) {
+        if (stop_status.get_const_data()[i].has_stopped()) {
             continue;
         }
         // v = residual - c_k * g_k - ... - c_s * g_s
@@ -198,10 +198,10 @@ void step_2(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
             matrix::view::dense<const ValueType> preconditioned_vector,
             matrix::view::dense<const ValueType> c,
             matrix::view::dense<ValueType> u,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
-        if (stop_status->get_const_data()[i].has_stopped()) {
+        if (stop_status.get_const_data()[i].has_stopped()) {
             continue;
         }
 
@@ -227,12 +227,12 @@ void step_3(std::shared_ptr<const ReferenceExecutor> exec, const size_type nrhs,
             matrix::view::dense<ValueType> f, matrix::view::dense<ValueType>,
             matrix::view::dense<ValueType> residual,
             matrix::view::dense<ValueType> x,
-            const array<stopping_status>* stop_status)
+            const array<stopping_status>& stop_status)
 {
     update_g_and_u(nrhs, k, p, m.as_const(), g, g_k, u, stop_status);
 
     for (size_type i = 0; i < nrhs; i++) {
-        if (stop_status->get_const_data()[i].has_stopped()) {
+        if (stop_status.get_const_data()[i].has_stopped()) {
             continue;
         }
 
@@ -270,10 +270,10 @@ void compute_omega(
     matrix::view::dense<const ValueType> tht,
     matrix::view::dense<const remove_complex<ValueType>> residual_norm,
     matrix::view::dense<ValueType> omega,
-    const array<stopping_status>* stop_status)
+    const array<stopping_status>& stop_status)
 {
     for (size_type i = 0; i < nrhs; i++) {
-        if (stop_status->get_const_data()[i].has_stopped()) {
+        if (stop_status.get_const_data()[i].has_stopped()) {
             continue;
         }
 
