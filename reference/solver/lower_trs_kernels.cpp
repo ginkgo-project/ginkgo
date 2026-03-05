@@ -5,6 +5,7 @@
 #include "core/solver/lower_trs_kernels.hpp"
 
 #include <memory>
+#include <optional>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>

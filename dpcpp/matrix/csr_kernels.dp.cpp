@@ -5,6 +5,7 @@
 #include "core/matrix/csr_kernels.hpp"
 
 #include <algorithm>
+#include <optional>
 
 #include <oneapi/mkl.hpp>
 

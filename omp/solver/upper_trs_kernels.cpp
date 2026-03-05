@@ -5,6 +5,7 @@
 #include "core/solver/upper_trs_kernels.hpp"
 
 #include <memory>
+#include <optional>
 
 #include <omp.h>
 

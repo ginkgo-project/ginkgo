@@ -4,6 +4,8 @@
 
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
+#include <optional>
+
 #include <thrust/sort.h>
 
 #include <ginkgo/core/base/exception_helpers.hpp>

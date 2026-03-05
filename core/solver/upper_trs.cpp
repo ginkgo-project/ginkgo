@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <optional>
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>

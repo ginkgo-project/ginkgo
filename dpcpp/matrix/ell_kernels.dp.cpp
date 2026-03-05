@@ -5,6 +5,7 @@
 #include "core/matrix/ell_kernels.hpp"
 
 #include <array>
+#include <optional>
 
 #include <sycl/sycl.hpp>
 

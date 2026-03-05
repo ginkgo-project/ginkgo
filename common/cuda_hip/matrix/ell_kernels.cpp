@@ -5,6 +5,7 @@
 #include "core/matrix/ell_kernels.hpp"
 
 #include <array>
+#include <optional>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>

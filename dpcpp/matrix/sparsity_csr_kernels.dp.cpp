@@ -4,6 +4,8 @@
 
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
+#include <optional>
+
 #include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
