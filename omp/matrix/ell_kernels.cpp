@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,7 +35,7 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                     matrix::view::dense<const InputValueType> b,
                     matrix::view::dense<OutputValueType> c, OutFn out)
 {
-    GKO_ASSERT(b->get_size()[1] == num_rhs);
+    GKO_ASSERT(b.size[1] == num_rhs);
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
@@ -85,7 +85,7 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
                   matrix::view::dense<const InputValueType> b,
                   matrix::view::dense<OutputValueType> c, OutFn out)
 {
-    GKO_ASSERT(b->get_size()[1] > block_size);
+    GKO_ASSERT(b.size[1] > block_size);
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =

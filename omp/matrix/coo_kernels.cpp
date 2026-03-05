@@ -68,7 +68,7 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                    matrix::view::dense<const ValueType> b,
                    matrix::view::dense<ValueType> c, ValueType scale)
 {
-    GKO_ASSERT(b->get_size()[1] > block_size);
+    GKO_ASSERT(b.size[1] > block_size);
     const auto coo_val = a->get_const_values();
     const auto coo_col = a->get_const_col_idxs();
     const auto coo_row = a->get_const_row_idxs();
@@ -198,7 +198,7 @@ void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                      matrix::view::dense<const ValueType> b,
                      matrix::view::dense<ValueType> c, ValueType scale)
 {
-    GKO_ASSERT(b->get_size()[1] == num_rhs);
+    GKO_ASSERT(b.size[1] == num_rhs);
     const auto coo_val = a->get_const_values();
     const auto coo_col = a->get_const_col_idxs();
     const auto coo_row = a->get_const_row_idxs();

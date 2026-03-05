@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,7 +28,7 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                     matrix::view::dense<const ValueType> b,
                     matrix::view::dense<ValueType> c, OutFn out)
 {
-    GKO_ASSERT(b->get_size()[1] == num_rhs);
+    GKO_ASSERT(b.size[1] == num_rhs);
     auto slice_lengths = a->get_const_slice_lengths();
     auto slice_sets = a->get_const_slice_sets();
     auto slice_size = a->get_slice_size();
