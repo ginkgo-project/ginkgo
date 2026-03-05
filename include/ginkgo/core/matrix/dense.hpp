@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
@@ -177,14 +178,16 @@ public:
 
     using value_type = ValueType;
     using index_type = int64;
-    using transposed_type = Dense<ValueType>;
-    using mat_data = matrix_data<ValueType, int64>;
-    using mat_data32 = matrix_data<ValueType, int32>;
-    using device_mat_data = device_matrix_data<ValueType, int64>;
-    using device_mat_data32 = device_matrix_data<ValueType, int32>;
+    using transposed_type = Dense<value_type>;
+    using mat_data = matrix_data<value_type, int64>;
+    using mat_data32 = matrix_data<value_type, int32>;
+    using device_mat_data = device_matrix_data<value_type, int64>;
+    using device_mat_data32 = device_matrix_data<value_type, int32>;
     using absolute_type = remove_complex<Dense>;
     using real_type = absolute_type;
     using complex_type = to_complex<Dense>;
+    using device_view = matrix::view::dense<value_type>;
+    using const_device_view = matrix::view::dense<const value_type>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
@@ -888,6 +891,10 @@ public:
     {
         return values_.get_size();
     }
+
+    device_view get_device_view();
+
+    const_device_view get_const_device_view() const;
 
     /**
      * Returns a single element of the matrix.
