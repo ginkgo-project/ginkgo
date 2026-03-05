@@ -26,15 +26,18 @@ struct dense {
     size_type stride;
     ValueType* data;
 
+    /** Constructs a dense view from size, stride and data. */
     constexpr dense(dim<2> size, size_type stride, ValueType* data)
         : size{size}, stride{stride}, data{data}
     {}
 
+    /** Returns a const view of the same data */
     constexpr dense<const ValueType> as_const() const
     {
         return dense<const ValueType>{size, stride, data};
     }
 
+    /** Subscript operator accessing the given row and column */
     constexpr ValueType& operator()(size_type row, size_type col) const
     {
         return data[row * stride + col];
