@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,7 +36,7 @@ namespace gko {
 namespace kernels {
 namespace dpcpp {
 /**
- * @brief The Dense matrix format namespace.
+ * @brief The dense matrix format namespace.
  *
  * @ingroup dense
  */
@@ -93,10 +93,10 @@ void transpose(
 }
 
 template <typename DeviceConfig, typename ValueType>
-void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
-               matrix::Dense<ValueType>* trans)
+void transpose(sycl::queue* queue, matrix::view::dense<const ValueType> orig,
+               matrix::view::dense<ValueType> trans)
 {
-    auto size = orig->get_size();
+    auto size = orig.size;
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
     dim3 block(sg_size, sg_size);
@@ -107,10 +107,10 @@ void transpose(sycl::queue* queue, const matrix::Dense<ValueType>* orig,
             0>
             space_acc_ct1(cgh);
         // Can not pass the member to device function directly
-        auto in = as_device_type(orig->get_const_values());
-        auto in_stride = orig->get_stride();
-        auto out = as_device_type(trans->get_values());
-        auto out_stride = trans->get_stride();
+        auto in = as_device_type(orig.data);
+        auto in_stride = orig.stride;
+        auto out = as_device_type(trans.data);
+        auto out_stride = trans.stride;
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 transpose<DeviceConfig>(size[0], size[1], in, in_stride, out,
@@ -173,9 +173,10 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL(conj_transpose_call, conj_transpose,
 
 template <typename ValueType>
 void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Dense<ValueType>* x,
-                          const matrix::Dense<ValueType>* y,
-                          matrix::Dense<ValueType>* result, array<char>& tmp)
+                          matrix::view::dense<const ValueType> x,
+                          matrix::view::dense<const ValueType> y,
+                          matrix::view::dense<ValueType> result,
+                          array<char>& tmp)
 {
     // TODO Add onemkl for single column ?
     compute_dot(exec, x, y, result, tmp);
@@ -187,9 +188,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                               const matrix::Dense<ValueType>* x,
-                               const matrix::Dense<ValueType>* y,
-                               matrix::Dense<ValueType>* result,
+                               matrix::view::dense<const ValueType> x,
+                               matrix::view::dense<const ValueType> y,
+                               matrix::view::dense<ValueType> result,
                                array<char>& tmp)
 {
     // TODO Add onemkl for single column ?
@@ -201,10 +202,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 
 template <typename ValueType>
-void compute_norm2_dispatch(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Dense<ValueType>* x,
-                            matrix::Dense<remove_complex<ValueType>>* result,
-                            array<char>& tmp)
+void compute_norm2_dispatch(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::dense<const ValueType> x,
+    matrix::view::dense<remove_complex<ValueType>> result, array<char>& tmp)
 {
     // TODO Add onemkl for single column ?
     compute_norm2(exec, x, result, tmp);
@@ -216,23 +217,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Dense<ValueType>* a,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* c)
+                  matrix::view::dense<const ValueType> a,
+                  matrix::view::dense<const ValueType> b,
+                  matrix::view::dense<ValueType> c)
 {
     using namespace oneapi::mkl;
     if constexpr (onemkl::is_supported<ValueType>::value) {
-        if (b->get_stride() != 0 && c->get_stride() != 0) {
-            if (a->get_size()[1] > 0 && a->get_const_values() &&
-                b->get_const_values() && c->get_const_values()) {
+        if (b.stride != 0 && c.stride != 0) {
+            if (a.size[1] > 0 && a.data && b.data && c.data) {
                 oneapi::mkl::blas::row_major::gemm(
                     *exec->get_queue(), transpose::nontrans,
-                    transpose::nontrans, c->get_size()[0], c->get_size()[1],
-                    a->get_size()[1], one<ValueType>(),
-                    as_device_type(a->get_const_values()), a->get_stride(),
-                    as_device_type(b->get_const_values()), b->get_stride(),
-                    zero<ValueType>(), as_device_type(c->get_values()),
-                    c->get_stride());
+                    transpose::nontrans, c.size[0], c.size[1], a.size[1],
+                    one<ValueType>(), as_device_type(a.data), a.stride,
+                    as_device_type(b.data), b.stride, zero<ValueType>(),
+                    as_device_type(c.data), c.stride);
             } else {
                 dense::fill(exec, c, zero<ValueType>());
             }
@@ -247,24 +245,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
 
 template <typename ValueType>
 void apply(std::shared_ptr<const DefaultExecutor> exec,
-           const matrix::Dense<ValueType>* alpha,
-           const matrix::Dense<ValueType>* a, const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
+           matrix::view::dense<const ValueType> alpha,
+           matrix::view::dense<const ValueType> a,
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<const ValueType> beta,
+           matrix::view::dense<ValueType> c)
 {
     using namespace oneapi::mkl;
     if constexpr (onemkl::is_supported<ValueType>::value) {
-        if (b->get_stride() != 0 && c->get_stride() != 0) {
-            if (a->get_size()[1] > 0 && a->get_const_values() &&
-                b->get_const_values() && c->get_const_values()) {
+        if (b.stride != 0 && c.stride != 0) {
+            if (a.size[1] > 0 && a.data && b.data && c.data) {
                 oneapi::mkl::blas::row_major::gemm(
                     *exec->get_queue(), transpose::nontrans,
-                    transpose::nontrans, c->get_size()[0], c->get_size()[1],
-                    a->get_size()[1],
-                    exec->copy_val_to_host(alpha->get_const_values()),
-                    as_device_type(a->get_const_values()), a->get_stride(),
-                    as_device_type(b->get_const_values()), b->get_stride(),
-                    exec->copy_val_to_host(beta->get_const_values()),
-                    as_device_type(c->get_values()), c->get_stride());
+                    transpose::nontrans, c.size[0], c.size[1], a.size[1],
+                    exec->copy_val_to_host(alpha.data), as_device_type(a.data),
+                    a.stride, as_device_type(b.data), b.stride,
+                    exec->copy_val_to_host(beta.data), as_device_type(c.data),
+                    c.stride);
             } else {
                 dense::scale(exec, beta, c);
             }
@@ -279,14 +276,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Dense<ValueType>* source,
+                    matrix::view::dense<const ValueType> source,
                     const int64* row_ptrs,
                     matrix::Coo<ValueType, IndexType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto in_vals = as_device_type(source->get_const_values());
-    const auto stride = source->get_stride();
+    const auto in_vals = as_device_type(source.data);
+    const auto stride = source.stride;
 
     auto rows = result->get_row_idxs();
     auto cols = result->get_col_idxs();
@@ -315,13 +312,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Dense<ValueType>* source,
+                    matrix::view::dense<const ValueType> source,
                     matrix::Csr<ValueType, IndexType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto in_vals = as_device_type(source->get_const_values());
-    const auto stride = source->get_stride();
+    const auto in_vals = as_device_type(source.data);
+    const auto stride = source.stride;
 
     const auto row_ptrs = result->get_const_row_ptrs();
     auto cols = result->get_col_idxs();
@@ -349,14 +346,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Dense<ValueType>* source,
+                    matrix::view::dense<const ValueType> source,
                     matrix::Ell<ValueType, IndexType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
     const auto max_nnz_per_row = result->get_num_stored_elements_per_row();
-    const auto in_vals = as_device_type(source->get_const_values());
-    const auto in_stride = source->get_stride();
+    const auto in_vals = as_device_type(source.data);
+    const auto in_stride = source.stride;
 
     auto cols = result->get_col_idxs();
     auto vals = as_device_type(result->get_values());
@@ -388,7 +385,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Dense<ValueType>* source,
+                      matrix::view::dense<const ValueType> source,
                       matrix::Fbcsr<ValueType, IndexType>* result)
     GKO_NOT_IMPLEMENTED;
 
@@ -398,7 +395,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
-                                  const matrix::Dense<ValueType>* source,
+                                  matrix::view::dense<const ValueType> source,
                                   int bs,
                                   IndexType* result) GKO_NOT_IMPLEMENTED;
 
@@ -408,15 +405,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Dense<ValueType>* source,
+                       matrix::view::dense<const ValueType> source,
                        const int64* coo_row_ptrs,
                        matrix::Hybrid<ValueType, IndexType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
     const auto ell_lim = result->get_ell_num_stored_elements_per_row();
-    const auto in_vals = as_device_type(source->get_const_values());
-    const auto in_stride = source->get_stride();
+    const auto in_vals = as_device_type(source.data);
+    const auto in_stride = source.stride;
     const auto ell_stride = result->get_ell_stride();
     auto ell_cols = result->get_ell_col_idxs();
     auto ell_vals = as_device_type(result->get_ell_values());
@@ -464,13 +461,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Dense<ValueType>* source,
+                      matrix::view::dense<const ValueType> source,
                       matrix::Sellp<ValueType, IndexType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto stride = source->get_stride();
-    const auto in_vals = as_device_type(source->get_const_values());
+    const auto stride = source.stride;
+    const auto in_vals = as_device_type(source.data);
 
     const auto slice_sets = result->get_const_slice_sets();
     const auto slice_size = result->get_slice_size();
@@ -507,13 +504,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Dense<ValueType>* source,
+                             matrix::view::dense<const ValueType> source,
                              matrix::SparsityCsr<ValueType, IndexType>* result)
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto in_vals = as_device_type(source->get_const_values());
-    const auto stride = source->get_stride();
+    const auto in_vals = as_device_type(source.data);
+    const auto stride = source.stride;
 
     const auto row_ptrs = result->get_const_row_ptrs();
     auto cols = result->get_col_idxs();
@@ -539,8 +536,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType>
 void transpose(std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Dense<ValueType>* orig,
-               matrix::Dense<ValueType>* trans)
+               matrix::view::dense<const ValueType> orig,
+               matrix::view::dense<ValueType> trans)
 {
     auto queue = exec->get_queue();
     kernel::transpose_call(
@@ -560,10 +557,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
 
 template <typename ValueType>
 void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Dense<ValueType>* orig,
-                    matrix::Dense<ValueType>* trans)
+                    matrix::view::dense<const ValueType> orig,
+                    matrix::view::dense<ValueType> trans)
 {
-    auto size = orig->get_size();
+    auto size = orig.size;
     auto sq_array = syn::as_array(dcfg_sq_list);
     auto queue = exec->get_queue();
     const std::uint32_t cfg =
@@ -577,10 +574,9 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
     const auto sg_size = DCFG_1D::decode<1>(cfg);
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
     dim3 block(sg_size, sg_size);
-    kernel::conj_transpose_call(
-        cfg, grid, block, 0, queue, size[0], size[1],
-        as_device_type(orig->get_const_values()), orig->get_stride(),
-        as_device_type(trans->get_values()), trans->get_stride());
+    kernel::conj_transpose_call(cfg, grid, block, 0, queue, size[0], size[1],
+                                as_device_type(orig.data), orig.stride,
+                                as_device_type(trans.data), trans.stride);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);

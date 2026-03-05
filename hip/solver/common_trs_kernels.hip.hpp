@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -158,15 +158,14 @@ template <typename ValueType, typename IndexType>
 void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                   const matrix::Csr<ValueType, IndexType>* matrix,
                   const solver::SolveStruct* solve_struct,
-                  matrix::Dense<ValueType>* trans_b,
-                  matrix::Dense<ValueType>* trans_x,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* x)
+                  matrix::view::dense<ValueType> trans_b,
+                  matrix::view::dense<ValueType> trans_x,
+                  matrix::view::dense<const ValueType> b,
+                  matrix::view::dense<ValueType> x)
 {
-    if (matrix->get_size()[0] == 0 || b->get_size()[1] == 0) {
+    if (matrix->get_size()[0] == 0 || b.size[1] == 0) {
         return;
     }
-    using vec = matrix::Dense<ValueType>;
 
     if (sparselib::is_supported<ValueType, IndexType>::value) {
         if (auto hip_solve_struct =
@@ -176,7 +175,7 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
 
             {
                 sparselib::pointer_mode_guard pm_guard(handle);
-                if (b->get_stride() == 1) {
+                if (b.stride == 1) {
                     sparselib::csrsv2_solve(
                         handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                         matrix->get_size()[0],
@@ -185,13 +184,13 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                         matrix->get_const_values(),
                         matrix->get_const_row_ptrs(),
                         matrix->get_const_col_idxs(),
-                        hip_solve_struct->solve_info, b->get_const_values(),
-                        x->get_values(), hip_solve_struct->policy,
+                        hip_solve_struct->solve_info, b.data, x.data,
+                        hip_solve_struct->policy,
                         hip_solve_struct->factor_work_vec);
                 } else {
-                    dense::transpose(exec, b, trans_b);
-                    dense::transpose(exec, x, trans_x);
-                    for (IndexType i = 0; i < trans_b->get_size()[0]; i++) {
+                    dense::transpose(exec, b.as_const(), trans_b);
+                    dense::transpose(exec, x.as_const(), trans_x);
+                    for (IndexType i = 0; i < trans_b.size[0]; i++) {
                         sparselib::csrsv2_solve(
                             handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                             matrix->get_size()[0],
@@ -201,12 +200,12 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                             matrix->get_const_row_ptrs(),
                             matrix->get_const_col_idxs(),
                             hip_solve_struct->solve_info,
-                            trans_b->get_values() + i * trans_b->get_stride(),
-                            trans_x->get_values() + i * trans_x->get_stride(),
+                            trans_b.data + i * trans_b.stride,
+                            trans_x.data + i * trans_x.stride,
                             hip_solve_struct->policy,
                             hip_solve_struct->factor_work_vec);
                     }
-                    dense::transpose(exec, trans_x, x);
+                    dense::transpose(exec, trans_x.as_const(), x);
                 }
             }
         } else {
