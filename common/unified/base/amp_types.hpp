@@ -28,6 +28,8 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace amp {
 
 
+namespace gkerdev = gko::kernels::GKO_DEVICE_NAMESPACE;
+
 #if GINKGO_ENABLE_BFLOAT16 || GINKGO_ENABLE_HALF
 
 #define GINKGO_HAVE_AMP_HALF 1
@@ -43,8 +45,6 @@ using half = gko::kernels::GKO_DEVICE_NAMESPACE::device_bfloat16;
 using half = gko::kernels::GKO_DEVICE_NAMESPACE::device_half;
 
 #endif
-
-namespace gkerdev = gko::kernels::GKO_DEVICE_NAMESPACE;
 
 /**
  * All the real-valued types of different precisions available for adaptive

@@ -455,11 +455,11 @@ TEST_F(AMPAlgorithms, GetsCorrectBinLowerBoundsByPrecisionStartingFloat)
 TEST_F(AMPAlgorithms, GetsCorrectBinMinRepresentableStartingDouble)
 {
     const int sz = 2;
-    gko::array<float> result_arr(exec, sz);
-    gko::array<float> expected_arr(ref, sz);
+    gko::array<double> result_arr(exec, sz);
+    gko::array<double> expected_arr(ref, sz);
     auto expect = expected_arr.get_data();
-    expect[0] = static_cast<float>(std::numeric_limits<double>::min());
-    expect[1] = std::numeric_limits<float>::min();
+    expect[0] = std::numeric_limits<double>::min();
+    expect[1] = static_cast<double>(std::numeric_limits<float>::min());
 
     bins_min_representable<double>(exec, result_arr);
 
