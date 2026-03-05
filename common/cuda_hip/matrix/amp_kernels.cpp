@@ -44,15 +44,15 @@ using ScalarDCPtrTuple =
 // spmv kernel: 1 thread block-column per RHS
 // TODO: Optimize cache usage using intrinsics
 template <typename IValueType, typename MValueType, typename OValueType,
-          typename IndexType>
-__global__ __launch_bounds__(default_block_size) void ell_amp_spmv(
+          typename IndexType, typename InitialCombiner, typename Combiner>
+__device__ void ell_amp_spmv_impl(
     const size_type nrows, const uint32 nrhs,
     precision_array<size_type, MValueType> bin_strides,
     precision_array<size_type, MValueType> bin_max_nnz_row,
     precision_array<const IndexType*, MValueType> bin_col_idxs,
     ScalarDCPtrTuple<MValueType> bin_values, const uint32 x_stride,
     const IValueType* const __restrict__ x, const uint32 y_stride,
-    OValueType* const __restrict__ y)
+    OValueType* const __restrict__ y, InitialCombiner initial_op, Combiner op)
 {
     constexpr int q = narrow_types<MValueType>::num_types;
     const auto irow = blockIdx.x * blockDim.x + threadIdx.x;
@@ -85,12 +85,60 @@ __global__ __launch_bounds__(default_block_size) void ell_amp_spmv(
                 }
             }
             if constexpr (k == 0) {
-                y[irow * y_stride + irhs] = static_cast<OValueType>(sum);
+                y[irow * y_stride + irhs] =
+                    initial_op(sum, y[irow * y_stride + irhs]);
             } else {
-                y[irow * y_stride + irhs] += static_cast<OValueType>(sum);
+                y[irow * y_stride + irhs] += op(sum);
             }
         }
     });
+}
+
+template <typename IValueType, typename MValueType, typename OValueType,
+          typename IndexType>
+__global__ __launch_bounds__(default_block_size) void ell_amp_basic_spmv(
+    const size_type nrows, const uint32 nrhs,
+    precision_array<size_type, MValueType> bin_strides,
+    precision_array<size_type, MValueType> bin_max_nnz_row,
+    precision_array<const IndexType*, MValueType> bin_col_idxs,
+    ScalarDCPtrTuple<MValueType> bin_values, const uint32 x_stride,
+    const IValueType* const __restrict__ x, const uint32 y_stride,
+    OValueType* const __restrict__ y)
+{
+    ell_amp_spmv_impl<IValueType, MValueType, OValueType, IndexType>(
+        nrows, nrhs, bin_strides, bin_max_nnz_row, bin_col_idxs, bin_values,
+        x_stride, x, y_stride, y, [](auto sum, auto& x) { return sum; },
+        [](auto x) { return x; });
+}
+
+template <typename IValueType, typename MValueType, typename OValueType,
+          typename IndexType>
+__global__ __launch_bounds__(default_block_size) void ell_amp_adv_spmv(
+    const size_type nrows, const uint32 nrhs,
+    const MValueType* const __restrict__ alpha,
+    precision_array<size_type, MValueType> bin_strides,
+    precision_array<size_type, MValueType> bin_max_nnz_row,
+    precision_array<const IndexType*, MValueType> bin_col_idxs,
+    ScalarDCPtrTuple<MValueType> bin_values, const uint32 x_stride,
+    const IValueType* const __restrict__ x,
+    const OValueType* const __restrict__ beta, const uint32 y_stride,
+    OValueType* const __restrict__ y)
+{
+    using highest_type =
+        gko::highest_precision<IValueType, MValueType, OValueType>;
+    const auto alval = static_cast<highest_type>(alpha[0]);
+    const auto beval = beta[0];
+    ell_amp_spmv_impl<IValueType, MValueType, OValueType, IndexType>(
+        nrows, nrhs, bin_strides, bin_max_nnz_row, bin_col_idxs, bin_values,
+        x_stride, x, y_stride, y,
+        [alval, beval](auto sum, OValueType& x) {
+            return static_cast<OValueType>(
+                beval * x + alval * static_cast<highest_type>(sum));
+        },
+        [alval](auto sum) {
+            return static_cast<OValueType>(alval *
+                                           static_cast<highest_type>(sum));
+        });
 }
 
 template <typename InputValueType, typename MatrixValueType,
@@ -136,7 +184,7 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
     constexpr auto block_size = default_block_size;
     const auto num_blocks = static_cast<uint32>(ceildiv(nrows, block_size));
     const dim3 grid{num_blocks, nrhs, 1};
-    ell_amp_spmv<DIValueType, DMValueType, DOValueType, IndexType>
+    ell_amp_basic_spmv<DIValueType, DMValueType, DOValueType, IndexType>
         <<<grid, block_size, 0, exec->get_stream()>>>(
             nrows, nrhs, bin_strides, max_nnzs, xcol_idxs, xvalues,
             static_cast<uint32>(b->get_stride()), b_ptr,
@@ -156,7 +204,49 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Dense<OutputValueType>* beta,
                    matrix::Dense<OutputValueType>* c)
 {
-    GKO_NOT_IMPLEMENTED;
+    using DMValueType =
+        gko::kernels::GKO_DEVICE_NAMESPACE::device_type<MatrixValueType>;
+    using DIValueType =
+        gko::kernels::GKO_DEVICE_NAMESPACE::device_type<InputValueType>;
+    using DOValueType =
+        gko::kernels::GKO_DEVICE_NAMESPACE::device_type<OutputValueType>;
+
+    constexpr int q = matrix::AMP<MatrixValueType, IndexType>::num_precisions;
+    static_assert(q > 0, "Need at least 1 bin!");
+    auto c_ptr = as_device_type(c->get_values());
+    auto b_ptr = as_device_type(b->get_const_values());
+    auto alpha_ptr = as_device_type(alpha->get_const_values());
+    auto beta_ptr = as_device_type(beta->get_const_values());
+    const auto nrows = a->get_size()[0];
+    const auto nrhs = static_cast<uint32>(c->get_size()[1]);
+
+    // Get precision buckets' arrays
+    ScalarDCPtrTuple<DMValueType> xvalues;
+    precision_array<const IndexType*, DMValueType> xcol_idxs;
+    precision_array<size_type, DMValueType> bin_strides;
+    precision_array<size_type, DMValueType> max_nnzs;
+    gko::constexpr_for<0, q, 1>([&](auto k) {
+        using value_type = typename std::tuple_element<
+            k, typename gko::amp::narrow_types<MatrixValueType>::type>::type;
+        using EllType = matrix::Ell<value_type, IndexType>;
+        auto ematk = dynamic_cast<const EllType*>(a->get_bin_matrix(k));
+        if (!ematk) {
+            GKO_NOT_SUPPORTED(ematk);
+        }
+        xcol_idxs[k] = ematk->get_const_col_idxs();
+        bin_strides[k] = ematk->get_stride();
+        max_nnzs[k] = ematk->get_num_stored_elements_per_row();
+        std::get<k>(xvalues) = as_device_type(ematk->get_const_values());
+    });
+
+    constexpr auto block_size = default_block_size;
+    const auto num_blocks = static_cast<uint32>(ceildiv(nrows, block_size));
+    const dim3 grid{num_blocks, nrhs, 1};
+    ell_amp_adv_spmv<DIValueType, DMValueType, DOValueType, IndexType>
+        <<<grid, block_size, 0, exec->get_stream()>>>(
+            nrows, nrhs, alpha_ptr, bin_strides, max_nnzs, xcol_idxs, xvalues,
+            static_cast<uint32>(b->get_stride()), b_ptr, beta_ptr,
+            static_cast<uint32>(c->get_stride()), c_ptr);
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(

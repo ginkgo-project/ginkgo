@@ -1,2 +1,1 @@
-ginkgo_create_omp_test(amp_kernels)
 ginkgo_create_omp_test(fbcsr_kernels)
