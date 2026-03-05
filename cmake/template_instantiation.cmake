@@ -60,6 +60,10 @@ function(add_instantiation_files source_dir source_file output_files_var)
     list(SUBLIST file_contents 0 ${length_header} header)
     list(SUBLIST file_contents ${end_location_past} ${length_footer} footer)
     set(output_files)
+    set(preproc_begin "#line 1 \"${source_path}\"")
+    # the counter is zero-based, and we want to point after the // end comment
+    math(EXPR end_location_past_plus_1 "${end_location_past} + 1")
+    set(preproc_end "#line ${end_location_past_plus_1}")
     # for each range between // begin|split|end pairs
     foreach(range RANGE 0 ${range_count_minus_one})
         # create an output filename
@@ -77,9 +81,17 @@ function(add_instantiation_files source_dir source_file output_files_var)
         list(GET range_ends ${range} end)
         math(EXPR begin "${begin} + 1")
         math(EXPR length "${end} - ${begin}")
+        math(EXPR begin_plus_1 "${begin} + 1")
         list(SUBLIST file_contents ${begin} ${length} content)
         # concatenate header, content and footer and turn semicolons into newlines
-        string(REPLACE ";" "\n" content "${header};${content};${footer}")
+        set(preproc_content "#line ${begin_plus_1}")
+        string(
+            REPLACE
+            ";"
+            "\n"
+            content
+            "${preproc_begin};${header};${preproc_content};${content};${preproc_end};${footer}"
+        )
         # and escaped semicolons into regular semicolons again
         string(REPLACE "<semicolon>" ";" content "${content}")
         # create a .tmp file, but only copy it over if source file changed
