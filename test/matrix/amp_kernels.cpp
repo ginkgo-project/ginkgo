@@ -97,11 +97,11 @@ TEST_F(Amp, GenerateEllRownormsStorageIsEquivalentToRef)
     gko::kernels::GKO_DEVICE_NAMESPACE::amp::generate_ell_rownorms_storage(
         exec, dmtx.get(), tol, dev_max_nnz, dev_rownorms);
 
+    GKO_ASSERT_ARRAY_NEAR(dev_rownorms, ref_rownorms,
+                          std::numeric_limits<real_T>::epsilon());
     for (int k = 0; k < q; k++) {
         EXPECT_EQ(dev_max_nnz[k], ref_max_nnz[k]);
     }
-    GKO_ASSERT_ARRAY_NEAR(dev_rownorms, ref_rownorms,
-                          std::numeric_limits<real_T>::epsilon());
 }
 
 

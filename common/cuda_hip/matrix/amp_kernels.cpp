@@ -267,10 +267,14 @@ __global__ __launch_bounds__(default_block_size) void compute_max_nnzs(
         get_bins_min_representable<real_type>();
 
     // thread-level reduction
-    std::array<int, q> max_nnz_thread = {};
+    int max_nnz_thread[q];
+#pragma unroll
+    for (int i = 0; i < q; i++) {
+        max_nnz_thread[i] = 0;
+    }
 
     const int start_row = thread::get_thread_id_flat();
-    for (int irow = start_row; irow < nrows; irow += gridDim.x) {
+    for (int irow = start_row; irow < nrows; irow += gridDim.x * blockDim.x) {
         // Compute row's 1-norm
         auto rnorm = static_cast<real_type>(0);
         for (int j = 0; j < omax_nnz; j++) {
@@ -287,7 +291,11 @@ __global__ __launch_bounds__(default_block_size) void compute_max_nnzs(
             get_bins_precision_lower_bounds<real_type>(rnorm, tolerance);
 
         // Get max nnz per row for each precision bin matrix
-        std::array<int, q> row_nnz = {};
+        int row_nnz[q];
+#pragma unroll
+        for (int i = 0; i < q; i++) {
+            row_nnz[i] = 0;
+        }
         for (int j = 0; j < omax_nnz; j++) {
             const int ibin = get_adjusted_bin<real_type>(
                 min_bin, min_repr, abs(ovals[j * ostride + irow]));
@@ -297,7 +305,7 @@ __global__ __launch_bounds__(default_block_size) void compute_max_nnzs(
         }
 #pragma unroll
         for (int k = 0; k < q; k++) {
-            max_nnz_thread[k] = std::max(max_nnz_thread[k], row_nnz[k]);
+            max_nnz_thread[k] = max(max_nnz_thread[k], row_nnz[k]);
         }
     }
 
@@ -321,10 +329,13 @@ __global__ __launch_bounds__(default_block_size) void compute_max_nnzs(
             warp_max[warp_id + k * num_warps] = max_nnz_thread[k];
         }
     }
+    __syncthreads();
 
     // block reduction: one warp handles the reduction for one precision bucket
     for (int k = warp_id; k < q; k += num_warps) {
-        int local = warp_max[warp_tile.thread_rank() + k * num_warps];
+        int local = warp_tile.thread_rank() < num_warps
+                        ? warp_max[warp_tile.thread_rank() + k * num_warps]
+                        : 0;
         local = reduce(warp_tile, local,
                        [](int a, int b) { return a < b ? b : a; });
         if (warp_tile.thread_rank() == 0) {
@@ -340,11 +351,42 @@ __global__ __launch_bounds__(default_block_size) void compute_max_nnzs(
 
 template <int q>
 __global__ __launch_bounds__(default_block_size) void finish_reduce(
-    int* const __restrict__ max_bins_nnz_blocks, const int stride)
+    int* const __restrict__ data, const int len, const int stride)
 {
     const auto group = group::this_thread_block();
-    multireduce(group, max_bins_nnz_blocks, stride, q,
-                [](int a, int b) { return a < b ? b : a; });
+    // multireduce(group, max_bins_nnz_blocks, stride, q,
+    //             [](int a, int b) { return a < b ? b : a; });
+    const auto local_id = group.thread_rank();
+
+    for (int k = group.size() / 2; k >= config::warp_size; k /= 2) {
+        group.sync();
+        if (local_id < k && local_id < len) {
+            for (int j = 0; j < q; j++) {
+                const int a = data[j * stride + local_id];
+                const int b =
+                    (local_id + k < len) ? data[j * stride + local_id + k] : 0;
+                const int ans = max(a, b);
+                data[j * stride + local_id] = ans;
+            }
+        }
+    }
+
+    group.sync();
+
+    const auto warp = group::tiled_partition<config::warp_size>(group);
+    const auto warp_id = group.thread_rank() / warp.size();
+    if (warp_id > 0) {
+        return;
+    }
+    for (int j = 0; j < q; j++) {
+        auto val = warp.thread_rank() < len
+                       ? data[j * stride + warp.thread_rank()]
+                       : 0;
+        auto result = reduce(warp, val, [](int a, int b) { return max(a, b); });
+        if (warp.thread_rank() == 0) {
+            data[j * stride] = result;
+        }
+    }
 }
 
 template <typename ValueType, typename IndexType>
@@ -352,7 +394,7 @@ void generate_ell_rownorms_storage(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Ell<ValueType, IndexType>* a, const float tolerance,
     gko::amp::precision_array<int, ValueType>& max_nnz_per_row,
-    array<remove_complex<ValueType>>& rownorms)
+    array<gko::remove_complex<ValueType>>& rownorms)
 {
     using real_type = remove_complex<ValueType>;
     constexpr int q = narrow_types<ValueType>::num_types;
@@ -364,24 +406,24 @@ void generate_ell_rownorms_storage(
     const IndexType* const ocolids = a->get_const_col_idxs();
 
     const auto num_cus = exec->get_num_multiprocessor();
-    const auto grid_size = num_cus * num_thread_blocks_per_cu;
+    const auto num_blocks = num_cus * num_thread_blocks_per_cu;
     // const auto grid_size = ceildiv(nrows, block_size);
     const auto block_size = default_block_size;
-    gko::array<int> max_nnz_arr(exec, q * grid_size);
+    gko::array<int> max_nnz_arr(exec, q * num_blocks);
     max_nnz_arr.fill(0);
     const auto max_nnz_ptr = max_nnz_arr.get_data();
     const auto rownorms_ptr = rownorms.get_data();
 
-    compute_max_nnzs<q><<<grid_size, block_size, 0, exec->get_stream()>>>(
+    compute_max_nnzs<q><<<num_blocks, block_size, 0, exec->get_stream()>>>(
         tolerance, nrows, ostride, omax_nnz, as_device_type(ovals), ocolids,
         as_device_type(rownorms_ptr), max_nnz_ptr);
-    finish_reduce<q>
-        <<<1, block_size, 0, exec->get_stream()>>>(max_nnz_ptr, grid_size);
+    finish_reduce<q><<<1, block_size, 0, exec->get_stream()>>>(
+        max_nnz_ptr, num_blocks, num_blocks);
     exec->synchronize();
 
     std::vector<int> max_nnz_host = max_nnz_arr.copy_to_host();
     for (int k = 0; k < q; k++) {
-        max_nnz_per_row[k] = max_nnz_host[k * grid_size];
+        max_nnz_per_row[k] = max_nnz_host[k * num_blocks];
     }
 }
 

@@ -57,16 +57,16 @@ void bins_min_representable(std::shared_ptr<gko::EXEC_TYPE> exec,
 template <typename highest_real_type>
 void precision_bin(std::shared_ptr<gko::EXEC_TYPE> exec, const double rownorm,
                    const float tol, const highest_real_type abs_number,
-                   const int start_bin, gko::array<int>& result_array)
+                   gko::array<int>& result_array)
 {
     gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
-        [rownorm, tol, abs_number, start_bin] GKO_KERNEL(auto i, auto result) {
+        [rownorm, tol, abs_number] GKO_KERNEL(auto i, auto result) {
             const auto lbs =
                 gkda::get_bins_precision_lower_bounds<highest_real_type>(
                     rownorm, tol);
-            result[i] = gkda::get_precision_bin<highest_real_type>(
-                lbs, abs_number, start_bin);
+            result[i] =
+                gkda::get_precision_bin<highest_real_type>(lbs, abs_number);
         },
         result_array.get_size(), result_array);
 }
@@ -259,30 +259,30 @@ TEST_F(AMPAlgorithms, GetsCorrectPrecisionBinDouble)
 
     // Value larger than lb[0] goes to bin 0
     expected_arr.get_data()[0] = 0;
-    precision_bin<double>(exec, rownorm, tol, lb[0] * 2.0, 0, result_arr);
+    precision_bin<double>(exec, rownorm, tol, lb[0] * 2.0, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Value between lb[0] and lb[1] goes to bin 1
     expected_arr.get_data()[0] = 1;
     precision_bin<double>(exec, rownorm, tol, std::sqrt(double{lb[0]} * lb[1]),
-                          0, result_arr);
+                          result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Value between lb[1] and lb[2] goes to bin 2
     expected_arr.get_data()[0] = 2;
-    precision_bin<double>(exec, rownorm, tol, (double{lb[1]} + lb[2]) / 2.0, 0,
+    precision_bin<double>(exec, rownorm, tol, (double{lb[1]} + lb[2]) / 2.0,
                           result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Value smaller than lb[2] gets dropped
     expected_arr.get_data()[0] = -1;
-    precision_bin<double>(exec, rownorm, tol, lb[2] * 0.5, 0, result_arr);
+    precision_bin<double>(exec, rownorm, tol, lb[2] * 0.5, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Starting from bin 1 should skip bin 0
-    expected_arr.get_data()[0] = 1;
-    precision_bin<double>(exec, rownorm, tol, lb[0] * 2.0, 1, result_arr);
-    GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
+    // expected_arr.get_data()[0] = 1;
+    // precision_bin<double>(exec, rownorm, tol, lb[0] * 2.0, 1, result_arr);
+    // GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 }
 
 TEST_F(AMPAlgorithms, GetsCorrectPrecisionBinFloat)
@@ -298,11 +298,11 @@ TEST_F(AMPAlgorithms, GetsCorrectPrecisionBinFloat)
     gko::array<int> expected_arr(ref, 1);
 
     expected_arr.get_data()[0] = 0;
-    precision_bin<float>(exec, rownorm, tol, lb[0] * 2.0f, 0, result_arr);
+    precision_bin<float>(exec, rownorm, tol, lb[0] * 2.0f, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     expected_arr.get_data()[0] = -1;
-    precision_bin<float>(exec, rownorm, tol, lb[1] * 0.5f, 0, result_arr);
+    precision_bin<float>(exec, rownorm, tol, lb[1] * 0.5f, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 }
 
@@ -492,24 +492,24 @@ TEST_F(AMPAlgorithms, GetsCorrectPrecisionBinDouble)
 
     // Value larger than lb[0] goes to bin 0
     expected_arr.get_data()[0] = 0;
-    precision_bin<double>(exec, rownorm, tol, lb[0] * 2.0, 0, result_arr);
+    precision_bin<double>(exec, rownorm, tol, lb[0] * 2.0, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Value between lb[0] and lb[1] goes to bin 1
     expected_arr.get_data()[0] = 1;
-    precision_bin<double>(exec, rownorm, tol, (double{lb[0]} + lb[1]) / 2.0, 0,
+    precision_bin<double>(exec, rownorm, tol, (double{lb[0]} + lb[1]) / 2.0,
                           result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Value smaller than lb[1] gets dropped
     expected_arr.get_data()[0] = -1;
-    precision_bin<double>(exec, rownorm, tol, lb[1] * 0.5, 0, result_arr);
+    precision_bin<double>(exec, rownorm, tol, lb[1] * 0.5, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     // Starting from bin 1 should skip bin 0
-    expected_arr.get_data()[0] = 1;
-    precision_bin<double>(exec, rownorm, tol, lb[0] * 2.0, 1, result_arr);
-    GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
+    // expected_arr.get_data()[0] = 1;
+    // precision_bin<double>(exec, rownorm, tol, lb[0] * 2.0, 1, result_arr);
+    // GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 }
 
 TEST_F(AMPAlgorithms, GetsCorrectPrecisionBinFloat)
@@ -525,11 +525,11 @@ TEST_F(AMPAlgorithms, GetsCorrectPrecisionBinFloat)
     gko::array<int> expected_arr(ref, 1);
 
     expected_arr.get_data()[0] = 0;
-    precision_bin<float>(exec, rownorm, tol, lb[0] * 2.0f, 0, result_arr);
+    precision_bin<float>(exec, rownorm, tol, lb[0] * 2.0f, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 
     expected_arr.get_data()[0] = -1;
-    precision_bin<float>(exec, rownorm, tol, lb[0] * 0.5f, 0, result_arr);
+    precision_bin<float>(exec, rownorm, tol, lb[0] * 0.5f, result_arr);
     GKO_ASSERT_ARRAY_EQ(result_arr, expected_arr);
 }
 
