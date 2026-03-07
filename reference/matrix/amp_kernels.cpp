@@ -84,10 +84,10 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
         const auto max_nnz = ellk->get_num_stored_elements_per_row();
         if (max_nnz > 0) {
             for (int i = 0; i < nrows; i++) {
-                OutputValueType sum = 0;
+                highest_type sum = 0;
                 for (int j = 0; j < max_nnz; j++) {
                     if (acols[i + j * stride] >= 0) {
-                        y[i] += static_cast<highest_type>(
+                        sum += static_cast<highest_type>(
                             static_cast<mult_type>(avals[i + j * stride]) *
                             static_cast<mult_type>(x[acols[i + j * stride]]));
                     }
@@ -191,7 +191,7 @@ void generate_ell_rownorms_storage(
     using real_type = remove_complex<ValueType>;
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
     // Compute minimum representable values for each bin
-    const std::array<float, q> min_repr =
+    const std::array<real_type, q> min_repr =
         get_bins_min_representable<real_type>();
 
     const auto nrows = a->get_size()[0];
@@ -246,7 +246,7 @@ void generate_ell_scatter_bins(
     using real_type = remove_complex<ValueType>;
     constexpr int q = gko::matrix::AMP<ValueType, IndexType>::num_precisions;
     // Compute minimum representable values for each bin
-    const std::array<float, q> min_repr =
+    const std::array<real_type, q> min_repr =
         get_bins_min_representable<real_type>();
 
     const auto nrows = a->get_size()[0];

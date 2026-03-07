@@ -1,3 +1,4 @@
+ginkgo_create_hip_test(amp_types)
 ginkgo_create_hip_test(hip_executor)
 ginkgo_create_test(index_set RESOURCE_TYPE hipgpu)
 if(GINKGO_HAVE_HWLOC)

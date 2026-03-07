@@ -237,13 +237,13 @@ if(GINKGO_BUILD_HIP)
     elseif(
         GINKGO_HIP_PLATFORM_AMD
         AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 7.1
-        AND GINKGO_HIP_VERSION VERSION_LESS 7.2
+        AND GINKGO_HIP_VERSION VERSION_LESS 7.3
     )
         # https://github.com/ROCm/rocm-libraries/pull/1769 should fix this issue in ROCm 7.1.1.
         # HIP VERSION does not use the exact version number as ROCm. Need to wait for ROCm 7.1.1 to set proper range for ROCm 7.1.0
         message(
             STATUS
-            "Disable custom thrust namespace for hip 7.1 because hip does not adapt the custom namespace fully."
+            "Disable custom thrust namespace for hip 7.1 and 7.2 because hip does not adapt the custom namespace fully."
         )
         set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE OFF)
     else()

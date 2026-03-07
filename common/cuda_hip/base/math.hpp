@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,6 +39,10 @@ struct device_numeric_limits {
     static constexpr auto inf() { return std::numeric_limits<T>::infinity(); }
     static constexpr auto max() { return std::numeric_limits<T>::max(); }
     static constexpr auto min() { return std::numeric_limits<T>::min(); }
+    static constexpr auto epsilon()
+    {
+        return std::numeric_limits<T>::epsilon();
+    }
 };
 
 template <>
@@ -63,6 +67,14 @@ struct device_numeric_limits<__half> {
     {
         __half_raw bits;
         bits.x = static_cast<uint16>(0b0000010000000000u);
+        return __half{bits};
+    }
+
+    // 2^(-10), with exponent represented as 2^5.
+    static GKO_ATTRIBUTES GKO_INLINE auto epsilon()
+    {
+        __half_raw bits;
+        bits.x = static_cast<uint16>(0b0'00101'0000000000u);
         return __half{bits};
     }
 };
@@ -91,6 +103,14 @@ struct device_numeric_limits<__nv_bfloat16> {
     {
         __nv_bfloat16_raw bits;
         bits.x = static_cast<uint16>(0b0'00000001'0000000u);
+        return __nv_bfloat16{bits};
+    }
+
+    // 2^(-7), with exponent represented as 120.
+    static GKO_ATTRIBUTES GKO_INLINE auto epsilon()
+    {
+        __nv_bfloat16_raw bits;
+        bits.x = static_cast<uint16>(0b0'01111000'0000000u);
         return __nv_bfloat16{bits};
     }
 };
@@ -124,6 +144,13 @@ struct device_numeric_limits<__hip_bfloat16> {
     {
         __hip_bfloat16_raw bits;
         bits.x = static_cast<uint16>(0b0'00000001'0000000u);
+        return __hip_bfloat16{bits};
+    }
+
+    static GKO_ATTRIBUTES GKO_INLINE auto epsilon()
+    {
+        __hip_bfloat16_raw bits;
+        bits.x = static_cast<uint16>(0b0'01111000'0000000u);
         return __hip_bfloat16{bits};
     }
 };
@@ -448,6 +475,43 @@ GKO_INLINE thrust::complex<vendor_bf16> one<thrust::complex<vendor_bf16>>()
 #endif
 #endif  // GINKGO_ENABLE_BFLOAT16
 #endif  // defined(__CUDACC__) || defined(GKO_COMPILING_HIP)
+
+
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+
+
+namespace detail {
+
+template <typename T>
+struct device_to_complex_s {
+    using type = thrust::complex<T>;
+};
+
+template <typename T>
+struct device_to_complex_s<thrust::complex<T>> {
+    using type = thrust::complex<T>;
+};
+
+template <typename... Args>
+struct device_to_complex_s<std::tuple<Args...>> {
+    using type = std::tuple<typename device_to_complex_s<Args>::type...>;
+};
+
+}  // namespace detail
+
+
+template <typename T>
+using to_complex = typename detail::device_to_complex_s<T>::type;
+
+// for common unified half
+using device_half = __half;
+// for common unified bf16
+using device_bfloat16 = vendor_bf16;
+
+
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
 
 
 }  // namespace gko

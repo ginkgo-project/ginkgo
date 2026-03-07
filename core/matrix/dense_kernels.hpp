@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -330,7 +330,7 @@ namespace kernels {
 #define GKO_DECLARE_MAKE_COMPLEX_KERNEL(_vtype)                    \
     void make_complex(std::shared_ptr<const DefaultExecutor> exec, \
                       const matrix::Dense<_vtype>* source,         \
-                      matrix::Dense<to_complex<_vtype>>* result)
+                      matrix::Dense<gko::to_complex<_vtype>>* result)
 
 #define GKO_DECLARE_GET_REAL_KERNEL(_vtype)                    \
     void get_real(std::shared_ptr<const DefaultExecutor> exec, \

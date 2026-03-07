@@ -1,3 +1,4 @@
+ginkgo_create_cuda_test(amp_types)
 ginkgo_create_test(array EXECUTABLE_NAME array_test RESOURCE_TYPE cudagpu) # array collides with C++ stdlib header
 ginkgo_create_cuda_test(cuda_executor)
 ginkgo_create_test(index_set RESOURCE_TYPE cudagpu)

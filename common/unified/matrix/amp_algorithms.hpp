@@ -2,31 +2,37 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_REFERENCE_MATRIX_AMP_ALGORITHMS_H_
-#define GKO_REFERENCE_MATRIX_AMP_ALGORITHMS_H_
+#ifndef GKO_COMMON_UNIFIED_MATRIX_AMP_ALGORITHMS_H_
+#define GKO_COMMON_UNIFIED_MATRIX_AMP_ALGORITHMS_H_
 
-#include <ginkgo/core/base/amp_types.hpp>
 
+#include "common/unified/base/amp_types.hpp"
+// For contexpr_for
 #include "core/base/utils.hpp"
 
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
+
+#define GKO_KERNEL __device__
+
+#else
+
+#define GKO_KERNEL
+
+#endif
 
 namespace gko {
 namespace kernels {
-namespace reference {
+namespace GKO_DEVICE_NAMESPACE {
 namespace amp {
 
 
-template <typename T, typename U>
-using precision_array = gko::amp::precision_array<T, U>;
-
-
 template <typename RealType, int k>
-inline void bins_precision_lower_bounds_impl(
+GKO_INLINE GKO_KERNEL void bins_precision_lower_bounds_impl(
     const RealType row_norm, const float tolerance,
     precision_array<float, RealType>& lbs)
 {
-    using narrow_types = typename gko::amp::narrow_types<RealType>::type;
-    constexpr int q = gko::amp::narrow_types<RealType>::num_types;
+    using narrow_types_t = typename narrow_types<RealType>::type;
+    constexpr int q = narrow_types<RealType>::num_types;
     if constexpr (k > q - 1) {
         return;
     }
@@ -34,9 +40,11 @@ inline void bins_precision_lower_bounds_impl(
         lbs[k] = static_cast<float>(row_norm) * tolerance;
     } else {
         using next_type =
-            typename std::tuple_element<k + 1, narrow_types>::type;
-        lbs[k] = static_cast<float>(tolerance * row_norm /
-                                    std::numeric_limits<next_type>::epsilon());
+            typename std::tuple_element<k + 1, narrow_types_t>::type;
+        lbs[k] = static_cast<float>(
+            tolerance * row_norm /
+            static_cast<float>(
+                gko::device_numeric_limits<next_type>::epsilon()));
         bins_precision_lower_bounds_impl<RealType, k + 1>(row_norm, tolerance,
                                                           lbs);
     }
@@ -55,10 +63,10 @@ inline void bins_precision_lower_bounds_impl(
  *                   range down to 1e-38 should also be sufficient.
  */
 template <typename RealType>
-inline auto get_bins_precision_lower_bounds(const RealType row_norm,
-                                            const float tolerance)
+GKO_INLINE GKO_KERNEL auto get_bins_precision_lower_bounds(
+    const RealType row_norm, const float tolerance)
 {
-    constexpr int q = gko::amp::narrow_types<RealType>::num_types;
+    constexpr int q = narrow_types<RealType>::num_types;
     std::array<float, q> lbs;
     bins_precision_lower_bounds_impl<RealType, 0>(row_norm, tolerance, lbs);
     return lbs;
@@ -70,15 +78,16 @@ inline auto get_bins_precision_lower_bounds(const RealType row_norm,
  * @tparam RealType  The highest precision real type to be considered.
  */
 template <typename RealType>
-inline auto get_bins_min_representable()
+GKO_INLINE GKO_ATTRIBUTES auto get_bins_min_representable()
 {
-    using narrow_types = typename gko::amp::narrow_types<RealType>::type;
-    constexpr int q = gko::amp::narrow_types<RealType>::num_types;
+    using narrow_types_t = typename narrow_types<RealType>::type;
+    constexpr int q = narrow_types<RealType>::num_types;
     std::array<RealType, q> mins = {};
     // get_bins_min_representable_impl<RealType, q, 0>(mins);
     gko::constexpr_for<0, q, 1>([&](auto k) {
-        using bin_type = typename std::tuple_element<k, narrow_types>::type;
-        mins[k] = static_cast<RealType>(std::numeric_limits<bin_type>::min());
+        using bin_type = typename std::tuple_element<k, narrow_types_t>::type;
+        mins[k] =
+            static_cast<RealType>(gko::device_numeric_limits<bin_type>::min());
     });
     return mins;
 }
@@ -91,11 +100,11 @@ inline auto get_bins_min_representable()
  *         Returns -1 if the number should be dropped.
  */
 template <typename RealType>
-inline int get_precision_bin(
+GKO_INLINE GKO_KERNEL int get_precision_bin(
     const precision_array<float, RealType>& lower_bounds,
     const RealType abs_number, const int k)
 {
-    constexpr int q = gko::amp::narrow_types<RealType>::num_types;
+    constexpr int q = narrow_types<RealType>::num_types;
     if (k >= q) {
         return -1;
     }
@@ -119,11 +128,10 @@ inline int get_precision_bin(
  *              by @ref get_precision_bin.
  */
 template <typename RealType>
-inline int adjust_bin_for_underflow(
+GKO_INLINE GKO_KERNEL int adjust_bin_for_underflow(
     const precision_array<RealType, RealType>& min_representable,
     const RealType abs_number, int ibin)
 {
-    constexpr int q = gko::amp::narrow_types<RealType>::num_types;
     if (ibin < 0) {
         return ibin;  // Already dropped
     }
@@ -147,7 +155,7 @@ inline int adjust_bin_for_underflow(
  * @param abs_number  Absolute value of the number to be classified into a bin.
  */
 template <typename RealType>
-inline int get_adjusted_bin(
+GKO_INLINE GKO_KERNEL int get_adjusted_bin(
     const precision_array<float, RealType>& lower_bounds,
     const precision_array<RealType, RealType>& min_representable,
     const RealType abs_number)
@@ -169,8 +177,9 @@ inline int get_adjusted_bin(
  * @param idx  The runtime position of the tuple that should be assigned to.
  */
 template <int k, typename ValueType, typename... Args>
-void assign_value_to_tuple(std::tuple<Args...>& t, const ValueType& value,
-                           const int idx)
+GKO_INLINE GKO_KERNEL void assign_value_to_tuple(std::tuple<Args...>& t,
+                                                 const ValueType& value,
+                                                 const int idx)
 {
     constexpr int len = sizeof...(Args);
     if constexpr (k < 0 || k >= len) {
@@ -201,9 +210,9 @@ void assign_value_to_tuple(std::tuple<Args...>& t, const ValueType& value,
  * @param loc  The offset at which the value should be placed.
  */
 template <int k, typename ValueType, typename... Args>
-inline void assign_value_to_array_tuple(const std::tuple<Args...>& t,
-                                        const ValueType& value, const int t_idx,
-                                        const int loc)
+GKO_INLINE GKO_KERNEL void assign_value_to_array_tuple(
+    const std::tuple<Args...>& t, const ValueType& value, const int t_idx,
+    const int loc)
 {
     constexpr int len = sizeof...(Args);
     if constexpr (k < 0 || k >= len) {
@@ -224,8 +233,9 @@ inline void assign_value_to_array_tuple(const std::tuple<Args...>& t,
 
 
 }  // namespace amp
-}  // namespace reference
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_CORE_MATRIX_AMP_ALGORITHMS_H_
+
+#endif  // GKO_COMMON_UNIFIED_MATRIX_AMP_ALGORITHMS_H_

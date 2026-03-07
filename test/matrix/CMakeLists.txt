@@ -1,3 +1,5 @@
+ginkgo_create_common_device_test(amp_algorithms DISABLE_EXECUTORS dpcpp)
+ginkgo_create_common_test(amp_kernels DISABLE_EXECUTORS dpcpp)
 ginkgo_create_common_test(batch_csr_kernels)
 ginkgo_create_common_test(batch_dense_kernels)
 ginkgo_create_common_test(batch_ell_kernels)

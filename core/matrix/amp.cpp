@@ -61,10 +61,8 @@ AMP<ValueType, IndexType>& AMP<ValueType, IndexType>::operator=(
     if (&other != this) {
         EnableLinOp<AMP>::operator=(other);
         for (int i = 0; i < num_precisions; i++) {
-            auto tmtx = amp::bin_mtx_type<ValueType, IndexType>::create(
-                this->get_executor());
-            tmtx->copy_from(other.mat_bins_[i].get());
-            this->mat_bins_[i] = std::move(tmtx);
+            this->mat_bins_[i] =
+                other.mat_bins_[i]->clone(this->get_executor());
         }
     }
     return *this;

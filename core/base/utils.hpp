@@ -210,7 +210,7 @@ constexpr std::array<T, sizeof...(Args)> to_std_array(Args&&... args)
  * constexpr in the body.
  */
 template <auto Start, auto End, auto Inc, class Functor1D>
-constexpr void constexpr_for(Functor1D&& f)
+GKO_ATTRIBUTES constexpr void constexpr_for(Functor1D&& f)
 {
     if constexpr (Start < End) {
         f(std::integral_constant<decltype(Start), Start>());
@@ -298,6 +298,9 @@ struct generator_partial {
 
 template <typename T>
 using ptr_type = T*;
+
+template <typename T>
+using ptr_to_const_type = const T*;
 
 
 }  // namespace gko
