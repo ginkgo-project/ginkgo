@@ -397,7 +397,7 @@ void generate_ell_rownorms_storage(
     array<gko::remove_complex<ValueType>>& rownorms)
 {
     using real_type = remove_complex<ValueType>;
-    constexpr int q = narrow_types<ValueType>::num_types;
+    constexpr int q = matrix::AMP<ValueType, IndexType>::num_precisions;
 
     const auto nrows = a->get_size()[0];
     const auto ostride = a->get_stride();
