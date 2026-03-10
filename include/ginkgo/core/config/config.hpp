@@ -6,15 +6,8 @@
 #define GKO_PUBLIC_CORE_CONFIG_CONFIG_HPP_
 
 
-#include <map>
-#include <string>
-#include <unordered_map>
-
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
-#include <ginkgo/core/solver/solver_base.hpp>
-
 
 namespace gko {
 namespace config {
@@ -194,7 +187,7 @@ class pnode;
  * @return a deferred_factory_parameter which creates an LinOpFactory after
  *         `.on(exec)` is called on it.
  */
-deferred_factory_parameter<gko::LinOpFactory> parse(
+deferred_factory_parameter<LinOpFactory> parse(
     const pnode& config, const registry& context,
     const type_descriptor& td = make_type_descriptor<>());
 

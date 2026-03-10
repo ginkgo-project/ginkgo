@@ -48,6 +48,7 @@ target_sources(
         components/range_minimum_query.cpp
         config/config.cpp
         config/config_helper.cpp
+        config/matrix.cpp
         config/property_tree.cpp
         config/stop_config.cpp
         config/type_descriptor.cpp
