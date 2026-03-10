@@ -97,6 +97,7 @@ target_sources(
         multigrid/fixed_coarsening.cpp
         multigrid/pgm.cpp
         multigrid/rs.cpp
+        multigrid/uniform_coarsening.cpp
         preconditioner/batch_jacobi.cpp
         preconditioner/gauss_seidel.cpp
         preconditioner/ic.cpp
