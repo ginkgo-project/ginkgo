@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -123,6 +123,10 @@ DEFINE_string(formats, "coo", formats::format_command.c_str());
 DEFINE_int64(ell_imbalance_limit, 100,
              "Maximal storage overhead above which ELL benchmarks will be "
              "skipped. Negative values mean no limit.");
+
+DEFINE_double(amp_tolerance, 1e-14,
+              "Backward error (componentwise/normwise) "
+              "tolerance for AMP matrix type.");
 
 
 namespace formats {
@@ -282,6 +286,7 @@ std::unique_ptr<gko::LinOp> matrix_factory(
                             : amp_type::tolerance_type::componentwise;
         return amp_type::build()
             .with_strategy(strategy)
+            .with_tolerance(static_cast<float>(FLAGS_amp_tolerance))
             .on(exec)
             ->generate(gko::share(std::move(ell_mat)));
     }
