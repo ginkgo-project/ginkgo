@@ -102,17 +102,15 @@ GKO_INLINE GKO_ATTRIBUTES auto get_bins_min_representable()
 template <typename RealType>
 GKO_INLINE GKO_KERNEL int get_precision_bin(
     const precision_array<float, RealType>& lower_bounds,
-    const RealType abs_number, const int k)
+    const RealType abs_number)
 {
     constexpr int q = narrow_types<RealType>::num_types;
-    if (k >= q) {
-        return -1;
+    for (int k = 0; k < q; k++) {
+        if (abs_number > static_cast<RealType>(lower_bounds[k])) {
+            return k;
+        }
     }
-    if (abs_number > static_cast<RealType>(lower_bounds[k])) {
-        return k;
-    } else {
-        return get_precision_bin<RealType>(lower_bounds, abs_number, k + 1);
-    }
+    return -1;
 }
 
 /**
@@ -160,7 +158,7 @@ GKO_INLINE GKO_KERNEL int get_adjusted_bin(
     const precision_array<RealType, RealType>& min_representable,
     const RealType abs_number)
 {
-    int ibin = get_precision_bin<RealType>(lower_bounds, abs_number, 0);
+    int ibin = get_precision_bin<RealType>(lower_bounds, abs_number);
     return adjust_bin_for_underflow<RealType>(min_representable, abs_number,
                                               ibin);
 }

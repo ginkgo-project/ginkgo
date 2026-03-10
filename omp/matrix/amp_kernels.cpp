@@ -39,9 +39,6 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     auto x = b->get_const_values();
 
     // Get precision buckets' arrays
-    using EllTuple = gko::instantiation_tuple_t<
-        gko::generator_partial<gko::matrix::Ell, IndexType>,
-        typename gko::amp::narrow_types<MatrixValueType>::type>;
     using ScalarPtrTuple = gko::instantiation_tuple_t<
         gko::generator<gko::ptr_to_const_type>,
         typename narrow_types<MatrixValueType>::type>;
@@ -119,9 +116,6 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     const auto bet = beta->get_const_values();
 
     // Get precision buckets' arrays
-    using EllTuple = gko::instantiation_tuple_t<
-        gko::generator_partial<gko::matrix::Ell, IndexType>,
-        typename gko::amp::narrow_types<MatrixValueType>::type>;
     using ScalarPtrTuple = gko::instantiation_tuple_t<
         gko::generator<gko::ptr_to_const_type>,
         typename narrow_types<MatrixValueType>::type>;
