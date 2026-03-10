@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,7 +25,7 @@ std::string available_format =
     "coo, csr, ell, ell_mixed, sellp, hybrid, hybrid0, hybrid25, hybrid33, "
     "hybrid40, "
     "hybrid60, hybrid80, hybridlimit0, hybridlimit25, hybridlimit33, "
-    "hybridminstorage"
+    "hybridminstorage, amp, amp_normwise"
 #ifdef HAS_CUDA
     ", cusparse_csr, cusparse_csrex, cusparse_coo"
     ", cusparse_csrmp, cusparse_csrmm, cusparse_ell, cusparse_hybrid"
@@ -63,7 +63,11 @@ std::string format_description =
     "hybridlimit0, hybridlimit25, hybrid33: Similar to hybrid0\n"
     "    but with an additional absolute limit on the number of entries\n"
     "    per row stored in ELL.\n"
-    "hybridminstorage: Use the minimal storage to store the matrix."
+    "hybridminstorage: Use the minimal storage to store the matrix.\n"
+    "amp: Adaptive Mixed Precision format. Sorts nonzeros into ELL bins of\n"
+    "     different precisions (FP64/FP32/BF16/FP16) using componentwise\n"
+    "     tolerance strategy.\n"
+    "amp_normwise: AMP format with normwise tolerance strategy."
 #ifdef HAS_CUDA
     "\n"
     "cusparse_coo: cuSPARSE COO SpMV, using cusparseXhybmv with \n"
@@ -120,6 +124,10 @@ DEFINE_int64(ell_imbalance_limit, 100,
              "Maximal storage overhead above which ELL benchmarks will be "
              "skipped. Negative values mean no limit.");
 
+DEFINE_double(amp_tolerance, 1e-14,
+              "Backward error (componentwise/normwise) "
+              "tolerance for AMP matrix type.");
+
 
 namespace formats {
 
@@ -130,6 +138,7 @@ using csr = gko::matrix::Csr<etype, itype>;
 using coo = gko::matrix::Coo<etype, itype>;
 using ell = gko::matrix::Ell<etype, itype>;
 using ell_mixed = gko::matrix::Ell<gko::next_precision_base<etype>, itype>;
+using amp_type = gko::matrix::AMP<etype, itype>;
 
 
 /**
@@ -269,6 +278,18 @@ std::unique_ptr<gko::LinOp> matrix_factory(
     const std::string& format, std::shared_ptr<const gko::Executor> exec,
     const gko::matrix_data<etype, itype>& data)
 {
+    if (format == "amp" || format == "amp_normwise") {
+        auto ell_mat = ell::create(exec);
+        ell_mat->read(data);
+        auto strategy = (format == "amp_normwise")
+                            ? amp_type::tolerance_type::normwise
+                            : amp_type::tolerance_type::componentwise;
+        return amp_type::build()
+            .with_strategy(strategy)
+            .with_tolerance(static_cast<float>(FLAGS_amp_tolerance))
+            .on(exec)
+            ->generate(gko::share(std::move(ell_mat)));
+    }
     auto mat = matrix_type_factory.at(format)(exec);
     if (format == "ell" || format == "ell_mixed") {
         check_ell_admissibility(data);
