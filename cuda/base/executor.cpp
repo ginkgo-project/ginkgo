@@ -165,7 +165,7 @@ void CudaExecutor::raw_copy_to(const CudaExecutor* dest, size_type num_bytes,
 }
 
 
-void CudaExecutor::synchronize() const
+void CudaExecutor::synchronize_impl() const
 {
     detail::cuda_scoped_device_id_guard g(this->get_device_id());
     GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamSynchronize(this->get_stream()));

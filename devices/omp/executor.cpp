@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,7 +58,7 @@ void OmpExecutor::raw_copy_to(const OmpExecutor*, size_type num_bytes,
 }
 
 
-void OmpExecutor::synchronize() const
+void OmpExecutor::synchronize_impl() const
 {
     // This is a no-op for single-threaded OMP
     // TODO: change when adding support for multi-threaded OMP execution
