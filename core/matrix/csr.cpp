@@ -499,7 +499,18 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::move_to(
     SparsityCsr<ValueType, IndexType>* result)
 {
-    this->convert_to(result);
+    result->col_idxs_ = std::move(this->col_idxs_);
+    // create empty row_ptrs
+    result->row_ptrs_ = std::exchange(
+        this->row_ptrs_, array<IndexType>{this->get_executor(), {IndexType{}}});
+    if (!result->value_.get_data()) {
+        result->value_ =
+            array<ValueType>(result->get_executor(), {one<ValueType>()});
+    }
+    result->set_size(this->get_size());
+    this->set_size(dim<2>{});
+    this->values_.clear();
+    this->make_srow();
 }
 
 

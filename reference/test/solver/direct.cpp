@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -77,6 +77,38 @@ TYPED_TEST(Direct, SolvesAni1SingleRhs)
 
     this->solver->apply(this->b, this->x);
 
+    GKO_ASSERT_MTX_NEAR(this->x, this->x_ref, r<value_type>::value);
+}
+
+
+TYPED_TEST(Direct, BuildsAndSolvesReuse)
+{
+    using matrix_type = typename TestFixture::matrix_type;
+    using solver_type = typename TestFixture::solver_type;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->setup(gko::matrices::location_ani1_mtx);
+    auto alpha = gko::initialize<gko::matrix::Dense<value_type>>(
+        {value_type{2.0}}, this->exec);
+    // replace Ax = b by 2Ax = 2b so we check value updates
+    auto mtx_scaled = gko::share(this->mtx->clone());
+    mtx_scaled->scale(alpha);
+    auto b_scaled = this->b->clone();
+    b_scaled->scale(alpha);
+    auto factory =
+        solver_type::build()
+            .with_factorization(
+                gko::experimental::factorization::Lu<value_type,
+                                                     index_type>::build()
+                    .with_symbolic_algorithm(gko::experimental::factorization::
+                                                 symbolic_type::symmetric))
+            .on(this->exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+
+    auto solver_orig = factory->generate_reuse(this->mtx, *reuse_data);
+    auto solver_scaled = factory->generate_reuse(mtx_scaled, *reuse_data);
+
+    solver_scaled->apply(b_scaled, this->x);
     GKO_ASSERT_MTX_NEAR(this->x, this->x_ref, r<value_type>::value);
 }
 
