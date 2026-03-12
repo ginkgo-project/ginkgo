@@ -236,15 +236,15 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     }
 
     void solve(const matrix::Csr<ValueType, IndexType>* matrix,
-               const matrix::Dense<const ValueType> input,
-               matrix::Dense<ValueType>* output) const
+               matrix::view::dense<const ValueType> input,
+               matrix::view::dense<ValueType> output) const
     {
-        if (input->get_size()[1] != num_rhs) {
+        if (input.size[1] != num_rhs) {
             throw gko::ValueMismatch{
                 __FILE__,
                 __LINE__,
                 __FUNCTION__,
-                input->get_size()[1],
+                input.size[1],
                 num_rhs,
                 "the dimensions of the multivector do not match the value "
                 "provided at generation time. Check the value specified in "
