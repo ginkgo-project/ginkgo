@@ -24,11 +24,11 @@ TYPED_TEST(DenseView, AccessWorks)
 
     ASSERT_EQ(view.size, gko::dim<2>(1, 2));
     ASSERT_EQ(view.stride, 3);
-    ASSERT_EQ(view.data, values.data());
+    ASSERT_EQ(view.values, values.data());
     ASSERT_EQ(&view(0, 0), &values[0]);
     ASSERT_EQ(&view(1, 0), &values[3]);
     ASSERT_EQ(&view(1, 1), &values[4]);
     ASSERT_EQ(const_view.size, view.size);
     ASSERT_EQ(const_view.stride, view.stride);
-    ASSERT_EQ(const_view.data, view.data);
+    ASSERT_EQ(const_view.values, view.values);
 }

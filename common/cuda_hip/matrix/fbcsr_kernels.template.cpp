@@ -345,7 +345,7 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
                                 exec->get_stream()>>>(
             source->get_const_row_ptrs(), source->get_const_col_idxs(),
             as_device_type(source->get_const_values()),
-            as_device_type(result.data), result.stride,
+            as_device_type(result.values), result.stride,
             source->get_num_block_rows(), source->get_block_size());
     }
 }
@@ -472,17 +472,17 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
             sparselib::bsrmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, mb, nb,
                              nnzb, &alpha, descr, values, row_ptrs, col_idxs,
-                             bs, b.data, &beta, c.data);
+                             bs, b.values, &beta, c.values);
         } else {
             const auto trans_stride = nrows;
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
             sparselib::bsrmm(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                              SPARSELIB_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                              &alpha, descr, values, row_ptrs, col_idxs, bs,
-                             b.data, in_stride, &beta, trans_c.get_data(),
+                             b.values, in_stride, &beta, trans_c.get_data(),
                              trans_stride);
             dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
-                            out_stride, c.data);
+                            out_stride, c.values);
         }
         sparselib::destroy(descr);
     } else {
@@ -510,8 +510,8 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_sparselib_handle();
-        const auto alphp = alpha.data;
-        const auto betap = beta.data;
+        const auto alphp = alpha.values;
+        const auto betap = beta.values;
         auto descr = sparselib::create_mat_descr();
         const auto row_ptrs = a->get_const_row_ptrs();
         const auto col_idxs = a->get_const_col_idxs();
@@ -528,19 +528,19 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
             sparselib::bsrmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, mb, nb,
                              nnzb, alphp, descr, values, row_ptrs, col_idxs, bs,
-                             b.data, betap, c.data);
+                             b.values, betap, c.values);
         } else {
             const auto trans_stride = nrows;
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
-            dense_transpose(exec, nrows, nrhs, out_stride, c.data, trans_stride,
-                            trans_c.get_data());
+            dense_transpose(exec, nrows, nrhs, out_stride, c.values,
+                            trans_stride, trans_c.get_data());
             sparselib::bsrmm(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                              SPARSELIB_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                              alphp, descr, values, row_ptrs, col_idxs, bs,
-                             b.data, in_stride, betap, trans_c.get_data(),
+                             b.values, in_stride, betap, trans_c.get_data(),
                              trans_stride);
             dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
-                            out_stride, c.data);
+                            out_stride, c.values);
         }
         sparselib::destroy(descr);
     } else {

@@ -80,7 +80,7 @@ void build_local(
     thrust::scatter_if(
         thrust_policy(exec), input.get_const_values(),
         input.get_const_values() + input.get_num_stored_elements(), flat_idx_it,
-        range_id.get_data(), local_mtx.data, is_local_row);
+        range_id.get_data(), local_mtx.values, is_local_row);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(

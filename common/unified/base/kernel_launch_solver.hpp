@@ -21,7 +21,7 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 template <typename ValueType>
 struct default_stride_dense_wrapper {
-    ValueType* data;
+    ValueType* values;
 };
 
 
@@ -47,7 +47,7 @@ struct device_unpack_solver_impl<default_stride_dense_wrapper<ValueType>> {
     static GKO_INLINE GKO_ATTRIBUTES type
     unpack(default_stride_dense_wrapper<ValueType> param, int64 default_stride)
     {
-        return {param.data, default_stride};
+        return {param.values, default_stride};
     }
 };
 
@@ -62,7 +62,7 @@ template <typename ValueType>
 default_stride_dense_wrapper<device_type<ValueType>> default_stride(
     matrix::view::dense<ValueType> mtx)
 {
-    return {as_device_type(mtx.data)};
+    return {as_device_type(mtx.values)};
 }
 
 /**
@@ -73,7 +73,7 @@ template <typename ValueType>
 default_stride_dense_wrapper<const device_type<ValueType>> default_stride(
     matrix::view::dense<const ValueType> mtx)
 {
-    return {as_device_type(mtx.data)};
+    return {as_device_type(mtx.values)};
 }
 
 
@@ -87,7 +87,7 @@ template <typename ValueType>
 device_type<ValueType>* row_vector(matrix::view::dense<ValueType> mtx)
 {
     GKO_ASSERT(mtx.size[0] == 1);
-    return as_device_type(mtx.data);
+    return as_device_type(mtx.values);
 }
 
 /**
@@ -99,7 +99,7 @@ const device_type<ValueType>* row_vector(
     matrix::view::dense<const ValueType> mtx)
 {
     GKO_ASSERT(mtx.size[0] == 1);
-    return as_device_type(mtx.data);
+    return as_device_type(mtx.values);
 }
 
 

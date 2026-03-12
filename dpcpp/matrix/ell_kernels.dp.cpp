@@ -347,7 +347,7 @@ void abstract_spmv(
             std::array<acc::size_type, 2>{
                 {static_cast<acc::size_type>(b.size[0]),
                  static_cast<acc::size_type>(b.size[1])}},
-            b.data,
+            b.values,
             std::array<acc::size_type, 1>{
                 {static_cast<acc::size_type>(b.stride)}});
 
@@ -356,16 +356,18 @@ void abstract_spmv(
                 grid_size, block_size, 0, exec->get_queue(), nrows,
                 num_worker_per_row, acc::as_device_range(a_vals),
                 a->get_const_col_idxs(), stride, num_stored_elements_per_row,
-                acc::as_device_range(b_vals), as_device_type(c.data), c.stride);
+                acc::as_device_range(b_vals), as_device_type(c.values),
+                c.stride);
         } else if (alpha && beta) {
             const auto alpha_val = gko::acc::range<a_accessor>(
-                std::array<acc::size_type, 1>{1}, alpha->data);
+                std::array<acc::size_type, 1>{1}, alpha->values);
             kernel::spmv<num_thread_per_worker, atomic>(
                 grid_size, block_size, 0, exec->get_queue(), nrows,
                 num_worker_per_row, acc::as_device_range(alpha_val),
                 acc::as_device_range(a_vals), a->get_const_col_idxs(), stride,
                 num_stored_elements_per_row, acc::as_device_range(b_vals),
-                as_device_type(beta->data), as_device_type(c.data), c.stride);
+                as_device_type(beta->values), as_device_type(c.values),
+                c.stride);
         } else {
             GKO_KERNEL_NOT_FOUND;
         }

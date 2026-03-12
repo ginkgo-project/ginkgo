@@ -312,7 +312,7 @@ TYPED_TEST(Dense, CanCreateDeviceView)
 
     EXPECT_EQ(view.size, this->mtx->get_size());
     EXPECT_EQ(view.stride, this->mtx->get_stride());
-    EXPECT_EQ(view.data, this->mtx->get_values());
+    EXPECT_EQ(view.values, this->mtx->get_values());
 }
 
 
@@ -322,7 +322,7 @@ TYPED_TEST(Dense, CanCreateConstDeviceView)
 
     EXPECT_EQ(view.size, this->mtx->get_size());
     EXPECT_EQ(view.stride, this->mtx->get_stride());
-    EXPECT_EQ(view.data, this->mtx->get_values());
+    EXPECT_EQ(view.values, this->mtx->get_values());
 }
 
 

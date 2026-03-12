@@ -27,7 +27,7 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input)
         std::array<acc::size_type, 2>{
             {static_cast<acc::size_type>(input.size[0]),
              static_cast<acc::size_type>(input.size[1])}},
-        input.data,
+        input.values,
         std::array<acc::size_type, 1>{
             {static_cast<acc::size_type>(input.stride)}});
 }
@@ -42,7 +42,7 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input,
         std::array<acc::size_type, 2>{
             {static_cast<acc::size_type>(input.size[0]),
              static_cast<acc::size_type>(column_span.end - column_span.begin)}},
-        input.data + column_span.begin,
+        input.values + column_span.begin,
         std::array<acc::size_type, 1>{
             {static_cast<acc::size_type>(input.stride)}});
 }
@@ -58,7 +58,7 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input)
         std::array<acc::size_type, 2>{
             {static_cast<acc::size_type>(input.size[0]),
              static_cast<acc::size_type>(input.size[1])}},
-        input.data,
+        input.values,
         std::array<acc::size_type, 1>{
             {static_cast<acc::size_type>(input.stride)}});
 }
@@ -73,7 +73,7 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input,
         std::array<acc::size_type, 2>{
             {static_cast<acc::size_type>(input.size[0]),
              static_cast<acc::size_type>(column_span.end - column_span.begin)}},
-        input.data + column_span.begin,
+        input.values + column_span.begin,
         std::array<acc::size_type, 1>{
             {static_cast<acc::size_type>(input.stride)}});
 }

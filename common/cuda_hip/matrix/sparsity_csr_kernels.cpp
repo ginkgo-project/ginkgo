@@ -209,12 +209,12 @@ void classical_spmv(
     const auto b_vals = gko::acc::range<input_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
-        b.data,
+        b.values,
         std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
     auto c_vals = gko::acc::range<output_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(c.size[0]),
                                        static_cast<acc::size_type>(c.size[1])}},
-        c.data,
+        c.values,
         std::array<acc::size_type, 1>{{static_cast<acc::size_type>(c.stride)}});
     if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
@@ -230,10 +230,10 @@ void classical_spmv(
     } else if (alpha && beta) {
         kernel::abstract_classical_spmv<subwarp_size>
             <<<grid, block, 0, exec->get_stream()>>>(
-                a->get_size()[0], as_device_type(alpha->data),
+                a->get_size()[0], as_device_type(alpha->values),
                 as_device_type(a->get_const_value()), a->get_const_col_idxs(),
                 as_device_type(a->get_const_row_ptrs()),
-                acc::as_device_range(b_vals), as_device_type(beta->data),
+                acc::as_device_range(b_vals), as_device_type(beta->values),
                 acc::as_device_range(c_vals));
     } else {
         GKO_KERNEL_NOT_FOUND;

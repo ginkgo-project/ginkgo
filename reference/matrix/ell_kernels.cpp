@@ -48,7 +48,7 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     const auto b_vals = gko::acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
-        b.data,
+        b.values,
         std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
 
     for (size_type j = 0; j < c.size[1]; j++) {
@@ -96,7 +96,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     const auto b_vals = gko::acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
-        b.data,
+        b.values,
         std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
     const auto alpha_val = arithmetic_type{alpha(0, 0)};
     const auto beta_val = arithmetic_type{beta(0, 0)};

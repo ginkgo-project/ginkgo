@@ -118,7 +118,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
     spmv_kernel(gridSize, blockSize, 0, exec->get_queue(), a->get_size()[0],
                 b.size[1], b.stride, c.stride, a->get_slice_size(),
                 a->get_const_slice_sets(), a->get_const_values(),
-                a->get_const_col_idxs(), b.data, c.data);
+                a->get_const_col_idxs(), b.values, c.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
@@ -136,11 +136,11 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
                         b.size[1]);
 
-    advanced_spmv_kernel(gridSize, blockSize, 0, exec->get_queue(),
-                         a->get_size()[0], b.size[1], b.stride, c.stride,
-                         a->get_slice_size(), a->get_const_slice_sets(),
-                         alpha.data, a->get_const_values(),
-                         a->get_const_col_idxs(), b.data, beta.data, c.data);
+    advanced_spmv_kernel(
+        gridSize, blockSize, 0, exec->get_queue(), a->get_size()[0], b.size[1],
+        b.stride, c.stride, a->get_slice_size(), a->get_const_slice_sets(),
+        alpha.values, a->get_const_values(), a->get_const_col_idxs(), b.values,
+        beta.values, c.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

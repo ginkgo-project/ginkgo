@@ -107,9 +107,9 @@ void transpose(sycl::queue* queue, matrix::view::dense<const ValueType> orig,
             0>
             space_acc_ct1(cgh);
         // Can not pass the member to device function directly
-        auto in = as_device_type(orig.data);
+        auto in = as_device_type(orig.values);
         auto in_stride = orig.stride;
-        auto out = as_device_type(trans.data);
+        auto out = as_device_type(trans.values);
         auto out_stride = trans.stride;
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
@@ -224,13 +224,13 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
     using namespace oneapi::mkl;
     if constexpr (onemkl::is_supported<ValueType>::value) {
         if (b.stride != 0 && c.stride != 0) {
-            if (a.size[1] > 0 && a.data && b.data && c.data) {
+            if (a.size[1] > 0 && a.values && b.values && c.values) {
                 oneapi::mkl::blas::row_major::gemm(
                     *exec->get_queue(), transpose::nontrans,
                     transpose::nontrans, c.size[0], c.size[1], a.size[1],
-                    one<ValueType>(), as_device_type(a.data), a.stride,
-                    as_device_type(b.data), b.stride, zero<ValueType>(),
-                    as_device_type(c.data), c.stride);
+                    one<ValueType>(), as_device_type(a.values), a.stride,
+                    as_device_type(b.values), b.stride, zero<ValueType>(),
+                    as_device_type(c.values), c.stride);
             } else {
                 dense::fill(exec, c, zero<ValueType>());
             }
@@ -254,14 +254,15 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
     using namespace oneapi::mkl;
     if constexpr (onemkl::is_supported<ValueType>::value) {
         if (b.stride != 0 && c.stride != 0) {
-            if (a.size[1] > 0 && a.data && b.data && c.data) {
+            if (a.size[1] > 0 && a.values && b.values && c.values) {
                 oneapi::mkl::blas::row_major::gemm(
                     *exec->get_queue(), transpose::nontrans,
                     transpose::nontrans, c.size[0], c.size[1], a.size[1],
-                    exec->copy_val_to_host(alpha.data), as_device_type(a.data),
-                    a.stride, as_device_type(b.data), b.stride,
-                    exec->copy_val_to_host(beta.data), as_device_type(c.data),
-                    c.stride);
+                    exec->copy_val_to_host(alpha.values),
+                    as_device_type(a.values), a.stride,
+                    as_device_type(b.values), b.stride,
+                    exec->copy_val_to_host(beta.values),
+                    as_device_type(c.values), c.stride);
             } else {
                 dense::scale(exec, beta, c);
             }
@@ -282,7 +283,7 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto in_vals = as_device_type(source.data);
+    const auto in_vals = as_device_type(source.values);
     const auto stride = source.stride;
 
     auto rows = result->get_row_idxs();
@@ -317,7 +318,7 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto in_vals = as_device_type(source.data);
+    const auto in_vals = as_device_type(source.values);
     const auto stride = source.stride;
 
     const auto row_ptrs = result->get_const_row_ptrs();
@@ -352,7 +353,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
     const auto max_nnz_per_row = result->get_num_stored_elements_per_row();
-    const auto in_vals = as_device_type(source.data);
+    const auto in_vals = as_device_type(source.values);
     const auto in_stride = source.stride;
 
     auto cols = result->get_col_idxs();
@@ -412,7 +413,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
     const auto ell_lim = result->get_ell_num_stored_elements_per_row();
-    const auto in_vals = as_device_type(source.data);
+    const auto in_vals = as_device_type(source.values);
     const auto in_stride = source.stride;
     const auto ell_stride = result->get_ell_stride();
     auto ell_cols = result->get_ell_col_idxs();
@@ -467,7 +468,7 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
     const auto stride = source.stride;
-    const auto in_vals = as_device_type(source.data);
+    const auto in_vals = as_device_type(source.values);
 
     const auto slice_sets = result->get_const_slice_sets();
     const auto slice_size = result->get_slice_size();
@@ -509,7 +510,7 @@ void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_rows = result->get_size()[0];
     const auto num_cols = result->get_size()[1];
-    const auto in_vals = as_device_type(source.data);
+    const auto in_vals = as_device_type(source.values);
     const auto stride = source.stride;
 
     const auto row_ptrs = result->get_const_row_ptrs();
@@ -575,8 +576,8 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
     dim3 grid(ceildiv(size[1], sg_size), ceildiv(size[0], sg_size));
     dim3 block(sg_size, sg_size);
     kernel::conj_transpose_call(cfg, grid, block, 0, queue, size[0], size[1],
-                                as_device_type(orig.data), orig.stride,
-                                as_device_type(trans.data), trans.stride);
+                                as_device_type(orig.values), orig.stride,
+                                as_device_type(trans.values), trans.stride);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);

@@ -163,7 +163,7 @@ void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m)
             static_assert(is_same<decltype(d_ptr), const value_type*>::value,
                           "type");
             static_assert(is_same<decltype(dummy), int64>::value, "dummy");
-            bool pointers_correct = d.data == d_ptr && d2.data == d_ptr;
+            bool pointers_correct = d.values == d_ptr && d2.values == d_ptr;
             bool strides_correct = d.stride == 5 && d2.stride == 5;
             bool accessors_2d_correct =
                 &d(0, 0) == d_ptr && &d(1, 0) == d_ptr + d.stride &&
@@ -259,8 +259,8 @@ void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m1, Mtx* m2, Mtx* m3)
             static_assert(is_same<decltype(d3_ptr), value_type*>::value,
                           "type");
             static_assert(is_same<decltype(dummy), int64>::value, "dummy");
-            bool pointers_correct = d.data == d_ptr && d2.data == d_ptr &&
-                                    d3.data == d2_ptr && d4 == d3_ptr;
+            bool pointers_correct = d.values == d_ptr && d2.values == d_ptr &&
+                                    d3.values == d2_ptr && d4 == d3_ptr;
             bool strides_correct =
                 d.stride == 5 && d2.stride == 5 && d3.stride == 6;
             bool accessors_2d_correct =

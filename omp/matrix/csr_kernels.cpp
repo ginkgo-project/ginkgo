@@ -1548,8 +1548,8 @@ void add_scaled_identity(std::shared_ptr<const OmpExecutor> exec,
     const auto nrows = static_cast<IndexType>(mtx->get_size()[0]);
     const auto row_ptrs = mtx->get_const_row_ptrs();
     const auto vals = mtx->get_values();
-    const auto beta_val = beta.data[0];
-    const auto alpha_val = alpha.data[0];
+    const auto beta_val = beta.values[0];
+    const auto alpha_val = alpha.values[0];
 #pragma omp parallel for
     for (IndexType row = 0; row < nrows; row++) {
         for (IndexType iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {

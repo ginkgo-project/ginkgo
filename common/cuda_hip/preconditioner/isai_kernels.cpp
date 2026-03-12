@@ -550,7 +550,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
                 excess_rhs_ptrs, excess_nz_ptrs, excess_system->get_row_ptrs(),
                 excess_system->get_col_idxs(),
                 as_device_type(excess_system->get_values()),
-                as_device_type(excess_rhs.data), e_start, e_end);
+                as_device_type(excess_rhs.values), e_start, e_end);
     }
 }
 
@@ -569,7 +569,7 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
     if (grid > 0) {
         kernel::scale_excess_solution<subwarp_size>
             <<<grid, block, 0, exec->get_stream()>>>(
-                excess_block_ptrs, as_device_type(excess_solution.data),
+                excess_block_ptrs, as_device_type(excess_solution.values),
                 e_start, e_end);
     }
 }
@@ -594,7 +594,7 @@ void scatter_excess_solution(
         kernel::copy_excess_solution<subwarp_size>
             <<<grid, block, 0, exec->get_stream()>>>(
                 static_cast<IndexType>(num_rows), inverse->get_const_row_ptrs(),
-                excess_rhs_ptrs, as_device_type(excess_solution.data),
+                excess_rhs_ptrs, as_device_type(excess_solution.values),
                 as_device_type(inverse->get_values()), e_start, e_end);
     }
 }

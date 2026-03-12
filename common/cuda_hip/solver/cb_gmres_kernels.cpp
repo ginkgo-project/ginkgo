@@ -626,10 +626,10 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim != 0) {
         initialize_kernel<block_size>
             <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-                b.size[0], b.size[1], krylov_dim, as_device_type(b.data),
-                b.stride, as_device_type(residual.data), residual.stride,
-                as_device_type(givens_sin.data), givens_sin.stride,
-                as_device_type(givens_cos.data), givens_cos.stride,
+                b.size[0], b.size[1], krylov_dim, as_device_type(b.values),
+                b.stride, as_device_type(residual.values), residual.stride,
+                as_device_type(givens_sin.values), givens_sin.stride,
+                as_device_type(givens_cos.values), givens_cos.stride,
                 as_device_type(stop_status.get_data()));
     }
 }
@@ -667,31 +667,31 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
             <<<grid_dim_1, block_dim, 0, exec->get_stream()>>>(
                 residual.size[0], residual.size[1], krylov_dim,
                 acc::as_device_range(krylov_bases),
-                as_device_type(residual_norm_collection.data),
+                as_device_type(residual_norm_collection.values),
                 residual_norm_collection.stride);
     }
     kernels::GKO_DEVICE_NAMESPACE::dense::compute_norm2_dispatch(
         exec, residual, residual_norm, reduction_tmp);
 
     if (use_scalar) {
-        components::fill_array(exec, arnoldi_norm.data + 2 * stride_arnoldi,
+        components::fill_array(exec, arnoldi_norm.values + 2 * stride_arnoldi,
                                num_rhs, zero<remove_complex<ValueType>>());
         const dim3 grid_size_nrm(ceildiv(num_rhs, default_dot_dim),
                                  exec->get_num_multiprocessor() * 2);
         const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
         multinorminf_without_stop_kernel<<<grid_size_nrm, block_size_nrm, 0,
                                            exec->get_stream()>>>(
-            num_rows, num_rhs, as_device_type(residual.data), residual.stride,
-            as_device_type(arnoldi_norm.data + 2 * stride_arnoldi), 0);
+            num_rows, num_rhs, as_device_type(residual.values), residual.stride,
+            as_device_type(arnoldi_norm.values + 2 * stride_arnoldi), 0);
     }
 
     if (gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value) {
         set_scalar_kernel<default_block_size>
             <<<ceildiv(num_rhs * (krylov_dim + 1), default_block_size),
                default_block_size, 0, exec->get_stream()>>>(
-                num_rhs, krylov_dim + 1, as_device_type(residual_norm.data),
+                num_rhs, krylov_dim + 1, as_device_type(residual_norm.values),
                 residual_norm.stride,
-                as_device_type(arnoldi_norm.data + 2 * stride_arnoldi),
+                as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
                 stride_arnoldi, acc::as_device_range(krylov_bases));
     }
     const auto grid_dim_2 =
@@ -702,11 +702,11 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
         restart_2_kernel<block_size>
             <<<grid_dim_2, block_dim, 0, exec->get_stream()>>>(
                 residual.size[0], residual.size[1],
-                as_device_type(residual.data), residual.stride,
-                as_device_type(residual_norm.data),
-                as_device_type(residual_norm_collection.data),
+                as_device_type(residual.values), residual.stride,
+                as_device_type(residual_norm.values),
+                as_device_type(residual_norm_collection.values),
                 acc::as_device_range(krylov_bases),
-                as_device_type(next_krylov_basis.data),
+                as_device_type(next_krylov_basis.values),
                 next_krylov_basis.stride,
                 as_device_type(final_iter_nums.get_data()));
     }
@@ -752,30 +752,30 @@ void finish_arnoldi_CGS(
     const auto block_size_iters_single = singledot_block_size;
     size_type num_reorth_host;
 
-    components::fill_array(exec, arnoldi_norm.data, dim_size[1],
+    components::fill_array(exec, arnoldi_norm.values, dim_size[1],
                            zero<non_complex>());
     multinorm2_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
-        dim_size[0], dim_size[1], as_device_type(next_krylov_basis.data),
-        stride_next_krylov, as_device_type(arnoldi_norm.data),
+        dim_size[0], dim_size[1], as_device_type(next_krylov_basis.values),
+        stride_next_krylov, as_device_type(arnoldi_norm.values),
         as_device_type(stop_status));
     // nrmP = norm(next_krylov_basis)
     zero_matrix(exec, iter + 1, dim_size[1], stride_hessenberg,
-                hessenberg_iter.data);
+                hessenberg_iter.values);
     if (dim_size[1] > 1) {
         multidot_kernel<default_dot_dim>
             <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
                 dim_size[0], dim_size[1],
-                as_device_type(next_krylov_basis.data), stride_next_krylov,
+                as_device_type(next_krylov_basis.values), stride_next_krylov,
                 acc::as_device_range(krylov_bases),
-                as_device_type(hessenberg_iter.data), stride_hessenberg,
+                as_device_type(hessenberg_iter.values), stride_hessenberg,
                 as_device_type(stop_status));
     } else {
         singledot_kernel<singledot_block_size>
             <<<grid_size_iters_single, block_size_iters_single, 0,
                exec->get_stream()>>>(
-                dim_size[0], as_device_type(next_krylov_basis.data),
+                dim_size[0], as_device_type(next_krylov_basis.values),
                 stride_next_krylov, acc::as_device_range(krylov_bases),
-                as_device_type(hessenberg_iter.data), stride_hessenberg,
+                as_device_type(hessenberg_iter.values), stride_hessenberg,
                 as_device_type(stop_status));
     }
     // for i in 1:iter
@@ -785,34 +785,34 @@ void finish_arnoldi_CGS(
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size, 0, exec->get_stream()>>>(
             iter + 1, dim_size[0], dim_size[1],
-            as_device_type(next_krylov_basis.data), stride_next_krylov,
+            as_device_type(next_krylov_basis.values), stride_next_krylov,
             acc::as_device_range(krylov_bases),
-            as_device_type(hessenberg_iter.data), stride_hessenberg,
+            as_device_type(hessenberg_iter.values), stride_hessenberg,
             as_device_type(stop_status));
 
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
     // end
-    components::fill_array(exec, arnoldi_norm.data + stride_arnoldi,
+    components::fill_array(exec, arnoldi_norm.values + stride_arnoldi,
                            dim_size[1], zero<non_complex>());
     if (use_scalar) {
-        components::fill_array(exec, arnoldi_norm.data + 2 * stride_arnoldi,
+        components::fill_array(exec, arnoldi_norm.values + 2 * stride_arnoldi,
                                dim_size[1], zero<non_complex>());
     }
     multinorm2_inf_kernel<use_scalar>
         <<<grid_size, block_size, 0, exec->get_stream()>>>(
-            dim_size[0], dim_size[1], as_device_type(next_krylov_basis.data),
+            dim_size[0], dim_size[1], as_device_type(next_krylov_basis.values),
             stride_next_krylov,
-            as_device_type(arnoldi_norm.data + stride_arnoldi),
-            as_device_type(arnoldi_norm.data + 2 * stride_arnoldi),
+            as_device_type(arnoldi_norm.values + stride_arnoldi),
+            as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
             as_device_type(stop_status));
     // nrmN = norm(next_krylov_basis)
     components::fill_array(exec, num_reorth.get_data(), 1, zero<size_type>());
     check_arnoldi_norms<default_block_size>
         <<<ceildiv(dim_size[1], default_block_size), default_block_size, 0,
            exec->get_stream()>>>(
-            dim_size[1], as_device_type(arnoldi_norm.data), stride_arnoldi,
-            as_device_type(hessenberg_iter.data), stride_hessenberg, iter + 1,
+            dim_size[1], as_device_type(arnoldi_norm.values), stride_arnoldi,
+            as_device_type(hessenberg_iter.values), stride_hessenberg, iter + 1,
             acc::as_device_range(krylov_bases), as_device_type(stop_status),
             as_device_type(reorth_status),
             as_device_type(num_reorth.get_data()));
@@ -820,22 +820,22 @@ void finish_arnoldi_CGS(
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
         zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
-                    buffer_iter.data);
+                    buffer_iter.values);
         if (dim_size[1] > 1) {
             multidot_kernel<default_dot_dim>
                 <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
                     dim_size[0], dim_size[1],
-                    as_device_type(next_krylov_basis.data), stride_next_krylov,
-                    acc::as_device_range(krylov_bases),
-                    as_device_type(buffer_iter.data), stride_buffer,
+                    as_device_type(next_krylov_basis.values),
+                    stride_next_krylov, acc::as_device_range(krylov_bases),
+                    as_device_type(buffer_iter.values), stride_buffer,
                     as_device_type(stop_status));
         } else {
             singledot_kernel<singledot_block_size>
                 <<<grid_size_iters_single, block_size_iters_single, 0,
                    exec->get_stream()>>>(
-                    dim_size[0], as_device_type(next_krylov_basis.data),
+                    dim_size[0], as_device_type(next_krylov_basis.values),
                     stride_next_krylov, acc::as_device_range(krylov_bases),
-                    as_device_type(buffer_iter.data), stride_buffer,
+                    as_device_type(buffer_iter.values), stride_buffer,
                     as_device_type(stop_status));
         }
         // for i in 1:iter
@@ -845,26 +845,27 @@ void finish_arnoldi_CGS(
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
                default_block_size, 0, exec->get_stream()>>>(
                 iter + 1, dim_size[0], dim_size[1],
-                as_device_type(next_krylov_basis.data), stride_next_krylov,
+                as_device_type(next_krylov_basis.values), stride_next_krylov,
                 acc::as_device_range(krylov_bases),
-                as_device_type(hessenberg_iter.data), stride_hessenberg,
-                as_device_type(buffer_iter.data), stride_buffer,
+                as_device_type(hessenberg_iter.values), stride_hessenberg,
+                as_device_type(buffer_iter.values), stride_buffer,
                 as_device_type(stop_status), as_device_type(reorth_status));
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
-        components::fill_array(exec, arnoldi_norm.data + stride_arnoldi,
+        components::fill_array(exec, arnoldi_norm.values + stride_arnoldi,
                                dim_size[1], zero<non_complex>());
         if (use_scalar) {
-            components::fill_array(exec, arnoldi_norm.data + 2 * stride_arnoldi,
+            components::fill_array(exec,
+                                   arnoldi_norm.values + 2 * stride_arnoldi,
                                    dim_size[1], zero<non_complex>());
         }
         multinorm2_inf_kernel<use_scalar>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 dim_size[0], dim_size[1],
-                as_device_type(next_krylov_basis.data), stride_next_krylov,
-                as_device_type(arnoldi_norm.data + stride_arnoldi),
-                as_device_type(arnoldi_norm.data + 2 * stride_arnoldi),
+                as_device_type(next_krylov_basis.values), stride_next_krylov,
+                as_device_type(arnoldi_norm.values + stride_arnoldi),
+                as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
                 as_device_type(stop_status));
         // nrmN = norm(next_krylov_basis)
         components::fill_array(exec, num_reorth.get_data(), 1,
@@ -872,9 +873,9 @@ void finish_arnoldi_CGS(
         check_arnoldi_norms<default_block_size>
             <<<ceildiv(dim_size[1], default_block_size), default_block_size, 0,
                exec->get_stream()>>>(
-                dim_size[1], as_device_type(arnoldi_norm.data), stride_arnoldi,
-                as_device_type(hessenberg_iter.data), stride_hessenberg,
-                iter + 1, acc::as_device_range(krylov_bases),
+                dim_size[1], as_device_type(arnoldi_norm.values),
+                stride_arnoldi, as_device_type(hessenberg_iter.values),
+                stride_hessenberg, iter + 1, acc::as_device_range(krylov_bases),
                 as_device_type(stop_status), as_device_type(reorth_status),
                 num_reorth.get_data());
         num_reorth_host = get_element(num_reorth, 0);
@@ -885,9 +886,9 @@ void finish_arnoldi_CGS(
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
            default_block_size, 0, exec->get_stream()>>>(
             iter, dim_size[0], dim_size[1],
-            as_device_type(next_krylov_basis.data), stride_next_krylov,
+            as_device_type(next_krylov_basis.values), stride_next_krylov,
             acc::as_device_range(krylov_bases),
-            as_device_type(hessenberg_iter.data), stride_hessenberg,
+            as_device_type(hessenberg_iter.values), stride_hessenberg,
             as_device_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
@@ -914,11 +915,11 @@ void givens_rotation(
         givens_rotation_kernel<block_size>
             <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
                 hessenberg_iter.size[0], hessenberg_iter.size[1], iter,
-                as_device_type(hessenberg_iter.data), hessenberg_iter.stride,
-                as_device_type(givens_sin.data), givens_sin.stride,
-                as_device_type(givens_cos.data), givens_cos.stride,
-                as_device_type(residual_norm.data),
-                as_device_type(residual_norm_collection.data),
+                as_device_type(hessenberg_iter.values), hessenberg_iter.stride,
+                as_device_type(givens_sin.values), givens_sin.stride,
+                as_device_type(givens_cos.values), givens_cos.stride,
+                as_device_type(residual_norm.values),
+                as_device_type(residual_norm_collection.values),
                 residual_norm_collection.stride, stop_status.get_const_data());
     }
 }
@@ -976,9 +977,9 @@ void solve_upper_triangular(
     solve_upper_triangular_kernel<block_size>
         <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
             hessenberg.size[1], num_rhs,
-            as_device_type(residual_norm_collection.data),
-            residual_norm_collection.stride, as_device_type(hessenberg.data),
-            hessenberg.stride, as_device_type(y.data), y.stride,
+            as_device_type(residual_norm_collection.values),
+            residual_norm_collection.stride, as_device_type(hessenberg.values),
+            hessenberg.stride, as_device_type(y.values), y.stride,
             as_device_type(final_iter_nums.get_const_data()));
 }
 
@@ -1002,8 +1003,8 @@ void calculate_qy(std::shared_ptr<const DefaultExecutor> exec,
         calculate_Qy_kernel<block_size>
             <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
                 num_rows, num_cols, acc::as_device_range(krylov_bases),
-                as_device_type(y.data), y.stride,
-                as_device_type(before_preconditioner.data),
+                as_device_type(y.values), y.stride,
+                as_device_type(before_preconditioner.values),
                 stride_before_preconditioner,
                 as_device_type(final_iter_nums.get_const_data()));
     }

@@ -110,7 +110,7 @@ void multi_dot(std::shared_ptr<const DefaultExecutor> exec,
             return conj(bases(ivec * num_rows + row, irhs)) *
                    next_krylov(row, irhs);
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), hessenberg_col.data,
+        GKO_KERNEL_REDUCE_SUM(ValueType), hessenberg_col.values,
         gko::dim<2>{next_krylov.size[0],
                     hessenberg_col.size[0] * hessenberg_col.size[1] -
                         next_krylov.size[1]},

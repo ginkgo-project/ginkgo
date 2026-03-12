@@ -1268,9 +1268,9 @@ void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
     const auto dim = mtx.size;
     for (size_type row = 0; row < dim[0]; row++) {
         for (size_type col = 0; col < dim[1]; col++) {
-            mtx(row, col) = beta.data[0] * mtx(row, col);
+            mtx(row, col) = beta.values[0] * mtx(row, col);
             if (row == col) {
-                mtx(row, row) += alpha.data[0];
+                mtx(row, row) += alpha.values[0];
             }
         }
     }

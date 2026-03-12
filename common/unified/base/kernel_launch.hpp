@@ -152,7 +152,7 @@ namespace GKO_DEVICE_NAMESPACE {
  */
 template <typename ValueType>
 struct matrix_accessor {
-    ValueType* data;
+    ValueType* values;
     int64 stride;
 
     /**
@@ -161,7 +161,7 @@ struct matrix_accessor {
      */
     GKO_INLINE GKO_ATTRIBUTES ValueType& operator()(int64 row, int64 col)
     {
-        return data[row * stride + col];
+        return values[row * stride + col];
     }
 
     /**
@@ -171,7 +171,7 @@ struct matrix_accessor {
      */
     GKO_INLINE GKO_ATTRIBUTES ValueType& operator[](int64 idx)
     {
-        return data[idx];
+        return values[idx];
     }
 };
 
@@ -215,7 +215,7 @@ struct to_device_type_impl<matrix::view::dense<ValueType> const&> {
     using type = matrix_accessor<device_type<ValueType>>;
     static type map_to_device(matrix::view::dense<ValueType> mtx)
     {
-        return {as_device_type(mtx.data), static_cast<int64>(mtx.stride)};
+        return {as_device_type(mtx.values), static_cast<int64>(mtx.stride)};
     }
 };
 

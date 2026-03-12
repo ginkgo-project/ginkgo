@@ -338,7 +338,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
     auto e_row_ptrs = excess_system->get_row_ptrs();
     auto e_cols = excess_system->get_col_idxs();
     auto e_vals = excess_system->get_values();
-    auto e_rhs = excess_rhs.data;
+    auto e_rhs = excess_rhs.values;
 
     for (size_type row = e_start; row < e_end; ++row) {
         const auto i_begin = i_row_ptrs[row];
@@ -387,7 +387,7 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor>,
                            matrix::view::dense<ValueType> excess_solution,
                            size_type e_start, size_type e_end)
 {
-    auto excess_values = excess_solution.data;
+    auto excess_values = excess_solution.values;
     IndexType block_start = 0;
     IndexType block_end = 0;
     auto offset = excess_block_ptrs[e_start];
@@ -416,7 +416,7 @@ void scatter_excess_solution(
     matrix::Csr<ValueType, IndexType>* inverse, size_type e_start,
     size_type e_end)
 {
-    auto excess_values = excess_solution.data;
+    auto excess_values = excess_solution.values;
     auto values = inverse->get_values();
     auto row_ptrs = inverse->get_const_row_ptrs();
     auto offset = excess_block_ptrs[e_start];

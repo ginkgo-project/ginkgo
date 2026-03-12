@@ -103,7 +103,7 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
             a->get_size()[0], b.size[1], b.stride, c.stride,
             a->get_slice_size(), a->get_const_slice_sets(),
             as_device_type(a->get_const_values()), a->get_const_col_idxs(),
-            as_device_type(b.data), as_device_type(c.data));
+            as_device_type(b.values), as_device_type(c.values));
     }
 }
 
@@ -125,9 +125,9 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
         advanced_spmv_kernel<<<grid, block_size, 0, exec->get_stream()>>>(
             a->get_size()[0], b.size[1], b.stride, c.stride,
             a->get_slice_size(), a->get_const_slice_sets(),
-            as_device_type(alpha.data), as_device_type(a->get_const_values()),
-            a->get_const_col_idxs(), as_device_type(b.data),
-            as_device_type(beta.data), as_device_type(c.data));
+            as_device_type(alpha.values), as_device_type(a->get_const_values()),
+            a->get_const_col_idxs(), as_device_type(b.values),
+            as_device_type(beta.values), as_device_type(c.values));
     }
 }
 

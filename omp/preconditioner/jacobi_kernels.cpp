@@ -500,8 +500,8 @@ void apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group =
             blocks.get_const_data() + storage_scheme.get_group_offset(i);
-        const auto block_b = b.data + b.stride * ptrs[i];
-        const auto block_x = x.data + x.stride * ptrs[i];
+        const auto block_b = b.values + b.stride * ptrs[i];
+        const auto block_x = x.values + x.stride * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
         const auto p = prec ? prec[i] : precision_reduction();
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
@@ -533,8 +533,8 @@ void simple_apply(
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group =
             blocks.get_const_data() + storage_scheme.get_group_offset(i);
-        const auto block_b = b.data + b.stride * ptrs[i];
-        const auto block_x = x.data + x.stride * ptrs[i];
+        const auto block_b = b.values + b.stride * ptrs[i];
+        const auto block_x = x.values + x.stride * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
         const auto p = prec ? prec[i] : precision_reduction();
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(

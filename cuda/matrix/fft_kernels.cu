@@ -116,7 +116,7 @@ void fft(std::shared_ptr<const DefaultExecutor> exec,
     cufft_handle handle{exec->get_stream()};
     handle.template setup<1, std::complex<ValueType>, std::complex<ValueType>>(
         {b.size[0]}, b.stride, x.stride, b.size[1], buffer);
-    handle.execute(b.data, x.data, inverse);
+    handle.execute(b.values, x.values, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT_KERNEL);
@@ -131,7 +131,7 @@ void fft2(std::shared_ptr<const DefaultExecutor> exec,
     cufft_handle handle{exec->get_stream()};
     handle.template setup<2, std::complex<ValueType>, std::complex<ValueType>>(
         {size1, size2}, b.stride, x.stride, b.size[1], buffer);
-    handle.execute(b.data, x.data, inverse);
+    handle.execute(b.values, x.values, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT2_KERNEL);
@@ -146,7 +146,7 @@ void fft3(std::shared_ptr<const DefaultExecutor> exec,
     cufft_handle handle{exec->get_stream()};
     handle.template setup<3, std::complex<ValueType>, std::complex<ValueType>>(
         {size1, size2, size3}, b.stride, x.stride, b.size[1], buffer);
-    handle.execute(b.data, x.data, inverse);
+    handle.execute(b.values, x.values, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT3_KERNEL);

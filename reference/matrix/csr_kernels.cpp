@@ -1408,9 +1408,9 @@ void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
     const auto vals = mtx->get_values();
     for (IndexType row = 0; row < nrows; row++) {
         for (IndexType iz = row_ptrs[row]; iz < row_ptrs[row + 1]; iz++) {
-            vals[iz] *= beta.data[0];
+            vals[iz] *= beta.values[0];
             if (row == mtx->get_const_col_idxs()[iz]) {
-                vals[iz] += alpha.data[0];
+                vals[iz] += alpha.values[0];
             }
         }
     }

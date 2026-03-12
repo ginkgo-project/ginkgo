@@ -457,7 +457,7 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::fill_in_coo<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
-            num_rows, num_cols, stride, as_device_type(source.data), row_ptrs,
+            num_rows, num_cols, stride, as_device_type(source.values), row_ptrs,
             row_idxs, col_idxs, as_device_type(values));
     }
 }
@@ -485,7 +485,7 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::fill_in_csr<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
-            num_rows, num_cols, stride, as_device_type(source.data),
+            num_rows, num_cols, stride, as_device_type(source.values),
             as_device_type(row_ptrs), as_device_type(col_idxs),
             as_device_type(values));
     }
@@ -515,7 +515,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::fill_in_ell<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
-            num_rows, num_cols, source_stride, as_device_type(source.data),
+            num_rows, num_cols, source_stride, as_device_type(source.values),
             max_nnz_per_row, result_stride, col_idxs, as_device_type(values));
     }
 }
@@ -536,7 +536,7 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
         kernel::convert_to_fbcsr<<<num_blocks, default_block_size, 0,
                                    exec->get_stream()>>>(
             num_block_rows, result->get_num_block_cols(), source.stride,
-            result->get_block_size(), as_device_type(source.data),
+            result->get_block_size(), as_device_type(source.values),
             result->get_const_row_ptrs(), result->get_col_idxs(),
             as_device_type(result->get_values()));
     }
@@ -559,7 +559,7 @@ void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
         kernel::count_nonzero_blocks_per_row<<<num_blocks, default_block_size,
                                                0, exec->get_stream()>>>(
             num_block_rows, num_block_cols, source.stride, bs,
-            as_device_type(source.data), result);
+            as_device_type(source.values), result);
     }
 }
 
@@ -589,7 +589,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::fill_in_hybrid<<<grid_dim, default_block_size, 0,
                                  exec->get_stream()>>>(
-            num_rows, num_cols, source_stride, as_device_type(source.data),
+            num_rows, num_cols, source_stride, as_device_type(source.values),
             ell_max_nnz_per_row, ell_stride, ell_col_idxs,
             as_device_type(ell_values), coo_row_ptrs, coo_row_idxs,
             coo_col_idxs, as_device_type(coo_values));
@@ -620,9 +620,9 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::fill_in_sellp<<<grid_dim, default_block_size, 0,
                                 exec->get_stream()>>>(
-            num_rows, num_cols, slice_size, stride, as_device_type(source.data),
-            as_device_type(slice_sets), as_device_type(col_idxs),
-            as_device_type(vals));
+            num_rows, num_cols, slice_size, stride,
+            as_device_type(source.values), as_device_type(slice_sets),
+            as_device_type(col_idxs), as_device_type(vals));
     }
 }
 
@@ -648,7 +648,7 @@ void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::fill_in_sparsity_csr<<<grid_dim, default_block_size, 0,
                                        exec->get_stream()>>>(
-            num_rows, num_cols, stride, as_device_type(source.data),
+            num_rows, num_cols, stride, as_device_type(source.values),
             as_device_type(row_ptrs), as_device_type(col_idxs));
     }
 }
@@ -667,8 +667,8 @@ void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
     if (x.size[1] == 1 && y.size[1] == 1) {
         if (blas::is_supported<ValueType>::value) {
             auto handle = exec->get_blas_handle();
-            blas::dot(handle, x.size[0], x.data, x.stride, y.data, y.stride,
-                      result.data);
+            blas::dot(handle, x.size[0], x.values, x.stride, y.values, y.stride,
+                      result.values);
         } else {
             compute_dot(exec, x, y, result, tmp);
         }
@@ -691,8 +691,8 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
     if (x.size[1] == 1 && y.size[1] == 1) {
         if (blas::is_supported<ValueType>::value) {
             auto handle = exec->get_blas_handle();
-            blas::conj_dot(handle, x.size[0], x.data, x.stride, y.data,
-                           y.stride, result.data);
+            blas::conj_dot(handle, x.size[0], x.values, x.stride, y.values,
+                           y.stride, result.values);
         } else {
             compute_conj_dot(exec, x, y, result, tmp);
         }
@@ -714,7 +714,7 @@ void compute_norm2_dispatch(
     if (x.size[1] == 1) {
         if (blas::is_supported<ValueType>::value) {
             auto handle = exec->get_blas_handle();
-            blas::norm2(handle, x.size[0], x.data, x.stride, result.data);
+            blas::norm2(handle, x.size[0], x.values, x.stride, result.values);
         } else {
             compute_norm2(exec, x, result, tmp);
         }
@@ -741,8 +741,8 @@ void simple_apply(std::shared_ptr<const DefaultExecutor> exec,
                 auto alpha = one<ValueType>();
                 auto beta = zero<ValueType>();
                 blas::gemm(handle, BLAS_OP_N, BLAS_OP_N, c.size[1], c.size[0],
-                           a.size[1], &alpha, b.data, b.stride, a.data,
-                           a.stride, &beta, c.data, c.stride);
+                           a.size[1], &alpha, b.values, b.stride, a.values,
+                           a.stride, &beta, c.values, c.stride);
             } else {
                 dense::fill(exec, c, zero<ValueType>());
             }
@@ -767,9 +767,9 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
         if (c.size[0] > 0 && c.size[1] > 0) {
             if (a.size[1] > 0) {
                 blas::gemm(exec->get_blas_handle(), BLAS_OP_N, BLAS_OP_N,
-                           c.size[1], c.size[0], a.size[1], alpha.data, b.data,
-                           b.stride, a.data, a.stride, beta.data, c.data,
-                           c.stride);
+                           c.size[1], c.size[0], a.size[1], alpha.values,
+                           b.values, b.stride, a.values, a.stride, beta.values,
+                           c.values, c.stride);
             } else {
                 dense::scale(exec, beta, c);
             }
@@ -794,8 +794,8 @@ void transpose(std::shared_ptr<const DefaultExecutor> exec,
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
             blas::geam(handle, BLAS_OP_T, BLAS_OP_N, orig.size[0], orig.size[1],
-                       &alpha, orig.data, orig.stride, &beta, trans.data,
-                       trans.stride, trans.data, trans.stride);
+                       &alpha, orig.values, orig.stride, &beta, trans.values,
+                       trans.stride, trans.values, trans.stride);
         }
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -817,8 +817,8 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
             auto alpha = one<ValueType>();
             auto beta = zero<ValueType>();
             blas::geam(handle, BLAS_OP_C, BLAS_OP_N, orig.size[0], orig.size[1],
-                       &alpha, orig.data, orig.stride, &beta, trans.data,
-                       trans.stride, trans.data, trans.stride);
+                       &alpha, orig.values, orig.stride, &beta, trans.values,
+                       trans.stride, trans.values, trans.stride);
         }
     } else {
         GKO_NOT_IMPLEMENTED;

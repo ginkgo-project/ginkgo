@@ -940,9 +940,9 @@ void initialize(std::shared_ptr<const DpcppExecutor> exec,
 
     initialize_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), b.size[0], b.size[1],
-        krylov_dim, as_device_type(b.data), b.stride,
-        as_device_type(residual.data), residual.stride, givens_sin.data,
-        givens_sin.stride, givens_cos.data, givens_cos.stride,
+        krylov_dim, as_device_type(b.values), b.stride,
+        as_device_type(residual.values), residual.stride, givens_sin.values,
+        givens_sin.stride, givens_cos.values, givens_cos.stride,
         stop_status.get_data());
 }
 
@@ -976,29 +976,29 @@ void restart(std::shared_ptr<const DpcppExecutor> exec,
 
     restart_1_kernel<block_size>(grid_dim_1, block_dim, 0, exec->get_queue(),
                                  residual.size[0], residual.size[1], krylov_dim,
-                                 krylov_bases, residual_norm_collection.data,
+                                 krylov_bases, residual_norm_collection.values,
                                  residual_norm_collection.stride);
     kernels::dpcpp::dense::compute_norm2_dispatch(exec, residual, residual_norm,
                                                   reduction_tmp);
 
     if (use_scalar) {
-        components::fill_array(exec, arnoldi_norm.data + 2 * stride_arnoldi,
+        components::fill_array(exec, arnoldi_norm.values + 2 * stride_arnoldi,
                                num_rhs, zero<remove_complex<ValueType>>());
         const dim3 grid_size_nrm(ceildiv(num_rhs, default_dot_dim),
                                  exec->get_num_computing_units() * 2);
         const dim3 block_size_nrm(default_dot_dim, default_dot_dim);
         multinorminf_without_stop_kernel(
             grid_size_nrm, block_size_nrm, 0, exec->get_queue(), num_rows,
-            num_rhs, as_device_type(residual.data), residual.stride,
-            arnoldi_norm.data + 2 * stride_arnoldi, 0);
+            num_rhs, as_device_type(residual.values), residual.stride,
+            arnoldi_norm.values + 2 * stride_arnoldi, 0);
     }
 
     if (gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value) {
         set_scalar_kernel<default_block_size>(
             ceildiv(num_rhs * (krylov_dim + 1), default_block_size),
             default_block_size, 0, exec->get_queue(), num_rhs, krylov_dim + 1,
-            residual_norm.data, residual_norm.stride,
-            arnoldi_norm.data + 2 * stride_arnoldi, stride_arnoldi,
+            residual_norm.values, residual_norm.stride,
+            arnoldi_norm.values + 2 * stride_arnoldi, stride_arnoldi,
             krylov_bases);
     }
 
@@ -1008,9 +1008,9 @@ void restart(std::shared_ptr<const DpcppExecutor> exec,
         1, 1);
     restart_2_kernel<block_size>(
         grid_dim_2, block_dim, 0, exec->get_queue(), residual.size[0],
-        residual.size[1], as_device_type(residual.data), residual.stride,
-        residual_norm.data, residual_norm_collection.data, krylov_bases,
-        next_krylov_basis.data, next_krylov_basis.stride,
+        residual.size[1], as_device_type(residual.values), residual.stride,
+        residual_norm.values, residual_norm_collection.values, krylov_bases,
+        next_krylov_basis.values, next_krylov_basis.stride,
         final_iter_nums.get_data());
 }
 
@@ -1054,23 +1054,24 @@ void finish_arnoldi_CGS(
     const dim3 block_size_iters_single(singledot_block_size);
     size_type num_reorth_host;
 
-    components::fill_array(exec, arnoldi_norm.data, dim_size[1],
+    components::fill_array(exec, arnoldi_norm.values, dim_size[1],
                            zero<non_complex>());
     multinorm2_kernel(grid_size, block_size, 0, exec->get_queue(), dim_size[0],
-                      dim_size[1], next_krylov_basis.data, stride_next_krylov,
-                      arnoldi_norm.data, stop_status);
+                      dim_size[1], next_krylov_basis.values, stride_next_krylov,
+                      arnoldi_norm.values, stop_status);
     zero_matrix(exec, iter + 1, dim_size[1], stride_hessenberg,
-                hessenberg_iter.data);
+                hessenberg_iter.values);
     if (dim_size[1] > 1) {
         multidot_kernel<default_dot_dim>(
             grid_size_num_iters, block_size, 0, exec->get_queue(), dim_size[0],
-            dim_size[1], next_krylov_basis.data, stride_next_krylov,
-            krylov_bases, hessenberg_iter.data, stride_hessenberg, stop_status);
+            dim_size[1], next_krylov_basis.values, stride_next_krylov,
+            krylov_bases, hessenberg_iter.values, stride_hessenberg,
+            stop_status);
     } else {
         singledot_kernel<singledot_block_size>(
             grid_size_iters_single, block_size_iters_single, 0,
-            exec->get_queue(), dim_size[0], next_krylov_basis.data,
-            stride_next_krylov, krylov_bases, hessenberg_iter.data,
+            exec->get_queue(), dim_size[0], next_krylov_basis.values,
+            stride_next_krylov, krylov_bases, hessenberg_iter.values,
             stride_hessenberg, stop_status);
     }
     // for i in 1:iter
@@ -1079,46 +1080,46 @@ void finish_arnoldi_CGS(
     update_next_krylov_kernel<default_block_size>(
         ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
         default_block_size, 0, exec->get_queue(), iter + 1, dim_size[0],
-        dim_size[1], next_krylov_basis.data, stride_next_krylov, krylov_bases,
-        hessenberg_iter.data, stride_hessenberg, stop_status);
+        dim_size[1], next_krylov_basis.values, stride_next_krylov, krylov_bases,
+        hessenberg_iter.values, stride_hessenberg, stop_status);
 
     // for i in 1:iter
     //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
     // end
-    components::fill_array(exec, arnoldi_norm.data + stride_arnoldi,
+    components::fill_array(exec, arnoldi_norm.values + stride_arnoldi,
                            dim_size[1], zero<non_complex>());
     if (use_scalar) {
-        components::fill_array(exec, arnoldi_norm.data + 2 * stride_arnoldi,
+        components::fill_array(exec, arnoldi_norm.values + 2 * stride_arnoldi,
                                dim_size[1], zero<non_complex>());
     }
     multinorm2_inf_kernel<use_scalar>(
         grid_size, block_size, 0, exec->get_queue(), dim_size[0], dim_size[1],
-        next_krylov_basis.data, stride_next_krylov,
-        arnoldi_norm.data + stride_arnoldi,
-        arnoldi_norm.data + 2 * stride_arnoldi, stop_status);
+        next_krylov_basis.values, stride_next_krylov,
+        arnoldi_norm.values + stride_arnoldi,
+        arnoldi_norm.values + 2 * stride_arnoldi, stop_status);
     // nrmN = norm(next_krylov_basis)
     components::fill_array(exec, num_reorth.get_data(), 1, zero<size_type>());
     check_arnoldi_norms<default_block_size>(
         ceildiv(dim_size[1], default_block_size), default_block_size, 0,
-        exec->get_queue(), dim_size[1], arnoldi_norm.data, stride_arnoldi,
-        hessenberg_iter.data, stride_hessenberg, iter + 1, krylov_bases,
+        exec->get_queue(), dim_size[1], arnoldi_norm.values, stride_arnoldi,
+        hessenberg_iter.values, stride_hessenberg, iter + 1, krylov_bases,
         stop_status, reorth_status, num_reorth.get_data());
     num_reorth_host = get_element(num_reorth, 0);
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
     for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
         zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
-                    buffer_iter.data);
+                    buffer_iter.values);
         if (dim_size[1] > 1) {
             multidot_kernel<default_dot_dim>(
                 grid_size_num_iters, block_size, 0, exec->get_queue(),
-                dim_size[0], dim_size[1], next_krylov_basis.data,
-                stride_next_krylov, krylov_bases, buffer_iter.data,
+                dim_size[0], dim_size[1], next_krylov_basis.values,
+                stride_next_krylov, krylov_bases, buffer_iter.values,
                 stride_buffer, stop_status);
         } else {
             singledot_kernel<singledot_block_size>(
                 grid_size_iters_single, block_size_iters_single, 0,
-                exec->get_queue(), dim_size[0], next_krylov_basis.data,
-                stride_next_krylov, krylov_bases, buffer_iter.data,
+                exec->get_queue(), dim_size[0], next_krylov_basis.values,
+                stride_next_krylov, krylov_bases, buffer_iter.values,
                 stride_buffer, stop_status);
         }
         // for i in 1:iter
@@ -1127,30 +1128,31 @@ void finish_arnoldi_CGS(
         update_next_krylov_and_add_kernel<default_block_size>(
             ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
             default_block_size, 0, exec->get_queue(), iter + 1, dim_size[0],
-            dim_size[1], next_krylov_basis.data, stride_next_krylov,
-            krylov_bases, hessenberg_iter.data, stride_hessenberg,
-            buffer_iter.data, stride_buffer, stop_status, reorth_status);
+            dim_size[1], next_krylov_basis.values, stride_next_krylov,
+            krylov_bases, hessenberg_iter.values, stride_hessenberg,
+            buffer_iter.values, stride_buffer, stop_status, reorth_status);
         // for i in 1:iter
         //     next_krylov_basis  -= hessenberg(iter, i) * krylov_bases(:, i)
         // end
-        components::fill_array(exec, arnoldi_norm.data + stride_arnoldi,
+        components::fill_array(exec, arnoldi_norm.values + stride_arnoldi,
                                dim_size[1], zero<non_complex>());
         if (use_scalar) {
-            components::fill_array(exec, arnoldi_norm.data + 2 * stride_arnoldi,
+            components::fill_array(exec,
+                                   arnoldi_norm.values + 2 * stride_arnoldi,
                                    dim_size[1], zero<non_complex>());
         }
         multinorm2_inf_kernel<use_scalar>(
             grid_size, block_size, 0, exec->get_queue(), dim_size[0],
-            dim_size[1], next_krylov_basis.data, stride_next_krylov,
-            arnoldi_norm.data + stride_arnoldi,
-            arnoldi_norm.data + 2 * stride_arnoldi, stop_status);
+            dim_size[1], next_krylov_basis.values, stride_next_krylov,
+            arnoldi_norm.values + stride_arnoldi,
+            arnoldi_norm.values + 2 * stride_arnoldi, stop_status);
         // nrmN = norm(next_krylov_basis)
         components::fill_array(exec, num_reorth.get_data(), 1,
                                zero<size_type>());
         check_arnoldi_norms<default_block_size>(
             ceildiv(dim_size[1], default_block_size), default_block_size, 0,
-            exec->get_queue(), dim_size[1], arnoldi_norm.data, stride_arnoldi,
-            hessenberg_iter.data, stride_hessenberg, iter + 1, krylov_bases,
+            exec->get_queue(), dim_size[1], arnoldi_norm.values, stride_arnoldi,
+            hessenberg_iter.values, stride_hessenberg, iter + 1, krylov_bases,
             stop_status, reorth_status, num_reorth.get_data());
         num_reorth_host = get_element(num_reorth, 0);
     }
@@ -1158,8 +1160,8 @@ void finish_arnoldi_CGS(
     update_krylov_next_krylov_kernel<default_block_size>(
         ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
         default_block_size, 0, exec->get_queue(), iter, dim_size[0],
-        dim_size[1], next_krylov_basis.data, stride_next_krylov, krylov_bases,
-        hessenberg_iter.data, stride_hessenberg, stop_status);
+        dim_size[1], next_krylov_basis.values, stride_next_krylov, krylov_bases,
+        hessenberg_iter.values, stride_hessenberg, stop_status);
     // next_krylov_basis /= hessenberg(iter, iter + 1)
     // krylov_bases(:, iter + 1) = next_krylov_basis
     // End of arnoldi
@@ -1184,10 +1186,10 @@ void givens_rotation(
 
     givens_rotation_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), hessenberg_iter.size[0],
-        hessenberg_iter.size[1], iter, hessenberg_iter.data,
-        hessenberg_iter.stride, givens_sin.data, givens_sin.stride,
-        givens_cos.data, givens_cos.stride, residual_norm.data,
-        residual_norm_collection.data, residual_norm_collection.stride,
+        hessenberg_iter.size[1], iter, hessenberg_iter.values,
+        hessenberg_iter.stride, givens_sin.values, givens_sin.stride,
+        givens_cos.values, givens_cos.stride, residual_norm.values,
+        residual_norm_collection.values, residual_norm_collection.stride,
         stop_status.get_const_data());
 }
 
@@ -1240,9 +1242,9 @@ void solve_upper_triangular(
 
     solve_upper_triangular_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), hessenberg.size[1], num_rhs,
-        residual_norm_collection.data, residual_norm_collection.stride,
-        as_device_type(hessenberg.data), hessenberg.stride,
-        as_device_type(y.data), y.stride, final_iter_nums.get_const_data());
+        residual_norm_collection.values, residual_norm_collection.stride,
+        as_device_type(hessenberg.values), hessenberg.stride,
+        as_device_type(y.values), y.stride, final_iter_nums.get_const_data());
 }
 
 
@@ -1267,8 +1269,8 @@ void calculate_qy(std::shared_ptr<const DpcppExecutor> exec,
 
     calculate_Qy_kernel<block_size>(
         grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
-        krylov_bases, as_device_type(y.data), y.stride,
-        before_preconditioner.data, stride_before_preconditioner,
+        krylov_bases, as_device_type(y.values), y.stride,
+        before_preconditioner.values, stride_before_preconditioner,
         final_iter_nums.get_const_data());
     // Calculate qy
     // before_preconditioner = krylov_bases * y

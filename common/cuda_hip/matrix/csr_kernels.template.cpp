@@ -1412,9 +1412,9 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
             return compiled_subwarp_size >= nnz_per_row ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, alpha.data,
+        syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
         a->get_const_row_ptrs(), a->get_const_col_idxs(), a->get_const_values(),
-        beta.data, b->get_const_row_ptrs(), b->get_const_col_idxs(),
+        beta.values, b->get_const_row_ptrs(), b->get_const_col_idxs(),
         b->get_const_values(), c);
 }
 
@@ -1468,9 +1468,9 @@ void spgeam_numeric(std::shared_ptr<const DefaultExecutor> exec,
             return compiled_subwarp_size >= nnz_per_row ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, alpha.data,
+        syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
         a->get_const_row_ptrs(), a->get_const_col_idxs(), a->get_const_values(),
-        beta.data, b->get_const_row_ptrs(), b->get_const_col_idxs(),
+        beta.values, b->get_const_row_ptrs(), b->get_const_col_idxs(),
         b->get_const_values(), c->get_const_row_ptrs(), c->get_values(),
         a->get_size()[0]);
 }
@@ -1493,7 +1493,7 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
         kernel::fill_in_dense<<<grid_dim, default_block_size, 0,
                                 exec->get_stream()>>>(
             num_rows, as_device_type(row_ptrs), as_device_type(col_idxs),
-            as_device_type(vals), stride, as_device_type(result.data));
+            as_device_type(vals), stride, as_device_type(result.values));
     }
 }
 
@@ -1938,7 +1938,7 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
     const auto nblocks = ceildiv(nthreads, default_block_size);
     kernel::add_scaled_identity<<<nblocks, default_block_size, 0,
                                   exec->get_stream()>>>(
-        as_device_type(alpha.data), as_device_type(beta.data),
+        as_device_type(alpha.values), as_device_type(beta.values),
         static_cast<IndexType>(nrows), mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), as_device_type(mtx->get_values()));
 }
@@ -2011,12 +2011,12 @@ void merge_path_spmv(
                 kernel::abstract_merge_path_spmv<items_per_thread>
                     <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a->get_size()[0]),
-                        as_device_type(alpha->data),
+                        as_device_type(alpha->values),
                         acc::as_device_range(a_vals), a->get_const_col_idxs(),
                         as_device_type(a->get_const_row_ptrs()),
                         as_device_type(a->get_const_srow()),
                         acc::as_device_range(b_vals),
-                        as_device_type(beta->data),
+                        as_device_type(beta->values),
                         acc::as_device_range(c_vals),
                         as_device_type(row_out.get_data()),
                         as_device_type(val_out.get_data()));
@@ -2025,7 +2025,8 @@ void merge_path_spmv(
                 abstract_reduce<<<1, spmv_block_size, 0, exec->get_stream()>>>(
                     grid_num, as_device_type(val_out.get_data()),
                     as_device_type(row_out.get_data()),
-                    as_device_type(alpha->data), acc::as_device_range(c_vals));
+                    as_device_type(alpha->values),
+                    acc::as_device_range(c_vals));
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -2135,10 +2136,10 @@ void classical_spmv(
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
                 <<<grid, block, 0, exec->get_stream()>>>(
-                    a->get_size()[0], as_device_type(alpha->data),
+                    a->get_size()[0], as_device_type(alpha->values),
                     acc::as_device_range(a_vals), a->get_const_col_idxs(),
                     as_device_type(a->get_const_row_ptrs()),
-                    acc::as_device_range(b_vals), as_device_type(beta->data),
+                    acc::as_device_range(b_vals), as_device_type(beta->values),
                     acc::as_device_range(c_vals));
         }
     } else {
@@ -2201,7 +2202,7 @@ bool load_balance_spmv(
                     kernel::abstract_spmv<<<csr_grid, csr_block, 0,
                                             exec->get_stream()>>>(
                         nwarps, static_cast<IndexType>(a->get_size()[0]),
-                        as_device_type(alpha->data),
+                        as_device_type(alpha->values),
                         acc::as_device_range(a_vals), a->get_const_col_idxs(),
                         as_device_type(a->get_const_row_ptrs()),
                         as_device_type(a->get_const_srow()),
@@ -2249,7 +2250,7 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
                         SPARSELIB_OPERATION_NON_TRANSPOSE, a->get_size()[0],
                         a->get_size()[1], a->get_num_stored_elements(), alpha,
                         descr, a->get_const_values(), row_ptrs, col_idxs,
-                        b.data, beta, c.data);
+                        b.values, beta, c.values);
 
         sparselib::destroy(descr);
     }
@@ -2267,8 +2268,8 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DefaultExecutor> exec,
     auto mat = sparselib::create_csr(a->get_size()[0], a->get_size()[1],
                                      a->get_num_stored_elements(), row_ptrs,
                                      col_idxs, values);
-    auto b_val = const_cast<ValueType*>(b.data);
-    auto c_val = c.data;
+    auto b_val = const_cast<ValueType*>(b.values);
+    auto c_val = c.values;
     if (b.stride == 1 && c.stride == 1) {
         auto vecb = sparselib::create_dnvec(b.size[0], b_val);
         auto vecc = sparselib::create_dnvec(c.size[0], c_val);
@@ -2348,8 +2349,8 @@ bool try_sparselib_spmv(
         beta = {})
 {
     if (alpha) {
-        return try_general_sparselib_spmv(exec, alpha->data, a, b, beta->data,
-                                          c);
+        return try_general_sparselib_spmv(exec, alpha->values, a, b,
+                                          beta->values, c);
     } else {
         auto handle = exec->get_sparselib_handle();
         sparselib::pointer_mode_guard pm_guard(handle);
@@ -2713,8 +2714,8 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
                 return compiled_subwarp_size >= nnz_per_row ||
                        compiled_subwarp_size == config::warp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, alpha.data,
-            c_tmp_row_ptrs, c_tmp_col_idxs, c_tmp_vals, beta.data, d_row_ptrs,
+            syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
+            c_tmp_row_ptrs, c_tmp_col_idxs, c_tmp_vals, beta.values, d_row_ptrs,
             d_col_idxs, d_vals, c);
     } else {
         GKO_NOT_IMPLEMENTED;
@@ -2723,7 +2724,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto handle = exec->get_sparselib_handle();
     sparselib::pointer_mode_guard pm_guard(handle);
 
-    auto valpha = exec->copy_val_to_host(alpha.data);
+    auto valpha = exec->copy_val_to_host(alpha.values);
     auto a_nnz = IndexType(a->get_num_stored_elements());
     auto a_vals = a->get_const_values();
     auto a_row_ptrs = a->get_const_row_ptrs();
@@ -2732,7 +2733,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto b_vals = b->get_const_values();
     auto b_row_ptrs = b->get_const_row_ptrs();
     auto b_col_idxs = b->get_const_col_idxs();
-    auto vbeta = exec->copy_val_to_host(beta.data);
+    auto vbeta = exec->copy_val_to_host(beta.values);
     auto d_nnz = IndexType(d->get_num_stored_elements());
     auto d_vals = d->get_const_values();
     auto d_row_ptrs = d->get_const_row_ptrs();
@@ -2803,10 +2804,10 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
             return compiled_subwarp_size >= nnz_per_row ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, alpha.data,
+        syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
         c_tmp_row_ptrs_array.get_const_data(),
         c_tmp_col_idxs_array.get_const_data(),
-        c_tmp_vals_array.get_const_data(), beta.data, d_row_ptrs, d_col_idxs,
+        c_tmp_vals_array.get_const_data(), beta.values, d_row_ptrs, d_col_idxs,
         d_vals, c);
 #endif  // GKO_COMPILING_CUDA
 }
@@ -2988,8 +2989,8 @@ void advanced_spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
     const auto b_vals = as_device_type(b->get_const_values());
     const auto c_vals = as_device_type(c->get_values());
     const auto d_vals = as_device_type(d->get_const_values());
-    const auto palpha = as_device_type(alpha.data);
-    const auto pbeta = as_device_type(beta.data);
+    const auto palpha = as_device_type(alpha.values);
+    const auto pbeta = as_device_type(beta.values);
     const auto lookup_storage_offsets =
         c_lookup.storage_offsets.get_const_data();
     const auto lookup_storage = c_lookup.storage.get_const_data();

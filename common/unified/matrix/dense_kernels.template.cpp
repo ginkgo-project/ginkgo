@@ -94,7 +94,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) *= alpha[col];
             },
-            x.size, alpha.data, x);
+            x.size, alpha.values, x);
     } else {
         run_kernel(
             exec,
@@ -105,7 +105,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
                     x(row, col) *= alpha[0];
                 }
             },
-            x.size, alpha.data, x);
+            x.size, alpha.values, x);
     }
 }
 
@@ -121,14 +121,14 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) /= alpha[col];
             },
-            x.size, alpha.data, x);
+            x.size, alpha.values, x);
     } else {
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) /= alpha[0];
             },
-            x.size, alpha.data, x);
+            x.size, alpha.values, x);
     }
 }
 
@@ -145,7 +145,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) += alpha[col] * x(row, col);
             },
-            x.size, alpha.data, x, y);
+            x.size, alpha.values, x, y);
     } else {
         run_kernel(
             exec,
@@ -154,7 +154,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                     y(row, col) += alpha[0] * x(row, col);
                 }
             },
-            x.size, alpha.data, x, y);
+            x.size, alpha.values, x, y);
     }
 }
 
@@ -171,7 +171,7 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) -= alpha[col] * x(row, col);
             },
-            x.size, alpha.data, x, y);
+            x.size, alpha.values, x, y);
     } else {
         run_kernel(
             exec,
@@ -180,7 +180,7 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
                     y(row, col) -= alpha[0] * x(row, col);
                 }
             },
-            x.size, alpha.data, x, y);
+            x.size, alpha.values, x, y);
     }
 }
 
@@ -199,7 +199,7 @@ void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
                 y(i, i) += alpha[0] * diag[i];
             }
         },
-        x->get_size()[0], alpha.data, x->get_const_values(), y);
+        x->get_size()[0], alpha.values, x->get_const_values(), y);
 }
 
 
@@ -217,7 +217,7 @@ void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
                 y(i, i) -= alpha[0] * diag[i];
             }
         },
-        x->get_size()[0], alpha.data, x->get_const_values(), y);
+        x->get_size()[0], alpha.values, x->get_const_values(), y);
 }
 
 
@@ -232,7 +232,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return x(i, j) * y(i, j);
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), result.data, x.size, tmp, x, y);
+        GKO_KERNEL_REDUCE_SUM(ValueType), result.values, x.size, tmp, x, y);
 }
 
 
@@ -247,7 +247,7 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return conj(x(i, j)) * y(i, j);
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), result.data, x.size, tmp, x, y);
+        GKO_KERNEL_REDUCE_SUM(ValueType), result.values, x.size, tmp, x, y);
 }
 
 
@@ -262,7 +262,7 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
         [] GKO_KERNEL(auto a, auto b) { return a + b; },
         [] GKO_KERNEL(auto a) { return sqrt(a); }, remove_complex<ValueType>{},
-        result.data, x.size, tmp, x);
+        result.values, x.size, tmp, x);
 }
 
 template <typename ValueType>
@@ -273,7 +273,7 @@ void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_col_reduction_cached(
         exec, [] GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
-        GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result.data, x.size,
+        GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result.values, x.size,
         tmp, x);
 }
 
@@ -289,7 +289,7 @@ void compute_mean(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto inv_total_size) {
             return x(i, j) * inv_total_size;
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), result.data, x.size, tmp, x,
+        GKO_KERNEL_REDUCE_SUM(ValueType), result.values, x.size, tmp, x,
         ValueType_nc{1.} / std::max<size_type>(1, x.size[0]));
 }
 
@@ -361,7 +361,7 @@ void compute_squared_norm2(
     run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
-        GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result.data, x.size,
+        GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result.values, x.size,
         tmp, x);
 }
 
@@ -492,7 +492,7 @@ void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
                 static_cast<type>(beta[0]) *
                     static_cast<type>(gathered(row, col)));
         },
-        row_collection.size, alpha.data, orig, row_idxs, beta.data,
+        row_collection.size, alpha.values, orig, row_idxs, beta.values,
         row_collection);
 }
 
@@ -784,7 +784,7 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
                 mtx(row, row) += alpha[0];
             }
         },
-        mtx.size, alpha.data, beta.data, mtx);
+        mtx.size, alpha.values, beta.values, mtx);
 }
 
 

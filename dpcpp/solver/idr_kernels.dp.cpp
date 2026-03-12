@@ -589,7 +589,7 @@ void initialize_m(std::shared_ptr<const DpcppExecutor> exec,
 
     const auto grid_dim = ceildiv(m_stride * subspace_dim, default_block_size);
     initialize_m_kernel(grid_dim, default_block_size, 0, exec->get_queue(),
-                        subspace_dim, nrhs, as_device_type(m.data), m_stride,
+                        subspace_dim, nrhs, as_device_type(m.values), m_stride,
                         stop_status.get_data());
 }
 
@@ -602,7 +602,7 @@ void initialize_subspace_vectors(
     if (!deterministic) {
         auto seed = std::random_device{}();
         using real_type = remove_complex<ValueType>;
-        auto work = reinterpret_cast<real_type*>(subspace_vectors.data);
+        auto work = reinterpret_cast<real_type*>(subspace_vectors.values);
         auto n = subspace_vectors.size[0] * subspace_vectors.stride;
         using rand_type =
             std::conditional_t<std::is_same_v<real_type, float16> ||
@@ -630,7 +630,7 @@ void orthonormalize_subspace_vectors(
 {
     orthonormalize_subspace_vectors_kernel<default_block_size>(
         1, default_block_size, 0, exec->get_queue(), subspace_vectors.size[0],
-        subspace_vectors.size[1], subspace_vectors.data,
+        subspace_vectors.size[1], subspace_vectors.values,
         subspace_vectors.stride);
 }
 
@@ -648,8 +648,8 @@ void solve_lower_triangular(std::shared_ptr<const DpcppExecutor> exec,
     const auto grid_dim = ceildiv(nrhs, default_block_size);
     solve_lower_triangular_kernel(
         grid_dim, default_block_size, 0, exec->get_queue(), subspace_dim, nrhs,
-        as_device_type(m.data), m.stride, as_device_type(f.data), f.stride,
-        as_device_type(c.data), c.stride, stop_status.get_const_data());
+        as_device_type(m.values), m.stride, as_device_type(f.values), f.stride,
+        as_device_type(c.values), c.stride, stop_status.get_const_data());
 }
 
 
@@ -672,34 +672,36 @@ void update_g_and_u(std::shared_ptr<const DpcppExecutor> exec,
     const dim3 block_dim(default_dot_dim, default_dot_dim);
 
     for (size_type i = 0; i < k; i++) {
-        const auto p_i = as_device_type(p.data) + i * p_stride;
+        const auto p_i = as_device_type(p.values) + i * p_stride;
         // not support 16 bit atomic
         if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
             GKO_NOT_SUPPORTED(alpha);
         } else {
             if (nrhs > 1 || is_complex<ValueType>()) {
-                components::fill_array(exec, alpha.data, nrhs,
+                components::fill_array(exec, alpha.values, nrhs,
                                        zero<ValueType>());
                 multidot_kernel(grid_dim, block_dim, 0, exec->get_queue(), size,
-                                nrhs, p_i, as_device_type(g_k.data), g_k.stride,
-                                as_device_type(alpha.data),
+                                nrhs, p_i, as_device_type(g_k.values),
+                                g_k.stride, as_device_type(alpha.values),
                                 stop_status.get_const_data());
             } else {
-                onemkl::dot(*exec->get_queue(), size, p_i, 1, g_k.data,
-                            g_k.stride, as_device_type(alpha.data));
+                onemkl::dot(*exec->get_queue(), size, p_i, 1, g_k.values,
+                            g_k.stride, as_device_type(alpha.values));
             }
         }
         update_g_k_and_u_kernel<default_block_size>(
             ceildiv(size * g_k.stride, default_block_size), default_block_size,
-            0, exec->get_queue(), k, i, size, nrhs, as_device_type(alpha.data),
-            as_device_type(m.data), m.stride, as_device_type(g.data), g.stride,
-            as_device_type(g_k.data), g_k.stride, as_device_type(u.data),
-            u.stride, stop_status.get_const_data());
+            0, exec->get_queue(), k, i, size, nrhs,
+            as_device_type(alpha.values), as_device_type(m.values), m.stride,
+            as_device_type(g.values), g.stride, as_device_type(g_k.values),
+            g_k.stride, as_device_type(u.values), u.stride,
+            stop_status.get_const_data());
     }
     update_g_kernel<default_block_size>(
         ceildiv(size * g_k.stride, default_block_size), default_block_size, 0,
-        exec->get_queue(), k, size, nrhs, as_device_type(g_k.data), g_k.stride,
-        as_device_type(g.data), g.stride, stop_status.get_const_data());
+        exec->get_queue(), k, size, nrhs, as_device_type(g_k.values),
+        g_k.stride, as_device_type(g.values), g.stride,
+        stop_status.get_const_data());
 }
 
 
@@ -720,8 +722,8 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
     const dim3 block_dim(default_dot_dim, default_dot_dim);
 
     for (size_type i = k; i < subspace_dim; i++) {
-        const auto p_i = p.data + i * p_stride;
-        auto m_i = m.data + i * m_stride + k * nrhs;
+        const auto p_i = p.values + i * p_stride;
+        auto m_i = m.values + i * m_stride + k * nrhs;
         if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
             GKO_NOT_SUPPORTED(m_i);
         } else {
@@ -729,11 +731,11 @@ void update_m(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
                 components::fill_array(exec, m_i, nrhs, zero<ValueType>());
                 multidot_kernel(
                     grid_dim, block_dim, 0, exec->get_queue(), size, nrhs,
-                    as_device_type(p_i), as_device_type(g_k.data), g_k.stride,
+                    as_device_type(p_i), as_device_type(g_k.values), g_k.stride,
                     as_device_type(m_i), stop_status.get_const_data());
             } else {
                 onemkl::dot(*exec->get_queue(), size, as_device_type(p_i), 1,
-                            g_k.data, g_k.stride, m_i);
+                            g_k.values, g_k.stride, m_i);
             }
         }
     }
@@ -757,11 +759,11 @@ void update_x_r_and_f(std::shared_ptr<const DpcppExecutor> exec,
     const auto grid_dim = ceildiv(size * x.stride, default_block_size);
     update_x_r_and_f_kernel(
         grid_dim, default_block_size, 0, exec->get_queue(), k, size,
-        subspace_dim, nrhs, as_device_type(m.data), m.stride,
-        as_device_type(g.data), g.stride, as_device_type(u.data), u.stride,
-        as_device_type(f.data), f.stride, as_device_type(r.data), r.stride,
-        as_device_type(x.data), x.stride, stop_status.get_const_data());
-    components::fill_array(exec, f.data + k * f.stride, nrhs,
+        subspace_dim, nrhs, as_device_type(m.values), m.stride,
+        as_device_type(g.values), g.stride, as_device_type(u.values), u.stride,
+        as_device_type(f.values), f.stride, as_device_type(r.values), r.stride,
+        as_device_type(x.values), x.stride, stop_status.get_const_data());
+    components::fill_array(exec, f.values + k * f.stride, nrhs,
                            zero<ValueType>());
 }
 
@@ -799,9 +801,9 @@ void step_1(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
 
     const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
     step_1_kernel(grid_dim, default_block_size, 0, exec->get_queue(), k,
-                  num_rows, subspace_dim, nrhs, as_device_type(residual.data),
-                  residual.stride, as_device_type(c.data), c.stride,
-                  as_device_type(g.data), g.stride, as_device_type(v.data),
+                  num_rows, subspace_dim, nrhs, as_device_type(residual.values),
+                  residual.stride, as_device_type(c.values), c.stride,
+                  as_device_type(g.values), g.stride, as_device_type(v.values),
                   v.stride, stop_status.get_const_data());
 }
 
@@ -824,10 +826,10 @@ void step_2(std::shared_ptr<const DpcppExecutor> exec, const size_type nrhs,
 
     const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
     step_2_kernel(grid_dim, default_block_size, 0, exec->get_queue(), k,
-                  num_rows, subspace_dim, nrhs, as_device_type(omega.data),
-                  as_device_type(preconditioned_vector.data),
-                  preconditioned_vector.stride, as_device_type(c.data),
-                  c.stride, as_device_type(u.data), u.stride,
+                  num_rows, subspace_dim, nrhs, as_device_type(omega.values),
+                  as_device_type(preconditioned_vector.values),
+                  preconditioned_vector.stride, as_device_type(c.values),
+                  c.stride, as_device_type(u.values), u.stride,
                   stop_status.get_const_data());
 }
 
@@ -866,11 +868,11 @@ void compute_omega(
     const array<stopping_status>& stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
-    compute_omega_kernel(grid_dim, config::warp_size, 0, exec->get_queue(),
-                         nrhs, as_device_type(kappa), as_device_type(tht.data),
-                         as_device_type(residual_norm.data),
-                         as_device_type(omega.data),
-                         stop_status.get_const_data());
+    compute_omega_kernel(
+        grid_dim, config::warp_size, 0, exec->get_queue(), nrhs,
+        as_device_type(kappa), as_device_type(tht.values),
+        as_device_type(residual_norm.values), as_device_type(omega.values),
+        stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);

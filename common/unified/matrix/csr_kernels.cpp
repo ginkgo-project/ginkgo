@@ -98,7 +98,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] *= alpha[0]; },
-        x->get_num_stored_elements(), alpha.data, x->get_values());
+        x->get_num_stored_elements(), alpha.values, x->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SCALE_KERNEL);
@@ -112,7 +112,7 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] /= alpha[0]; },
-        x->get_num_stored_elements(), alpha.data, x->get_values());
+        x->get_num_stored_elements(), alpha.values, x->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);

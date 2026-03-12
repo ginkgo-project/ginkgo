@@ -184,7 +184,7 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                         matrix->get_const_values(),
                         matrix->get_const_row_ptrs(),
                         matrix->get_const_col_idxs(),
-                        hip_solve_struct->solve_info, b.data, x.data,
+                        hip_solve_struct->solve_info, b.values, x.values,
                         hip_solve_struct->policy,
                         hip_solve_struct->factor_work_vec);
                 } else {
@@ -200,8 +200,8 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                             matrix->get_const_row_ptrs(),
                             matrix->get_const_col_idxs(),
                             hip_solve_struct->solve_info,
-                            trans_b.data + i * trans_b.stride,
-                            trans_x.data + i * trans_x.stride,
+                            trans_b.values + i * trans_b.stride,
+                            trans_x.values + i * trans_x.stride,
                             hip_solve_struct->policy,
                             hip_solve_struct->factor_work_vec);
                     }

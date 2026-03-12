@@ -133,9 +133,9 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         }
         sparselib::pointer_mode_guard pm_guard(handle);
         auto descr_b = sparselib::create_dnmat(
-            input.size, input.stride, const_cast<ValueType*>(input.data));
+            input.size, input.stride, const_cast<ValueType*>(input.values));
         auto descr_c =
-            sparselib::create_dnmat(output.size, output.stride, output.data);
+            sparselib::create_dnmat(output.size, output.stride, output.values);
 
         sparselib::spsm_solve(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                               SPARSELIB_OPERATION_NON_TRANSPOSE,
@@ -257,7 +257,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
             SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], output.stride,
             matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
             matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(), output.data, output.stride,
+            matrix->get_const_col_idxs(), output.values, output.stride,
             solve_info, policy, work.get_data());
     }
 
@@ -628,7 +628,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
                 as_device_type(matrix->get_const_values()),
-                as_device_type(b.data), b.stride, as_device_type(x.data),
+                as_device_type(b.values), b.stride, as_device_type(x.values),
                 x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
                 atomic_counter.get_data());
     } else {
@@ -636,7 +636,7 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
                 as_device_type(matrix->get_const_values()),
-                as_device_type(b.data), b.stride, as_device_type(x.data),
+                as_device_type(b.values), b.stride, as_device_type(x.values),
                 x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
                 atomic_counter.get_data());
     }

@@ -133,10 +133,10 @@ void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
     if (grid > 0) {
         kernel::kcycle_step_1_kernel<<<grid, default_block_size, 0,
                                        exec->get_stream()>>>(
-            nrows, nrhs, e.stride, grid_nrows, as_device_type(alpha.data),
-            as_device_type(rho.data), as_device_type(v.data),
-            as_device_type(g.data), as_device_type(d.data),
-            as_device_type(e.data));
+            nrows, nrhs, e.stride, grid_nrows, as_device_type(alpha.values),
+            as_device_type(rho.values), as_device_type(v.values),
+            as_device_type(g.values), as_device_type(d.values),
+            as_device_type(e.values));
     }
 }
 
@@ -162,10 +162,10 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
     if (grid > 0) {
         kernel::kcycle_step_2_kernel<<<grid, default_block_size, 0,
                                        exec->get_stream()>>>(
-            nrows, nrhs, e.stride, grid_nrows, as_device_type(alpha.data),
-            as_device_type(rho.data), as_device_type(gamma.data),
-            as_device_type(beta.data), as_device_type(zeta.data),
-            as_device_type(d.data), as_device_type(e.data));
+            nrows, nrhs, e.stride, grid_nrows, as_device_type(alpha.values),
+            as_device_type(rho.values), as_device_type(gamma.values),
+            as_device_type(beta.values), as_device_type(zeta.values),
+            as_device_type(d.values), as_device_type(e.values));
     }
 }
 
@@ -186,8 +186,9 @@ void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
     if (grid > 0) {
         kernel::kcycle_check_stop_kernel<<<grid, default_block_size, 0,
                                            exec->get_stream()>>>(
-            nrhs, as_device_type(old_norm.data), as_device_type(new_norm.data),
-            as_device_type(rel_tol), as_device_type(dis_stop.get_data()));
+            nrhs, as_device_type(old_norm.values),
+            as_device_type(new_norm.values), as_device_type(rel_tol),
+            as_device_type(dis_stop.get_data()));
     }
     is_stop = get_element(dis_stop, 0);
 }

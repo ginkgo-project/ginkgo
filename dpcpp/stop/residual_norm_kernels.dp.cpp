@@ -47,8 +47,8 @@ void residual_norm(std::shared_ptr<const DpcppExecutor> exec,
         });
     });
 
-    auto orig_tau_val = orig_tau.data;
-    auto tau_val = as_device_type(tau.data);
+    auto orig_tau_val = orig_tau.values;
+    auto tau_val = as_device_type(tau.values);
     auto stop_status_val = stop_status.get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{tau.size[1]}, [=](sycl::id<1> idx_id) {
@@ -102,8 +102,8 @@ void implicit_residual_norm(
         });
     });
 
-    auto orig_tau_val = orig_tau.data;
-    auto tau_val = as_device_type(tau.data);
+    auto orig_tau_val = orig_tau.values;
+    auto tau_val = as_device_type(tau.values);
     auto stop_status_val = stop_status.get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{tau.size[1]}, [=](sycl::id<1> idx_id) {

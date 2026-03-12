@@ -1287,16 +1287,16 @@ void merge_path_spmv(
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
                     grid, block, 0, exec->get_queue(),
                     static_cast<IndexType>(a->get_size()[0]),
-                    as_device_type(alpha->data), acc::as_device_range(a_vals),
+                    as_device_type(alpha->values), acc::as_device_range(a_vals),
                     a->get_const_col_idxs(), a->get_const_row_ptrs(),
                     a->get_const_srow(), acc::as_device_range(b_vals),
-                    as_device_type(beta->data), acc::as_device_range(c_vals),
+                    as_device_type(beta->values), acc::as_device_range(c_vals),
                     row_out.get_data(), as_device_type(val_out.get_data()));
             }
             csr::kernel::abstract_reduce(
                 1, spmv_block_size, 0, exec->get_queue(), grid_num,
                 as_device_type(val_out.get_data()), row_out.get_data(),
-                as_device_type(alpha->data), acc::as_device_range(c_vals));
+                as_device_type(alpha->values), acc::as_device_range(c_vals));
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -1364,9 +1364,9 @@ void classical_spmv(
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
                 grid, block, 0, exec->get_queue(), a->get_size()[0],
-                as_device_type(alpha->data), acc::as_device_range(a_vals),
+                as_device_type(alpha->values), acc::as_device_range(a_vals),
                 a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                acc::as_device_range(b_vals), as_device_type(beta->data),
+                acc::as_device_range(b_vals), as_device_type(beta->values),
                 acc::as_device_range(c_vals));
         }
     } else {
@@ -1417,7 +1417,7 @@ bool load_balance_spmv(
                     csr::kernel::abstract_spmv(
                         csr_grid, csr_block, 0, exec->get_queue(), nwarps,
                         static_cast<IndexType>(a->get_size()[0]),
-                        as_device_type(alpha->data),
+                        as_device_type(alpha->values),
                         acc::as_device_range(a_vals), a->get_const_col_idxs(),
                         a->get_const_row_ptrs(), a->get_const_srow(),
                         acc::as_device_range(b_vals),
@@ -1467,15 +1467,15 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
         if (b.size[1] == 1 && b.stride == 1) {
             oneapi::mkl::sparse::gemv(
                 *exec->get_queue(), oneapi::mkl::transpose::nontrans,
-                host_alpha, mat_handle, const_cast<ValueType*>(b.data),
-                host_beta, c.data);
+                host_alpha, mat_handle, const_cast<ValueType*>(b.values),
+                host_beta, c.values);
         } else {
             oneapi::mkl::sparse::gemm(
                 *exec->get_queue(), oneapi::mkl::layout::row_major,
                 oneapi::mkl::transpose::nontrans,
                 oneapi::mkl::transpose::nontrans, host_alpha, mat_handle,
-                const_cast<ValueType*>(b.data), b.size[1], b.stride, host_beta,
-                c.data, c.stride);
+                const_cast<ValueType*>(b.values), b.size[1], b.stride,
+                host_beta, c.values, c.stride);
         }
         oneapi::mkl::sparse::release_matrix_handle(
 #if INTEL_MKL_VERSION >= 20240000
@@ -1521,8 +1521,8 @@ bool try_sparselib_spmv(
     // onemkl only supports host scalar
     if (alpha) {
         return try_general_sparselib_spmv(
-            exec, exec->copy_val_to_host(alpha->data), a, b,
-            exec->copy_val_to_host(beta->data), c);
+            exec, exec->copy_val_to_host(alpha->values), a, b,
+            exec->copy_val_to_host(beta->values), c);
     } else {
         return try_general_sparselib_spmv(exec, one<ValueType>(), a, b,
                                           zero<ValueType>(), c);
@@ -2089,8 +2089,8 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     const auto d_cols = d->get_const_col_idxs();
     const auto d_vals = as_device_type(d->get_const_values());
     auto c_row_ptrs = c->get_row_ptrs();
-    const auto alpha_vals = as_device_type(alpha.data);
-    const auto beta_vals = as_device_type(beta.data);
+    const auto alpha_vals = as_device_type(alpha.values);
+    const auto beta_vals = as_device_type(beta.values);
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     auto queue = exec->get_queue();
 
@@ -2291,8 +2291,8 @@ void advanced_spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
     const auto b_vals = as_device_type(b->get_const_values());
     const auto c_vals = as_device_type(c->get_values());
     const auto d_vals = as_device_type(d->get_const_values());
-    const auto palpha = as_device_type(alpha.data);
-    const auto pbeta = as_device_type(beta.data);
+    const auto palpha = as_device_type(alpha.values);
+    const auto pbeta = as_device_type(beta.values);
     const auto lookup_storage_offsets =
         c_lookup.storage_offsets.get_const_data();
     const auto lookup_storage = c_lookup.storage.get_const_data();
@@ -2406,8 +2406,8 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
 
     const auto a_vals = as_device_type(a->get_const_values());
     const auto b_vals = as_device_type(b->get_const_values());
-    const auto alpha_vals = as_device_type(alpha.data);
-    const auto beta_vals = as_device_type(beta.data);
+    const auto alpha_vals = as_device_type(alpha.values);
+    const auto beta_vals = as_device_type(beta.values);
 
     using device_value_type = device_type<ValueType>;
     // count number of non-zeros per row
@@ -2461,8 +2461,8 @@ void spgeam_numeric(std::shared_ptr<const DpcppExecutor> exec,
     const auto b_vals = as_device_type(b->get_const_values());
     const auto c_row_ptrs = c->get_row_ptrs();
     const auto c_vals = as_device_type(c->get_values());
-    const auto alpha_vals = as_device_type(alpha.data);
-    const auto beta_vals = as_device_type(beta.data);
+    const auto alpha_vals = as_device_type(alpha.values);
+    const auto beta_vals = as_device_type(beta.values);
     auto queue = exec->get_queue();
 
     using device_value_type = device_type<ValueType>;
@@ -2514,7 +2514,7 @@ void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
     auto grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
                           num_rows, row_ptrs, col_idxs, vals, stride,
-                          as_device_type(result.data));
+                          as_device_type(result.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2975,7 +2975,7 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
     const auto nblocks = ceildiv(nthreads, default_block_size);
     kernel::add_scaled_identity(
         nblocks, default_block_size, 0, exec->get_queue(),
-        as_device_type(alpha.data), as_device_type(beta.data),
+        as_device_type(alpha.values), as_device_type(beta.values),
         static_cast<IndexType>(nrows), mtx->get_const_row_ptrs(),
         mtx->get_const_col_idxs(), as_device_type(mtx->get_values()));
 }

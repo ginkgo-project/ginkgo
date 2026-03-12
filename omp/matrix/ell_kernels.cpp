@@ -53,7 +53,7 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
     const auto b_vals = gko::acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
-        b.data,
+        b.values,
         std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
 
 #pragma omp parallel for
@@ -103,7 +103,7 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
     const auto b_vals = gko::acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
-        b.data,
+        b.values,
         std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
 
     const auto num_rhs = b.size[1];

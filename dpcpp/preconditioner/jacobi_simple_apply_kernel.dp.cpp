@@ -55,8 +55,8 @@ void simple_apply(
             syn::value_list<int, config::min_warps_per_block>(),
             syn::type_list<>(), exec, num_blocks,
             block_precisions.get_const_data(), block_pointers.get_const_data(),
-            blocks.get_const_data(), storage_scheme, b.data + col, b.stride,
-            x.data + col, x.stride);
+            blocks.get_const_data(), storage_scheme, b.values + col, b.stride,
+            x.values + col, x.stride);
     }
 }
 

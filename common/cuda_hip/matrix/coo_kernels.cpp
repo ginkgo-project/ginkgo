@@ -297,8 +297,9 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
             abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_lines, as_device_type(a->get_const_values()),
                 a->get_const_col_idxs(),
-                as_device_type(a->get_const_row_idxs()), as_device_type(b.data),
-                b.stride, as_device_type(c.data), c.stride);
+                as_device_type(a->get_const_row_idxs()),
+                as_device_type(b.values), b.stride, as_device_type(c.values),
+                c.stride);
         } else {
             int num_elems =
                 ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
@@ -309,7 +310,7 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
                 nnz, num_elems, as_device_type(a->get_const_values()),
                 a->get_const_col_idxs(),
                 as_device_type(a->get_const_row_idxs()), b_ncols,
-                as_device_type(b.data), b.stride, as_device_type(c.data),
+                as_device_type(b.values), b.stride, as_device_type(c.values),
                 c.stride);
         }
     }
@@ -356,10 +357,11 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
 
             abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
-                nnz, num_lines, as_device_type(alpha.data),
+                nnz, num_lines, as_device_type(alpha.values),
                 as_device_type(a->get_const_values()), a->get_const_col_idxs(),
-                as_device_type(a->get_const_row_idxs()), as_device_type(b.data),
-                b.stride, as_device_type(c.data), c.stride);
+                as_device_type(a->get_const_row_idxs()),
+                as_device_type(b.values), b.stride, as_device_type(c.values),
+                c.stride);
         } else {
             int num_elems =
                 ceildiv(nnz, nwarps * config::warp_size) * config::warp_size;
@@ -367,10 +369,10 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
                                 ceildiv(b_ncols, config::warp_size));
 
             abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
-                nnz, num_elems, as_device_type(alpha.data),
+                nnz, num_elems, as_device_type(alpha.values),
                 as_device_type(a->get_const_values()), a->get_const_col_idxs(),
                 as_device_type(a->get_const_row_idxs()), b_ncols,
-                as_device_type(b.data), b.stride, as_device_type(c.data),
+                as_device_type(b.values), b.stride, as_device_type(c.values),
                 c.stride);
         }
     }

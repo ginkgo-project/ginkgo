@@ -80,8 +80,8 @@ void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_size > 0) {
         residual_norm_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
             tau.size[1], as_device_type(rel_residual_goal),
-            as_device_type(tau.data), as_device_type(orig_tau.data), stoppingId,
-            setFinalized, as_device_type(stop_status.get_data()),
+            as_device_type(tau.values), as_device_type(orig_tau.values),
+            stoppingId, setFinalized, as_device_type(stop_status.get_data()),
             as_device_type(device_storage.get_data()));
     }
 
@@ -159,8 +159,8 @@ void implicit_residual_norm(
         implicit_residual_norm_kernel<<<grid_size, block_size, 0,
                                         exec->get_stream()>>>(
             tau.size[1], as_device_type(rel_residual_goal),
-            as_device_type(tau.data), as_device_type(orig_tau.data), stoppingId,
-            setFinalized, as_device_type(stop_status.get_data()),
+            as_device_type(tau.values), as_device_type(orig_tau.values),
+            stoppingId, setFinalized, as_device_type(stop_status.get_data()),
             as_device_type(device_storage.get_data()));
     }
 

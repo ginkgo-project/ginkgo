@@ -68,7 +68,7 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                 x(row, col) = beta[col] * x(row, col) +
                               alpha[col] * b(row, col) * diag[row];
             },
-            x.size, diag, alpha.data, b, beta.data, x);
+            x.size, diag, alpha.values, b, beta.values, x);
     } else {
         run_kernel(
             exec,
@@ -77,7 +77,7 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                 x(row, col) =
                     beta[0] * x(row, col) + alpha[0] * b(row, col) * diag[row];
             },
-            x.size, diag, alpha.data, b, beta.data, x);
+            x.size, diag, alpha.values, b, beta.values, x);
     }
 }
 
