@@ -40,6 +40,10 @@ GKO_REGISTER_OPERATION(rs_cleanup, rs::rs_cleanup);
 GKO_REGISTER_OPERATION(fill_coarse_rows, rs::fill_coarse_rows);
 GKO_REGISTER_OPERATION(count_coarse, rs::count_coarse);
 
+GKO_REGISTER_OPERATION(fill_fine_to_coarse, rs::fill_fine_to_coarse);
+GKO_REGISTER_OPERATION(compute_interpolation_row_ptrs,
+                       rs::compute_interpolation_row_ptrs);
+GKO_REGISTER_OPERATION(compute_interpolation, rs::compute_interpolation);
 
 }  // anonymous namespace
 }  // namespace rs
@@ -102,23 +106,32 @@ void Rs<ValueType, IndexType>::generate()
     array<IndexType> coarse_rows(exec, coarse_dim_size);
     exec->run(rs::make_fill_coarse_rows(cf_marker, coarse_rows.get_data()));
 
-    // build restriction
-    auto restrict_op =
-        share(csr_type::create(exec, gko::dim<2>{coarse_dim_size, fine_dim},
-                               coarse_dim_size, rs_op->get_strategy()));
+    // build fine-to-coarse mapping
+    array<IndexType> fine_to_coarse(exec, fine_dim);
+    exec->run(
+        rs::make_fill_fine_to_coarse(cf_marker, fine_to_coarse.get_data()));
 
-    exec->copy_from(coarse_rows.get_executor(), coarse_dim_size,
-                    coarse_rows.get_const_data(), restrict_op->get_col_idxs());
+    // build prolongation using interpolation
+    array<IndexType> prolong_row_ptrs(exec, fine_dim + 1);
+    exec->run(rs::make_compute_interpolation_row_ptrs(
+        soc.get(), cf_marker, prolong_row_ptrs.get_data()));
 
-    exec->run(rs::make_fill_array(restrict_op->get_values(), coarse_dim_size,
-                                  one<ValueType>()));
-    exec->run(rs::make_fill_seq_array(restrict_op->get_row_ptrs(),
-                                      coarse_dim_size + 1));
+    IndexType prolong_nnz =
+        exec->copy_val_to_host(prolong_row_ptrs.get_const_data() + fine_dim);
 
-    auto prolong_op = gko::as<csr_type>(
-        share(restrict_op->transpose()));  // is that correct? or should we use
-                                           // some interpolation to compute the
-                                           // prolongation operator?
+    auto prolong_op = share(csr_type::create(
+        exec, gko::dim<2>{fine_dim, coarse_dim_size},
+        static_cast<size_type>(prolong_nnz), rs_op->get_strategy()));
+
+    exec->copy_from(exec, fine_dim + 1, prolong_row_ptrs.get_const_data(),
+                    prolong_op->get_row_ptrs());
+
+    exec->run(rs::make_compute_interpolation(rs_op, soc.get(), cf_marker,
+                                             fine_to_coarse.get_const_data(),
+                                             prolong_op.get()));
+
+    // build restriction as R = P^T
+    auto restrict_op = share(as<csr_type>(prolong_op->transpose()));
 
     //
     auto coarse_matrix = share(

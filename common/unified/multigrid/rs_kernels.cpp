@@ -115,6 +115,45 @@ void fill_coarse_rows(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_FILL_COARSE_ROWS_KERNEL);
 
+
+template <typename IndexType>
+void fill_fine_to_coarse(std::shared_ptr<const DefaultExecutor> exec,
+                         const array<IndexType>& cf_marker,
+                         IndexType* fine_to_coarse)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_FILL_FINE_TO_COARSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_interpolation_row_ptrs(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* soc,
+    const array<IndexType>& cf_marker, IndexType* row_ptrs)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_ROW_PTRS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_interpolation(std::shared_ptr<const DefaultExecutor> exec,
+                           const matrix::Csr<ValueType, IndexType>* A,
+                           const matrix::Csr<ValueType, IndexType>* soc,
+                           const array<IndexType>& cf_marker,
+                           const IndexType* fine_to_coarse,
+                           matrix::Csr<ValueType, IndexType>* P)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL);
+
 }  // namespace rs
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

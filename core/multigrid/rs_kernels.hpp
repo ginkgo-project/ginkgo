@@ -64,6 +64,26 @@ namespace rs {
                           const array<IndexType>& cf_marker,           \
                           IndexType* coarse_rows)
 
+#define GKO_DECLARE_RS_FILL_FINE_TO_COARSE_KERNEL(IndexType)              \
+    void fill_fine_to_coarse(std::shared_ptr<const DefaultExecutor> exec, \
+                             const array<IndexType>& cf_marker,           \
+                             IndexType* fine_to_coarse)
+
+#define GKO_DECLARE_RS_COMPUTE_INTERPOLATION_ROW_PTRS_KERNEL(ValueType, \
+                                                             IndexType) \
+    void compute_interpolation_row_ptrs(                                \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType>* soc,                   \
+        const array<IndexType>& cf_marker, IndexType* row_ptrs)
+
+#define GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL(ValueType, IndexType)    \
+    void compute_interpolation(std::shared_ptr<const DefaultExecutor> exec,  \
+                               const matrix::Csr<ValueType, IndexType>* A,   \
+                               const matrix::Csr<ValueType, IndexType>* soc, \
+                               const array<IndexType>& cf_marker,            \
+                               const IndexType* fine_to_coarse,              \
+                               matrix::Csr<ValueType, IndexType>* P)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \
@@ -81,7 +101,14 @@ namespace rs {
     template <typename IndexType>                                     \
     GKO_DECLARE_RS_COUNT_COARSE_KERNEL(IndexType);                    \
     template <typename IndexType>                                     \
-    GKO_DECLARE_RS_FILL_COARSE_ROWS_KERNEL(IndexType)
+    GKO_DECLARE_RS_FILL_COARSE_ROWS_KERNEL(IndexType);                \
+    template <typename IndexType>                                     \
+    GKO_DECLARE_RS_FILL_FINE_TO_COARSE_KERNEL(IndexType);             \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_ROW_PTRS_KERNEL(ValueType,   \
+                                                         IndexType);  \
+    template <typename ValueType, typename IndexType>                 \
+    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL(ValueType, IndexType)
 
 
 }  // namespace rs

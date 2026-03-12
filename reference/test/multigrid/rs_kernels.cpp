@@ -26,40 +26,28 @@ class Rs : public ::testing::Test {
 protected:
     Rs() : exec(gko::ReferenceExecutor::create()) {}
 
+    //  * A =
+    //  * [  2  -1   0 ]
+    //  * [ -1   2  -1 ]
+    //  * [  0  -1   2 ]
+    // split: 0=C, 1=F, 2=C
+    // interpolation row 1: w_10 = -(-1/2) = 0.5, w_12 = -(-1/2) = 0.5
+    void setup_test_data()
+    {
+        A = csr::create(exec, gko::dim<2>{3, 3}, 7);
+        A->read({{2.0, -1.0, 0.0}, {-1.0, 2.0, -1.0}, {0.0, -1.0, 2.0}});
+
+        S = csr::create(exec, gko::dim<2>{3, 3}, 4);
+        S->read({{0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}});
+
+        cf = gko::array<index_type>(exec, {1, -1, 1});  // C, F, C
+    }
+
     std::shared_ptr<gko::ReferenceExecutor> exec;
+    std::shared_ptr<csr> A;
+    std::shared_ptr<csr> S;
+    gko::array<index_type> cf;
 };
-
-
-/**
- * Test matrix (1D Laplacian, 3-point stencil):
- *
- * A =
- * [  2  -1   0 ]
- * [ -1   2  -1 ]
- * [  0  -1   2 ]
- *
- * theta = 0.5
- *
- * consider for each row:
- *
- * row 0:
- *   offdiag = {-1}
- *   max_offdiag = 1
- *   strong if 1 >= 0.5*1 -> true
- *   -> S(0,:) = {1}
- *
- * row 1:
- *   offdiag = {-1,-1}
- *   max_offdiag = 1
- *   both satisfy 1 >= 0.5*1
- *   -> S(1,:) = {0,2}
- *
- * row 2:
- *   offdiag = {-1}
- *   -> S(2,:) = {1}
- *
- * S row_ptrs = {0,1,3,4}
- */
 
 
 TEST_F(Rs, ComputeSocRowPtrs)
@@ -153,6 +141,62 @@ TEST_F(Rs, RsCleanup)
     ASSERT_EQ(cf.get_const_data()[0], -1);
     ASSERT_EQ(cf.get_const_data()[1], 1);
     ASSERT_EQ(cf.get_const_data()[2], -1);
+}
+
+
+TEST_F(Rs, FillFineToCoarse)
+{
+    this->setup_test_data();
+    gko::array<index_type> f2c(exec, 3);
+
+    gko::kernels::reference::rs::fill_fine_to_coarse(exec, cf, f2c.get_data());
+
+    // C-points get sequential IDs, F-points get -1
+    ASSERT_EQ(f2c.get_const_data()[0], 0);
+    ASSERT_EQ(f2c.get_const_data()[1], -1);
+    ASSERT_EQ(f2c.get_const_data()[2], 1);
+}
+
+
+TEST_F(Rs, ComputeInterpolationRowPtrs)
+{
+    this->setup_test_data();
+    gko::array<index_type> p_row_ptrs(exec, 4);
+
+    gko::kernels::reference::rs::compute_interpolation_row_ptrs(
+        exec, S.get(), cf, p_row_ptrs.get_data());
+
+    // Row 0 (C): 1 nz, Row 1 (F): 2 nz (strong C-neighbors 0,2), Row 2 (C): 1
+    // nz
+    std::vector<index_type> expected{0, 1, 3, 4};
+    for (int i = 0; i < 4; ++i) {
+        ASSERT_EQ(p_row_ptrs.get_const_data()[i], expected[i]);
+    }
+}
+
+
+TEST_F(Rs, ComputeInterpolation)
+{
+    this->setup_test_data();
+    gko::array<index_type> f2c(exec, {0, -1, 1});
+    auto P = csr::create(exec, gko::dim<2>{3, 2}, 4);
+    // manual row_ptrs for 0=C, 1=F(0,2), 2=C
+    exec->copy_from(exec, 4, std::vector<index_type>{0, 1, 3, 4}.data(),
+                    P->get_row_ptrs());
+
+    gko::kernels::reference::rs::compute_interpolation(
+        exec, A.get(), S.get(), cf, f2c.get_const_data(), P.get());
+
+    ASSERT_EQ(P->get_const_col_idxs()[0], 0);
+    ASSERT_DOUBLE_EQ(P->get_const_values()[0], 1.0);
+
+    ASSERT_EQ(P->get_const_col_idxs()[1], 0);
+    ASSERT_DOUBLE_EQ(P->get_const_values()[1], 0.5);
+    ASSERT_EQ(P->get_const_col_idxs()[2], 1);
+    ASSERT_DOUBLE_EQ(P->get_const_values()[2], 0.5);
+
+    ASSERT_EQ(P->get_const_col_idxs()[3], 1);
+    ASSERT_DOUBLE_EQ(P->get_const_values()[3], 1.0);
 }
 
 

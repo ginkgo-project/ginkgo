@@ -254,6 +254,166 @@ void fill_coarse_rows(std::shared_ptr<const ReferenceExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_FILL_COARSE_ROWS_KERNEL);
 
 
+template <typename IndexType>
+void fill_fine_to_coarse(std::shared_ptr<const ReferenceExecutor> exec,
+                         const array<IndexType>& cf_marker,
+                         IndexType* fine_to_coarse)
+{
+    const auto* cf = cf_marker.get_const_data();
+    IndexType coarse_id = 0;
+    for (size_type i = 0; i < cf_marker.get_size(); ++i) {
+        if (cf[i] == 1) {
+            fine_to_coarse[i] = coarse_id++;
+        } else {
+            fine_to_coarse[i] = -1;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_FILL_FINE_TO_COARSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_interpolation_row_ptrs(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* soc,
+    const array<IndexType>& cf_marker, IndexType* row_ptrs)
+{
+    const auto n = soc->get_size()[0];
+    const auto* s_row_ptrs = soc->get_const_row_ptrs();
+    const auto* s_col_idxs = soc->get_const_col_idxs();
+    const auto* cf = cf_marker.get_const_data();
+
+    row_ptrs[0] = 0;
+    for (IndexType i = 0; i < n; ++i) {
+        IndexType row_nnz = 0;
+        if (cf[i] == 1) {
+            row_nnz = 1;  // identity for C-points
+        } else {
+            // count strong C-neighbors
+            for (auto jj = s_row_ptrs[i]; jj < s_row_ptrs[i + 1]; ++jj) {
+                if (cf[s_col_idxs[jj]] == 1) {
+                    row_nnz++;
+                }
+            }
+        }
+        row_ptrs[i + 1] = row_ptrs[i] + row_nnz;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_ROW_PTRS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_interpolation(std::shared_ptr<const ReferenceExecutor> exec,
+                           const matrix::Csr<ValueType, IndexType>* A,
+                           const matrix::Csr<ValueType, IndexType>* soc,
+                           const array<IndexType>& cf_marker,
+                           const IndexType* fine_to_coarse,
+                           matrix::Csr<ValueType, IndexType>* P)
+{
+    const auto n = A->get_size()[0];
+    const auto* a_row_ptrs = A->get_const_row_ptrs();
+    const auto* a_col_idxs = A->get_const_col_idxs();
+    const auto* a_vals = A->get_const_values();
+    const auto* s_row_ptrs = soc->get_const_row_ptrs();
+    const auto* s_col_idxs = soc->get_const_col_idxs();
+    const auto* cf = cf_marker.get_const_data();
+    auto* p_row_ptrs = P->get_const_row_ptrs();
+    auto* p_col_idxs = P->get_col_idxs();
+    auto* p_vals = P->get_values();
+
+    for (IndexType i = 0; i < n; ++i) {
+        auto p_idx = p_row_ptrs[i];
+        if (cf[i] == 1) {
+            p_col_idxs[p_idx] = fine_to_coarse[i];
+            p_vals[p_idx] = one<ValueType>();
+        } else {
+            // full classical RS interpolation formula:
+            // w_ij = -(a_ij + sum_{k in F_strong} (a_ik * a_kj / sum_{m in
+            // C_strong} a_im))
+            //        / (a_ii + sum_{k in weak} a_ik)
+
+            ValueType diag = zero<ValueType>();
+            ValueType sum_weak = zero<ValueType>();
+            ValueType sum_strong_c_val = zero<ValueType>();
+
+            // find diagonal and classify connections
+            for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+                auto j = a_col_idxs[jj];
+                if (i == j) {
+                    diag = a_vals[jj];
+                } else {
+                    bool is_strong = false;
+                    for (auto sj = s_row_ptrs[i]; sj < s_row_ptrs[i + 1];
+                         ++sj) {
+                        if (s_col_idxs[sj] == j) {
+                            is_strong = true;
+                            break;
+                        }
+                    }
+                    if (!is_strong) {
+                        sum_weak += a_vals[jj];
+                    } else if (cf[j] == 1) {
+                        sum_strong_c_val += a_vals[jj];
+                    }
+                }
+            }
+
+            ValueType denominator = diag + sum_weak;
+
+            // for each strong C-neighbor j
+            for (auto jj = s_row_ptrs[i]; jj < s_row_ptrs[i + 1]; ++jj) {
+                auto j = s_col_idxs[jj];
+                if (cf[j] == 1) {
+                    ValueType numerator = zero<ValueType>();
+                    // find a_ij
+                    for (auto aj = a_row_ptrs[i]; aj < a_row_ptrs[i + 1];
+                         ++aj) {
+                        if (a_col_idxs[aj] == j) {
+                            numerator = a_vals[aj];
+                            break;
+                        }
+                    }
+
+                    // add contribution from strong F-neighbors k
+                    for (auto kj = s_row_ptrs[i]; kj < s_row_ptrs[i + 1];
+                         ++kj) {
+                        auto k = s_col_idxs[kj];
+                        if (cf[k] == -1) {
+                            ValueType a_ik = zero<ValueType>();
+                            ValueType a_kj = zero<ValueType>();
+                            for (auto ak = a_row_ptrs[i];
+                                 ak < a_row_ptrs[i + 1]; ++ak) {
+                                if (a_col_idxs[ak] == k) {
+                                    a_ik = a_vals[ak];
+                                    break;
+                                }
+                            }
+                            for (auto akj = a_row_ptrs[k];
+                                 akj < a_row_ptrs[k + 1]; ++akj) {
+                                if (a_col_idxs[akj] == j) {
+                                    a_kj = a_vals[akj];
+                                    break;
+                                }
+                            }
+                            numerator += (a_ik * a_kj) / sum_strong_c_val;
+                        }
+                    }
+                    p_col_idxs[p_idx] = fine_to_coarse[j];
+                    p_vals[p_idx] = -numerator / denominator;
+                    p_idx++;
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL);
+
+
 }  // namespace rs
 }  // namespace reference
 }  // namespace kernels
