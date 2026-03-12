@@ -68,6 +68,7 @@
 #include "core/solver/chebyshev_kernels.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
+#include "core/solver/gauss_seidel_kernels.hpp"
 #include "core/solver/gcr_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/idr_kernels.hpp"
@@ -720,6 +721,15 @@ GKO_STUB(GKO_DECLARE_IR_INITIALIZE_KERNEL);
 
 
 }  // namespace ir
+
+
+namespace gssdl {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_MULTICOLOR_FWD_GS_ELL_KERNEL);
+
+
+}  // namespace gssdl
 
 
 namespace multigrid {
