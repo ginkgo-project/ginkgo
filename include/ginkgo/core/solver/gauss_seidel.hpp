@@ -43,11 +43,6 @@ enum class gs_algorithm { multicolor, syncfree };
  * and D is the diagonal part of A.
  * It works only for certain matrix types: Ell.
  *
- * @note As the constructor uses the copy and convert functionality, it is not
- *       possible to create a empty solver or a solver with a matrix in any
- *       other format other than Ell, if none of the executor modules are being
- *       compiled with.
- *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indices
  *
