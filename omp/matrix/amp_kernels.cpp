@@ -13,7 +13,6 @@
 #include "common/unified/matrix/amp_algorithms.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
-#include "core/matrix/amp_helpers.hpp"
 
 namespace gko {
 namespace kernels {
@@ -37,6 +36,9 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     static_assert(q > 0, "Need at least 1 bin!");
     auto y = c->get_values();
     auto x = b->get_const_values();
+    const auto x_stride = b->get_stride();
+    const auto y_stride = c->get_stride();
+    const auto nrhs = c->get_size()[1];
 
     // Get precision buckets' arrays
     using ScalarPtrTuple = gko::instantiation_tuple_t<
@@ -65,33 +67,37 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     const auto nrows = static_cast<int>(a->get_size()[0]);
 #pragma omp parallel for
     for (int i = 0; i < nrows; i++) {
-        y[i] = 0;
-        gko::constexpr_for<0, q, 1>([&](auto k) {
-            using value_type = typename std::tuple_element<
-                k,
-                typename gko::amp::narrow_types<MatrixValueType>::type>::type;
-            // We need mult type because complex numbers of different precisions
-            // don't get automatically promoted.
-            using mult_type =
-                gko::highest_precision<value_type, InputValueType>;
-            using highest_type =
-                gko::highest_precision<mult_type, OutputValueType>;
-            const auto stride = bin_strides[k];
-            auto avals = std::get<k>(xvalues);
-            auto acols = xcol_idxs[k];
-            const auto max_nnz = max_nnzs[k];
-            if (max_nnz > 0) {
-                highest_type sum = 0;
-                for (int j = 0; j < max_nnz; j++) {
-                    if (acols[i + j * stride] >= 0) {
-                        sum += static_cast<highest_type>(
-                            static_cast<mult_type>(avals[i + j * stride]) *
-                            static_cast<mult_type>(x[acols[i + j * stride]]));
+        for (int irhs = 0; irhs < nrhs; irhs++) {
+            y[i * y_stride + irhs] = 0;
+            gko::constexpr_for<0, q, 1>([&](auto k) {
+                using value_type = typename std::tuple_element<
+                    k, typename gko::amp::narrow_types<MatrixValueType>::type>::
+                    type;
+                // We need mult type because complex numbers of different
+                // precisions don't get automatically promoted.
+                using mult_type =
+                    gko::highest_precision<value_type, InputValueType>;
+                using highest_type =
+                    gko::highest_precision<mult_type, OutputValueType>;
+                const auto stride = bin_strides[k];
+                auto avals = std::get<k>(xvalues);
+                auto acols = xcol_idxs[k];
+                const auto max_nnz = max_nnzs[k];
+                if (max_nnz > 0) {
+                    highest_type sum = 0;
+                    for (int j = 0; j < max_nnz; j++) {
+                        if (acols[i + j * stride] >= 0) {
+                            sum += static_cast<highest_type>(
+                                static_cast<mult_type>(avals[i + j * stride]) *
+                                static_cast<mult_type>(
+                                    x[acols[i + j * stride] * x_stride +
+                                      irhs]));
+                        }
                     }
+                    y[i * y_stride + irhs] += static_cast<OutputValueType>(sum);
                 }
-                y[i] += static_cast<OutputValueType>(sum);
-            }
-        });
+            });
+        }
     }
 }
 
@@ -112,6 +118,9 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     static_assert(q > 0, "Need at least 1 bin!");
     auto y = c->get_values();
     auto x = b->get_const_values();
+    const auto x_stride = b->get_stride();
+    const auto y_stride = c->get_stride();
+    const auto nrhs = c->get_size()[1];
     const auto alph = alpha->get_const_values();
     const auto bet = beta->get_const_values();
 
@@ -142,34 +151,38 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     const auto nrows = static_cast<int>(a->get_size()[0]);
 #pragma omp parallel for
     for (int i = 0; i < nrows; i++) {
-        y[i] = bet[0] * y[i];
-        gko::constexpr_for<0, q, 1>([&](auto k) {
-            using value_type = typename std::tuple_element<
-                k,
-                typename gko::amp::narrow_types<MatrixValueType>::type>::type;
-            // We need mult type because complex numbers of different precisions
-            // don't get automatically promoted.
-            using mult_type =
-                gko::highest_precision<value_type, InputValueType>;
-            using highest_type =
-                gko::highest_precision<mult_type, OutputValueType>;
-            const auto stride = bin_strides[k];
-            auto avals = std::get<k>(xvalues);
-            auto acols = xcol_idxs[k];
-            const auto max_nnz = max_nnzs[k];
-            if (max_nnz > 0) {
-                highest_type sum = 0;
-                for (int j = 0; j < max_nnz; j++) {
-                    if (acols[i + j * stride] >= 0) {
-                        sum += static_cast<highest_type>(
-                            static_cast<mult_type>(avals[i + j * stride]) *
-                            static_cast<mult_type>(x[acols[i + j * stride]]));
+        for (int irhs = 0; irhs < nrhs; irhs++) {
+            y[i * y_stride + irhs] = bet[0] * y[i * y_stride + irhs];
+            gko::constexpr_for<0, q, 1>([&](auto k) {
+                using value_type = typename std::tuple_element<
+                    k, typename gko::amp::narrow_types<MatrixValueType>::type>::
+                    type;
+                // We need mult type because complex numbers of different
+                // precisions don't get automatically promoted.
+                using mult_type =
+                    gko::highest_precision<value_type, InputValueType>;
+                using highest_type =
+                    gko::highest_precision<mult_type, OutputValueType>;
+                const auto stride = bin_strides[k];
+                auto avals = std::get<k>(xvalues);
+                auto acols = xcol_idxs[k];
+                const auto max_nnz = max_nnzs[k];
+                if (max_nnz > 0) {
+                    highest_type sum = 0;
+                    for (int j = 0; j < max_nnz; j++) {
+                        const auto col = acols[i + j * stride];
+                        if (col >= 0) {
+                            sum += static_cast<highest_type>(
+                                static_cast<mult_type>(avals[i + j * stride]) *
+                                static_cast<mult_type>(
+                                    x[col * x_stride + irhs]));
+                        }
                     }
+                    y[i * y_stride + irhs] += static_cast<OutputValueType>(
+                        static_cast<highest_type>(alph[0]) * sum);
                 }
-                y[i] += static_cast<OutputValueType>(
-                    static_cast<highest_type>(alph[0]) * sum);
-            }
-        });
+            });
+        }
     }
 }
 

@@ -5,7 +5,6 @@
 #include "core/matrix/amp_kernels.hpp"
 
 #include <cassert>
-#include <iostream>
 
 #include <ginkgo/core/base/amp_types.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -45,7 +44,11 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
         GKO_NOT_SUPPORTED(a->get_bin_matrix(0));
     }
     auto y = c->get_values();
+    const auto y_stride = c->get_stride();
     auto x = b->get_const_values();
+    const auto x_stride = b->get_stride();
+    const auto nrhs = b->get_size()[1];
+
     const auto nrows0 = static_cast<int>(a->get_size()[0]);
     const auto stride0 = ell0->get_stride();
     auto avals = ell0->get_const_values();
@@ -56,15 +59,18 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     using mult_type0 = gko::highest_precision<MatrixValueType, InputValueType>;
     using highest_type0 = gko::highest_precision<mult_type0, OutputValueType>;
     for (int i = 0; i < nrows0; i++) {
-        highest_type0 sum = 0;
-        for (int j = 0; j < max_nnz0; j++) {
-            if (acols[i + j * stride0] >= 0) {
-                sum += static_cast<highest_type0>(
-                    static_cast<mult_type0>(avals[i + j * stride0]) *
-                    static_cast<mult_type0>(x[acols[i + j * stride0]]));
+        for (int irhs = 0; irhs < nrhs; irhs++) {
+            highest_type0 sum = 0;
+            for (int j = 0; j < max_nnz0; j++) {
+                if (acols[i + j * stride0] >= 0) {
+                    sum += static_cast<highest_type0>(
+                        static_cast<mult_type0>(avals[i + j * stride0]) *
+                        static_cast<mult_type0>(
+                            x[acols[i + j * stride0] * x_stride + irhs]));
+                }
             }
+            y[i * y_stride + irhs] = static_cast<OutputValueType>(sum);
         }
-        y[i] = static_cast<OutputValueType>(sum);
     }
     gko::constexpr_for<1, q, 1>([&](auto k) {
         using value_type = typename std::tuple_element<
@@ -84,15 +90,19 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
         const auto max_nnz = ellk->get_num_stored_elements_per_row();
         if (max_nnz > 0) {
             for (int i = 0; i < nrows; i++) {
-                highest_type sum = 0;
-                for (int j = 0; j < max_nnz; j++) {
-                    if (acols[i + j * stride] >= 0) {
-                        sum += static_cast<highest_type>(
-                            static_cast<mult_type>(avals[i + j * stride]) *
-                            static_cast<mult_type>(x[acols[i + j * stride]]));
+                for (int irhs = 0; irhs < nrhs; irhs++) {
+                    highest_type sum = 0;
+                    for (int j = 0; j < max_nnz; j++) {
+                        if (acols[i + j * stride] >= 0) {
+                            sum += static_cast<highest_type>(
+                                static_cast<mult_type>(avals[i + j * stride]) *
+                                static_cast<mult_type>(
+                                    x[acols[i + j * stride] * x_stride +
+                                      irhs]));
+                        }
                     }
+                    y[i * y_stride + irhs] += static_cast<OutputValueType>(sum);
                 }
-                y[i] += static_cast<OutputValueType>(sum);
             }
         }
     });
@@ -120,6 +130,9 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     }
     auto y = c->get_values();
     auto x = b->get_const_values();
+    const auto y_stride = c->get_stride();
+    const auto x_stride = b->get_stride();
+    const auto nrhs = b->get_size()[1];
     const auto alph = alpha->at(0, 0);
     const auto bet = beta->at(0, 0);
     const auto nrows0 = static_cast<int>(a->get_size()[0]);
@@ -132,17 +145,20 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     using mult_type0 = gko::highest_precision<MatrixValueType, InputValueType>;
     using highest_type0 = gko::highest_precision<mult_type0, OutputValueType>;
     for (int i = 0; i < nrows0; i++) {
-        y[i] = bet * y[i];
-        highest_type0 sum = 0;
-        for (int j = 0; j < max_nnz0; j++) {
-            if (acols[i + j * stride0] >= 0) {
-                sum += static_cast<highest_type0>(
-                    static_cast<mult_type0>(avals[i + j * stride0]) *
-                    static_cast<mult_type0>(x[acols[i + j * stride0]]));
+        for (int irhs = 0; irhs < nrhs; irhs++) {
+            y[i * y_stride + irhs] = bet * y[i * y_stride + irhs];
+            highest_type0 sum = 0;
+            for (int j = 0; j < max_nnz0; j++) {
+                const auto col = acols[i + j * stride0];
+                if (col >= 0) {
+                    sum += static_cast<highest_type0>(
+                        static_cast<mult_type0>(avals[i + j * stride0]) *
+                        static_cast<mult_type0>(x[col * x_stride + irhs]));
+                }
             }
+            y[i * y_stride + irhs] += static_cast<OutputValueType>(
+                static_cast<highest_type0>(alph) * sum);
         }
-        y[i] += static_cast<OutputValueType>(static_cast<highest_type0>(alph) *
-                                             sum);
     }
     gko::constexpr_for<1, q, 1>([&](auto k) {
         using value_type = typename std::tuple_element<
@@ -162,16 +178,20 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
         const auto max_nnz = ellk->get_num_stored_elements_per_row();
         if (max_nnz > 0) {
             for (int i = 0; i < nrows; i++) {
-                highest_type sum = 0;
-                for (int j = 0; j < max_nnz; j++) {
-                    if (acols[i + j * stride] >= 0) {
-                        sum += static_cast<highest_type>(
-                            static_cast<mult_type>(avals[i + j * stride]) *
-                            static_cast<mult_type>(x[acols[i + j * stride]]));
+                for (int irhs = 0; irhs < nrhs; irhs++) {
+                    highest_type sum = 0;
+                    for (int j = 0; j < max_nnz; j++) {
+                        const auto col = acols[i + j * stride];
+                        if (col >= 0) {
+                            sum += static_cast<highest_type>(
+                                static_cast<mult_type>(avals[i + j * stride]) *
+                                static_cast<mult_type>(
+                                    x[col * x_stride + irhs]));
+                        }
                     }
+                    y[i * y_stride + irhs] += static_cast<OutputValueType>(
+                        static_cast<highest_type>(alph) * sum);
                 }
-                y[i] += static_cast<OutputValueType>(
-                    static_cast<highest_type>(alph) * sum);
             }
         }
     });
