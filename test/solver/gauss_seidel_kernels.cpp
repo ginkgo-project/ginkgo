@@ -210,16 +210,18 @@ TEST_F(GaussSeidelKernels, MultipleRHSIsEquivalentToRef)
 
 TEST_F(GaussSeidelKernels, FirstIterResetsStopStatusIsEquivalentToRef)
 {
-    auto b = generate_random_dense<value_type>(ref, n_rows, 1, 44);
-    auto x =
-        Vec::create(ref, gko::dim<2>{static_cast<gko::size_type>(n_rows), 1});
+    const gko::uint32 n_cols = 2;
+    auto b = generate_random_dense<value_type>(ref, n_rows, n_cols, 44);
+    auto x = Vec::create(
+        ref, gko::dim<2>{static_cast<gko::size_type>(n_rows), n_cols});
     x->fill(gko::zero<value_type>());
-    auto stop = gko::array<gko::stopping_status>(ref, 2);
+    auto stop = gko::array<gko::stopping_status>(ref, n_cols);
 
     gko::stopping_status stopped{};
     stopped.stop(1);
-    stop.get_data()[0] = stopped;
-    stop.get_data()[1] = stopped;
+    for (int j = 0; j < static_cast<int>(n_cols); j++) {
+        stop.get_data()[j] = stopped;
+    }
 
     auto d_b = gko::clone(exec, b);
     auto d_x = gko::clone(exec, x);
@@ -231,8 +233,9 @@ TEST_F(GaussSeidelKernels, FirstIterResetsStopStatusIsEquivalentToRef)
         exec, color_ptrs, d_mtx.get(), d_b.get(), d_x.get(), true, &d_stop);
 
     stopped.reset();
-    ASSERT_EQ(stop.get_data()[0], stopped);
-    ASSERT_EQ(stop.get_data()[1], stopped);
+    for (int j = 0; j < static_cast<int>(n_cols); j++) {
+        ASSERT_EQ(stop.get_data()[j], stopped);
+    }
     GKO_ASSERT_ARRAY_EQ(d_stop, stop);
 }
 
