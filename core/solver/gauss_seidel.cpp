@@ -7,12 +7,13 @@
 #include <string>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/matrix/amp.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gauss_seidel_kernels.hpp"
-#include "core/solver/solver_base.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
 
@@ -23,6 +24,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(multicolor_fgs_ell, gssdl::multicolor_fgs_ell);
+GKO_REGISTER_OPERATION(multicolor_fgs_amp, gssdl::multicolor_fgs_amp);
 
 
 }  // anonymous namespace
@@ -101,12 +103,6 @@ void FwdGaussSeidel<ValueType, IndexType>::apply_dense_impl(
     using ws = workspace_traits<FwdGaussSeidel>;
     constexpr uint8 stopping_id{1};
 
-    auto ellmat =
-        gko::as<matrix::Ell<ValueType, IndexType>>(this->get_system_matrix());
-    if (!ellmat) {
-        GKO_NOT_SUPPORTED(this->get_system_matrix());
-    }
-
     auto exec = this->get_executor();
     this->setup_workspace();
 
@@ -118,12 +114,27 @@ void FwdGaussSeidel<ValueType, IndexType>::apply_dense_impl(
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x);
 
     int iter = -1;
+
+    auto ellmat =
+        std::dynamic_pointer_cast<const matrix::Ell<ValueType, IndexType>>(
+            this->get_system_matrix());
+    auto ampmat =
+        std::dynamic_pointer_cast<const matrix::AMP<ValueType, IndexType>>(
+            this->get_system_matrix());
+    if (!ellmat && !ampmat) {
+        GKO_NOT_SUPPORTED(this->get_system_matrix());
+    }
+
     while (true) {
         ++iter;
 
-        exec->run(gssdl::make_multicolor_fgs_ell(
-            color_row_ptrs_, ellmat.get(), gko::detail::get_local(dense_b),
-            gko::detail::get_local(dense_x), iter == 0, &stop_status));
+        if (ellmat) {
+            exec->run(gssdl::make_multicolor_fgs_ell(
+                color_row_ptrs_, ellmat.get(), gko::detail::get_local(dense_b),
+                gko::detail::get_local(dense_x), iter == 0, &stop_status));
+        } else {
+            // TODO
+        }
 
         bool one_changed = false;
         bool all_stopped =
@@ -213,8 +224,8 @@ workspace_traits<FwdGaussSeidel<ValueType, IndexType>>::vectors(const Solver&)
 #define GKO_DECLARE_FWD_GS(_type, _index) class FwdGaussSeidel<_type, _index>
 #define GKO_DECLARE_FWD_GS_TRAITS(_type, _index) \
     struct workspace_traits<FwdGaussSeidel<_type, _index>>
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FWD_GS);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FWD_GS_TRAITS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_FWD_GS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_FWD_GS_TRAITS);
 
 
 }  // namespace solver

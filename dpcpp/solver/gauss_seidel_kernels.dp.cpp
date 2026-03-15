@@ -4,9 +4,10 @@
 
 #include "core/solver/gauss_seidel_kernels.hpp"
 
-#include "ginkgo/core/base/exception_helpers.hpp"
-#include "ginkgo/core/base/types.hpp"
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/types.hpp>
 
+#include "core/base/mixed_precision_types.hpp"
 
 namespace gko {
 namespace kernels {
@@ -19,20 +20,38 @@ namespace dpcpp {
 namespace gssdl {
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void multicolor_fgs_ell(std::shared_ptr<const DpcppExecutor> exec,
                         const std::vector<IndexType>& color_ptrs,
-                        const matrix::Ell<ValueType, IndexType>* const a,
-                        const matrix::Dense<ValueType>* const b,
-                        matrix::Dense<ValueType>* const x,
+                        const matrix::Ell<MatrixValueType, IndexType>* const a,
+                        const matrix::Dense<InputValueType>* const b,
+                        matrix::Dense<OutputValueType>* const x,
                         const bool first_iter,
                         array<stopping_status>* const stop_status)
 {
     GKO_NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_MULTICOLOR_FWD_GS_ELL_KERNEL);
+
+
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+void multicolor_fgs_amp(std::shared_ptr<const DpcppExecutor> exec,
+                        const std::vector<IndexType>& color_ptrs,
+                        const matrix::AMP<MatrixValueType, IndexType>* const a,
+                        const matrix::Dense<InputValueType>* const b,
+                        matrix::Dense<OutputValueType>* const x,
+                        const bool first_iter,
+                        array<stopping_status>* const stop_status)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
+    GKO_DECLARE_MULTICOLOR_FWD_GS_AMP_KERNEL);
 
 
 }  // namespace gssdl

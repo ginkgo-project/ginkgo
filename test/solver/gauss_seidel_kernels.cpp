@@ -15,6 +15,8 @@
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/solver/gauss_seidel.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 #include "core/test/utils.hpp"
@@ -287,6 +289,40 @@ TEST_F(GaussSeidelKernels,
         ref, single_color, diag.get(), b.get(), x.get(), true, &stop);
     gko::kernels::GKO_DEVICE_NAMESPACE::gssdl::multicolor_fgs_ell(
         exec, single_color, d_diag.get(), d_b.get(), d_x.get(), true, &d_stop);
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
+}
+
+
+TEST_F(GaussSeidelKernels, FiveIterationSolverIsEquivalentToRef)
+{
+    using Solver = gko::solver::FwdGaussSeidel<value_type, index_type>;
+
+    auto ref_mtx = gko::share(gko::clone(ref, mtx));
+    auto dev_mtx = gko::share(gko::clone(exec, mtx));
+
+    auto b = generate_random_dense<value_type>(ref, n_rows, 1, 77);
+    auto x =
+        Vec::create(ref, gko::dim<2>{static_cast<gko::size_type>(n_rows), 1});
+    x->fill(gko::zero<value_type>());
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
+
+    auto ref_solver =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(5u))
+            .with_color_ptrs(color_ptrs)
+            .on(ref)
+            ->generate(ref_mtx);
+    auto dev_solver =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(5u))
+            .with_color_ptrs(color_ptrs)
+            .on(exec)
+            ->generate(dev_mtx);
+
+    ref_solver->apply(b, x);
+    dev_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value);
 }

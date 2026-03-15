@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/solver/gauss_seidel.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -51,7 +52,7 @@ protected:
     std::unique_ptr<gko::LinOp> solver;
 };
 
-TYPED_TEST_SUITE(FwdGaussSeidel, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(FwdGaussSeidel, gko::test::ValueIndexTypesBase,
                  PairTypenameNameGenerator);
 
 
@@ -143,6 +144,34 @@ TYPED_TEST(FwdGaussSeidel, ColorPtrsAreStoredFromParameters)
     EXPECT_EQ(stored[0], index_type{0});
     EXPECT_EQ(stored[1], index_type{2});
     EXPECT_EQ(stored[2], index_type{4});
+}
+
+
+TYPED_TEST(FwdGaussSeidel, SolvesToKnownExactSolutionAfterFiveIterations)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Solver = typename TestFixture::Solver;
+    using Vec = gko::matrix::Dense<value_type>;
+
+    // RHS with mixed signs; exact solution x* = {4/7, -1, 6/7, 0}.
+    // Error in x[0] contracts by factor 1/8 per sweep: after 5 iterations
+    // max component error ≈ 1e-4, well within the 1e-3 tolerance below.
+    auto b = gko::initialize<Vec>({2.0, -3.0, 4.0, -1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto exact = gko::initialize<Vec>({value_type{4.0 / 7.0}, value_type{-1.0},
+                                       value_type{6.0 / 7.0}, value_type{0.0}},
+                                      this->exec);
+
+    auto solver =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(5u))
+            .with_color_ptrs(std::vector<index_type>{0, 2, 4})
+            .on(this->exec)
+            ->generate(this->mtx);
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, exact, 1e-3);
 }
 
 

@@ -7,8 +7,9 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/stop/stopping_status.hpp>
 
-#include "ginkgo/core/stop/stopping_status.hpp"
+#include "core/base/mixed_precision_types.hpp"
 
 
 namespace gko {
@@ -22,12 +23,13 @@ namespace reference {
 namespace gssdl {
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void multicolor_fgs_ell(std::shared_ptr<const ReferenceExecutor> exec,
                         const std::vector<IndexType>& color_ptrs,
-                        const matrix::Ell<ValueType, IndexType>* const a,
-                        const matrix::Dense<ValueType>* const b,
-                        matrix::Dense<ValueType>* const x,
+                        const matrix::Ell<MatrixValueType, IndexType>* const a,
+                        const matrix::Dense<InputValueType>* const b,
+                        matrix::Dense<OutputValueType>* const x,
                         const bool first_iter,
                         array<stopping_status>* const stop_status)
 {
@@ -53,14 +55,18 @@ void multicolor_fgs_ell(std::shared_ptr<const ReferenceExecutor> exec,
     const auto b_stride = b->get_stride();
     constexpr auto invalid = invalid_index<IndexType>();
 
+    using highest_type = gko::highest_precision<InputValueType, MatrixValueType,
+                                                OutputValueType>;
+
     for (int color = 0; color < num_colors; ++color) {
         const auto row_begin = color_ptrs[color];
         const auto row_end = color_ptrs[color + 1];
 
         for (IndexType row = row_begin; row < row_end; ++row) {
             for (size_type irhs = 0; irhs < num_cols_rhs; ++irhs) {
-                ValueType sum = b_vals[row * b_stride + irhs];
-                ValueType diag = zero<ValueType>();
+                auto sum =
+                    static_cast<highest_type>(b_vals[row * b_stride + irhs]);
+                auto diag = zero<MatrixValueType>();
 
                 for (size_type k = 0; k < nnz_per_row; ++k) {
                     const auto col = col_idxs[k * stride + row];
@@ -71,20 +77,41 @@ void multicolor_fgs_ell(std::shared_ptr<const ReferenceExecutor> exec,
                     if (col == row) {
                         diag = val;
                     } else {
-                        sum -= val * x_vals[col * x_stride + irhs];
+                        sum -= static_cast<highest_type>(val) *
+                               static_cast<highest_type>(
+                                   x_vals[col * x_stride + irhs]);
                     }
                 }
 
-                if (diag != zero<ValueType>()) {
-                    x_vals[row * x_stride + irhs] = sum / diag;
+                if (diag != zero<MatrixValueType>()) {
+                    x_vals[row * x_stride + irhs] =
+                        static_cast<OutputValueType>(
+                            sum / static_cast<highest_type>(diag));
                 }
             }
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
     GKO_DECLARE_MULTICOLOR_FWD_GS_ELL_KERNEL);
+
+
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+void multicolor_fgs_amp(std::shared_ptr<const ReferenceExecutor> exec,
+                        const std::vector<IndexType>& color_ptrs,
+                        const matrix::AMP<MatrixValueType, IndexType>* const a,
+                        const matrix::Dense<InputValueType>* const b,
+                        matrix::Dense<OutputValueType>* const x,
+                        const bool first_iter,
+                        array<stopping_status>* const stop_status)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_BASE(
+    GKO_DECLARE_MULTICOLOR_FWD_GS_AMP_KERNEL);
 
 
 }  // namespace gssdl

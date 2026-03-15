@@ -58,7 +58,7 @@ protected:
     std::vector<index_type> color_ptrs;
 };
 
-TYPED_TEST_SUITE(GaussSeidelKernel, gko::test::ValueIndexTypes,
+TYPED_TEST_SUITE(GaussSeidelKernel, gko::test::ValueIndexTypesBase,
                  PairTypenameNameGenerator);
 
 

@@ -19,7 +19,6 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
@@ -41,7 +40,7 @@ enum class gs_algorithm { multicolor, syncfree };
  * (D+L) x^(n+1) = b - U x^n
  * where L is the lower triangular part of A, U is the lower triangular part,
  * and D is the diagonal part of A.
- * It works only for certain matrix types: Ell.
+ * It works only for certain matrix types: Ell, AMP with Ell.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indices
@@ -129,8 +128,6 @@ public:
     FwdGaussSeidel& operator=(FwdGaussSeidel&&);
 
 protected:
-    using EllMatrix = matrix::Ell<ValueType, IndexType>;
-
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
