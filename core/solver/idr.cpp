@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
@@ -407,8 +408,9 @@ std::vector<int> workspace_traits<Idr<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_IDR(_type) class Idr<_type>
-#define GKO_DECLARE_IDR_TRAITS(_type) struct workspace_traits<Idr<_type>>
+#define GKO_DECLARE_IDR(_type) class GINKGO_EXPORT Idr<_type>
+#define GKO_DECLARE_IDR_TRAITS(_type) \
+    struct GINKGO_EXPORT workspace_traits<Idr<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_TRAITS);
 

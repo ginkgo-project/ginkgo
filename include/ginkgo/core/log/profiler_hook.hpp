@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <unordered_map>
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/timer.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
@@ -54,7 +55,7 @@ class profiling_scope_guard;
  * only highlight events caused directly by them (not operations and memory
  * allocations though)
  */
-class ProfilerHook : public Logger {
+class GINKGO_EXPORT ProfilerHook : public Logger {
 public:
     using hook_function =
         std::function<void(const char*, profile_event_category)>;
@@ -397,7 +398,7 @@ private:
 /**
  * Scope guard that annotates its scope with the provided profiler hooks.
  */
-class profiling_scope_guard {
+class GINKGO_EXPORT profiling_scope_guard {
 public:
     /** Creates an empty (moved-from) scope guard. */
     profiling_scope_guard();

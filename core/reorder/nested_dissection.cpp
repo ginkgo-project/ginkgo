@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -158,7 +159,7 @@ std::unique_ptr<LinOp> NestedDissection<ValueType, IndexType>::generate_impl(
 
 
 #define GKO_DECLARE_ND(ValueType, IndexType) \
-    class NestedDissection<ValueType, IndexType>
+    class GINKGO_EXPORT NestedDissection<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_ND);
 
 

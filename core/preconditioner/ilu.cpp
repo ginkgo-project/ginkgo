@@ -1,9 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/preconditioner/ilu.hpp"
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -15,6 +16,18 @@
 
 namespace gko {
 namespace preconditioner {
+
+
+// only instantiate the value type variants of ILU, whose solver is LinOp.
+#define GKO_DECLARE_ILU_FALSE(ValueType, IndexType) \
+    class GINKGO_EXPORT Ilu<ValueType, ValueType, false, IndexType>
+#define GKO_DECLARE_ILU_TRUE(ValueType, IndexType) \
+    class GINKGO_EXPORT Ilu<ValueType, ValueType, true, IndexType>
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILU_FALSE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILU_TRUE);
+
+
 namespace detail {
 
 
@@ -70,17 +83,5 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILU_PARSE_TRUE);
 
 
 }  // namespace detail
-
-
-// only instantiate the value type variants of ILU, whose solver is LinOp.
-#define GKO_DECLARE_ILU_FALSE(ValueType, IndexType) \
-    class Ilu<ValueType, ValueType, false, IndexType>
-#define GKO_DECLARE_ILU_TRUE(ValueType, IndexType) \
-    class Ilu<ValueType, ValueType, true, IndexType>
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILU_FALSE);
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ILU_TRUE);
-
-
 }  // namespace preconditioner
 }  // namespace gko

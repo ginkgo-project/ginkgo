@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -160,7 +161,8 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
 }
 
 
-#define GKO_DECLARE_SOR(ValueType, IndexType) class Sor<ValueType, IndexType>
+#define GKO_DECLARE_SOR(ValueType, IndexType) \
+    class GINKGO_EXPORT Sor<ValueType, IndexType>
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SOR);
 

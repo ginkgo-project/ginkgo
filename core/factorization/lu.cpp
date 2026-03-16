@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -147,7 +148,8 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
 }
 
 
-#define GKO_DECLARE_LU(ValueType, IndexType) class Lu<ValueType, IndexType>
+#define GKO_DECLARE_LU(ValueType, IndexType) \
+    class GINKGO_EXPORT Lu<ValueType, IndexType>
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU);
 

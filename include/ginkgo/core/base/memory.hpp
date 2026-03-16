@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/fwd_decls.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -17,7 +18,7 @@ namespace gko {
  * Provides generic allocation and deallocation functionality to be used by an
  * Executor.
  */
-class Allocator {
+class GINKGO_EXPORT Allocator {
 public:
     virtual ~Allocator() = default;
 
@@ -88,7 +89,7 @@ protected:
 /**
  * Allocator using new/delete.
  */
-class CpuAllocator : public CpuAllocatorBase {
+class GINKGO_EXPORT CpuAllocator : public CpuAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <ostream>
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -129,7 +130,7 @@ inline std::ostream& operator<<(std::ostream& os, const version& ver)
  * To obtain an instance of version_info filled with information about the
  * current version of Ginkgo, call the version_info::get() static method.
  */
-class version_info {
+class GINKGO_EXPORT version_info {
 public:
     /**
      * Returns an instance of version_info.
@@ -229,7 +230,8 @@ private:
  *
  * @return os
  */
-std::ostream& operator<<(std::ostream& os, const version_info& ver_info);
+GINKGO_EXPORT std::ostream& operator<<(std::ostream& os,
+                                       const version_info& ver_info);
 
 
 }  // namespace gko

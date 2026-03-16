@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/factorization/symbolic.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -75,7 +76,7 @@ void symbolic_cholesky(
 
 
 #define GKO_DECLARE_SYMBOLIC_CHOLESKY(ValueType, IndexType)            \
-    void symbolic_cholesky(                                            \
+    GINKGO_EXPORT void symbolic_cholesky(                              \
         const matrix::Csr<ValueType, IndexType>* mtx, bool symmetrize, \
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,   \
         std::unique_ptr<factorization::elimination_forest<IndexType>>& forest)
@@ -123,7 +124,7 @@ void symbolic_cholesky_device(
 
 
 #define GKO_DECLARE_SYMBOLIC_CHOLESKY_DEVICE(ValueType, IndexType)     \
-    void symbolic_cholesky_device(                                     \
+    GINKGO_EXPORT void symbolic_cholesky_device(                       \
         const matrix::Csr<ValueType, IndexType>* mtx, bool symmetrize, \
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,   \
         std::unique_ptr<factorization::elimination_forest<IndexType>>& forest)
@@ -189,7 +190,7 @@ void symbolic_lu_near_symm(
 
 
 #define GKO_DECLARE_SYMBOLIC_LU_NEAR_SYMM(ValueType, IndexType) \
-    void symbolic_lu_near_symm(                                 \
+    GINKGO_EXPORT void symbolic_lu_near_symm(                   \
         const matrix::Csr<ValueType, IndexType>* mtx,           \
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
 
@@ -276,7 +277,7 @@ void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
 
 
 #define GKO_DECLARE_SYMBOLIC_LU(ValueType, IndexType) \
-    void symbolic_lu(                                 \
+    GINKGO_EXPORT void symbolic_lu(                   \
         const matrix::Csr<ValueType, IndexType>* mtx, \
         std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors)
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/cholesky.hpp>
@@ -183,7 +184,8 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
 }
 
 
-#define GKO_DECLARE_IC(ValueType, IndexType) class Ic<ValueType, IndexType>
+#define GKO_DECLARE_IC(ValueType, IndexType) \
+    class GINKGO_EXPORT Ic<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_IC);
 
 

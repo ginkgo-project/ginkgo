@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -104,10 +105,10 @@ class MultigridState;
  * @ingroup solvers
  * @ingroup LinOp
  */
-class Multigrid : public EnableLinOp<Multigrid>,
-                  public EnableSolverBase<Multigrid>,
-                  public EnableIterativeBase<Multigrid>,
-                  public EnableApplyWithInitialGuess<Multigrid> {
+class GINKGO_EXPORT Multigrid : public EnableLinOp<Multigrid>,
+                                public EnableSolverBase<Multigrid>,
+                                public EnableIterativeBase<Multigrid>,
+                                public EnableApplyWithInitialGuess<Multigrid> {
     friend class EnableLinOp<Multigrid>;
     friend class EnablePolymorphicObject<Multigrid, LinOp>;
     friend class EnableApplyWithInitialGuess<Multigrid>;
@@ -486,7 +487,7 @@ private:
 };
 
 template <>
-struct workspace_traits<Multigrid> {
+struct GINKGO_EXPORT workspace_traits<Multigrid> {
     using Solver = Multigrid;
     // number of vectors used by this workspace
     static int num_vectors(const Solver&);

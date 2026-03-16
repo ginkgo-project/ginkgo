@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <chrono>
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
@@ -21,7 +22,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Time : public EnablePolymorphicObject<Time, Criterion> {
+class GINKGO_EXPORT Time : public EnablePolymorphicObject<Time, Criterion> {
     friend class EnablePolymorphicObject<Time, Criterion>;
 
 public:

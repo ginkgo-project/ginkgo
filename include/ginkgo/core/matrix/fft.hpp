@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
@@ -42,12 +43,13 @@ namespace matrix {
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft : public EnableLinOp<Fft>,
-            public WritableToMatrixData<std::complex<float>, int32>,
-            public WritableToMatrixData<std::complex<float>, int64>,
-            public WritableToMatrixData<std::complex<double>, int32>,
-            public WritableToMatrixData<std::complex<double>, int64>,
-            public Transposable {
+class GINKGO_EXPORT Fft
+    : public EnableLinOp<Fft>,
+      public WritableToMatrixData<std::complex<float>, int32>,
+      public WritableToMatrixData<std::complex<float>, int64>,
+      public WritableToMatrixData<std::complex<double>, int32>,
+      public WritableToMatrixData<std::complex<double>, int64>,
+      public Transposable {
     friend class EnablePolymorphicObject<Fft, LinOp>;
 
 public:
@@ -140,12 +142,13 @@ private:
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft2 : public EnableLinOp<Fft2>,
-             public WritableToMatrixData<std::complex<float>, int32>,
-             public WritableToMatrixData<std::complex<float>, int64>,
-             public WritableToMatrixData<std::complex<double>, int32>,
-             public WritableToMatrixData<std::complex<double>, int64>,
-             public Transposable {
+class GINKGO_EXPORT Fft2
+    : public EnableLinOp<Fft2>,
+      public WritableToMatrixData<std::complex<float>, int32>,
+      public WritableToMatrixData<std::complex<float>, int64>,
+      public WritableToMatrixData<std::complex<double>, int32>,
+      public WritableToMatrixData<std::complex<double>, int64>,
+      public Transposable {
     friend class EnablePolymorphicObject<Fft2, LinOp>;
 
 public:
@@ -252,12 +255,13 @@ private:
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft3 : public EnableLinOp<Fft3>,
-             public WritableToMatrixData<std::complex<float>, int32>,
-             public WritableToMatrixData<std::complex<float>, int64>,
-             public WritableToMatrixData<std::complex<double>, int32>,
-             public WritableToMatrixData<std::complex<double>, int64>,
-             public Transposable {
+class GINKGO_EXPORT Fft3
+    : public EnableLinOp<Fft3>,
+      public WritableToMatrixData<std::complex<float>, int32>,
+      public WritableToMatrixData<std::complex<float>, int64>,
+      public WritableToMatrixData<std::complex<double>, int32>,
+      public WritableToMatrixData<std::complex<double>, int64>,
+      public Transposable {
     friend class EnablePolymorphicObject<Fft3, LinOp>;
 
 public:

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 
 #include <string>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
@@ -335,8 +336,9 @@ std::vector<int> workspace_traits<Ir<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_IR(_type) class Ir<_type>
-#define GKO_DECLARE_IR_TRAITS(_type) struct workspace_traits<Ir<_type>>
+#define GKO_DECLARE_IR(_type) class GINKGO_EXPORT Ir<_type>
+#define GKO_DECLARE_IR_TRAITS(_type) \
+    struct GINKGO_EXPORT workspace_traits<Ir<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR_TRAITS);
 

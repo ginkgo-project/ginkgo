@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 
 #include "core/base/device_matrix_data_kernels.hpp"
@@ -158,7 +159,7 @@ device_matrix_data<ValueType, IndexType>::empty_out()
 
 
 #define GKO_DECLARE_DEVICE_MATRIX_DATA(ValueType, IndexType) \
-    class device_matrix_data<ValueType, IndexType>
+    class GINKGO_EXPORT device_matrix_data<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DEVICE_MATRIX_DATA);
 
 

@@ -211,7 +211,10 @@ endif()
 if(GINKGO_BUILD_MPI)
     target_link_libraries(${ginkgo_core} PUBLIC MPI::MPI_CXX)
 endif()
-
+set_target_properties(
+    ${ginkgo_core}
+    PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+)
 ginkgo_default_includes(${ginkgo_core})
 ginkgo_install_library(${ginkgo_core})
 
@@ -239,3 +242,10 @@ if(
         COMMENT "Copying pretty-printer to output directory"
     )
 endif()
+# include(GenerateExportHeader)
+
+# generate_export_header(ginkgo
+#     EXPORT_FILE_NAME
+#     ${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/ginkgo_export.h
+# )
+# message("${CMAKE_CURRENT_SOURCE_DIR}/include/ginkgo/ginkgo_export.h")

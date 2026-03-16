@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
@@ -519,9 +520,9 @@ void CbGmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
         alpha, b, beta, x);
 }
 
-#define GKO_DECLARE_CB_GMRES(_type1) class CbGmres<_type1>
+#define GKO_DECLARE_CB_GMRES(_type1) class GINKGO_EXPORT CbGmres<_type1>
 #define GKO_DECLARE_CB_GMRES_TRAITS(_type1) \
-    struct workspace_traits<CbGmres<_type1>>
+    struct GINKGO_EXPORT workspace_traits<CbGmres<_type1>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_CB_GMRES);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(GKO_DECLARE_CB_GMRES_TRAITS);
 

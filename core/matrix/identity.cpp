@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/matrix/identity.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -82,9 +83,10 @@ std::unique_ptr<Identity<ValueType>> Identity<ValueType>::create(
 }
 
 
-#define GKO_DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>
+#define GKO_DECLARE_IDENTITY_MATRIX(_type) class GINKGO_EXPORT Identity<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_MATRIX);
-#define GKO_DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>
+#define GKO_DECLARE_IDENTITY_FACTORY(_type) \
+    class GINKGO_EXPORT IdentityFactory<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_FACTORY);
 
 

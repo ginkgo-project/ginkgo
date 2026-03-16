@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -207,7 +208,7 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
 
 
 #undef GKO_DECLARE_RCM
-#define GKO_DECLARE_RCM(IndexType) class Rcm<IndexType>
+#define GKO_DECLARE_RCM(IndexType) class GINKGO_EXPORT Rcm<IndexType>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RCM);
 
 

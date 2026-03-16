@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 #include <cstddef>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -186,7 +187,7 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
 }
 
 
-#define GKO_DECLARE_AMD(IndexType) class Amd<IndexType>
+#define GKO_DECLARE_AMD(IndexType) class GINKGO_EXPORT Amd<IndexType>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_AMD);
 
 

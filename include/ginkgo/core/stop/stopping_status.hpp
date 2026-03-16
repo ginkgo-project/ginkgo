@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 
@@ -18,7 +19,7 @@ namespace gko {
  *
  * @ingroup stop
  */
-class stopping_status {
+class GINKGO_EXPORT stopping_status {
     friend GKO_ATTRIBUTES GKO_INLINE bool operator==(
         const stopping_status& x, const stopping_status& y) noexcept;
     friend GKO_ATTRIBUTES GKO_INLINE bool operator!=(

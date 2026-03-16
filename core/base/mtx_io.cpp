@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,6 +16,7 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -990,18 +991,20 @@ void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
 
 
 #define GKO_DECLARE_READ_RAW(ValueType, IndexType) \
-    matrix_data<ValueType, IndexType> read_raw(std::istream& is)
-#define GKO_DECLARE_WRITE_RAW(ValueType, IndexType)               \
-    void write_raw(std::ostream& os,                              \
-                   const matrix_data<ValueType, IndexType>& data, \
-                   layout_type layout)
-#define GKO_DECLARE_READ_BINARY_RAW(ValueType, IndexType) \
-    matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is)
+    GINKGO_EXPORT matrix_data<ValueType, IndexType> read_raw(std::istream& is)
+#define GKO_DECLARE_WRITE_RAW(ValueType, IndexType)                      \
+    GINKGO_EXPORT void write_raw(                                        \
+        std::ostream& os, const matrix_data<ValueType, IndexType>& data, \
+        layout_type layout)
+#define GKO_DECLARE_READ_BINARY_RAW(ValueType, IndexType)            \
+    GINKGO_EXPORT matrix_data<ValueType, IndexType> read_binary_raw( \
+        std::istream& is)
 #define GKO_DECLARE_WRITE_BINARY_RAW(ValueType, IndexType) \
-    void write_binary_raw(std::ostream& os,                \
-                          const matrix_data<ValueType, IndexType>& data)
-#define GKO_DECLARE_READ_GENERIC_RAW(ValueType, IndexType) \
-    matrix_data<ValueType, IndexType> read_generic_raw(std::istream& is)
+    GINKGO_EXPORT void write_binary_raw(                   \
+        std::ostream& os, const matrix_data<ValueType, IndexType>& data)
+#define GKO_DECLARE_READ_GENERIC_RAW(ValueType, IndexType)            \
+    GINKGO_EXPORT matrix_data<ValueType, IndexType> read_generic_raw( \
+        std::istream& is)
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WRITE_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_BINARY_RAW);

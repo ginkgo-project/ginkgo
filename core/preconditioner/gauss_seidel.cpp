@@ -1,9 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/preconditioner/gauss_seidel.hpp"
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/preconditioner/sor.hpp>
 
 #include "core/config/config_helper.hpp"
@@ -69,7 +70,7 @@ std::unique_ptr<LinOp> GaussSeidel<ValueType, IndexType>::generate_impl(
 
 
 #define GKO_DECLARE_GAUSS_SEIDEL(ValueType, IndexType) \
-    class GaussSeidel<ValueType, IndexType>
+    class GINKGO_EXPORT GaussSeidel<ValueType, IndexType>
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GAUSS_SEIDEL);
 

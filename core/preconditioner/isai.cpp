@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -67,9 +68,9 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
         // copy the matrix, as it will be used to store the inverse
         return {std::move(mtx->clone())};
     }
-    auto id_power = mtx->clone();
+    auto id_power = mtx->clone(exec->get_master());
     // accumulates mtx * the remainder from odd powers
-    auto acc = mtx->clone();
+    auto acc = mtx->clone(exec->get_master());
     // compute id^(n-1) using square-and-multiply
     int i = power - 1;
     while (i > 1) {
@@ -84,7 +85,7 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
         i /= 2;
     }
     // combine acc and id_power again
-    return id_power->multiply(acc);
+    return id_power->multiply(acc)->clone(exec);
 }
 
 
@@ -355,19 +356,19 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
 
 
 #define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::lower, ValueType, IndexType>
+    class GINKGO_EXPORT Isai<isai_type::lower, ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_ISAI);
 
 #define GKO_DECLARE_UPPER_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::upper, ValueType, IndexType>
+    class GINKGO_EXPORT Isai<isai_type::upper, ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_ISAI);
 
 #define GKO_DECLARE_GENERAL_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::general, ValueType, IndexType>
+    class GINKGO_EXPORT Isai<isai_type::general, ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_GENERAL_ISAI);
 
 #define GKO_DECLARE_SPD_ISAI(ValueType, IndexType) \
-    class Isai<isai_type::spd, ValueType, IndexType>
+    class GINKGO_EXPORT Isai<isai_type::spd, ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPD_ISAI);
 
 

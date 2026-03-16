@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
@@ -295,8 +296,9 @@ std::vector<int> workspace_traits<Bicg<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_BICG(_type) class Bicg<_type>
-#define GKO_DECLARE_BICG_TRAITS(_type) struct workspace_traits<Bicg<_type>>
+#define GKO_DECLARE_BICG(_type) class GINKGO_EXPORT Bicg<_type>
+#define GKO_DECLARE_BICG_TRAITS(_type) \
+    struct GINKGO_EXPORT workspace_traits<Bicg<_type>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_TRAITS);
 

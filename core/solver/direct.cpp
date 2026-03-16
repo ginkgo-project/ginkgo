@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
@@ -222,7 +223,7 @@ void Direct<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 
 
 #define GKO_DECLARE_DIRECT(ValueType, IndexType) \
-    class Direct<ValueType, IndexType>
+    class GINKGO_EXPORT Direct<ValueType, IndexType>
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIRECT);
 

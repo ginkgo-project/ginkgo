@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/matrix/diagonal.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -410,7 +411,8 @@ std::unique_ptr<const Diagonal<ValueType>> Diagonal<ValueType>::create_const(
 }
 
 
-#define GKO_DECLARE_DIAGONAL_MATRIX(value_type) class Diagonal<value_type>
+#define GKO_DECLARE_DIAGONAL_MATRIX(value_type) \
+    class GINKGO_EXPORT Diagonal<value_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 
 
@@ -427,7 +429,7 @@ std::unique_ptr<LinOp> DiagonalExtractable<ValueType>::extract_diagonal_linop()
 
 
 #define GKO_DECLARE_DIAGONAL_EXTRACTABLE(value_type) \
-    std::unique_ptr<LinOp>                           \
+    GINKGO_EXPORT std::unique_ptr<LinOp>             \
     DiagonalExtractable<value_type>::extract_diagonal_linop() const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_EXTRACTABLE);
 

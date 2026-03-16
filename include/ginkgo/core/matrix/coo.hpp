@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
@@ -47,22 +48,23 @@ class Hybrid;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
-            public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
+class GINKGO_EXPORT Coo
+    : public EnableLinOp<Coo<ValueType, IndexType>>,
+      public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-            public ConvertibleTo<Coo<next_precision<ValueType, 2>, IndexType>>,
+      public ConvertibleTo<Coo<next_precision<ValueType, 2>, IndexType>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-            public ConvertibleTo<Coo<next_precision<ValueType, 3>, IndexType>>,
+      public ConvertibleTo<Coo<next_precision<ValueType, 3>, IndexType>>,
 #endif
-            public ConvertibleTo<Csr<ValueType, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
-            public DiagonalExtractable<ValueType>,
-            public ReadableFromMatrixData<ValueType, IndexType>,
-            public WritableToMatrixData<ValueType, IndexType>,
-            public Transposable,
-            public EnableAbsoluteComputation<
-                remove_complex<Coo<ValueType, IndexType>>> {
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public DiagonalExtractable<ValueType>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public Transposable,
+      public EnableAbsoluteComputation<
+          remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;

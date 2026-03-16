@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/stop/residual_norm.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -228,12 +229,13 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
 }
 
 
-#define GKO_DECLARE_RESIDUAL_NORM(_type) class ResidualNormBase<_type>
+#define GKO_DECLARE_RESIDUAL_NORM(_type) \
+    class GINKGO_EXPORT ResidualNormBase<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 
 
 #define GKO_DECLARE_IMPLICIT_RESIDUAL_NORM(_type) \
-    class ImplicitResidualNorm<_type>
+    class GINKGO_EXPORT ImplicitResidualNorm<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM);
 
 class ResidualNormFactory;

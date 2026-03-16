@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 
 #include <utility>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 
@@ -83,7 +84,7 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 
 
 #define GKO_DECLARE_SCALED_REORDERED(ValueType, IndexType) \
-    class ScaledReordered<ValueType, IndexType>
+    class GINKGO_EXPORT ScaledReordered<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCALED_REORDERED);
 
 

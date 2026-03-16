@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -23,7 +24,8 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
+class GINKGO_EXPORT Iteration
+    : public EnablePolymorphicObject<Iteration, Criterion> {
     friend class EnablePolymorphicObject<Iteration, Criterion>;
 
 public:

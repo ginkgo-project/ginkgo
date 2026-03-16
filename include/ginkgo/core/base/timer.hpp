@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <chrono>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 
 
 namespace gko {
@@ -77,7 +78,7 @@ private:
  * auto elapsed = timer->difference(begin, end);
  * ```
  */
-class Timer {
+class GINKGO_EXPORT Timer {
 public:
     virtual ~Timer() = default;
 
@@ -143,7 +144,7 @@ protected:
 
 
 /** A timer using std::chrono::steady_clock for timing. */
-class CpuTimer : public Timer {
+class GINKGO_EXPORT CpuTimer : public Timer {
 public:
     void record(time_point& time) override;
 
@@ -163,7 +164,7 @@ protected:
  * @note When using a CudaExecutor with a custom stream, make sure that the
  *       stream's lifetime is longer than the lifetime of this timer.
  */
-class CudaTimer : public Timer {
+class GINKGO_EXPORT CudaTimer : public Timer {
 public:
     void record(time_point& time) override;
 
@@ -189,7 +190,7 @@ private:
  * @note When using a HipExecutor with a custom stream, make sure that the
  *       stream's lifetime is longer than the lifetime of this timer.
  */
-class HipTimer : public Timer {
+class GINKGO_EXPORT HipTimer : public Timer {
 public:
     void record(time_point& time) override;
 
@@ -210,7 +211,7 @@ private:
 
 
 /** A timer using kernels for timing on a DpcppExecutor in profiling mode. */
-class DpcppTimer : public Timer {
+class GINKGO_EXPORT DpcppTimer : public Timer {
 public:
     void record(time_point& time) override;
 
