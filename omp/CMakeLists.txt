@@ -55,6 +55,7 @@ target_sources(
         solver/batch_bicgstab_kernels.cpp
         solver/batch_cg_kernels.cpp
         solver/cb_gmres_kernels.cpp
+        solver/gauss_seidel_kernels.cpp
         solver/idr_kernels.cpp
         solver/lower_trs_kernels.cpp
         solver/multigrid_kernels.cpp

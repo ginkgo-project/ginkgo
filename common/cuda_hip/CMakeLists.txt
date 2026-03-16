@@ -45,6 +45,7 @@ set(CUDA_HIP_SOURCES
     preconditioner/sor_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/cb_gmres_kernels.cpp
+    solver/gauss_seidel_kernels.cpp
     solver/idr_kernels.cpp
     solver/multigrid_kernels.cpp
     stop/criterion_kernels.cpp
