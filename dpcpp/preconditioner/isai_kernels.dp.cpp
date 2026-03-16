@@ -21,7 +21,6 @@
 #include "dpcpp/components/merging.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/components/warp_blas.dp.hpp"
 
 
@@ -62,9 +61,7 @@ __dpct_inline__ void generic_generate(
     const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, Callable direct_solve,
-    sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                       subwarps_per_block>& storage)
+    sycl::nd_item<3> item_ct1, sycl::local_accessor<ValueType, 1> storage)
 {
     static_assert(subwarp_size >= row_size_limit, "incompatible subwarp_size");
     const auto row =
@@ -193,16 +190,17 @@ __dpct_inline__ void generic_generate(
 
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
-void generate_l_inverse(
-    IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
-    const IndexType* __restrict__ m_col_idxs,
-    const ValueType* __restrict__ m_values,
-    const IndexType* __restrict__ i_row_ptrs,
-    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
-    IndexType* __restrict__ excess_rhs_sizes,
-    IndexType* __restrict__ excess_nnz, sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                       subwarps_per_block>& storage)
+void generate_l_inverse(IndexType num_rows,
+                        const IndexType* __restrict__ m_row_ptrs,
+                        const IndexType* __restrict__ m_col_idxs,
+                        const ValueType* __restrict__ m_values,
+                        const IndexType* __restrict__ i_row_ptrs,
+                        const IndexType* __restrict__ i_col_idxs,
+                        ValueType* __restrict__ i_values,
+                        IndexType* __restrict__ excess_rhs_sizes,
+                        IndexType* __restrict__ excess_nnz,
+                        sycl::nd_item<3> item_ct1,
+                        sycl::local_accessor<ValueType, 1> storage)
 {
     auto trs_solve =
         [](IndexType num_elems, const ValueType* __restrict__ local_row,
@@ -242,11 +240,8 @@ void generate_l_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                         IndexType* excess_rhs_sizes, IndexType* excess_nnz)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                               subwarps_per_block>,
-            0>
-            storage_acc_ct1(cgh);
+        sycl::local_accessor<ValueType, 1> storage(
+            subwarp_size * subwarp_size * subwarps_per_block, cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
@@ -255,7 +250,7 @@ void generate_l_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     generate_l_inverse<subwarp_size, subwarps_per_block>(
                         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
                         i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
-                        item_ct1, *storage_acc_ct1.get_pointer());
+                        item_ct1, storage);
                 });
     });
 }
@@ -263,16 +258,17 @@ void generate_l_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
-void generate_u_inverse(
-    IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
-    const IndexType* __restrict__ m_col_idxs,
-    const ValueType* __restrict__ m_values,
-    const IndexType* __restrict__ i_row_ptrs,
-    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
-    IndexType* __restrict__ excess_rhs_sizes,
-    IndexType* __restrict__ excess_nnz, sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                       subwarps_per_block>& storage)
+void generate_u_inverse(IndexType num_rows,
+                        const IndexType* __restrict__ m_row_ptrs,
+                        const IndexType* __restrict__ m_col_idxs,
+                        const ValueType* __restrict__ m_values,
+                        const IndexType* __restrict__ i_row_ptrs,
+                        const IndexType* __restrict__ i_col_idxs,
+                        ValueType* __restrict__ i_values,
+                        IndexType* __restrict__ excess_rhs_sizes,
+                        IndexType* __restrict__ excess_nnz,
+                        sycl::nd_item<3> item_ct1,
+                        sycl::local_accessor<ValueType, 1> storage)
 {
     auto trs_solve = [](IndexType num_elems,
                         const ValueType* __restrict__ local_row,
@@ -312,11 +308,8 @@ void generate_u_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                         IndexType* excess_rhs_sizes, IndexType* excess_nnz)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                               subwarps_per_block>,
-            0>
-            storage_acc_ct1(cgh);
+        sycl::local_accessor<ValueType, 1> storage(
+            subwarp_size * subwarp_size * subwarps_per_block, cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
@@ -325,7 +318,7 @@ void generate_u_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     generate_u_inverse<subwarp_size, subwarps_per_block>(
                         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
                         i_col_idxs, i_values, excess_rhs_sizes, excess_nnz,
-                        item_ct1, *storage_acc_ct1.get_pointer());
+                        item_ct1, storage);
                 });
     });
 }
@@ -333,16 +326,17 @@ void generate_u_inverse(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 template <int subwarp_size, int subwarps_per_block, typename ValueType,
           typename IndexType>
-void generate_general_inverse(
-    IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
-    const IndexType* __restrict__ m_col_idxs,
-    const ValueType* __restrict__ m_values,
-    const IndexType* __restrict__ i_row_ptrs,
-    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
-    IndexType* __restrict__ excess_rhs_sizes,
-    IndexType* __restrict__ excess_nnz, bool spd, sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                       subwarps_per_block>& storage)
+void generate_general_inverse(IndexType num_rows,
+                              const IndexType* __restrict__ m_row_ptrs,
+                              const IndexType* __restrict__ m_col_idxs,
+                              const ValueType* __restrict__ m_values,
+                              const IndexType* __restrict__ i_row_ptrs,
+                              const IndexType* __restrict__ i_col_idxs,
+                              ValueType* __restrict__ i_values,
+                              IndexType* __restrict__ excess_rhs_sizes,
+                              IndexType* __restrict__ excess_nnz, bool spd,
+                              sycl::nd_item<3> item_ct1,
+                              sycl::local_accessor<ValueType, 1> storage)
 {
     auto general_solve = [spd](IndexType num_elems,
                                ValueType* __restrict__ local_row,
@@ -394,11 +388,8 @@ void generate_general_inverse(
     bool spd)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                               subwarps_per_block>,
-            0>
-            storage_acc_ct1(cgh);
+        sycl::local_accessor<ValueType, 1> storage(
+            subwarp_size * subwarp_size * subwarps_per_block, cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
@@ -407,7 +398,7 @@ void generate_general_inverse(
                     generate_general_inverse<subwarp_size, subwarps_per_block>(
                         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs,
                         i_col_idxs, i_values, excess_rhs_sizes, excess_nnz, spd,
-                        item_ct1, *storage_acc_ct1.get_pointer());
+                        item_ct1, storage);
                 });
     });
 }

@@ -27,7 +27,6 @@
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 
 
 namespace gko {
@@ -188,9 +187,7 @@ void multinorm2_kernel(
     const ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov, remove_complex<ValueType>* __restrict__ norms,
     const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    uninitialized_array<remove_complex<ValueType>,
-                        default_dot_dim*(default_dot_dim + 1)>*
-        reduction_helper_array)
+    sycl::local_accessor<remove_complex<ValueType>, 1> reduction_helper)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = item_ct1.get_local_id(2);
@@ -201,10 +198,6 @@ void multinorm2_kernel(
     const auto end_row = ((item_ct1.get_group(1) + 1) * num > num_rows)
                              ? num_rows
                              : (item_ct1.get_group(1) + 1) * num;
-    // Used that way to get around dynamic initialization warning and
-    // template error when using `reduction_helper_array` directly in `reduce`
-
-    rc_vtype* __restrict__ reduction_helper = (*reduction_helper_array);
     rc_vtype local_res = zero<rc_vtype>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
@@ -238,21 +231,18 @@ void multinorm2_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                        const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<remove_complex<ValueType>,
-                                default_dot_dim*(default_dot_dim + 1)>,
-            0>
-            reduction_helper_array_acc_ct1(cgh);
+        sycl::local_accessor<remove_complex<ValueType>, 1>
+            reduction_helper_array(default_dot_dim * (default_dot_dim + 1),
+                                   cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(default_dot_dim)]] {
-                    multinorm2_kernel(
-                        num_rows, num_cols, next_krylov_basis,
-                        stride_next_krylov, norms, stop_status, item_ct1,
-                        reduction_helper_array_acc_ct1.get_pointer());
-                });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(default_dot_dim)]] {
+                                 multinorm2_kernel(
+                                     num_rows, num_cols, next_krylov_basis,
+                                     stride_next_krylov, norms, stop_status,
+                                     item_ct1, reduction_helper_array);
+                             });
     });
 }
 
@@ -263,9 +253,7 @@ void multinorminf_without_stop_kernel(
     const ValueType* __restrict__ next_krylov_basis,
     size_type stride_next_krylov, remove_complex<ValueType>* __restrict__ norms,
     size_type stride_norms, sycl::nd_item<3> item_ct1,
-    uninitialized_array<remove_complex<ValueType>,
-                        default_dot_dim*(default_dot_dim + 1)>*
-        reduction_helper_array)
+    sycl::local_accessor<remove_complex<ValueType>, 1> reduction_helper)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = item_ct1.get_local_id(2);
@@ -276,10 +264,6 @@ void multinorminf_without_stop_kernel(
     const auto end_row = ((item_ct1.get_group(1) + 1) * num > num_rows)
                              ? num_rows
                              : (item_ct1.get_group(1) + 1) * num;
-    // Used that way to get around dynamic initialization warning and
-    // template error when using `reduction_helper_array` directly in `reduce`
-
-    rc_vtype* __restrict__ reduction_helper = (*reduction_helper_array);
     rc_vtype local_max = zero<rc_vtype>();
     if (col_idx < num_cols) {
         for (size_type i = start_row + tidy; i < end_row;
@@ -315,21 +299,18 @@ void multinorminf_without_stop_kernel(
     size_type stride_norms)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<remove_complex<ValueType>,
-                                default_dot_dim*(default_dot_dim + 1)>,
-            0>
-            reduction_helper_array_acc_ct1(cgh);
+        sycl::local_accessor<remove_complex<ValueType>, 1>
+            reduction_helper_array(default_dot_dim * (default_dot_dim + 1),
+                                   cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(default_dot_dim)]] {
-                    multinorminf_without_stop_kernel(
-                        num_rows, num_cols, next_krylov_basis,
-                        stride_next_krylov, norms, stride_norms, item_ct1,
-                        reduction_helper_array_acc_ct1.get_pointer());
-                });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(default_dot_dim)]] {
+                                 multinorminf_without_stop_kernel(
+                                     num_rows, num_cols, next_krylov_basis,
+                                     stride_next_krylov, norms, stride_norms,
+                                     item_ct1, reduction_helper_array);
+                             });
     });
 }
 
@@ -343,10 +324,8 @@ void multinorm2_inf_kernel(
     remove_complex<ValueType>* __restrict__ norms1,
     remove_complex<ValueType>* __restrict__ norms2,
     const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    uninitialized_array<remove_complex<ValueType>,
-                        (1 + compute_inf) *
-                            default_dot_dim*(default_dot_dim + 1)>*
-        reduction_helper_array)
+    sycl::local_accessor<remove_complex<ValueType>, 1> reduction_helper_add,
+    sycl::local_accessor<remove_complex<ValueType>, 1> reduction_helper_max)
 {
     using rc_vtype = remove_complex<ValueType>;
     const auto tidx = item_ct1.get_local_id(2);
@@ -357,13 +336,6 @@ void multinorm2_inf_kernel(
     const auto end_row = ((item_ct1.get_group(1) + 1) * num > num_rows)
                              ? num_rows
                              : (item_ct1.get_group(1) + 1) * num;
-    // Used that way to get around dynamic initialization warning and
-    // template error when using `reduction_helper_array` directly in `reduce`
-
-    rc_vtype* __restrict__ reduction_helper_add = (*reduction_helper_array);
-    rc_vtype* __restrict__ reduction_helper_max =
-        static_cast<rc_vtype*>((*reduction_helper_array)) +
-        default_dot_dim * (default_dot_dim + 1);
     rc_vtype local_res = zero<rc_vtype>();
     rc_vtype local_max = zero<rc_vtype>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
@@ -417,12 +389,10 @@ void multinorm2_inf_kernel(
     remove_complex<ValueType>* norms2, const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<remove_complex<ValueType>,
-                                (1 + compute_inf) *
-                                    default_dot_dim*(default_dot_dim + 1)>,
-            0>
-            reduction_helper_array_acc_ct1(cgh);
+        sycl::local_accessor<remove_complex<ValueType>, 1> reduction_helper_sum(
+            default_dot_dim * (default_dot_dim + 1), cgh);
+        sycl::local_accessor<remove_complex<ValueType>, 1> reduction_helper_max(
+            compute_inf * default_dot_dim * (default_dot_dim + 1), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
@@ -431,20 +401,22 @@ void multinorm2_inf_kernel(
                     multinorm2_inf_kernel<compute_inf>(
                         num_rows, num_cols, next_krylov_basis,
                         stride_next_krylov, norms1, norms2, stop_status,
-                        item_ct1, reduction_helper_array_acc_ct1.get_pointer());
+                        item_ct1, reduction_helper_sum, reduction_helper_max);
                 });
     });
 }
 
 
 template <int dot_dim, typename ValueType, typename Accessor3d>
-void multidot_kernel(
-    size_type num_rows, size_type num_cols,
-    const ValueType* __restrict__ next_krylov_basis,
-    size_type stride_next_krylov, const Accessor3d krylov_bases,
-    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
-    const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, dot_dim * dot_dim>& reduction_helper_array)
+void multidot_kernel(size_type num_rows, size_type num_cols,
+                     const ValueType* __restrict__ next_krylov_basis,
+                     size_type stride_next_krylov,
+                     const Accessor3d krylov_bases,
+                     ValueType* __restrict__ hessenberg_iter,
+                     size_type stride_hessenberg,
+                     const stopping_status* __restrict__ stop_status,
+                     sycl::nd_item<3> item_ct1,
+                     sycl::local_accessor<ValueType, 1> reduction_helper)
 {
     /*
      * In general in this kernel:
@@ -469,10 +441,6 @@ void multidot_kernel(
     const auto end_row =
         min((item_ct1.get_group(1) + 1) * num_rows_per_thread, num_rows);
     const size_type k = item_ct1.get_group(0);
-    // Used that way to get around dynamic initialization warning and
-    // template error when using `reduction_helper_array` directly in `reduce`
-    ValueType* __restrict__ reduction_helper = reduction_helper_array;
-
     ValueType local_res = zero<ValueType>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row; i < end_row;
@@ -511,20 +479,19 @@ void multidot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<uninitialized_array<ValueType, dot_dim * dot_dim>,
-                             0>
-            reduction_helper_array_acc_ct1(cgh);
+        sycl::local_accessor<ValueType, 1> reduction_helper_array(
+            dot_dim * dot_dim, cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(dot_dim)]] {
-                    multidot_kernel<dot_dim>(
-                        num_rows, num_cols, next_krylov_basis,
-                        stride_next_krylov, krylov_bases, hessenberg_iter,
-                        stride_hessenberg, stop_status, item_ct1,
-                        *reduction_helper_array_acc_ct1.get_pointer());
-                });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(dot_dim)]] {
+                                 multidot_kernel<dot_dim>(
+                                     num_rows, num_cols, next_krylov_basis,
+                                     stride_next_krylov, krylov_bases,
+                                     hessenberg_iter, stride_hessenberg,
+                                     stop_status, item_ct1,
+                                     reduction_helper_array);
+                             });
     });
 }
 
@@ -535,7 +502,7 @@ void singledot_kernel(
     size_type stride_next_krylov, const Accessor3d krylov_bases,
     ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
     const stopping_status* __restrict__ stop_status, sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, block_size>& reduction_helper_array)
+    sycl::local_accessor<ValueType, 1> reduction_helper)
 {
     /*
      * In general in this kernel:
@@ -555,10 +522,6 @@ void singledot_kernel(
         item_ct1.get_group(2) * num_rows_per_thread + item_ct1.get_local_id(2);
     const auto end_row =
         min((item_ct1.get_group(2) + 1) * num_rows_per_thread, num_rows);
-    // Used that way to get around dynamic initialization warning and
-    // template error when using `reduction_helper_array` directly in `reduce`
-
-    ValueType* __restrict__ reduction_helper = reduction_helper_array;
 
     ValueType local_res = zero<ValueType>();
     if (!stop_status[col_idx].has_stopped()) {
@@ -574,7 +537,7 @@ void singledot_kernel(
     auto thread_block = group::this_thread_block(item_ct1);
     thread_block.sync();
     ::gko::kernels::dpcpp::reduce(
-        thread_block, reduction_helper,
+        thread_block, &reduction_helper[0],
         [](const ValueType& a, const ValueType& b) { return a + b; });
     if (tidx == 0 && !stop_status[col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
@@ -592,8 +555,8 @@ void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       const stopping_status* stop_status)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<uninitialized_array<ValueType, block_size>, 0>
-            reduction_helper_array_acc_ct1(cgh);
+        sycl::local_accessor<ValueType, 1> reduction_helper_array(block_size,
+                                                                  cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
@@ -602,8 +565,7 @@ void singledot_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     singledot_kernel<block_size>(
                         num_rows, next_krylov_basis, stride_next_krylov,
                         krylov_bases, hessenberg_iter, stride_hessenberg,
-                        stop_status, item_ct1,
-                        *reduction_helper_array_acc_ct1.get_pointer());
+                        stop_status, item_ct1, reduction_helper_array);
                 });
     });
 }
