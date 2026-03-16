@@ -93,8 +93,7 @@ void spmv_kernel(
     const size_type stride, const size_type num_stored_elements_per_row,
     acc::range<b_accessor> b, OutputValueType* __restrict__ c,
     const size_type c_stride, Closure op, sycl::nd_item<3> item_ct1,
-    uninitialized_array<typename a_accessor::arithmetic_type,
-                        default_block_size / num_thread_per_worker>& storage)
+    sycl::local_accessor<typename a_accessor::arithmetic_type, 1> storage)
 {
     using arithmetic_type = typename a_accessor::arithmetic_type;
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -161,14 +160,12 @@ void spmv_kernel(
 
 template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(
-    const size_type num_rows, const int num_worker_per_row,
-    acc::range<a_accessor> val, const IndexType* __restrict__ col,
-    const size_type stride, const size_type num_stored_elements_per_row,
-    acc::range<b_accessor> b, OutputValueType* __restrict__ c,
-    const size_type c_stride, sycl::nd_item<3> item_ct1,
-    uninitialized_array<typename a_accessor::arithmetic_type,
-                        default_block_size / num_thread_per_worker>& storage)
+void spmv(const size_type num_rows, const int num_worker_per_row,
+          acc::range<a_accessor> val, const IndexType* __restrict__ col,
+          const size_type stride, const size_type num_stored_elements_per_row,
+          acc::range<b_accessor> b, OutputValueType* __restrict__ c,
+          const size_type c_stride, sycl::nd_item<3> item_ct1,
+          sycl::local_accessor<typename a_accessor::arithmetic_type> storage)
 {
     spmv_kernel<num_thread_per_worker, atomic>(
         num_rows, num_worker_per_row, val, col, stride,
@@ -189,18 +186,15 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           OutputValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<typename a_accessor::arithmetic_type,
-                                default_block_size / num_thread_per_worker>,
-            0>
-            storage_acc_ct1(cgh);
+        sycl::local_accessor<typename a_accessor::arithmetic_type, 1> storage(
+            default_block_size / num_thread_per_worker, cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              spmv<num_thread_per_worker, atomic>(
                                  num_rows, num_worker_per_row, val, col, stride,
                                  num_stored_elements_per_row, b, c, c_stride,
-                                 item_ct1, *storage_acc_ct1.get_pointer());
+                                 item_ct1, storage);
                          });
     });
 }
@@ -208,15 +202,14 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(
-    const size_type num_rows, const int num_worker_per_row,
-    acc::range<a_accessor> alpha, acc::range<a_accessor> val,
-    const IndexType* __restrict__ col, const size_type stride,
-    const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
-    const OutputValueType* __restrict__ beta, OutputValueType* __restrict__ c,
-    const size_type c_stride, sycl::nd_item<3> item_ct1,
-    uninitialized_array<typename a_accessor::arithmetic_type,
-                        default_block_size / num_thread_per_worker>& storage)
+void spmv(const size_type num_rows, const int num_worker_per_row,
+          acc::range<a_accessor> alpha, acc::range<a_accessor> val,
+          const IndexType* __restrict__ col, const size_type stride,
+          const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
+          const OutputValueType* __restrict__ beta,
+          OutputValueType* __restrict__ c, const size_type c_stride,
+          sycl::nd_item<3> item_ct1,
+          sycl::local_accessor<typename a_accessor::arithmetic_type, 1> storage)
 {
     using arithmetic_type = typename a_accessor::arithmetic_type;
     const auto alpha_val = alpha(0);
@@ -269,19 +262,16 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           OutputValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<typename a_accessor::arithmetic_type,
-                                default_block_size / num_thread_per_worker>,
-            0>
-            storage_acc_ct1(cgh);
+        sycl::local_accessor<typename a_accessor::arithmetic_type, 1> storage(
+            default_block_size / num_thread_per_worker, cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                spmv<num_thread_per_worker, atomic>(
-                    num_rows, num_worker_per_row, alpha, val, col, stride,
-                    num_stored_elements_per_row, b, beta, c, c_stride, item_ct1,
-                    *storage_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             spmv<num_thread_per_worker, atomic>(
+                                 num_rows, num_worker_per_row, alpha, val, col,
+                                 stride, num_stored_elements_per_row, b, beta,
+                                 c, c_stride, item_ct1, storage);
+                         });
     });
 }
 

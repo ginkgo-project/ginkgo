@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,7 +20,6 @@
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/diagonal_block_manipulation.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/components/warp_blas.dp.hpp"
 #include "dpcpp/preconditioner/jacobi_common.hpp"
 
@@ -93,8 +92,7 @@ void generate(
     const ValueType* __restrict__ values, ValueType* __restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
-    sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, max_block_size * warps_per_block>& workspace)
+    sycl::nd_item<3> item_ct1, sycl::local_accessor<ValueType, 1> workspace)
 {
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>(item_ct1);
@@ -129,9 +127,8 @@ void generate(
     const IndexType* block_ptrs, size_type num_blocks)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<ValueType, max_block_size * warps_per_block>, 0>
-            workspace_acc_ct1(cgh);
+        sycl::local_accessor<ValueType, 1> workspace(
+            max_block_size * warps_per_block, cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
@@ -140,7 +137,7 @@ void generate(
                     generate<max_block_size, subwarp_size, warps_per_block>(
                         num_rows, row_ptrs, col_idxs, values, block_data,
                         storage_scheme, block_ptrs, num_blocks, item_ct1,
-                        *workspace_acc_ct1.get_pointer());
+                        workspace);
                 });
     });
 }
@@ -208,8 +205,7 @@ void adaptive_generate(
     remove_complex<ValueType>* __restrict__ conditioning,
     precision_reduction* __restrict__ block_precisions,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks,
-    sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, max_block_size * warps_per_block>& workspace)
+    sycl::nd_item<3> item_ct1, sycl::local_accessor<ValueType, 1> workspace)
 {
     // extract blocks
     const auto block_id =
@@ -313,9 +309,8 @@ void adaptive_generate(
     size_type num_blocks)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<ValueType, max_block_size * warps_per_block>, 0>
-            workspace_acc_ct1(cgh);
+        sycl::local_accessor<ValueType, 1> workspace(
+            max_block_size * warps_per_block, cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1)
@@ -325,8 +320,7 @@ void adaptive_generate(
                                      num_rows, row_ptrs, col_idxs, values,
                                      accuracy, block_data, storage_scheme,
                                      conditioning, block_precisions, block_ptrs,
-                                     num_blocks, item_ct1,
-                                     *workspace_acc_ct1.get_pointer());
+                                     num_blocks, item_ct1, workspace);
                              });
     });
 }

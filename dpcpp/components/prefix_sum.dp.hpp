@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,10 +100,10 @@ __dpct_inline__ void subwarp_prefix_sum(ValueType element,
  *       `block_size`, `finalize_prefix_sum` has to be used as well.
  */
 template <typename DeviceConfig, typename ValueType>
-void start_prefix_sum(
-    size_type num_elements, ValueType* __restrict__ elements,
-    ValueType* __restrict__ block_sum, sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, DeviceConfig::block_size>& prefix_helper)
+void start_prefix_sum(size_type num_elements, ValueType* __restrict__ elements,
+                      ValueType* __restrict__ block_sum,
+                      sycl::nd_item<3> item_ct1,
+                      sycl::local_accessor<ValueType, 1> prefix_helper)
 {
     const auto tidx = thread::get_thread_id_flat(item_ct1);
     const auto element_id = item_ct1.get_local_id(2);
@@ -159,16 +159,14 @@ void start_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       ValueType* elements, ValueType* block_sum)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<ValueType, DeviceConfig::block_size>, 0>
-            prefix_helper_acc_ct1(cgh);
+        sycl::local_accessor<ValueType, 1> prefix_helper(
+            DeviceConfig::block_size, cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             start_prefix_sum<DeviceConfig>(
-                                 num_elements, elements, block_sum, item_ct1,
-                                 *prefix_helper_acc_ct1.get_pointer());
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                start_prefix_sum<DeviceConfig>(
+                    num_elements, elements, block_sum, item_ct1, prefix_helper);
+            });
     });
 }
 

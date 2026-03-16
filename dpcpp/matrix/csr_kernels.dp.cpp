@@ -40,7 +40,6 @@
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/segment_scan.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 
 
 namespace gko {
@@ -306,12 +305,13 @@ __dpct_inline__ void merge_path_search(
 
 template <typename arithmetic_type, typename IndexType,
           typename output_accessor, typename Alpha_op>
-void merge_path_reduce(
-    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
-    const IndexType* __restrict__ last_row, acc::range<output_accessor> c,
-    Alpha_op alpha_op, sycl::nd_item<3> item_ct1,
-    uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
-    uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
+void merge_path_reduce(const IndexType nwarps,
+                       const arithmetic_type* __restrict__ last_val,
+                       const IndexType* __restrict__ last_row,
+                       acc::range<output_accessor> c, Alpha_op alpha_op,
+                       sycl::nd_item<3> item_ct1,
+                       sycl::local_accessor<IndexType, 1> tmp_ind,
+                       sycl::local_accessor<arithmetic_type, 1> tmp_val)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = item_ct1.get_local_id(2);
@@ -338,8 +338,8 @@ void merge_path_reduce(
     tmp_ind[item_ct1.get_local_id(2)] = row;
     group::this_thread_block(item_ct1).sync();
     bool last = block_segment_scan_reverse(
-        static_cast<IndexType*>(tmp_ind),
-        static_cast<arithmetic_type*>(tmp_val), item_ct1);
+        static_cast<IndexType*>(&tmp_ind[0]),
+        static_cast<arithmetic_type*>(&tmp_val[0]), item_ct1);
     group::this_thread_block(item_ct1).sync();
     if (last) {
         c(row, 0) += alpha_op(tmp_val[item_ct1.get_local_id(2)]);
@@ -358,7 +358,7 @@ void merge_path_spmv(
     IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
     Alpha_op alpha_op, Beta_op beta_op, sycl::nd_item<3> item_ct1,
-    IndexType* shared_row_ptrs)
+    sycl::local_accessor<IndexType, 1> shared_row_ptrs)
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     const auto* row_end_ptrs = row_ptrs + 1;
@@ -389,7 +389,7 @@ void merge_path_spmv(
     IndexType start_x;
     IndexType start_y;
     merge_path_search(IndexType(items_per_thread * item_ct1.get_local_id(2)),
-                      block_num_rows, block_num_nonzeros, shared_row_ptrs,
+                      block_num_rows, block_num_nonzeros, &shared_row_ptrs[0],
                       block_start_y, &start_x, &start_y);
 
 
@@ -411,9 +411,9 @@ void merge_path_spmv(
         }
     }
     group::this_thread_block(item_ct1).sync();
-    IndexType* tmp_ind = shared_row_ptrs;
+    IndexType* tmp_ind = &shared_row_ptrs[0];
     arithmetic_type* tmp_val =
-        reinterpret_cast<arithmetic_type*>(shared_row_ptrs + spmv_block_size);
+        reinterpret_cast<arithmetic_type*>(&shared_row_ptrs[spmv_block_size]);
     tmp_val[item_ct1.get_local_id(2)] = value;
     tmp_ind[item_ct1.get_local_id(2)] = row_i;
     group::this_thread_block(item_ct1).sync();
@@ -435,7 +435,8 @@ void abstract_merge_path_spmv(
     acc::range<input_accessor> b, acc::range<output_accessor> c,
     IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
-    sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
+    sycl::nd_item<3> item_ct1,
+    sycl::local_accessor<IndexType, 1> shared_row_ptrs)
 {
     using type = typename output_accessor::arithmetic_type;
     merge_path_spmv<items_per_thread>(
@@ -454,16 +455,14 @@ void abstract_merge_path_spmv(
     IndexType* row_out, typename output_accessor::arithmetic_type* val_out)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<IndexType, 1> shared_row_ptrs_acc_ct1(
-            sycl::range<1>(spmv_block_size * items_per_thread), cgh);
+        sycl::local_accessor<IndexType, 1> shared_row_ptrs(
+            spmv_block_size * items_per_thread, cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              abstract_merge_path_spmv<items_per_thread>(
                                  num_rows, val, col_idxs, row_ptrs, srow, b, c,
-                                 row_out, val_out, item_ct1,
-                                 static_cast<IndexType*>(
-                                     shared_row_ptrs_acc_ct1.get_pointer()));
+                                 row_out, val_out, item_ct1, shared_row_ptrs);
                          });
     });
 }
@@ -480,7 +479,8 @@ void abstract_merge_path_spmv(
     const typename output_accessor::storage_type* __restrict__ beta,
     acc::range<output_accessor> c, IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
-    sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
+    sycl::nd_item<3> item_ct1,
+    sycl::local_accessor<IndexType, 1> shared_row_ptrs)
 {
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = static_cast<type>(alpha[0]);
@@ -514,29 +514,27 @@ void abstract_merge_path_spmv(
     typename output_accessor::arithmetic_type* val_out)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<IndexType, 1> shared_row_ptrs_acc_ct1(
+        sycl::local_accessor<IndexType, 1> shared_row_ptrs(
             sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_merge_path_spmv<items_per_thread>(
-                                 num_rows, alpha, val, col_idxs, row_ptrs, srow,
-                                 b, beta, c, row_out, val_out, item_ct1,
-                                 static_cast<IndexType*>(
-                                     shared_row_ptrs_acc_ct1.get_pointer()));
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                abstract_merge_path_spmv<items_per_thread>(
+                    num_rows, alpha, val, col_idxs, row_ptrs, srow, b, beta, c,
+                    row_out, val_out, item_ct1, shared_row_ptrs);
+            });
     });
 }
 
 
 template <typename arithmetic_type, typename IndexType,
           typename output_accessor>
-void abstract_reduce(
-    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
-    const IndexType* __restrict__ last_row, acc::range<output_accessor> c,
-    sycl::nd_item<3> item_ct1,
-    uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
-    uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
+void abstract_reduce(const IndexType nwarps,
+                     const arithmetic_type* __restrict__ last_val,
+                     const IndexType* __restrict__ last_row,
+                     acc::range<output_accessor> c, sycl::nd_item<3> item_ct1,
+                     sycl::local_accessor<IndexType, 1> tmp_ind,
+                     sycl::local_accessor<arithmetic_type, 1> tmp_val)
 {
     merge_path_reduce(
         nwarps, last_val, last_row, c,
@@ -552,31 +550,27 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      acc::range<output_accessor> c)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<uninitialized_array<IndexType, spmv_block_size>, 0>
-            tmp_ind_acc_ct1(cgh);
-        sycl::local_accessor<
-            uninitialized_array<arithmetic_type, spmv_block_size>, 0>
-            tmp_val_acc_ct1(cgh);
+        sycl::local_accessor<IndexType, 1> tmp_ind(spmv_block_size, cgh);
+        sycl::local_accessor<arithmetic_type, 1> tmp_val(spmv_block_size, cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, c, item_ct1,
-                                *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             abstract_reduce(nwarps, last_val, last_row, c,
+                                             item_ct1, tmp_ind, tmp_val);
+                         });
     });
 }
 
 
 template <typename arithmetic_type, typename MatrixValueType,
           typename IndexType, typename output_accessor>
-void abstract_reduce(
-    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
-    const IndexType* __restrict__ last_row,
-    const MatrixValueType* __restrict__ alpha, acc::range<output_accessor> c,
-    sycl::nd_item<3> item_ct1,
-    uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
-    uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
+void abstract_reduce(const IndexType nwarps,
+                     const arithmetic_type* __restrict__ last_val,
+                     const IndexType* __restrict__ last_row,
+                     const MatrixValueType* __restrict__ alpha,
+                     acc::range<output_accessor> c, sycl::nd_item<3> item_ct1,
+                     sycl::local_accessor<IndexType, 1> tmp_ind,
+                     sycl::local_accessor<arithmetic_type, 1> tmp_val)
 {
     const auto alpha_val = static_cast<arithmetic_type>(alpha[0]);
     merge_path_reduce(
@@ -594,18 +588,14 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      acc::range<output_accessor> c)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<uninitialized_array<IndexType, spmv_block_size>, 0>
-            tmp_ind_acc_ct1(cgh);
-        sycl::local_accessor<
-            uninitialized_array<arithmetic_type, spmv_block_size>, 0>
-            tmp_val_acc_ct1(cgh);
+        sycl::local_accessor<IndexType, 1> tmp_ind(spmv_block_size, cgh);
+        sycl::local_accessor<arithmetic_type, 1> tmp_val(spmv_block_size, cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, alpha, c, item_ct1,
-                                *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             abstract_reduce(nwarps, last_val, last_row, alpha,
+                                             c, item_ct1, tmp_ind, tmp_val);
+                         });
     });
 }
 
@@ -779,11 +769,12 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
 template <typename IndexType>
 void check_unsorted(const IndexType* __restrict__ row_ptrs,
                     const IndexType* __restrict__ col_idxs, IndexType num_rows,
-                    bool* flag, sycl::nd_item<3> item_ct1, bool* sh_flag)
+                    bool* flag, sycl::nd_item<3> item_ct1,
+                    sycl::local_accessor<bool, 0> sh_flag)
 {
     auto block = group::this_thread_block(item_ct1);
     if (block.thread_rank() == 0) {
-        *sh_flag = *flag;
+        sh_flag = *flag;
     }
     block.sync();
 
@@ -793,11 +784,11 @@ void check_unsorted(const IndexType* __restrict__ row_ptrs,
     }
 
     // fail early
-    if ((*sh_flag)) {
+    if (bool(sh_flag)) {
         for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1] - 1; ++nz) {
             if (col_idxs[nz] > col_idxs[nz + 1]) {
                 *flag = false;
-                *sh_flag = false;
+                sh_flag = false;
                 return;
             }
         }
@@ -810,13 +801,13 @@ void check_unsorted(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     const IndexType* col_idxs, IndexType num_rows, bool* flag)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<bool, 0> sh_flag_acc_ct1(cgh);
+        sycl::local_accessor<bool, 0> sh_flag(cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                check_unsorted(row_ptrs, col_idxs, num_rows, flag, item_ct1,
-                               sh_flag_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             check_unsorted(row_ptrs, col_idxs, num_rows, flag,
+                                            item_ct1, sh_flag);
+                         });
     });
 }
 
