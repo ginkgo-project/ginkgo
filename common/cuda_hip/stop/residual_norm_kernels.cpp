@@ -66,8 +66,8 @@ void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
                    matrix::view::dense<const ValueType> orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
                    bool setFinalized, array<stopping_status>& stop_status,
-                   array<bool>& device_storage, bool& all_converged,
-                   bool& one_changed)
+                   array<bool>& device_storage, bool* all_converged,
+                   bool* one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
@@ -86,8 +86,8 @@ void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
     }
 
     /* Represents all_converged, one_changed */
-    all_converged = get_element(device_storage, 0);
-    one_changed = get_element(device_storage, 1);
+    *all_converged = get_element(device_storage, 0);
+    *one_changed = get_element(device_storage, 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
@@ -147,7 +147,7 @@ void implicit_residual_norm(
     matrix::view::dense<const remove_complex<ValueType>> orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, array<stopping_status>& stop_status,
-    array<bool>& device_storage, bool& all_converged, bool& one_changed)
+    array<bool>& device_storage, bool* all_converged, bool* one_changed)
 {
     init_kernel<<<1, 1, 0, exec->get_stream()>>>(
         as_device_type(device_storage.get_data()));
@@ -165,8 +165,8 @@ void implicit_residual_norm(
     }
 
     /* Represents all_converged, one_changed */
-    all_converged = get_element(device_storage, 0);
-    one_changed = get_element(device_storage, 1);
+    *all_converged = get_element(device_storage, 0);
+    *one_changed = get_element(device_storage, 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);

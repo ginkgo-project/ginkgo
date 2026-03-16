@@ -27,8 +27,8 @@ void residual_norm(std::shared_ptr<const OmpExecutor> exec,
                    matrix::view::dense<const ValueType> orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
                    bool setFinalized, array<stopping_status>& stop_status,
-                   array<bool>& device_storage, bool& all_converged,
-                   bool& one_changed)
+                   array<bool>& device_storage, bool* all_converged,
+                   bool* one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
@@ -40,7 +40,7 @@ void residual_norm(std::shared_ptr<const OmpExecutor> exec,
             local_one_changed = true;
         }
     }
-    one_changed = local_one_changed;
+    *one_changed = local_one_changed;
     // No early stopping here because one cannot use break with parallel for
     // But it's parallel so does it matter?
     bool local_all_converged = true;
@@ -50,7 +50,7 @@ void residual_norm(std::shared_ptr<const OmpExecutor> exec,
             local_all_converged = false;
         }
     }
-    all_converged = local_all_converged;
+    *all_converged = local_all_converged;
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
@@ -75,7 +75,7 @@ void implicit_residual_norm(
     matrix::view::dense<const remove_complex<ValueType>> orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
     bool setFinalized, array<stopping_status>& stop_status,
-    array<bool>& device_storage, bool& all_converged, bool& one_changed)
+    array<bool>& device_storage, bool* all_converged, bool* one_changed)
 {
     bool local_one_changed = false;
 #pragma omp parallel for reduction(|| : local_one_changed)
@@ -85,7 +85,7 @@ void implicit_residual_norm(
             local_one_changed = true;
         }
     }
-    one_changed = local_one_changed;
+    *one_changed = local_one_changed;
     // No early stopping here because one cannot use break with parallel for
     // But it's parallel so does it matter?
     bool local_all_converged = true;
@@ -95,7 +95,7 @@ void implicit_residual_norm(
             local_all_converged = false;
         }
     }
-    all_converged = local_all_converged;
+    *all_converged = local_all_converged;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);

@@ -199,8 +199,8 @@ bool ResidualNormBase<ValueType>::check_impl(
     this->get_executor()->run(residual_norm::make_residual_norm(
         dense_tau->get_const_device_view(),
         starting_tau_->get_const_device_view(), reduction_factor_, stopping_id,
-        set_finalized, *stop_status, device_storage_, all_converged,
-        *one_changed));
+        set_finalized, *stop_status, device_storage_, &all_converged,
+        one_changed));
 
     return all_converged;
 }
@@ -224,7 +224,7 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
             dense_tau->get_const_device_view(),
             this->starting_tau_->get_const_device_view(),
             this->reduction_factor_, stopping_id, set_finalized, *stop_status,
-            this->device_storage_, all_converged, *one_changed));
+            this->device_storage_, &all_converged, one_changed));
 
     return all_converged;
 }
