@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,8 @@
 #include <vector>
 
 #include <gtest/gtest.h>
+
+#include "core/test/utils.hpp"
 
 
 TEST(SegmentedRange, WorksByIndex)
@@ -194,18 +196,6 @@ TEST(SegmentedEnumeratedValueRange, WorksByRangeFor)
 
 
 #ifndef NDEBUG
-
-
-bool check_assertion_exit_code(int exit_code)
-{
-#ifdef _MSC_VER
-    // MSVC picks up the exit code incorrectly,
-    // so we can only check that it exits
-    return true;
-#else
-    return exit_code != 0;
-#endif
-}
 
 
 TEST(DeathTest, Assertions)

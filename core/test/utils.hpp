@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -494,5 +494,20 @@ struct TupleTypenameNameGenerator {
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
+
+// Helper function necessary for death tests
+// see https://google.github.io/googletest/advanced.html#death-tests
+inline bool check_assertion_exit_code(int exit_code)
+{
+#ifdef _MSC_VER
+    // MSVC picks up the exit code incorrectly,
+    // so we can only check that it exits
+    return true;
+#else
+    return exit_code != 0;
+#endif
+}
+
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_
