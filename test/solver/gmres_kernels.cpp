@@ -293,25 +293,24 @@ TEST_F(Gmres, GmresKernelMultiAxpyIsEquivalentToRef)
 TEST_F(Gmres, GmresKernelMultiDotIsEquivalentToRef)
 {
     initialize_data();
-
     auto krylov_basis = krylov_bases->create_submatrix(
-        gko::span{
-            0, x->get_size()[0] * (gko::solver::gmres_default_krylov_dim - 1)},
+        gko::span{0, x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
         gko::span{0, x->get_size()[1]});
     auto d_krylov_basis = d_krylov_bases->create_submatrix(
-        gko::span{0, d_x->get_size()[0] *
-                         (gko::solver::gmres_default_krylov_dim - 1)},
+        gko::span{0,
+                  d_x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
         gko::span{0, d_x->get_size()[1]});
     auto next_krylov = krylov_bases->create_submatrix(
         gko::span{
-            x->get_size()[0] * (gko::solver::gmres_default_krylov_dim - 1),
-            x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
+            x->get_size()[0] * gko::solver::gmres_default_krylov_dim,
+            x->get_size()[0] * (gko::solver::gmres_default_krylov_dim + 1)},
         gko::span{0, x->get_size()[1]});
     auto d_next_krylov = d_krylov_bases->create_submatrix(
         gko::span{
-            d_x->get_size()[0] * (gko::solver::gmres_default_krylov_dim - 1),
-            d_x->get_size()[0] * gko::solver::gmres_default_krylov_dim},
+            d_x->get_size()[0] * gko::solver::gmres_default_krylov_dim,
+            d_x->get_size()[0] * (gko::solver::gmres_default_krylov_dim + 1)},
         gko::span{0, d_x->get_size()[1]});
+
     gko::kernels::reference::gmres::multi_dot(
         ref, krylov_basis->get_const_device_view(),
         next_krylov->get_const_device_view(),

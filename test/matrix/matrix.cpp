@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1154,7 +1154,7 @@ TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<typename Mtx::value_type>;
     this->forall_matrix_data_scenarios([&](auto data) {
-        const auto stride = data.size[0] + 2;
+        const auto stride = data.size[1] + 2;
         auto ref_src = Dense::create(this->ref, data.size, stride);
         auto dev_src = Dense::create(this->exec, data.size, stride);
         ref_src->read(data);
@@ -1179,7 +1179,7 @@ TYPED_TEST(Matrix, MoveFromDenseIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<typename Mtx::value_type>;
     this->forall_matrix_data_scenarios([&](auto data) {
-        const auto stride = data.size[0] + 2;
+        const auto stride = data.size[1] + 2;
         auto ref_src = Dense::create(this->ref, data.size, stride);
         auto dev_src = Dense::create(this->exec, data.size, stride);
         ref_src->read(data);

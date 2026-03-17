@@ -18,11 +18,11 @@ TYPED_TEST_SUITE(DenseView, gko::test::ValueTypes, TypenameNameGenerator);
 TYPED_TEST(DenseView, AccessWorks)
 {
     std::vector<TypeParam> values(10);
-    gko::matrix::view::dense<TypeParam> view{gko::dim<2>{1, 2}, 3,
+    gko::matrix::view::dense<TypeParam> view{gko::dim<2>{2, 2}, 3,
                                              values.data()};
     auto const_view = view.as_const();
 
-    ASSERT_EQ(view.size, gko::dim<2>(1, 2));
+    ASSERT_EQ(view.size, gko::dim<2>(2, 2));
     ASSERT_EQ(view.stride, 3);
     ASSERT_EQ(view.values, values.data());
     ASSERT_EQ(&view(0, 0), &values[0]);
