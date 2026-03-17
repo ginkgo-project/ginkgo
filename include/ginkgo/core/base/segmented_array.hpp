@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 
 
 namespace gko {
@@ -24,7 +25,7 @@ namespace gko {
  * \tparam T value type stored in the arrays
  */
 template <typename T>
-struct segmented_array {
+struct GINKGO_EXPORT segmented_array {
     /**
      * Create an empty segmented array
      *

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <deque>
 #include <memory>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -212,7 +213,7 @@ struct criterion_data {
  * parameter, consider implementing a specific logger for this. In addition, it
  * is advised to tune the history size in order to control memory overhead.
  */
-class Record : public Logger {
+class GINKGO_EXPORT Record : public Logger {
 public:
     /**
      * Struct storing the actually logged data

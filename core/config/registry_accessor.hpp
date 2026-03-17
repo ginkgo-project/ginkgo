@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <string>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/config/registry.hpp>
 
 
@@ -16,7 +17,7 @@ namespace config {
 namespace detail {
 
 
-class registry_accessor {
+class GINKGO_EXPORT registry_accessor {
 public:
     template <typename T>
     static inline std::shared_ptr<T> get_data(const registry& reg,

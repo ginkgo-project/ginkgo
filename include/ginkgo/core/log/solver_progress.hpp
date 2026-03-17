@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <iosfwd>
 #include <memory>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -21,7 +22,7 @@ namespace log {
  * stored internally by the solver after each iteration. It needs to be attached
  * to the solver being inspected.
  */
-class SolverProgress : public Logger {
+class GINKGO_EXPORT SolverProgress : public Logger {
 public:
     /**
      * Creates a logger printing the value for all scalar values in the solver

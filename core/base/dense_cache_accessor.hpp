@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
@@ -20,7 +21,7 @@ namespace detail {
 
 
 // helper to access private member for testing
-class GenericDenseCacheAccessor {
+class GINKGO_EXPORT GenericDenseCacheAccessor {
 public:
     // access to the workspace
     static const array<char>& get_workspace(const GenericDenseCache& cache);
@@ -28,7 +29,7 @@ public:
 
 
 // helper to access private member for testing
-class ScalarCacheAccessor {
+class GINKGO_EXPORT ScalarCacheAccessor {
 public:
     // access to the executor
     static std::shared_ptr<const Executor> get_executor(

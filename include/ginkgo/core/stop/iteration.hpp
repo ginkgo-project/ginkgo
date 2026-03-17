@@ -82,7 +82,8 @@ protected:
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<const Iteration::Factory> max_iters(size_type count);
+GINKGO_EXPORT deferred_factory_parameter<const Iteration::Factory> max_iters(
+    size_type count);
 
 
 /**
@@ -110,7 +111,7 @@ deferred_factory_parameter<const Iteration::Factory> max_iters(size_type count);
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<const CriterionFactory> min_iters(
+GINKGO_EXPORT deferred_factory_parameter<const CriterionFactory> min_iters(
     size_type count,
     deferred_factory_parameter<const CriterionFactory> criterion);
 

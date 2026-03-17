@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <string>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 namespace gko {
@@ -36,7 +37,7 @@ namespace config {
  * ```
  * this type will take precedence over the type_descriptor.
  */
-class type_descriptor final {
+class GINKGO_EXPORT type_descriptor final {
 public:
     /**
      * type_descriptor constructor. There is free function
@@ -91,7 +92,7 @@ private:
  */
 template <typename ValueType = double, typename IndexType = int32,
           typename GlobalIndexType = int64>
-type_descriptor make_type_descriptor();
+GINKGO_EXPORT type_descriptor make_type_descriptor();
 
 
 }  // namespace config

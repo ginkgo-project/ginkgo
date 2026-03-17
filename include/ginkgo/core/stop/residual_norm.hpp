@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <limits>
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -255,28 +256,28 @@ protected:
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<CriterionFactory> absolute_residual_norm(
-    double tolerance);
+GINKGO_EXPORT deferred_factory_parameter<CriterionFactory>
+absolute_residual_norm(double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> relative_residual_norm(
-    double tolerance);
+GINKGO_EXPORT deferred_factory_parameter<CriterionFactory>
+relative_residual_norm(double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> initial_residual_norm(
-    double tolerance);
+GINKGO_EXPORT deferred_factory_parameter<CriterionFactory>
+initial_residual_norm(double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> absolute_implicit_residual_norm(
-    double tolerance);
+GINKGO_EXPORT deferred_factory_parameter<CriterionFactory>
+absolute_implicit_residual_norm(double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> relative_implicit_residual_norm(
-    double tolerance);
+GINKGO_EXPORT deferred_factory_parameter<CriterionFactory>
+relative_implicit_residual_norm(double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> initial_implicit_residual_norm(
-    double tolerance);
+GINKGO_EXPORT deferred_factory_parameter<CriterionFactory>
+initial_implicit_residual_norm(double tolerance);
 
 
 // The following classes are deprecated, but they internally reference

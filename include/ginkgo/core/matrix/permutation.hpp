@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -72,19 +72,19 @@ enum class permute_mode : unsigned {
 
 
 /** Combines two permutation modes. */
-permute_mode operator|(permute_mode a, permute_mode b);
+GINKGO_EXPORT permute_mode operator|(permute_mode a, permute_mode b);
 
 
 /** Computes the intersection of two permutation modes. */
-permute_mode operator&(permute_mode a, permute_mode b);
+GINKGO_EXPORT permute_mode operator&(permute_mode a, permute_mode b);
 
 
 /** Computes the symmetric difference of two permutation modes. */
-permute_mode operator^(permute_mode a, permute_mode b);
+GINKGO_EXPORT permute_mode operator^(permute_mode a, permute_mode b);
 
 
 /** Prints a permutation mode. */
-std::ostream& operator<<(std::ostream& stream, permute_mode mode);
+GINKGO_EXPORT std::ostream& operator<<(std::ostream& stream, permute_mode mode);
 
 
 using mask_type = gko::uint64;

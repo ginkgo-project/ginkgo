@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -317,7 +317,7 @@ inline void write(
  * @param os  output stream where the data is to be written
  * @param matrix  the matrix to write
  */
-void write(std::ostream& os, ptr_param<const LinOp> matrix);
+GINKGO_EXPORT void write(std::ostream& os, ptr_param<const LinOp> matrix);
 
 
 /**

@@ -92,7 +92,7 @@ private:
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<Time::Factory> time_limit(
+GINKGO_EXPORT deferred_factory_parameter<Time::Factory> time_limit(
     std::chrono::nanoseconds duration);
 
 

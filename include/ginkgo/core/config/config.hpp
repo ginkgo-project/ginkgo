@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
@@ -194,7 +195,7 @@ class pnode;
  * @return a deferred_factory_parameter which creates an LinOpFactory after
  *         `.on(exec)` is called on it.
  */
-deferred_factory_parameter<gko::LinOpFactory> parse(
+GINKGO_EXPORT deferred_factory_parameter<gko::LinOpFactory> parse(
     const pnode& config, const registry& context,
     const type_descriptor& td = make_type_descriptor<>());
 

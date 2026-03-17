@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -51,7 +52,8 @@ enum class ortho_method {
 };
 
 /** Prints an orthogonalization method. */
-std::ostream& operator<<(std::ostream& stream, ortho_method ortho);
+GINKGO_EXPORT std::ostream& operator<<(std::ostream& stream,
+                                       ortho_method ortho);
 
 }  // namespace gmres
 

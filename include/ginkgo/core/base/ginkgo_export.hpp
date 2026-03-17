@@ -26,6 +26,7 @@
 #define GINKGO_EXPORT __attribute__((visibility("default")))
 #endif
 #endif
+#endif
 
 #ifndef GINKGO_NO_EXPORT
 #define GINKGO_NO_EXPORT __attribute__((visibility("hidden")))

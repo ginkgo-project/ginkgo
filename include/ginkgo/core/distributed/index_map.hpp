@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 #define GKO_PUBLIC_CORE_DISTRIBUTED_INDEX_MAP_HPP_
 
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 
@@ -65,7 +66,7 @@ enum class index_space {
  * \tparam GlobalIndexType  type for global indices
  */
 template <typename LocalIndexType, typename GlobalIndexType = int64>
-class index_map {
+class GINKGO_EXPORT index_map {
 public:
     using partition_type = Partition<LocalIndexType, GlobalIndexType>;
 

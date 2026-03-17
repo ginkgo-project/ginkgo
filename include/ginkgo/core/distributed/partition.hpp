@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -77,10 +78,11 @@ namespace distributed {
  * @ingroup distributed
  */
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Partition : public EnablePolymorphicObject<
-                      Partition<LocalIndexType, GlobalIndexType>>,
-                  public EnablePolymorphicAssignment<
-                      Partition<LocalIndexType, GlobalIndexType>> {
+class GINKGO_EXPORT Partition
+    : public EnablePolymorphicObject<
+          Partition<LocalIndexType, GlobalIndexType>>,
+      public EnablePolymorphicAssignment<
+          Partition<LocalIndexType, GlobalIndexType>> {
     friend class EnablePolymorphicObject<Partition>;
     static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
                   "GlobalIndexType must be at least as large as "

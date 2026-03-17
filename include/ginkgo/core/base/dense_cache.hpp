@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 
 
 namespace gko {
@@ -44,7 +45,7 @@ namespace detail {
  *            not be copied when the outer object gets copied.
  */
 template <typename ValueType>
-struct DenseCache {
+struct GINKGO_EXPORT DenseCache {
     DenseCache() = default;
     ~DenseCache() = default;
     DenseCache(const DenseCache&) {}
@@ -113,7 +114,7 @@ class GenericDenseCacheAccessor;
  * @internal  The struct is present to wrap cache-like buffer storage that will
  *            not be copied when the outer object gets copied.
  */
-struct GenericDenseCache {
+struct GINKGO_EXPORT GenericDenseCache {
     friend class GenericDenseCacheAccessor;
 
     GenericDenseCache() = default;
@@ -151,7 +152,7 @@ class ScalarCacheAccessor;
  * @internal  The struct is present to wrap cache-like buffer storage that will
  *            not be copied when the outer object gets copied.
  */
-struct ScalarCache {
+struct GINKGO_EXPORT ScalarCache {
     friend class ScalarCacheAccessor;
 
     ScalarCache(std::shared_ptr<const Executor> executor, double scalar_value);

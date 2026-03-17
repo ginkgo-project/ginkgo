@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/reorder/mc64.hpp>
 
@@ -61,16 +62,16 @@ namespace mc64 {
 
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_MC64_INITIALIZE_WEIGHTS(ValueType, IndexType);
+GINKGO_EXPORT GKO_DECLARE_MC64_INITIALIZE_WEIGHTS(ValueType, IndexType);
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_MC64_INITIAL_MATCHING(ValueType, IndexType);
+GINKGO_EXPORT GKO_DECLARE_MC64_INITIAL_MATCHING(ValueType, IndexType);
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH(ValueType, IndexType);
+GINKGO_EXPORT GKO_DECLARE_MC64_SHORTEST_AUGMENTING_PATH(ValueType, IndexType);
 
 template <typename ValueType, typename IndexType>
-GKO_DECLARE_MC64_COMPUTE_SCALING(ValueType, IndexType);
+GINKGO_EXPORT GKO_DECLARE_MC64_COMPUTE_SCALING(ValueType, IndexType);
 
 
 }  // namespace mc64

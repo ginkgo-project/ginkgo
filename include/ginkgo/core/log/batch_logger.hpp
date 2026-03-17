@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <memory>
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
@@ -30,7 +31,7 @@ namespace detail {
  * @note Supports only single rhs
  */
 template <typename ValueType>
-struct log_data final {
+struct GINKGO_EXPORT log_data final {
     using real_type = remove_complex<ValueType>;
     using index_type = int;
 
@@ -67,7 +68,7 @@ struct log_data final {
  * @ingroup log
  */
 template <typename ValueType = default_precision>
-class BatchConvergence final : public gko::log::Logger {
+class GINKGO_EXPORT BatchConvergence final : public gko::log::Logger {
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

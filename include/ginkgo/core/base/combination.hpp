@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <vector>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
@@ -28,9 +29,10 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Combination : public EnableLinOp<Combination<ValueType>>,
-                    public EnableCreateMethod<Combination<ValueType>>,
-                    public Transposable {
+class GINKGO_EXPORT Combination
+    : public EnableLinOp<Combination<ValueType>>,
+      public EnableCreateMethod<Combination<ValueType>>,
+      public Transposable {
     friend class EnablePolymorphicObject<Combination, LinOp>;
     friend class EnableCreateMethod<Combination>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;

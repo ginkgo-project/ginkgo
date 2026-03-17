@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2024 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 #include <utility>
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -661,7 +662,7 @@ private:
  * @tparam IndexType  the type of indices and values in the underlying array.
  */
 template <typename IndexType>
-class range_minimum_query {
+class GINKGO_EXPORT range_minimum_query {
 public:
     constexpr static int block_size = 8;
     constexpr static int block_argmin_num_bits =

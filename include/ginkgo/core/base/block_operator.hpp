@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 
@@ -73,7 +74,7 @@ struct value_span {
  * BlockOperator, which will requires copying any block that is associated with
  * a different executor.
  */
-class BlockOperator final : public EnableLinOp<BlockOperator> {
+class GINKGO_EXPORT BlockOperator final : public EnableLinOp<BlockOperator> {
     friend class EnablePolymorphicObject<BlockOperator, LinOp>;
 
 public:

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
@@ -47,7 +48,8 @@ namespace preconditioner {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Jacobi final : public EnableBatchLinOp<Jacobi<ValueType, IndexType>> {
+class GINKGO_EXPORT Jacobi final
+    : public EnableBatchLinOp<Jacobi<ValueType, IndexType>> {
     friend class EnableBatchLinOp<Jacobi>;
     friend class EnablePolymorphicObject<Jacobi, BatchLinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;

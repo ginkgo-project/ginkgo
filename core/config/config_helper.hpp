@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 #include <type_traits>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -80,7 +81,7 @@ enum class LinOpFactoryType : int {
  * implementation needs to deal with the template selection.
  */
 template <LinOpFactoryType flag>
-deferred_factory_parameter<gko::LinOpFactory> parse(
+GINKGO_EXPORT deferred_factory_parameter<gko::LinOpFactory> parse(
     const pnode& config, const registry& context,
     const type_descriptor& td = make_type_descriptor<>());
 

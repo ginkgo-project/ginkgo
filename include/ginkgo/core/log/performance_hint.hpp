@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <iostream>
 #include <unordered_map>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -26,7 +27,7 @@ namespace log {
  *
  * @ingroup log
  */
-class PerformanceHint : public Logger {
+class GINKGO_EXPORT PerformanceHint : public Logger {
 public:
     void on_allocation_completed(const Executor* exec,
                                  const size_type& num_bytes,

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,6 +14,7 @@
 #include <utility>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
@@ -164,7 +165,7 @@ inline std::shared_ptr<Type> allowed_ptr::get() const
  * Additionally, users can provide mappings from a configuration (provided as
  * a pnode) to user-defined types that are derived from LinOpFactory
  */
-class registry final {
+class GINKGO_EXPORT registry final {
 public:
     friend class detail::registry_accessor;
 

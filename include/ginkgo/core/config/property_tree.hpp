@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,6 +14,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
+
 
 namespace gko {
 namespace config {
@@ -25,7 +27,7 @@ namespace config {
  * A pnode can either be empty, hold a value (a string, integer, real, or bool),
  * contain an array of pnode., or contain a mapping between strings and pnodes.
  */
-class pnode final {
+class GINKGO_EXPORT pnode final {
 public:
     using key_type = std::string;
     using map_type = std::map<key_type, pnode>;

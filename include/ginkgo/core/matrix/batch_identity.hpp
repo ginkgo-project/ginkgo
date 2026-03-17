@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -29,7 +30,8 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Identity final : public EnableBatchLinOp<Identity<ValueType>> {
+class GINKGO_EXPORT Identity final
+    : public EnableBatchLinOp<Identity<ValueType>> {
     friend class EnablePolymorphicObject<Identity, BatchLinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 

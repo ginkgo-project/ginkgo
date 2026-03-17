@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <memory>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -35,8 +36,9 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Perturbation : public EnableLinOp<Perturbation<ValueType>>,
-                     public EnableCreateMethod<Perturbation<ValueType>> {
+class GINKGO_EXPORT Perturbation
+    : public EnableLinOp<Perturbation<ValueType>>,
+      public EnableCreateMethod<Perturbation<ValueType>> {
     friend class EnablePolymorphicObject<Perturbation, LinOp>;
     friend class EnableCreateMethod<Perturbation>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;

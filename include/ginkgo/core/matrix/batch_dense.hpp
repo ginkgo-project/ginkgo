@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -45,14 +46,15 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
+class GINKGO_EXPORT Dense final
+    : public EnableBatchLinOp<Dense<ValueType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-                    public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
+      public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-                    public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
+      public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
 #endif
-                    public ConvertibleTo<Dense<next_precision<ValueType>>> {
+      public ConvertibleTo<Dense<next_precision<ValueType>>> {
     friend class EnablePolymorphicObject<Dense, BatchLinOp>;
     friend class Dense<to_complex<ValueType>>;
     friend class Dense<previous_precision<ValueType>>;

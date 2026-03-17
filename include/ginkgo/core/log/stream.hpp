@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 
+#include <ginkgo/core/base/ginkgo_export.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -27,7 +28,7 @@ namespace log {
  * @ingroup log
  */
 template <typename ValueType = default_precision>
-class Stream : public Logger {
+class GINKGO_EXPORT Stream : public Logger {
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
