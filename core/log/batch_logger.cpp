@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -63,7 +63,7 @@ log_data<ValueType>::log_data(std::shared_ptr<const Executor> exec,
     }
 }
 
-#define GKO_DECLARE_LOG_DATA(_type) struct log_data<_type>
+#define GKO_DECLARE_LOG_DATA(ValueType) struct log_data<ValueType>
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(GKO_DECLARE_LOG_DATA);
 
@@ -91,7 +91,8 @@ void BatchConvergence<ValueType>::on_batch_solver_completed(
 }
 
 
-#define GKO_DECLARE_BATCH_CONVERGENCE(_type) class BatchConvergence<_type>
+#define GKO_DECLARE_BATCH_CONVERGENCE(ValueType) \
+    class BatchConvergence<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CONVERGENCE);
 
 

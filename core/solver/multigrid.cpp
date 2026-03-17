@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -970,7 +970,7 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
             this->template create_workspace_array<stopping_status>(
                 ws::stop, b->get_size()[1]);
         bool one_changed{};
-        exec->run(multigrid::make_initialize(&stop_status));
+        exec->run(multigrid::make_initialize(stop_status));
         auto stop_criterion = this->get_stop_criterion_factory()->generate(
             this->get_system_matrix(),
             std::shared_ptr<const LinOp>(b, null_deleter<const LinOp>{}), x,

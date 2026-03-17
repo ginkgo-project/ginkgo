@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -167,7 +167,7 @@ void Combination<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
-#define GKO_DECLARE_COMBINATION(_type) class Combination<_type>
+#define GKO_DECLARE_COMBINATION(ValueType) class Combination<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMBINATION);
 
 

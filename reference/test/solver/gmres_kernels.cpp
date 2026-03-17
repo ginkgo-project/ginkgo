@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -154,9 +154,10 @@ TYPED_TEST(Gmres, KernelInitialize)
     expected_sin_cos->fill(gko::zero<T>());
 
     gko::kernels::reference::common_gmres::initialize(
-        this->exec, this->small_b.get(), this->small_residual.get(),
-        this->small_givens_sin.get(), this->small_givens_cos.get(),
-        this->small_stop.get_data());
+        this->exec, this->small_b->get_const_device_view(),
+        this->small_residual->get_device_view(),
+        this->small_givens_sin->get_device_view(),
+        this->small_givens_cos->get_device_view(), this->small_stop.get_data());
 
     GKO_ASSERT_MTX_NEAR(this->small_residual, this->small_b, 0);
     GKO_ASSERT_MTX_NEAR(this->small_givens_sin, expected_sin_cos, 0);
@@ -192,9 +193,11 @@ TYPED_TEST(Gmres, KernelRestart)
     }
 
     gko::kernels::reference::gmres::restart(
-        this->exec, this->small_residual.get(), this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(),
-        this->small_krylov_bases.get(), this->small_final_iter_nums.get_data());
+        this->exec, this->small_residual->get_const_device_view(),
+        this->small_residual_norm->get_const_device_view(),
+        this->small_residual_norm_collection->get_device_view(),
+        this->small_krylov_bases->get_device_view(),
+        this->small_final_iter_nums.get_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_size(),
               this->small_residual_norm_collection->get_size()[1]);
@@ -236,10 +239,12 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter0)
                         this->small_hessenberg->get_values()),
         hessenberg_iter_cols);
     gko::kernels::reference::common_gmres::hessenberg_qr(
-        this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
-        this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(), hessenberg_reshape.get(),
-        iteration, this->small_final_iter_nums.get_data(),
+        this->exec, this->small_givens_sin->get_device_view(),
+        this->small_givens_cos->get_device_view(),
+        this->small_residual_norm->get_device_view(),
+        this->small_residual_norm_collection->get_device_view(),
+        hessenberg_reshape->get_device_view(), iteration,
+        this->small_final_iter_nums.get_data(),
         this->small_stop.get_const_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 1);
@@ -288,10 +293,12 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter1)
                         this->small_hessenberg->get_values()),
         hessenberg_iter_cols);
     gko::kernels::reference::common_gmres::hessenberg_qr(
-        this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
-        this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(), hessenberg_reshape.get(),
-        iteration, this->small_final_iter_nums.get_data(),
+        this->exec, this->small_givens_sin->get_device_view(),
+        this->small_givens_cos->get_device_view(),
+        this->small_residual_norm->get_device_view(),
+        this->small_residual_norm_collection->get_device_view(),
+        hessenberg_reshape->get_device_view(), iteration,
+        this->small_final_iter_nums.get_data(),
         this->small_stop.get_const_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 2);
@@ -331,8 +338,10 @@ TYPED_TEST(Gmres, KernelSolveKrylov)
         gko::initialize<Mtx>({I<T>{12, 3}, I<T>{-3, 15}}, this->exec);
 
     gko::kernels::reference::common_gmres::solve_krylov(
-        this->exec, this->small_residual_norm_collection.get(),
-        this->small_hessenberg.get(), this->small_y.get(),
+        this->exec,
+        this->small_residual_norm_collection->get_const_device_view(),
+        this->small_hessenberg->get_const_device_view(),
+        this->small_y->get_device_view(),
         this->small_final_iter_nums.get_const_data(),
         this->small_stop.get_const_data());
 
@@ -369,8 +378,10 @@ TYPED_TEST(Gmres, KernelMultiAxpy)
     expected_stop.stop(7, true);
 
     gko::kernels::reference::gmres::multi_axpy(
-        this->exec, this->small_krylov_bases.get(), this->small_y.get(),
-        this->small_x.get(), this->small_final_iter_nums.get_const_data(),
+        this->exec, this->small_krylov_bases->get_const_device_view(),
+        this->small_y->get_const_device_view(),
+        this->small_x->get_device_view(),
+        this->small_final_iter_nums.get_const_data(),
         this->small_stop.get_data());
 
     ASSERT_EQ(this->small_stop.get_const_data()[0], expected_stop);
@@ -410,8 +421,9 @@ TYPED_TEST(Gmres, KernelMultiDot)
         },
         this->exec);
     gko::kernels::reference::gmres::multi_dot(
-        this->exec, this->small_krylov_bases.get(), this->small_x.get(),
-        hessenberg_iter.get());
+        this->exec, this->small_krylov_bases->get_const_device_view(),
+        this->small_x->get_const_device_view(),
+        hessenberg_iter->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(hessenberg_iter,
                         l({{-3.8, -48.6}, {-23.6, -65.1}, {0.0, 0.0}}),

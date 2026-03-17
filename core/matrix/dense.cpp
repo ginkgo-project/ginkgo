@@ -112,8 +112,9 @@ void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(
-                dense::make_simple_apply(this, dense_b, dense_x));
+            this->get_executor()->run(dense::make_simple_apply(
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -126,7 +127,10 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             this->get_executor()->run(dense::make_apply(
-                dense_alpha, this, dense_b, dense_beta, dense_x));
+                dense_alpha->get_const_device_view(),
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_beta->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         alpha, b, beta, x);
 }
@@ -135,7 +139,7 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 template <typename ValueType>
 void Dense<ValueType>::fill(const ValueType value)
 {
-    this->get_executor()->run(dense::make_fill(this, value));
+    this->get_executor()->run(dense::make_fill(this->get_device_view(), value));
 }
 
 
@@ -235,14 +239,17 @@ void Dense<ValueType>::inv_scale_impl(const LinOp* alpha)
         is_complex<ValueType>()) {
         // use the real-complex kernel
         exec->run(dense::make_inv_scale(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
-            dynamic_cast<complex_type*>(this)));
+            make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                ->get_const_device_view(),
+            dynamic_cast<complex_type*>(this)->get_device_view()));
         // this last cast is a no-op for complex value type and the branch is
         // never taken for real value type
     } else {
         // otherwise: use the normal kernel
-        exec->run(dense::make_inv_scale(
-            make_temporary_conversion<ValueType>(alpha).get(), this));
+        exec->run(
+            dense::make_inv_scale(make_temporary_conversion<ValueType>(alpha)
+                                      ->get_const_device_view(),
+                                  this->get_device_view()));
     }
 }
 
@@ -261,14 +268,16 @@ void Dense<ValueType>::scale_impl(const LinOp* alpha)
         is_complex<ValueType>()) {
         // use the real-complex kernel
         exec->run(dense::make_scale(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
-            dynamic_cast<complex_type*>(this)));
+            make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                ->get_const_device_view(),
+            dynamic_cast<complex_type*>(this)->get_device_view()));
         // this last cast is a no-op for complex value type and the branch is
         // never taken for real value type
     } else {
         // otherwise: use the normal kernel
-        exec->run(dense::make_scale(
-            make_temporary_conversion<ValueType>(alpha).get(), this));
+        exec->run(dense::make_scale(make_temporary_conversion<ValueType>(alpha)
+                                        ->get_const_device_view(),
+                                    this->get_device_view()));
     }
 }
 
@@ -288,18 +297,25 @@ void Dense<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
     if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
         is_complex<ValueType>()) {
         exec->run(dense::make_add_scaled(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
-            make_temporary_conversion<to_complex<ValueType>>(b).get(),
-            dynamic_cast<complex_type*>(this)));
+            make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                ->get_const_device_view(),
+            make_temporary_conversion<to_complex<ValueType>>(b)
+                ->get_const_device_view(),
+            dynamic_cast<complex_type*>(this)->get_device_view()));
     } else {
         if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
             exec->run(dense::make_add_scaled_diag(
-                make_temporary_conversion<ValueType>(alpha).get(),
-                dynamic_cast<const Diagonal<ValueType>*>(b), this));
+                make_temporary_conversion<ValueType>(alpha)
+                    ->get_const_device_view(),
+                dynamic_cast<const Diagonal<ValueType>*>(b),
+                this->get_device_view()));
         } else {
             exec->run(dense::make_add_scaled(
-                make_temporary_conversion<ValueType>(alpha).get(),
-                make_temporary_conversion<ValueType>(b).get(), this));
+                make_temporary_conversion<ValueType>(alpha)
+                    ->get_const_device_view(),
+                make_temporary_conversion<ValueType>(b)
+                    ->get_const_device_view(),
+                this->get_device_view()));
         }
     }
 }
@@ -319,18 +335,25 @@ void Dense<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
     if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
         is_complex<ValueType>()) {
         exec->run(dense::make_sub_scaled(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha).get(),
-            make_temporary_conversion<to_complex<ValueType>>(b).get(),
-            dynamic_cast<complex_type*>(this)));
+            make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                ->get_const_device_view(),
+            make_temporary_conversion<to_complex<ValueType>>(b)
+                ->get_const_device_view(),
+            dynamic_cast<complex_type*>(this)->get_device_view()));
     } else {
         if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
             exec->run(dense::make_sub_scaled_diag(
-                make_temporary_conversion<ValueType>(alpha).get(),
-                dynamic_cast<const Diagonal<ValueType>*>(b), this));
+                make_temporary_conversion<ValueType>(alpha)
+                    ->get_const_device_view(),
+                dynamic_cast<const Diagonal<ValueType>*>(b),
+                this->get_device_view()));
         } else {
             exec->run(dense::make_sub_scaled(
-                make_temporary_conversion<ValueType>(alpha).get(),
-                make_temporary_conversion<ValueType>(b).get(), this));
+                make_temporary_conversion<ValueType>(alpha)
+                    ->get_const_device_view(),
+                make_temporary_conversion<ValueType>(b)
+                    ->get_const_device_view(),
+                this->get_device_view()));
         }
     }
 }
@@ -352,8 +375,9 @@ void Dense<ValueType>::compute_dot(ptr_param<const LinOp> b,
     auto local_res = make_temporary_clone(exec, result);
     auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
     auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
-    exec->run(
-        dense::make_compute_dot(this, dense_b.get(), dense_res.get(), tmp));
+    exec->run(dense::make_compute_dot(this->get_const_device_view(),
+                                      dense_b->get_const_device_view(),
+                                      dense_res->get_device_view(), tmp));
 }
 
 
@@ -366,8 +390,9 @@ void Dense<ValueType>::compute_dot_impl(const LinOp* b, LinOp* result) const
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
     array<char> tmp{exec};
-    exec->run(
-        dense::make_compute_dot(this, dense_b.get(), dense_res.get(), tmp));
+    exec->run(dense::make_compute_dot(this->get_const_device_view(),
+                                      dense_b->get_const_device_view(),
+                                      dense_res->get_device_view(), tmp));
 }
 
 
@@ -387,8 +412,9 @@ void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
     auto local_res = make_temporary_clone(exec, result);
     auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
     auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
-    exec->run(dense::make_compute_conj_dot(this, dense_b.get(), dense_res.get(),
-                                           tmp));
+    exec->run(dense::make_compute_conj_dot(this->get_const_device_view(),
+                                           dense_b->get_const_device_view(),
+                                           dense_res->get_device_view(), tmp));
 }
 
 
@@ -402,8 +428,9 @@ void Dense<ValueType>::compute_conj_dot_impl(const LinOp* b,
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
     array<char> tmp{exec};
-    exec->run(dense::make_compute_conj_dot(this, dense_b.get(), dense_res.get(),
-                                           tmp));
+    exec->run(dense::make_compute_conj_dot(this->get_const_device_view(),
+                                           dense_b->get_const_device_view(),
+                                           dense_res->get_device_view(), tmp));
 }
 
 
@@ -420,7 +447,8 @@ void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result,
     auto local_result = make_temporary_clone(exec, result);
     auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
         local_result.get());
-    exec->run(dense::make_compute_norm2(this, dense_res.get(), tmp));
+    exec->run(dense::make_compute_norm2(this->get_const_device_view(),
+                                        dense_res->get_device_view(), tmp));
 }
 
 
@@ -432,7 +460,8 @@ void Dense<ValueType>::compute_norm2_impl(LinOp* result) const
     auto dense_res =
         make_temporary_conversion<remove_complex<ValueType>>(result);
     array<char> tmp{exec};
-    exec->run(dense::make_compute_norm2(this, dense_res.get(), tmp));
+    exec->run(dense::make_compute_norm2(this->get_const_device_view(),
+                                        dense_res->get_device_view(), tmp));
 }
 
 
@@ -449,7 +478,8 @@ void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result,
     auto local_result = make_temporary_clone(exec, result);
     auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
         local_result.get());
-    exec->run(dense::make_compute_norm1(this, dense_res.get(), tmp));
+    exec->run(dense::make_compute_norm1(this->get_const_device_view(),
+                                        dense_res->get_device_view(), tmp));
 }
 
 
@@ -461,7 +491,8 @@ void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
     auto dense_res =
         make_temporary_conversion<remove_complex<ValueType>>(result);
     array<char> tmp{exec};
-    exec->run(dense::make_compute_norm1(this, dense_res.get(), tmp));
+    exec->run(dense::make_compute_norm1(this->get_const_device_view(),
+                                        dense_res->get_device_view(), tmp));
 }
 
 
@@ -478,7 +509,8 @@ void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
     auto local_result = make_temporary_clone(exec, result);
     auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
         local_result.get());
-    exec->run(dense::make_compute_squared_norm2(this, dense_res.get(), tmp));
+    exec->run(dense::make_compute_squared_norm2(
+        this->get_const_device_view(), dense_res->get_device_view(), tmp));
 }
 
 
@@ -501,7 +533,8 @@ void Dense<ValueType>::compute_mean(ptr_param<LinOp> result,
         tmp.set_executor(exec);
     }
     auto dense_res = make_temporary_conversion<ValueType>(result);
-    exec->run(dense::make_compute_mean(this, dense_res.get(), tmp));
+    exec->run(dense::make_compute_mean(this->get_const_device_view(),
+                                       dense_res->get_device_view(), tmp));
 }
 
 
@@ -547,7 +580,8 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
                   make_array_view(exec, exec_values_array->get_size(),
                                   exec_values_array->get_data()),
                   this->get_stride()};
-        exec->run(dense::make_copy(&other, &exec_this_view));
+        exec->run(dense::make_copy(other.get_const_device_view(),
+                                   exec_this_view.get_device_view()));
     }
     return *this;
 }
@@ -592,7 +626,8 @@ void Dense<ValueType>::convert_to(
     }
     auto exec = this->get_executor();
     exec->run(dense::make_copy(
-        this, make_temporary_output_clone(exec, result).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
@@ -616,7 +651,8 @@ void Dense<ValueType>::convert_to(
     }
     auto exec = this->get_executor();
     exec->run(dense::make_copy(
-        this, make_temporary_output_clone(exec, result).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
@@ -641,7 +677,8 @@ void Dense<ValueType>::convert_to(
     }
     auto exec = this->get_executor();
     exec->run(dense::make_copy(
-        this, make_temporary_output_clone(exec, result).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
@@ -661,14 +698,15 @@ void Dense<ValueType>::convert_impl(Coo<ValueType, IndexType>* result) const
     const auto num_rows = this->get_size()[0];
 
     array<int64> row_ptrs{exec, num_rows + 1};
-    exec->run(dense::make_count_nonzeros_per_row(this, row_ptrs.get_data()));
+    exec->run(dense::make_count_nonzeros_per_row(this->get_const_device_view(),
+                                                 row_ptrs.get_data()));
     exec->run(
         dense::make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
     const auto nnz = get_element(row_ptrs, num_rows);
     result->resize(this->get_size(), nnz);
-    exec->run(
-        dense::make_convert_to_coo(this, row_ptrs.get_const_data(),
-                                   make_temporary_clone(exec, result).get()));
+    exec->run(dense::make_convert_to_coo(
+        this->get_const_device_view(), row_ptrs.get_const_data(),
+        make_temporary_clone(exec, result).get()));
 }
 
 
@@ -709,8 +747,8 @@ void Dense<ValueType>::convert_impl(Csr<ValueType, IndexType>* result) const
         const auto num_rows = this->get_size()[0];
         auto tmp = make_temporary_clone(exec, result);
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
-        exec->run(
-            dense::make_count_nonzeros_per_row(this, tmp->get_row_ptrs()));
+        exec->run(dense::make_count_nonzeros_per_row(
+            this->get_const_device_view(), tmp->get_row_ptrs()));
         exec->run(dense::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
                                                      num_rows + 1));
         const auto nnz =
@@ -718,7 +756,8 @@ void Dense<ValueType>::convert_impl(Csr<ValueType, IndexType>* result) const
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
-        exec->run(dense::make_convert_to_csr(this, tmp.get()));
+        exec->run(dense::make_convert_to_csr(this->get_const_device_view(),
+                                             tmp.get()));
     }
     result->make_srow();
 }
@@ -762,8 +801,8 @@ void Dense<ValueType>::convert_impl(Fbcsr<ValueType, IndexType>* result) const
     const auto col_blocks = detail::get_num_blocks(bs, this->get_size()[1]);
     auto tmp = make_temporary_clone(exec, result);
     tmp->row_ptrs_.resize_and_reset(row_blocks + 1);
-    exec->run(dense::make_count_nonzero_blocks_per_row(this, bs,
-                                                       tmp->get_row_ptrs()));
+    exec->run(dense::make_count_nonzero_blocks_per_row(
+        this->get_const_device_view(), bs, tmp->get_row_ptrs()));
     exec->run(dense::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
                                                  row_blocks + 1));
     const auto nnz_blocks =
@@ -772,7 +811,8 @@ void Dense<ValueType>::convert_impl(Fbcsr<ValueType, IndexType>* result) const
     tmp->values_.resize_and_reset(nnz_blocks * bs * bs);
     tmp->values_.fill(zero<ValueType>());
     tmp->set_size(this->get_size());
-    exec->run(dense::make_convert_to_fbcsr(this, tmp.get()));
+    exec->run(
+        dense::make_convert_to_fbcsr(this->get_const_device_view(), tmp.get()));
 }
 
 
@@ -810,11 +850,12 @@ void Dense<ValueType>::convert_impl(Ell<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     size_type num_stored_elements_per_row{};
-    exec->run(
-        dense::make_compute_max_nnz_per_row(this, num_stored_elements_per_row));
+    exec->run(dense::make_compute_max_nnz_per_row(this->get_const_device_view(),
+                                                  num_stored_elements_per_row));
     result->resize(this->get_size(), num_stored_elements_per_row);
-    exec->run(dense::make_convert_to_ell(
-        this, make_temporary_clone(exec, result).get()));
+    exec->run(
+        dense::make_convert_to_ell(this->get_const_device_view(),
+                                   make_temporary_clone(exec, result).get()));
 }
 
 
@@ -855,7 +896,8 @@ void Dense<ValueType>::convert_impl(Hybrid<ValueType, IndexType>* result) const
     const auto num_cols = this->get_size()[1];
     array<size_type> row_nnz{exec, num_rows};
     array<int64> coo_row_ptrs{exec, num_rows + 1};
-    exec->run(dense::make_count_nonzeros_per_row(this, row_nnz.get_data()));
+    exec->run(dense::make_count_nonzeros_per_row(this->get_const_device_view(),
+                                                 row_nnz.get_data()));
     size_type ell_lim{};
     size_type coo_nnz{};
     result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_nnz);
@@ -868,7 +910,8 @@ void Dense<ValueType>::convert_impl(Hybrid<ValueType, IndexType>* result) const
     coo_nnz = get_element(coo_row_ptrs, num_rows);
     auto tmp = make_temporary_clone(exec, result);
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
-    exec->run(dense::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
+    exec->run(dense::make_convert_to_hybrid(this->get_const_device_view(),
+                                            coo_row_ptrs.get_const_data(),
                                             tmp.get()));
 }
 
@@ -915,15 +958,16 @@ void Dense<ValueType>::convert_impl(Sellp<ValueType, IndexType>* result) const
     tmp->slice_size_ = slice_size;
     tmp->slice_sets_.resize_and_reset(num_slices + 1);
     tmp->slice_lengths_.resize_and_reset(num_slices);
-    exec->run(dense::make_compute_slice_sets(this, slice_size, stride_factor,
-                                             tmp->get_slice_sets(),
-                                             tmp->get_slice_lengths()));
+    exec->run(dense::make_compute_slice_sets(
+        this->get_const_device_view(), slice_size, stride_factor,
+        tmp->get_slice_sets(), tmp->get_slice_lengths()));
     auto total_cols =
         exec->copy_val_to_host(tmp->get_slice_sets() + num_slices);
     tmp->col_idxs_.resize_and_reset(total_cols * slice_size);
     tmp->values_.resize_and_reset(total_cols * slice_size);
     tmp->set_size(this->get_size());
-    exec->run(dense::make_convert_to_sellp(this, tmp.get()));
+    exec->run(
+        dense::make_convert_to_sellp(this->get_const_device_view(), tmp.get()));
 }
 
 
@@ -964,15 +1008,16 @@ void Dense<ValueType>::convert_impl(
     const auto num_rows = this->get_size()[0];
     auto tmp = make_temporary_clone(exec, result);
     tmp->row_ptrs_.resize_and_reset(num_rows + 1);
-    exec->run(
-        dense::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
+    exec->run(dense::make_count_nonzeros_per_row(this->get_const_device_view(),
+                                                 tmp->row_ptrs_.get_data()));
     exec->run(dense::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                  num_rows + 1));
     const auto nnz = get_element(tmp->row_ptrs_, num_rows);
     tmp->col_idxs_.resize_and_reset(nnz);
     tmp->value_.fill(one<ValueType>());
     tmp->set_size(this->get_size());
-    exec->run(dense::make_convert_to_sparsity_csr(this, tmp.get()));
+    exec->run(dense::make_convert_to_sparsity_csr(this->get_const_device_view(),
+                                                  tmp.get()));
 }
 
 
@@ -1022,7 +1067,7 @@ void Dense<ValueType>::read(const device_mat_data& data)
     this->resize(data.get_size());
     this->fill(zero<ValueType>());
     exec->run(dense::make_fill_in_matrix_data(
-        *make_temporary_clone(exec, &data), this));
+        *make_temporary_clone(exec, &data), this->get_device_view()));
 }
 
 
@@ -1033,7 +1078,7 @@ void Dense<ValueType>::read(const device_mat_data32& data)
     this->resize(data.get_size());
     this->fill(zero<ValueType>());
     exec->run(dense::make_fill_in_matrix_data(
-        *make_temporary_clone(exec, &data), this));
+        *make_temporary_clone(exec, &data), this->get_device_view()));
 }
 
 
@@ -1130,7 +1175,8 @@ void Dense<ValueType>::transpose(ptr_param<Dense<ValueType>> output) const
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
     exec->run(dense::make_transpose(
-        this, make_temporary_output_clone(exec, output).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, output)->get_device_view()));
 }
 
 
@@ -1140,7 +1186,8 @@ void Dense<ValueType>::conj_transpose(ptr_param<Dense<ValueType>> output) const
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
     exec->run(dense::make_conj_transpose(
-        this, make_temporary_output_clone(exec, output).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, output)->get_device_view()));
 }
 
 
@@ -1162,27 +1209,33 @@ void Dense<ValueType>::permute_impl(const Permutation<IndexType>* permutation,
     switch (mode) {
     case permute_mode::rows:
         exec->run(dense::make_row_gather(local_perm->get_const_permutation(),
-                                         this, local_output.get()));
+                                         this->get_const_device_view(),
+                                         local_output->get_device_view()));
         break;
     case permute_mode::columns:
         exec->run(dense::make_col_permute(local_perm->get_const_permutation(),
-                                          this, local_output.get()));
+                                          this->get_const_device_view(),
+                                          local_output->get_device_view()));
         break;
     case permute_mode::symmetric:
         exec->run(dense::make_symm_permute(local_perm->get_const_permutation(),
-                                           this, local_output.get()));
+                                           this->get_const_device_view(),
+                                           local_output->get_device_view()));
         break;
     case permute_mode::inverse_rows:
         exec->run(dense::make_inverse_row_permute(
-            local_perm->get_const_permutation(), this, local_output.get()));
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::inverse_columns:
         exec->run(dense::make_inverse_col_permute(
-            local_perm->get_const_permutation(), this, local_output.get()));
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::inverse_symmetric:
         exec->run(dense::make_inv_symm_permute(
-            local_perm->get_const_permutation(), this, local_output.get()));
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     default:
         GKO_INVALID_STATE("Invalid permute mode");
@@ -1208,11 +1261,13 @@ void Dense<ValueType>::permute_impl(
     if (invert) {
         exec->run(dense::make_inv_nonsymm_permute(
             local_row_perm->get_const_permutation(),
-            local_col_perm->get_const_permutation(), this, local_output.get()));
+            local_col_perm->get_const_permutation(),
+            this->get_const_device_view(), local_output->get_device_view()));
     } else {
         exec->run(dense::make_nonsymm_permute(
             local_row_perm->get_const_permutation(),
-            local_col_perm->get_const_permutation(), this, local_output.get()));
+            local_col_perm->get_const_permutation(),
+            this->get_const_device_view(), local_output->get_device_view()));
     }
 }
 
@@ -1237,32 +1292,38 @@ void Dense<ValueType>::scale_permute_impl(
     case permute_mode::rows:
         exec->run(dense::make_row_scale_permute(
             local_perm->get_const_scaling_factors(),
-            local_perm->get_const_permutation(), this, local_output.get()));
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::columns:
         exec->run(dense::make_col_scale_permute(
             local_perm->get_const_scaling_factors(),
-            local_perm->get_const_permutation(), this, local_output.get()));
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::symmetric:
         exec->run(dense::make_symm_scale_permute(
             local_perm->get_const_scaling_factors(),
-            local_perm->get_const_permutation(), this, local_output.get()));
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::inverse_rows:
         exec->run(dense::make_inv_row_scale_permute(
             local_perm->get_const_scaling_factors(),
-            local_perm->get_const_permutation(), this, local_output.get()));
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::inverse_columns:
         exec->run(dense::make_inv_col_scale_permute(
             local_perm->get_const_scaling_factors(),
-            local_perm->get_const_permutation(), this, local_output.get()));
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::inverse_symmetric:
         exec->run(dense::make_inv_symm_scale_permute(
             local_perm->get_const_scaling_factors(),
-            local_perm->get_const_permutation(), this, local_output.get()));
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     default:
         GKO_INVALID_STATE("Invalid permute mode");
@@ -1290,13 +1351,15 @@ void Dense<ValueType>::scale_permute_impl(
             local_row_perm->get_const_scaling_factors(),
             local_row_perm->get_const_permutation(),
             local_col_perm->get_const_scaling_factors(),
-            local_col_perm->get_const_permutation(), this, local_output.get()));
+            local_col_perm->get_const_permutation(),
+            this->get_const_device_view(), local_output->get_device_view()));
     } else {
         exec->run(dense::make_nonsymm_scale_permute(
             local_row_perm->get_const_scaling_factors(),
             local_row_perm->get_const_permutation(),
             local_col_perm->get_const_scaling_factors(),
-            local_col_perm->get_const_permutation(), this, local_output.get()));
+            local_col_perm->get_const_permutation(),
+            this->get_const_device_view(), local_output->get_device_view()));
     }
 }
 
@@ -1311,8 +1374,9 @@ void Dense<ValueType>::row_gather_impl(const array<IndexType>* row_idxs,
     GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_collection);
 
     exec->run(dense::make_row_gather(
-        make_temporary_clone(exec, row_idxs)->get_const_data(), this,
-        make_temporary_output_clone(exec, row_collection).get()));
+        make_temporary_clone(exec, row_idxs)->get_const_data(),
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, row_collection)->get_device_view()));
 }
 
 template <typename ValueType>
@@ -1327,10 +1391,11 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
     GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_collection);
 
     exec->run(dense::make_advanced_row_gather(
-        make_temporary_clone(exec, alpha).get(),
-        make_temporary_clone(exec, row_idxs)->get_const_data(), this,
-        make_temporary_clone(exec, beta).get(),
-        make_temporary_clone(exec, row_collection).get()));
+        make_temporary_clone(exec, alpha)->get_const_device_view(),
+        make_temporary_clone(exec, row_idxs)->get_const_data(),
+        this->get_const_device_view(),
+        make_temporary_clone(exec, beta)->get_const_device_view(),
+        make_temporary_clone(exec, row_collection)->get_device_view()));
 }
 
 
@@ -1850,7 +1915,8 @@ void Dense<ValueType>::extract_diagonal(
     GKO_ASSERT_EQ(output->get_size()[0], diag_size);
 
     exec->run(dense::make_extract_diagonal(
-        this, make_temporary_output_clone(exec, output).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
@@ -1867,7 +1933,8 @@ std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
 template <typename ValueType>
 void Dense<ValueType>::compute_absolute_inplace()
 {
-    this->get_executor()->run(dense::make_inplace_absolute_dense(this));
+    this->get_executor()->run(
+        dense::make_inplace_absolute_dense(this->get_device_view()));
 }
 
 
@@ -1889,7 +1956,8 @@ void Dense<ValueType>::compute_absolute(ptr_param<absolute_type> output) const
     auto exec = this->get_executor();
 
     exec->run(dense::make_outplace_absolute_dense(
-        this, make_temporary_output_clone(exec, output).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, output)->get_device_view()));
 }
 
 
@@ -1910,7 +1978,8 @@ void Dense<ValueType>::make_complex(ptr_param<complex_type> result) const
     auto exec = this->get_executor();
 
     exec->run(dense::make_make_complex(
-        this, make_temporary_output_clone(exec, result).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
@@ -1931,7 +2000,8 @@ void Dense<ValueType>::get_real(ptr_param<real_type> result) const
     auto exec = this->get_executor();
 
     exec->run(dense::make_get_real(
-        this, make_temporary_output_clone(exec, result).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
@@ -1952,7 +2022,8 @@ void Dense<ValueType>::get_imag(ptr_param<real_type> result) const
     auto exec = this->get_executor();
 
     exec->run(dense::make_get_imag(
-        this, make_temporary_output_clone(exec, result).get()));
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
@@ -1978,7 +2049,9 @@ void Dense<ValueType>::add_scaled_identity_impl(const LinOp* a, const LinOp* b)
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_beta, auto dense_x) {
             this->get_executor()->run(dense::make_add_scaled_identity(
-                dense_alpha, dense_beta, dense_x));
+                dense_alpha->get_const_device_view(),
+                dense_beta->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         a, b, this);
 }
@@ -2095,7 +2168,7 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 }
 
 
-#define GKO_DECLARE_DENSE_MATRIX(_type) class Dense<_type>
+#define GKO_DECLARE_DENSE_MATRIX(ValueType) class Dense<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
 
 

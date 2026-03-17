@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -122,10 +122,14 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // rho_t = 1.0
     // z = p = q = 0
     exec->run(fcg::make_initialize(
-        gko::detail::get_local(dense_b), gko::detail::get_local(r),
-        gko::detail::get_local(z), gko::detail::get_local(p),
-        gko::detail::get_local(q), gko::detail::get_local(t), prev_rho, rho,
-        rho_t, &stop_status));
+        gko::detail::get_local(dense_b)->get_const_device_view(),
+        gko::detail::get_local(r)->get_device_view(),
+        gko::detail::get_local(z)->get_device_view(),
+        gko::detail::get_local(p)->get_device_view(),
+        gko::detail::get_local(q)->get_device_view(),
+        gko::detail::get_local(t)->get_device_view(),
+        prev_rho->get_device_view(), rho->get_device_view(),
+        rho_t->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -165,8 +169,10 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
         exec->run(fcg::make_step_1(
-            gko::detail::get_local(p), gko::detail::get_local(z),
-            gko::detail::get_local(rho_t), prev_rho, &stop_status));
+            gko::detail::get_local(p)->get_device_view(),
+            gko::detail::get_local(z)->get_const_device_view(),
+            gko::detail::get_local(rho_t)->get_const_device_view(),
+            prev_rho->get_const_device_view(), stop_status));
         this->get_system_matrix()->apply(p, q);
         p->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
@@ -174,10 +180,14 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
-        exec->run(fcg::make_step_2(
-            gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(t), gko::detail::get_local(p),
-            gko::detail::get_local(q), beta, rho, &stop_status));
+        exec->run(
+            fcg::make_step_2(gko::detail::get_local(dense_x)->get_device_view(),
+                             gko::detail::get_local(r)->get_device_view(),
+                             gko::detail::get_local(t)->get_device_view(),
+                             gko::detail::get_local(p)->get_const_device_view(),
+                             gko::detail::get_local(q)->get_const_device_view(),
+                             beta->get_const_device_view(),
+                             rho->get_const_device_view(), stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -248,8 +258,9 @@ std::vector<int> workspace_traits<Fcg<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_FCG(_type) class Fcg<_type>
-#define GKO_DECLARE_FCG_TRAITS(_type) struct workspace_traits<Fcg<_type>>
+#define GKO_DECLARE_FCG(ValueType) class Fcg<ValueType>
+#define GKO_DECLARE_FCG_TRAITS(ValueType) \
+    struct workspace_traits<Fcg<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_TRAITS);
 

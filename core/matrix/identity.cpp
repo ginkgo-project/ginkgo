@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -82,9 +82,9 @@ std::unique_ptr<Identity<ValueType>> Identity<ValueType>::create(
 }
 
 
-#define GKO_DECLARE_IDENTITY_MATRIX(_type) class Identity<_type>
+#define GKO_DECLARE_IDENTITY_MATRIX(ValueType) class Identity<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_MATRIX);
-#define GKO_DECLARE_IDENTITY_FACTORY(_type) class IdentityFactory<_type>
+#define GKO_DECLARE_IDENTITY_FACTORY(ValueType) class IdentityFactory<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDENTITY_FACTORY);
 
 

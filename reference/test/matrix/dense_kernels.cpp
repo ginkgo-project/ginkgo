@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -672,8 +672,8 @@ TYPED_TEST(Dense, ComputesNorm2Squared)
     auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
 
     gko::kernels::reference::dense::compute_squared_norm2(
-        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get(), result.get(),
-        tmp);
+        gko::as<gko::ReferenceExecutor>(this->exec),
+        mtx->get_const_device_view(), result->get_device_view(), tmp);
 
     EXPECT_EQ(result->at(0, 0), T_nc{9.0});
     EXPECT_EQ(result->at(0, 1), T_nc{25.0});
@@ -689,7 +689,7 @@ TYPED_TEST(Dense, ComputesSqrt)
     auto mtx(gko::initialize<NormVector>(I<I<T_nc>>{{9.0, 25.0}}, this->exec));
 
     gko::kernels::reference::dense::compute_sqrt(
-        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get());
+        gko::as<gko::ReferenceExecutor>(this->exec), mtx->get_device_view());
 
     EXPECT_EQ(mtx->at(0, 0), T_nc{3.0});
     EXPECT_EQ(mtx->at(0, 1), T_nc{5.0});

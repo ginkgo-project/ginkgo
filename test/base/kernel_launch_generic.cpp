@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -163,7 +163,7 @@ void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m)
             static_assert(is_same<decltype(d_ptr), const value_type*>::value,
                           "type");
             static_assert(is_same<decltype(dummy), int64>::value, "dummy");
-            bool pointers_correct = d.data == d_ptr && d2.data == d_ptr;
+            bool pointers_correct = d.values == d_ptr && d2.values == d_ptr;
             bool strides_correct = d.stride == 5 && d2.stride == 5;
             bool accessors_2d_correct =
                 &d(0, 0) == d_ptr && &d(1, 0) == d_ptr + d.stride &&
@@ -176,8 +176,9 @@ void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m)
                 d(i / 4, i % 4) = 0;
             }
         },
-        16, m, static_cast<const Mtx*>(m), m->get_const_values(),
-        move_only_val);
+        16, m->get_device_view(),
+        static_cast<const Mtx*>(m)->get_const_device_view(),
+        m->get_const_values(), move_only_val);
 }
 
 TEST_F(KernelLaunch, Runs1DDense)
@@ -258,8 +259,8 @@ void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m1, Mtx* m2, Mtx* m3)
             static_assert(is_same<decltype(d3_ptr), value_type*>::value,
                           "type");
             static_assert(is_same<decltype(dummy), int64>::value, "dummy");
-            bool pointers_correct = d.data == d_ptr && d2.data == d_ptr &&
-                                    d3.data == d2_ptr && d4 == d3_ptr;
+            bool pointers_correct = d.values == d_ptr && d2.values == d_ptr &&
+                                    d3.values == d2_ptr && d4 == d3_ptr;
             bool strides_correct =
                 d.stride == 5 && d2.stride == 5 && d3.stride == 6;
             bool accessors_2d_correct =
@@ -275,11 +276,12 @@ void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m1, Mtx* m2, Mtx* m3)
                 d(i, j) = 0;
             }
         },
-        dim<2>{4, 4}, m2->get_stride(), m1, static_cast<const Mtx*>(m1),
-        m1->get_const_values(),
-        gko::kernels::GKO_DEVICE_NAMESPACE::default_stride(m2),
-        gko::kernels::GKO_DEVICE_NAMESPACE::row_vector(m3), m2->get_values(),
-        m3->get_values(), move_only_val);
+        dim<2>{4, 4}, m2->get_stride(), m1->get_device_view(),
+        m1->get_const_device_view(), m1->get_const_values(),
+        gko::kernels::GKO_DEVICE_NAMESPACE::default_stride(
+            m2->get_device_view()),
+        gko::kernels::GKO_DEVICE_NAMESPACE::row_vector(m3->get_device_view()),
+        m2->get_values(), m3->get_values(), move_only_val);
 }
 
 TEST_F(KernelLaunch, Runs2DDense)

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -690,7 +690,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
                             const IndexType* excess_rhs_ptrs,
                             const IndexType* excess_nz_ptrs,
                             matrix::Csr<ValueType, IndexType>* excess_system,
-                            matrix::Dense<ValueType>* excess_rhs,
+                            matrix::view::dense<ValueType> excess_rhs,
                             size_type e_start, size_type e_end)
 {
     const auto num_rows = input->get_size()[0];
@@ -706,7 +706,7 @@ void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
             excess_rhs_ptrs, excess_nz_ptrs, excess_system->get_row_ptrs(),
             excess_system->get_col_idxs(),
             as_device_type(excess_system->get_values()),
-            as_device_type(excess_rhs->get_values()), e_start, e_end);
+            as_device_type(excess_rhs.values), e_start, e_end);
     }
 }
 
@@ -717,7 +717,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
                            const IndexType* excess_block_ptrs,
-                           matrix::Dense<ValueType>* excess_solution,
+                           matrix::view::dense<ValueType> excess_solution,
                            size_type e_start, size_type e_end)
 {
     const auto block = default_block_size;
@@ -725,7 +725,7 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
     if (grid > 0) {
         kernel::scale_excess_solution<subwarp_size>(
             grid, block, 0, exec->get_queue(), excess_block_ptrs,
-            as_device_type(excess_solution->get_values()), e_start, e_end);
+            as_device_type(excess_solution.values), e_start, e_end);
     }
 }
 
@@ -734,11 +734,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
-                             const IndexType* excess_rhs_ptrs,
-                             const matrix::Dense<ValueType>* excess_solution,
-                             matrix::Csr<ValueType, IndexType>* inverse,
-                             size_type e_start, size_type e_end)
+void scatter_excess_solution(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const IndexType* excess_rhs_ptrs,
+    matrix::view::dense<const ValueType> excess_solution,
+    matrix::Csr<ValueType, IndexType>* inverse, size_type e_start,
+    size_type e_end)
 {
     const auto num_rows = inverse->get_size()[0];
 
@@ -748,7 +749,7 @@ void scatter_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
         kernel::copy_excess_solution<subwarp_size>(
             grid, block, 0, exec->get_queue(), static_cast<IndexType>(num_rows),
             inverse->get_const_row_ptrs(), excess_rhs_ptrs,
-            as_device_type(excess_solution->get_const_values()),
+            as_device_type(excess_solution.values),
             as_device_type(inverse->get_values()), e_start, e_end);
     }
 }

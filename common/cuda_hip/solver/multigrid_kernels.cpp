@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -117,14 +117,15 @@ __global__ __launch_bounds__(default_block_size) void kcycle_check_stop_kernel(
 
 template <typename ValueType>
 void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Dense<ValueType>* rho,
-                   const matrix::Dense<ValueType>* v,
-                   matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* d,
-                   matrix::Dense<ValueType>* e)
+                   matrix::view::dense<const ValueType> alpha,
+                   matrix::view::dense<const ValueType> rho,
+                   matrix::view::dense<const ValueType> v,
+                   matrix::view::dense<ValueType> g,
+                   matrix::view::dense<ValueType> d,
+                   matrix::view::dense<ValueType> e)
 {
-    const auto nrows = e->get_size()[0];
-    const auto nrhs = e->get_size()[1];
+    const auto nrows = e.size[0];
+    const auto nrhs = e.size[1];
     constexpr int max_size = (1U << 31) - 1;
     const size_type grid_nrows =
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
@@ -132,12 +133,10 @@ void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
     if (grid > 0) {
         kernel::kcycle_step_1_kernel<<<grid, default_block_size, 0,
                                        exec->get_stream()>>>(
-            nrows, nrhs, e->get_stride(), grid_nrows,
-            as_device_type(alpha->get_const_values()),
-            as_device_type(rho->get_const_values()),
-            as_device_type(v->get_const_values()),
-            as_device_type(g->get_values()), as_device_type(d->get_values()),
-            as_device_type(e->get_values()));
+            nrows, nrhs, e.stride, grid_nrows, as_device_type(alpha.values),
+            as_device_type(rho.values), as_device_type(v.values),
+            as_device_type(g.values), as_device_type(d.values),
+            as_device_type(e.values));
     }
 }
 
@@ -146,16 +145,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
 
 template <typename ValueType>
 void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Dense<ValueType>* rho,
-                   const matrix::Dense<ValueType>* gamma,
-                   const matrix::Dense<ValueType>* beta,
-                   const matrix::Dense<ValueType>* zeta,
-                   const matrix::Dense<ValueType>* d,
-                   matrix::Dense<ValueType>* e)
+                   matrix::view::dense<const ValueType> alpha,
+                   matrix::view::dense<const ValueType> rho,
+                   matrix::view::dense<const ValueType> gamma,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<const ValueType> zeta,
+                   matrix::view::dense<const ValueType> d,
+                   matrix::view::dense<ValueType> e)
 {
-    const auto nrows = e->get_size()[0];
-    const auto nrhs = e->get_size()[1];
+    const auto nrows = e.size[0];
+    const auto nrhs = e.size[1];
     constexpr int max_size = (1U << 31) - 1;
     const size_type grid_nrows =
         max_size / nrhs < nrows ? max_size / nrhs : nrows;
@@ -163,14 +162,10 @@ void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
     if (grid > 0) {
         kernel::kcycle_step_2_kernel<<<grid, default_block_size, 0,
                                        exec->get_stream()>>>(
-            nrows, nrhs, e->get_stride(), grid_nrows,
-            as_device_type(alpha->get_const_values()),
-            as_device_type(rho->get_const_values()),
-            as_device_type(gamma->get_const_values()),
-            as_device_type(beta->get_const_values()),
-            as_device_type(zeta->get_const_values()),
-            as_device_type(d->get_const_values()),
-            as_device_type(e->get_values()));
+            nrows, nrhs, e.stride, grid_nrows, as_device_type(alpha.values),
+            as_device_type(rho.values), as_device_type(gamma.values),
+            as_device_type(beta.values), as_device_type(zeta.values),
+            as_device_type(d.values), as_device_type(e.values));
     }
 }
 
@@ -179,21 +174,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
 
 template <typename ValueType>
 void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Dense<ValueType>* old_norm,
-                       const matrix::Dense<ValueType>* new_norm,
+                       matrix::view::dense<const ValueType> old_norm,
+                       matrix::view::dense<const ValueType> new_norm,
                        const ValueType rel_tol, bool& is_stop)
 {
     gko::array<bool> dis_stop(exec, 1);
     components::fill_array(exec, dis_stop.get_data(), dis_stop.get_size(),
                            true);
-    const auto nrhs = new_norm->get_size()[1];
+    const auto nrhs = new_norm.size[1];
     const auto grid = ceildiv(nrhs, default_block_size);
     if (grid > 0) {
         kernel::kcycle_check_stop_kernel<<<grid, default_block_size, 0,
                                            exec->get_stream()>>>(
-            nrhs, as_device_type(old_norm->get_const_values()),
-            as_device_type(new_norm->get_const_values()),
-            as_device_type(rel_tol), as_device_type(dis_stop.get_data()));
+            nrhs, as_device_type(old_norm.values),
+            as_device_type(new_norm.values), as_device_type(rel_tol),
+            as_device_type(dis_stop.get_data()));
     }
     is_stop = get_element(dis_stop, 0);
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,29 +26,29 @@ namespace minres {
 template <typename ValueType>
 void initialize(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Dense<ValueType>* r, matrix::Dense<ValueType>* z,
-    matrix::Dense<ValueType>* p, matrix::Dense<ValueType>* p_prev,
-    matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* q_prev,
-    matrix::Dense<ValueType>* q_tilde, matrix::Dense<ValueType>* beta,
-    matrix::Dense<ValueType>* gamma, matrix::Dense<ValueType>* delta,
-    matrix::Dense<ValueType>* cos_prev, matrix::Dense<ValueType>* cos,
-    matrix::Dense<ValueType>* sin_prev, matrix::Dense<ValueType>* sin,
-    matrix::Dense<ValueType>* eta_next, matrix::Dense<ValueType>* eta,
-    array<stopping_status>* stop_status)
+    matrix::view::dense<const ValueType> r, matrix::view::dense<ValueType> z,
+    matrix::view::dense<ValueType> p, matrix::view::dense<ValueType> p_prev,
+    matrix::view::dense<ValueType> q, matrix::view::dense<ValueType> q_prev,
+    matrix::view::dense<ValueType> q_tilde, matrix::view::dense<ValueType> beta,
+    matrix::view::dense<ValueType> gamma, matrix::view::dense<ValueType> delta,
+    matrix::view::dense<ValueType> cos_prev, matrix::view::dense<ValueType> cos,
+    matrix::view::dense<ValueType> sin_prev, matrix::view::dense<ValueType> sin,
+    matrix::view::dense<ValueType> eta_next, matrix::view::dense<ValueType> eta,
+    array<stopping_status>& stop_status)
 {
-    for (size_type j = 0; j < r->get_size()[1]; ++j) {
-        delta->at(j) = gamma->at(j) = cos_prev->at(j) = sin_prev->at(j) =
-            sin->at(j) = zero<ValueType>();
-        cos->at(j) = one<ValueType>();
-        eta_next->at(j) = eta->at(j) = beta->at(j) = sqrt(beta->at(j));
-        stop_status->get_data()[j].reset();
+    for (size_type j = 0; j < r.size[1]; ++j) {
+        delta(0, j) = gamma(0, j) = cos_prev(0, j) = sin_prev(0, j) =
+            sin(0, j) = zero<ValueType>();
+        cos(0, j) = one<ValueType>();
+        eta_next(0, j) = eta(0, j) = beta(0, j) = sqrt(beta(0, j));
+        stop_status.get_data()[j].reset();
     }
-    for (size_type i = 0; i < r->get_size()[0]; ++i) {
-        for (size_type j = 0; j < r->get_size()[1]; ++j) {
-            q->at(i, j) = safe_divide(r->at(i, j), beta->at(j));
-            z->at(i, j) = safe_divide(z->at(i, j), beta->at(j));
-            p->at(i, j) = p_prev->at(i, j) = q_prev->at(i, j) =
-                q_tilde->at(i, j) = zero<ValueType>();
+    for (size_type i = 0; i < r.size[0]; ++i) {
+        for (size_type j = 0; j < r.size[1]; ++j) {
+            q(i, j) = safe_divide(r(i, j), beta(0, j));
+            z(i, j) = safe_divide(z(i, j), beta(0, j));
+            p(i, j) = p_prev(i, j) = q_prev(i, j) = q_tilde(i, j) =
+                zero<ValueType>();
         }
     }
 }
@@ -76,36 +76,35 @@ void update_givens_rotation(ValueType& alpha, const ValueType& beta,
 
 
 template <typename ValueType>
-void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType>* alpha, matrix::Dense<ValueType>* beta,
-            matrix::Dense<ValueType>* gamma, matrix::Dense<ValueType>* delta,
-            matrix::Dense<ValueType>* cos_prev, matrix::Dense<ValueType>* cos,
-            matrix::Dense<ValueType>* sin_prev, matrix::Dense<ValueType>* sin,
-            matrix::Dense<ValueType>* eta, matrix::Dense<ValueType>* eta_next,
-            matrix::Dense<ValueType>* tau,
-            const array<stopping_status>* stop_status)
+void step_1(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::dense<ValueType> alpha, matrix::view::dense<ValueType> beta,
+    matrix::view::dense<ValueType> gamma, matrix::view::dense<ValueType> delta,
+    matrix::view::dense<ValueType> cos_prev, matrix::view::dense<ValueType> cos,
+    matrix::view::dense<ValueType> sin_prev, matrix::view::dense<ValueType> sin,
+    matrix::view::dense<ValueType> eta, matrix::view::dense<ValueType> eta_next,
+    matrix::view::dense<ValueType> tau,
+    const array<stopping_status>& stop_status)
 {
-    for (size_type j = 0; j < alpha->get_size()[1]; ++j) {
-        if (stop_status->get_const_data()[j].has_stopped()) {
+    for (size_type j = 0; j < alpha.size[1]; ++j) {
+        if (stop_status.get_const_data()[j].has_stopped()) {
             continue;
         }
-        beta->at(j) = sqrt(beta->at(j));
-        delta->at(j) = sin_prev->at(j) * gamma->at(j);
-        auto tmp_d = gamma->at(j);
-        auto tmp_a = alpha->at(j);
-        gamma->at(j) =
-            cos_prev->at(j) * cos->at(j) * tmp_d + sin->at(j) * tmp_a;
-        alpha->at(j) =
-            -conj(sin->at(j)) * cos_prev->at(j) * tmp_d + cos->at(j) * tmp_a;
+        beta(0, j) = sqrt(beta(0, j));
+        delta(0, j) = sin_prev(0, j) * gamma(0, j);
+        auto tmp_d = gamma(0, j);
+        auto tmp_a = alpha(0, j);
+        gamma(0, j) = cos_prev(0, j) * cos(0, j) * tmp_d + sin(0, j) * tmp_a;
+        alpha(0, j) =
+            -conj(sin(0, j)) * cos_prev(0, j) * tmp_d + cos(0, j) * tmp_a;
 
-        std::swap(cos->at(j), cos_prev->at(j));
-        std::swap(sin->at(j), sin_prev->at(j));
-        update_givens_rotation(alpha->at(j), beta->at(j), cos->at(j),
-                               sin->at(j));
+        std::swap(cos(0, j), cos_prev(0, j));
+        std::swap(sin(0, j), sin_prev(0, j));
+        update_givens_rotation(alpha(0, j), beta(0, j), cos(0, j), sin(0, j));
 
-        tau->at(j) = sin->at(j) * sin->at(j) * tau->at(j);
-        eta->at(j) = eta_next->at(j);
-        eta_next->at(j) = -conj(sin->at(j)) * eta->at(j);
+        tau(0, j) = sin(0, j) * sin(0, j) * tau(0, j);
+        eta(0, j) = eta_next(0, j);
+        eta_next(0, j) = -conj(sin(0, j)) * eta(0, j);
     }
 }
 
@@ -114,34 +113,36 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* p,
-            const matrix::Dense<ValueType>* p_prev, matrix::Dense<ValueType>* z,
-            const matrix::Dense<ValueType>* z_tilde,
-            matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* q_prev,
-            matrix::Dense<ValueType>* v, const matrix::Dense<ValueType>* alpha,
-            const matrix::Dense<ValueType>* beta,
-            const matrix::Dense<ValueType>* gamma,
-            const matrix::Dense<ValueType>* delta,
-            const matrix::Dense<ValueType>* cos,
-            const matrix::Dense<ValueType>* eta,
-            const array<stopping_status>* stop_status)
+            matrix::view::dense<ValueType> x, matrix::view::dense<ValueType> p,
+            matrix::view::dense<const ValueType> p_prev,
+            matrix::view::dense<ValueType> z,
+            matrix::view::dense<const ValueType> z_tilde,
+            matrix::view::dense<ValueType> q,
+            matrix::view::dense<ValueType> q_prev,
+            matrix::view::dense<ValueType> v,
+            matrix::view::dense<const ValueType> alpha,
+            matrix::view::dense<const ValueType> beta,
+            matrix::view::dense<const ValueType> gamma,
+            matrix::view::dense<const ValueType> delta,
+            matrix::view::dense<const ValueType> cos,
+            matrix::view::dense<const ValueType> eta,
+            const array<stopping_status>& stop_status)
 {
-    for (size_type i = 0; i < x->get_size()[0]; ++i) {
-        for (size_type j = 0; j < x->get_size()[1]; ++j) {
-            if (stop_status->get_const_data()[j].has_stopped()) {
+    for (size_type i = 0; i < x.size[0]; ++i) {
+        for (size_type j = 0; j < x.size[1]; ++j) {
+            if (stop_status.get_const_data()[j].has_stopped()) {
                 continue;
             }
-            p->at(i, j) =
-                safe_divide(z->at(i, j) - gamma->at(j) * p_prev->at(i, j) -
-                                delta->at(j) * p->at(i, j),
-                            alpha->at(j));
-            x->at(i, j) = x->at(i, j) + cos->at(j) * eta->at(j) * p->at(i, j);
+            p(i, j) = safe_divide(
+                z(i, j) - gamma(0, j) * p_prev(i, j) - delta(0, j) * p(i, j),
+                alpha(0, j));
+            x(i, j) = x(i, j) + cos(0, j) * eta(0, j) * p(i, j);
 
-            q_prev->at(i, j) = v->at(i, j);
-            const auto tmp = q->at(i, j);
-            q->at(i, j) = safe_divide(v->at(i, j), beta->at(j));
-            v->at(i, j) = tmp * beta->at(j);
-            z->at(i, j) = safe_divide(z_tilde->at(i, j), beta->at(j));
+            q_prev(i, j) = v(i, j);
+            const auto tmp = q(i, j);
+            q(i, j) = safe_divide(v(i, j), beta(0, j));
+            v(i, j) = tmp * beta(0, j);
+            z(i, j) = safe_divide(z_tilde(i, j), beta(0, j));
         }
     }
 }

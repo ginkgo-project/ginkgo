@@ -1,12 +1,15 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/matrix/sparsity_csr_kernels.hpp"
 
+#include <optional>
+
 #include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/sycl_helper.hpp"
@@ -173,13 +176,18 @@ namespace host_kernel {
 
 template <int subgroup_size, typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void classical_spmv(syn::value_list<int, subgroup_size>,
-                    std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
-                    const matrix::Dense<InputValueType>* b,
-                    matrix::Dense<OutputValueType>* c,
-                    const matrix::Dense<MatrixValueType>* alpha = nullptr,
-                    const matrix::Dense<OutputValueType>* beta = nullptr)
+void classical_spmv(
+    syn::value_list<int, subgroup_size>,
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
+    matrix::view::dense<const InputValueType> b,
+    matrix::view::dense<OutputValueType> c,
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const MatrixValueType>>>
+        alpha = {},
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const OutputValueType>>>
+        beta = {})
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
@@ -194,40 +202,35 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
                  int64(num_subgroup / nsg_in_group));
-    const dim3 grid(gridx, b->get_size()[1]);
+    const dim3 grid(gridx, b.size[1]);
     const auto block = spmv_block_size;
 
     const auto b_vals = gko::acc::range<input_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(b->get_size()[0]),
-             static_cast<acc::size_type>(b->get_size()[1])}},
-        b->get_const_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(b->get_stride())}});
+        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
+                                       static_cast<acc::size_type>(b.size[1])}},
+        b.values,
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
     auto c_vals = gko::acc::range<output_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(c->get_size()[0]),
-             static_cast<acc::size_type>(c->get_size()[1])}},
-        c->get_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(c->get_stride())}});
-    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(c.size[0]),
+                                       static_cast<acc::size_type>(c.size[1])}},
+        c.values,
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(c.stride)}});
+    if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
         return;
     }
-    if (alpha == nullptr && beta == nullptr) {
+    if (!alpha && !beta) {
         kernel::abstract_classical_spmv<subgroup_size>(
             grid, block, 0, exec->get_queue(), a->get_size()[0],
             as_device_type(a->get_const_value()), a->get_const_col_idxs(),
             a->get_const_row_ptrs(), acc::as_device_range(b_vals),
             acc::as_device_range(c_vals));
-    } else if (alpha != nullptr && beta != nullptr) {
+    } else if (alpha && beta) {
         kernel::abstract_classical_spmv<subgroup_size>(
             grid, block, 0, exec->get_queue(), a->get_size()[0],
-            as_device_type(alpha->get_const_values()),
-            as_device_type(a->get_const_value()), a->get_const_col_idxs(),
-            a->get_const_row_ptrs(), acc::as_device_range(b_vals),
-            as_device_type(beta->get_const_values()),
+            as_device_type(alpha->values), as_device_type(a->get_const_value()),
+            a->get_const_col_idxs(), a->get_const_row_ptrs(),
+            acc::as_device_range(b_vals), as_device_type(beta->values),
             acc::as_device_range(c_vals));
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -244,8 +247,8 @@ template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
-          const matrix::Dense<InputValueType>* b,
-          matrix::Dense<OutputValueType>* c)
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
 {
     host_kernel::select_classical_spmv(
         classical_kernels(), [](int compiled_info) { return true; },
@@ -259,11 +262,11 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<MatrixValueType>* alpha,
+                   matrix::view::dense<const MatrixValueType> alpha,
                    const matrix::SparsityCsr<MatrixValueType, IndexType>* a,
-                   const matrix::Dense<InputValueType>* b,
-                   const matrix::Dense<OutputValueType>* beta,
-                   matrix::Dense<OutputValueType>* c)
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
 {
     host_kernel::select_classical_spmv(
         classical_kernels(), [](int compiled_info) { return true; },
@@ -312,10 +315,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::SparsityCsr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
-    *is_sorted = true;
-    auto cpu_array = make_array_view(exec->get_master(), 1, is_sorted);
+    is_sorted = true;
+    auto cpu_array = make_array_view(exec->get_master(), 1, &is_sorted);
     auto gpu_array = array<bool>{exec, cpu_array};
     const auto num_rows = to_check->get_size()[0];
     const auto row_ptrs = to_check->get_const_row_ptrs();

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,61 +20,62 @@ namespace helper {
 
 
 template <typename ArthType, typename ValueType>
-auto build_rrm_accessor(matrix::Dense<ValueType>* input)
+auto build_rrm_accessor(matrix::view::dense<ValueType> input)
 {
     using accessor = gko::acc::reduced_row_major<2, ArthType, ValueType>;
     return range<accessor>(
         std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(input->get_size()[0]),
-             static_cast<acc::size_type>(input->get_size()[1])}},
-        input->get_values(),
+            {static_cast<acc::size_type>(input.size[0]),
+             static_cast<acc::size_type>(input.size[1])}},
+        input.values,
         std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input->get_stride())}});
+            {static_cast<acc::size_type>(input.stride)}});
 }
 
 template <typename ArthType, typename ValueType>
-auto build_rrm_accessor(matrix::Dense<ValueType>* input, index_span column_span)
+auto build_rrm_accessor(matrix::view::dense<ValueType> input,
+                        index_span column_span)
 {
     using accessor = gko::acc::reduced_row_major<2, ArthType, ValueType>;
     assert(column_span.is_valid());
     return range<accessor>(
         std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(input->get_size()[0]),
+            {static_cast<acc::size_type>(input.size[0]),
              static_cast<acc::size_type>(column_span.end - column_span.begin)}},
-        input->get_values() + column_span.begin,
+        input.values + column_span.begin,
         std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input->get_stride())}});
+            {static_cast<acc::size_type>(input.stride)}});
 }
 
 
 // use a different name for const to allow the non-const to create const
 // accessor
 template <typename ArthType, typename ValueType>
-auto build_const_rrm_accessor(const matrix::Dense<ValueType>* input)
+auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input)
 {
     using accessor = gko::acc::reduced_row_major<2, ArthType, const ValueType>;
     return range<accessor>(
         std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(input->get_size()[0]),
-             static_cast<acc::size_type>(input->get_size()[1])}},
-        input->get_const_values(),
+            {static_cast<acc::size_type>(input.size[0]),
+             static_cast<acc::size_type>(input.size[1])}},
+        input.values,
         std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input->get_stride())}});
+            {static_cast<acc::size_type>(input.stride)}});
 }
 
 template <typename ArthType, typename ValueType>
-auto build_const_rrm_accessor(const matrix::Dense<ValueType>* input,
+auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input,
                               index_span column_span)
 {
     using accessor = gko::acc::reduced_row_major<2, ArthType, const ValueType>;
     assert(column_span.is_valid());
     return range<accessor>(
         std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(input->get_size()[0]),
+            {static_cast<acc::size_type>(input.size[0]),
              static_cast<acc::size_type>(column_span.end - column_span.begin)}},
-        input->get_const_values() + column_span.begin,
+        input.values + column_span.begin,
         std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input->get_stride())}});
+            {static_cast<acc::size_type>(input.stride)}});
 }
 
 

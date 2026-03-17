@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/matrix/csr_kernels.hpp"
 
 #include <algorithm>
+#include <optional>
 
 #include <oneapi/mkl.hpp>
 
@@ -13,6 +14,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
@@ -1228,13 +1230,18 @@ namespace host_kernel {
 
 template <int items_per_thread, typename MatrixValueType,
           typename InputValueType, typename OutputValueType, typename IndexType>
-void merge_path_spmv(syn::value_list<int, items_per_thread>,
-                     std::shared_ptr<const DpcppExecutor> exec,
-                     const matrix::Csr<MatrixValueType, IndexType>* a,
-                     const matrix::Dense<InputValueType>* b,
-                     matrix::Dense<OutputValueType>* c,
-                     const matrix::Dense<MatrixValueType>* alpha = nullptr,
-                     const matrix::Dense<OutputValueType>* beta = nullptr)
+void merge_path_spmv(
+    syn::value_list<int, items_per_thread>,
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::dense<const InputValueType> b,
+    matrix::view::dense<OutputValueType> c,
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const MatrixValueType>>>
+        alpha = {},
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const OutputValueType>>>
+        beta = {})
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
@@ -1251,7 +1258,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
 
-    for (IndexType column_id = 0; column_id < b->get_size()[1]; column_id++) {
+    for (IndexType column_id = 0; column_id < b.size[1]; column_id++) {
         const auto column_span =
             acc::index_span(static_cast<acc::size_type>(column_id),
                             static_cast<acc::size_type>(column_id + 1));
@@ -1260,7 +1267,7 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                                                                    column_span);
         auto c_vals =
             acc::helper::build_rrm_accessor<arithmetic_type>(c, column_span);
-        if (alpha == nullptr && beta == nullptr) {
+        if (!alpha && !beta) {
             if (grid_num > 0) {
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
                     grid, block, 0, exec->get_queue(),
@@ -1275,24 +1282,21 @@ void merge_path_spmv(syn::value_list<int, items_per_thread>,
                 as_device_type(val_out.get_data()), row_out.get_data(),
                 acc::as_device_range(c_vals));
 
-        } else if (alpha != nullptr && beta != nullptr) {
+        } else if (alpha && beta) {
             if (grid_num > 0) {
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
                     grid, block, 0, exec->get_queue(),
                     static_cast<IndexType>(a->get_size()[0]),
-                    as_device_type(alpha->get_const_values()),
-                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                    a->get_const_row_ptrs(), a->get_const_srow(),
-                    acc::as_device_range(b_vals),
-                    as_device_type(beta->get_const_values()),
-                    acc::as_device_range(c_vals), row_out.get_data(),
-                    as_device_type(val_out.get_data()));
+                    as_device_type(alpha->values), acc::as_device_range(a_vals),
+                    a->get_const_col_idxs(), a->get_const_row_ptrs(),
+                    a->get_const_srow(), acc::as_device_range(b_vals),
+                    as_device_type(beta->values), acc::as_device_range(c_vals),
+                    row_out.get_data(), as_device_type(val_out.get_data()));
             }
             csr::kernel::abstract_reduce(
                 1, spmv_block_size, 0, exec->get_queue(), grid_num,
                 as_device_type(val_out.get_data()), row_out.get_data(),
-                as_device_type(alpha->get_const_values()),
-                acc::as_device_range(c_vals));
+                as_device_type(alpha->values), acc::as_device_range(c_vals));
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -1318,13 +1322,18 @@ int compute_items_per_thread(std::shared_ptr<const DpcppExecutor> exec)
 
 template <int subgroup_size, typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-void classical_spmv(syn::value_list<int, subgroup_size>,
-                    std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Csr<MatrixValueType, IndexType>* a,
-                    const matrix::Dense<InputValueType>* b,
-                    matrix::Dense<OutputValueType>* c,
-                    const matrix::Dense<MatrixValueType>* alpha = nullptr,
-                    const matrix::Dense<OutputValueType>* beta = nullptr)
+void classical_spmv(
+    syn::value_list<int, subgroup_size>,
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::dense<const InputValueType> b,
+    matrix::view::dense<OutputValueType> c,
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const MatrixValueType>>>
+        alpha = {},
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const OutputValueType>>>
+        beta = {})
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
@@ -1335,7 +1344,7 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     const auto gridx =
         std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
                  int64(num_subgroup / nsg_in_group));
-    const dim3 grid(gridx, b->get_size()[1]);
+    const dim3 grid(gridx, b.size[1]);
     const dim3 block(spmv_block_size);
 
     const auto a_vals =
@@ -1343,7 +1352,7 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
     const auto b_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
     auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
-    if (alpha == nullptr && beta == nullptr) {
+    if (!alpha && !beta) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
                 grid, block, 0, exec->get_queue(), a->get_size()[0],
@@ -1351,14 +1360,13 @@ void classical_spmv(syn::value_list<int, subgroup_size>,
                 a->get_const_row_ptrs(), acc::as_device_range(b_vals),
                 acc::as_device_range(c_vals));
         }
-    } else if (alpha != nullptr && beta != nullptr) {
+    } else if (alpha && beta) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
                 grid, block, 0, exec->get_queue(), a->get_size()[0],
-                as_device_type(alpha->get_const_values()),
-                acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                a->get_const_row_ptrs(), acc::as_device_range(b_vals),
-                as_device_type(beta->get_const_values()),
+                as_device_type(alpha->values), acc::as_device_range(a_vals),
+                a->get_const_col_idxs(), a->get_const_row_ptrs(),
+                acc::as_device_range(b_vals), as_device_type(beta->values),
                 acc::as_device_range(c_vals));
         }
     } else {
@@ -1371,12 +1379,17 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
-bool load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                       const matrix::Csr<MatrixValueType, IndexType>* a,
-                       const matrix::Dense<InputValueType>* b,
-                       matrix::Dense<OutputValueType>* c,
-                       const matrix::Dense<MatrixValueType>* alpha = nullptr,
-                       const matrix::Dense<OutputValueType>* beta = nullptr)
+bool load_balance_spmv(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::dense<const InputValueType> b,
+    matrix::view::dense<OutputValueType> c,
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const MatrixValueType>>>
+        alpha = {},
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const OutputValueType>>>
+        beta = {})
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
@@ -1386,15 +1399,14 @@ bool load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
         return false;
     } else {
         if (beta) {
-            dense::scale(exec, beta, c);
+            dense::scale(exec, *beta, c);
         } else {
             dense::fill(exec, c, zero<OutputValueType>());
         }
         const IndexType nwarps = a->get_num_srow_elements();
         if (nwarps > 0) {
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
-            const dim3 csr_grid(ceildiv(nwarps, warps_in_block),
-                                b->get_size()[1]);
+            const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b.size[1]);
             const auto a_vals =
                 acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
             const auto b_vals =
@@ -1405,7 +1417,7 @@ bool load_balance_spmv(std::shared_ptr<const DpcppExecutor> exec,
                     csr::kernel::abstract_spmv(
                         csr_grid, csr_block, 0, exec->get_queue(), nwarps,
                         static_cast<IndexType>(a->get_size()[0]),
-                        as_device_type(alpha->get_const_values()),
+                        as_device_type(alpha->values),
                         acc::as_device_range(a_vals), a->get_const_col_idxs(),
                         a->get_const_row_ptrs(), a->get_const_srow(),
                         acc::as_device_range(b_vals),
@@ -1432,9 +1444,9 @@ template <typename ValueType, typename IndexType>
 bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
                                 const ValueType host_alpha,
                                 const matrix::Csr<ValueType, IndexType>* a,
-                                const matrix::Dense<ValueType>* b,
+                                matrix::view::dense<const ValueType> b,
                                 const ValueType host_beta,
-                                matrix::Dense<ValueType>* c)
+                                matrix::view::dense<ValueType> c)
 {
     constexpr bool try_sparselib =
         !is_complex<ValueType>() &&
@@ -1452,19 +1464,18 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
             const_cast<IndexType*>(a->get_const_row_ptrs()),
             const_cast<IndexType*>(a->get_const_col_idxs()),
             const_cast<ValueType*>(a->get_const_values()));
-        if (b->get_size()[1] == 1 && b->get_stride() == 1) {
+        if (b.size[1] == 1 && b.stride == 1) {
             oneapi::mkl::sparse::gemv(
                 *exec->get_queue(), oneapi::mkl::transpose::nontrans,
-                host_alpha, mat_handle,
-                const_cast<ValueType*>(b->get_const_values()), host_beta,
-                c->get_values());
+                host_alpha, mat_handle, const_cast<ValueType*>(b.values),
+                host_beta, c.values);
         } else {
             oneapi::mkl::sparse::gemm(
                 *exec->get_queue(), oneapi::mkl::layout::row_major,
                 oneapi::mkl::transpose::nontrans,
                 oneapi::mkl::transpose::nontrans, host_alpha, mat_handle,
-                const_cast<ValueType*>(b->get_const_values()), b->get_size()[1],
-                b->get_stride(), host_beta, c->get_values(), c->get_stride());
+                const_cast<ValueType*>(b.values), b.size[1], b.stride,
+                host_beta, c.values, c.stride);
         }
         oneapi::mkl::sparse::release_matrix_handle(
 #if INTEL_MKL_VERSION >= 20240000
@@ -1481,30 +1492,37 @@ template <typename MatrixValueType, typename InputValueType,
           typename = std::enable_if_t<
               !std::is_same<MatrixValueType, InputValueType>::value ||
               !std::is_same<MatrixValueType, OutputValueType>::value>>
-bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                        const matrix::Csr<MatrixValueType, IndexType>* a,
-                        const matrix::Dense<InputValueType>* b,
-                        matrix::Dense<OutputValueType>* c,
-                        const matrix::Dense<MatrixValueType>* alpha = nullptr,
-                        const matrix::Dense<OutputValueType>* beta = nullptr)
+bool try_sparselib_spmv(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::dense<const InputValueType> b,
+    matrix::view::dense<OutputValueType> c,
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const MatrixValueType>>>
+        alpha = {},
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const OutputValueType>>>
+        beta = {})
 {
     // TODO: support sparselib mixed
     return false;
 }
 
 template <typename ValueType, typename IndexType>
-bool try_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                        const matrix::Csr<ValueType, IndexType>* a,
-                        const matrix::Dense<ValueType>* b,
-                        matrix::Dense<ValueType>* c,
-                        const matrix::Dense<ValueType>* alpha = nullptr,
-                        const matrix::Dense<ValueType>* beta = nullptr)
+bool try_sparselib_spmv(
+    std::shared_ptr<const DpcppExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* a,
+    matrix::view::dense<const ValueType> b, matrix::view::dense<ValueType> c,
+    xstd::type_identity_t<std::optional<matrix::view::dense<const ValueType>>>
+        alpha = {},
+    xstd::type_identity_t<std::optional<matrix::view::dense<const ValueType>>>
+        beta = {})
 {
     // onemkl only supports host scalar
     if (alpha) {
         return try_general_sparselib_spmv(
-            exec, exec->copy_val_to_host(alpha->get_const_values()), a, b,
-            exec->copy_val_to_host(beta->get_const_values()), c);
+            exec, exec->copy_val_to_host(alpha->values), a, b,
+            exec->copy_val_to_host(beta->values), c);
     } else {
         return try_general_sparselib_spmv(exec, one<ValueType>(), a, b,
                                           zero<ValueType>(), c);
@@ -1519,14 +1537,14 @@ template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Csr<MatrixValueType, IndexType>* a,
-          const matrix::Dense<InputValueType>* b,
-          matrix::Dense<OutputValueType>* c)
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
 {
-    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+    if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
         return;
     }
-    if (b->get_size()[0] == 0 || a->get_num_stored_elements() == 0) {
+    if (b.size[0] == 0 || a->get_num_stored_elements() == 0) {
         // empty input: zero output
         dense::fill(exec, c, zero<OutputValueType>());
         return;
@@ -1585,17 +1603,17 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<MatrixValueType>* alpha,
+                   matrix::view::dense<const MatrixValueType> alpha,
                    const matrix::Csr<MatrixValueType, IndexType>* a,
-                   const matrix::Dense<InputValueType>* b,
-                   const matrix::Dense<OutputValueType>* beta,
-                   matrix::Dense<OutputValueType>* c)
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
 {
-    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+    if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
         return;
     }
-    if (b->get_size()[0] == 0 || a->get_num_stored_elements() == 0) {
+    if (b.size[0] == 0 || a->get_num_stored_elements() == 0) {
         // empty input: scale output
         dense::scale(exec, beta, c);
         return;
@@ -1718,7 +1736,7 @@ template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, array<IndexType>* row_nnz)
+    const span& col_span, array<IndexType>& row_nnz)
 {
     const auto num_rows = source->get_size()[0];
     auto row_ptrs = source->get_const_row_ptrs();
@@ -1728,7 +1746,7 @@ void calculate_nonzeros_per_row_in_span(
 
     kernel::calc_nnz_in_span(grid_dim, block_dim, 0, exec->get_queue(),
                              row_span, col_span, row_ptrs, col_idxs,
-                             row_nnz->get_data());
+                             row_nnz.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2053,10 +2071,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
-                     const matrix::Dense<ValueType>* alpha,
+                     matrix::view::dense<const ValueType> alpha,
                      const matrix::Csr<ValueType, IndexType>* a,
                      const matrix::Csr<ValueType, IndexType>* b,
-                     const matrix::Dense<ValueType>* beta,
+                     matrix::view::dense<const ValueType> beta,
                      const matrix::Csr<ValueType, IndexType>* d,
                      matrix::Csr<ValueType, IndexType>* c)
 {
@@ -2071,8 +2089,8 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     const auto d_cols = d->get_const_col_idxs();
     const auto d_vals = as_device_type(d->get_const_values());
     auto c_row_ptrs = c->get_row_ptrs();
-    const auto alpha_vals = as_device_type(alpha->get_const_values());
-    const auto beta_vals = as_device_type(beta->get_const_values());
+    const auto alpha_vals = as_device_type(alpha.values);
+    const auto beta_vals = as_device_type(beta.values);
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     auto queue = exec->get_queue();
 
@@ -2252,10 +2270,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void advanced_spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
-                           const matrix::Dense<ValueType>* alpha,
+                           matrix::view::dense<const ValueType> alpha,
                            const matrix::Csr<ValueType, IndexType>* a,
                            const matrix::Csr<ValueType, IndexType>* b,
-                           const matrix::Dense<ValueType>* beta,
+                           matrix::view::dense<const ValueType> beta,
                            const matrix::Csr<ValueType, IndexType>* d,
                            const matrix::csr::lookup_data<IndexType>& c_lookup,
                            matrix::Csr<ValueType, IndexType>* c)
@@ -2273,8 +2291,8 @@ void advanced_spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
     const auto b_vals = as_device_type(b->get_const_values());
     const auto c_vals = as_device_type(c->get_values());
     const auto d_vals = as_device_type(d->get_const_values());
-    const auto palpha = as_device_type(alpha->get_const_values());
-    const auto pbeta = as_device_type(beta->get_const_values());
+    const auto palpha = as_device_type(alpha.values);
+    const auto pbeta = as_device_type(beta.values);
     const auto lookup_storage_offsets =
         c_lookup.storage_offsets.get_const_data();
     const auto lookup_storage = c_lookup.storage.get_const_data();
@@ -2339,9 +2357,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const DpcppExecutor> exec,
-            const matrix::Dense<ValueType>* alpha,
+            matrix::view::dense<const ValueType> alpha,
             const matrix::Csr<ValueType, IndexType>* a,
-            const matrix::Dense<ValueType>* beta,
+            matrix::view::dense<const ValueType> beta,
             const matrix::Csr<ValueType, IndexType>* b,
             matrix::Csr<ValueType, IndexType>* c)
 {
@@ -2388,8 +2406,8 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
 
     const auto a_vals = as_device_type(a->get_const_values());
     const auto b_vals = as_device_type(b->get_const_values());
-    const auto alpha_vals = as_device_type(alpha->get_const_values());
-    const auto beta_vals = as_device_type(beta->get_const_values());
+    const auto alpha_vals = as_device_type(alpha.values);
+    const auto beta_vals = as_device_type(beta.values);
 
     using device_value_type = device_type<ValueType>;
     // count number of non-zeros per row
@@ -2427,9 +2445,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void spgeam_numeric(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Dense<ValueType>* alpha,
+                    matrix::view::dense<const ValueType> alpha,
                     const matrix::Csr<ValueType, IndexType>* a,
-                    const matrix::Dense<ValueType>* beta,
+                    matrix::view::dense<const ValueType> beta,
                     const matrix::Csr<ValueType, IndexType>* b,
                     matrix::Csr<ValueType, IndexType>* c)
 {
@@ -2443,8 +2461,8 @@ void spgeam_numeric(std::shared_ptr<const DpcppExecutor> exec,
     const auto b_vals = as_device_type(b->get_const_values());
     const auto c_row_ptrs = c->get_row_ptrs();
     const auto c_vals = as_device_type(c->get_values());
-    const auto alpha_vals = as_device_type(alpha->get_const_values());
-    const auto beta_vals = as_device_type(beta->get_const_values());
+    const auto alpha_vals = as_device_type(alpha.values);
+    const auto beta_vals = as_device_type(beta.values);
     auto queue = exec->get_queue();
 
     using device_value_type = device_type<ValueType>;
@@ -2484,11 +2502,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::Csr<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
+                   matrix::view::dense<ValueType> result)
 {
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto stride = result->get_stride();
+    const auto num_rows = result.size[0];
+    const auto num_cols = result.size[1];
+    const auto stride = result.stride;
     const auto row_ptrs = source->get_const_row_ptrs();
     const auto col_idxs = source->get_const_col_idxs();
     const auto vals = as_device_type(source->get_const_values());
@@ -2496,7 +2514,7 @@ void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
     auto grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
                           num_rows, row_ptrs, col_idxs, vals, stride,
-                          as_device_type(result->get_values()));
+                          as_device_type(result.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2866,7 +2884,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::Csr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
     array<bool> is_sorted_device_array{exec, {true}};
     const auto num_rows = to_check->get_size()[0];
@@ -2888,7 +2906,7 @@ void is_sorted_by_column_index(
             }
         });
     });
-    *is_sorted = get_element(is_sorted_device_array, 0);
+    is_sorted = get_element(is_sorted_device_array, 0);
 };
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2945,8 +2963,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
-                         const matrix::Dense<ValueType>* alpha,
-                         const matrix::Dense<ValueType>* beta,
+                         matrix::view::dense<const ValueType> alpha,
+                         matrix::view::dense<const ValueType> beta,
                          matrix::Csr<ValueType, IndexType>* mtx)
 {
     const auto nrows = mtx->get_size()[0];
@@ -2957,10 +2975,9 @@ void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
     const auto nblocks = ceildiv(nthreads, default_block_size);
     kernel::add_scaled_identity(
         nblocks, default_block_size, 0, exec->get_queue(),
-        as_device_type(alpha->get_const_values()),
-        as_device_type(beta->get_const_values()), static_cast<IndexType>(nrows),
-        mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-        as_device_type(mtx->get_values()));
+        as_device_type(alpha.values), as_device_type(beta.values),
+        static_cast<IndexType>(nrows), mtx->get_const_row_ptrs(),
+        mtx->get_const_col_idxs(), as_device_type(mtx->get_values()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

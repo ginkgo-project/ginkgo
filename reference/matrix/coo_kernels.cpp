@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,7 +32,8 @@ namespace coo {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Coo<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
 {
     dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
@@ -43,11 +44,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
+                   matrix::view::dense<const ValueType> alpha,
                    const matrix::Coo<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
 {
     dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
@@ -60,15 +61,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const ReferenceExecutor> exec,
            const matrix::Coo<ValueType, IndexType>* a,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<ValueType> c)
 {
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();
     auto coo_row = a->get_const_row_idxs();
-    auto num_cols = b->get_size()[1];
+    auto num_cols = b.size[1];
     for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
         for (size_type j = 0; j < num_cols; j++) {
-            c->at(coo_row[i], j) += coo_val[i] * b->at(coo_col[i], j);
+            c(coo_row[i], j) += coo_val[i] * b(coo_col[i], j);
         }
     }
 }
@@ -78,20 +80,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Dense<ValueType>* alpha,
+                    matrix::view::dense<const ValueType> alpha,
                     const matrix::Coo<ValueType, IndexType>* a,
-                    const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c)
+                    matrix::view::dense<const ValueType> b,
+                    matrix::view::dense<ValueType> c)
 {
     auto coo_val = a->get_const_values();
     auto coo_col = a->get_const_col_idxs();
     auto coo_row = a->get_const_row_idxs();
-    auto alpha_val = alpha->at(0, 0);
-    auto num_cols = b->get_size()[1];
+    auto alpha_val = alpha(0, 0);
+    auto num_cols = b.size[1];
     for (size_type i = 0; i < a->get_num_stored_elements(); i++) {
         for (size_type j = 0; j < num_cols; j++) {
-            c->at(coo_row[i], j) +=
-                alpha_val * coo_val[i] * b->at(coo_col[i], j);
+            c(coo_row[i], j) += alpha_val * coo_val[i] * b(coo_col[i], j);
         }
     }
 }
@@ -103,13 +104,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Coo<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
+                   matrix::view::dense<ValueType> result)
 {
     auto coo_val = source->get_const_values();
     auto coo_col = source->get_const_col_idxs();
     auto coo_row = source->get_const_row_idxs();
     for (size_type i = 0; i < source->get_num_stored_elements(); i++) {
-        result->at(coo_row[i], coo_col[i]) += coo_val[i];
+        result(coo_row[i], coo_col[i]) += coo_val[i];
     }
 }
 

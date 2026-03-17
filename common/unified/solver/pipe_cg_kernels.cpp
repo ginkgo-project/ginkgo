@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,12 +22,12 @@ namespace pipe_cg {
 
 template <typename ValueType>
 void initialize_1(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* r,
-                  matrix::Dense<ValueType>* prev_rho,
-                  array<stopping_status>* stop_status)
+                  matrix::view::dense<const ValueType> b,
+                  matrix::view::dense<ValueType> r,
+                  matrix::view::dense<ValueType> prev_rho,
+                  array<stopping_status>& stop_status)
 {
-    if (b->get_size()) {
+    if (b.size) {
         run_kernel_solver(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto prev_rho,
@@ -38,8 +38,7 @@ void initialize_1(std::shared_ptr<const DefaultExecutor> exec,
                 }
                 r(row, col) = b(row, col);
             },
-            b->get_size(), b->get_stride(), b, r, row_vector(prev_rho),
-            *stop_status);
+            b.size, b.stride, b, r, row_vector(prev_rho), stop_status);
     } else {
         run_kernel(
             exec,
@@ -47,7 +46,7 @@ void initialize_1(std::shared_ptr<const DefaultExecutor> exec,
                 prev_rho[col] = one(prev_rho[col]);
                 stop[col].reset();
             },
-            b->get_size()[1], row_vector(prev_rho), *stop_status);
+            b.size[1], row_vector(prev_rho), stop_status);
     }
 }
 
@@ -55,21 +54,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_INITIALIZE_1_KERNEL);
 
 template <typename ValueType>
 void initialize_2(std::shared_ptr<const DefaultExecutor> exec,
-                  matrix::Dense<ValueType>* p, matrix::Dense<ValueType>* q,
-                  matrix::Dense<ValueType>* f, matrix::Dense<ValueType>* g,
-                  matrix::Dense<ValueType>* beta,
-                  const matrix::Dense<ValueType>* z,
-                  const matrix::Dense<ValueType>* w,
-                  const matrix::Dense<ValueType>* m,
-                  const matrix::Dense<ValueType>* n,
-                  const matrix::Dense<ValueType>* delta)
+                  matrix::view::dense<ValueType> p,
+                  matrix::view::dense<ValueType> q,
+                  matrix::view::dense<ValueType> f,
+                  matrix::view::dense<ValueType> g,
+                  matrix::view::dense<ValueType> beta,
+                  matrix::view::dense<const ValueType> z,
+                  matrix::view::dense<const ValueType> w,
+                  matrix::view::dense<const ValueType> m,
+                  matrix::view::dense<const ValueType> n,
+                  matrix::view::dense<const ValueType> delta)
 {
     // beta = delta
     // p = z
     // q = w
     // f = m
     // g = n
-    if (p->get_size()) {
+    if (p.size) {
         run_kernel_solver(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto p, auto q, auto f, auto g,
@@ -83,17 +84,16 @@ void initialize_2(std::shared_ptr<const DefaultExecutor> exec,
                 f(row, col) = m(row, col);
                 g(row, col) = n(row, col);
             },
-            p->get_size(), p->get_stride(), default_stride(p),
-            default_stride(q), default_stride(f), default_stride(g),
-            row_vector(beta), z, w, default_stride(m), default_stride(n),
-            row_vector(delta));
+            p.size, p.stride, default_stride(p), default_stride(q),
+            default_stride(f), default_stride(g), row_vector(beta), z, w,
+            default_stride(m), default_stride(n), row_vector(delta));
     } else {
         run_kernel(
             exec,
             [] GKO_KERNEL(auto col, auto beta, auto delta) {
                 beta[col] = delta[col];
             },
-            p->get_size()[1], row_vector(beta), row_vector(delta));
+            p.size[1], row_vector(beta), row_vector(delta));
     }
 }
 
@@ -102,15 +102,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_INITIALIZE_2_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* r,
-            matrix::Dense<ValueType>* z1, matrix::Dense<ValueType>* z2,
-            matrix::Dense<ValueType>* w, const matrix::Dense<ValueType>* p,
-            const matrix::Dense<ValueType>* q,
-            const matrix::Dense<ValueType>* f,
-            const matrix::Dense<ValueType>* g,
-            const matrix::Dense<ValueType>* rho,
-            const matrix::Dense<ValueType>* beta,
-            const array<stopping_status>* stop_status)
+            matrix::view::dense<ValueType> x, matrix::view::dense<ValueType> r,
+            matrix::view::dense<ValueType> z1,
+            matrix::view::dense<ValueType> z2, matrix::view::dense<ValueType> w,
+            matrix::view::dense<const ValueType> p,
+            matrix::view::dense<const ValueType> q,
+            matrix::view::dense<const ValueType> f,
+            matrix::view::dense<const ValueType> g,
+            matrix::view::dense<const ValueType> rho,
+            matrix::view::dense<const ValueType> beta,
+            const array<stopping_status>& stop_status)
 {
     // tmp = rho / beta
     // x = x + tmp * p
@@ -131,9 +132,9 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 w(row, col) -= tmp * g(row, col);
             }
         },
-        x->get_size(), x->get_stride(), default_stride(x), r, z1, z2, w,
-        default_stride(p), default_stride(q), default_stride(f),
-        default_stride(g), row_vector(rho), row_vector(beta), *stop_status);
+        x.size, x.stride, default_stride(x), r, z1, z2, w, default_stride(p),
+        default_stride(q), default_stride(f), default_stride(g),
+        row_vector(rho), row_vector(beta), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_1_KERNEL);
@@ -141,16 +142,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* p,
-            matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* f,
-            matrix::Dense<ValueType>* g, const matrix::Dense<ValueType>* z,
-            const matrix::Dense<ValueType>* w,
-            const matrix::Dense<ValueType>* m,
-            const matrix::Dense<ValueType>* n,
-            const matrix::Dense<ValueType>* prev_rho,
-            const matrix::Dense<ValueType>* rho,
-            const matrix::Dense<ValueType>* delta,
-            const array<stopping_status>* stop_status)
+            matrix::view::dense<ValueType> beta,
+            matrix::view::dense<ValueType> p, matrix::view::dense<ValueType> q,
+            matrix::view::dense<ValueType> f, matrix::view::dense<ValueType> g,
+            matrix::view::dense<const ValueType> z,
+            matrix::view::dense<const ValueType> w,
+            matrix::view::dense<const ValueType> m,
+            matrix::view::dense<const ValueType> n,
+            matrix::view::dense<const ValueType> prev_rho,
+            matrix::view::dense<const ValueType> rho,
+            matrix::view::dense<const ValueType> delta,
+            const array<stopping_status>& stop_status)
 {
     // tmp = rho / prev_rho
     // beta = delta - |tmp|^2 * beta
@@ -178,10 +180,10 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 g(row, col) = n(row, col) + tmp * g(row, col);
             }
         },
-        p->get_size(), p->get_stride(), row_vector(beta), default_stride(p),
+        p.size, p.stride, row_vector(beta), default_stride(p),
         default_stride(q), default_stride(f), default_stride(g), z, w,
         default_stride(m), default_stride(n), row_vector(prev_rho),
-        row_vector(rho), row_vector(delta), *stop_status);
+        row_vector(rho), row_vector(delta), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_2_KERNEL);

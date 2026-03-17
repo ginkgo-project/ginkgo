@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -181,7 +181,7 @@ void Perturbation<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
-#define GKO_DECLARE_PERTURBATION(_type) class Perturbation<_type>
+#define GKO_DECLARE_PERTURBATION(ValueType) class Perturbation<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PERTURBATION);
 
 

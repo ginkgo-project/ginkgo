@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -335,7 +335,7 @@ void fallback_transpose(const std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::Fbcsr<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
+                   matrix::view::dense<ValueType> result)
 {
     constexpr auto warps_per_block = default_block_size / config::warp_size;
     const auto num_blocks =
@@ -345,7 +345,7 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
                                 exec->get_stream()>>>(
             source->get_const_row_ptrs(), source->get_const_col_idxs(),
             as_device_type(source->get_const_values()),
-            as_device_type(result->get_values()), result->get_stride(),
+            as_device_type(result.values), result.stride,
             source->get_num_block_rows(), source->get_block_size());
     }
 }
@@ -373,12 +373,12 @@ void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Fbcsr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::Fbcsr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
-    *is_sorted = true;
+    is_sorted = true;
     auto gpu_array = array<bool>(exec, 1);
     // need to initialize the GPU value to true
-    exec->copy_from(exec->get_master(), 1, is_sorted, gpu_array.get_data());
+    exec->copy_from(exec->get_master(), 1, &is_sorted, gpu_array.get_data());
     auto block_size = default_block_size;
     const auto num_brows =
         static_cast<IndexType>(to_check->get_num_block_rows());
@@ -389,7 +389,7 @@ void is_sorted_by_column_index(
                 to_check->get_const_row_ptrs(), to_check->get_const_col_idxs(),
                 num_brows, gpu_array.get_data());
     }
-    *is_sorted = get_element(gpu_array, 0);
+    is_sorted = get_element(gpu_array, 0);
 }
 
 
@@ -439,13 +439,14 @@ void dense_transpose(std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Fbcsr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
 {
-    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+    if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
         return;
     }
-    if (b->get_size()[0] == 0 || a->get_num_stored_blocks() == 0) {
+    if (b.size[0] == 0 || a->get_num_stored_blocks() == 0) {
         // empty input: fill output with zero
         dense::fill(exec, c, zero<ValueType>());
         return;
@@ -463,25 +464,25 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
         const IndexType mb = a->get_num_block_rows();
         const IndexType nb = a->get_num_block_cols();
         const auto nnzb = static_cast<IndexType>(a->get_num_stored_blocks());
-        const auto nrhs = static_cast<IndexType>(b->get_size()[1]);
+        const auto nrhs = static_cast<IndexType>(b.size[1]);
         const auto nrows = a->get_size()[0];
         const auto ncols = a->get_size()[1];
-        const auto in_stride = b->get_stride();
-        const auto out_stride = c->get_stride();
+        const auto in_stride = b.stride;
+        const auto out_stride = c.stride;
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
             sparselib::bsrmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, mb, nb,
                              nnzb, &alpha, descr, values, row_ptrs, col_idxs,
-                             bs, b->get_const_values(), &beta, c->get_values());
+                             bs, b.values, &beta, c.values);
         } else {
             const auto trans_stride = nrows;
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
             sparselib::bsrmm(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                              SPARSELIB_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                              &alpha, descr, values, row_ptrs, col_idxs, bs,
-                             b->get_const_values(), in_stride, &beta,
-                             trans_c.get_data(), trans_stride);
+                             b.values, in_stride, &beta, trans_c.get_data(),
+                             trans_stride);
             dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
-                            out_stride, c->get_values());
+                            out_stride, c.values);
         }
         sparselib::destroy(descr);
     } else {
@@ -492,25 +493,25 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
+                   matrix::view::dense<const ValueType> alpha,
                    const matrix::Fbcsr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
 {
-    if (c->get_size()[0] == 0 || c->get_size()[1] == 0) {
+    if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
         return;
     }
-    if (b->get_size()[0] == 0 || a->get_num_stored_blocks() == 0) {
+    if (b.size[0] == 0 || a->get_num_stored_blocks() == 0) {
         // empty input: scale output
         dense::scale(exec, beta, c);
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_sparselib_handle();
-        const auto alphp = alpha->get_const_values();
-        const auto betap = beta->get_const_values();
+        const auto alphp = alpha.values;
+        const auto betap = beta.values;
         auto descr = sparselib::create_mat_descr();
         const auto row_ptrs = a->get_const_row_ptrs();
         const auto col_idxs = a->get_const_col_idxs();
@@ -519,27 +520,27 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
         const IndexType mb = a->get_num_block_rows();
         const IndexType nb = a->get_num_block_cols();
         const auto nnzb = static_cast<IndexType>(a->get_num_stored_blocks());
-        const auto nrhs = static_cast<IndexType>(b->get_size()[1]);
+        const auto nrhs = static_cast<IndexType>(b.size[1]);
         const auto nrows = a->get_size()[0];
         const auto ncols = a->get_size()[1];
-        const auto in_stride = b->get_stride();
-        const auto out_stride = c->get_stride();
+        const auto in_stride = b.stride;
+        const auto out_stride = c.stride;
         if (nrhs == 1 && in_stride == 1 && out_stride == 1) {
             sparselib::bsrmv(handle, SPARSELIB_OPERATION_NON_TRANSPOSE, mb, nb,
                              nnzb, alphp, descr, values, row_ptrs, col_idxs, bs,
-                             b->get_const_values(), betap, c->get_values());
+                             b.values, betap, c.values);
         } else {
             const auto trans_stride = nrows;
             auto trans_c = array<ValueType>(exec, nrows * nrhs);
-            dense_transpose(exec, nrows, nrhs, out_stride, c->get_values(),
+            dense_transpose(exec, nrows, nrhs, out_stride, c.values,
                             trans_stride, trans_c.get_data());
             sparselib::bsrmm(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                              SPARSELIB_OPERATION_TRANSPOSE, mb, nrhs, nb, nnzb,
                              alphp, descr, values, row_ptrs, col_idxs, bs,
-                             b->get_const_values(), in_stride, betap,
-                             trans_c.get_data(), trans_stride);
+                             b.values, in_stride, betap, trans_c.get_data(),
+                             trans_stride);
             dense_transpose(exec, nrhs, nrows, trans_stride, trans_c.get_data(),
-                            out_stride, c->get_values());
+                            out_stride, c.values);
         }
         sparselib::destroy(descr);
     } else {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,23 +15,23 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_FFT_KERNEL(ValueType)                             \
-    void fft(std::shared_ptr<const DefaultExecutor> exec,             \
-             const matrix::Dense<std::complex<ValueType>>* b,         \
-             matrix::Dense<std::complex<ValueType>>* x, bool inverse, \
+#define GKO_DECLARE_FFT_KERNEL(ValueType)                                  \
+    void fft(std::shared_ptr<const DefaultExecutor> exec,                  \
+             matrix::view::dense<const std::complex<ValueType>> b,         \
+             matrix::view::dense<std::complex<ValueType>> x, bool inverse, \
              array<char>& buffer)
 
-#define GKO_DECLARE_FFT2_KERNEL(ValueType)                                \
-    void fft2(std::shared_ptr<const DefaultExecutor> exec,                \
-              const matrix::Dense<std::complex<ValueType>>* b,            \
-              matrix::Dense<std::complex<ValueType>>* x, size_type size1, \
+#define GKO_DECLARE_FFT2_KERNEL(ValueType)                                     \
+    void fft2(std::shared_ptr<const DefaultExecutor> exec,                     \
+              matrix::view::dense<const std::complex<ValueType>> b,            \
+              matrix::view::dense<std::complex<ValueType>> x, size_type size1, \
               size_type size2, bool inverse, array<char>& buffer)
 
-#define GKO_DECLARE_FFT3_KERNEL(ValueType)                                \
-    void fft3(std::shared_ptr<const DefaultExecutor> exec,                \
-              const matrix::Dense<std::complex<ValueType>>* b,            \
-              matrix::Dense<std::complex<ValueType>>* x, size_type size1, \
-              size_type size2, size_type size3, bool inverse,             \
+#define GKO_DECLARE_FFT3_KERNEL(ValueType)                                     \
+    void fft3(std::shared_ptr<const DefaultExecutor> exec,                     \
+              matrix::view::dense<const std::complex<ValueType>> b,            \
+              matrix::view::dense<std::complex<ValueType>> x, size_type size1, \
+              size_type size2, size_type size3, bool inverse,                  \
               array<char>& buffer)
 
 

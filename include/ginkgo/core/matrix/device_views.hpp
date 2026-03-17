@@ -24,23 +24,23 @@ template <typename ValueType>
 struct dense {
     dim<2> size;
     size_type stride;
-    ValueType* data;
+    ValueType* values;
 
-    /** Constructs a dense view from size, stride and data. */
-    constexpr dense(dim<2> size, size_type stride, ValueType* data)
-        : size{size}, stride{stride}, data{data}
+    /** Constructs a dense view from size, stride and values. */
+    constexpr dense(dim<2> size, size_type stride, ValueType* values)
+        : size{size}, stride{stride}, values{values}
     {}
 
-    /** Returns a const view of the same data */
+    /** Returns a const view of the same values */
     constexpr dense<const ValueType> as_const() const
     {
-        return dense<const ValueType>{size, stride, data};
+        return dense<const ValueType>{size, stride, values};
     }
 
     /** Subscript operator accessing the given row and column */
     constexpr ValueType& operator()(size_type row, size_type col) const
     {
-        return data[row * stride + col];
+        return values[row * stride + col];
     }
 };
 

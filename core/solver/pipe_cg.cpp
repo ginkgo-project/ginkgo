@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -175,9 +175,10 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     // r = b
     // prev_rho = 1.0
-    exec->run(pipe_cg::make_initialize_1(gko::detail::get_local(dense_b),
-                                         gko::detail::get_local(r), prev_rho,
-                                         &stop_status));
+    exec->run(pipe_cg::make_initialize_1(
+        gko::detail::get_local(dense_b)->get_const_device_view(),
+        gko::detail::get_local(r)->get_device_view(),
+        prev_rho->get_device_view(), stop_status));
     // r = r - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     // z = preconditioner * r
@@ -220,10 +221,15 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // f = m
     // g = n
     exec->run(pipe_cg::make_initialize_2(
-        gko::detail::get_local(p), gko::detail::get_local(q),
-        gko::detail::get_local(f), gko::detail::get_local(g), beta,
-        gko::detail::get_local(z1), gko::detail::get_local(w),
-        gko::detail::get_local(m), gko::detail::get_local(n), delta));
+        gko::detail::get_local(p)->get_device_view(),
+        gko::detail::get_local(q)->get_device_view(),
+        gko::detail::get_local(f)->get_device_view(),
+        gko::detail::get_local(g)->get_device_view(), beta->get_device_view(),
+        gko::detail::get_local(z1)->get_const_device_view(),
+        gko::detail::get_local(w)->get_const_device_view(),
+        gko::detail::get_local(m)->get_const_device_view(),
+        gko::detail::get_local(n)->get_const_device_view(),
+        delta->get_const_device_view()));
 
     /* Memory movement summary:
      TODO
@@ -237,11 +243,17 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // it's the only place where z is updated so we updated both z1 and z2
         // here
         exec->run(pipe_cg::make_step_1(
-            gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(z1), gko::detail::get_local(z2),
-            gko::detail::get_local(w), gko::detail::get_local(p),
-            gko::detail::get_local(q), gko::detail::get_local(f),
-            gko::detail::get_local(g), rho, beta, &stop_status));
+            gko::detail::get_local(dense_x)->get_device_view(),
+            gko::detail::get_local(r)->get_device_view(),
+            gko::detail::get_local(z1)->get_device_view(),
+            gko::detail::get_local(z2)->get_device_view(),
+            gko::detail::get_local(w)->get_device_view(),
+            gko::detail::get_local(p)->get_const_device_view(),
+            gko::detail::get_local(q)->get_const_device_view(),
+            gko::detail::get_local(f)->get_const_device_view(),
+            gko::detail::get_local(g)->get_const_device_view(),
+            rho->get_const_device_view(), beta->get_const_device_view(),
+            stop_status));
 
         // m = preconditioner * w
         this->get_preconditioner()->apply(w, m);
@@ -276,11 +288,17 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // f = m + tmp * f
         // g = n + tmp * g
         exec->run(pipe_cg::make_step_2(
-            beta, gko::detail::get_local(p), gko::detail::get_local(q),
-            gko::detail::get_local(f), gko::detail::get_local(g),
-            gko::detail::get_local(z1), gko::detail::get_local(w),
-            gko::detail::get_local(m), gko::detail::get_local(n), prev_rho, rho,
-            delta, &stop_status));
+            beta->get_device_view(),
+            gko::detail::get_local(p)->get_device_view(),
+            gko::detail::get_local(q)->get_device_view(),
+            gko::detail::get_local(f)->get_device_view(),
+            gko::detail::get_local(g)->get_device_view(),
+            gko::detail::get_local(z1)->get_const_device_view(),
+            gko::detail::get_local(w)->get_const_device_view(),
+            gko::detail::get_local(m)->get_const_device_view(),
+            gko::detail::get_local(n)->get_const_device_view(),
+            prev_rho->get_const_device_view(), rho->get_const_device_view(),
+            delta->get_const_device_view(), stop_status));
     }
 }
 
@@ -350,8 +368,9 @@ std::vector<int> workspace_traits<PipeCg<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_PIPE_CG(_type) class PipeCg<_type>
-#define GKO_DECLARE_PIPE_CG_TRAITS(_type) struct workspace_traits<PipeCg<_type>>
+#define GKO_DECLARE_PIPE_CG(ValueType) class PipeCg<ValueType>
+#define GKO_DECLARE_PIPE_CG_TRAITS(ValueType) \
+    struct workspace_traits<PipeCg<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_TRAITS);
 

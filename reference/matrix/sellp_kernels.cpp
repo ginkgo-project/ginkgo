@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,7 +26,8 @@ namespace sellp {
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::Sellp<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
 {
     auto col_idxs = a->get_const_col_idxs();
     auto slice_lengths = a->get_const_slice_lengths();
@@ -39,15 +40,15 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
             if (global_row >= a->get_size()[0]) {
                 break;
             }
-            for (size_type j = 0; j < c->get_size()[1]; j++) {
-                c->at(global_row, j) = zero<ValueType>();
+            for (size_type j = 0; j < c.size[1]; j++) {
+                c(global_row, j) = zero<ValueType>();
             }
             for (size_type i = 0; i < slice_lengths[slice]; i++) {
                 auto val = a->val_at(row, slice_sets[slice], i);
                 auto col = a->col_at(row, slice_sets[slice], i);
                 if (col != invalid_index<IndexType>()) {
-                    for (size_type j = 0; j < c->get_size()[1]; j++) {
-                        c->at(global_row, j) += val * b->at(col, j);
+                    for (size_type j = 0; j < c.size[1]; j++) {
+                        c(global_row, j) += val * b(col, j);
                     }
                 }
             }
@@ -60,11 +61,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
+                   matrix::view::dense<const ValueType> alpha,
                    const matrix::Sellp<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
 {
     auto vals = a->get_const_values();
     auto col_idxs = a->get_const_col_idxs();
@@ -72,27 +73,27 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     auto slice_sets = a->get_const_slice_sets();
     auto slice_size = a->get_slice_size();
     auto slice_num = ceildiv(a->get_size()[0] + slice_size - 1, slice_size);
-    auto valpha = alpha->at(0, 0);
-    auto vbeta = beta->at(0, 0);
+    auto valpha = alpha(0, 0);
+    auto vbeta = beta(0, 0);
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
             if (global_row >= a->get_size()[0]) {
                 break;
             }
-            for (size_type j = 0; j < c->get_size()[1]; j++) {
+            for (size_type j = 0; j < c.size[1]; j++) {
                 if (is_nonzero(vbeta)) {
-                    c->at(global_row, j) *= vbeta;
+                    c(global_row, j) *= vbeta;
                 } else {
-                    c->at(global_row, j) = zero<ValueType>();
+                    c(global_row, j) = zero<ValueType>();
                 }
             }
             for (size_type i = 0; i < slice_lengths[slice]; i++) {
                 auto val = a->val_at(row, slice_sets[slice], i);
                 auto col = a->col_at(row, slice_sets[slice], i);
                 if (col != invalid_index<IndexType>()) {
-                    for (size_type j = 0; j < c->get_size()[1]; j++) {
-                        c->at(global_row, j) += valpha * val * b->at(col, j);
+                    for (size_type j = 0; j < c.size[1]; j++) {
+                        c(global_row, j) += valpha * val * b(col, j);
                     }
                 }
             }
@@ -174,7 +175,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::Sellp<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
+                   matrix::view::dense<ValueType> result)
 {
     auto num_rows = source->get_size()[0];
     auto num_cols = source->get_size()[1];
@@ -195,7 +196,7 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                  i++) {
                 const auto col = col_idxs[row + i * slice_size];
                 if (col != invalid_index<IndexType>()) {
-                    result->at(global_row, col) = vals[row + i * slice_size];
+                    result(global_row, col) = vals[row + i * slice_size];
                 }
             }
         }

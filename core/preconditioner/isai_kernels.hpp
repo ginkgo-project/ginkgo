@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,20 +37,20 @@ namespace kernels {
         const matrix::Csr<ValueType, IndexType>* inverse,                    \
         const IndexType* excess_rhs_ptrs, const IndexType* excess_nz_ptrs,   \
         matrix::Csr<ValueType, IndexType>* excess_system,                    \
-        matrix::Dense<ValueType>* excess_rhs, size_type e_start,             \
+        matrix::view::dense<ValueType> excess_rhs, size_type e_start,        \
         size_type e_end)
 
-#define GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL(ValueType, IndexType) \
-    void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec, \
-                               const IndexType* excess_block_ptrs,          \
-                               matrix::Dense<ValueType>* excess_solution,   \
+#define GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL(ValueType, IndexType)    \
+    void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec,    \
+                               const IndexType* excess_block_ptrs,             \
+                               matrix::view::dense<ValueType> excess_solution, \
                                size_type e_start, size_type e_end)
 
 #define GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType) \
     void scatter_excess_solution(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const IndexType* excess_rhs_ptrs,                                     \
-        const matrix::Dense<ValueType>* excess_solution,                      \
+        matrix::view::dense<const ValueType> excess_solution,                 \
         matrix::Csr<ValueType, IndexType>* inverse, size_type e_start,        \
         size_type e_end)
 

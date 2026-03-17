@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -174,7 +174,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
 }
 
 
-#define GKO_DECLARE_BATCH_JACOBI(_type) class Jacobi<_type, int32>
+#define GKO_DECLARE_BATCH_JACOBI(ValueType) class Jacobi<ValueType, int32>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI);
 
 

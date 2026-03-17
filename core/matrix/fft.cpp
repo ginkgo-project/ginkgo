@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -154,11 +154,15 @@ void Fft::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (auto float_b = dynamic_cast<const Dense<std::complex<float>>*>(b)) {
         auto dense_x = as<Dense<std::complex<float>>>(x);
-        get_executor()->run(fft::make_fft(float_b, dense_x, inverse_, buffer_));
+        get_executor()->run(fft::make_fft(float_b->get_const_device_view(),
+                                          dense_x->get_device_view(), inverse_,
+                                          buffer_));
     } else {
         auto dense_b = as<Dense<std::complex<double>>>(b);
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        get_executor()->run(fft::make_fft(dense_b, dense_x, inverse_, buffer_));
+        get_executor()->run(fft::make_fft(dense_b->get_const_device_view(),
+                                          dense_x->get_device_view(), inverse_,
+                                          buffer_));
     }
 }
 
@@ -247,13 +251,15 @@ void Fft2::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (auto float_b = dynamic_cast<const Dense<std::complex<float>>*>(b)) {
         auto dense_x = as<Dense<std::complex<float>>>(x);
-        get_executor()->run(fft::make_fft2(float_b, dense_x, fft_size_[0],
-                                           fft_size_[1], inverse_, buffer_));
+        get_executor()->run(fft::make_fft2(
+            float_b->get_const_device_view(), dense_x->get_device_view(),
+            fft_size_[0], fft_size_[1], inverse_, buffer_));
     } else {
         auto dense_b = as<Dense<std::complex<double>>>(b);
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        get_executor()->run(fft::make_fft2(dense_b, dense_x, fft_size_[0],
-                                           fft_size_[1], inverse_, buffer_));
+        get_executor()->run(fft::make_fft2(
+            dense_b->get_const_device_view(), dense_x->get_device_view(),
+            fft_size_[0], fft_size_[1], inverse_, buffer_));
     }
 }
 
@@ -358,15 +364,15 @@ void Fft3::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (auto float_b = dynamic_cast<const Dense<std::complex<float>>*>(b)) {
         auto dense_x = as<Dense<std::complex<float>>>(x);
-        get_executor()->run(fft::make_fft3(float_b, dense_x, fft_size_[0],
-                                           fft_size_[1], fft_size_[2], inverse_,
-                                           buffer_));
+        get_executor()->run(fft::make_fft3(
+            float_b->get_const_device_view(), dense_x->get_device_view(),
+            fft_size_[0], fft_size_[1], fft_size_[2], inverse_, buffer_));
     } else {
         auto dense_b = as<Dense<std::complex<double>>>(b);
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        get_executor()->run(fft::make_fft3(dense_b, dense_x, fft_size_[0],
-                                           fft_size_[1], fft_size_[2], inverse_,
-                                           buffer_));
+        get_executor()->run(fft::make_fft3(
+            dense_b->get_const_device_view(), dense_x->get_device_view(),
+            fft_size_[0], fft_size_[1], fft_size_[2], inverse_, buffer_));
     }
 }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -108,17 +108,17 @@ GKO_ENABLE_DEFAULT_HOST(advanced_spmv_kernel, advanced_spmv_kernel);
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::Sellp<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
 {
     const dim3 blockSize(default_block_size);
     const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
-                        b->get_size()[1]);
+                        b.size[1]);
 
     spmv_kernel(gridSize, blockSize, 0, exec->get_queue(), a->get_size()[0],
-                b->get_size()[1], b->get_stride(), c->get_stride(),
-                a->get_slice_size(), a->get_const_slice_sets(),
-                a->get_const_values(), a->get_const_col_idxs(),
-                b->get_const_values(), c->get_values());
+                b.size[1], b.stride, c.stride, a->get_slice_size(),
+                a->get_const_slice_sets(), a->get_const_values(),
+                a->get_const_col_idxs(), b.values, c.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
@@ -126,22 +126,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
+                   matrix::view::dense<const ValueType> alpha,
                    const matrix::Sellp<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
 {
     const dim3 blockSize(default_block_size);
     const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
-                        b->get_size()[1]);
+                        b.size[1]);
 
     advanced_spmv_kernel(
-        gridSize, blockSize, 0, exec->get_queue(), a->get_size()[0],
-        b->get_size()[1], b->get_stride(), c->get_stride(), a->get_slice_size(),
-        a->get_const_slice_sets(), alpha->get_const_values(),
-        a->get_const_values(), a->get_const_col_idxs(), b->get_const_values(),
-        beta->get_const_values(), c->get_values());
+        gridSize, blockSize, 0, exec->get_queue(), a->get_size()[0], b.size[1],
+        b.stride, c.stride, a->get_slice_size(), a->get_const_slice_sets(),
+        alpha.values, a->get_const_values(), a->get_const_col_idxs(), b.values,
+        beta.values, c.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

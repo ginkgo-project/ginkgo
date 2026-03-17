@@ -1,7 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <optional>
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>
@@ -160,6 +161,7 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             // pointers.
             Vector* trans_b{};
             Vector* trans_x{};
+            using optional_view = std::optional<matrix::view::dense<ValueType>>;
             if (needs_transpose(exec)) {
                 trans_b = this->template create_workspace_op<Vector>(
                     ws::transposed_b, gko::transpose(dense_b->get_size()));
@@ -169,7 +171,11 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             exec->run(lower_trs::make_solve(
                 this->get_system_matrix().get(), this->solve_struct_.get(),
                 this->get_parameters().unit_diagonal, parameters_.algorithm,
-                trans_b, trans_x, dense_b, dense_x));
+                trans_b ? optional_view{trans_b->get_device_view()}
+                        : optional_view{},
+                trans_x ? optional_view{trans_x->get_device_view()}
+                        : optional_view{},
+                dense_b->get_const_device_view(), dense_x->get_device_view()));
         },
         b, x);
 }
@@ -248,9 +254,10 @@ std::vector<int> workspace_traits<LowerTrs<ValueType, IndexType>>::vectors(
 }
 
 
-#define GKO_DECLARE_LOWER_TRS(_vtype, _itype) class LowerTrs<_vtype, _itype>
-#define GKO_DECLARE_LOWER_TRS_TRAITS(_vtype, _itype) \
-    struct workspace_traits<LowerTrs<_vtype, _itype>>
+#define GKO_DECLARE_LOWER_TRS(ValueType, IndexType) \
+    class LowerTrs<ValueType, IndexType>
+#define GKO_DECLARE_LOWER_TRS_TRAITS(ValueType, IndexType) \
+    struct workspace_traits<LowerTrs<ValueType, IndexType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS_TRAITS);
 

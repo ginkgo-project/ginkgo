@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 
 #include <memory>
+#include <optional>
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -26,21 +27,23 @@ namespace upper_trs {
                                   bool& do_transpose)
 
 
-#define GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(_vtype, _itype)                 \
+#define GKO_DECLARE_UPPER_TRS_GENERATE_KERNEL(ValueType, IndexType)           \
     void generate(std::shared_ptr<const DefaultExecutor> exec,                \
-                  const matrix::Csr<_vtype, _itype>* matrix,                  \
+                  const matrix::Csr<ValueType, IndexType>* matrix,            \
                   std::shared_ptr<solver::SolveStruct>& solve_struct,         \
                   bool unit_diag, const solver::trisolve_algorithm algorithm, \
                   const size_type num_rhs)
 
 
-#define GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL(_vtype, _itype)                     \
-    void solve(std::shared_ptr<const DefaultExecutor> exec,                    \
-               const matrix::Csr<_vtype, _itype>* matrix,                      \
-               const solver::SolveStruct* solve_struct, bool unit_diag,        \
-               const solver::trisolve_algorithm algorithm,                     \
-               matrix::Dense<_vtype>* trans_b, matrix::Dense<_vtype>* trans_x, \
-               const matrix::Dense<_vtype>* b, matrix::Dense<_vtype>* x)
+#define GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL(ValueType, IndexType)        \
+    void solve(std::shared_ptr<const DefaultExecutor> exec,             \
+               const matrix::Csr<ValueType, IndexType>* matrix,         \
+               const solver::SolveStruct* solve_struct, bool unit_diag, \
+               const solver::trisolve_algorithm algorithm,              \
+               std::optional<matrix::view::dense<ValueType>> trans_b,   \
+               std::optional<matrix::view::dense<ValueType>> trans_x,   \
+               matrix::view::dense<const ValueType> b,                  \
+               matrix::view::dense<ValueType> x)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \

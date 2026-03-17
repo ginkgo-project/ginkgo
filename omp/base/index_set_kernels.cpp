@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,13 +58,13 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       const IndexType index_space_size,
-                      const array<IndexType>* indices,
-                      array<IndexType>* subset_begin,
-                      array<IndexType>* subset_end,
-                      array<IndexType>* superset_indices, const bool is_sorted)
+                      const array<IndexType>& indices,
+                      array<IndexType>& subset_begin,
+                      array<IndexType>& subset_end,
+                      array<IndexType>& superset_indices, const bool is_sorted)
 {
-    auto num_indices = indices->get_size();
-    auto tmp_indices = gko::array<IndexType>(*indices);
+    auto num_indices = indices.get_size();
+    auto tmp_indices = indices;
     // Sort the indices if not sorted.
     if (!is_sorted) {
         std::sort(tmp_indices.get_data(), tmp_indices.get_data() + num_indices);
@@ -100,13 +100,13 @@ void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
     GKO_ASSERT(tmp_subset_begin.size() == tmp_subset_end.size());
     GKO_ASSERT((tmp_subset_begin.size() + 1) ==
                tmp_subset_superset_index.size());
-    *subset_begin = std::move(gko::array<IndexType>(
+    subset_begin = std::move(gko::array<IndexType>(
         exec, tmp_subset_begin.data(),
         tmp_subset_begin.data() + tmp_subset_begin.size()));
-    *subset_end = std::move(
+    subset_end = std::move(
         gko::array<IndexType>(exec, tmp_subset_end.data(),
                               tmp_subset_end.data() + tmp_subset_end.size()));
-    *superset_indices = std::move(gko::array<IndexType>(
+    superset_indices = std::move(gko::array<IndexType>(
         exec, tmp_subset_superset_index.data(),
         tmp_subset_superset_index.data() + tmp_subset_superset_index.size()));
 }

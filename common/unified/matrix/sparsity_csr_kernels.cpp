@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,7 +24,7 @@ namespace sparsity_csr {
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::SparsityCsr<ValueType, IndexType>* input,
-                   matrix::Dense<ValueType>* output)
+                   matrix::view::dense<ValueType> output)
 {
     run_kernel(
         exec,

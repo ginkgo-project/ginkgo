@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -117,16 +117,15 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     }
 
     void solve(const matrix::Csr<ValueType, IndexType>*,
-               const matrix::Dense<ValueType>* input,
-               matrix::Dense<ValueType>* output, matrix::Dense<ValueType>*,
-               matrix::Dense<ValueType>*) const
+               matrix::view::dense<const ValueType> input,
+               matrix::view::dense<ValueType> output) const
     {
-        if (input->get_size()[1] != num_rhs) {
+        if (input.size[1] != num_rhs) {
             throw gko::ValueMismatch{
                 __FILE__,
                 __LINE__,
                 __FUNCTION__,
-                input->get_size()[1],
+                input.size[1],
                 num_rhs,
                 "the dimensions of the multivector do not match the value "
                 "provided at generation time. Check the value specified in "
@@ -134,10 +133,9 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         }
         sparselib::pointer_mode_guard pm_guard(handle);
         auto descr_b = sparselib::create_dnmat(
-            input->get_size(), input->get_stride(),
-            const_cast<ValueType*>(input->get_const_values()));
-        auto descr_c = sparselib::create_dnmat(
-            output->get_size(), output->get_stride(), output->get_values());
+            input.size, input.stride, const_cast<ValueType*>(input.values));
+        auto descr_c =
+            sparselib::create_dnmat(output.size, output.stride, output.values);
 
         sparselib::spsm_solve(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                               SPARSELIB_OPERATION_NON_TRANSPOSE,
@@ -238,16 +236,15 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     }
 
     void solve(const matrix::Csr<ValueType, IndexType>* matrix,
-               const matrix::Dense<ValueType>* input,
-               matrix::Dense<ValueType>* output, matrix::Dense<ValueType>*,
-               matrix::Dense<ValueType>*) const
+               matrix::view::dense<const ValueType> input,
+               matrix::view::dense<ValueType> output) const
     {
-        if (input->get_size()[1] != num_rhs) {
+        if (input.size[1] != num_rhs) {
             throw gko::ValueMismatch{
                 __FILE__,
                 __LINE__,
                 __FUNCTION__,
-                input->get_size()[1],
+                input.size[1],
                 num_rhs,
                 "the dimensions of the multivector do not match the value "
                 "provided at generation time. Check the value specified in "
@@ -257,12 +254,11 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         dense::copy(exec, input, output);
         sparselib::csrsm2_solve(
             handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
-            SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0],
-            output->get_stride(), matrix->get_num_stored_elements(),
-            one<ValueType>(), factor_descr, matrix->get_const_values(),
-            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-            output->get_values(), output->get_stride(), solve_info, policy,
-            work.get_data());
+            SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], output.stride,
+            matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
+            matrix->get_const_values(), matrix->get_const_row_ptrs(),
+            matrix->get_const_col_idxs(), output.values, output.stride,
+            solve_info, policy, work.get_data());
     }
 
     ~CudaSolveStruct()
@@ -320,12 +316,10 @@ template <typename ValueType, typename IndexType>
 void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
                   const matrix::Csr<ValueType, IndexType>* matrix,
                   const solver::SolveStruct* solve_struct,
-                  matrix::Dense<ValueType>* trans_b,
-                  matrix::Dense<ValueType>* trans_x,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* x)
+                  matrix::view::dense<const ValueType> b,
+                  matrix::view::dense<ValueType> x)
 {
-    if (matrix->get_size()[0] == 0 || b->get_size()[1] == 0) {
+    if (matrix->get_size()[0] == 0 || b.size[1] == 0) {
         return;
     }
     using vec = matrix::Dense<ValueType>;
@@ -334,7 +328,7 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
         if (auto cuda_solve_struct =
                 dynamic_cast<const CudaSolveStruct<ValueType, IndexType>*>(
                     solve_struct)) {
-            cuda_solve_struct->solve(matrix, b, x, trans_b, trans_x);
+            cuda_solve_struct->solve(matrix, b, x);
         } else {
             GKO_NOT_SUPPORTED(solve_struct);
         }
@@ -607,14 +601,15 @@ __global__ void sptrsv_init_kernel(bool* const nan_produced,
 template <bool is_upper, typename ValueType, typename IndexType>
 void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
                           const matrix::Csr<ValueType, IndexType>* matrix,
-                          bool unit_diag, const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* x)
+                          bool unit_diag,
+                          matrix::view::dense<const ValueType> b,
+                          matrix::view::dense<ValueType> x)
 {
     // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
     const auto is_fallback_required = exec->get_major_version() < 7;
 
     const auto n = matrix->get_size()[0];
-    const auto nrhs = b->get_size()[1];
+    const auto nrhs = b.size[1];
 
     // Initialize x to all NaNs.
     dense::fill(exec, x, nan<ValueType>());
@@ -633,17 +628,17 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
                 as_device_type(matrix->get_const_values()),
-                as_device_type(b->get_const_values()), b->get_stride(),
-                as_device_type(x->get_values()), x->get_stride(), n, nrhs,
-                unit_diag, nan_produced.get_data(), atomic_counter.get_data());
+                as_device_type(b.values), b.stride, as_device_type(x.values),
+                x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
+                atomic_counter.get_data());
     } else {
         sptrsv_naive_caching_kernel<is_upper>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
                 as_device_type(matrix->get_const_values()),
-                as_device_type(b->get_const_values()), b->get_stride(),
-                as_device_type(x->get_values()), x->get_stride(), n, nrhs,
-                unit_diag, nan_produced.get_data(), atomic_counter.get_data());
+                as_device_type(b.values), b.stride, as_device_type(x.values),
+                x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
+                atomic_counter.get_data());
     }
 
 #if GKO_VERBOSE_LEVEL >= 1

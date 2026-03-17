@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -477,7 +477,7 @@ TYPED_TEST(Isai, KernelGenerateExcessALongrow)
     gko::kernels::reference::isai::generate_excess_system(
         this->exec, this->a_csr_longrow.get(), this->a_csr_longrow.get(),
         a1.get_const_data(), a2.get_const_data(), result.get(),
-        result_rhs.get(), 0, num_rows);
+        result_rhs->get_device_view(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_csr_longrow_e);
     GKO_ASSERT_MTX_NEAR(result, this->a_csr_longrow_e, 0);
@@ -680,7 +680,7 @@ TYPED_TEST(Isai, KernelGenerateExcessLLongrow)
     gko::kernels::reference::isai::generate_excess_system(
         this->exec, this->l_csr_longrow.get(), this->l_csr_longrow.get(),
         a1.get_const_data(), a2.get_const_data(), result.get(),
-        result_rhs.get(), 0, num_rows);
+        result_rhs->get_device_view(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_longrow_e);
     GKO_ASSERT_MTX_NEAR(result, this->l_csr_longrow_e, 0);
@@ -877,7 +877,7 @@ TYPED_TEST(Isai, KernelGenerateExcessULongrow)
     gko::kernels::reference::isai::generate_excess_system(
         this->exec, this->u_csr_longrow.get(), this->u_csr_longrow.get(),
         a1.get_const_data(), a2.get_const_data(), result.get(),
-        result_rhs.get(), 0, num_rows);
+        result_rhs->get_device_view(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_longrow_e);
     GKO_ASSERT_MTX_NEAR(result, this->u_csr_longrow_e, 0);
@@ -985,7 +985,8 @@ TYPED_TEST(Isai, KernelGenerateExcessSpdLongrow)
     gko::kernels::reference::isai::generate_excess_system(
         this->exec, this->spd_csr_longrow.get(),
         this->spd_csr_longrow_inv_partial.get(), a1.get_const_data(),
-        a2.get_const_data(), result.get(), result_rhs.get(), 0, num_rows);
+        a2.get_const_data(), result.get(), result_rhs->get_device_view(), 0,
+        num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_csr_longrow_e);
     GKO_ASSERT_MTX_NEAR(result, this->spd_csr_longrow_e, 0);
@@ -1017,7 +1018,8 @@ TYPED_TEST(Isai, KernelScatterExcessSolution)
         gko::array<value_type>{this->exec, {11, 12, 13, 14, 15, 16, 17}}, 1);
 
     gko::kernels::reference::isai::scatter_excess_solution(
-        this->exec, ptrs.get_const_data(), sol.get(), mtx.get(), 0, 6);
+        this->exec, ptrs.get_const_data(), sol->get_const_device_view(),
+        mtx.get(), 0, 6);
 
     GKO_ASSERT_MTX_NEAR(mtx, expect, 0);
 }

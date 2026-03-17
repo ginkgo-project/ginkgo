@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,36 +23,37 @@ namespace fft {
 
 
 template <typename InValueType, typename OutValueType>
-void bfly(const matrix::Dense<InValueType>* b, matrix::Dense<OutValueType>* x,
-          int64 lo, int64 hi, OutValueType root)
+void bfly(matrix::view::dense<const InValueType> b,
+          matrix::view::dense<OutValueType> x, int64 lo, int64 hi,
+          OutValueType root)
 {
-    for (size_type rhs = 0; rhs < x->get_size()[1]; rhs++) {
-        auto lo_val = b->at(lo, rhs);
-        auto hi_val = b->at(hi, rhs);
-        x->at(lo, rhs) = lo_val + hi_val;
-        x->at(hi, rhs) = (lo_val - hi_val) * root;
+    for (size_type rhs = 0; rhs < x.size[1]; rhs++) {
+        auto lo_val = b(lo, rhs);
+        auto hi_val = b(hi, rhs);
+        x(lo, rhs) = lo_val + hi_val;
+        x(hi, rhs) = (lo_val - hi_val) * root;
     }
 }
 
 
 template <typename ValueType>
-void bfly(matrix::Dense<ValueType>* x, int64 lo, int64 hi, ValueType root)
+void bfly(matrix::view::dense<ValueType> x, int64 lo, int64 hi, ValueType root)
 {
-    for (size_type rhs = 0; rhs < x->get_size()[1]; rhs++) {
-        auto lo_val = x->at(lo, rhs);
-        auto hi_val = x->at(hi, rhs);
-        x->at(lo, rhs) = lo_val + hi_val;
-        x->at(hi, rhs) = (lo_val - hi_val) * root;
+    for (size_type rhs = 0; rhs < x.size[1]; rhs++) {
+        auto lo_val = x(lo, rhs);
+        auto hi_val = x(hi, rhs);
+        x(lo, rhs) = lo_val + hi_val;
+        x(hi, rhs) = (lo_val - hi_val) * root;
     }
 }
 
 
 template <typename ValueType>
-void bit_rev_swap(matrix::Dense<ValueType>* x, int64 i, int64 rev_i)
+void bit_rev_swap(matrix::view::dense<ValueType> x, int64 i, int64 rev_i)
 {
-    for (size_type rhs = 0; rhs < x->get_size()[1]; rhs++) {
+    for (size_type rhs = 0; rhs < x.size[1]; rhs++) {
         if (i < rev_i) {
-            std::swap(x->at(i, rhs), x->at(rev_i, rhs));
+            std::swap(x(i, rhs), x(rev_i, rhs));
         }
     }
 }
@@ -82,15 +83,15 @@ vector<ValueType> build_unit_roots(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType>
 void fft(std::shared_ptr<const DefaultExecutor> exec,
-         const matrix::Dense<std::complex<ValueType>>* b,
-         matrix::Dense<std::complex<ValueType>>* x, bool inverse,
+         matrix::view::dense<const std::complex<ValueType>> b,
+         matrix::view::dense<std::complex<ValueType>> x, bool inverse,
          array<char>& buffer)
 {
     using complex_type = std::complex<ValueType>;
     using real_type = ValueType;
     const int64 sign = inverse ? 1 : -1;
-    const auto nrhs = b->get_size()[1];
-    const auto size = static_cast<int64>(b->get_size()[0]);
+    const auto nrhs = b.size[1];
+    const auto size = static_cast<int64>(b.size[0]);
     GKO_ASSERT_IS_POWER_OF_TWO(size);
     auto roots = build_unit_roots<complex_type>(exec, size, sign);
     // first butterfly step
@@ -121,14 +122,14 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT_KERNEL);
 
 template <typename ValueType>
 void fft2(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<std::complex<ValueType>>* b,
-          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          matrix::view::dense<const std::complex<ValueType>> b,
+          matrix::view::dense<std::complex<ValueType>> x, size_type size1,
           size_type size2, bool inverse, array<char>& buffer)
 {
     using complex_type = std::complex<ValueType>;
     using real_type = ValueType;
     const int64 sign = inverse ? 1 : -1;
-    const auto nrhs = b->get_size()[1];
+    const auto nrhs = b.size[1];
     const auto ssize1 = static_cast<int64>(size1);
     const auto ssize2 = static_cast<int64>(size2);
     GKO_ASSERT_IS_POWER_OF_TWO(ssize1);
@@ -188,14 +189,14 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(GKO_DECLARE_FFT2_KERNEL);
 
 template <typename ValueType>
 void fft3(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Dense<std::complex<ValueType>>* b,
-          matrix::Dense<std::complex<ValueType>>* x, size_type size1,
+          matrix::view::dense<const std::complex<ValueType>> b,
+          matrix::view::dense<std::complex<ValueType>> x, size_type size1,
           size_type size2, size_type size3, bool inverse, array<char>& buffer)
 {
     using complex_type = std::complex<ValueType>;
     using real_type = ValueType;
     const int64 sign = inverse ? 1 : -1;
-    const auto nrhs = b->get_size()[1];
+    const auto nrhs = b.size[1];
     const auto ssize1 = static_cast<int64>(size1);
     const auto ssize2 = static_cast<int64>(size2);
     const auto ssize3 = static_cast<int64>(size3);

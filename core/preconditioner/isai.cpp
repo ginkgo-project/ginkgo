@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -219,7 +219,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 to_invert.get(), inverted.get(),
                 excess_block_ptrs.get_const_data(),
                 excess_row_ptrs_full.get_const_data(), excess_system.get(),
-                excess_rhs.get(), excess_start, block));
+                excess_rhs->get_device_view(), excess_start, block));
             // solve it after transposing
             auto system_copy = gko::clone(exec->get_master(), excess_system);
             auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
@@ -251,13 +251,14 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 ->apply(excess_rhs, excess_solution);
             if (is_spd) {
                 exec->run(isai::make_scale_excess_solution(
-                    excess_block_ptrs.get_const_data(), excess_solution.get(),
-                    excess_start, block));
+                    excess_block_ptrs.get_const_data(),
+                    excess_solution->get_device_view(), excess_start, block));
             }
             // and copy the results back to the original ISAI
             exec->run(isai::make_scatter_excess_solution(
-                excess_block_ptrs.get_const_data(), excess_solution.get(),
-                inverted.get(), excess_start, block));
+                excess_block_ptrs.get_const_data(),
+                excess_solution->get_const_device_view(), inverted.get(),
+                excess_start, block));
         }
     }
 

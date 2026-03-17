@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/solver/lower_trs_kernels.hpp"
 
 #include <memory>
+#include <optional>
 
 
 #if HIP_VERSION >= 50200000
@@ -63,11 +64,13 @@ void solve(std::shared_ptr<const HipExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
-           matrix::Dense<ValueType>* trans_b, matrix::Dense<ValueType>* trans_x,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+           std::optional<matrix::view::dense<ValueType>> trans_b,
+           std::optional<matrix::view::dense<ValueType>> trans_x,
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<ValueType> x)
 {
-    solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, trans_b,
-                                       trans_x, b, x);
+    solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, *trans_b,
+                                       *trans_x, b, x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

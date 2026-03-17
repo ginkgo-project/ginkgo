@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -221,7 +221,7 @@ void Composition<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
-#define GKO_DECLARE_COMPOSITION(_type) class Composition<_type>
+#define GKO_DECLARE_COMPOSITION(ValueType) class Composition<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMPOSITION);
 
 

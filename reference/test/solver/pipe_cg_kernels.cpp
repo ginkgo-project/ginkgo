@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -132,8 +132,9 @@ TYPED_TEST(PipeCg, KernelInitialize1)
                 this->stopped);
 
     gko::kernels::reference::pipe_cg::initialize_1(
-        this->exec, this->small_b.get(), this->small_r.get(),
-        this->small_prev_rho.get(), &this->small_stop);
+        this->exec, this->small_b->get_const_device_view(),
+        this->small_r->get_device_view(),
+        this->small_prev_rho->get_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_r, this->small_b, 0);
     GKO_ASSERT_MTX_NEAR(this->small_prev_rho, l({{1.0, 1.0}}), 0);
@@ -151,10 +152,14 @@ TYPED_TEST(PipeCg, KernelInitialize2)
     this->small_delta->fill(32);
 
     gko::kernels::reference::pipe_cg::initialize_2(
-        this->exec, this->small_p.get(), this->small_q.get(),
-        this->small_f.get(), this->small_g.get(), this->small_beta.get(),
-        this->small_z1.get(), this->small_w.get(), this->small_m.get(),
-        this->small_n.get(), this->small_delta.get());
+        this->exec, this->small_p->get_device_view(),
+        this->small_q->get_device_view(), this->small_f->get_device_view(),
+        this->small_g->get_device_view(), this->small_beta->get_device_view(),
+        this->small_z1->get_const_device_view(),
+        this->small_w->get_const_device_view(),
+        this->small_m->get_const_device_view(),
+        this->small_n->get_const_device_view(),
+        this->small_delta->get_const_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->small_p, this->small_z1, 0);
     GKO_ASSERT_MTX_NEAR(this->small_q, this->small_w, 0);
@@ -183,11 +188,15 @@ TYPED_TEST(PipeCg, KernelStep1)
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::pipe_cg::step_1(
-        this->exec, this->small_x.get(), this->small_r.get(),
-        this->small_z1.get(), this->small_z2.get(), this->small_w.get(),
-        this->small_p.get(), this->small_q.get(), this->small_f.get(),
-        this->small_g.get(), this->small_rho.get(), this->small_beta.get(),
-        &this->small_stop);
+        this->exec, this->small_x->get_device_view(),
+        this->small_r->get_device_view(), this->small_z1->get_device_view(),
+        this->small_z2->get_device_view(), this->small_w->get_device_view(),
+        this->small_p->get_const_device_view(),
+        this->small_q->get_const_device_view(),
+        this->small_f->get_const_device_view(),
+        this->small_g->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_beta->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{2.0, 1.0}, {2.0, 1.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{1.25, 2.0}, {1.25, 2.0}}), 0);
@@ -211,11 +220,15 @@ TYPED_TEST(PipeCg, KernelStep1DivByZero)
     this->small_beta->fill(0);
 
     gko::kernels::reference::pipe_cg::step_1(
-        this->exec, this->small_x.get(), this->small_r.get(),
-        this->small_z1.get(), this->small_z2.get(), this->small_w.get(),
-        this->small_p.get(), this->small_q.get(), this->small_f.get(),
-        this->small_g.get(), this->small_rho.get(), this->small_beta.get(),
-        &this->small_stop);
+        this->exec, this->small_x->get_device_view(),
+        this->small_r->get_device_view(), this->small_z1->get_device_view(),
+        this->small_z2->get_device_view(), this->small_w->get_device_view(),
+        this->small_p->get_const_device_view(),
+        this->small_q->get_const_device_view(),
+        this->small_f->get_const_device_view(),
+        this->small_g->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_beta->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_x, l({{1.0, 1.0}, {1.0, 1.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_r, l({{2.0, 2.0}, {2.0, 2.0}}), 0);
@@ -246,11 +259,16 @@ TYPED_TEST(PipeCg, KernelStep2)
     this->small_stop.get_data()[1] = this->stopped;
 
     gko::kernels::reference::pipe_cg::step_2(
-        this->exec, this->small_beta.get(), this->small_p.get(),
-        this->small_q.get(), this->small_f.get(), this->small_g.get(),
-        this->small_z1.get(), this->small_w.get(), this->small_m.get(),
-        this->small_n.get(), this->small_prev_rho.get(), this->small_rho.get(),
-        this->small_delta.get(), &this->small_stop);
+        this->exec, this->small_beta->get_device_view(),
+        this->small_p->get_device_view(), this->small_q->get_device_view(),
+        this->small_f->get_device_view(), this->small_g->get_device_view(),
+        this->small_z1->get_const_device_view(),
+        this->small_w->get_const_device_view(),
+        this->small_m->get_const_device_view(),
+        this->small_n->get_const_device_view(),
+        this->small_prev_rho->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_delta->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_beta, l({{4.5, 3.0}}), 0);
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{-1.0, 4.0}, {-1.0, 4.0}}), 0);
@@ -279,11 +297,16 @@ TYPED_TEST(PipeCg, KernelStep2DivByZero)
     this->small_delta->at(1) = 6;
 
     gko::kernels::reference::pipe_cg::step_2(
-        this->exec, this->small_beta.get(), this->small_p.get(),
-        this->small_q.get(), this->small_f.get(), this->small_g.get(),
-        this->small_z1.get(), this->small_w.get(), this->small_m.get(),
-        this->small_n.get(), this->small_prev_rho.get(), this->small_rho.get(),
-        this->small_delta.get(), &this->small_stop);
+        this->exec, this->small_beta->get_device_view(),
+        this->small_p->get_device_view(), this->small_q->get_device_view(),
+        this->small_f->get_device_view(), this->small_g->get_device_view(),
+        this->small_z1->get_const_device_view(),
+        this->small_w->get_const_device_view(),
+        this->small_m->get_const_device_view(),
+        this->small_n->get_const_device_view(),
+        this->small_prev_rho->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_delta->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_beta, this->small_delta, 0);
     GKO_ASSERT_MTX_NEAR(this->small_p, this->small_z1, 0);
@@ -316,11 +339,16 @@ TYPED_TEST(PipeCg, KernelStep2BetaZero)
     this->small_stop.get_data()[1].reset();
 
     gko::kernels::reference::pipe_cg::step_2(
-        this->exec, this->small_beta.get(), this->small_p.get(),
-        this->small_q.get(), this->small_f.get(), this->small_g.get(),
-        this->small_z1.get(), this->small_w.get(), this->small_m.get(),
-        this->small_n.get(), this->small_prev_rho.get(), this->small_rho.get(),
-        this->small_delta.get(), &this->small_stop);
+        this->exec, this->small_beta->get_device_view(),
+        this->small_p->get_device_view(), this->small_q->get_device_view(),
+        this->small_f->get_device_view(), this->small_g->get_device_view(),
+        this->small_z1->get_const_device_view(),
+        this->small_w->get_const_device_view(),
+        this->small_m->get_const_device_view(),
+        this->small_n->get_const_device_view(),
+        this->small_prev_rho->get_const_device_view(),
+        this->small_rho->get_const_device_view(),
+        this->small_delta->get_const_device_view(), this->small_stop);
 
     GKO_ASSERT_MTX_NEAR(this->small_beta, this->small_delta, 0);
     GKO_ASSERT_MTX_NEAR(this->small_p, l({{2.0, 1.5}, {2.0, 1.5}}),

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1662,9 +1662,9 @@ TEST_F(Csr, CalculateNnzPerRowInSpanIsEquivalentToRef)
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
-        this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
+        this->ref, this->mtx2.get(), rspan, cspan, row_nnz);
     gko::kernels::GKO_DEVICE_NAMESPACE::csr::calculate_nonzeros_per_row_in_span(
-        this->exec, this->dmtx2.get(), rspan, cspan, &drow_nnz);
+        this->exec, this->dmtx2.get(), rspan, cspan, drow_nnz);
 
     GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
 }
@@ -1680,7 +1680,7 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     auto row_nnz = gko::array<int>(this->ref, rspan.length() + 1);
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
-        this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
+        this->ref, this->mtx2.get(), rspan, cspan, row_nnz);
     gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, row_nnz.get_data(), row_nnz.get_size());
     auto num_nnz = row_nnz.get_data()[rspan.length()];

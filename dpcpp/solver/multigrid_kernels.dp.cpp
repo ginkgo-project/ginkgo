@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,32 +25,33 @@ namespace multigrid {
 
 template <typename ValueType>
 void kcycle_step_1(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Dense<ValueType>* rho,
-                   const matrix::Dense<ValueType>* v,
-                   matrix::Dense<ValueType>* g, matrix::Dense<ValueType>* d,
-                   matrix::Dense<ValueType>* e) GKO_NOT_IMPLEMENTED;
+                   matrix::view::dense<const ValueType> alpha,
+                   matrix::view::dense<const ValueType> rho,
+                   matrix::view::dense<const ValueType> v,
+                   matrix::view::dense<ValueType> g,
+                   matrix::view::dense<ValueType> d,
+                   matrix::view::dense<ValueType> e) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL);
 
 
 template <typename ValueType>
 void kcycle_step_2(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Dense<ValueType>* rho,
-                   const matrix::Dense<ValueType>* gamma,
-                   const matrix::Dense<ValueType>* beta,
-                   const matrix::Dense<ValueType>* zeta,
-                   const matrix::Dense<ValueType>* d,
-                   matrix::Dense<ValueType>* e) GKO_NOT_IMPLEMENTED;
+                   matrix::view::dense<const ValueType> alpha,
+                   matrix::view::dense<const ValueType> rho,
+                   matrix::view::dense<const ValueType> gamma,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<const ValueType> zeta,
+                   matrix::view::dense<const ValueType> d,
+                   matrix::view::dense<ValueType> e) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL);
 
 
 template <typename ValueType>
 void kcycle_check_stop(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Dense<ValueType>* old_norm,
-                       const matrix::Dense<ValueType>* new_norm,
+                       matrix::view::dense<const ValueType> old_norm,
+                       matrix::view::dense<const ValueType> new_norm,
                        const ValueType rel_tol,
                        bool& is_stop) GKO_NOT_IMPLEMENTED;
 

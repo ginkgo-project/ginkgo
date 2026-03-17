@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,8 +23,8 @@ namespace diagonal {
 template <typename ValueType>
 void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Diagonal<ValueType>* a,
-                    const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c, bool inverse)
+                    matrix::view::dense<const ValueType> b,
+                    matrix::view::dense<ValueType> c, bool inverse)
 {
     run_kernel(
         exec,
@@ -33,7 +33,7 @@ void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
             result(row, col) = inverse ? source(row, col) / diag[row]
                                        : source(row, col) * diag[row];
         },
-        b->get_size(), a->get_const_values(), b, c, inverse);
+        b.size, a->get_const_values(), b, c, inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
@@ -42,15 +42,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
 template <typename ValueType>
 void right_apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
                           const matrix::Diagonal<ValueType>* a,
-                          const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* c)
+                          matrix::view::dense<const ValueType> b,
+                          matrix::view::dense<ValueType> c)
 {
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result) {
             result(row, col) = source(row, col) * diag[col];
         },
-        b->get_size(), a->get_const_values(), b, c);
+        b.size, a->get_const_values(), b, c);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

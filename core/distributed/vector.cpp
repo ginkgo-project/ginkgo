@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -204,7 +204,8 @@ void Vector<ValueType>::read_distributed_impl(
     auto rank = this->get_communicator().rank();
     local_.fill(zero<ValueType>());
     exec->run(vector::make_build_local(
-        data, make_temporary_clone(exec, partition).get(), rank, &local_));
+        data, make_temporary_clone(exec, partition).get(), rank,
+        local_.get_device_view()));
 }
 
 
@@ -345,8 +346,9 @@ Vector<ValueType>::compute_absolute() const
         absolute_type::create(exec, this->get_communicator(), this->get_size(),
                               this->get_local_vector()->get_size());
 
-    exec->run(vector::make_outplace_absolute_dense(this->get_local_vector(),
-                                                   &result->local_));
+    exec->run(vector::make_outplace_absolute_dense(
+        this->get_local_vector()->get_const_device_view(),
+        result->local_.get_device_view()));
 
     return result;
 }
@@ -551,7 +553,7 @@ void Vector<ValueType>::compute_norm2(ptr_param<LinOp> result,
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
     this->compute_squared_norm2(dense_res.get(), tmp);
-    exec->run(vector::make_compute_sqrt(dense_res.get()));
+    exec->run(vector::make_compute_sqrt(dense_res->get_device_view()));
 }
 
 
@@ -607,8 +609,9 @@ void Vector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
-    exec->run(vector::make_compute_squared_norm2(this->get_local_vector(),
-                                                 dense_res.get(), tmp));
+    exec->run(vector::make_compute_squared_norm2(
+        this->get_local_vector()->get_const_device_view(),
+        dense_res->get_device_view(), tmp));
     exec->synchronize();
     auto norm_sum_op = gko::experimental::mpi::sum<remove_complex<ValueType>>();
     if (mpi::requires_host_buffer(exec, comm)) {

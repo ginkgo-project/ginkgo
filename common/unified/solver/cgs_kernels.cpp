@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,19 +21,18 @@ namespace cgs {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* r,
-                matrix::Dense<ValueType>* r_tld, matrix::Dense<ValueType>* p,
-                matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* u,
-                matrix::Dense<ValueType>* u_hat,
-                matrix::Dense<ValueType>* v_hat, matrix::Dense<ValueType>* t,
-                matrix::Dense<ValueType>* alpha, matrix::Dense<ValueType>* beta,
-                matrix::Dense<ValueType>* gamma,
-                matrix::Dense<ValueType>* prev_rho,
-                matrix::Dense<ValueType>* rho,
-                array<stopping_status>* stop_status)
+void initialize(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::dense<const ValueType> b, matrix::view::dense<ValueType> r,
+    matrix::view::dense<ValueType> r_tld, matrix::view::dense<ValueType> p,
+    matrix::view::dense<ValueType> q, matrix::view::dense<ValueType> u,
+    matrix::view::dense<ValueType> u_hat, matrix::view::dense<ValueType> v_hat,
+    matrix::view::dense<ValueType> t, matrix::view::dense<ValueType> alpha,
+    matrix::view::dense<ValueType> beta, matrix::view::dense<ValueType> gamma,
+    matrix::view::dense<ValueType> prev_rho, matrix::view::dense<ValueType> rho,
+    array<stopping_status>& stop_status)
 {
-    if (b->get_size()) {
+    if (b.size) {
         run_kernel_solver(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto r_tld,
@@ -50,12 +49,12 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 u(row, col) = u_hat(row, col) = p(row, col) = q(row, col) =
                     v_hat(row, col) = t(row, col) = zero(u(row, col));
             },
-            b->get_size(), b->get_stride(), default_stride(b),
-            default_stride(r), default_stride(r_tld), default_stride(p),
-            default_stride(q), default_stride(u), default_stride(u_hat),
-            default_stride(v_hat), default_stride(t), row_vector(alpha),
-            row_vector(beta), row_vector(gamma), row_vector(prev_rho),
-            row_vector(rho), *stop_status);
+            b.size, b.stride, default_stride(b), default_stride(r),
+            default_stride(r_tld), default_stride(p), default_stride(q),
+            default_stride(u), default_stride(u_hat), default_stride(v_hat),
+            default_stride(t), row_vector(alpha), row_vector(beta),
+            row_vector(gamma), row_vector(prev_rho), row_vector(rho),
+            stop_status);
     } else {
         run_kernel(
             exec,
@@ -66,9 +65,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                     one(prev_rho[col]);
                 stop[col].reset();
             },
-            b->get_size()[1], row_vector(alpha), row_vector(beta),
-            row_vector(gamma), row_vector(prev_rho), row_vector(rho),
-            *stop_status);
+            b.size[1], row_vector(alpha), row_vector(beta), row_vector(gamma),
+            row_vector(prev_rho), row_vector(rho), stop_status);
     }
 }
 
@@ -77,11 +75,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType>* r, matrix::Dense<ValueType>* u,
-            matrix::Dense<ValueType>* p, const matrix::Dense<ValueType>* q,
-            matrix::Dense<ValueType>* beta, const matrix::Dense<ValueType>* rho,
-            const matrix::Dense<ValueType>* prev_rho,
-            const array<stopping_status>* stop_status)
+            matrix::view::dense<const ValueType> r,
+            matrix::view::dense<ValueType> u, matrix::view::dense<ValueType> p,
+            matrix::view::dense<const ValueType> q,
+            matrix::view::dense<ValueType> beta,
+            matrix::view::dense<const ValueType> rho,
+            matrix::view::dense<const ValueType> prev_rho,
+            const array<stopping_status>& stop_status)
 {
     run_kernel_solver(
         exec,
@@ -98,9 +98,9 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                     u(row, col) + tmp * (q(row, col) + tmp * p(row, col));
             }
         },
-        r->get_size(), r->get_stride(), default_stride(r), default_stride(u),
+        r.size, r.stride, default_stride(r), default_stride(u),
         default_stride(p), default_stride(q), row_vector(beta), row_vector(rho),
-        row_vector(prev_rho), *stop_status);
+        row_vector(prev_rho), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
@@ -108,12 +108,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType>* u,
-            const matrix::Dense<ValueType>* v_hat, matrix::Dense<ValueType>* q,
-            matrix::Dense<ValueType>* t, matrix::Dense<ValueType>* alpha,
-            const matrix::Dense<ValueType>* rho,
-            const matrix::Dense<ValueType>* gamma,
-            const array<stopping_status>* stop_status)
+            matrix::view::dense<const ValueType> u,
+            matrix::view::dense<const ValueType> v_hat,
+            matrix::view::dense<ValueType> q, matrix::view::dense<ValueType> t,
+            matrix::view::dense<ValueType> alpha,
+            matrix::view::dense<const ValueType> rho,
+            matrix::view::dense<const ValueType> gamma,
+            const array<stopping_status>& stop_status)
 {
     run_kernel_solver(
         exec,
@@ -129,19 +130,20 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 t(row, col) = u(row, col) + q(row, col);
             }
         },
-        u->get_size(), u->get_stride(), default_stride(u),
-        default_stride(v_hat), default_stride(q), default_stride(t),
-        row_vector(alpha), row_vector(rho), row_vector(gamma), *stop_status);
+        u.size, u.stride, default_stride(u), default_stride(v_hat),
+        default_stride(q), default_stride(t), row_vector(alpha),
+        row_vector(rho), row_vector(gamma), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
 
 template <typename ValueType>
 void step_3(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Dense<ValueType>* t,
-            const matrix::Dense<ValueType>* u_hat, matrix::Dense<ValueType>* r,
-            matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* alpha,
-            const array<stopping_status>* stop_status)
+            matrix::view::dense<const ValueType> t,
+            matrix::view::dense<const ValueType> u_hat,
+            matrix::view::dense<ValueType> r, matrix::view::dense<ValueType> x,
+            matrix::view::dense<const ValueType> alpha,
+            const array<stopping_status>& stop_status)
 {
     run_kernel_solver(
         exec,
@@ -152,9 +154,8 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
                 r(row, col) -= alpha[col] * t(row, col);
             }
         },
-        t->get_size(), t->get_stride(), default_stride(t),
-        default_stride(u_hat), default_stride(r), x, row_vector(alpha),
-        *stop_status);
+        t.size, t.stride, default_stride(t), default_stride(u_hat),
+        default_stride(r), x, row_vector(alpha), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -214,21 +214,21 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
 }
 
 
-#define GKO_DECLARE_TEST_APPLY_PREPARE(_itype)               \
+#define GKO_DECLARE_TEST_APPLY_PREPARE(IndexType)            \
     std::shared_ptr<const gko::detail::Event> apply_prepare( \
-        const RowGatherer<_itype>*, ptr_param<const LinOp>)
+        const RowGatherer<IndexType>*, ptr_param<const LinOp>)
 
-#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(_itype)     \
+#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(IndexType)  \
     std::shared_ptr<const gko::detail::Event> apply_prepare( \
-        const RowGatherer<_itype>*, ptr_param<const LinOp>, array<char>&)
+        const RowGatherer<IndexType>*, ptr_param<const LinOp>, array<char>&)
 
-#define GKO_DECLARE_TEST_APPLY_FINALIZE(_itype)                               \
-    mpi::request apply_finalize(const RowGatherer<_itype>* rg,                \
+#define GKO_DECLARE_TEST_APPLY_FINALIZE(IndexType)                            \
+    mpi::request apply_finalize(const RowGatherer<IndexType>* rg,             \
                                 ptr_param<const LinOp> b, ptr_param<LinOp> x, \
                                 std::shared_ptr<const gko::detail::Event> ev)
 
-#define GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE(_itype)                     \
-    mpi::request apply_finalize(const RowGatherer<_itype>* rg,                \
+#define GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE(IndexType)                  \
+    mpi::request apply_finalize(const RowGatherer<IndexType>* rg,             \
                                 ptr_param<const LinOp> b, ptr_param<LinOp> x, \
                                 std::shared_ptr<const gko::detail::Event> ev, \
                                 array<char>&)
@@ -420,7 +420,7 @@ RowGatherer<LocalIndexType>::RowGatherer(const RowGatherer& o)
 }
 
 
-#define GKO_DECLARE_ROW_GATHERER(_itype) class RowGatherer<_itype>
+#define GKO_DECLARE_ROW_GATHERER(IndexType) class RowGatherer<IndexType>
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ROW_GATHERER);
 

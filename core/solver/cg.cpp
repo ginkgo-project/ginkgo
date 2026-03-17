@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -120,9 +120,12 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // prev_rho = 1.0
     // z = p = q = 0
     exec->run(cg::make_initialize(
-        gko::detail::get_local(dense_b), gko::detail::get_local(r),
-        gko::detail::get_local(z), gko::detail::get_local(p),
-        gko::detail::get_local(q), prev_rho, rho, &stop_status));
+        gko::detail::get_local(dense_b)->get_const_device_view(),
+        gko::detail::get_local(r)->get_device_view(),
+        gko::detail::get_local(z)->get_device_view(),
+        gko::detail::get_local(p)->get_device_view(),
+        gko::detail::get_local(q)->get_device_view(),
+        prev_rho->get_device_view(), rho->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -162,9 +165,11 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
         // tmp = rho / prev_rho
         // p = z + tmp * p
-        exec->run(cg::make_step_1(gko::detail::get_local(p),
-                                  gko::detail::get_local(z), rho, prev_rho,
-                                  &stop_status));
+        exec->run(
+            cg::make_step_1(gko::detail::get_local(p)->get_device_view(),
+                            gko::detail::get_local(z)->get_const_device_view(),
+                            rho->get_const_device_view(),
+                            prev_rho->get_const_device_view(), stop_status));
         // q = A * p
         this->get_system_matrix()->apply(p, q);
         // beta = dot(p, q)
@@ -172,10 +177,13 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
-        exec->run(cg::make_step_2(
-            gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(p), gko::detail::get_local(q), beta, rho,
-            &stop_status));
+        exec->run(
+            cg::make_step_2(gko::detail::get_local(dense_x)->get_device_view(),
+                            gko::detail::get_local(r)->get_device_view(),
+                            gko::detail::get_local(p)->get_const_device_view(),
+                            gko::detail::get_local(q)->get_const_device_view(),
+                            beta->get_const_device_view(),
+                            rho->get_const_device_view(), stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -245,8 +253,8 @@ std::vector<int> workspace_traits<Cg<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_CG(_type) class Cg<_type>
-#define GKO_DECLARE_CG_TRAITS(_type) struct workspace_traits<Cg<_type>>
+#define GKO_DECLARE_CG(ValueType) class Cg<ValueType>
+#define GKO_DECLARE_CG_TRAITS(ValueType) struct workspace_traits<Cg<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_TRAITS);
 

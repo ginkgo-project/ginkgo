@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,8 +54,9 @@ void Diagonal<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this, &exec](auto dense_b, auto dense_x) {
-                exec->run(diagonal::make_apply_to_dense(this, dense_b, dense_x,
-                                                        false));
+                exec->run(diagonal::make_apply_to_dense(
+                    this, dense_b->get_const_device_view(),
+                    dense_x->get_device_view(), false));
             },
             b, x);
     }
@@ -80,8 +81,9 @@ void Diagonal<ValueType>::rapply_impl(const LinOp* b, LinOp* x) const
         // diagonal entries for the complex-to-real columns
         precision_dispatch<ValueType>(
             [this, &exec](auto dense_b, auto dense_x) {
-                exec->run(diagonal::make_right_apply_to_dense(this, dense_b,
-                                                              dense_x));
+                exec->run(diagonal::make_right_apply_to_dense(
+                    this, dense_b->get_const_device_view(),
+                    dense_x->get_device_view()));
             },
             b, x);
     }
@@ -106,8 +108,9 @@ void Diagonal<ValueType>::inverse_apply_impl(const LinOp* b, LinOp* x) const
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this, &exec](auto dense_b, auto dense_x) {
-                exec->run(diagonal::make_apply_to_dense(this, dense_b, dense_x,
-                                                        true));
+                exec->run(diagonal::make_apply_to_dense(
+                    this, dense_b->get_const_device_view(),
+                    dense_x->get_device_view(), true));
             },
             b, x);
     }

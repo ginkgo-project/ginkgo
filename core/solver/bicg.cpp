@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -142,8 +142,12 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
     // z = p = q = 0
     // r = r2 = dense_b
     // z2 = p2 = q2 = 0
-    exec->run(bicg::make_initialize(dense_b, r, z, p, q, prev_rho, rho, r2, z2,
-                                    p2, q2, &stop_status));
+    exec->run(bicg::make_initialize(
+        dense_b->get_const_device_view(), r->get_device_view(),
+        z->get_device_view(), p->get_device_view(), q->get_device_view(),
+        prev_rho->get_device_view(), rho->get_device_view(),
+        r2->get_device_view(), z2->get_device_view(), p2->get_device_view(),
+        q2->get_device_view(), stop_status));
 
     std::unique_ptr<LinOp> conj_trans_A;
     auto conj_transposable_system_matrix =
@@ -212,7 +216,11 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // tmp = rho / prev_rho
         // p = z + tmp * p
         // p2 = z2 + tmp * p2
-        exec->run(bicg::make_step_1(p, z, p2, z2, rho, prev_rho, &stop_status));
+        exec->run(bicg::make_step_1(
+            p->get_device_view(), z->get_const_device_view(),
+            p2->get_device_view(), z2->get_const_device_view(),
+            rho->get_const_device_view(), prev_rho->get_const_device_view(),
+            stop_status));
         // q = A * p
         this->get_system_matrix()->apply(p, q);
         // q2 = A^T * p2
@@ -223,8 +231,12 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
         // x = x + tmp * p
         // r = r - tmp * q
         // r2 = r2 - tmp * q2
-        exec->run(bicg::make_step_2(dense_x, r, r2, p, q, q2, beta, rho,
-                                    &stop_status));
+        exec->run(bicg::make_step_2(
+            dense_x->get_device_view(), r->get_device_view(),
+            r2->get_device_view(), p->get_const_device_view(),
+            q->get_const_device_view(), q2->get_const_device_view(),
+            beta->get_const_device_view(), rho->get_const_device_view(),
+            stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -295,8 +307,9 @@ std::vector<int> workspace_traits<Bicg<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_BICG(_type) class Bicg<_type>
-#define GKO_DECLARE_BICG_TRAITS(_type) struct workspace_traits<Bicg<_type>>
+#define GKO_DECLARE_BICG(ValueType) class Bicg<ValueType>
+#define GKO_DECLARE_BICG_TRAITS(ValueType) \
+    struct workspace_traits<Bicg<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_TRAITS);
 

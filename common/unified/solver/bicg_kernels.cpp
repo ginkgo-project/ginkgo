@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,16 +21,16 @@ namespace bicg {
 
 
 template <typename ValueType>
-void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* r,
-                matrix::Dense<ValueType>* z, matrix::Dense<ValueType>* p,
-                matrix::Dense<ValueType>* q, matrix::Dense<ValueType>* prev_rho,
-                matrix::Dense<ValueType>* rho, matrix::Dense<ValueType>* r2,
-                matrix::Dense<ValueType>* z2, matrix::Dense<ValueType>* p2,
-                matrix::Dense<ValueType>* q2,
-                array<stopping_status>* stop_status)
+void initialize(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::dense<const ValueType> b, matrix::view::dense<ValueType> r,
+    matrix::view::dense<ValueType> z, matrix::view::dense<ValueType> p,
+    matrix::view::dense<ValueType> q, matrix::view::dense<ValueType> prev_rho,
+    matrix::view::dense<ValueType> rho, matrix::view::dense<ValueType> r2,
+    matrix::view::dense<ValueType> z2, matrix::view::dense<ValueType> p2,
+    matrix::view::dense<ValueType> q2, array<stopping_status>& stop_status)
 {
-    if (b->get_size()) {
+    if (b.size) {
         run_kernel_solver(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto b, auto r, auto z, auto p,
@@ -46,11 +46,11 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 z(row, col) = p(row, col) = q(row, col) = z2(row, col) =
                     p2(row, col) = q2(row, col) = zero(z(row, col));
             },
-            b->get_size(), b->get_stride(), default_stride(b),
-            default_stride(r), default_stride(z), default_stride(p),
-            default_stride(q), row_vector(prev_rho), row_vector(rho),
-            default_stride(r2), default_stride(z2), default_stride(p2),
-            default_stride(q2), *stop_status);
+            b.size, b.stride, default_stride(b), default_stride(r),
+            default_stride(z), default_stride(p), default_stride(q),
+            row_vector(prev_rho), row_vector(rho), default_stride(r2),
+            default_stride(z2), default_stride(p2), default_stride(q2),
+            stop_status);
     } else {
         run_kernel(
             exec,
@@ -59,8 +59,7 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 prev_rho[col] = one(prev_rho[col]);
                 stop[col].reset();
             },
-            b->get_size()[1], row_vector(prev_rho), row_vector(rho),
-            *stop_status);
+            b.size[1], row_vector(prev_rho), row_vector(rho), stop_status);
     }
 }
 
@@ -69,11 +68,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void step_1(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType>* p, const matrix::Dense<ValueType>* z,
-            matrix::Dense<ValueType>* p2, const matrix::Dense<ValueType>* z2,
-            const matrix::Dense<ValueType>* rho,
-            const matrix::Dense<ValueType>* prev_rho,
-            const array<stopping_status>* stop_status)
+            matrix::view::dense<ValueType> p,
+            matrix::view::dense<const ValueType> z,
+            matrix::view::dense<ValueType> p2,
+            matrix::view::dense<const ValueType> z2,
+            matrix::view::dense<const ValueType> rho,
+            matrix::view::dense<const ValueType> prev_rho,
+            const array<stopping_status>& stop_status)
 {
     run_kernel_solver(
         exec,
@@ -85,9 +86,9 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 p2(row, col) = z2(row, col) + tmp * p2(row, col);
             }
         },
-        p->get_size(), p->get_stride(), default_stride(p), default_stride(z),
+        p.size, p.stride, default_stride(p), default_stride(z),
         default_stride(p2), default_stride(z2), row_vector(rho),
-        row_vector(prev_rho), *stop_status);
+        row_vector(prev_rho), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_1_KERNEL);
@@ -95,13 +96,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_1_KERNEL);
 
 template <typename ValueType>
 void step_2(std::shared_ptr<const DefaultExecutor> exec,
-            matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* r,
-            matrix::Dense<ValueType>* r2, const matrix::Dense<ValueType>* p,
-            const matrix::Dense<ValueType>* q,
-            const matrix::Dense<ValueType>* q2,
-            const matrix::Dense<ValueType>* beta,
-            const matrix::Dense<ValueType>* rho,
-            const array<stopping_status>* stop_status)
+            matrix::view::dense<ValueType> x, matrix::view::dense<ValueType> r,
+            matrix::view::dense<ValueType> r2,
+            matrix::view::dense<const ValueType> p,
+            matrix::view::dense<const ValueType> q,
+            matrix::view::dense<const ValueType> q2,
+            matrix::view::dense<const ValueType> beta,
+            matrix::view::dense<const ValueType> rho,
+            const array<stopping_status>& stop_status)
 {
     run_kernel_solver(
         exec,
@@ -114,9 +116,9 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 r2(row, col) -= tmp * q2(row, col);
             }
         },
-        x->get_size(), r->get_stride(), x, default_stride(r),
-        default_stride(r2), default_stride(p), default_stride(q),
-        default_stride(q2), row_vector(beta), row_vector(rho), *stop_status);
+        x.size, r.stride, x, default_stride(r), default_stride(r2),
+        default_stride(p), default_stride(q), default_stride(q2),
+        row_vector(beta), row_vector(rho), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_STEP_2_KERNEL);

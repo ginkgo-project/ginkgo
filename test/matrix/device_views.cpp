@@ -37,7 +37,7 @@ void assert_dense_view(std::shared_ptr<const gko::EXEC_TYPE> exec)
             gko::matrix::view::dense<device_type> view{gko::dim<2>{1, 2}, 3,
                                                        values};
             if (view.size == gko::dim<2>(1, 2) && view.stride == 3 &&
-                view.data == values && &view(0, 0) == &values[0] &&
+                view.values == values && &view(0, 0) == &values[0] &&
                 &view(1, 0) == &values[3] && &view(1, 1) == &values[4] &&
                 view(1, 1) == gko::one(view(1, 1))) {
                 *correct = true;

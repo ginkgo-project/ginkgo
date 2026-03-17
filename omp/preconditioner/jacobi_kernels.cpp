@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -489,9 +489,10 @@ void apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
            const array<precision_reduction>& block_precisions,
            const array<IndexType>& block_pointers,
            const array<ValueType>& blocks,
-           const matrix::Dense<ValueType>* alpha,
-           const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)
+           matrix::view::dense<const ValueType> alpha,
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<const ValueType> beta,
+           matrix::view::dense<ValueType> x)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -499,18 +500,17 @@ void apply(std::shared_ptr<const OmpExecutor> exec, size_type num_blocks,
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group =
             blocks.get_const_data() + storage_scheme.get_group_offset(i);
-        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
-        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
+        const auto block_b = b.values + b.stride * ptrs[i];
+        const auto block_x = x.values + x.stride * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
         const auto p = prec ? prec[i] : precision_reduction();
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
-            apply_block(block_size, b->get_size()[1],
+            apply_block(block_size, b.size[1],
                         reinterpret_cast<const resolved_precision*>(group) +
                             storage_scheme.get_block_offset(i),
-                        storage_scheme.get_stride(), alpha->at(0, 0), block_b,
-                        b->get_stride(), beta->at(0, 0), block_x,
-                        x->get_stride()));
+                        storage_scheme.get_stride(), alpha(0, 0), block_b,
+                        b.stride, beta(0, 0), block_x, x.stride));
     }
 }
 
@@ -525,7 +525,7 @@ void simple_apply(
         storage_scheme,
     const array<precision_reduction>& block_precisions,
     const array<IndexType>& block_pointers, const array<ValueType>& blocks,
-    const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x)
+    matrix::view::dense<const ValueType> b, matrix::view::dense<ValueType> x)
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
@@ -533,18 +533,17 @@ void simple_apply(
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group =
             blocks.get_const_data() + storage_scheme.get_group_offset(i);
-        const auto block_b = b->get_const_values() + b->get_stride() * ptrs[i];
-        const auto block_x = x->get_values() + x->get_stride() * ptrs[i];
+        const auto block_b = b.values + b.stride * ptrs[i];
+        const auto block_x = x.values + x.stride * ptrs[i];
         const auto block_size = ptrs[i + 1] - ptrs[i];
         const auto p = prec ? prec[i] : precision_reduction();
         GKO_PRECONDITIONER_JACOBI_RESOLVE_PRECISION(
             ValueType, p,
-            apply_block(block_size, b->get_size()[1],
+            apply_block(block_size, b.size[1],
                         reinterpret_cast<const resolved_precision*>(group) +
                             storage_scheme.get_block_offset(i),
                         storage_scheme.get_stride(), one<ValueType>(), block_b,
-                        b->get_stride(), zero<ValueType>(), block_x,
-                        x->get_stride()));
+                        b.stride, zero<ValueType>(), block_x, x.stride));
     }
 }
 

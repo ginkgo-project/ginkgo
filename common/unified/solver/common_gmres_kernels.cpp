@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,13 +23,13 @@ namespace common_gmres {
 
 template <typename ValueType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Dense<ValueType>* b,
-                matrix::Dense<ValueType>* residual,
-                matrix::Dense<ValueType>* givens_sin,
-                matrix::Dense<ValueType>* givens_cos,
+                matrix::view::dense<const ValueType> b,
+                matrix::view::dense<ValueType> residual,
+                matrix::view::dense<ValueType> givens_sin,
+                matrix::view::dense<ValueType> givens_cos,
                 stopping_status* stop_status)
 {
-    const auto krylov_dim = givens_sin->get_size()[0];
+    const auto krylov_dim = givens_sin.size[0];
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto b, auto residual, auto givens_sin,
@@ -47,9 +47,8 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
                 givens_cos(i, j) = zero<value_type>();
             }
         },
-        dim<2>{std::max(b->get_size()[0], krylov_dim), b->get_size()[1]}, b,
-        residual, givens_sin, givens_cos, stop_status, krylov_dim,
-        b->get_size()[0]);
+        dim<2>{std::max(b.size[0], krylov_dim), b.size[1]}, b, residual,
+        givens_sin, givens_cos, stop_status, krylov_dim, b.size[0]);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL);
@@ -57,12 +56,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL);
 
 template <typename ValueType>
 void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
-                   matrix::Dense<ValueType>* givens_sin,
-                   matrix::Dense<ValueType>* givens_cos,
-                   matrix::Dense<remove_complex<ValueType>>* residual_norm,
-                   matrix::Dense<ValueType>* residual_norm_collection,
-                   matrix::Dense<ValueType>* hessenberg_iter, size_type iter,
-                   size_type* final_iter_nums,
+                   matrix::view::dense<ValueType> givens_sin,
+                   matrix::view::dense<ValueType> givens_cos,
+                   matrix::view::dense<remove_complex<ValueType>> residual_norm,
+                   matrix::view::dense<ValueType> residual_norm_collection,
+                   matrix::view::dense<ValueType> hessenberg_iter,
+                   size_type iter, size_type* final_iter_nums,
                    const stopping_status* stop_status)
 {
     run_kernel(
@@ -120,7 +119,7 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
                 gc * residual_norm_collection(iter, rhs);
             residual_norm(0, rhs) = abs(rnc_new);
         },
-        hessenberg_iter->get_size()[1], givens_sin, givens_cos, residual_norm,
+        hessenberg_iter.size[1], givens_sin, givens_cos, residual_norm,
         residual_norm_collection, hessenberg_iter, iter, final_iter_nums,
         stop_status);
 }
@@ -131,9 +130,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType>
 void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Dense<ValueType>* residual_norm_collection,
-                  const matrix::Dense<ValueType>* hessenberg,
-                  matrix::Dense<ValueType>* y, const size_type* final_iter_nums,
+                  matrix::view::dense<const ValueType> residual_norm_collection,
+                  matrix::view::dense<const ValueType> hessenberg,
+                  matrix::view::dense<ValueType> y,
+                  const size_type* final_iter_nums,
                   const stopping_status* stop_status)
 {
     run_kernel(
@@ -153,9 +153,8 @@ void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,
                 y(i, col) = value / mtx(i, i * num_cols + col);
             }
         },
-        residual_norm_collection->get_size()[1], residual_norm_collection,
-        hessenberg, y, final_iter_nums, stop_status,
-        residual_norm_collection->get_size()[1]);
+        residual_norm_collection.size[1], residual_norm_collection, hessenberg,
+        y, final_iter_nums, stop_status, residual_norm_collection.size[1]);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

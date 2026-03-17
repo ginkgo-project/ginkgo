@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -303,7 +303,7 @@ void Permutation<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
 }
 
 
-#define GKO_DECLARE_PERMUTATION_MATRIX(_type) class Permutation<_type>
+#define GKO_DECLARE_PERMUTATION_MATRIX(ValueType) class Permutation<ValueType>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PERMUTATION_MATRIX);
 
 
