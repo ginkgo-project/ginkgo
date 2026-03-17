@@ -32,3 +32,19 @@ TYPED_TEST(DenseView, AccessWorks)
     ASSERT_EQ(const_view.stride, view.stride);
     ASSERT_EQ(const_view.values, view.values);
 }
+
+
+TYPED_TEST(DenseView, AssertTriggersOnOutOfBoundsDeathTest)
+{
+#ifdef NDEBUG
+    GTEST_SKIP() << "Assertion is only enabled in debug mode";
+#endif
+
+    std::vector<TypeParam> values(10);
+    gko::matrix::view::dense<TypeParam> view{gko::dim<2>{2, 2}, 3,
+                                             values.data()};
+
+    EXPECT_EXIT((void)(view(3, 0)), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view(0, 3)), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view(3, 3)), check_assertion_exit_code, "");
+}
