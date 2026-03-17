@@ -5,6 +5,8 @@
 #ifndef GKO_PUBLIC_CORE_MATRIX_DEVICE_DENSE_HPP_
 #define GKO_PUBLIC_CORE_MATRIX_DEVICE_DENSE_HPP_
 
+#include <cassert>
+
 #include <ginkgo/core/base/dim.hpp>
 
 
@@ -40,6 +42,7 @@ struct dense {
     /** Subscript operator accessing the given row and column */
     constexpr ValueType& operator()(size_type row, size_type col) const
     {
+        assert(row < size[0] && col < size[1]);
         return values[row * stride + col];
     }
 };
