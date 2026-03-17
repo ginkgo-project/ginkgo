@@ -31,8 +31,9 @@ namespace {
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
-GKO_REGISTER_OPERATION(compute_soc_row_ptrs, rs::compute_soc_row_ptrs);
-GKO_REGISTER_OPERATION(fill_soc, rs::fill_soc);
+// GKO_REGISTER_OPERATION(compute_soc_row_ptrs, rs::compute_soc_row_ptrs);
+GKO_REGISTER_OPERATION(compute_soc_mask, rs::compute_soc_mask);
+// GKO_REGISTER_OPERATION(fill_soc, rs::fill_soc);
 GKO_REGISTER_OPERATION(compute_lambda, rs::compute_lambda);
 GKO_REGISTER_OPERATION(init_cf, rs::init_cf);
 GKO_REGISTER_OPERATION(rs_coarsening, rs::rs_coarsening);
@@ -68,37 +69,26 @@ void Rs<ValueType, IndexType>::generate()
         this->set_fine_op(rs_op_shared_ptr);
     }
 
-    // build Strength-of-Connection (SOC) – phase 1: row_ptrs + nnz
-    array<IndexType> soc_row_ptrs(exec, fine_dim + 1);
+    // build Strength-of-Connection (SOC) mask, 1 byte per NNZ of the system
+    // matrix
+    array<bool> is_strong(exec, rs_op->get_num_stored_elements());
 
-    exec->run(rs::make_compute_soc_row_ptrs(
-        rs_op, parameters_.strength_threshold, soc_row_ptrs.get_data()));
-
-    IndexType soc_nnz =
-        exec->copy_val_to_host(soc_row_ptrs.get_const_data() + fine_dim);
-    const size_type soc_nnz_size = static_cast<size_type>(soc_nnz);
-
-    auto soc = csr_type::create(exec, rs_op->get_size(), soc_nnz_size);
-    soc->set_strategy(rs_op->get_strategy());
-
-    exec->copy_from(exec, fine_dim + 1, soc_row_ptrs.get_const_data(),
-                    soc->get_row_ptrs());
-
-    // phase 2: fill col_idxs and values
-    exec->run(
-        rs::make_fill_soc(rs_op, parameters_.strength_threshold, soc.get()));
+    exec->run(rs::make_compute_soc_mask(rs_op, parameters_.strength_threshold,
+                                        is_strong.get_data()));
 
     // compute lambda
     array<IndexType> lambda(exec, fine_dim);
-    exec->run(rs::make_compute_lambda(soc.get(), lambda.get_data()));
+    exec->run(rs::make_compute_lambda(rs_op, is_strong.get_const_data(),
+                                      lambda.get_data()));
 
     // greedy RS C/F splitting: 0 = undecided, 1 = C, -1 = F
     array<IndexType> cf_marker(exec, fine_dim);
     exec->run(rs::make_init_cf(cf_marker));
-    exec->run(rs::make_rs_coarsening(soc.get(), lambda.get_data(), cf_marker));
+    exec->run(rs::make_rs_coarsening(rs_op, is_strong.get_const_data(),
+                                     lambda.get_data(), cf_marker));
     exec->run(rs::make_rs_cleanup(cf_marker));
 
-    // extract coarse rows
+    // extract coarse dims and mappings
     IndexType coarse_dim{};
     exec->run(rs::make_count_coarse(cf_marker, &coarse_dim));
     const size_type coarse_dim_size = static_cast<size_type>(coarse_dim);
@@ -106,7 +96,6 @@ void Rs<ValueType, IndexType>::generate()
     array<IndexType> coarse_rows(exec, coarse_dim_size);
     exec->run(rs::make_fill_coarse_rows(cf_marker, coarse_rows.get_data()));
 
-    // build fine-to-coarse mapping
     array<IndexType> fine_to_coarse(exec, fine_dim);
     exec->run(
         rs::make_fill_fine_to_coarse(cf_marker, fine_to_coarse.get_data()));
@@ -114,7 +103,8 @@ void Rs<ValueType, IndexType>::generate()
     // build prolongation using interpolation
     array<IndexType> prolong_row_ptrs(exec, fine_dim + 1);
     exec->run(rs::make_compute_interpolation_row_ptrs(
-        soc.get(), cf_marker, prolong_row_ptrs.get_data()));
+        rs_op, is_strong.get_const_data(), cf_marker,
+        prolong_row_ptrs.get_data()));
 
     IndexType prolong_nnz =
         exec->copy_val_to_host(prolong_row_ptrs.get_const_data() + fine_dim);
@@ -126,14 +116,14 @@ void Rs<ValueType, IndexType>::generate()
     exec->copy_from(exec, fine_dim + 1, prolong_row_ptrs.get_const_data(),
                     prolong_op->get_row_ptrs());
 
-    exec->run(rs::make_compute_interpolation(rs_op, soc.get(), cf_marker,
-                                             fine_to_coarse.get_const_data(),
-                                             prolong_op.get()));
+    exec->run(rs::make_compute_interpolation(
+        rs_op, is_strong.get_const_data(), cf_marker,
+        fine_to_coarse.get_const_data(), prolong_op.get()));
 
     // build restriction as R = P^T
     auto restrict_op = share(as<csr_type>(prolong_op->transpose()));
 
-    //
+    // coarse matrix (Ac = R  A  P)
     auto coarse_matrix = share(
         csr_type::create(exec, gko::dim<2>{coarse_dim_size, coarse_dim_size}));
     coarse_matrix->set_strategy(rs_op->get_strategy());
@@ -146,7 +136,6 @@ void Rs<ValueType, IndexType>::generate()
 
     this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
 }
-
 
 #define GKO_DECLARE_RS(_vtype, _itype) class Rs<_vtype, _itype>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS);

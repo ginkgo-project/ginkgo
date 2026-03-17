@@ -24,34 +24,47 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace rs {
 
 template <typename ValueType, typename IndexType>
-void compute_soc_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType>* A,
-                          remove_complex<ValueType> theta, IndexType* row_ptrs)
+void compute_soc_mask(std::shared_ptr<const DefaultExecutor> exec,
+                      const matrix::Csr<ValueType, IndexType>* A,
+                      remove_complex<ValueType> theta,
+                      bool* is_strong)  // size: A->nnz
 {
     GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RS_COMPUTE_SOC_ROW_PTRS_KERNEL);
+    GKO_DECLARE_RS_COMPUTE_SOC_MASK_KERNEL);
+
+// template <typename ValueType, typename IndexType>
+// void compute_soc_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
+//                           const matrix::Csr<ValueType, IndexType>* A,
+//                           remove_complex<ValueType> theta, IndexType*
+//                           row_ptrs)
+// {
+//     GKO_NOT_IMPLEMENTED;
+// }
+
+// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+//     GKO_DECLARE_RS_COMPUTE_SOC_ROW_PTRS_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void fill_soc(std::shared_ptr<const DefaultExecutor> exec,
-              const matrix::Csr<ValueType, IndexType>* A,
-              remove_complex<ValueType> theta,
-              matrix::Csr<ValueType, IndexType>* S)
-{
-    GKO_NOT_IMPLEMENTED;
-}
+// template <typename ValueType, typename IndexType>
+// void fill_soc(std::shared_ptr<const DefaultExecutor> exec,
+//               const matrix::Csr<ValueType, IndexType>* A,
+//               remove_complex<ValueType> theta,
+//               matrix::Csr<ValueType, IndexType>* S)
+// {
+//     GKO_NOT_IMPLEMENTED;
+// }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_FILL_SOC_KERNEL);
+// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_FILL_SOC_KERNEL);
 
 
 // Compute lambda_i = number of strong neighbors
 template <typename ValueType, typename IndexType>
 void compute_lambda(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* S,
-                    IndexType* lambda)
+                    const matrix::Csr<ValueType, IndexType>* A,
+                    const bool* is_strong, IndexType* lambda)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -74,8 +87,9 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_INIT_CF_KERNEL);
 // Classical RS greedy selection
 template <typename ValueType, typename IndexType>
 void rs_coarsening(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Csr<ValueType, IndexType>* S,
-                   IndexType* lambda, array<IndexType>& cf_marker)
+                   const matrix::Csr<ValueType, IndexType>* A,
+                   const bool* is_strong, IndexType* lambda,
+                   array<IndexType>& cf_marker)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -128,10 +142,11 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_FILL_FINE_TO_COARSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void compute_interpolation_row_ptrs(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* soc,
-    const array<IndexType>& cf_marker, IndexType* row_ptrs)
+void compute_interpolation_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
+                                    const matrix::Csr<ValueType, IndexType>* A,
+                                    const bool* is_strong,
+                                    const array<IndexType>& cf_marker,
+                                    IndexType* row_ptrs)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -143,7 +158,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_interpolation(std::shared_ptr<const DefaultExecutor> exec,
                            const matrix::Csr<ValueType, IndexType>* A,
-                           const matrix::Csr<ValueType, IndexType>* soc,
+                           const bool* is_strong,
                            const array<IndexType>& cf_marker,
                            const IndexType* fine_to_coarse,
                            matrix::Csr<ValueType, IndexType>* P)

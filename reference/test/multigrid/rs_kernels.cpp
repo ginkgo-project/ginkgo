@@ -37,69 +37,45 @@ protected:
         A = csr::create(exec, gko::dim<2>{3, 3}, 7);
         A->read({{2.0, -1.0, 0.0}, {-1.0, 2.0, -1.0}, {0.0, -1.0, 2.0}});
 
-        S = csr::create(exec, gko::dim<2>{3, 3}, 4);
-        S->read({{0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}});
+        // mask aligned with A's non-zeros
+        is_strong = gko::array<bool>(
+            exec, {false, true, true, false, true, true, false});
 
         cf = gko::array<index_type>(exec, {1, -1, 1});  // C, F, C
     }
 
     std::shared_ptr<gko::ReferenceExecutor> exec;
     std::shared_ptr<csr> A;
-    std::shared_ptr<csr> S;
+    gko::array<bool> is_strong;
     gko::array<index_type> cf;
 };
 
 
-TEST_F(Rs, ComputeSocRowPtrs)
+TEST_F(Rs, ComputeSocMask)
 {
     auto A = csr::create(exec, gko::dim<2>{3, 3}, 7);
     A->read({{2.0, -1.0, 0.0}, {-1.0, 2.0, -1.0}, {0.0, -1.0, 2.0}});
 
-    gko::array<index_type> row_ptrs(exec, 4);
+    gko::array<bool> is_strong(exec, 7);
 
-    gko::kernels::reference::rs::compute_soc_row_ptrs(exec, A.get(), 0.5,
-                                                      row_ptrs.get_data());
+    gko::kernels::reference::rs::compute_soc_mask(exec, A.get(), 0.5,
+                                                  is_strong.get_data());
 
-    std::vector<index_type> expected{0, 1, 3, 4};
+    std::vector<bool> expected{false, true, true, false, true, true, false};
 
-    for (int i = 0; i < 4; ++i) {
-        ASSERT_EQ(row_ptrs.get_const_data()[i], expected[i]);
-    }
-}
-
-
-TEST_F(Rs, FillSoc)
-{
-    auto A = csr::create(exec, gko::dim<2>{3, 3}, 7);
-    A->read({{2.0, -1.0, 0.0}, {-1.0, 2.0, -1.0}, {0.0, -1.0, 2.0}});
-
-    gko::array<index_type> row_ptrs(exec, 4);
-    gko::kernels::reference::rs::compute_soc_row_ptrs(exec, A.get(), 0.5,
-                                                      row_ptrs.get_data());
-
-    auto S = csr::create(exec, gko::dim<2>{3, 3}, 4);
-    exec->copy_from(exec, 4, row_ptrs.get_const_data(), S->get_row_ptrs());
-
-    gko::kernels::reference::rs::fill_soc(exec, A.get(), 0.5, S.get());
-
-    std::vector<index_type> expected_cols{1, 0, 2, 1};
-
-    for (int i = 0; i < 4; ++i) {
-        ASSERT_EQ(S->get_const_col_idxs()[i], expected_cols[i]);
-        ASSERT_EQ(S->get_const_values()[i], 1.0);
+    for (int i = 0; i < 7; ++i) {
+        ASSERT_EQ(is_strong.get_const_data()[i], expected[i]);
     }
 }
 
 
 TEST_F(Rs, ComputeLambda)
 {
-    auto S = csr::create(exec, gko::dim<2>{3, 3}, 4);
-    S->read({{0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}});
-
+    this->setup_test_data();
     gko::array<index_type> lambda(exec, 3);
 
-    gko::kernels::reference::rs::compute_lambda(exec, S.get(),
-                                                lambda.get_data());
+    gko::kernels::reference::rs::compute_lambda(
+        exec, A.get(), is_strong.get_const_data(), lambda.get_data());
 
     ASSERT_EQ(lambda.get_const_data()[0], 1);
     ASSERT_EQ(lambda.get_const_data()[1], 2);
@@ -109,9 +85,7 @@ TEST_F(Rs, ComputeLambda)
 
 TEST_F(Rs, RsCoarsening)
 {
-    auto S = csr::create(exec, gko::dim<2>{3, 3}, 4);
-    S->read({{0.0, 1.0, 0.0}, {1.0, 0.0, 1.0}, {0.0, 1.0, 0.0}});
-
+    this->setup_test_data();
     gko::array<index_type> lambda(exec, 3);
     lambda.get_data()[0] = 1;
     lambda.get_data()[1] = 2;
@@ -120,8 +94,8 @@ TEST_F(Rs, RsCoarsening)
     gko::array<index_type> cf(exec, 3);
     gko::kernels::reference::rs::init_cf(exec, cf);
 
-    gko::kernels::reference::rs::rs_coarsening(exec, S.get(), lambda.get_data(),
-                                               cf);
+    gko::kernels::reference::rs::rs_coarsening(
+        exec, A.get(), is_strong.get_const_data(), lambda.get_data(), cf);
 
     ASSERT_EQ(cf.get_const_data()[0], -1);
     ASSERT_EQ(cf.get_const_data()[1], 1);
@@ -164,7 +138,7 @@ TEST_F(Rs, ComputeInterpolationRowPtrs)
     gko::array<index_type> p_row_ptrs(exec, 4);
 
     gko::kernels::reference::rs::compute_interpolation_row_ptrs(
-        exec, S.get(), cf, p_row_ptrs.get_data());
+        exec, A.get(), is_strong.get_const_data(), cf, p_row_ptrs.get_data());
 
     // Row 0 (C): 1 nz, Row 1 (F): 2 nz (strong C-neighbors 0,2), Row 2 (C): 1
     // nz
@@ -185,7 +159,8 @@ TEST_F(Rs, ComputeInterpolation)
                     P->get_row_ptrs());
 
     gko::kernels::reference::rs::compute_interpolation(
-        exec, A.get(), S.get(), cf, f2c.get_const_data(), P.get());
+        exec, A.get(), is_strong.get_const_data(), cf, f2c.get_const_data(),
+        P.get());
 
     ASSERT_EQ(P->get_const_col_idxs()[0], 0);
     ASSERT_DOUBLE_EQ(P->get_const_values()[0], 1.0);
