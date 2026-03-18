@@ -6,6 +6,8 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
+
 
 
 namespace gko {
@@ -63,6 +65,9 @@ using any_value_t = syn::variant_from_tuple<supported_value_types>;
 
 class MultiVector : public EnableAbstractPolymorphicObject<MultiVector, LinOp> {
 public:
+    template <typename ValueType>
+    using device_view = view::dense<ValueType>;
+
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other);
 
@@ -148,12 +153,11 @@ public:
     [[nodiscard]] std::unique_ptr<const MultiVector> create_subview(
         local_span rows, local_span columns, dim<2> global_size) const;
 
-    // @todo: this should return something like a device view
     template <typename ValueType>
-    [[nodiscard]] std::unique_ptr<Dense<ValueType>> create_local_view();
+    [[nodiscard]] device_view<ValueType> get_local_device_view();
 
     template <typename ValueType>
-    [[nodiscard]] std::unique_ptr<const Dense<ValueType>> create_local_view()
+    [[nodiscard]] device_view<const ValueType> get_const_local_device_view()
         const;
 
     [[nodiscard]] size_type get_stride() const noexcept;
@@ -252,16 +256,27 @@ protected:
     create_subview_generic_impl(local_span rows, local_span columns,
                                 dim<2> global_size) const = 0;
 
-    [[nodiscard]] virtual auto create_local_view_impl(
-        syn::variant_from_tuple<supported_value_types> type)
-        -> syn::variant_from_tuple<
-            syn::apply_to_list<std::unique_ptr, dense_types>> = 0;
+    [[nodiscard]] virtual auto get_local_device_view_generic_impl()
+        -> std::variant<
+#if GINKGO_ENABLE_HALF
+            device_view<half>, device_view<std::complex<half>>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+            device_view<bfloat16>, device_view<std::complex<bfloat16>>,
+#endif
+            device_view<float>, device_view<std::complex<float>>,
+            device_view<double>, device_view<std::complex<double>>> = 0;
 
-    [[nodiscard]] virtual auto create_local_view_impl(
-        syn::variant_from_tuple<supported_value_types> type) const
-        -> syn::variant_from_tuple<syn::apply_to_list<
-            std::unique_ptr,
-            syn::apply_to_list<std::add_const_t, dense_types>>> = 0;
+    [[nodiscard]] virtual auto
+    get_const_local_device_view_generic_impl() const -> std::variant<
+#if GINKGO_ENABLE_HALF
+        device_view<const half>, device_view<const std::complex<half>>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        device_view<const bfloat16>, device_view<const std::complex<bfloat16>>,
+#endif
+        device_view<const float>, device_view<const std::complex<float>>,
+        device_view<const double>, device_view<const std::complex<double>>> = 0;
 
     [[nodiscard]] virtual auto get_stride_impl() const -> size_type = 0;
 };
@@ -395,6 +410,35 @@ protected:
 
     virtual void compute_norm1_impl(absolute_type* result,
                                     array<char>& tmp) const = 0;
+
+    [[nodiscard]] auto get_local_device_view_generic_impl() -> std::variant<
+#if GINKGO_ENABLE_HALF
+        MultiVector::device_view<half>,
+        MultiVector::device_view<std::complex<half>>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        MultiVector::device_view<bfloat16>,
+        MultiVector::device_view<std::complex<bfloat16>>,
+#endif
+        MultiVector::device_view<float>,
+        MultiVector::device_view<std::complex<float>>,
+        MultiVector::device_view<double>,
+        MultiVector::device_view<std::complex<double>>> override;
+
+    [[nodiscard]] auto get_const_local_device_view_generic_impl() const
+        -> std::variant<
+#if GINKGO_ENABLE_HALF
+            MultiVector::device_view<const half>,
+            MultiVector::device_view<const std::complex<half>>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+            MultiVector::device_view<const bfloat16>,
+            MultiVector::device_view<const std::complex<bfloat16>>,
+#endif
+            MultiVector::device_view<const float>,
+            MultiVector::device_view<const std::complex<float>>,
+            MultiVector::device_view<const double>,
+            MultiVector::device_view<const std::complex<double>>> override;
 
 private:
     [[nodiscard]] std::unique_ptr<MultiVector>
@@ -822,6 +866,47 @@ void EnableMultiVector<ConcreteType>::compute_norm1_impl(MultiVector* result,
                                                          array<char>& tmp) const
 {
     this->compute_norm1_impl(as<ConcreteType>(result), tmp);
+}
+
+template <typename ConcreteType>
+auto EnableMultiVector<ConcreteType>::get_local_device_view_generic_impl()
+    -> std::variant<
+#if GINKGO_ENABLE_HALF
+        MultiVector::device_view<half>,
+        MultiVector::device_view<std::complex<half>>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        MultiVector::device_view<bfloat16>,
+        MultiVector::device_view<std::complex<bfloat16>>,
+#endif
+
+        MultiVector::device_view<float>,
+        MultiVector::device_view<std::complex<float>>,
+        MultiVector::device_view<double>,
+        MultiVector::device_view<std::complex<double>>>
+{
+    return static_cast<ConcreteType*>(this)->get_local_device_view();
+}
+
+
+template <typename ConcreteType>
+auto EnableMultiVector<ConcreteType>::get_const_local_device_view_generic_impl()
+    const -> std::variant<
+#if GINKGO_ENABLE_HALF
+        MultiVector::device_view<const half>,
+        MultiVector::device_view<const std::complex<half>>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        MultiVector::device_view<const bfloat16>,
+        MultiVector::device_view<const std::complex<bfloat16>>,
+#endif
+        MultiVector::device_view<const float>,
+        MultiVector::device_view<const std::complex<float>>,
+        MultiVector::device_view<const double>,
+        MultiVector::device_view<const std::complex<double>>>
+{
+    return static_cast<ConcreteType const*>(this)
+        ->get_const_local_device_view();
 }
 
 
