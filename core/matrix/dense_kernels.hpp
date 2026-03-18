@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/base/kernel_declaration.hpp"
@@ -144,42 +145,43 @@ namespace kernels {
     void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec, \
                       matrix::view::dense<ValueType> data)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, _prec)    \
-    void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::view::dense<const ValueType> source, \
-                        const int64* row_ptrs,                       \
-                        matrix::Coo<ValueType, _prec>* other)
+#define GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL(ValueType, IndexType) \
+    void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,  \
+                        matrix::view::dense<const ValueType> source,  \
+                        const int64* row_ptrs,                        \
+                        matrix::Coo<ValueType, IndexType>* other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, _prec)    \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::view::dense<const ValueType> source, \
-                        matrix::Csr<ValueType, _prec>* other)
+#define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType) \
+    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,  \
+                        matrix::view::dense<const ValueType> source,  \
+                        matrix::Csr<ValueType, IndexType>* other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, _prec)    \
-    void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::view::dense<const ValueType> source, \
-                        matrix::Ell<ValueType, _prec>* other)
+#define GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType) \
+    void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,  \
+                        matrix::view::dense<const ValueType> source,  \
+                        matrix::view::ell<ValueType, IndexType> other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL(ValueType, _prec)    \
-    void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::view::dense<const ValueType> source, \
-                          matrix::Fbcsr<ValueType, _prec>* other)
+#define GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL(ValueType, IndexType) \
+    void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,  \
+                          matrix::view::dense<const ValueType> source,  \
+                          matrix::Fbcsr<ValueType, IndexType>* other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(ValueType, _prec)    \
-    void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec, \
-                           matrix::view::dense<const ValueType> source, \
-                           const int64* coo_row_ptrs,                   \
-                           matrix::Hybrid<ValueType, _prec>* other)
+#define GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType) \
+    void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,  \
+                           matrix::view::dense<const ValueType> source,  \
+                           const int64* coo_row_ptrs,                    \
+                           matrix::Hybrid<ValueType, IndexType>* other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, _prec)    \
-    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::view::dense<const ValueType> source, \
-                          matrix::Sellp<ValueType, _prec>* other)
+#define GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType) \
+    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,  \
+                          matrix::view::dense<const ValueType> source,  \
+                          matrix::Sellp<ValueType, IndexType>* other)
 
-#define GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(ValueType, _prec)    \
-    void convert_to_sparsity_csr(std::shared_ptr<const DefaultExecutor> exec, \
-                                 matrix::view::dense<const ValueType> source, \
-                                 matrix::SparsityCsr<ValueType, _prec>* other)
+#define GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL(ValueType, IndexType) \
+    void convert_to_sparsity_csr(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        matrix::view::dense<const ValueType> source,                           \
+        matrix::SparsityCsr<ValueType, IndexType>* other)
 
 #define GKO_DECLARE_DENSE_COMPUTE_MAX_NNZ_PER_ROW_KERNEL(ValueType)           \
     void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec, \

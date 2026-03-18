@@ -525,7 +525,7 @@ void Csr<ValueType, IndexType>::convert_to(
         tmp->values_.resize_and_reset(storage);
         tmp->set_size(this->get_size());
     }
-    exec->run(csr::make_convert_to_ell(this, tmp.get()));
+    exec->run(csr::make_convert_to_ell(this, tmp->get_device_view()));
 }
 
 

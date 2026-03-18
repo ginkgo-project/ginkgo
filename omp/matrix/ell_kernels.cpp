@@ -31,7 +31,7 @@ namespace ell {
 template <int num_rhs, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType, typename OutFn>
 void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Ell<MatrixValueType, IndexType>* a,
+                    matrix::view::ell<const MatrixValueType, const IndexType> a,
                     matrix::view::dense<const InputValueType> b,
                     matrix::view::dense<OutputValueType> c, OutFn out)
 {
@@ -43,13 +43,12 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
     using b_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
-    const auto num_stored_elements_per_row =
-        a->get_num_stored_elements_per_row();
-    const auto stride = a->get_stride();
+    const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
+    const auto stride = a.stride;
     const auto a_vals = gko::acc::range<a_accessor>(
         std::array<acc::size_type, 1>{
             static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
-        a->get_const_values());
+        a.values);
     const auto b_vals = gko::acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
@@ -57,12 +56,12 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
         std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
 
 #pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; row++) {
+    for (size_type row = 0; row < a.size[0]; row++) {
         std::array<arithmetic_type, num_rhs> partial_sum;
         partial_sum.fill(zero<arithmetic_type>());
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             arithmetic_type val = a_vals(row + i * stride);
-            auto col = a->col_at(row, i);
+            auto col = a.col_at(row, i);
             if (col != invalid_index<IndexType>()) {
 #pragma unroll
                 for (size_type j = 0; j < num_rhs; j++) {
@@ -81,7 +80,7 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
 template <int block_size, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType, typename OutFn>
 void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
-                  const matrix::Ell<MatrixValueType, IndexType>* a,
+                  matrix::view::ell<const MatrixValueType, const IndexType> a,
                   matrix::view::dense<const InputValueType> b,
                   matrix::view::dense<OutputValueType> c, OutFn out)
 {
@@ -93,13 +92,12 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
     using b_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
-    const auto num_stored_elements_per_row =
-        a->get_num_stored_elements_per_row();
-    const auto stride = a->get_stride();
+    const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
+    const auto stride = a.stride;
     const auto a_vals = gko::acc::range<a_accessor>(
         std::array<acc::size_type, 1>{
             static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
-        a->get_const_values());
+        a.values);
     const auto b_vals = gko::acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
@@ -110,14 +108,14 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
     const auto rounded_rhs = num_rhs / block_size * block_size;
 
 #pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; row++) {
+    for (size_type row = 0; row < a.size[0]; row++) {
         std::array<arithmetic_type, block_size> partial_sum;
         for (size_type rhs_base = 0; rhs_base < rounded_rhs;
              rhs_base += block_size) {
             partial_sum.fill(zero<arithmetic_type>());
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
                 arithmetic_type val = a_vals(row + i * stride);
-                auto col = a->col_at(row, i);
+                auto col = a.col_at(row, i);
                 if (col != invalid_index<IndexType>()) {
 #pragma unroll
                     for (size_type j = 0; j < block_size; j++) {
@@ -134,7 +132,7 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
         partial_sum.fill(zero<arithmetic_type>());
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             arithmetic_type val = a_vals(row + i * stride);
-            auto col = a->col_at(row, i);
+            auto col = a.col_at(row, i);
             if (col != invalid_index<IndexType>()) {
                 for (size_type j = rounded_rhs; j < num_rhs; j++) {
                     partial_sum[j - rounded_rhs] += val * b_vals(col, j);
@@ -151,7 +149,7 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Ell<MatrixValueType, IndexType>* a,
+          matrix::view::ell<const MatrixValueType, const IndexType> a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
 {
@@ -187,7 +185,7 @@ template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    matrix::view::dense<const MatrixValueType> alpha,
-                   const matrix::Ell<MatrixValueType, IndexType>* a,
+                   matrix::view::ell<const MatrixValueType, const IndexType> a,
                    matrix::view::dense<const InputValueType> b,
                    matrix::view::dense<const OutputValueType> beta,
                    matrix::view::dense<OutputValueType> c)

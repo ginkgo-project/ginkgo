@@ -157,7 +157,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* matrix,
-                    matrix::Ell<ValueType, IndexType>* output)
+                    matrix::view::ell<ValueType, IndexType> output)
 {
     run_kernel(
         exec,
@@ -175,10 +175,10 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
                 out_idx += ell_stride;
             }
         },
-        output->get_size()[0], matrix->get_const_col_idxs(),
+        output.size[0], matrix->get_const_col_idxs(),
         matrix->get_const_values(), matrix->get_const_row_ptrs(),
-        output->get_num_stored_elements_per_row(), output->get_stride(),
-        output->get_col_idxs(), output->get_values());
+        output.num_stored_elements_per_row, output.stride, output.col_idxs,
+        output.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

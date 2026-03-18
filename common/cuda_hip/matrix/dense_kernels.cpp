@@ -498,17 +498,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::dense<const ValueType> source,
-                    matrix::Ell<ValueType, IndexType>* result)
+                    matrix::view::ell<ValueType, IndexType> result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto max_nnz_per_row = result->get_num_stored_elements_per_row();
+    auto num_rows = result.size[0];
+    auto num_cols = result.size[1];
+    auto max_nnz_per_row = result.num_stored_elements_per_row;
 
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
+    auto col_idxs = result.col_idxs;
+    auto values = result.values;
 
     auto source_stride = source.stride;
-    auto result_stride = result->get_stride();
+    auto result_stride = result.stride;
 
     const auto grid_dim =
         ceildiv(num_rows, default_block_size / config::warp_size);

@@ -91,7 +91,8 @@ Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(
                                 exec_cols_array->get_data()),
                 this->get_num_stored_elements_per_row(),
                 this->get_stride()};
-        exec->run(ell::make_copy(&other, &exec_this_view));
+        exec->run(ell::make_copy(other.get_const_device_view(),
+                                 exec_this_view.get_device_view()));
     }
     return *this;
 }
@@ -131,9 +132,9 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(
-                ell::make_spmv(this, dense_b->get_const_device_view(),
-                               dense_x->get_device_view()));
+            this->get_executor()->run(ell::make_spmv(
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -148,11 +149,11 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
             auto dense_beta = make_temporary_conversion<
                 typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
-            this->get_executor()->run(
-                ell::make_advanced_spmv(dense_alpha->get_const_device_view(),
-                                        this, dense_b->get_const_device_view(),
-                                        dense_beta->get_const_device_view(),
-                                        dense_x->get_device_view()));
+            this->get_executor()->run(ell::make_advanced_spmv(
+                dense_alpha->get_const_device_view(),
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_beta->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -229,7 +230,8 @@ void Ell<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(ell::make_fill_in_dense(this, tmp_result->get_device_view()));
+    exec->run(ell::make_fill_in_dense(this->get_const_device_view(),
+                                      tmp_result->get_device_view()));
 }
 
 
@@ -249,8 +251,8 @@ void Ell<ValueType, IndexType>::convert_to(
     {
         auto tmp = make_temporary_clone(exec, result);
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
-        exec->run(
-            ell::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
+        exec->run(ell::make_count_nonzeros_per_row(
+            this->get_const_device_view(), tmp->row_ptrs_.get_data()));
         exec->run(ell::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                    num_rows + 1));
         const auto nnz =
@@ -258,7 +260,8 @@ void Ell<ValueType, IndexType>::convert_to(
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
-        exec->run(ell::make_convert_to_csr(this, tmp.get()));
+        exec->run(
+            ell::make_convert_to_csr(this->get_const_device_view(), tmp.get()));
     }
     result->make_srow();
 }
@@ -297,8 +300,8 @@ void Ell<ValueType, IndexType>::read(const device_mat_data& data)
     size_type max_nnz{};
     exec->run(ell::make_compute_max_row_nnz(row_ptrs, max_nnz));
     this->resize(data.get_size(), max_nnz);
-    exec->run(ell::make_fill_in_matrix_data(*local_data,
-                                            row_ptrs.get_const_data(), this));
+    exec->run(ell::make_fill_in_matrix_data(
+        *local_data, row_ptrs.get_const_data(), this->get_device_view()));
 }
 
 
@@ -346,7 +349,8 @@ Ell<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(ell::make_fill_array(diag->get_values(), diag->get_size()[0],
                                    zero<ValueType>()));
-    exec->run(ell::make_extract_diagonal(this, diag.get()));
+    exec->run(
+        ell::make_extract_diagonal(this->get_const_device_view(), diag.get()));
     return diag;
 }
 
