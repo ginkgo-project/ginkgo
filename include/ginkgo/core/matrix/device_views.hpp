@@ -19,6 +19,7 @@ namespace view {
  * Non-owning view of a matrix::Dense to be used inside device kernels.
  * This type is used to provide a simple and stable ABI for passing data between
  * libraries.
+ * The data is stored in row-major order.
  *
  * @tparam ValueType  the value type used to store matrix entries.
  */
@@ -31,7 +32,9 @@ struct dense {
     /** Constructs a dense view from size, stride and values. */
     constexpr dense(dim<2> size, size_type stride, ValueType* values)
         : size{size}, stride{stride}, values{values}
-    {}
+    {
+        assert(stride >= size[1]);
+    }
 
     /** Returns a const view of the same values */
     constexpr dense<const ValueType> as_const() const
