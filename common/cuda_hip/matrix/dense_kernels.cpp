@@ -22,6 +22,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/unified/base/kernel_launch.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
@@ -823,6 +824,35 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename ScalarType>
+void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
+                matrix::view::dense<const ScalarType> alpha,
+                matrix::view::dense<const ValueType> x,
+                matrix::view::dense<ValueType> y)
+{
+    if (alpha.size[1] > 1) {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+                y(row, col) += alpha[col] * x(row, col);
+            },
+            x.size, alpha.values, x, y);
+    } else {
+        run_kernel(
+            exec,
+            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
+                if (is_nonzero(alpha[0])) {
+                    y(row, col) += alpha[0] * x(row, col);
+                }
+            },
+            x.size, alpha.values, x, y);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
+    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
 
 }  // namespace dense
