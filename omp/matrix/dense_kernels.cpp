@@ -467,6 +467,34 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
 
 
+template <typename ValueType, typename ScalarType>
+void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
+                matrix::view::dense<const ScalarType> alpha,
+                matrix::view::dense<const ValueType> x,
+                matrix::view::dense<ValueType> y)
+{
+    // It is not eqaul to the original unified omp kernel
+    if (alpha.size[1] > 1) {
+#pragma omp parallel for collapse(2)
+        for (size_type row = 0; row < x.size[0]; row++) {
+            for (size_type col = 0; col < x.size[1]; col++) {
+                y(row, col) += alpha(0, col) * x(row, col);
+            }
+        }
+    } else if (is_nonzero(alpha(0, 0))) {
+#pragma omp parallel for collapse(2)
+        for (size_type row = 0; row < x.size[0]; row++) {
+            for (size_type col = 0; col < x.size[1]; col++) {
+                y(row, col) += alpha(0, 0) * x(row, col);
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
+    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
+
+
 }  // namespace dense
 }  // namespace omp
 }  // namespace kernels
