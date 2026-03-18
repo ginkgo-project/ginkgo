@@ -197,6 +197,7 @@ option(
     "Enables mapping to Kokkos types to check the alignment of the source and target type."
     ON
 )
+option(GINKGO_OMP_WITH_HIGHWAY "ENABLE HIGHWAY WITH OMP MODULE" ON)
 gko_rename_cache(
     GINKGO_COMPILER_FLAGS
     CMAKE_CXX_FLAGS
@@ -256,6 +257,9 @@ if(GINKGO_BUILD_SYCL)
 endif()
 if(GINKGO_BUILD_OMP)
     find_package(OpenMP 3.0 REQUIRED)
+    if(GINKGO_OMP_WITH_HIGHWAY)
+        find_package(HWY 1.3 QUIET)
+    endif()
 endif()
 
 find_package(Threads REQUIRED)
