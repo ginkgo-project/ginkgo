@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 #include "core/base/allocator.hpp"
 #include "core/base/array_access.hpp"
@@ -377,6 +378,26 @@ Ell<ValueType, IndexType>::compute_absolute() const
 
     return abs_ell;
 }
+
+
+template <typename ValueType, typename IndexType>
+auto Ell<ValueType, IndexType>::get_device_view() -> device_view
+{
+    return device_view{
+        this->get_size(), this->get_num_stored_elements_per_row(),
+        this->get_stride(), this->get_values(), this->get_col_idxs()};
+};
+
+
+template <typename ValueType, typename IndexType>
+auto Ell<ValueType, IndexType>::get_const_device_view() const
+    -> const_device_view
+{
+    return const_device_view{this->get_size(),
+                             this->get_num_stored_elements_per_row(),
+                             this->get_stride(), this->get_const_values(),
+                             this->get_const_col_idxs()};
+};
 
 
 template <typename ValueType, typename IndexType>

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -103,6 +103,32 @@ TYPED_TEST(Ell, CanBeEmpty)
     auto mtx = Mtx::create(this->exec);
 
     this->assert_empty(mtx.get());
+}
+
+
+TYPED_TEST(Ell, CanCreateDeviceView)
+{
+    auto view = this->mtx->get_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.num_stored_elements_per_row,
+              this->mtx->get_num_stored_elements_per_row());
+    EXPECT_EQ(view.stride, this->mtx->get_stride());
+    EXPECT_EQ(view.values, this->mtx->get_values());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_col_idxs());
+}
+
+
+TYPED_TEST(Ell, CanCreateConstDeviceView)
+{
+    auto view = this->mtx->get_const_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.num_stored_elements_per_row,
+              this->mtx->get_num_stored_elements_per_row());
+    EXPECT_EQ(view.stride, this->mtx->get_stride());
+    EXPECT_EQ(view.values, this->mtx->get_values());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_col_idxs());
 }
 
 
