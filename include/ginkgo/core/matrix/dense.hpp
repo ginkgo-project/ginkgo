@@ -1114,6 +1114,14 @@ public:
     [[nodiscard]] auto get_const_local_device_view() const
         -> MultiVector::device_view<const value_type>;
 
+    template <typename OtherValueType>
+    [[nodiscard]] auto as_precision()
+        -> gko::detail::temporary_conversion<Dense<OtherValueType>>;
+
+    template <typename OtherValueType>
+    [[nodiscard]] auto as_precision() const
+        -> gko::detail::temporary_conversion<const Dense<OtherValueType>>;
+
     /**
      * Creates an uninitialized Dense matrix of the specified size.
      *
