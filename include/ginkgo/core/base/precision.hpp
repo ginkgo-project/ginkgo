@@ -86,4 +86,40 @@ constexpr bool is_complex(precision p)
 }
 
 
+inline auto precision_to_variant(precision p) -> std::variant<
+#if GINKGO_ENABLE_HALF
+    half, std::complex<half>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    bfloat16, std::complex<bfloat16>,
+#endif
+    float, std::complex<float>, double, std::complex<double>>
+{
+    switch (p) {
+#if GINKGO_ENABLE_HALF
+    case precision::fp16:
+        return half{};
+    case precision::complex_fp16:
+        return std::complex<half>{};
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    case precision::bf16:
+        return bfloat16{};
+    case precision::complex_bf16:
+        return std::complex<bfloat16>{};
+#endif
+    case precision::fp32:
+        return float{};
+    case precision::complex_fp32:
+        return std::complex<float>{};
+    case precision::fp64:
+        return double{};
+    case precision::complex_fp64:
+        return std::complex<double>{};
+    default:
+        GKO_INVALID_STATE("Unsupported precision");
+    }
+}
+
+
 }  // namespace gko
