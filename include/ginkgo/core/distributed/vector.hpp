@@ -64,7 +64,7 @@ class Partition;
  * @ingroup LinOp
  */
 template <typename ValueType = double>
-class Vector : public matrix::EnableMultiVector<Vector<ValueType>>,
+class Vector : public matrix::EnableMultiVector<Vector, ValueType>,
                public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
                public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
@@ -81,8 +81,8 @@ class Vector : public matrix::EnableMultiVector<Vector<ValueType>>,
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using matrix::EnableMultiVector<Vector>::convert_to;
-    using matrix::EnableMultiVector<Vector>::move_to;
+    using matrix::EnableMultiVector<Vector, ValueType>::convert_to;
+    using matrix::EnableMultiVector<Vector, ValueType>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 

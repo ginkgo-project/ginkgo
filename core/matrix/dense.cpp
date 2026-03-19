@@ -562,7 +562,7 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
 {
     if (&other != this) {
         auto old_size = this->get_size();
-        EnableMultiVector<Dense>::operator=(other);
+        EnableMultiVector<Dense, ValueType>::operator=(other);
         // NOTE: keep this consistent with resize(...)
         if (old_size != other.get_size()) {
             this->stride_ = this->get_size()[1];
@@ -591,7 +591,7 @@ template <typename ValueType>
 Dense<ValueType>& Dense<ValueType>::operator=(Dense<ValueType>&& other)
 {
     if (&other != this) {
-        EnableMultiVector<Dense>::operator=(std::move(other));
+        EnableMultiVector<Dense, ValueType>::operator=(std::move(other));
         values_ = std::move(other.values_);
         stride_ = std::exchange(other.stride_, 0);
     }
@@ -2404,7 +2404,7 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
 template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, size_type stride)
-    : EnableMultiVector<Dense>(exec, size),
+    : EnableMultiVector<Dense, ValueType>(exec, size),
       stride_(stride == 0 ? size[1] : stride),
       values_(exec, size[0] * stride_)
 {}
@@ -2414,7 +2414,7 @@ template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, array<value_type> values,
                         size_type stride)
-    : EnableMultiVector<Dense>(exec, size),
+    : EnableMultiVector<Dense, ValueType>(exec, size),
       stride_{stride},
       values_{exec, std::move(values)}
 {

@@ -88,7 +88,7 @@ class SparsityCsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Dense : public EnableMultiVector<Dense<ValueType>>,
+class Dense : public EnableMultiVector<Dense, ValueType>,
               public ConvertibleTo<Dense<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
               public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
@@ -141,9 +141,9 @@ class Dense : public EnableMultiVector<Dense<ValueType>>,
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableMultiVector<Dense>::convert_to;
-    using EnableMultiVector<Dense>::move_to;
-    using EnableMultiVector<Dense>::create_with_type_of;
+    using EnableMultiVector<Dense, ValueType>::convert_to;
+    using EnableMultiVector<Dense, ValueType>::move_to;
+    using EnableMultiVector<Dense, ValueType>::create_with_type_of;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Coo<ValueType, int32>>::convert_to;

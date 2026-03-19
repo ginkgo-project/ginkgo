@@ -296,42 +296,46 @@ protected:
 };
 
 
-template <typename ConcreteType>
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
 class EnableMultiVector
-    : public EnablePolymorphicObject<ConcreteType, MultiVector>,
-      public EnablePolymorphicAssignment<ConcreteType> {
+    : public EnablePolymorphicObject<ConcreteType<ValueType, ExtraArgs...>,
+                                     MultiVector>,
+      public EnablePolymorphicAssignment<
+          ConcreteType<ValueType, ExtraArgs...>> {
 public:
-    using absolute_type = remove_complex<ConcreteType>;
+    using concrete_type = ConcreteType<ValueType, ExtraArgs...>;
+    using absolute_type = remove_complex<concrete_type>;
     using real_type = absolute_type;
-    using complex_type = to_complex<ConcreteType>;
+    using complex_type = to_complex<concrete_type>;
 
-    [[nodiscard]] static std::unique_ptr<ConcreteType> create_with_config_of(
-        ptr_param<const ConcreteType> other);
+    [[nodiscard]] static std::unique_ptr<concrete_type> create_with_config_of(
+        ptr_param<const concrete_type> other);
 
-    [[nodiscard]] static std::unique_ptr<ConcreteType> create_with_type_of(
-        ptr_param<const ConcreteType> other,
+    [[nodiscard]] static std::unique_ptr<concrete_type> create_with_type_of(
+        ptr_param<const concrete_type> other,
         std::shared_ptr<const Executor> exec);
 
-    [[nodiscard]] static std::unique_ptr<ConcreteType> create_with_type_of(
-        ptr_param<const ConcreteType> other,
+    [[nodiscard]] static std::unique_ptr<concrete_type> create_with_type_of(
+        ptr_param<const concrete_type> other,
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size);
 
-    [[nodiscard]] static std::unique_ptr<ConcreteType> create_with_type_of(
-        ptr_param<const ConcreteType> other,
+    [[nodiscard]] static std::unique_ptr<concrete_type> create_with_type_of(
+        ptr_param<const concrete_type> other,
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride);
 
-    [[nodiscard]] std::unique_ptr<ConcreteType> create_subview(
+    [[nodiscard]] std::unique_ptr<concrete_type> create_subview(
         local_span rows, local_span columns);
 
-    [[nodiscard]] std::unique_ptr<const ConcreteType> create_subview(
+    [[nodiscard]] std::unique_ptr<const concrete_type> create_subview(
         local_span rows, local_span columns) const;
 
-    [[nodiscard]] std::unique_ptr<ConcreteType> create_subview(
+    [[nodiscard]] std::unique_ptr<concrete_type> create_subview(
         local_span rows, local_span columns, dim<2> global_size);
 
-    [[nodiscard]] std::unique_ptr<const ConcreteType> create_subview(
+    [[nodiscard]] std::unique_ptr<const concrete_type> create_subview(
         local_span rows, local_span columns, dim<2> global_size) const;
 
     [[nodiscard]] std::unique_ptr<const real_type> create_real_view() const;
@@ -348,29 +352,30 @@ public:
 
 protected:
     EnableMultiVector(std::shared_ptr<const Executor> exec, dim<2> size = {})
-        : EnablePolymorphicObject<ConcreteType, MultiVector>(exec, size)
+        : EnablePolymorphicObject<concrete_type, MultiVector>(
+              exec, size, type_to_precision<ValueType>)
     {}
 
     // Concretized function calls
-    [[nodiscard]] virtual std::unique_ptr<ConcreteType>
+    [[nodiscard]] virtual std::unique_ptr<concrete_type>
     create_with_same_config_impl() const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<ConcreteType>
+    [[nodiscard]] virtual std::unique_ptr<concrete_type>
     create_with_type_of_impl(std::shared_ptr<const Executor> exec,
                              const dim<2>& global_size,
                              const dim<2>& local_size,
                              size_type stride) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<ConcreteType> create_subview_impl(
+    [[nodiscard]] virtual std::unique_ptr<concrete_type> create_subview_impl(
         local_span rows, local_span columns) = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<const ConcreteType>
+    [[nodiscard]] virtual std::unique_ptr<const concrete_type>
     create_subview_impl(local_span rows, local_span columns) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<ConcreteType> create_subview_impl(
+    [[nodiscard]] virtual std::unique_ptr<concrete_type> create_subview_impl(
         local_span rows, local_span columns, dim<2> global_size) = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<const ConcreteType>
+    [[nodiscard]] virtual std::unique_ptr<const concrete_type>
     create_subview_impl(local_span rows, local_span columns,
                         dim<2> global_size) const = 0;
 
@@ -397,22 +402,22 @@ protected:
     virtual void get_imag_impl(real_type* result) const = 0;
 
     virtual void add_scaled_impl(any_const_dense_t alpha,
-                                 const ConcreteType* b) = 0;
+                                 const concrete_type* b) = 0;
 
     virtual void sub_scaled_impl(any_const_dense_t alpha,
-                                 const ConcreteType* b) = 0;
+                                 const concrete_type* b) = 0;
 
-    virtual void compute_dot_impl(const ConcreteType* b,
-                                  ConcreteType* result) const = 0;
+    virtual void compute_dot_impl(const concrete_type* b,
+                                  concrete_type* result) const = 0;
 
-    virtual void compute_dot_impl(const ConcreteType* b, ConcreteType* result,
+    virtual void compute_dot_impl(const concrete_type* b, concrete_type* result,
                                   array<char>& tmp) const = 0;
 
-    virtual void compute_conj_dot_impl(const ConcreteType* b,
-                                       ConcreteType* result) const = 0;
+    virtual void compute_conj_dot_impl(const concrete_type* b,
+                                       concrete_type* result) const = 0;
 
-    virtual void compute_conj_dot_impl(const ConcreteType* b,
-                                       ConcreteType* result,
+    virtual void compute_conj_dot_impl(const concrete_type* b,
+                                       concrete_type* result,
                                        array<char>& tmp) const = 0;
 
     virtual void compute_norm2_impl(absolute_type* result) const = 0;
@@ -535,34 +540,37 @@ private:
 
     void compute_norm1_impl(MultiVector* result, array<char>& tmp) const final;
 
-    GKO_ENABLE_SELF(ConcreteType);
+    GKO_ENABLE_SELF(concrete_type);
 };
 
 
-template <typename ConcreteType>
-std::unique_ptr<ConcreteType>
-EnableMultiVector<ConcreteType>::create_with_config_of(
-    ptr_param<const ConcreteType> other)
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<ConcreteType<ValueType, ExtraArgs...>>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_with_config_of(
+    ptr_param<const concrete_type> other)
 {
     return static_cast<const EnableMultiVector*>(other.get())
         ->create_with_same_config_impl();
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<ConcreteType>
-EnableMultiVector<ConcreteType>::create_with_type_of(
-    ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec)
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<ConcreteType<ValueType, ExtraArgs...>>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_with_type_of(
+    ptr_param<const concrete_type> other, std::shared_ptr<const Executor> exec)
 {
     return static_cast<const EnableMultiVector*>(other.get())
         ->create_with_type_of_impl(std::move(exec), {}, {}, 0);
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<ConcreteType>
-EnableMultiVector<ConcreteType>::create_with_type_of(
-    ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec,
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<ConcreteType<ValueType, ExtraArgs...>>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_with_type_of(
+    ptr_param<const concrete_type> other, std::shared_ptr<const Executor> exec,
     const dim<2>& global_size, const dim<2>& local_size)
 {
     return static_cast<const EnableMultiVector*>(other.get())
@@ -570,10 +578,11 @@ EnableMultiVector<ConcreteType>::create_with_type_of(
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<ConcreteType>
-EnableMultiVector<ConcreteType>::create_with_type_of(
-    ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec,
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<ConcreteType<ValueType, ExtraArgs...>>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_with_type_of(
+    ptr_param<const concrete_type> other, std::shared_ptr<const Executor> exec,
     const dim<2>& global_size, const dim<2>& local_size, size_type stride)
 {
     return static_cast<const EnableMultiVector*>(other.get())
@@ -582,129 +591,159 @@ EnableMultiVector<ConcreteType>::create_with_type_of(
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::create_subview(
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<ConcreteType<ValueType, ExtraArgs...>>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_subview(
     local_span rows, local_span columns)
 {
     return this->create_subview_impl(rows, columns);
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<const ConcreteType>
-EnableMultiVector<ConcreteType>::create_subview(local_span rows,
-                                                local_span columns) const
-{
-    return this->create_subview_impl(rows, columns);
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::create_subview(
-    local_span rows, local_span columns, dim<2> global_size)
-{
-    return this->create_subview_impl(rows, columns, global_size);
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<const ConcreteType>
-EnableMultiVector<ConcreteType>::create_subview(local_span rows,
-                                                local_span columns,
-                                                dim<2> global_size) const
-{
-    return this->create_subview_impl(rows, columns, global_size);
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<const typename EnableMultiVector<ConcreteType>::real_type>
-EnableMultiVector<ConcreteType>::create_real_view() const
-{
-    return this->create_real_view_impl();
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<typename EnableMultiVector<ConcreteType>::real_type>
-EnableMultiVector<ConcreteType>::create_real_view()
-{
-    return this->create_real_view_impl();
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<typename EnableMultiVector<ConcreteType>::absolute_type>
-EnableMultiVector<ConcreteType>::compute_absolute() const
-{
-    return this->compute_absolute_impl();
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<typename EnableMultiVector<ConcreteType>::complex_type>
-EnableMultiVector<ConcreteType>::make_complex() const
-{
-    return this->make_complex_impl();
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<typename EnableMultiVector<ConcreteType>::real_type>
-EnableMultiVector<ConcreteType>::get_real() const
-{
-    return this->get_real_impl();
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<typename EnableMultiVector<ConcreteType>::real_type>
-EnableMultiVector<ConcreteType>::get_imag() const
-{
-    return this->get_imag_impl();
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::create_generic_with_same_config_impl() const
-{
-    return this->create_with_same_config_impl();
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::create_generic_with_type_of_impl(
-    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-    const dim<2>& local_size, size_type stride) const
-{
-    return this->create_with_type_of_impl(std::move(exec), global_size,
-                                          local_size, stride);
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::create_subview_generic_impl(local_span rows,
-                                                             local_span columns)
-{
-    return this->create_subview_impl(rows, columns);
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<const MultiVector>
-EnableMultiVector<ConcreteType>::create_subview_generic_impl(
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<const ConcreteType<ValueType, ExtraArgs...>>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_subview(
     local_span rows, local_span columns) const
 {
     return this->create_subview_impl(rows, columns);
 }
 
 
-template <typename ConcreteType>
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<ConcreteType<ValueType, ExtraArgs...>>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_subview(
+    local_span rows, local_span columns, dim<2> global_size)
+{
+    return this->create_subview_impl(rows, columns, global_size);
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<const ConcreteType<ValueType, ExtraArgs...>>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_subview(
+    local_span rows, local_span columns, dim<2> global_size) const
+{
+    return this->create_subview_impl(rows, columns, global_size);
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<const typename EnableMultiVector<ConcreteType, ValueType,
+                                                 ExtraArgs...>::real_type>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_real_view()
+    const
+{
+    return this->create_real_view_impl();
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<typename EnableMultiVector<ConcreteType, ValueType,
+                                           ExtraArgs...>::real_type>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::create_real_view()
+{
+    return this->create_real_view_impl();
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<typename EnableMultiVector<ConcreteType, ValueType,
+                                           ExtraArgs...>::absolute_type>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::compute_absolute()
+    const
+{
+    return this->compute_absolute_impl();
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<typename EnableMultiVector<ConcreteType, ValueType,
+                                           ExtraArgs...>::complex_type>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::make_complex() const
+{
+    return this->make_complex_impl();
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<typename EnableMultiVector<ConcreteType, ValueType,
+                                           ExtraArgs...>::real_type>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::get_real() const
+{
+    return this->get_real_impl();
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<typename EnableMultiVector<ConcreteType, ValueType,
+                                           ExtraArgs...>::real_type>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::get_imag() const
+{
+    return this->get_imag_impl();
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
 std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::create_subview_generic_impl(local_span rows,
+EnableMultiVector<ConcreteType, ValueType,
+                  ExtraArgs...>::create_generic_with_same_config_impl() const
+{
+    return this->create_with_same_config_impl();
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<MultiVector>
+EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::
+    create_generic_with_type_of_impl(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& global_size,
+                                     const dim<2>& local_size,
+                                     size_type stride) const
+{
+    return this->create_with_type_of_impl(std::move(exec), global_size,
+                                          local_size, stride);
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<MultiVector>
+EnableMultiVector<ConcreteType, ValueType,
+                  ExtraArgs...>::create_subview_generic_impl(local_span rows,
+                                                             local_span columns)
+{
+    return this->create_subview_impl(rows, columns);
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<const MultiVector> EnableMultiVector<
+    ConcreteType, ValueType,
+    ExtraArgs...>::create_subview_generic_impl(local_span rows,
+                                               local_span columns) const
+{
+    return this->create_subview_impl(rows, columns);
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<MultiVector>
+EnableMultiVector<ConcreteType, ValueType,
+                  ExtraArgs...>::create_subview_generic_impl(local_span rows,
                                                              local_span columns,
                                                              dim<2> global_size)
 {
@@ -712,192 +751,228 @@ EnableMultiVector<ConcreteType>::create_subview_generic_impl(local_span rows,
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<const MultiVector>
-EnableMultiVector<ConcreteType>::create_subview_generic_impl(
-    local_span rows, local_span columns, dim<2> global_size) const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<const MultiVector> EnableMultiVector<
+    ConcreteType, ValueType,
+    ExtraArgs...>::create_subview_generic_impl(local_span rows,
+                                               local_span columns,
+                                               dim<2> global_size) const
 {
     return this->create_subview_impl(rows, columns, global_size);
 }
 
 
-template <typename ConcreteType>
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
 std::unique_ptr<const MultiVector>
-EnableMultiVector<ConcreteType>::create_real_view_generic_impl() const
+EnableMultiVector<ConcreteType, ValueType,
+                  ExtraArgs...>::create_real_view_generic_impl() const
 {
     return this->create_real_view_impl();
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::create_real_view_generic_impl()
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<MultiVector> EnableMultiVector<
+    ConcreteType, ValueType, ExtraArgs...>::create_real_view_generic_impl()
 {
     return this->create_real_view_impl();
 }
 
 
-template <typename ConcreteType>
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
 std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::compute_absolute_generic_impl() const
+EnableMultiVector<ConcreteType, ValueType,
+                  ExtraArgs...>::compute_absolute_generic_impl() const
 {
     return this->compute_absolute_impl();
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::make_complex_generic_impl() const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<MultiVector> EnableMultiVector<
+    ConcreteType, ValueType, ExtraArgs...>::make_complex_generic_impl() const
 {
     return this->make_complex_impl();
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::get_real_generic_impl() const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<MultiVector> EnableMultiVector<
+    ConcreteType, ValueType, ExtraArgs...>::get_real_generic_impl() const
 {
     return this->get_real_impl();
 }
 
 
-template <typename ConcreteType>
-std::unique_ptr<MultiVector>
-EnableMultiVector<ConcreteType>::get_imag_generic_impl() const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+std::unique_ptr<MultiVector> EnableMultiVector<
+    ConcreteType, ValueType, ExtraArgs...>::get_imag_generic_impl() const
 {
     return this->get_imag_impl();
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::make_complex_impl(
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType,
+                       ExtraArgs...>::make_complex_impl(MultiVector* result)
+    const
+{
+    this->make_complex_impl(as<concrete_type>(result));
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::get_real_impl(
     MultiVector* result) const
 {
-    this->make_complex_impl(as<ConcreteType>(result));
+    this->get_real_impl(as<concrete_type>(result));
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::get_real_impl(MultiVector* result) const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::get_imag_impl(
+    MultiVector* result) const
 {
-    this->get_real_impl(as<ConcreteType>(result));
+    this->get_imag_impl(as<concrete_type>(result));
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::get_imag_impl(MultiVector* result) const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::add_scaled_impl(
+    any_const_dense_t alpha, const MultiVector* b)
 {
-    this->get_imag_impl(as<ConcreteType>(result));
+    this->add_scaled_impl(alpha, as<const concrete_type>(b));
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::add_scaled_impl(any_const_dense_t alpha,
-                                                      const MultiVector* b)
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::sub_scaled_impl(
+    any_const_dense_t alpha, const MultiVector* b)
 {
-    this->add_scaled_impl(alpha, as<const ConcreteType>(b));
+    this->sub_scaled_impl(alpha, as<const concrete_type>(b));
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::sub_scaled_impl(any_const_dense_t alpha,
-                                                      const MultiVector* b)
-{
-    this->sub_scaled_impl(alpha, as<const ConcreteType>(b));
-}
-
-
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_dot_impl(
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::compute_dot_impl(
     const MultiVector* b, MultiVector* result) const
 {
-    this->compute_dot_impl(as<const ConcreteType>(b), as<ConcreteType>(result));
+    this->compute_dot_impl(as<const concrete_type>(b),
+                           as<concrete_type>(result));
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_dot_impl(const MultiVector* b,
-                                                       MultiVector* result,
-                                                       array<char>& tmp) const
-{
-    this->compute_dot_impl(as<const ConcreteType>(b), as<ConcreteType>(result),
-                           tmp);
-}
-
-
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
-    const MultiVector* b, MultiVector* result) const
-{
-    this->compute_conj_dot_impl(as<const ConcreteType>(b),
-                                as<ConcreteType>(result));
-}
-
-
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::compute_dot_impl(
     const MultiVector* b, MultiVector* result, array<char>& tmp) const
 {
-    this->compute_conj_dot_impl(as<const ConcreteType>(b),
-                                as<ConcreteType>(result), tmp);
+    this->compute_dot_impl(as<const concrete_type>(b),
+                           as<concrete_type>(result), tmp);
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_norm2_impl(
-    MultiVector* result) const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::
+    compute_conj_dot_impl(const MultiVector* b, MultiVector* result) const
 {
-    this->compute_norm2_impl(as<ConcreteType>(result));
+    this->compute_conj_dot_impl(as<const concrete_type>(b),
+                                as<concrete_type>(result));
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_norm2_impl(MultiVector* result,
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::
+    compute_conj_dot_impl(const MultiVector* b, MultiVector* result,
+                          array<char>& tmp) const
+{
+    this->compute_conj_dot_impl(as<const concrete_type>(b),
+                                as<concrete_type>(result), tmp);
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType,
+                       ExtraArgs...>::compute_norm2_impl(MultiVector* result)
+    const
+{
+    this->compute_norm2_impl(as<concrete_type>(result));
+}
+
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType,
+                       ExtraArgs...>::compute_norm2_impl(MultiVector* result,
                                                          array<char>& tmp) const
 {
-    this->compute_norm2_impl(as<ConcreteType>(result), tmp);
+    this->compute_norm2_impl(as<concrete_type>(result), tmp);
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
-    MultiVector* result) const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::
+    compute_squared_norm2_impl(MultiVector* result) const
 {
-    this->compute_squared_norm2_impl(as<ConcreteType>(result));
+    this->compute_squared_norm2_impl(as<concrete_type>(result));
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
-    MultiVector* result, array<char>& tmp) const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::
+    compute_squared_norm2_impl(MultiVector* result, array<char>& tmp) const
 {
-    this->compute_squared_norm2_impl(as<ConcreteType>(result), tmp);
+    this->compute_squared_norm2_impl(as<concrete_type>(result), tmp);
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_norm1_impl(
-    MultiVector* result) const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType,
+                       ExtraArgs...>::compute_norm1_impl(MultiVector* result)
+    const
 {
-    this->compute_norm1_impl(as<ConcreteType>(result));
+    this->compute_norm1_impl(as<concrete_type>(result));
 }
 
 
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_norm1_impl(MultiVector* result,
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+void EnableMultiVector<ConcreteType, ValueType,
+                       ExtraArgs...>::compute_norm1_impl(MultiVector* result,
                                                          array<char>& tmp) const
 {
-    this->compute_norm1_impl(as<ConcreteType>(result), tmp);
+    this->compute_norm1_impl(as<concrete_type>(result), tmp);
 }
 
 
-template <typename ConcreteType>
-auto EnableMultiVector<ConcreteType>::as_precision_impl(precision p)
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+auto EnableMultiVector<ConcreteType, ValueType,
+                       ExtraArgs...>::as_precision_impl(precision p)
     -> gko::detail::temporary_conversion<MultiVector>
 {
     return std::visit(
         [this](auto v) -> gko::detail::temporary_conversion<MultiVector> {
-            using fst_value_type = typename ConcreteType::value_type;
+            using fst_value_type = typename concrete_type::value_type;
             using snd_value_type = std::decay_t<decltype(v)>;
             if constexpr (is_complex_s<fst_value_type>::value ==
                           is_complex_s<snd_value_type>::value) {
@@ -911,13 +986,15 @@ auto EnableMultiVector<ConcreteType>::as_precision_impl(precision p)
 }
 
 
-template <typename ConcreteType>
-auto EnableMultiVector<ConcreteType>::as_precision_impl(precision p) const
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+auto EnableMultiVector<ConcreteType, ValueType,
+                       ExtraArgs...>::as_precision_impl(precision p) const
     -> gko::detail::temporary_conversion<const MultiVector>
 {
     return std::visit(
         [this](auto v) -> gko::detail::temporary_conversion<const MultiVector> {
-            using fst_value_type = typename ConcreteType::value_type;
+            using fst_value_type = typename concrete_type::value_type;
             using snd_value_type = std::decay_t<decltype(v)>;
             if constexpr (is_complex_s<fst_value_type>::value ==
                           is_complex_s<snd_value_type>::value) {
@@ -931,8 +1008,10 @@ auto EnableMultiVector<ConcreteType>::as_precision_impl(precision p) const
 }
 
 
-template <typename ConcreteType>
-auto EnableMultiVector<ConcreteType>::get_local_device_view_generic_impl()
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+auto EnableMultiVector<ConcreteType, ValueType,
+                       ExtraArgs...>::get_local_device_view_generic_impl()
     -> std::variant<
 #if GINKGO_ENABLE_HALF
         MultiVector::device_view<half>,
@@ -948,12 +1027,14 @@ auto EnableMultiVector<ConcreteType>::get_local_device_view_generic_impl()
         MultiVector::device_view<double>,
         MultiVector::device_view<std::complex<double>>>
 {
-    return static_cast<ConcreteType*>(this)->get_local_device_view();
+    return static_cast<concrete_type*>(this)->get_local_device_view();
 }
 
 
-template <typename ConcreteType>
-auto EnableMultiVector<ConcreteType>::get_const_local_device_view_generic_impl()
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+auto EnableMultiVector<ConcreteType, ValueType,
+                       ExtraArgs...>::get_const_local_device_view_generic_impl()
     const -> std::variant<
 #if GINKGO_ENABLE_HALF
         MultiVector::device_view<const half>,
@@ -968,7 +1049,7 @@ auto EnableMultiVector<ConcreteType>::get_const_local_device_view_generic_impl()
         MultiVector::device_view<const double>,
         MultiVector::device_view<const std::complex<double>>>
 {
-    return static_cast<ConcreteType const*>(this)
+    return static_cast<concrete_type const*>(this)
         ->get_const_local_device_view();
 }
 
