@@ -171,9 +171,9 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(
-                coo::make_spmv(this, dense_b->get_const_device_view(),
-                               dense_x->get_device_view()));
+            this->get_executor()->run(coo::make_spmv(
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -185,11 +185,11 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(
-                coo::make_advanced_spmv(dense_alpha->get_const_device_view(),
-                                        this, dense_b->get_const_device_view(),
-                                        dense_beta->get_const_device_view(),
-                                        dense_x->get_device_view()));
+            this->get_executor()->run(coo::make_advanced_spmv(
+                dense_alpha->get_const_device_view(),
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_beta->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         alpha, b, beta, x);
 }
@@ -200,9 +200,9 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(
-                coo::make_spmv2(this, dense_b->get_const_device_view(),
-                                dense_x->get_device_view()));
+            this->get_executor()->run(coo::make_spmv2(
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -215,8 +215,9 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp* alpha, const LinOp* b,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_x) {
             this->get_executor()->run(coo::make_advanced_spmv2(
-                dense_alpha->get_const_device_view(), this,
-                dense_b->get_const_device_view(), dense_x->get_device_view()));
+                dense_alpha->get_const_device_view(),
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         alpha, b, x);
 }
@@ -323,7 +324,8 @@ void Coo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(coo::make_fill_in_dense(this, tmp_result->get_device_view()));
+    exec->run(coo::make_fill_in_dense(this->get_const_device_view(),
+                                      tmp_result->get_device_view()));
 }
 
 
@@ -441,7 +443,8 @@ Coo<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(coo::make_fill_array(diag->get_values(), diag->get_size()[0],
                                    zero<ValueType>()));
-    exec->run(coo::make_extract_diagonal(this, diag.get()));
+    exec->run(
+        coo::make_extract_diagonal(this->get_const_device_view(), diag.get()));
     return diag;
 }
 
@@ -472,6 +475,26 @@ Coo<ValueType, IndexType>::compute_absolute() const
                                                 abs_coo->get_values()));
 
     return abs_coo;
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Coo<ValueType, IndexType>::get_device_view() -> device_view
+{
+    return device_view{this->get_size(), this->get_num_stored_elements(),
+                       this->get_values(), this->get_row_idxs(),
+                       this->get_col_idxs()};
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Coo<ValueType, IndexType>::get_const_device_view() const
+    -> const_device_view
+{
+    return const_device_view{this->get_size(), this->get_num_stored_elements(),
+                             this->get_const_values(),
+                             this->get_const_row_idxs(),
+                             this->get_const_col_idxs()};
 }
 
 

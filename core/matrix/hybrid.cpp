@@ -278,8 +278,9 @@ void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     exec->run(
         hybrid::make_ell_fill_in_dense(this->get_ell()->get_const_device_view(),
                                        result_local->get_device_view()));
-    exec->run(hybrid::make_coo_fill_in_dense(this->get_coo(),
-                                             result_local->get_device_view()));
+    exec->run(
+        hybrid::make_coo_fill_in_dense(this->get_coo()->get_const_device_view(),
+                                       result_local->get_device_view()));
 }
 
 
@@ -431,7 +432,8 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
                                       zero<ValueType>()));
     exec->run(hybrid::make_ell_extract_diagonal(
         this->get_ell()->get_const_device_view(), diag.get()));
-    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), diag.get()));
+    exec->run(hybrid::make_coo_extract_diagonal(
+        this->get_coo()->get_const_device_view(), diag.get()));
     return diag;
 }
 

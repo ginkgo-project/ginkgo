@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 
 namespace gko {
@@ -88,6 +89,9 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Coo>;
+    using device_view = matrix::view::coo<value_type, index_type>;
+    using const_device_view =
+        matrix::view::coo<const value_type, const index_type>;
 
     friend class Coo<previous_precision<ValueType>, IndexType>;
 
@@ -212,6 +216,20 @@ public:
     {
         return values_.get_size();
     }
+
+    /**
+     * Returns a non-owning device view of this matrix.
+     *
+     * @return a device view of this matrix.
+     */
+    device_view get_device_view();
+
+    /**
+     * Returns a non-owning const device view of this matrix.
+     *
+     * @return a const device view of this matrix.
+     */
+    const_device_view get_const_device_view() const;
 
     /**
      * Applies Coo matrix axpy to a vector (or a sequence of vectors).

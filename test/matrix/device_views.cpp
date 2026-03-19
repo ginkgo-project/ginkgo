@@ -54,6 +54,55 @@ TYPED_TEST(DenseView, WorksOnDevice)
 
 
 template <typename ValueIndexType>
+class CooView : public CommonTestFixture {
+public:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+};
+
+TYPED_TEST_SUITE(CooView, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
+
+
+template <typename ValueType, typename IndexType>
+void assert_coo_view(std::shared_ptr<const gko::EXEC_TYPE> exec)
+{
+    gko::array<bool> correct{exec, {false}};
+    gko::array<ValueType> values{exec, 3};
+    gko::array<IndexType> row_idxs{exec, 3};
+    gko::array<IndexType> col_idxs{exec, 3};
+    values.fill(gko::one<ValueType>());
+    row_idxs.fill(IndexType{0});
+    col_idxs.fill(IndexType{1});
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto values, auto row_idxs, auto col_idxs,
+                      auto correct) {
+            using vt = std::decay_t<decltype(values[0])>;
+            using it = std::decay_t<decltype(row_idxs[0])>;
+            gko::matrix::view::coo<vt, it> view{gko::dim<2>{3, 3}, 3, values,
+                                                row_idxs, col_idxs};
+            if (view.size == gko::dim<2>(3, 3) &&
+                view.num_stored_elements == 3 && view.values == values &&
+                view.row_idxs == row_idxs && view.col_idxs == col_idxs) {
+                *correct = true;
+            }
+        },
+        1, values, row_idxs, col_idxs, correct);
+    ASSERT_TRUE(get_element(correct, 0));
+}
+
+TYPED_TEST(CooView, WorksOnDevice)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    assert_coo_view<value_type, index_type>(this->exec);
+}
+
+
+template <typename ValueIndexType>
 class EllView : public CommonTestFixture {
 public:
     using value_type =

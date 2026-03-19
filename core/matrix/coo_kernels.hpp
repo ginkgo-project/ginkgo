@@ -10,6 +10,7 @@
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/base/kernel_declaration.hpp"
@@ -19,42 +20,44 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType)  \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Coo<ValueType, IndexType>* a,  \
-              matrix::view::dense<const ValueType> b,      \
+#define GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType)            \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,           \
+              matrix::view::coo<const ValueType, const IndexType> a, \
+              matrix::view::dense<const ValueType> b,                \
               matrix::view::dense<ValueType> c)
 
-#define GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType)  \
-    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec, \
-                       matrix::view::dense<const ValueType> alpha,  \
-                       const matrix::Coo<ValueType, IndexType>* a,  \
-                       matrix::view::dense<const ValueType> b,      \
-                       matrix::view::dense<const ValueType> beta,   \
+#define GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType)            \
+    void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,           \
+                       matrix::view::dense<const ValueType> alpha,            \
+                       matrix::view::coo<const ValueType, const IndexType> a, \
+                       matrix::view::dense<const ValueType> b,                \
+                       matrix::view::dense<const ValueType> beta,             \
                        matrix::view::dense<ValueType> c)
 
-#define GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType)  \
-    void spmv2(std::shared_ptr<const DefaultExecutor> exec, \
-               const matrix::Coo<ValueType, IndexType>* a,  \
-               matrix::view::dense<const ValueType> b,      \
+#define GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType)            \
+    void spmv2(std::shared_ptr<const DefaultExecutor> exec,           \
+               matrix::view::coo<const ValueType, const IndexType> a, \
+               matrix::view::dense<const ValueType> b,                \
                matrix::view::dense<ValueType> c)
 
-#define GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType)  \
-    void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec, \
-                        matrix::view::dense<const ValueType> alpha,  \
-                        const matrix::Coo<ValueType, IndexType>* a,  \
-                        matrix::view::dense<const ValueType> b,      \
+#define GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType)            \
+    void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,           \
+                        matrix::view::dense<const ValueType> alpha,            \
+                        matrix::view::coo<const ValueType, const IndexType> a, \
+                        matrix::view::dense<const ValueType> b,                \
                         matrix::view::dense<ValueType> c)
 
-#define GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType)      \
-    void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,     \
-                       const matrix::Coo<ValueType, IndexType>* source, \
-                       matrix::view::dense<ValueType> result)
+#define GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType)  \
+    void fill_in_dense(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        matrix::view::coo<const ValueType, const IndexType> source, \
+        matrix::view::dense<ValueType> result)
 
-#define GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)    \
-    void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,   \
-                          const matrix::Coo<ValueType, IndexType>* orig, \
-                          matrix::Diagonal<ValueType>* diag)
+#define GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType) \
+    void extract_diagonal(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                  \
+        matrix::view::coo<const ValueType, const IndexType> orig,     \
+        matrix::Diagonal<ValueType>* diag)
 
 #define GKO_DECLARE_COO_CONJ_ARRAY_KERNEL(ValueType)             \
     void conj_array(std::shared_ptr<const DefaultExecutor> exec, \

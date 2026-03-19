@@ -35,7 +35,7 @@ namespace coo {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Coo<ValueType, IndexType>* a,
+          matrix::view::coo<const ValueType, const IndexType> a,
           matrix::view::dense<const ValueType> b,
           matrix::view::dense<ValueType> c)
 {
@@ -49,7 +49,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    matrix::view::dense<const ValueType> alpha,
-                   const matrix::Coo<ValueType, IndexType>* a,
+                   matrix::view::coo<const ValueType, const IndexType> a,
                    matrix::view::dense<const ValueType> b,
                    matrix::view::dense<const ValueType> beta,
                    matrix::view::dense<ValueType> c)
@@ -64,18 +64,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <int block_size, typename ValueType, typename IndexType>
 void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Coo<ValueType, IndexType>* a,
+                   matrix::view::coo<const ValueType, const IndexType> a,
                    matrix::view::dense<const ValueType> b,
                    matrix::view::dense<ValueType> c, ValueType scale)
 {
     GKO_ASSERT(b.size[1] > block_size);
-    const auto coo_val = a->get_const_values();
-    const auto coo_col = a->get_const_col_idxs();
-    const auto coo_row = a->get_const_row_idxs();
+    const auto coo_val = a.values;
+    const auto coo_col = a.col_idxs;
+    const auto coo_row = a.row_idxs;
     const auto num_rhs = b.size[1];
     const auto rounded_rhs = num_rhs / block_size * block_size;
-    const auto sentinel_row = a->get_size()[0] + 1;
-    const auto nnz = a->get_num_stored_elements();
+    const auto sentinel_row = a.size[0] + 1;
+    const auto nnz = a.num_stored_elements;
 
 #pragma omp parallel
     {
@@ -194,16 +194,16 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
 
 template <int num_rhs, typename ValueType, typename IndexType>
 void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
-                     const matrix::Coo<ValueType, IndexType>* a,
+                     matrix::view::coo<const ValueType, const IndexType> a,
                      matrix::view::dense<const ValueType> b,
                      matrix::view::dense<ValueType> c, ValueType scale)
 {
     GKO_ASSERT(b.size[1] == num_rhs);
-    const auto coo_val = a->get_const_values();
-    const auto coo_col = a->get_const_col_idxs();
-    const auto coo_row = a->get_const_row_idxs();
-    const auto sentinel_row = a->get_size()[0] + 1;
-    const auto nnz = a->get_num_stored_elements();
+    const auto coo_val = a.values;
+    const auto coo_col = a.col_idxs;
+    const auto coo_row = a.row_idxs;
+    const auto sentinel_row = a.size[0] + 1;
+    const auto nnz = a.num_stored_elements;
 
 #pragma omp parallel
     {
@@ -267,7 +267,7 @@ void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generic_spmv2(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Coo<ValueType, IndexType>* a,
+                   matrix::view::coo<const ValueType, const IndexType> a,
                    matrix::view::dense<const ValueType> b,
                    matrix::view::dense<ValueType> c, ValueType scale)
 {
@@ -297,7 +297,7 @@ void generic_spmv2(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const OmpExecutor> exec,
-           const matrix::Coo<ValueType, IndexType>* a,
+           matrix::view::coo<const ValueType, const IndexType> a,
            matrix::view::dense<const ValueType> b,
            matrix::view::dense<ValueType> c)
 {
@@ -310,7 +310,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
                     matrix::view::dense<const ValueType> alpha,
-                    const matrix::Coo<ValueType, IndexType>* a,
+                    matrix::view::coo<const ValueType, const IndexType> a,
                     matrix::view::dense<const ValueType> b,
                     matrix::view::dense<ValueType> c)
 {

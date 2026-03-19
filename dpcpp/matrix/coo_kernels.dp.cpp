@@ -254,7 +254,7 @@ GKO_ENABLE_DEFAULT_HOST(abstract_spmm, abstract_spmm);
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
-          const matrix::Coo<ValueType, IndexType>* a,
+          matrix::view::coo<const ValueType, const IndexType> a,
           matrix::view::dense<const ValueType> b,
           matrix::view::dense<ValueType> c)
 {
@@ -268,7 +268,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    matrix::view::dense<const ValueType> alpha,
-                   const matrix::Coo<ValueType, IndexType>* a,
+                   matrix::view::coo<const ValueType, const IndexType> a,
                    matrix::view::dense<const ValueType> b,
                    matrix::view::dense<const ValueType> beta,
                    matrix::view::dense<ValueType> c)
@@ -283,11 +283,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const DpcppExecutor> exec,
-           const matrix::Coo<ValueType, IndexType>* a,
+           matrix::view::coo<const ValueType, const IndexType> a,
            matrix::view::dense<const ValueType> b,
            matrix::view::dense<ValueType> c)
 {
-    const auto nnz = a->get_num_stored_elements();
+    const auto nnz = a.num_stored_elements;
     const auto b_ncols = b.size[1];
     const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
@@ -303,9 +303,8 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             abstract_spmv(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_lines, as_device_type(a->get_const_values()),
-                          a->get_const_col_idxs(), a->get_const_row_idxs(),
-                          as_device_type(b.values), b.stride,
+                          num_lines, as_device_type(a.values), a.col_idxs,
+                          a.row_idxs, as_device_type(b.values), b.stride,
                           as_device_type(c.values), c.stride);
         } else {
             int num_elems =
@@ -313,10 +312,9 @@ void spmv2(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block),
                                 ceildiv(b_ncols, config::warp_size));
             abstract_spmm(coo_grid, coo_block, 0, exec->get_queue(), nnz,
-                          num_elems, as_device_type(a->get_const_values()),
-                          a->get_const_col_idxs(), a->get_const_row_idxs(),
-                          b_ncols, as_device_type(b.values), b.stride,
-                          as_device_type(c.values), c.stride);
+                          num_elems, as_device_type(a.values), a.col_idxs,
+                          a.row_idxs, b_ncols, as_device_type(b.values),
+                          b.stride, as_device_type(c.values), c.stride);
         }
     }
 }
@@ -327,11 +325,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
                     matrix::view::dense<const ValueType> alpha,
-                    const matrix::Coo<ValueType, IndexType>* a,
+                    matrix::view::coo<const ValueType, const IndexType> a,
                     matrix::view::dense<const ValueType> b,
                     matrix::view::dense<ValueType> c)
 {
-    const auto nnz = a->get_num_stored_elements();
+    const auto nnz = a.num_stored_elements;
     const auto nwarps = host_kernel::calculate_nwarps(exec, nnz);
     const dim3 coo_block(config::warp_size, warps_in_block, 1);
     const auto b_ncols = b.size[1];
@@ -348,8 +346,7 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             abstract_spmv(coo_grid, coo_block, 0, exec->get_queue(), nnz,
                           num_lines, as_device_type(alpha.values),
-                          as_device_type(a->get_const_values()),
-                          a->get_const_col_idxs(), a->get_const_row_idxs(),
+                          as_device_type(a.values), a.col_idxs, a.row_idxs,
                           as_device_type(b.values), b.stride,
                           as_device_type(c.values), c.stride);
         } else {
@@ -359,8 +356,7 @@ void advanced_spmv2(std::shared_ptr<const DpcppExecutor> exec,
                                 ceildiv(b_ncols, config::warp_size));
             abstract_spmm(coo_grid, coo_block, 0, exec->get_queue(), nnz,
                           num_elems, as_device_type(alpha.values),
-                          as_device_type(a->get_const_values()),
-                          a->get_const_col_idxs(), a->get_const_row_idxs(),
+                          as_device_type(a.values), a.col_idxs, a.row_idxs,
                           b_ncols, as_device_type(b.values), b.stride,
                           as_device_type(c.values), c.stride);
         }
