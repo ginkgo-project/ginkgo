@@ -159,6 +159,63 @@ std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
 
 
 template <typename ValueType>
+template <typename OtherValueType>
+gko::detail::temporary_conversion<Vector<OtherValueType>>
+Vector<ValueType>::as_precision()
+{
+    // See the implementation of Dense::as_precision for details
+    if constexpr (is_complex<ValueType>() == is_complex<OtherValueType>()) {
+        return gko::detail::temporary_conversion<
+            Vector<OtherValueType>>::create(this);
+    } else if constexpr (is_complex<ValueType>() &&
+                         std::is_same_v<to_complex<OtherValueType>,
+                                        ValueType>) {
+        return gko::detail::temporary_conversion<
+            Vector<OtherValueType>>::create(this->create_real_view().get());
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+#define GKO_DECLARE_VECTOR_AS_PRECISION(ValueType, OtherValueType) \
+    auto Vector<ValueType>::as_precision()                         \
+        ->gko::detail::temporary_conversion<Vector<OtherValueType>>
+#define GKO_DECLARE_VECTOR_AS_PRECISION_same(ValueType) \
+    GKO_DECLARE_VECTOR_AS_PRECISION(ValueType, ValueType)
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_VECTOR_AS_PRECISION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_VECTOR_AS_PRECISION_same);
+
+
+template <typename ValueType>
+template <typename OtherValueType>
+gko::detail::temporary_conversion<const Vector<OtherValueType>>
+Vector<ValueType>::as_precision() const
+{
+    // See the implementation of Dense::as_precision for details
+    if constexpr (is_complex<ValueType>() == is_complex<OtherValueType>()) {
+        return gko::detail::temporary_conversion<
+            const Vector<OtherValueType>>::create(this);
+    } else if constexpr (is_complex<ValueType>() &&
+                         std::is_same_v<to_complex<OtherValueType>,
+                                        ValueType>) {
+        return gko::detail::temporary_conversion<const Vector<OtherValueType>>::
+            create(this->create_real_view().get());
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+#define GKO_DECLARE_VECTOR_CONST_AS_PRECISION(ValueType, OtherValueType) \
+    auto Vector<ValueType>::as_precision()                               \
+        const->gko::detail::temporary_conversion<const Vector<OtherValueType>>
+#define GKO_DECLARE_VECTOR_CONST_AS_PRECISION_same(ValueType) \
+    GKO_DECLARE_VECTOR_CONST_AS_PRECISION(ValueType, ValueType)
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(
+    GKO_DECLARE_VECTOR_CONST_AS_PRECISION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_VECTOR_CONST_AS_PRECISION_same);
+
+
+template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_subview_impl(
     local_span rows, local_span columns)
 {
