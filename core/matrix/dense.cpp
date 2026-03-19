@@ -1632,6 +1632,42 @@ auto Dense<ValueType>::get_const_local_device_view() const
 
 
 template <typename ValueType>
+template <typename OtherValueType>
+gko::detail::temporary_conversion<Dense<OtherValueType>>
+Dense<ValueType>::as_precision()
+{
+    return gko::detail::temporary_conversion<Dense<OtherValueType>>::create(
+        this);
+}
+
+#define GKO_DECLARE_DENSE_AS_PRECISION(ValueType, OtherValueType) \
+    auto Dense<ValueType>::as_precision()                         \
+        ->gko::detail::temporary_conversion<Dense<OtherValueType>>
+#define GKO_DECLARE_DENSE_AS_PRECISION_same(ValueType) \
+    GKO_DECLARE_DENSE_AS_PRECISION(ValueType, ValueType)
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_DENSE_AS_PRECISION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_AS_PRECISION_same);
+
+
+template <typename ValueType>
+template <typename OtherValueType>
+gko::detail::temporary_conversion<const Dense<OtherValueType>>
+Dense<ValueType>::as_precision() const
+{
+    return gko::detail::temporary_conversion<
+        const Dense<OtherValueType>>::create(this);
+}
+
+#define GKO_DECLARE_DENSE_CONST_AS_PRECISION(ValueType, OtherValueType) \
+    auto Dense<ValueType>::as_precision()                               \
+        const->gko::detail::temporary_conversion<const Dense<OtherValueType>>
+#define GKO_DECLARE_DENSE_CONST_AS_PRECISION_same(ValueType) \
+    GKO_DECLARE_DENSE_CONST_AS_PRECISION(ValueType, ValueType)
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_DENSE_CONST_AS_PRECISION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONST_AS_PRECISION_same);
+
+
+template <typename ValueType>
 auto Dense<ValueType>::get_stride_impl() const -> size_type
 {
     return get_stride();
