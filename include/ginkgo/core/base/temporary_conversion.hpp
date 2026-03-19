@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,6 +100,9 @@ struct dynamic_convert_back_deleter {
      */
     void operator()(pointer ptr) const
     {
+        if (!ptr) {
+            return;
+        }
         as<DynamicType>(ptr)->convert_to(original_);
         delete ptr;
     }
@@ -131,6 +134,11 @@ struct conversion_target_helper {
               typename = std::enable_if_t<std::is_base_of<
                   ConvertibleTo<TargetType>, SourceType>::value>>
     static std::unique_ptr<TargetType> create_empty(const SourceType* source)
+    {
+        return TargetType::create(source->get_executor());
+    }
+
+    static std::unique_ptr<TargetType> create_empty(const TargetType* source)
     {
         return TargetType::create(source->get_executor());
     }
@@ -223,6 +231,10 @@ struct conversion_helper<> {
  */
 template <typename T>
 class temporary_conversion {
+    // std::function deleter allows to decide the (type of) deleter at
+    // runtime
+    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
+
 public:
     using value_type = T;
     using pointer = T*;
@@ -247,6 +259,40 @@ public:
         }
     }
 
+    template <typename OrigT>
+    static auto create(OrigT* orig_ptr) -> temporary_conversion
+    {
+        if constexpr (std::is_same_v<T, OrigT>) {
+            return handle_type{orig_ptr, null_deleter<T>{}};
+        } else {
+            // if the cast is successful, obj is of dynamic type candidate_type
+            // so we can convert from this type to TargetType
+            auto converted =
+                conversion_target_helper<std::decay_t<T>>::create_empty(
+                    orig_ptr);
+            orig_ptr->convert_to(converted);
+            return {handle_type(converted.release(),
+                                convert_back_deleter<T, OrigT>{orig_ptr})};
+        }
+    }
+
+    /**
+     * Create a temporary conversion for a base type T from an object of a
+     * derived type.
+     */
+    template <typename Derived,
+              typename = std::enable_if_t<std::is_base_of_v<T, Derived>>>
+    static auto create(temporary_conversion<Derived>&& derived_ptr)
+        -> temporary_conversion
+    {
+        auto handle = std::move(derived_ptr).empty_out();
+        return {handle_type{handle.release(),
+                            [deleter = handle.get_deleter()](T* ptr) {
+                                deleter(dynamic_cast<Derived*>(ptr));
+                            }}};
+    }
+
+
     /**
      * Returns the object held by temporary_conversion.
      *
@@ -266,15 +312,17 @@ public:
      */
     explicit operator bool() { return static_cast<bool>(handle_); }
 
-private:
-    // std::function deleter allows to decide the (type of) deleter at
-    // runtime
-    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
+    handle_type empty_out() && { return std::move(handle_); }
 
+private:
     temporary_conversion(handle_type handle) : handle_{std::move(handle)} {}
 
     handle_type handle_;
 };
+
+
+template <typename T>
+using temporary_conversion2 = temporary_conversion<T>;
 
 
 }  // namespace detail
