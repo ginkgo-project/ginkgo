@@ -235,6 +235,20 @@ std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
 }
 
 
+auto MultiVector::as_precision(precision p)
+    -> detail::temporary_conversion2<MultiVector>
+{
+    return this->as_precision_impl(p);
+}
+
+
+auto MultiVector::as_precision(precision p) const
+    -> detail::temporary_conversion2<const MultiVector>
+{
+    return this->as_precision_impl(p);
+}
+
+
 size_type MultiVector::get_stride() const noexcept { return get_stride_impl(); }
 
 

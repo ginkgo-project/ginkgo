@@ -6,10 +6,9 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/temporary_conversion.hpp>
+#include <ginkgo/core/base/temporary_ptr.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
-
-
-#include "ginkgo/core/base/temporary_ptr.hpp"
 
 
 namespace gko {
@@ -162,10 +161,11 @@ public:
     [[nodiscard]] device_view<const ValueType> get_const_local_device_view()
         const;
 
-    [[nodiscard]] TemporaryPtr<MultiVector> as_precision(precision p);
+    [[nodiscard]] auto as_precision(precision p)
+        -> gko::detail::temporary_conversion<MultiVector>;
 
-    [[nodiscard]] TemporaryPtr<const MultiVector> as_precision(
-        precision p) const;
+    [[nodiscard]] auto as_precision(precision p) const
+        -> gko::detail::temporary_conversion<const MultiVector>;
 
     [[nodiscard]] size_type get_stride() const noexcept;
 
@@ -287,11 +287,11 @@ protected:
 
     [[nodiscard]] virtual auto get_stride_impl() const -> size_type = 0;
 
-    [[nodiscard]] virtual TemporaryPtr<MultiVector> as_precision_impl(
-        precision p) = 0;
+    [[nodiscard]] virtual auto as_precision_impl(precision p)
+        -> gko::detail::temporary_conversion<MultiVector> = 0;
 
-    [[nodiscard]] virtual TemporaryPtr<const MultiVector> as_precision_impl(
-        precision p) const = 0;
+    [[nodiscard]] virtual auto as_precision_impl(precision p) const
+        -> gko::detail::temporary_conversion<const MultiVector> = 0;
 };
 
 
@@ -424,6 +424,12 @@ protected:
     virtual void compute_norm1_impl(absolute_type* result,
                                     array<char>& tmp) const = 0;
 
+    [[nodiscard]] auto as_precision_impl(precision p)
+        -> gko::detail::temporary_conversion<MultiVector> override;
+
+    [[nodiscard]] auto as_precision_impl(precision p) const
+        -> gko::detail::temporary_conversion<const MultiVector> override;
+
     [[nodiscard]] auto get_local_device_view_generic_impl() -> std::variant<
 #if GINKGO_ENABLE_HALF
         MultiVector::device_view<half>,
@@ -527,6 +533,8 @@ private:
     void compute_norm1_impl(MultiVector* result) const final;
 
     void compute_norm1_impl(MultiVector* result, array<char>& tmp) const final;
+
+    GKO_ENABLE_SELF(ConcreteType);
 };
 
 
@@ -880,6 +888,47 @@ void EnableMultiVector<ConcreteType>::compute_norm1_impl(MultiVector* result,
 {
     this->compute_norm1_impl(as<ConcreteType>(result), tmp);
 }
+
+
+template <typename ConcreteType>
+auto EnableMultiVector<ConcreteType>::as_precision_impl(precision p)
+    -> gko::detail::temporary_conversion<MultiVector>
+{
+    return std::visit(
+        [this](auto v) -> gko::detail::temporary_conversion<MultiVector> {
+            using fst_value_type = typename ConcreteType::value_type;
+            using snd_value_type = std::decay_t<decltype(v)>;
+            if constexpr (is_complex_s<fst_value_type>::value ==
+                          is_complex_s<snd_value_type>::value) {
+                return gko::detail::temporary_conversion<MultiVector>::create(
+                    self()->template as_precision<snd_value_type>());
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        },
+        precision_to_variant(p));
+}
+
+
+template <typename ConcreteType>
+auto EnableMultiVector<ConcreteType>::as_precision_impl(precision p) const
+    -> gko::detail::temporary_conversion<const MultiVector>
+{
+    return std::visit(
+        [this](auto v) -> gko::detail::temporary_conversion<const MultiVector> {
+            using fst_value_type = typename ConcreteType::value_type;
+            using snd_value_type = std::decay_t<decltype(v)>;
+            if constexpr (is_complex_s<fst_value_type>::value ==
+                          is_complex_s<snd_value_type>::value) {
+                return gko::detail::temporary_conversion<const MultiVector>::
+                    create(self()->template as_precision<snd_value_type>());
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        },
+        precision_to_variant(p));
+}
+
 
 template <typename ConcreteType>
 auto EnableMultiVector<ConcreteType>::get_local_device_view_generic_impl()
