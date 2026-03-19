@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -103,6 +103,11 @@ struct conversion_target_helper {
     {
         return TargetType::create(source->get_executor());
     }
+
+    static std::unique_ptr<TargetType> create_empty(const TargetType* source)
+    {
+        return TargetType::create(source->get_executor());
+    }
 };
 
 
@@ -192,6 +197,13 @@ struct conversion_helper<> {
  */
 template <typename T>
 class temporary_conversion {
+    // std::function deleter allows to decide the (type of) deleter at
+    // runtime
+    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
+
+    template <typename OtherT>
+    friend class temporary_conversion;
+
 public:
     using value_type = T;
     using pointer = T*;
@@ -216,6 +228,63 @@ public:
         }
     }
 
+    template <typename OrigT>
+    static auto create(OrigT* orig_ptr) -> temporary_conversion
+    {
+        if constexpr (std::is_same_v<T, OrigT>) {
+            return handle_type{orig_ptr, null_deleter<T>{}};
+        }
+        if (auto p = dynamic_cast<T*>(orig_ptr)) {
+            return {handle_type{p, null_deleter<T>{}}};
+        }
+        using DecayT = std::decay_t<T>;
+        auto converted =
+            conversion_target_helper<DecayT>::create_empty(orig_ptr);
+        as<ConvertibleTo<DecayT>>(orig_ptr)->convert_to(converted);
+        return {handle_type(converted.release(),
+                            convert_back_deleter<T, OrigT>{orig_ptr})};
+    }
+
+    template <typename OrigT>
+    static temporary_conversion create(std::unique_ptr<OrigT> orig)
+    {
+        if constexpr (std::is_same_v<T, OrigT>) {
+            std::function<void(OrigT*)> deleter = orig.get_deleter();
+            auto orig_ptr = orig.release();
+            return handle_type{orig_ptr, deleter};
+        }
+        if (auto p = dynamic_cast<T*>(orig.get())) {
+            return {handle_type{p, [orig = std::move(orig)](T*) {}}};
+        }
+        using DecayT = std::decay_t<T>;
+        auto orig_ptr = orig.get();
+        auto converted =
+            conversion_target_helper<DecayT>::create_empty(orig_ptr);
+        as<ConvertibleTo<DecayT>>(orig_ptr)->convert_to(converted);
+        return {
+            handle_type(converted.release(), [orig = std::move(orig)](T* ptr) {
+                auto deleter = convert_back_deleter<T, OrigT>{orig.get()};
+                deleter(ptr);
+            })};
+    }
+
+    /**
+     * Create a temporary conversion for a base type T from an object of a
+     * derived type.
+     */
+    template <typename Derived,
+              typename = std::enable_if_t<std::is_base_of_v<T, Derived>>>
+    static auto create(temporary_conversion<Derived>&& derived_ptr)
+        -> temporary_conversion
+    {
+        auto handle = std::move(derived_ptr).empty_out();
+        return {handle_type{handle.release(),
+                            [deleter = handle.get_deleter()](T* ptr) {
+                                deleter(dynamic_cast<Derived*>(ptr));
+                            }}};
+    }
+
+
     /**
      * Returns the object held by temporary_conversion.
      *
@@ -233,13 +302,11 @@ public:
     /**
      * Returns if the conversion was successful.
      */
-    explicit operator bool() { return static_cast<bool>(handle_); }
+    explicit operator bool() const { return static_cast<bool>(handle_); }
+
+    handle_type empty_out() && { return std::move(handle_); }
 
 private:
-    // std::function deleter allows to decide the (type of) deleter at
-    // runtime
-    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
-
     temporary_conversion(handle_type handle) : handle_{std::move(handle)} {}
 
     handle_type handle_;
