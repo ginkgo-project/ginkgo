@@ -56,7 +56,8 @@ struct dense {
  * This type is used to provide a simple and stable ABI for passing data between
  * libraries.
  *
- * @tparam ValueType  the value type used to store matrix entries.
+ * @tparam ValueType  the value type used to store matrix values.
+ * @tparam IndexType  the index type used to store matrix columns.
  */
 template <typename ValueType, typename IndexType>
 struct ell {
@@ -85,26 +86,25 @@ struct ell {
             size, num_stored_elements_per_row, stride, values, col_idxs};
     }
 
+    /** accessing the value of the idx-th element within the given row */
+    constexpr ValueType& val_at(size_type row, size_type idx) const
+    {
+        return values[this->linearize_index(row, idx)];
+    }
+
+    /** accessing the column index of the idx-th element within the given row */
+    constexpr IndexType& col_at(size_type row, size_type idx) const
+    {
+        return col_idxs[this->linearize_index(row, idx)];
+    }
+
+private:
     /** Return the index of Ell storage */
     constexpr size_type linearize_index(size_type row,
                                         size_type idx) const noexcept
     {
         assert(idx < num_stored_elements_per_row && row < size[0]);
         return row + stride * idx;
-    }
-
-    /** accessing the value of the given row and idx-th stored element of the
-     * row */
-    constexpr ValueType& val_at(size_type row, size_type idx) const
-    {
-        return values[this->linearize_index(row, idx)];
-    }
-
-    /** accessing the column index of the given row and idx-th stored element of
-     * the row */
-    constexpr IndexType& col_at(size_type row, size_type idx) const
-    {
-        return col_idxs[this->linearize_index(row, idx)];
     }
 };
 
