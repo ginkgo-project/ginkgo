@@ -296,7 +296,7 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
 
             abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_lines, as_device_type(a.values), a.col_idxs,
-                as_device_type(a.row_idxs), as_device_type(b.values), b.stride,
+                a.row_idxs, as_device_type(b.values), b.stride,
                 as_device_type(c.values), c.stride);
         } else {
             int num_elems =
@@ -306,7 +306,7 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
 
             abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_elems, as_device_type(a.values), a.col_idxs,
-                as_device_type(a.row_idxs), b_ncols, as_device_type(b.values),
+               a.row_idxs, b_ncols, as_device_type(b.values),
                 b.stride, as_device_type(c.values), c.stride);
         }
     }
@@ -355,7 +355,7 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
             abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_lines, as_device_type(alpha.values),
                 as_device_type(a.values), a.col_idxs,
-                as_device_type(a.row_idxs), as_device_type(b.values), b.stride,
+                a.row_idxs, as_device_type(b.values), b.stride,
                 as_device_type(c.values), c.stride);
         } else {
             int num_elems =
@@ -366,7 +366,7 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
             abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
                 nnz, num_elems, as_device_type(alpha.values),
                 as_device_type(a.values), a.col_idxs,
-                as_device_type(a.row_idxs), b_ncols, as_device_type(b.values),
+                a.row_idxs, b_ncols, as_device_type(b.values),
                 b.stride, as_device_type(c.values), c.stride);
         }
     }
