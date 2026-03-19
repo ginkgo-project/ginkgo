@@ -262,8 +262,8 @@ protected:
      * @param size  the size of the operator
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dim<2>& size = dim<2>{})
-        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
+                   const dim<2>& size = dim<2>{}, precision p = precision::none)
+        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}, value_t_(p)
     {}
 
     /**

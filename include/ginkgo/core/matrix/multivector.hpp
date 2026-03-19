@@ -171,7 +171,8 @@ public:
 
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
-                         const dim<2>& size = dim<2>{});
+                         const dim<2>& size = dim<2>{},
+                         precision p = precision::none);
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector>
     create_generic_with_same_config_impl() const = 0;
