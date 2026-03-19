@@ -624,6 +624,14 @@ public:
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         std::unique_ptr<const local_vector_type> local_vector);
 
+    template <typename OtherValueType>
+    [[nodiscard]] auto as_precision()
+        -> gko::detail::temporary_conversion<Vector<OtherValueType>>;
+
+    template <typename OtherValueType>
+    [[nodiscard]] auto as_precision() const
+        -> gko::detail::temporary_conversion<const Vector<OtherValueType>>;
+
 protected:
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
            dim<2> global_size, dim<2> local_size, size_type stride);

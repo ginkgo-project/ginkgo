@@ -161,6 +161,44 @@ std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_const(
 
 
 template <typename ValueType>
+template <typename OtherValueType>
+auto Vector<ValueType>::as_precision()
+    -> gko::detail::temporary_conversion<Vector<OtherValueType>>
+{
+    return gko::detail::temporary_conversion<Vector<OtherValueType>>::create(
+        this);
+}
+
+#define GKO_DECLARE_VECTOR_AS_PRECISION(ValueType, OtherValueType) \
+    auto Vector<ValueType>::as_precision()                         \
+        ->gko::detail::temporary_conversion<Vector<OtherValueType>>
+#define GKO_DECLARE_VECTOR_AS_PRECISION_same(ValueType) \
+    GKO_DECLARE_VECTOR_AS_PRECISION(ValueType, ValueType)
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_VECTOR_AS_PRECISION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_VECTOR_AS_PRECISION_same);
+
+
+template <typename ValueType>
+template <typename OtherValueType>
+auto Vector<ValueType>::as_precision() const
+    -> gko::detail::temporary_conversion<const Vector<OtherValueType>>
+
+{
+    return gko::detail::temporary_conversion<
+        const Vector<OtherValueType>>::create(this);
+}
+
+#define GKO_DECLARE_VECTOR_CONST_AS_PRECISION(ValueType, OtherValueType) \
+    auto Vector<ValueType>::as_precision()                               \
+        const->gko::detail::temporary_conversion<const Vector<OtherValueType>>
+#define GKO_DECLARE_VECTOR_CONST_AS_PRECISION_same(ValueType) \
+    GKO_DECLARE_VECTOR_CONST_AS_PRECISION(ValueType, ValueType)
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(
+    GKO_DECLARE_VECTOR_CONST_AS_PRECISION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_VECTOR_CONST_AS_PRECISION_same);
+
+
+template <typename ValueType>
 std::unique_ptr<typename Vector<ValueType>::absolute_type>
 Vector<ValueType>::compute_absolute_impl() const
 {
