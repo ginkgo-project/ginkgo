@@ -150,6 +150,33 @@ Sellp<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
 }
 
 
+/** get the non-owning device view */
+template <typename ValueType, typename IndexType>
+auto Sellp<ValueType, IndexType>::get_device_view() -> device_view
+{
+    return device_view{this->get_size(),          this->get_slice_size(),
+                       this->get_stride_factor(), this->get_total_cols(),
+                       this->get_values(),        this->get_col_idxs(),
+                       this->get_slice_lengths(), this->get_slice_sets()};
+}
+
+
+/** get the const non-owning device view */
+template <typename ValueType, typename IndexType>
+auto Sellp<ValueType, IndexType>::get_const_device_view() const
+    -> const_device_view
+{
+    return const_device_view{this->get_size(),
+                             this->get_slice_size(),
+                             this->get_stride_factor(),
+                             this->get_total_cols(),
+                             this->get_const_values(),
+                             this->get_const_col_idxs(),
+                             this->get_const_slice_lengths(),
+                             this->get_const_slice_sets()};
+}
+
+
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {

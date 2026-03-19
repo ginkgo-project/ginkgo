@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 
 namespace gko {
@@ -79,6 +80,9 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Sellp>;
+    using device_view = matrix::view::sellp<value_type, index_type>;
+    using const_device_view =
+        matrix::view::sellp<const value_type, const index_type>;
 
     friend class Sellp<previous_precision<ValueType>, IndexType>;
 
@@ -305,6 +309,12 @@ public:
         return this
             ->get_const_col_idxs()[this->linearize_index(row, slice_set, idx)];
     }
+
+    /** get the non-owning device view */
+    device_view get_device_view();
+
+    /** get the const non-owning device view */
+    const_device_view get_const_device_view() const;
 
     /**
      * Creates an uninitialized Sellp matrix of the specified size.

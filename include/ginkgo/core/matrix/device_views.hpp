@@ -144,6 +144,76 @@ private:
 };
 
 
+/**
+ * Non-owning view of a matrix::Sellp to be used inside device kernels.
+ * This type is used to provide a simple and stable ABI for passing data between
+ * libraries.
+ *
+ * @tparam ValueType  the value type used to store matrix values.
+ * @tparam IndexType  the index type used to store matrix columns.
+ */
+template <typename ValueType, typename IndexType>
+struct sellp {
+    dim<2> size;
+    size_type slice_size;
+    size_type stride_factor;
+    size_type total_cols;
+    ValueType* values;
+    IndexType* col_idxs;
+    static_assert(std::is_const_v<ValueType> == std::is_const_v<IndexType>,
+                  "ValueType and IndexType must share the same constness");
+    using adapt_size_type = std::conditional_t<std::is_const_v<ValueType>,
+                                               const size_type, size_type>;
+    adapt_size_type* slice_lengths;
+    adapt_size_type* slice_sets;
+
+    /** Constructs a sellp view */
+    constexpr sellp(dim<2> size, size_type slice_size, size_type stride_factor,
+                    size_type total_cols, ValueType* values,
+                    IndexType* col_idxs, adapt_size_type* slice_lengths,
+                    adapt_size_type* slice_sets)
+        : size{size},
+          slice_size{slice_size},
+          stride_factor{stride_factor},
+          total_cols{total_cols},
+          values{values},
+          col_idxs{col_idxs},
+          slice_lengths{slice_lengths},
+          slice_sets{slice_sets}
+    {}
+
+    /** Returns a const view of the same values */
+    constexpr sellp<const ValueType, const IndexType> as_const() const
+    {
+        return sellp<const ValueType, const IndexType>{
+            size,   slice_size, stride_factor, total_cols,
+            values, col_idxs,   slice_lengths, slice_sets};
+    }
+
+    /** accessing the value of the idx-th element within the given row */
+    constexpr ValueType& val_at(size_type row, size_type slice_set,
+                                size_type idx) const
+    {
+        return values[this->linearize_index(row, slice_set, idx)];
+    }
+
+    /** accessing the column index of the idx-th element within the given row */
+    constexpr IndexType& col_at(size_type row, size_type slice_set,
+                                size_type idx) const
+    {
+        return col_idxs[this->linearize_index(row, slice_set, idx)];
+    }
+
+private:
+    /** Return the index of Sellp storage */
+    constexpr size_type linearize_index(size_type row, size_type slice_set,
+                                        size_type idx) const noexcept
+    {
+        return (slice_set + idx) * slice_size + row;
+    }
+};
+
+
 }  // namespace view
 }  // namespace matrix
 }  // namespace gko

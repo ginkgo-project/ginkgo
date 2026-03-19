@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -189,6 +189,36 @@ TYPED_TEST(Sellp, CanBeCleared)
     this->mtx->clear();
 
     this->assert_empty(this->mtx.get());
+}
+
+
+TYPED_TEST(Sellp, CanCreateDeviceView)
+{
+    auto view = this->mtx->get_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.slice_size, this->mtx->get_slice_size());
+    EXPECT_EQ(view.stride_factor, this->mtx->get_stride_factor());
+    EXPECT_EQ(view.total_cols, this->mtx->get_total_cols());
+    EXPECT_EQ(view.values, this->mtx->get_values());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_col_idxs());
+    EXPECT_EQ(view.slice_lengths, this->mtx->get_slice_lengths());
+    EXPECT_EQ(view.slice_sets, this->mtx->get_slice_sets());
+}
+
+
+TYPED_TEST(Sellp, CanCreateConstDeviceView)
+{
+    auto view = this->mtx->get_const_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.slice_size, this->mtx->get_slice_size());
+    EXPECT_EQ(view.stride_factor, this->mtx->get_stride_factor());
+    EXPECT_EQ(view.total_cols, this->mtx->get_total_cols());
+    EXPECT_EQ(view.values, this->mtx->get_const_values());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_const_col_idxs());
+    EXPECT_EQ(view.slice_lengths, this->mtx->get_const_slice_lengths());
+    EXPECT_EQ(view.slice_sets, this->mtx->get_const_slice_sets());
 }
 
 
