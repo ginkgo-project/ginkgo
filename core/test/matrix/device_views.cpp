@@ -34,7 +34,7 @@ TYPED_TEST(DenseView, AccessWorks)
 }
 
 
-TYPED_TEST(DenseView, AssertTriggersOnOutOfBoundsDeathTest)
+TYPED_TEST(DenseView, AssertTriggersInConstructorDeathTest)
 {
 #ifdef NDEBUG
     GTEST_SKIP() << "Assertion is only enabled in debug mode";
@@ -47,6 +47,18 @@ TYPED_TEST(DenseView, AssertTriggersOnOutOfBoundsDeathTest)
     EXPECT_EXIT((void)(view(3, 0)), check_assertion_exit_code, "");
     EXPECT_EXIT((void)(view(0, 3)), check_assertion_exit_code, "");
     EXPECT_EXIT((void)(view(3, 3)), check_assertion_exit_code, "");
+}
+
+
+TYPED_TEST(DenseView, AssertTriggersOnOutOfBoundsDeathTest)
+{
+#ifdef NDEBUG
+    GTEST_SKIP() << "Assertion is only enabled in debug mode";
+#endif
+
+    EXPECT_EXIT((void)(gko::matrix::view::dense<TypeParam>{gko::dim<2>{2, 2}, 1,
+                                                           nullptr}),
+                check_assertion_exit_code, "");
 }
 
 
@@ -90,4 +102,44 @@ TYPED_TEST(EllView, AccessWorks)
               view.num_stored_elements_per_row);
     ASSERT_EQ(const_view.values, view.values);
     ASSERT_EQ(const_view.col_idxs, view.col_idxs);
+}
+
+
+TYPED_TEST(EllView, AssertTriggersInConstructorDeathTest)
+{
+#ifdef NDEBUG
+    GTEST_SKIP() << "Assertion is only enabled in debug mode";
+#endif
+
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    // stride is smaller than dim[0]
+    EXPECT_EXIT((void)(gko::matrix::view::ell<value_type, index_type>{
+                    gko::dim<2>{2, 5}, 3, 1, nullptr, nullptr}),
+                check_assertion_exit_code, "");
+}
+
+
+TYPED_TEST(EllView, AssertTriggersOnOutOfBoundsDeathTest)
+{
+#ifdef NDEBUG
+    GTEST_SKIP() << "Assertion is only enabled in debug mode";
+#endif
+
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    std::vector<value_type> values(12);
+    std::vector<index_type> col_idxs(12);
+    gko::matrix::view::ell<value_type, index_type> view{
+        gko::dim<2>{2, 5}, 3, 4, values.data(), col_idxs.data()};
+
+    // access exceed nonzero per row
+    EXPECT_EXIT((void)(view.val_at(1, 3)), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view.col_at(1, 3)), check_assertion_exit_code, "");
+    // access exceed the dimension
+    EXPECT_EXIT((void)(view.val_at(2, 0)), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view.col_at(2, 0)), check_assertion_exit_code, "");
+    // access exceed the stride
+    EXPECT_EXIT((void)(view.val_at(4, 0)), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view.col_at(4, 0)), check_assertion_exit_code, "");
 }
