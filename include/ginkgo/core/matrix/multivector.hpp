@@ -87,6 +87,8 @@ public:
 
     [[nodiscard]] std::unique_ptr<MultiVector> compute_absolute() const;
 
+    void compute_absolute(ptr_param<MultiVector> output) const;
+
     void compute_absolute_inplace();
 
     [[nodiscard]] std::unique_ptr<MultiVector> make_complex() const;
@@ -176,22 +178,24 @@ protected:
     [[nodiscard]] virtual std::unique_ptr<MultiVector>
     compute_absolute_generic_impl() const = 0;
 
+    virtual void compute_absolute_generic_impl(MultiVector* result) const = 0;
+
     virtual void compute_absolute_inplace_impl() = 0;
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector>
     make_complex_generic_impl() const = 0;
 
-    virtual void make_complex_impl(MultiVector* result) const = 0;
+    virtual void make_complex_generic_impl(MultiVector* result) const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector> get_real_generic_impl()
         const = 0;
 
-    virtual void get_real_impl(MultiVector* result) const = 0;
+    virtual void get_real_generic_impl(MultiVector* result) const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector> get_imag_generic_impl()
         const = 0;
 
-    virtual void get_imag_impl(MultiVector* result) const = 0;
+    virtual void get_imag_generic_impl(MultiVector* result) const = 0;
 
     virtual void fill_impl(any_value_t value) = 0;
 
@@ -322,11 +326,19 @@ public:
 
     [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute() const;
 
+    void compute_absolute(ptr_param<absolute_type> output) const;
+
     [[nodiscard]] std::unique_ptr<complex_type> make_complex() const;
+
+    void make_complex(ptr_param<complex_type> output) const;
 
     [[nodiscard]] std::unique_ptr<real_type> get_real() const;
 
+    void get_real(ptr_param<real_type> output) const;
+
     [[nodiscard]] std::unique_ptr<real_type> get_imag() const;
+
+    void get_imag(ptr_param<real_type> output) const;
 
 protected:
     EnableMultiVector(std::shared_ptr<const Executor> exec, dim<2> size = {})
@@ -365,6 +377,8 @@ protected:
     [[nodiscard]] virtual std::unique_ptr<absolute_type> compute_absolute_impl()
         const = 0;
 
+    virtual void compute_absolute_impl(absolute_type* result) const = 0;
+
     [[nodiscard]] virtual std::unique_ptr<complex_type> make_complex_impl()
         const = 0;
 
@@ -401,6 +415,11 @@ protected:
 
     virtual void compute_norm2_impl(absolute_type* result,
                                     array<char>& tmp) const = 0;
+
+    virtual void compute_squared_norm2_impl(absolute_type* result) const = 0;
+
+    virtual void compute_squared_norm2_impl(absolute_type* result,
+                                            array<char>& tmp) const = 0;
 
     virtual void compute_norm1_impl(absolute_type* result) const = 0;
 
@@ -467,20 +486,22 @@ private:
     [[nodiscard]] std::unique_ptr<MultiVector> compute_absolute_generic_impl()
         const final;
 
+    void compute_absolute_generic_impl(MultiVector* result) const final;
+
     [[nodiscard]] std::unique_ptr<MultiVector> make_complex_generic_impl()
         const final;
+
+    void make_complex_generic_impl(MultiVector* result) const final;
 
     [[nodiscard]] std::unique_ptr<MultiVector> get_real_generic_impl()
         const final;
 
+    void get_real_generic_impl(MultiVector* result) const final;
+
     [[nodiscard]] std::unique_ptr<MultiVector> get_imag_generic_impl()
         const final;
 
-    void make_complex_impl(MultiVector* result) const final;
-
-    void get_real_impl(MultiVector* result) const final;
-
-    void get_imag_impl(MultiVector* result) const final;
+    void get_imag_generic_impl(MultiVector* result) const final;
 
     void add_scaled_impl(any_const_dense_t alpha, const MultiVector* b) final;
 
@@ -616,10 +637,25 @@ EnableMultiVector<ConcreteType>::compute_absolute() const
 
 
 template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_absolute(
+    ptr_param<absolute_type> output) const
+{
+    this->compute_absolute_impl(output.get());
+}
+
+
+template <typename ConcreteType>
 std::unique_ptr<typename EnableMultiVector<ConcreteType>::complex_type>
 EnableMultiVector<ConcreteType>::make_complex() const
 {
     return this->make_complex_impl();
+}
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::make_complex(
+    ptr_param<complex_type> output) const
+{
+    this->make_complex_impl(output.get());
 }
 
 
@@ -632,10 +668,26 @@ EnableMultiVector<ConcreteType>::get_real() const
 
 
 template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::get_real(
+    ptr_param<real_type> output) const
+{
+    this->get_real_impl(output.get());
+}
+
+
+template <typename ConcreteType>
 std::unique_ptr<typename EnableMultiVector<ConcreteType>::real_type>
 EnableMultiVector<ConcreteType>::get_imag() const
 {
     return this->get_imag_impl();
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::get_imag(
+    ptr_param<real_type> output) const
+{
+    this->get_imag_impl(output.get());
 }
 
 
@@ -720,10 +772,25 @@ EnableMultiVector<ConcreteType>::compute_absolute_generic_impl() const
 
 
 template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::compute_absolute_generic_impl(
+    MultiVector* result) const
+{
+    this->compute_absolute_impl(as<absolute_type>(result));
+}
+
+template <typename ConcreteType>
 std::unique_ptr<MultiVector>
 EnableMultiVector<ConcreteType>::make_complex_generic_impl() const
 {
     return this->make_complex_impl();
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::make_complex_generic_impl(
+    MultiVector* result) const
+{
+    this->make_complex_impl(as<complex_type>(result));
 }
 
 
@@ -736,6 +803,14 @@ EnableMultiVector<ConcreteType>::get_real_generic_impl() const
 
 
 template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::get_real_generic_impl(
+    MultiVector* result) const
+{
+    this->get_real_impl(as<absolute_type>(result));
+}
+
+
+template <typename ConcreteType>
 std::unique_ptr<MultiVector>
 EnableMultiVector<ConcreteType>::get_imag_generic_impl() const
 {
@@ -744,24 +819,10 @@ EnableMultiVector<ConcreteType>::get_imag_generic_impl() const
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::make_complex_impl(
+void EnableMultiVector<ConcreteType>::get_imag_generic_impl(
     MultiVector* result) const
 {
-    this->make_complex_impl(as<ConcreteType>(result));
-}
-
-
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::get_real_impl(MultiVector* result) const
-{
-    this->get_real_impl(as<ConcreteType>(result));
-}
-
-
-template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::get_imag_impl(MultiVector* result) const
-{
-    this->get_imag_impl(as<ConcreteType>(result));
+    this->get_imag_impl(as<absolute_type>(result));
 }
 
 
