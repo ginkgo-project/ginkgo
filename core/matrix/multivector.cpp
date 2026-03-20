@@ -52,6 +52,11 @@ std::unique_ptr<MultiVector> MultiVector::compute_absolute() const
     return this->compute_absolute_generic_impl();
 }
 
+void MultiVector::compute_absolute(ptr_param<MultiVector> output) const
+{
+    this->compute_absolute_generic_impl(output.get());
+}
+
 
 void MultiVector::compute_absolute_inplace()
 {
@@ -67,7 +72,7 @@ std::unique_ptr<MultiVector> MultiVector::make_complex() const
 
 void MultiVector::make_complex(ptr_param<MultiVector> result) const
 {
-    this->make_complex_impl(result.get());
+    this->make_complex_generic_impl(result.get());
 }
 
 
@@ -79,7 +84,7 @@ std::unique_ptr<MultiVector> MultiVector::get_real() const
 
 void MultiVector::get_real(ptr_param<MultiVector> result) const
 {
-    this->get_real_impl(result.get());
+    this->get_real_generic_impl(result.get());
 }
 
 
@@ -91,7 +96,7 @@ std::unique_ptr<MultiVector> MultiVector::get_imag() const
 
 void MultiVector::get_imag(ptr_param<MultiVector> result) const
 {
-    this->get_imag_impl(result.get());
+    this->get_imag_generic_impl(result.get());
 }
 
 
