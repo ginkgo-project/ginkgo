@@ -199,7 +199,7 @@ TYPED_TEST(Gcr, KernelStep1)
     this->mtx->apply(this->small_krylov_bases_p,
                      this->small_mapped_krylov_bases_Ap);
     this->small_mapped_krylov_bases_Ap->compute_norm2(this->small_Ap_norm);
-    this->small_tmp_rAp = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
+    this->small_tmp_rAp = gko::initialize<Mtx>({{13.0, 7.0, 1.0}}, this->exec);
 
     gko::kernels::reference::gcr::step_1(
         this->exec, this->small_x->get_device_view(),
