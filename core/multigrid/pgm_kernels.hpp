@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/base/kernel_declaration.hpp"
@@ -69,11 +70,12 @@ namespace pgm {
         const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg, \
         array<IndexType>& intermediate_agg)
 
-#define GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType)              \
-    void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,      \
-                            size_type fine_nnz, const IndexType* row_idxs,    \
-                            const IndexType* col_idxs, const ValueType* vals, \
-                            matrix::Coo<ValueType, IndexType>* coarse_coo)
+#define GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType)         \
+    void compute_coarse_coo(                                             \
+        std::shared_ptr<const DefaultExecutor> exec, size_type fine_nnz, \
+        const IndexType* row_idxs, const IndexType* col_idxs,            \
+        const ValueType* vals,                                           \
+        matrix::view::coo<ValueType, IndexType> coarse_coo)
 
 #define GKO_DECLARE_PGM_GATHER_INDEX(IndexType)                    \
     void gather_index(std::shared_ptr<const DefaultExecutor> exec, \

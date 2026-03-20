@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -66,11 +66,11 @@ template <typename ValueType, typename IndexType>
 void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         size_type fine_nnz, const IndexType* row_idxs,
                         const IndexType* col_idxs, const ValueType* vals,
-                        matrix::Coo<ValueType, IndexType>* coarse_coo)
+                        matrix::view::coo<ValueType, IndexType> coarse_coo)
 {
-    auto coarse_row = coarse_coo->get_row_idxs();
-    auto coarse_col = coarse_coo->get_col_idxs();
-    auto coarse_val = coarse_coo->get_values();
+    auto coarse_row = coarse_coo.row_idxs;
+    auto coarse_col = coarse_coo.col_idxs;
+    auto coarse_val = coarse_coo.values;
     size_type idxs = 0;
     size_type coarse_idxs = 0;
     IndexType curr_row = row_idxs[0];
@@ -89,7 +89,7 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
         }
         temp_val += vals[idxs];
     }
-    GKO_ASSERT(coarse_idxs + 1 == coarse_coo->get_num_stored_elements());
+    GKO_ASSERT(coarse_idxs + 1 == coarse_coo.num_stored_elements);
     coarse_row[coarse_idxs] = curr_row;
     coarse_col[coarse_idxs] = curr_col;
     coarse_val[coarse_idxs] = temp_val;

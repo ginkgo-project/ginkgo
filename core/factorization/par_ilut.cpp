@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -304,9 +304,9 @@ void ParIlutState<ValueType, IndexType>::iterate()
                                         u_coo->get_row_idxs()));
 
     // execute asynchronous iteration
-    exec->run(make_compute_l_u_factors(system_matrix, l_new.get(), l_coo.get(),
-                                       u_new.get(), u_coo.get(),
-                                       u_new_csc.get()));
+    exec->run(make_compute_l_u_factors(
+        system_matrix, l_new.get(), l_coo->get_const_device_view(), u_new.get(),
+        u_coo->get_const_device_view(), u_new_csc.get()));
 
     // determine ranks for selection/filtering
     IndexType l_nnz = l_new->get_num_stored_elements();
@@ -316,12 +316,13 @@ void ParIlutState<ValueType, IndexType>::iterate()
     auto u_filter_rank = std::max<IndexType>(0, u_nnz - u_nnz_limit - 1);
     remove_complex<ValueType> l_threshold{};
     remove_complex<ValueType> u_threshold{};
-    CooMatrix* null_coo = nullptr;
+    using null_coo_type = matrix::view::coo<ValueType, IndexType>;
+    null_coo_type null_coo{{}, 0, nullptr, nullptr, nullptr};
     if (use_approx_select) {
         // remove approximately smallest candidates from L' and U'^T
-        exec->run(make_threshold_filter_approx(l_new.get(), l_filter_rank,
-                                               selection_tmp, l_threshold,
-                                               l.get(), l_coo.get()));
+        exec->run(make_threshold_filter_approx(
+            l_new.get(), l_filter_rank, selection_tmp, l_threshold, l.get(),
+            l_coo->get_device_view()));
         exec->run(make_threshold_filter_approx(u_new_csc.get(), u_filter_rank,
                                                selection_tmp, u_threshold,
                                                u_csc.get(), null_coo));
@@ -336,17 +337,18 @@ void ParIlutState<ValueType, IndexType>::iterate()
 
         // remove smallest candidates from L' and U'^T
         exec->run(make_threshold_filter(l_new.get(), l_threshold, l.get(),
-                                        l_coo.get(), true));
+                                        l_coo->get_device_view(), true));
         exec->run(make_threshold_filter(u_new_csc.get(), u_threshold,
                                         u_csc.get(), null_coo, true));
     }
     // remove smallest candidates from U'
     exec->run(make_threshold_filter(u_new.get(), u_threshold, u.get(),
-                                    u_coo.get(), false));
+                                    u_coo->get_device_view(), false));
 
     // execute asynchronous iteration
-    exec->run(make_compute_l_u_factors(system_matrix, l.get(), l_coo.get(),
-                                       u.get(), u_coo.get(), u_csc.get()));
+    exec->run(make_compute_l_u_factors(
+        system_matrix, l.get(), l_coo->get_const_device_view(), u.get(),
+        u_coo->get_const_device_view(), u_csc.get()));
 }
 
 

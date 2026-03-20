@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,7 +55,8 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
                       const matrix::Csr<ValueType, IndexType>* a,
                       remove_complex<ValueType> threshold,
                       matrix::Csr<ValueType, IndexType>* m_out,
-                      matrix::Coo<ValueType, IndexType>* m_out_coo, bool lower)
+                      matrix::view::coo<ValueType, IndexType> m_out_coo,
+                      bool lower)
 {
     auto old_row_ptrs = a->get_const_row_ptrs();
     auto old_col_idxs = a->get_const_col_idxs();
@@ -80,16 +81,7 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
     builder.get_value_array().resize_and_reset(new_nnz);
     auto new_col_idxs = m_out->get_col_idxs();
     auto new_vals = m_out->get_values();
-    IndexType* new_row_idxs{};
-    if (m_out_coo) {
-        matrix::CooBuilder<ValueType, IndexType> coo_builder{m_out_coo};
-        coo_builder.get_row_idx_array().resize_and_reset(new_nnz);
-        coo_builder.get_col_idx_array() =
-            array<IndexType>::view(exec, new_nnz, new_col_idxs);
-        coo_builder.get_value_array() =
-            array<ValueType>::view(exec, new_nnz, new_vals);
-        new_row_idxs = m_out_coo->get_row_idxs();
-    }
+    auto new_row_idxs = m_out_coo.row_idxs;
     kernel::threshold_filter<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
         old_col_idxs, old_vals, num_rows, as_device_type(threshold),
@@ -108,7 +100,8 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* a,
                       remove_complex<ValueType> threshold,
                       matrix::Csr<ValueType, IndexType>* m_out,
-                      matrix::Coo<ValueType, IndexType>* m_out_coo, bool lower)
+                      matrix::view::coo<ValueType, IndexType> m_out_coo,
+                      bool lower)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz = a->get_num_stored_elements();

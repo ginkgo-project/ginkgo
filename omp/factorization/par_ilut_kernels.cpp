@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -69,7 +69,7 @@ template <typename Predicate, typename ValueType, typename IndexType>
 void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* m,
                      matrix::Csr<ValueType, IndexType>* m_out,
-                     matrix::Coo<ValueType, IndexType>* m_out_coo,
+                     matrix::view::coo<ValueType, IndexType> m_out_coo,
                      Predicate pred)
 {
     auto num_rows = m->get_size()[0];
@@ -100,16 +100,7 @@ void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
     builder.get_value_array().resize_and_reset(new_nnz);
     auto new_col_idxs = m_out->get_col_idxs();
     auto new_vals = m_out->get_values();
-    IndexType* new_row_idxs{};
-    if (m_out_coo) {
-        matrix::CooBuilder<ValueType, IndexType> coo_builder{m_out_coo};
-        coo_builder.get_row_idx_array().resize_and_reset(new_nnz);
-        coo_builder.get_col_idx_array() =
-            make_array_view(exec, new_nnz, new_col_idxs);
-        coo_builder.get_value_array() =
-            make_array_view(exec, new_nnz, new_vals);
-        new_row_idxs = m_out_coo->get_row_idxs();
-    }
+    auto new_row_idxs = m_out_coo.row_idxs;
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {
@@ -135,7 +126,7 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* m,
                       remove_complex<ValueType> threshold,
                       matrix::Csr<ValueType, IndexType>* m_out,
-                      matrix::Coo<ValueType, IndexType>* m_out_coo, bool)
+                      matrix::view::coo<ValueType, IndexType> m_out_coo, bool)
 {
     auto col_idxs = m->get_const_col_idxs();
     auto vals = m->get_const_values();
@@ -159,7 +150,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
                              IndexType rank, array<ValueType>& tmp,
                              remove_complex<ValueType>& threshold,
                              matrix::Csr<ValueType, IndexType>* m_out,
-                             matrix::Coo<ValueType, IndexType>* m_out_coo)
+                             matrix::view::coo<ValueType, IndexType> m_out_coo)
 {
     auto vals = m->get_const_values();
     auto col_idxs = m->get_const_col_idxs();
@@ -242,9 +233,9 @@ template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Csr<ValueType, IndexType>* a,
                          matrix::Csr<ValueType, IndexType>* l,
-                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::view::coo<const ValueType, const IndexType>,
                          matrix::Csr<ValueType, IndexType>* u,
-                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::view::coo<const ValueType, const IndexType>,
                          matrix::Csr<ValueType, IndexType>* u_csc)
 {
     auto num_rows = a->get_size()[0];

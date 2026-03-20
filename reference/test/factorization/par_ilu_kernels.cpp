@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -406,7 +406,8 @@ TYPED_TEST(ParIlu, KernelComputeLU)
         static_cast<Dense*>(u_expected_lin_op.release()));
 
     gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-        this->ref, iterations, mtx_coo.get(), l_csr.get(), u_csr.get());
+        this->ref, iterations, mtx_coo->get_const_device_view(), l_csr.get(),
+        u_csr.get());
 
     GKO_ASSERT_MTX_NEAR(l_csr, this->small_l_expected, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(u_csr, u_expected, r<value_type>::value);

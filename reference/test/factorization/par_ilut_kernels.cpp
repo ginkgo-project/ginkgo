@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,7 +15,9 @@
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
+#include "core/matrix/coo_builder.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -202,16 +204,34 @@ protected:
                      gko::remove_complex<value_type> threshold,
                      const std::unique_ptr<Mtx>& expected, bool lower)
     {
+        using vtype = typename Mtx::value_type;
+        using itype = typename Mtx::index_type;
         auto res_mtx = Mtx::create(exec, mtx->get_size());
-        auto res_mtx_coo = Coo::create(exec, mtx->get_size());
+        auto input_nnz = mtx->get_num_stored_elements();
+        gko::array<itype> coo_row_idxs{exec, input_nnz};
+        gko::matrix::view::coo<vtype, itype> coo_view{
+            mtx->get_size(), input_nnz, nullptr, coo_row_idxs.get_data(),
+            nullptr};
 
         auto local_mtx = gko::as<Mtx>(lower ? mtx->clone() : mtx->transpose());
         auto local_expected =
             gko::as<Mtx>(lower ? expected->clone() : expected->transpose());
 
         gko::kernels::reference::par_ilut_factorization::threshold_filter(
-            ref, local_mtx.get(), threshold, res_mtx.get(), res_mtx_coo.get(),
-            lower);
+            ref, local_mtx.get(), threshold, res_mtx.get(), coo_view, lower);
+
+        // Build a Coo from the CSR output and row_idxs for comparison
+        auto res_nnz = res_mtx->get_num_stored_elements();
+        auto res_mtx_coo = Coo::create(exec, res_mtx->get_size(), res_nnz);
+        {
+            gko::matrix::CooBuilder<vtype, itype> coo_builder{res_mtx_coo};
+            coo_builder.get_row_idx_array() =
+                gko::array<itype>::view(exec, res_nnz, coo_row_idxs.get_data());
+            coo_builder.get_col_idx_array() =
+                gko::array<itype>::view(exec, res_nnz, res_mtx->get_col_idxs());
+            coo_builder.get_value_array() =
+                gko::array<vtype>::view(exec, res_nnz, res_mtx->get_values());
+        }
 
         GKO_ASSERT_MTX_EQ_SPARSITY(local_expected, res_mtx);
         GKO_ASSERT_MTX_NEAR(local_expected, res_mtx, 0);
@@ -225,19 +245,51 @@ protected:
     void test_filter_approx(const std::unique_ptr<Mtx>& mtx, index_type rank,
                             const std::unique_ptr<Mtx>& expected)
     {
+        using vtype = typename Mtx::value_type;
+        using itype = typename Mtx::index_type;
+        auto input_nnz = mtx->get_num_stored_elements();
         auto res_mtx = Mtx::create(exec, mtx->get_size());
-        auto res_mtx_coo = Coo::create(exec, mtx->get_size());
+        gko::array<itype> coo_row_idxs{exec, input_nnz};
+        gko::matrix::view::coo<vtype, itype> coo_view{
+            mtx->get_size(), input_nnz, nullptr, coo_row_idxs.get_data(),
+            nullptr};
         auto res_mtx2 = Mtx::create(exec, mtx->get_size());
-        auto res_mtx_coo2 = Coo::create(exec, mtx->get_size());
+        gko::array<itype> coo_row_idxs2{exec, input_nnz};
+        gko::matrix::view::coo<vtype, itype> coo_view2{
+            mtx->get_size(), input_nnz, nullptr, coo_row_idxs2.get_data(),
+            nullptr};
 
         auto tmp = gko::array<typename Mtx::value_type>{exec};
         gko::remove_complex<typename Mtx::value_type> threshold{};
         gko::kernels::reference::par_ilut_factorization::
             threshold_filter_approx(ref, mtx.get(), rank, tmp, threshold,
-                                    res_mtx.get(), res_mtx_coo.get());
+                                    res_mtx.get(), coo_view);
         gko::kernels::reference::par_ilut_factorization::threshold_filter(
-            ref, mtx.get(), threshold, res_mtx2.get(), res_mtx_coo2.get(),
-            true);
+            ref, mtx.get(), threshold, res_mtx2.get(), coo_view2, true);
+
+        // Build Coo from CSR output and row_idxs for comparison
+        auto res_nnz = res_mtx->get_num_stored_elements();
+        auto res_mtx_coo = Coo::create(exec, res_mtx->get_size(), res_nnz);
+        {
+            gko::matrix::CooBuilder<vtype, itype> coo_builder{res_mtx_coo};
+            coo_builder.get_row_idx_array() =
+                gko::array<itype>::view(exec, res_nnz, coo_row_idxs.get_data());
+            coo_builder.get_col_idx_array() =
+                gko::array<itype>::view(exec, res_nnz, res_mtx->get_col_idxs());
+            coo_builder.get_value_array() =
+                gko::array<vtype>::view(exec, res_nnz, res_mtx->get_values());
+        }
+        auto res_nnz2 = res_mtx2->get_num_stored_elements();
+        auto res_mtx_coo2 = Coo::create(exec, res_mtx2->get_size(), res_nnz2);
+        {
+            gko::matrix::CooBuilder<vtype, itype> coo_builder{res_mtx_coo2};
+            coo_builder.get_row_idx_array() = gko::array<itype>::view(
+                exec, res_nnz2, coo_row_idxs2.get_data());
+            coo_builder.get_col_idx_array() = gko::array<itype>::view(
+                exec, res_nnz2, res_mtx2->get_col_idxs());
+            coo_builder.get_value_array() =
+                gko::array<vtype>::view(exec, res_nnz2, res_mtx2->get_values());
+        }
 
         GKO_ASSERT_MTX_EQ_SPARSITY(expected, res_mtx);
         GKO_ASSERT_MTX_EQ_SPARSITY(expected, res_mtx2);
@@ -324,8 +376,11 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCoo)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     auto res_mtx = Csr::create(this->exec, this->mtx1->get_size());
-    Coo* null_coo = nullptr;
+    gko::matrix::view::coo<value_type, index_type> null_coo{
+        {}, 0, nullptr, nullptr, nullptr};
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
         this->ref, this->mtx1.get(), 0.0, res_mtx.get(), null_coo, true);
@@ -406,7 +461,8 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCoo)
     auto res_mtx = Csr::create(this->exec, this->mtx1->get_size());
     auto tmp = gko::array<value_type>{this->ref};
     gko::remove_complex<value_type> threshold{};
-    Coo* null_coo = nullptr;
+    gko::matrix::view::coo<value_type, index_type> null_coo{
+        {}, 0, nullptr, nullptr, nullptr};
     index_type rank{};
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
@@ -481,7 +537,8 @@ TYPED_TEST(ParIlut, KernelComputeLU)
 
     gko::kernels::reference::par_ilut_factorization::compute_l_u_factors(
         this->ref, this->mtx_system.get(), this->mtx_l_system.get(),
-        mtx_l_coo.get(), this->mtx_u_system.get(), mtx_u_coo.get(), mtx_u_csc);
+        mtx_l_coo->get_const_device_view(), this->mtx_u_system.get(),
+        mtx_u_coo->get_const_device_view(), mtx_u_csc);
     auto mtx_utt = gko::as<Csr>(mtx_u_csc->transpose());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_it_expect, this->tol);

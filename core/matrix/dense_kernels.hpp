@@ -149,7 +149,7 @@ namespace kernels {
     void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,  \
                         matrix::view::dense<const ValueType> source,  \
                         const int64* row_ptrs,                        \
-                        matrix::Coo<ValueType, IndexType>* other)
+                        matrix::view::coo<ValueType, IndexType> other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType) \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,  \

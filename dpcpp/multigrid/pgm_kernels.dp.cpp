@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -78,7 +78,7 @@ template <typename ValueType, typename IndexType>
 void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         size_type fine_nnz, const IndexType* row_idxs,
                         const IndexType* col_idxs, const ValueType* vals,
-                        matrix::Coo<ValueType, IndexType>* coarse_coo)
+                        matrix::view::coo<ValueType, IndexType> coarse_coo)
 {
     // WORKAROUND: reduce_by_segment needs unique policy. Otherwise, dpcpp
     // throws same mangled name error. Related:
@@ -87,12 +87,12 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
         coarse_coo_policy<ValueType, IndexType>>(*exec->get_queue());
     auto key_it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs);
 
-    auto coarse_key_it = oneapi::dpl::make_zip_iterator(
-        coarse_coo->get_row_idxs(), coarse_coo->get_col_idxs());
+    auto coarse_key_it = oneapi::dpl::make_zip_iterator(coarse_coo.row_idxs,
+                                                        coarse_coo.col_idxs);
 
     oneapi::dpl::reduce_by_segment(
         policy, key_it, key_it + fine_nnz, vals, coarse_key_it,
-        coarse_coo->get_values(),
+        coarse_coo.values,
         [](auto a, auto b) {
             return std::tie(std::get<0>(a), std::get<1>(a)) ==
                    std::tie(std::get<0>(b), std::get<1>(b));

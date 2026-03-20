@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,7 +36,7 @@ template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     matrix::Csr<ValueType, IndexType>* l,
-                    const matrix::Coo<ValueType, IndexType>*)
+                    matrix::view::coo<const ValueType, const IndexType>)
 {
     auto num_rows = a->get_size()[0];
     auto l_row_ptrs = l->get_const_row_ptrs();

@@ -1,11 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/factorization/par_ic_kernels.hpp"
 
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/base/utils.hpp"
@@ -53,14 +52,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     size_type /* num_iterations */,
-                    const matrix::Coo<ValueType, IndexType>* a_lower,
+                    matrix::view::coo<const ValueType, const IndexType> a_lower,
                     matrix::Csr<ValueType, IndexType>* l)
 {
-    auto num_rows = a_lower->get_size()[0];
+    auto num_rows = a_lower.size[0];
     auto l_row_ptrs = l->get_const_row_ptrs();
     auto l_col_idxs = l->get_const_col_idxs();
     auto l_vals = l->get_values();
-    auto a_vals = a_lower->get_const_values();
+    auto a_vals = a_lower.values;
 
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type l_nz = l_row_ptrs[row]; l_nz < l_row_ptrs[row + 1];

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,6 @@
 #include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "dpcpp/base/dim3.dp.hpp"
@@ -139,16 +138,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     size_type iterations,
-                    const matrix::Coo<ValueType, IndexType>* a_lower,
+                    matrix::view::coo<const ValueType, const IndexType> a_lower,
                     matrix::Csr<ValueType, IndexType>* l)
 {
     auto nnz = l->get_num_stored_elements();
     auto num_blocks = ceildiv(nnz, default_block_size);
     for (size_type i = 0; i < iterations; ++i) {
         kernel::ic_sweep(num_blocks, default_block_size, 0, exec->get_queue(),
-                         a_lower->get_const_row_idxs(),
-                         a_lower->get_const_col_idxs(),
-                         as_device_type(a_lower->get_const_values()),
+                         a_lower.row_idxs, a_lower.col_idxs,
+                         as_device_type(a_lower.values),
                          l->get_const_row_ptrs(), l->get_const_col_idxs(),
                          as_device_type(l->get_values()),
                          static_cast<IndexType>(l->get_num_stored_elements()));

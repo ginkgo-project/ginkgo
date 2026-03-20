@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,7 +54,7 @@ template <typename Predicate, typename ValueType, typename IndexType>
 void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* m,
                      matrix::Csr<ValueType, IndexType>* m_out,
-                     matrix::Coo<ValueType, IndexType>* m_out_coo,
+                     matrix::view::coo<ValueType, IndexType> m_out_coo,
                      Predicate pred) GKO_NOT_IMPLEMENTED;
 
 
@@ -63,7 +63,7 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* m,
                       remove_complex<ValueType> threshold,
                       matrix::Csr<ValueType, IndexType>* m_out,
-                      matrix::Coo<ValueType, IndexType>* m_out_coo,
+                      matrix::view::coo<ValueType, IndexType> m_out_coo,
                       bool) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -80,7 +80,7 @@ void threshold_filter_approx(
     const matrix::Csr<ValueType, IndexType>* m, IndexType rank,
     array<ValueType>& tmp, remove_complex<ValueType>& threshold,
     matrix::Csr<ValueType, IndexType>* m_out,
-    matrix::Coo<ValueType, IndexType>* m_out_coo) GKO_NOT_IMPLEMENTED;
+    matrix::view::coo<ValueType, IndexType> m_out_coo) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL);
@@ -90,9 +90,9 @@ template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Csr<ValueType, IndexType>* a,
                          matrix::Csr<ValueType, IndexType>* l,
-                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::view::coo<const ValueType, const IndexType>,
                          matrix::Csr<ValueType, IndexType>* u,
-                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::view::coo<const ValueType, const IndexType>,
                          matrix::Csr<ValueType, IndexType>* u_csc)
     GKO_NOT_IMPLEMENTED;
 
