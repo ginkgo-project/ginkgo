@@ -63,7 +63,8 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
-    : matrix::EnableMultiVector<Vector>{exec, global_size},
+    : matrix::EnableMultiVector<Vector>{exec, global_size,
+                                        type_to_precision<ValueType>},
       DistributedBase{comm},
       local_{exec, local_size, stride}
 {
@@ -74,7 +75,8 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           std::unique_ptr<local_vector_type> local_vector)
-    : matrix::EnableMultiVector<Vector>{exec, global_size},
+    : matrix::EnableMultiVector<Vector>{exec, global_size,
+                                        type_to_precision<ValueType>},
       DistributedBase{comm},
       local_{exec}
 {
@@ -86,7 +88,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
                           std::unique_ptr<local_vector_type> local_vector)
-    : matrix::EnableMultiVector<Vector>{exec, {}},
+    : matrix::EnableMultiVector<Vector>{exec, {}, type_to_precision<ValueType>},
       DistributedBase{comm},
       local_{exec}
 {
