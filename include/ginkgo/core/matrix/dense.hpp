@@ -1114,14 +1114,6 @@ public:
     [[nodiscard]] auto get_const_local_device_view() const
         -> MultiVector::device_view<const value_type>;
 
-    template <typename OtherValueType>
-    [[nodiscard]] auto as_precision()
-        -> gko::detail::temporary_conversion<Dense<OtherValueType>>;
-
-    template <typename OtherValueType>
-    [[nodiscard]] auto as_precision() const
-        -> gko::detail::temporary_conversion<const Dense<OtherValueType>>;
-
     /**
      * Creates an uninitialized Dense matrix of the specified size.
      *
@@ -1480,9 +1472,9 @@ protected:
 
     void get_imag_impl(real_type* result) const override;
 
-    void add_scaled_impl(any_const_dense_t alpha, const Dense* b) override;
+    void add_scaled_impl(const Dense* alpha, const Dense* b) override;
 
-    void sub_scaled_impl(any_const_dense_t alpha, const Dense* b) override;
+    void sub_scaled_impl(const Dense* alpha, const Dense* b) override;
 
     void compute_dot_impl(const Dense* b, Dense* result) const override;
 

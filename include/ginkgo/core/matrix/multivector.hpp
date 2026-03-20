@@ -308,6 +308,8 @@ public:
     using absolute_type = remove_complex<concrete_type>;
     using real_type = absolute_type;
     using complex_type = to_complex<concrete_type>;
+    // Add base implementation to the overload set
+    using MultiVector::as_precision;
 
     [[nodiscard]] static std::unique_ptr<concrete_type> create_with_config_of(
         ptr_param<const concrete_type> other);
@@ -349,6 +351,15 @@ public:
     [[nodiscard]] std::unique_ptr<real_type> get_real() const;
 
     [[nodiscard]] std::unique_ptr<real_type> get_imag() const;
+
+    template <typename NewValueType>
+    [[nodiscard]] auto as_precision() -> gko::detail::temporary_conversion<
+        ConcreteType<NewValueType, ExtraArgs...>>;
+
+    template <typename NewValueType>
+    [[nodiscard]] auto as_precision() const
+        -> gko::detail::temporary_conversion<
+            const ConcreteType<NewValueType, ExtraArgs...>>;
 
 protected:
     EnableMultiVector(std::shared_ptr<const Executor> exec, dim<2> size = {})
@@ -401,10 +412,10 @@ protected:
 
     virtual void get_imag_impl(real_type* result) const = 0;
 
-    virtual void add_scaled_impl(any_const_dense_t alpha,
+    virtual void add_scaled_impl(const Dense<ValueType>* alpha,
                                  const concrete_type* b) = 0;
 
-    virtual void sub_scaled_impl(any_const_dense_t alpha,
+    virtual void sub_scaled_impl(const Dense<ValueType>* alpha,
                                  const concrete_type* b) = 0;
 
     virtual void compute_dot_impl(const concrete_type* b,
@@ -852,7 +863,15 @@ template <template <typename...> typename ConcreteType, typename ValueType,
 void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::add_scaled_impl(
     any_const_dense_t alpha, const MultiVector* b)
 {
-    this->add_scaled_impl(alpha, as<const concrete_type>(b));
+    std::visit(
+        [this, b](auto alpha_v) {
+            this->add_scaled_impl(
+                as<Dense<ValueType>>(
+                    alpha_v->as_precision(this->get_precision()).get()),
+                as<concrete_type>(
+                    b->as_precision(this->get_precision()).get()));
+        },
+        alpha);
 }
 
 
@@ -861,7 +880,15 @@ template <template <typename...> typename ConcreteType, typename ValueType,
 void EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::sub_scaled_impl(
     any_const_dense_t alpha, const MultiVector* b)
 {
-    this->sub_scaled_impl(alpha, as<const concrete_type>(b));
+    std::visit(
+        [this, b](auto alpha_v) {
+            this->add_scaled_impl(
+                as<Dense<ValueType>>(
+                    alpha_v->as_precision(this->get_precision()).get()),
+                as<concrete_type>(
+                    b->as_precision(this->get_precision()).get()));
+        },
+        alpha);
 }
 
 
@@ -964,6 +991,30 @@ void EnableMultiVector<ConcreteType, ValueType,
 }
 
 
+template <template <typename...> class ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+template <typename NewValueType>
+auto EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::as_precision()
+    -> gko::detail::temporary_conversion<
+        ConcreteType<NewValueType, ExtraArgs...>>
+{
+    return gko::detail::temporary_conversion<
+        ConcreteType<NewValueType, ExtraArgs...>>::create(self());
+}
+
+
+template <template <typename...> class ConcreteType, typename ValueType,
+          typename... ExtraArgs>
+template <typename NewValueType>
+auto EnableMultiVector<ConcreteType, ValueType, ExtraArgs...>::as_precision()
+    const -> gko::detail::temporary_conversion<
+        const ConcreteType<NewValueType, ExtraArgs...>>
+{
+    return gko::detail::temporary_conversion<
+        const ConcreteType<NewValueType, ExtraArgs...>>::create(self());
+}
+
+
 template <template <typename...> typename ConcreteType, typename ValueType,
           typename... ExtraArgs>
 auto EnableMultiVector<ConcreteType, ValueType,
@@ -972,12 +1023,11 @@ auto EnableMultiVector<ConcreteType, ValueType,
 {
     return std::visit(
         [this](auto v) -> gko::detail::temporary_conversion<MultiVector> {
-            using fst_value_type = typename concrete_type::value_type;
             using snd_value_type = std::decay_t<decltype(v)>;
-            if constexpr (is_complex_s<fst_value_type>::value ==
+            if constexpr (is_complex_s<ValueType>::value ==
                           is_complex_s<snd_value_type>::value) {
                 return gko::detail::temporary_conversion<MultiVector>::create(
-                    self()->template as_precision<snd_value_type>());
+                    this->as_precision<snd_value_type>());
             } else {
                 GKO_NOT_IMPLEMENTED;
             }
@@ -994,12 +1044,11 @@ auto EnableMultiVector<ConcreteType, ValueType,
 {
     return std::visit(
         [this](auto v) -> gko::detail::temporary_conversion<const MultiVector> {
-            using fst_value_type = typename concrete_type::value_type;
             using snd_value_type = std::decay_t<decltype(v)>;
-            if constexpr (is_complex_s<fst_value_type>::value ==
+            if constexpr (is_complex_s<ValueType>::value ==
                           is_complex_s<snd_value_type>::value) {
                 return gko::detail::temporary_conversion<const MultiVector>::
-                    create(self()->template as_precision<snd_value_type>());
+                    create(this->as_precision<snd_value_type>());
             } else {
                 GKO_NOT_IMPLEMENTED;
             }

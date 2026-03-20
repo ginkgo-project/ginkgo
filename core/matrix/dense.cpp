@@ -1550,15 +1550,15 @@ void Dense<ValueType>::get_imag_impl(real_type* result) const
 }
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_impl(any_const_dense_t alpha, const Dense* b)
+void Dense<ValueType>::add_scaled_impl(const Dense* alpha, const Dense* b)
 {
-    std::visit([this, b](auto alpha) { add_scaled(alpha, b); }, alpha);
+    add_scaled(alpha, b);
 }
 
 template <typename ValueType>
-void Dense<ValueType>::sub_scaled_impl(any_const_dense_t alpha, const Dense* b)
+void Dense<ValueType>::sub_scaled_impl(const Dense* alpha, const Dense* b)
 {
-    std::visit([this, b](auto alpha) { sub_scaled(alpha, b); }, alpha);
+    sub_scaled(alpha, b);
 }
 
 template <typename ValueType>
@@ -1629,42 +1629,6 @@ auto Dense<ValueType>::get_const_local_device_view() const
 {
     return this->get_const_device_view();
 }
-
-
-template <typename ValueType>
-template <typename OtherValueType>
-auto Dense<ValueType>::as_precision()
-    -> gko::detail::temporary_conversion<Dense<OtherValueType>>
-{
-    return gko::detail::temporary_conversion<Dense<OtherValueType>>::create(
-        this);
-}
-
-#define GKO_DECLARE_DENSE_AS_PRECISION(ValueType, OtherValueType) \
-    auto Dense<ValueType>::as_precision()                         \
-        ->gko::detail::temporary_conversion<Dense<OtherValueType>>
-#define GKO_DECLARE_DENSE_AS_PRECISION_same(ValueType) \
-    GKO_DECLARE_DENSE_AS_PRECISION(ValueType, ValueType)
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_DENSE_AS_PRECISION);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_AS_PRECISION_same);
-
-
-template <typename ValueType>
-template <typename OtherValueType>
-auto Dense<ValueType>::as_precision() const
-    -> gko::detail::temporary_conversion<const Dense<OtherValueType>>
-{
-    return gko::detail::temporary_conversion<
-        const Dense<OtherValueType>>::create(this);
-}
-
-#define GKO_DECLARE_DENSE_CONST_AS_PRECISION(ValueType, OtherValueType) \
-    auto Dense<ValueType>::as_precision()                               \
-        const->gko::detail::temporary_conversion<const Dense<OtherValueType>>
-#define GKO_DECLARE_DENSE_CONST_AS_PRECISION_same(ValueType) \
-    GKO_DECLARE_DENSE_CONST_AS_PRECISION(ValueType, ValueType)
-GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_DENSE_CONST_AS_PRECISION);
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONST_AS_PRECISION_same);
 
 
 template <typename ValueType>
