@@ -650,15 +650,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::view::dense<const ValueType> source,
-                      matrix::Sellp<ValueType, IndexType>* result)
+                      matrix::view::sellp<ValueType, IndexType> result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto vals = result->get_values();
-    auto col_idxs = result->get_col_idxs();
-    auto slice_lengths = result->get_slice_lengths();
-    auto slice_sets = result->get_slice_sets();
-    auto slice_size = result->get_slice_size();
+    auto num_rows = result.size[0];
+    auto num_cols = result.size[1];
+    auto vals = result.values;
+    auto col_idxs = result.col_idxs;
+    auto slice_lengths = result.slice_lengths;
+    auto slice_sets = result.slice_sets;
+    auto slice_size = result.slice_size;
     for (size_type row = 0; row < num_rows; row++) {
         const auto slice = row / slice_size;
         const auto local_row = row % slice_size;

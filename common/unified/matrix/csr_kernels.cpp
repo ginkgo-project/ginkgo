@@ -121,7 +121,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* matrix,
-                      matrix::Sellp<ValueType, IndexType>* output)
+                      matrix::view::sellp<ValueType, IndexType> output)
 {
     run_kernel(
         exec,
@@ -144,10 +144,9 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                 out_idx += slice_size;
             }
         },
-        output->get_size()[0], matrix->get_const_col_idxs(),
+        output.size[0], matrix->get_const_col_idxs(),
         matrix->get_const_values(), matrix->get_const_row_ptrs(),
-        output->get_slice_size(), output->get_const_slice_sets(),
-        output->get_col_idxs(), output->get_values());
+        output.slice_size, output.slice_sets, output.col_idxs, output.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

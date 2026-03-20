@@ -475,7 +475,7 @@ void Csr<ValueType, IndexType>::convert_to(
     tmp->col_idxs_.resize_and_reset(total_cols * slice_size);
     tmp->values_.resize_and_reset(total_cols * slice_size);
     tmp->set_size(this->get_size());
-    exec->run(csr::make_convert_to_sellp(this, tmp.get()));
+    exec->run(csr::make_convert_to_sellp(this, tmp->get_device_view()));
 }
 
 

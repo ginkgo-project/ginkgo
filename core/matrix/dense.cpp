@@ -966,8 +966,8 @@ void Dense<ValueType>::convert_impl(Sellp<ValueType, IndexType>* result) const
     tmp->col_idxs_.resize_and_reset(total_cols * slice_size);
     tmp->values_.resize_and_reset(total_cols * slice_size);
     tmp->set_size(this->get_size());
-    exec->run(
-        dense::make_convert_to_sellp(this->get_const_device_view(), tmp.get()));
+    exec->run(dense::make_convert_to_sellp(this->get_const_device_view(),
+                                           tmp->get_device_view()));
 }
 
 
