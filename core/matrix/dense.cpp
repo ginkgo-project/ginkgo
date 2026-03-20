@@ -2404,7 +2404,7 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
 template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, size_type stride)
-    : EnableMultiVector<Dense>(exec, size),
+    : EnableMultiVector<Dense>(exec, size, type_to_precision<ValueType>),
       stride_(stride == 0 ? size[1] : stride),
       values_(exec, size[0] * stride_)
 {}
@@ -2414,7 +2414,7 @@ template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, array<value_type> values,
                         size_type stride)
-    : EnableMultiVector<Dense>(exec, size),
+    : EnableMultiVector<Dense>(exec, size, type_to_precision<ValueType>),
       stride_{stride},
       values_{exec, std::move(values)}
 {
