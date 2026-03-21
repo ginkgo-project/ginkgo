@@ -527,7 +527,7 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_cols = result.size[1];
     auto max_nnz_per_row = result.num_stored_elements_per_row;
     for (size_type i = 0; i < max_nnz_per_row; i++) {
-        for (size_type j = 0; j < result.stride; j++) {
+        for (size_type j = 0; j < num_rows; j++) {
             result.val_at(j, i) = zero<ValueType>();
             result.col_at(j, i) = invalid_index<IndexType>();
         }

@@ -1647,18 +1647,15 @@ void assert_strided_ell_eq_mtx6(
     ASSERT_EQ(ell_mtx->get_num_stored_elements_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
     ASSERT_EQ(ell_mtx->get_stride(), 3);
+    // only check the actual matrix entries.
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], invalid_index);
     EXPECT_EQ(c[3], 1);
     EXPECT_EQ(c[4], invalid_index);
-    EXPECT_EQ(c[5], invalid_index);
     EXPECT_EQ(v[0], ValueType{1.0});
     EXPECT_EQ(v[1], ValueType{1.5});
-    EXPECT_EQ(v[2], ValueType{0.0});
     EXPECT_EQ(v[3], ValueType{2.0});
     EXPECT_EQ(v[4], ValueType{0.0});
-    EXPECT_EQ(v[5], ValueType{0.0});
 }
 
 
