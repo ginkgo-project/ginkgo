@@ -16,6 +16,13 @@
 
 
 namespace gko {
+
+
+// Forward declarations for generate_with_node
+class LinOp;
+class LinOpFactory;
+
+
 namespace solver {
 namespace detail {
 
@@ -75,6 +82,15 @@ private:
     std::string tag_;
     size_type num_rhs_ = 0;
 };
+
+
+/**
+ * Generates a LinOp from a factory, passing a workspace node to the
+ * generated object for workspace tree propagation.
+ */
+std::unique_ptr<LinOp> generate_with_node(const LinOpFactory* factory,
+                                          std::shared_ptr<const LinOp> matrix,
+                                          WorkspaceNode* node);
 
 
 }  // namespace detail

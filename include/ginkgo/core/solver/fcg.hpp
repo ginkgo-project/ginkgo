@@ -117,9 +117,16 @@ protected:
               factory->get_executor(),
               gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Fcg<ValueType>>{
-              std::move(components.system_matrix), factory->get_parameters()},
+              std::move(components.system_matrix), factory->get_parameters(),
+              deferred_preconditioner},
           parameters_{factory->get_parameters()}
-    {}
+    {
+        if (components.workspace) {
+            this->set_workspace(std::move(components.workspace));
+            this->get_workspace_node()->bind_executor(this->get_executor());
+        }
+        this->generate_preconditioner_with_workspace(parameters_);
+    }
 };
 
 

@@ -1190,6 +1190,10 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
           stop::combine(factory->get_parameters().criteria)},
       parameters_{factory->get_parameters()}
 {
+    if (components.workspace) {
+        this->set_workspace(std::move(components.workspace));
+        this->get_workspace_node()->bind_executor(this->get_executor());
+    }
     this->validate();
     if (!parameters_.level_selector) {
         auto mg_level_size = parameters_.mg_level.size();
