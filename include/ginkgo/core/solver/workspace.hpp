@@ -153,6 +153,11 @@ public:
 
     std::shared_ptr<const Executor> get_executor() const { return exec_; }
 
+    void set_executor(std::shared_ptr<const Executor> exec)
+    {
+        exec_ = std::move(exec);
+    }
+
     void set_size(int num_operators, int num_arrays)
     {
         operators_.resize(num_operators);
