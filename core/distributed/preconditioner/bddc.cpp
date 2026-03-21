@@ -1484,9 +1484,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                                 unique_labels.get_const_data() + i * width + j,
                                 sizeof(uint_type));
                     for (size_type k = 0; k < n_significand_bits; k++) {
-                        if ((k != comm.rank()) &&
+                        auto rank_idx = j * n_significand_bits + k;
+                        if ((rank_idx != comm.rank()) &&
                             (int_key & (uint_type)1 << k)) {
-                            other = j * n_significand_bits + k;
+                            other = rank_idx;
                             found = true;
                         }
                     }
