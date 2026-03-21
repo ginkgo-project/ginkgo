@@ -115,6 +115,20 @@ private:
 };
 
 
+/**
+ * Extracts the workspace from a solver, invalidating the solver.
+ * The solver unique_ptr is reset to nullptr after extraction.
+ * Only works on top-level solvers that own their workspace.
+ *
+ * @param solver  the solver to extract from (will be set to nullptr)
+ * @return the extracted workspace
+ * @throws InvalidStateError if the solver is not workspace-aware or has no
+ *         owned workspace (e.g., it is an inner solver)
+ */
+std::unique_ptr<Workspace> invalidate_and_extract_workspace(
+    std::unique_ptr<LinOp>& solver);
+
+
 }  // namespace solver
 }  // namespace gko
 

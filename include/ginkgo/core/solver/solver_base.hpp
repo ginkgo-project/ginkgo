@@ -562,6 +562,9 @@ protected:
     std::unique_ptr<solver::Workspace> extract_workspace();
 
 private:
+    friend std::unique_ptr<solver::Workspace>
+    solver::invalidate_and_extract_workspace(std::unique_ptr<LinOp>& solver);
+
     mutable std::unique_ptr<solver::Workspace> owned_workspace_;
     mutable WorkspaceNode* node_ = nullptr;
 
