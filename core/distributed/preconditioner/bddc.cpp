@@ -151,11 +151,16 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     // so it must be single-column regardless of the label width.
     auto buffer_3 = share(Vector<remove_complex<ValueType>>::create(
         exec, comm,
-        dim<2>{system_matrix->get_restriction()->get_size()[0], 1}));
+        dim<2>{system_matrix->get_restriction()->get_size()[0], 1},
+        dim<2>{n_local_rows, 1}));
     buffer_3->fill(zero<remove_complex<ValueType>>());
     auto buffer_4 = Vector<remove_complex<ValueType>>::create(
         exec, comm,
-        dim<2>{system_matrix->get_prolongation()->get_size()[0], 1});
+        dim<2>{system_matrix->get_prolongation()->get_size()[0], 1},
+        dim<2>{system_matrix->get_prolongation()
+                   ->get_local_matrix()
+                   ->get_size()[0],
+               1});
 
     system_matrix->get_prolongation()->apply(buffer_1, buffer_2);
     system_matrix->get_restriction()->apply(buffer_2, buffer_1);
