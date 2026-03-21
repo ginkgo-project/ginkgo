@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
+#include <ginkgo/core/solver/workspace_tree.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -387,9 +388,12 @@ namespace detail {
  */
 class SolverBaseLinOp {
 public:
-    SolverBaseLinOp(std::shared_ptr<const Executor> exec)
-        : workspace_{std::move(exec)}
-    {}
+    SolverBaseLinOp(std::shared_ptr<const Executor> exec);
+
+    SolverBaseLinOp(const SolverBaseLinOp& other);
+    SolverBaseLinOp(SolverBaseLinOp&& other) noexcept;
+    SolverBaseLinOp& operator=(const SolverBaseLinOp& other);
+    SolverBaseLinOp& operator=(SolverBaseLinOp&& other) noexcept;
 
     virtual ~SolverBaseLinOp() = default;
 
@@ -405,7 +409,7 @@ public:
 
     const LinOp* get_workspace_op(int vector_id) const
     {
-        return workspace_.get_op(vector_id);
+        return node_->get_local_storage().get_op(vector_id);
     }
 
     virtual int get_num_workspace_ops() const { return 0; }
@@ -435,16 +439,17 @@ protected:
 
     void set_workspace_size(int num_operators, int num_arrays) const
     {
-        workspace_.set_size(num_operators, num_arrays);
+        node_->get_local_storage().set_size(num_operators, num_arrays);
     }
 
     template <typename LinOpType>
     LinOpType* create_workspace_op(int vector_id, gko::dim<2> size) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return node_->get_local_storage().template create_or_get_op<LinOpType>(
             vector_id,
             [&] {
-                return LinOpType::create(this->workspace_.get_executor(), size);
+                return LinOpType::create(
+                    node_->get_local_storage().get_executor(), size);
             },
             typeid(LinOpType), size, size[1]);
     }
@@ -453,7 +458,7 @@ protected:
     LinOpType* create_workspace_op_with_config_of(int vector_id,
                                                   const LinOpType* vec) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return node_->get_local_storage().template create_or_get_op<LinOpType>(
             vector_id, [&] { return LinOpType::create_with_config_of(vec); },
             typeid(*vec), vec->get_size(), vec->get_stride());
     }
@@ -463,11 +468,12 @@ protected:
                                                 const LinOpType* vec,
                                                 dim<2> size) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return node_->get_local_storage().template create_or_get_op<LinOpType>(
             vector_id,
             [&] {
                 return LinOpType::create_with_type_of(
-                    vec, workspace_.get_executor(), size, size[1]);
+                    vec, node_->get_local_storage().get_executor(), size,
+                    size[1]);
             },
             typeid(*vec), size, size[1]);
     }
@@ -478,12 +484,12 @@ protected:
                                                 dim<2> global_size,
                                                 dim<2> local_size) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return node_->get_local_storage().template create_or_get_op<LinOpType>(
             vector_id,
             [&] {
                 return LinOpType::create_with_type_of(
-                    vec, workspace_.get_executor(), global_size, local_size,
-                    local_size[1]);
+                    vec, node_->get_local_storage().get_executor(), global_size,
+                    local_size, local_size[1]);
             },
             typeid(*vec), global_size, local_size[1]);
     }
@@ -492,45 +498,72 @@ protected:
     matrix::Dense<ValueType>* create_workspace_scalar(int vector_id,
                                                       size_type size) const
     {
-        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
-            vector_id,
-            [&] {
-                return matrix::Dense<ValueType>::create(
-                    workspace_.get_executor(), dim<2>{1, size});
-            },
-            typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
+        return node_->get_local_storage()
+            .template create_or_get_op<matrix::Dense<ValueType>>(
+                vector_id,
+                [&] {
+                    return matrix::Dense<ValueType>::create(
+                        node_->get_local_storage().get_executor(),
+                        dim<2>{1, size});
+                },
+                typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
     }
 
     template <typename ValueType>
     const matrix::Dense<ValueType>* create_workspace_fixed_scalar(
         int vector_id, size_type size, ValueType val) const
     {
-        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
-            vector_id,
-            [&] {
-                auto mat = matrix::Dense<ValueType>::create(
-                    workspace_.get_executor(), dim<2>{1, size});
-                mat->fill(val);
-                return mat;
-            },
-            typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
+        return node_->get_local_storage()
+            .template create_or_get_op<matrix::Dense<ValueType>>(
+                vector_id,
+                [&] {
+                    auto mat = matrix::Dense<ValueType>::create(
+                        node_->get_local_storage().get_executor(),
+                        dim<2>{1, size});
+                    mat->fill(val);
+                    return mat;
+                },
+                typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
     }
 
     template <typename ValueType>
     array<ValueType>& create_workspace_array(int array_id, size_type size) const
     {
-        return workspace_.template create_or_get_array<ValueType>(array_id,
-                                                                  size);
+        return node_->get_local_storage()
+            .template create_or_get_array<ValueType>(array_id, size);
     }
 
     template <typename ValueType>
     array<ValueType>& create_workspace_array(int array_id) const
     {
-        return workspace_.template init_or_get_array<ValueType>(array_id);
+        return node_->get_local_storage().template init_or_get_array<ValueType>(
+            array_id);
     }
 
+    /**
+     * Sets an external workspace on this solver (top-level ownership).
+     */
+    void set_workspace(std::unique_ptr<solver::Workspace> ws);
+
+    /**
+     * Sets a workspace node on this solver (non-owning, for inner solvers).
+     */
+    void set_workspace_node(WorkspaceNode* node);
+
+    /**
+     * Returns the workspace node for this solver.
+     */
+    WorkspaceNode* get_workspace_node() const { return node_; }
+
+    /**
+     * Extracts the owned workspace. Only succeeds on the top-level solver.
+     * Sets node_ to nullptr, invalidating this solver.
+     */
+    std::unique_ptr<solver::Workspace> extract_workspace();
+
 private:
-    mutable detail::workspace workspace_;
+    mutable std::unique_ptr<solver::Workspace> owned_workspace_;
+    mutable WorkspaceNode* node_ = nullptr;
 
     std::shared_ptr<const LinOp> system_matrix_;
 };
@@ -681,6 +714,9 @@ protected:
 
     void setup_workspace() const
     {
+        GKO_THROW_IF_INVALID(
+            this->get_workspace_node() != nullptr,
+            "solver workspace has been extracted; solver is invalidated");
         using traits = workspace_traits<DerivedType>;
         this->set_workspace_size(traits::num_vectors(*self()),
                                  traits::num_arrays(*self()));
