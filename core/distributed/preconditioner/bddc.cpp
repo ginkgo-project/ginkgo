@@ -172,7 +172,7 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
 
     exec->run(bddc::make_classify_dofs_1(
         row_ptrs, col_idxs, global_idxs, labels.get(), tags, occurences,
-        vertex_flags->get_values(), local_part, dof_types, permutation_array,
+        buffer_3->get_local_values(), local_part, dof_types, permutation_array,
         interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
         n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
         n_constraints, n_owning_interfaces, use_faces, use_edges));
