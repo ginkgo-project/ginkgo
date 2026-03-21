@@ -17,6 +17,7 @@
 #include <parmetis.h>
 #include <sys/types.h>
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -35,6 +36,7 @@
 #include <ginkgo/core/reorder/amd.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/direct.hpp>
+#include <ginkgo/core/solver/mumps.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -728,12 +730,25 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         using DirectFactory =
             typename experimental::solver::Direct<ValueType,
                                                   LocalIndexType>::Factory;
-        bool local_is_direct = dynamic_cast<const DirectFactory*>(
-                                   parameters_.local_solver.get()) != nullptr;
+        auto is_direct_factory = [](const LinOpFactory* factory) {
+            if (dynamic_cast<const DirectFactory*>(factory)) {
+                return true;
+            }
+#if GKO_HAVE_MUMPS
+            using MumpsFactory =
+                typename experimental::solver::Mumps<ValueType,
+                                                     LocalIndexType>::Factory;
+            if (dynamic_cast<const MumpsFactory*>(factory)) {
+                return true;
+            }
+#endif
+            return false;
+        };
+        bool local_is_direct =
+            is_direct_factory(parameters_.local_solver.get());
         bool inner_is_direct =
             parameters_.inner_solver
-                ? dynamic_cast<const DirectFactory*>(
-                      parameters_.inner_solver.get()) != nullptr
+                ? is_direct_factory(parameters_.inner_solver.get())
                 : local_is_direct;
 
         if (parameters_.constant_nullspace) {

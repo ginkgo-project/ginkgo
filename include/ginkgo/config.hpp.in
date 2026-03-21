@@ -98,6 +98,12 @@
 // clang-format on
 #endif
 
+/* Is MUMPS available for direct solves? */
+// clang-format off
+#define GKO_HAVE_MUMPS @GINKGO_HAVE_MUMPS@
+// clang-format on
+
+
 /* Is ROCTX available for Profiling? */
 // clang-format off
 #define GKO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@
