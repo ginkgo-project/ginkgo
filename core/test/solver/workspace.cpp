@@ -302,3 +302,15 @@ TEST_F(Workspace, MoveResetsOperators)
 
     ASSERT_EQ(ws.get_op(0), nullptr);
 }
+
+
+TEST_F(Workspace, SetExecutorUpdatesExecutor)
+{
+    auto exec1 = gko::ReferenceExecutor::create();
+    auto exec2 = gko::ReferenceExecutor::create();
+    gko::solver::detail::workspace ws{exec1};
+
+    ws.set_executor(exec2);
+
+    ASSERT_EQ(ws.get_executor(), exec2);
+}
