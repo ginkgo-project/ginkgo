@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -152,6 +152,11 @@ public:
     }
 
     std::shared_ptr<const Executor> get_executor() const { return exec_; }
+
+    void set_executor(std::shared_ptr<const Executor> exec)
+    {
+        exec_ = std::move(exec);
+    }
 
     void set_size(int num_operators, int num_arrays)
     {
