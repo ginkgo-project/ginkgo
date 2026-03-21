@@ -212,11 +212,13 @@ Ilu<ValueType, ReverseApply, IndexType>::Ilu(
 
 
 template <typename ValueType, bool ReverseApply, typename IndexType>
-Ilu<ValueType, ReverseApply, IndexType>::Ilu(
-    const Factory* factory, std::shared_ptr<const LinOp> lin_op)
-    : LinOp(factory->get_executor(), lin_op->get_size()),
+Ilu<ValueType, ReverseApply, IndexType>::Ilu(const Factory* factory,
+                                             LinOpGenerateComponents components)
+
+    : LinOp(factory->get_executor(), components.system_matrix->get_size()),
       parameters_{factory->get_parameters()}
 {
+    auto lin_op = std::move(components.system_matrix);
     auto comp =
         std::dynamic_pointer_cast<const Composition<value_type>>(lin_op);
     std::shared_ptr<const LinOp> l_factor;

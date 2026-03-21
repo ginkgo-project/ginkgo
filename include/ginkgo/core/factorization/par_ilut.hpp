@@ -271,11 +271,11 @@ public:
             config::make_type_descriptor<ValueType, IndexType>());
 
 protected:
-    explicit ParIlut(const Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix)
+    explicit ParIlut(const Factory* factory, LinOpGenerateComponents components)
         : Composition<ValueType>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
+        auto system_matrix = std::move(components.system_matrix);
         auto comp = generate_l_u(std::move(system_matrix));
         for (auto& op : comp->get_operators()) {
             this->add_operators(op);

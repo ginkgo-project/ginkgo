@@ -563,10 +563,9 @@ protected:
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
-    explicit Jacobi(const Factory* factory,
-                    std::shared_ptr<const LinOp> system_matrix)
+    explicit Jacobi(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           storage_scheme_{this->compute_storage_scheme(
               parameters_.max_block_size, parameters_.max_block_stride)},
@@ -576,6 +575,7 @@ protected:
                       parameters_.block_pointers.get_size() - 1)),
           conditioning_(factory->get_executor())
     {
+        auto system_matrix = std::move(components.system_matrix);
         parameters_.block_pointers.set_executor(this->get_executor());
         parameters_.storage_optimization.block_wise.set_executor(
             this->get_executor());

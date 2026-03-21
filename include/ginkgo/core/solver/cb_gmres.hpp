@@ -195,11 +195,11 @@ protected:
         : LinOp(std::move(exec))
     {}
 
-    explicit CbGmres(const Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(), transpose(system_matrix->get_size())),
+    explicit CbGmres(const Factory* factory, LinOpGenerateComponents components)
+        : LinOp(factory->get_executor(),
+                transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+              std::move(components.system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

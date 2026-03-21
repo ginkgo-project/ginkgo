@@ -196,7 +196,7 @@ protected:
     explicit Chebyshev(std::shared_ptr<const Executor> exec);
 
     explicit Chebyshev(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix);
+                       LinOpGenerateComponents components);
 
 private:
     std::shared_ptr<const LinOp> solver_{};

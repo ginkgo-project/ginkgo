@@ -110,7 +110,7 @@ public:
 
 protected:
     std::unique_ptr<LinOp> generate_impl(
-        std::shared_ptr<const LinOp> base) const override;
+        LinOpGenerateComponents components) const override;
 
     IdentityFactory(std::shared_ptr<const Executor> exec) : LinOpFactory(exec)
     {}

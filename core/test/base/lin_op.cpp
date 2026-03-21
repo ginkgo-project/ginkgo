@@ -307,10 +307,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     DummyLinOpWithFactory(const Factory* factory,
-                          std::shared_ptr<const gko::LinOp> op)
+                          gko::LinOpGenerateComponents components)
         : gko::LinOp(factory->get_executor()),
           parameters_{factory->get_parameters()},
-          op_{op}
+          op_{std::move(components.system_matrix)}
     {}
 
     std::shared_ptr<const gko::LinOp> op_;

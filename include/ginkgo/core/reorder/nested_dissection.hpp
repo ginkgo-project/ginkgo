@@ -102,7 +102,7 @@ protected:
                               const parameters_type& params = {});
 
     std::unique_ptr<LinOp> generate_impl(
-        std::shared_ptr<const LinOp> system_matrix) const override;
+        LinOpGenerateComponents components) const override;
 
 private:
     parameters_type parameters_;

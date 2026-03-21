@@ -108,8 +108,7 @@ protected:
 
     explicit Pmis(std::shared_ptr<const Executor> exec);
 
-    explicit Pmis(const Factory* factory,
-                  std::shared_ptr<const LinOp> system_matrix);
+    explicit Pmis(const Factory* factory, LinOpGenerateComponents components);
 
     void generate();
 

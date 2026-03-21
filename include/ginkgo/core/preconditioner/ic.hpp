@@ -218,7 +218,7 @@ protected:
 
     explicit Ic(std::shared_ptr<const Executor> exec);
 
-    explicit Ic(const Factory* factory, std::shared_ptr<const LinOp> lin_op);
+    explicit Ic(const Factory* factory, LinOpGenerateComponents components);
 
     /**
      * Prepares the intermediate vector for the solve by creating it and

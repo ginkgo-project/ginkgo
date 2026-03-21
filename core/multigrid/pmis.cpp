@@ -95,11 +95,11 @@ Pmis<ValueType, IndexType>::Pmis(std::shared_ptr<const Executor> exec)
 
 template <typename ValueType, typename IndexType>
 Pmis<ValueType, IndexType>::Pmis(const Factory* factory,
-                                 std::shared_ptr<const LinOp> system_matrix)
-    : LinOp(factory->get_executor(), system_matrix->get_size()),
-      EnableMultigridLevel<ValueType>(system_matrix),
+                                 LinOpGenerateComponents components)
+    : LinOp(factory->get_executor(), components.system_matrix->get_size()),
+      EnableMultigridLevel<ValueType>(components.system_matrix),
       parameters_{factory->get_parameters()},
-      system_matrix_{system_matrix}
+      system_matrix_{std::move(components.system_matrix)}
 {
     GKO_ASSERT(parameters_.strength_threshold <= 1.0);
     GKO_ASSERT(parameters_.strength_threshold >= 0.0);
