@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -124,12 +124,12 @@ protected:
         : EnableLinOp<Gcr>(std::move(exec))
     {}
 
-    explicit Gcr(const Factory* factory,
-                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Gcr>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
+    explicit Gcr(const Factory* factory, LinOpGenerateComponents components)
+        : EnableLinOp<Gcr>(
+              factory->get_executor(),
+              gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+              std::move(components.system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {
         if (!parameters_.krylov_dim) {

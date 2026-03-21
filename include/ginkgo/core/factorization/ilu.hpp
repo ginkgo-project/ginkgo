@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -130,10 +130,11 @@ public:
             config::make_type_descriptor<ValueType, IndexType>());
 
 protected:
-    Ilu(const Factory* factory, std::shared_ptr<const gko::LinOp> system_matrix)
+    Ilu(const Factory* factory, LinOpGenerateComponents components)
         : Composition<ValueType>{factory->get_executor()},
           parameters_{factory->get_parameters()}
     {
+        auto system_matrix = std::move(components.system_matrix);
         if (parameters_.l_strategy == nullptr) {
             parameters_.l_strategy =
                 std::make_shared<typename matrix_type::classical>();

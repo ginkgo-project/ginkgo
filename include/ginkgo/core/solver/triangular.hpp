@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -174,12 +174,13 @@ protected:
     {}
 
     explicit LowerTrs(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<LowerTrs>(factory->get_executor(),
-                                gko::transpose(system_matrix->get_size())),
+                      LinOpGenerateComponents components)
+        : EnableLinOp<LowerTrs>(
+              factory->get_executor(),
+              gko::transpose(components.system_matrix->get_size())),
           EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             system_matrix)},
+                                             components.system_matrix)},
           parameters_{factory->get_parameters()}
     {
         this->generate();
@@ -343,12 +344,13 @@ protected:
     {}
 
     explicit UpperTrs(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<UpperTrs>(factory->get_executor(),
-                                gko::transpose(system_matrix->get_size())),
+                      LinOpGenerateComponents components)
+        : EnableLinOp<UpperTrs>(
+              factory->get_executor(),
+              gko::transpose(components.system_matrix->get_size())),
           EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             system_matrix)},
+                                             components.system_matrix)},
           parameters_{factory->get_parameters()}
     {
         this->generate();

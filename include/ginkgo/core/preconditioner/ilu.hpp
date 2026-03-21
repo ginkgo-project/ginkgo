@@ -234,7 +234,7 @@ protected:
 
     explicit Ilu(std::shared_ptr<const Executor> exec);
 
-    explicit Ilu(const Factory* factory, std::shared_ptr<const LinOp> lin_op);
+    explicit Ilu(const Factory* factory, LinOpGenerateComponents components);
 
     /**
      * Prepares the intermediate vector for the solve by creating it and
