@@ -865,6 +865,14 @@ struct nullspace_traits {
 
 
 /**
+ * Tag type for deferring preconditioner generation to the constructor
+ * body, allowing workspace wiring before preconditioner creation.
+ */
+struct deferred_preconditioner_t {};
+inline constexpr deferred_preconditioner_t deferred_preconditioner{};
+
+
+/**
  * A LinOp implementing this interface stores a system matrix and stopping
  * criterion factory.
  *
@@ -897,36 +905,26 @@ public:
         const FactoryParameters& params)
         : EnablePreconditionedIterativeSolver{
               system_matrix, stop::combine(params.criteria),
-              generate_preconditioner(system_matrix, params)}
+              generate_preconditioner_static(system_matrix, params)}
     {
-        using traits = nullspace_traits<DerivedType>;
-        if ((params.nullspace || params.left_nullspace) &&
-            !traits::is_supported) {
-            throw NotSupported(
-                __FILE__, __LINE__, "nullspace projection",
-                name_demangling::get_type_name(typeid(DerivedType)));
-        }
-        if (system_matrix) {
-            auto exec = get_solver_executor();
-            nullspace_ = detail::prepare_nullspace<ValueType>(
-                params.nullspace, "nullspace", system_matrix.get(),
-                system_matrix->get_size()[1], exec);
-            left_nullspace_ = detail::prepare_nullspace<ValueType>(
-                params.left_nullspace, "left_nullspace", system_matrix.get(),
-                system_matrix->get_size()[0], exec);
-        }
-        if (traits::requires_hermitian) {
-            if (!left_nullspace_) {
-                left_nullspace_ = nullspace_;
-            }
-            if (!nullspace_) {
-                nullspace_ = left_nullspace_;
-            }
-        }
+        this->init_nullspaces(system_matrix, params);
         if (nullspace_) {
             // wraps the preconditioner in the nullspace projection
             this->set_preconditioner(this->get_preconditioner());
         }
+    }
+
+    template <typename FactoryParameters>
+    EnablePreconditionedIterativeSolver(
+        std::shared_ptr<const LinOp> system_matrix,
+        const FactoryParameters& params, deferred_preconditioner_t)
+        : EnableSolverBase<DerivedType>(std::move(system_matrix)),
+          EnableIterativeBase<DerivedType>{stop::combine(params.criteria)}
+    {
+        // the preconditioner is generated in the constructor body of the
+        // derived solver, through generate_preconditioner_with_workspace,
+        // which wraps it in the nullspace projection via set_preconditioner
+        this->init_nullspaces(this->get_system_matrix(), params);
     }
 
     EnablePreconditionedIterativeSolver(
@@ -1025,6 +1023,33 @@ public:
 
 protected:
     /**
+     * Generates the preconditioner, using the workspace node if available
+     * to propagate workspace tree to inner preconditioners.
+     */
+    template <typename FactoryParameters>
+    void generate_preconditioner_with_workspace(const FactoryParameters& params)
+    {
+        if (params.generated_preconditioner) {
+            this->set_preconditioner(params.generated_preconditioner);
+        } else if (params.preconditioner) {
+            auto* node = this->get_workspace_node();
+            if (node) {
+                auto child = node->get_or_create_child("preconditioner");
+                this->set_preconditioner(detail::generate_with_node(
+                    params.preconditioner.get(), this->get_system_matrix(),
+                    child));
+            } else {
+                this->set_preconditioner(
+                    params.preconditioner->generate(this->get_system_matrix()));
+            }
+        } else {
+            this->set_preconditioner(matrix::Identity<ValueType>::create(
+                this->get_system_matrix()->get_executor(),
+                this->get_system_matrix()->get_size()));
+        }
+    }
+
+    /**
      * Removes the right nullspace component from `v`, if a right nullspace is
      * set. Solvers apply this to the initial guess; the preconditioner keeps
      * all search directions, and thus the solution, orthogonal to
@@ -1083,6 +1108,36 @@ protected:
     }
 
 private:
+    template <typename FactoryParameters>
+    void init_nullspaces(const std::shared_ptr<const LinOp>& system_matrix,
+                         const FactoryParameters& params)
+    {
+        using traits = nullspace_traits<DerivedType>;
+        if ((params.nullspace || params.left_nullspace) &&
+            !traits::is_supported) {
+            throw NotSupported(
+                __FILE__, __LINE__, "nullspace projection",
+                name_demangling::get_type_name(typeid(DerivedType)));
+        }
+        if (system_matrix) {
+            auto exec = get_solver_executor();
+            nullspace_ = detail::prepare_nullspace<ValueType>(
+                params.nullspace, "nullspace", system_matrix.get(),
+                system_matrix->get_size()[1], exec);
+            left_nullspace_ = detail::prepare_nullspace<ValueType>(
+                params.left_nullspace, "left_nullspace", system_matrix.get(),
+                system_matrix->get_size()[0], exec);
+        }
+        if (traits::requires_hermitian) {
+            if (!left_nullspace_) {
+                left_nullspace_ = nullspace_;
+            }
+            if (!nullspace_) {
+                nullspace_ = left_nullspace_;
+            }
+        }
+    }
+
     // whether precond already removes the nullspaces this solver needs removed
     bool removes_nullspaces(const LinOp* precond) const
     {
@@ -1138,7 +1193,7 @@ private:
     }
 
     template <typename FactoryParameters>
-    static std::shared_ptr<const LinOp> generate_preconditioner(
+    static std::shared_ptr<const LinOp> generate_preconditioner_static(
         std::shared_ptr<const LinOp> system_matrix,
         const FactoryParameters& params)
     {

@@ -180,6 +180,10 @@ protected:
                                              components.system_matrix)},
           parameters_{factory->get_parameters()}
     {
+        if (components.workspace) {
+            this->set_workspace(std::move(components.workspace));
+            this->get_workspace_node()->bind_executor(this->get_executor());
+        }
         this->generate();
     }
 
@@ -347,6 +351,10 @@ protected:
                                              components.system_matrix)},
           parameters_{factory->get_parameters()}
     {
+        if (components.workspace) {
+            this->set_workspace(std::move(components.workspace));
+            this->get_workspace_node()->bind_executor(this->get_executor());
+        }
         this->generate();
     }
 

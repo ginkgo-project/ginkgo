@@ -80,6 +80,15 @@ void WorkspaceNode::describe(std::ostream& os, int indent) const
 }
 
 
+std::unique_ptr<LinOp> generate_with_node(const LinOpFactory* factory,
+                                          std::shared_ptr<const LinOp> matrix,
+                                          WorkspaceNode* node)
+{
+    auto ws = Workspace::create_non_owning(node);
+    return factory->generate(std::move(matrix), std::move(ws));
+}
+
+
 }  // namespace detail
 
 
