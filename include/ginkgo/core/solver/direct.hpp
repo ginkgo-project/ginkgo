@@ -99,7 +99,7 @@ public:
 protected:
     explicit Direct(std::shared_ptr<const Executor> exec);
 
-    Direct(const Factory* factory, std::shared_ptr<const LinOp> system_matrix);
+    Direct(const Factory* factory, LinOpGenerateComponents components);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

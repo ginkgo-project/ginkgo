@@ -451,7 +451,7 @@ protected:
     explicit Multigrid(std::shared_ptr<const Executor> exec);
 
     explicit Multigrid(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix);
+                       LinOpGenerateComponents components);
 
     /**
      * validate checks the given parameters are valid or not.

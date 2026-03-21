@@ -24,6 +24,13 @@
 
 
 namespace gko {
+
+
+namespace solver {
+class Workspace;
+}  // namespace solver
+
+
 namespace matrix {
 
 
@@ -340,27 +347,42 @@ private:
  *
  * @ingroup LinOp
  */
-class LinOpFactory
-    : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
-public:
-    using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
 
-    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
-    {
-        this->template log<log::Logger::linop_factory_generate_started>(
-            this, input.get());
-        const auto exec = this->get_executor();
-        std::unique_ptr<LinOp> generated;
-        if (input->get_executor() == exec) {
-            generated = this->AbstractFactory::generate(input);
-        } else {
-            generated =
-                this->AbstractFactory::generate(gko::clone(exec, input));
-        }
-        this->template log<log::Logger::linop_factory_generate_completed>(
-            this, input.get(), generated.get());
-        return generated;
-    }
+
+/**
+ * Components needed to generate a LinOp product from a factory.
+ * Carries the system matrix and an optional workspace for temporary storage.
+ *
+ * Destructor, move constructor, and move assignment are out-of-line
+ * (in core/base/lin_op.cpp) because unique_ptr<Workspace> requires
+ * a complete type for these operations.
+ */
+struct LinOpGenerateComponents {
+    std::shared_ptr<const LinOp> system_matrix;
+    std::unique_ptr<solver::Workspace> workspace;
+
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix);
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
+                            std::unique_ptr<solver::Workspace> ws);
+    ~LinOpGenerateComponents();
+    LinOpGenerateComponents(LinOpGenerateComponents&&) noexcept;
+    LinOpGenerateComponents& operator=(LinOpGenerateComponents&&) noexcept;
+
+    // Non-copyable (unique_ptr member)
+    LinOpGenerateComponents(const LinOpGenerateComponents&) = delete;
+    LinOpGenerateComponents& operator=(const LinOpGenerateComponents&) = delete;
+};
+
+
+class LinOpFactory : public AbstractFactory<LinOp, LinOpGenerateComponents> {
+public:
+    using AbstractFactory<LinOp, LinOpGenerateComponents>::AbstractFactory;
+
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const;
+
+    std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> input,
+        std::unique_ptr<solver::Workspace> ws) const;
 };
 
 
@@ -854,8 +876,8 @@ protected:
  *                          [CRTP parameter]
  * @tparam ConcreteLinOp  the concrete LinOp type which this factory produces,
  *                        needs to have a constructor which takes a
- *                        const ConcreteFactory *, and an
- *                        std::shared_ptr<const LinOp> as parameters.
+ *                        const ConcreteFactory *, and a
+ *                        LinOpGenerateComponents as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
@@ -881,7 +903,7 @@ using EnableDefaultLinOpFactory =
  * after the macro definition, and should contain a list of
  * GKO_FACTORY_PARAMETER_* declarations. The class should provide a constructor
  * with signature
- * _lin_op(const _factory_name *, std::shared_ptr<const LinOp>)
+ * _lin_op(const _factory_name *, LinOpGenerateComponents)
  * which the factory will use a callback to construct the object.
  *
  * A minimal example of a linear operator is the following:
@@ -901,7 +923,7 @@ using EnableDefaultLinOpFactory =
  *         : EnableLinOp<MyLinOp>(exec) {}
  *     // constructor needed by the factory
  *     explicit MyLinOp(const Factory *factory,
- *                      std::shared_ptr<const LinOp> matrix)
+ *                      LinOpGenerateComponents matrix)
  *         : EnableLinOp<MyLinOp>(factory->get_executor()), matrix->get_size()),
  *           // store factory's parameters locally
  *           my_parameters_{factory->get_parameters()},

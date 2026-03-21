@@ -250,11 +250,10 @@ protected:
         : EnableLinOp<Ir>(std::move(exec))
     {}
 
-    explicit Ir(const Factory* factory,
-                std::shared_ptr<const LinOp> system_matrix)
+    explicit Ir(const Factory* factory, LinOpGenerateComponents components)
         : EnableLinOp<Ir>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<Ir>{std::move(system_matrix)},
+                          gko::transpose(components.system_matrix->get_size())),
+          EnableSolverBase<Ir>{std::move(components.system_matrix)},
           EnableIterativeBase<Ir>{
               stop::combine(factory->get_parameters().criteria)},
           parameters_{factory->get_parameters()}

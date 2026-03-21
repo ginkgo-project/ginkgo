@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -178,12 +178,11 @@ protected:
         : EnableLinOp<CbGmres>(std::move(exec))
     {}
 
-    explicit CbGmres(const Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix)
+    explicit CbGmres(const Factory* factory, LinOpGenerateComponents components)
         : EnableLinOp<CbGmres>(factory->get_executor(),
-                               transpose(system_matrix->get_size())),
+                               transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+              std::move(components.system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };
