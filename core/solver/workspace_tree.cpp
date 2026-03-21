@@ -92,6 +92,20 @@ std::unique_ptr<LinOp> generate_with_node(const LinOpFactory* factory,
 }  // namespace detail
 
 
+std::unique_ptr<Workspace> invalidate_and_extract_workspace(
+    std::unique_ptr<LinOp>& solver)
+{
+    auto* solver_base = dynamic_cast<detail::SolverBaseLinOp*>(solver.get());
+    GKO_THROW_IF_INVALID(solver_base != nullptr,
+                         "solver does not support workspace extraction");
+    auto ws = solver_base->extract_workspace();
+    GKO_THROW_IF_INVALID(ws != nullptr,
+                         "solver has no workspace to extract (inner solver?)");
+    solver.reset();
+    return ws;
+}
+
+
 std::unique_ptr<Workspace> Workspace::create(size_type num_rhs)
 {
     std::unique_ptr<Workspace> ws(new Workspace());
