@@ -191,9 +191,8 @@ protected:
     explicit Pgm(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
-    explicit Pgm(const Factory* factory,
-                 std::shared_ptr<const LinOp> system_matrix)
-        : Pgm(factory, std::move(system_matrix), nullptr)
+    explicit Pgm(const Factory* factory, LinOpGenerateComponents components)
+        : Pgm(factory, std::move(components.system_matrix), nullptr)
     {}
 
     Pgm(const Factory* factory, std::shared_ptr<const LinOp> system_matrix,

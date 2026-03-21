@@ -36,8 +36,9 @@ void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType>
 std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
-    std::shared_ptr<const LinOp> base) const
+    LinOpGenerateComponents components) const
 {
+    auto base = std::move(components.system_matrix);
     GKO_ASSERT_EQUAL_DIMENSIONS(base, transpose(base->get_size()));
     return Identity<ValueType>::create(this->get_executor(),
                                        base->get_size()[0]);
