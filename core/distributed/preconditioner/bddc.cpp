@@ -147,8 +147,15 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
                    ->get_local_matrix()
                    ->get_size()[0],
                width});
-    auto buffer_3 = share(clone(buffer_1));
+    // buffer_3 carries per-DOF vertex flags (one scalar per row),
+    // so it must be single-column regardless of the label width.
+    auto buffer_3 = share(Vector<remove_complex<ValueType>>::create(
+        exec, comm,
+        dim<2>{system_matrix->get_restriction()->get_size()[0], 1}));
     buffer_3->fill(zero<remove_complex<ValueType>>());
+    auto buffer_4 = Vector<remove_complex<ValueType>>::create(
+        exec, comm,
+        dim<2>{system_matrix->get_prolongation()->get_size()[0], 1});
 
     system_matrix->get_prolongation()->apply(buffer_1, buffer_2);
     system_matrix->get_restriction()->apply(buffer_2, buffer_1);
@@ -165,14 +172,14 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
 
     exec->run(bddc::make_classify_dofs_1(
         row_ptrs, col_idxs, global_idxs, labels.get(), tags, occurences,
-        buffer_3->get_local_values(), local_part, dof_types, permutation_array,
+        vertex_flags->get_values(), local_part, dof_types, permutation_array,
         interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
         n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
         n_constraints, n_owning_interfaces, use_faces, use_edges));
 
     // Exchange endpoint vertex information
-    system_matrix->get_prolongation()->apply(buffer_3, buffer_2);
-    system_matrix->get_restriction()->apply(buffer_2, buffer_3);
+    system_matrix->get_prolongation()->apply(buffer_3, buffer_4);
+    system_matrix->get_restriction()->apply(buffer_4, buffer_3);
 
     exec->run(bddc::make_classify_dofs_2(
         row_ptrs, col_idxs, global_idxs, labels.get(), tags, occurences,
