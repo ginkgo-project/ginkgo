@@ -1,0 +1,105 @@
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
+#ifndef GKO_PUBLIC_CORE_SOLVER_WORKSPACE_TREE_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_WORKSPACE_TREE_HPP_
+
+
+#include <iostream>
+#include <map>
+#include <memory>
+#include <string>
+
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/solver/workspace.hpp>
+
+
+namespace gko {
+namespace solver {
+namespace detail {
+
+
+class WorkspaceNode {
+public:
+    WorkspaceNode() : local_storage_{ReferenceExecutor::create()} {}
+
+    WorkspaceNode* get_or_create_child(const std::string& tag)
+    {
+        auto it = children_.find(tag);
+        if (it != children_.end()) {
+            return it->second.get();
+        }
+        auto child = std::make_unique<WorkspaceNode>();
+        child->tag_ = tag;
+        child->num_rhs_ = num_rhs_;
+        auto* ptr = child.get();
+        children_.emplace(tag, std::move(child));
+        return ptr;
+    }
+
+    WorkspaceNode* get_child(const std::string& tag) const
+    {
+        auto it = children_.find(tag);
+        if (it != children_.end()) {
+            return it->second.get();
+        }
+        return nullptr;
+    }
+
+    bool has_child(const std::string& tag) const
+    {
+        return children_.find(tag) != children_.end();
+    }
+
+    size_type get_num_rhs() const { return num_rhs_; }
+
+    void set_num_rhs(size_type num_rhs) { num_rhs_ = num_rhs; }
+
+    void bind_executor(std::shared_ptr<const Executor> exec)
+    {
+        local_storage_.set_executor(std::move(exec));
+    }
+
+    void describe(std::ostream& os, int indent = 0) const;
+
+    workspace& get_local_storage() { return local_storage_; }
+
+    const workspace& get_local_storage() const { return local_storage_; }
+
+private:
+    friend class SolverBaseLinOp;
+
+    workspace local_storage_;
+    std::map<std::string, std::unique_ptr<WorkspaceNode>> children_;
+    std::string tag_;
+    size_type num_rhs_ = 0;
+};
+
+
+}  // namespace detail
+
+
+class Workspace {
+public:
+    static std::unique_ptr<Workspace> create(size_type num_rhs = 1);
+    static std::unique_ptr<Workspace> create_non_owning(
+        detail::WorkspaceNode* node);
+
+    size_type get_num_rhs() const { return node_->get_num_rhs(); }
+
+    detail::WorkspaceNode* root() const { return node_; }
+
+    void describe(std::ostream& os) const;
+
+private:
+    Workspace() = default;
+    std::unique_ptr<detail::WorkspaceNode> owned_root_;
+    detail::WorkspaceNode* node_ = nullptr;
+};
+
+
+}  // namespace solver
+}  // namespace gko
+
+#endif  // GKO_PUBLIC_CORE_SOLVER_WORKSPACE_TREE_HPP_
