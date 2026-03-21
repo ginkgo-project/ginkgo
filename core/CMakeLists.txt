@@ -93,6 +93,7 @@ target_sources(
         matrix/scaled_permutation.cpp
         matrix/sellp.cpp
         matrix/sparsity_csr.cpp
+        multigrid/hmis.cpp
         multigrid/pgm.cpp
         multigrid/fixed_coarsening.cpp
         preconditioner/batch_jacobi.cpp

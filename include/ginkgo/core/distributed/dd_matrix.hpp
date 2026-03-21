@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -374,6 +374,67 @@ public:
         return map_;
     }
 
+    /**
+     * Attaches a null-space to this matrix.
+     *
+     * The null-space is stored on the matrix and can be used by solvers to
+     * project out null-space components from the right-hand side and
+     * solution, similar to PETSc's MatSetNullSpace.
+     *
+     * Each column of the provided vector represents one null-space vector.
+     * The null-space vectors should be orthonormal.
+     *
+     * @param null_space  The null-space vectors as columns of a distributed
+     *                    vector, or nullptr to remove the null-space.
+     */
+    void set_null_space(std::shared_ptr<const global_vector_type> null_space);
+
+    /**
+     * Sets the null-space to be the constant (all-ones, normalized) vector.
+     *
+     * This is a convenience method for the common case where the null-space
+     * consists of the constant vector, e.g. for Neumann problems or
+     * elasticity without Dirichlet boundary conditions.
+     *
+     * Requires that read_distributed has been called first so that the
+     * matrix dimensions and partition are known.
+     *
+     * @param partition  The partition used for the distributed vector.
+     */
+    void set_constant_null_space(
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
+            partition);
+
+    /**
+     * Returns the null-space attached to this matrix.
+     *
+     * @return  Shared pointer to the null-space vectors, or nullptr if no
+     *          null-space is set.
+     */
+    std::shared_ptr<const global_vector_type> get_null_space() const
+    {
+        return null_space_;
+    }
+
+    /**
+     * Checks whether a null-space is attached to this matrix.
+     *
+     * @return  true if a null-space has been set.
+     */
+    bool has_null_space() const { return null_space_ != nullptr; }
+
+    /**
+     * Projects out null-space components from the given vector in-place.
+     *
+     * For each null-space vector n_i, computes:
+     *   v = v - (n_i^T * v) * n_i
+     *
+     * This is equivalent to PETSc's MatNullSpaceRemove.
+     *
+     * @param vec  The vector to project. Modified in-place.
+     */
+    void remove_null_space(ptr_param<global_vector_type> vec) const;
+
 protected:
     explicit DdMatrix(std::shared_ptr<const Executor> exec,
                       mpi::communicator comm);
@@ -395,6 +456,8 @@ private:
     std::shared_ptr<global_matrix_type> prolongation_;
     gko::experimental::distributed::index_map<LocalIndexType, GlobalIndexType>
         map_;
+    std::shared_ptr<const global_vector_type> null_space_;
+    mutable gko::detail::DenseCache<value_type> nsp_dot_buffer_;
 };
 
 

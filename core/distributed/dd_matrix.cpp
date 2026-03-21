@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/components/fill_array_kernels.hpp"
@@ -157,8 +158,8 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                static_cast<size_type>(local_num_rows)},
         local_row_idxs, local_col_idxs, arrays.values};
     local_data.sort_row_major();
-    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
-        ->read(std::move(local_data));
+    // as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
+    //     ->read(std::move(local_data));
 
     // Gather local sizes from all ranks and build the partition in the enriched
     // space.
@@ -188,25 +189,49 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         enriched_map.map_to_global(local_idxs, index_space::combined);
     array<ValueType> restrict_values{exec,
                                      static_cast<size_type>(local_num_rows)};
-    restrict_values.fill(one<ValueType>());
-    device_matrix_data<ValueType, GlobalIndexType> restrict_data{
-        exec, dim<2>{large_partition->get_size(), partition->get_size()},
-        std::move(restrict_row_idxs), std::move(restrict_col_idxs),
-        std::move(restrict_values)};
-    restriction_ =
-        Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
-    restriction_->read_distributed(restrict_data, large_partition, partition);
     auto prolongate_col_idxs =
         enriched_map.map_to_global(local_idxs, index_space::combined);
     auto prolongate_row_idxs =
         map_.map_to_global(local_idxs, index_space::combined);
     array<ValueType> prolongate_values{exec,
                                        static_cast<size_type>(local_num_rows)};
+    restrict_values.fill(one<ValueType>());
     prolongate_values.fill(one<ValueType>());
+
+    // restrict_values.fill(zero<ValueType>());
+    prolongate_values.fill(zero<ValueType>());
+    restrict_values.set_executor(exec->get_master());
+    prolongate_values.set_executor(exec->get_master());
+    auto host_data = local_data.copy_to_host();
+    for (auto entry : host_data.nonzeros) {
+        // restrict_values.get_data()[entry.row] = one<ValueType>();
+        prolongate_values.get_data()[entry.row] = one<ValueType>();
+    }
+    for (size_t i = 0; i < local_num_rows; i++) {
+        if (prolongate_values.get_const_data()[i] == zero<ValueType>()) {
+            host_data.nonzeros.emplace_back(i, i, one<ValueType>());
+        }
+    }
+    host_data.sort_row_major();
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
+        ->read(std::move(host_data));
+    restrict_values.set_executor(exec);
+    prolongate_values.set_executor(exec);
+
+    device_matrix_data<ValueType, GlobalIndexType> restrict_data{
+        exec, dim<2>{large_partition->get_size(), partition->get_size()},
+        std::move(restrict_row_idxs), std::move(restrict_col_idxs),
+        std::move(restrict_values)};
+    restrict_data.remove_zeros();
+    restrict_data.sort_row_major();
+    restriction_ =
+        Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
+    restriction_->read_distributed(restrict_data, large_partition, partition);
     device_matrix_data<ValueType, GlobalIndexType> prolongate_data{
         exec, dim<2>{partition->get_size(), large_partition->get_size()},
         std::move(prolongate_row_idxs), std::move(prolongate_col_idxs),
         std::move(prolongate_values)};
+    prolongate_data.remove_zeros();
     prolongate_data.sort_row_major();
     prolongation_ =
         Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(exec, comm);
@@ -351,6 +376,56 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::set_null_space(
+    std::shared_ptr<const global_vector_type> null_space)
+{
+    if (null_space) {
+        GKO_ASSERT_EQUAL_ROWS(this, null_space.get());
+    }
+    null_space_ = std::move(null_space);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::
+    set_constant_null_space(
+        std::shared_ptr<const Partition<local_index_type, global_index_type>>
+            partition)
+{
+    auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+    auto global_size = this->get_size()[0];
+    auto local_size =
+        static_cast<size_type>(partition->get_part_size(comm.rank()));
+    auto local_vec =
+        gko::matrix::Dense<ValueType>::create(exec, dim<2>{local_size, 1});
+    // Fill with 1/sqrt(n) so the null-space vector is normalized.
+    local_vec->fill(one<ValueType>() /
+                    sqrt(static_cast<remove_complex<ValueType>>(global_size)));
+    null_space_ = global_vector_type::create(exec, comm, dim<2>{global_size, 1},
+                                             std::move(local_vec));
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::remove_null_space(
+    ptr_param<global_vector_type> vec) const
+{
+    if (!null_space_) {
+        return;
+    }
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_COLS(null_space_.get(), vec.get());
+    const auto num_nsp = null_space_->get_size()[1];
+    // dot = null_space^T * vec  (1 x num_nsp, column-wise dot products)
+    nsp_dot_buffer_.init(exec, dim<2>{1, num_nsp});
+    null_space_->compute_dot(vec.get(), nsp_dot_buffer_.get());
+    // vec = vec - dot * null_space
+    vec->sub_scaled(nsp_dot_buffer_.get(), null_space_);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::DdMatrix(
     const DdMatrix& other)
     : EnableLinOp<DdMatrix<value_type, local_index_type,
@@ -387,6 +462,7 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         restriction_->copy_from(other.restriction_);
         prolongation_->copy_from(other.prolongation_);
         map_ = other.map_;
+        null_space_ = other.null_space_;
     }
     return *this;
 }
@@ -406,6 +482,7 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         restriction_->move_from(other.restriction_);
         prolongation_->move_from(other.prolongation_);
         map_ = other.map_;
+        null_space_ = std::move(other.null_space_);
     }
     return *this;
 }

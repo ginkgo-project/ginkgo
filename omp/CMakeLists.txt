@@ -45,6 +45,7 @@ target_sources(
         matrix/fft_kernels.cpp
         matrix/sellp_kernels.cpp
         matrix/sparsity_csr_kernels.cpp
+        multigrid/hmis_kernels.cpp
         multigrid/pgm_kernels.cpp
         preconditioner/batch_jacobi_kernels.cpp
         preconditioner/isai_kernels.cpp

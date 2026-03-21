@@ -48,6 +48,15 @@ size_type min_rank(std::vector<ValueType>& key, size_type n_significand_bits)
     return 0;
 }
 
+template <typename ValueType>
+bool key_contains_rank(size_type rank, std::vector<ValueType>& key,
+                       size_type n_significand_bits)
+{
+    auto col = rank / n_significand_bits;
+    auto significant_bit = rank % n_significand_bits;
+    return key[col] & ((ValueType)1 << significant_bit);
+}
+
 
 }  // namespace
 
@@ -96,7 +105,11 @@ void classify_dofs_1(
         for (size_type j = 0; j < n_cols; j++) {
             n_ranks += gko::detail::popcount(key[j]);
         }
-        if (n_ranks == 1) {
+        if (n_ranks == 1 ||
+            !key_contains_rank(local_part, key, n_significand_bits)) {
+            if (!key_contains_rank(local_part, key, n_significand_bits)) {
+                std::cout << "N_RANKS: " << n_ranks << std::endl;
+            }
             n_inner_idxs++;
             dof_types.get_data()[i] =
                 experimental::distributed::preconditioner::dof_type::inner;

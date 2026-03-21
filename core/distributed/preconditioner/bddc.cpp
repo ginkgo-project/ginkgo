@@ -249,12 +249,10 @@ public:
         }
         one_ = gko::initialize<local_vec>({1.0}, exec);
         neg_one_ = gko::initialize<local_vec>({-1.0}, exec);
+        scale_4_ = clone(one_);
     }
 
-    void add_scaling(std::shared_ptr<const LinOp> scaling) const
-    {
-        solver_ = Composition<ValueType>::create(scaling, solver_);
-    }
+    void add_scaling(ValueType scale) const { scale_4_->fill(scale); }
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
@@ -282,6 +280,7 @@ protected:
             scale_2_->inv_scale(scale_1_);
             scale_2_->scale(neg_one_);
             dense_x->add_scaled(scale_2_, nsp_1_);
+            dense_x->scale(scale_4_);
             dense_x->add_scaled(scale_3_, nsp_1_);
         }
         if (permutation_ != nullptr) {
@@ -304,6 +303,7 @@ private:
     std::shared_ptr<const local_vec> scale_1_;
     std::shared_ptr<local_vec> scale_2_;
     std::shared_ptr<local_vec> scale_3_;
+    std::shared_ptr<local_vec> scale_4_;
     mutable std::shared_ptr<const LinOp> solver_;
     std::shared_ptr<const perm_type> permutation_;
 };
@@ -395,11 +395,12 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     }
     prolongation_->apply(one_, buf_1_, one_, dense_x);
 
-    // if (parameters_.constant_nullspace) {
-    //     dense_x->compute_dot(nsp, LL_scal_3);
-    //     LL_scal_3->inv_scale(n_op);
-    //     dense_x->add_scaled(LL_scal_3, nsp);
-    // }
+    if constexpr (std::is_same_v<VectorType, experimental::distributed::Vector<
+                                                 ValueType>>) {
+        if (dd_system_matrix->has_null_space()) {
+            dd_system_matrix->remove_null_space(dense_x);
+        }
+    }
 }
 
 
@@ -624,6 +625,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             as<local_real_vec>(labels->get_local_vector())
                 ->permute(permutation_, matrix::permute_mode::rows);
 
+        // std::ofstream out2{"DD_" + std::to_string(comm.rank()) + ".mtx"};
+        // gko::write(out2, reordered_system_matrix);
+        // out2.close();
+
         // Decompose the local matrix
         //     | A_II A_ID A_IP |   | A_LL A_LP |
         // A = | A_DI A_DD A_DP | = | A_PL A_PP |.
@@ -697,7 +702,6 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 rt->read(rt_data);
                 local_solver_ =
                     gko::Composition<ValueType>::create(r, minor_solver, rt);
-                local_nsp = true;
             } else {
                 local_solver_ = parameters_.local_solver->generate(A_LL);
             }
@@ -721,16 +725,17 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 exec, A_II->get_size()[0]);
         }
 
-        matrix_data<ValueType, LocalIndexType> condest_LL_data(
-            gko::dim<2>{A_LL->get_size()[0], 1},
-            std::normal_distribution<>(0.0, 1.0), std::default_random_engine());
-        auto condest_rhs_LL = local_vec::create(exec);
-        condest_rhs_LL->read(condest_LL_data);
-        matrix_data<ValueType, LocalIndexType> condest_II_data(
-            gko::dim<2>{A_II->get_size()[0], 1},
-            std::normal_distribution<>(0.0, 1.0), std::default_random_engine());
-        auto condest_rhs_II = local_vec::create(exec);
-        condest_rhs_II->read(condest_II_data);
+        using DirectFactory =
+            typename experimental::solver::Direct<ValueType,
+                                                  LocalIndexType>::Factory;
+        bool local_is_direct = dynamic_cast<const DirectFactory*>(
+                                   parameters_.local_solver.get()) != nullptr;
+        bool inner_is_direct =
+            parameters_.inner_solver
+                ? dynamic_cast<const DirectFactory*>(
+                      parameters_.inner_solver.get()) != nullptr
+                : local_is_direct;
+
         if (parameters_.constant_nullspace) {
             II_nsp_1 = local_vec::create(exec, dim<2>{A_II->get_size()[0], 1});
             II_nsp_2 = clone(II_nsp_1);
@@ -748,10 +753,6 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
                     exec, inner_solver_, II_nsp_1, II_nsp_2, II_scal_1);
             }
-            condest_rhs_II->compute_dot(II_nsp_1, II_scal_3);
-            II_scal_3->inv_scale(II_scal_1);
-            II_scal_3->scale(neg_one_);
-            condest_rhs_II->add_scaled(II_scal_3, II_nsp_2);
 
             LL_nsp_1 = local_vec::create(exec, dim<2>{A_LL->get_size()[0], 1});
             LL_nsp_2 = clone(LL_nsp_1);
@@ -768,10 +769,6 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
                     exec, local_solver_, LL_nsp_1, LL_nsp_2, LL_scal_1);
             }
-            condest_rhs_LL->compute_dot(LL_nsp_1, LL_scal_3);
-            LL_scal_3->inv_scale(LL_scal_1);
-            LL_scal_3->scale(neg_one_);
-            condest_rhs_LL->add_scaled(LL_scal_3, LL_nsp_2);
         } else {
             if (parameters_.reordering) {
                 inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
@@ -790,67 +787,82 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                     exec, local_solver_);
             }
         }
-        // if (comm.rank() == 4) {
-        //     std::ofstream out{"LL.mtx"};
-        //     gko::write(out, A_LL);
-        //     out.close();
-        // }
-        // auto condest_LL = share(
-        //     gko::solver::Cg<ValueType>::build()
-        //         .with_criteria(
-        //             gko::stop::ResidualNorm<ValueType>::build()
-        //                 .with_reduction_factor(1e-4)
-        //                 .with_baseline(gko::stop::mode::initial_resnorm)
-        //                 .on(exec),
-        //             gko::stop::Iteration::build().with_max_iters(100u).on(exec))
-        //         .with_generated_preconditioner(local_solver_)
-        //         .on(exec)
-        //         ->generate(A_LL_backup));
-        // auto eigs_LL = share(local_vec::create(host_exec, dim<2>{2, 1}));
-        // condest_LL->condest(condest_rhs_LL.get(), eigs_LL.get());
-        // auto prec_scaling_LL = share(diag::create(exec,
-        // A_LL->get_size()[0])); auto vals_LL = make_array_view(exec,
-        // A_LL->get_size()[0], prec_scaling_LL->get_values());
-        // vals_LL.fill(one<ValueType>() / eigs_LL->at(1, 0));
-        // as<NSPSolver<ValueType,
-        // LocalIndexType>>(local_solver_)->add_scaling(prec_scaling_LL);
-        // condest_LL = share(gko::solver::Cg<ValueType>::build()
-        //     .with_criteria(gko::stop::ResidualNorm<ValueType>::build().with_reduction_factor(1e-4).with_baseline(gko::stop::mode::initial_resnorm).on(exec),
-        //     gko::stop::Iteration::build().with_max_iters(100u).on(exec))
-        //     .with_generated_preconditioner(local_solver_)
-        //     .on(exec)->generate(A_LL));
-        // auto eigs_LL_2 = clone(eigs_LL);
-        // condest_LL->condest(condest_rhs_LL.get(), eigs_LL_2.get());
-        // auto condest_II = share(
-        //     gko::solver::Cg<ValueType>::build()
-        //         .with_criteria(
-        //             gko::stop::ResidualNorm<ValueType>::build()
-        //                 .with_reduction_factor(1e-4)
-        //                 .with_baseline(gko::stop::mode::initial_resnorm)
-        //                 .on(exec),
-        //             gko::stop::Iteration::build().with_max_iters(100u).on(exec))
-        //         .with_generated_preconditioner(inner_solver_)
-        //         .on(exec)
-        //         ->generate(A_II_backup));
-        // auto eigs_II = share(local_vec::create(host_exec, dim<2>{2, 1}));
-        // condest_II->condest(condest_rhs_II.get(), eigs_II.get());
-        // auto prec_scaling_II = share(diag::create(exec,
-        // A_II->get_size()[0])); auto vals_II = make_array_view(exec,
-        // A_II->get_size()[0], prec_scaling_II->get_values());
-        // vals_II.fill(one<ValueType>() / eigs_II->at(1, 0));
-        // as<NSPSolver<ValueType,
-        // LocalIndexType>>(inner_solver_)->add_scaling(prec_scaling_II);
-        // condest_II = share(gko::solver::Cg<ValueType>::build()
-        //     .with_criteria(gko::stop::ResidualNorm<ValueType>::build().with_reduction_factor(1e-4).with_baseline(gko::stop::mode::initial_resnorm).on(exec),
-        //     gko::stop::Iteration::build().with_max_iters(100u).on(exec))
-        //     .with_generated_preconditioner(inner_solver_)
-        //     .on(exec)->generate(A_II));
-        // auto eigs_II_2 = clone(eigs_II);
-        // condest_II->condest(condest_rhs_II.get(), eigs_II_2.get());
-        // std::cout << "RANK " << comm.rank() << ": "
-        //           << "LL COND: " << eigs_LL->at(1, 0) / eigs_LL->at(0, 0)
-        //           << ", II COND: " << eigs_II->at(1, 0) / eigs_II->at(0, 0)
-        //           << std::endl;
+
+        // std::ofstream out{"LL_" + std::to_string(comm.rank()) + ".mtx"};
+        // gko::write(out, A_LL);
+        // out.close();
+        // std::ofstream out1{"II_" + std::to_string(comm.rank()) + ".mtx"};
+        // gko::write(out1, A_II);
+        // out1.close();
+
+        if (!local_is_direct || !inner_is_direct) {
+            matrix_data<ValueType, LocalIndexType> condest_LL_data(
+                gko::dim<2>{A_LL->get_size()[0], 1},
+                std::normal_distribution<>(0.0, 1.0),
+                std::default_random_engine());
+            auto condest_rhs_LL = local_vec::create(exec);
+            condest_rhs_LL->read(condest_LL_data);
+            matrix_data<ValueType, LocalIndexType> condest_II_data(
+                gko::dim<2>{A_II->get_size()[0], 1},
+                std::normal_distribution<>(0.0, 1.0),
+                std::default_random_engine());
+            auto condest_rhs_II = local_vec::create(exec);
+            condest_rhs_II->read(condest_II_data);
+            if (parameters_.constant_nullspace) {
+                condest_rhs_II->compute_dot(II_nsp_1, II_scal_3);
+                II_scal_3->inv_scale(II_scal_1);
+                II_scal_3->scale(neg_one_);
+                condest_rhs_II->add_scaled(II_scal_3, II_nsp_2);
+                condest_rhs_LL->compute_dot(LL_nsp_1, LL_scal_3);
+                LL_scal_3->inv_scale(LL_scal_1);
+                LL_scal_3->scale(neg_one_);
+                condest_rhs_LL->add_scaled(LL_scal_3, LL_nsp_2);
+            }
+            if (!local_is_direct) {
+                auto condest_LL =
+                    share(gko::solver::Cg<ValueType>::build()
+                              .with_criteria(
+                                  gko::stop::ResidualNorm<ValueType>::build()
+                                      .with_reduction_factor(1e-4)
+                                      .with_baseline(gko::stop::mode::rhs_norm)
+                                      .on(exec),
+                                  gko::stop::Iteration::build()
+                                      .with_max_iters(100u)
+                                      .on(exec))
+                              .with_generated_preconditioner(local_solver_)
+                              .on(exec)
+                              ->generate(A_LL_backup));
+                auto eigs_LL =
+                    share(local_vec::create(host_exec, dim<2>{2, 1}));
+                condest_LL->condest(condest_rhs_LL.get(), eigs_LL.get());
+                as<NSPSolver<ValueType, LocalIndexType>>(local_solver_)
+                    ->add_scaling(one<ValueType>() / eigs_LL->at(1, 0));
+                std::cout << "RANK " << comm.rank() << ": LL COND: "
+                          << eigs_LL->at(1, 0) / eigs_LL->at(0, 0) << std::endl;
+            }
+            if (!inner_is_direct) {
+                auto condest_II =
+                    share(gko::solver::Cg<ValueType>::build()
+                              .with_criteria(
+                                  gko::stop::ResidualNorm<ValueType>::build()
+                                      .with_reduction_factor(1e-4)
+                                      .with_baseline(gko::stop::mode::rhs_norm)
+                                      .on(exec),
+                                  gko::stop::Iteration::build()
+                                      .with_max_iters(100u)
+                                      .on(exec))
+                              .with_generated_preconditioner(inner_solver_)
+                              .on(exec)
+                              ->generate(A_II_backup));
+                auto eigs_II =
+                    share(local_vec::create(host_exec, dim<2>{2, 1}));
+                condest_II->condest(condest_rhs_II.get(), eigs_II.get());
+                as<NSPSolver<ValueType, LocalIndexType>>(inner_solver_)
+                    ->add_scaling(one<ValueType>() / eigs_II->at(1, 0));
+                std::cout << "RANK " << comm.rank() << ": II COND: "
+                          << eigs_II->at(1, 0) / eigs_II->at(0, 0) << std::endl;
+            }
+        }
 
         // Set up constraints for faces and edges.
         // One row per constraint, one column per degree of freedom that is not
@@ -864,12 +876,16 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         constraints_->read(C_data);
         constraints_t_ = as<local_real_mtx>(constraints_->transpose());
 
+        // std::ofstream out_c{"constraints_" + std::to_string(comm.rank()) +
+        // ".mtx"}; gko::write(out_c, constraints_); out_c.close();
+
         // Set up the local Schur complement solver for the Schur complement of
         // the saddle point problem | A_LL C^T | | C    0   |.
         auto schur_rhs = gko::share(local_vec::create(exec));
         schur_rhs->copy_from(constraints_t_);
         auto schur_interm = gko::share(local_vec::create(
             exec, dim<2>{n_inner_idxs + n_edge_idxs + n_face_idxs, n_dual}));
+        schur_interm->fill(zero<ValueType>());
         for (size_type i = 0; i < n_dual; i++) {
             auto rhs = share(schur_rhs->create_submatrix(
                 span{0, n_inner_idxs + n_edge_idxs + n_face_idxs},
@@ -880,9 +896,16 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             local_solver_->apply(rhs, sol);
         }
         schur_interm_ = clone(schur_interm);
+        // std::ofstream out_schur_interm{"schur_interm_" +
+        // std::to_string(comm.rank()) + ".mtx"}; gko::write(out_schur_interm,
+        // schur_interm); out_schur_interm.close();
         auto schur_complement =
             share(local_vec::create(exec, dim<2>{n_dual, n_dual}));
         constraints_->apply(schur_interm, schur_complement);
+
+        // std::ofstream out_schur{"schur_" + std::to_string(comm.rank()) +
+        // ".mtx"}; gko::write(out_schur, schur_complement);
+
         if (schur_complement->get_size()[0] > 0) {
             schur_solver_ =
                 gko::experimental::solver::Direct<ValueType,
@@ -938,6 +961,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 span{i, i + 1}));
             local_solver_->apply(rhs, sol);
         }
+        // std::ofstream out_interm{"interm_" + std::to_string(comm.rank()) +
+        // ".mtx"}; gko::write(out_interm, buffer_3); out_interm.close();
         constraints_->apply(neg_one_, buffer_2, neg_one_, lambda_rhs);
         for (size_type i = 0; i < n_constraints; i++) {
             auto rhs = share(
@@ -946,6 +971,9 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 lambda_D->create_submatrix(span{0, n_dual}, span{i, i + 1}));
             schur_solver_->apply(rhs, sol);
         }
+        // std::ofstream out_schur_sol{"schur_sol_" +
+        // std::to_string(comm.rank()) + ".mtx"}; gko::write(out_schur_sol,
+        // lambda_D); out_schur_sol.close();
         constraints_t_->apply(neg_one_, lambda_D, neg_one_, buffer_1);
         for (size_type i = 0; i < n_constraints; i++) {
             auto rhs = share(buffer_1->create_submatrix(
@@ -962,6 +990,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         constraints_t_->apply(lambda_D, buffer_1);
         lambda_D->fill(zero<ValueType>());
         phi_D->transpose()->apply(one_, buffer_1, one_, lambda);
+        // std::ofstream out_phi{"phi_" + std::to_string(comm.rank()) + ".mtx"};
+        // gko::write(out_phi, phi);
     }
 
     // Set up global numbering for coarse problem, read coarse matrix and
@@ -1064,15 +1094,14 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             min_size = std::min(
                 min_size, static_cast<int>(local_sizes.get_const_data()[i]));
         }
-        int nparts = 1;
-        // int nparts = std::pow(
-        //     2,
-        //     std::ceil(std::log(std::ceil(
-        //                   static_cast<remove_complex<ValueType>>(
-        //                       n_global_interfaces) /
-        //                   static_cast<remove_complex<ValueType>>(min_size)))
-        //                   /
-        //               std::log(2)));
+        // int nparts = 1;
+        int nparts = std::pow(
+            2,
+            std::ceil(std::log(std::ceil(
+                          static_cast<remove_complex<ValueType>>(
+                              n_global_interfaces) /
+                          static_cast<remove_complex<ValueType>>(min_size))) /
+                      std::log(2)));
         // std::cout << "RANK " << comm.rank() << ": " << local_size << ", "
         // << min_size << ", " << n_global_interfaces << " ==> "
         // << nparts << std::endl;
@@ -1089,6 +1118,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt, &numflag,
             &ncon, &ncommonnodes, &nparts, tpwgts.data(), ubvec.data(),
             &options, &edgecut, &new_part, &commptr);
+
+        std::cout << comm.rank() << " ==> " << new_part << std::endl;
 
         // Gather mapping of coarse elements (contributions of original ranks)
         // to assigned ranks
