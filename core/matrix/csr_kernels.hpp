@@ -12,6 +12,7 @@
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
@@ -99,7 +100,7 @@ namespace kernels {
 #define GKO_DECLARE_CSR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType)      \
     void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,     \
                         const matrix::Csr<ValueType, IndexType>* source, \
-                        matrix::Ell<ValueType, IndexType>* result)
+                        matrix::view::ell<ValueType, IndexType> result)
 
 #define GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL(ValueType, IndexType)      \
     void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,     \

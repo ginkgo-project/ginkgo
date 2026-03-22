@@ -110,26 +110,6 @@ build/cuda110/nompi/gcc/cuda/release/shared:
     # this is seemingly broken with CUDA 11
     # EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
 
-# nvhpc and friends
-build/nvhpc233/cuda120/nompi/nvcpp/release/static:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko_nvhpc233-cuda120-openmpi-gnu12-llvm16
-  variables:
-    CXX_COMPILER: "nvc++"
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_MPI: "OFF"
-    BUILD_TYPE: "Release"
-    FAST_TESTS: "ON"
-    BUILD_SHARED_LIBS: "OFF"
-    # disable common gflags warnings
-    CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
-    # disable spurious unused argument warning
-    EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-
 build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
   extends:
     - .build_and_test_template

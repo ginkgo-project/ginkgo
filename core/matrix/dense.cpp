@@ -853,9 +853,9 @@ void Dense<ValueType>::convert_impl(Ell<ValueType, IndexType>* result) const
     exec->run(dense::make_compute_max_nnz_per_row(this->get_const_device_view(),
                                                   num_stored_elements_per_row));
     result->resize(this->get_size(), num_stored_elements_per_row);
-    exec->run(
-        dense::make_convert_to_ell(this->get_const_device_view(),
-                                   make_temporary_clone(exec, result).get()));
+    exec->run(dense::make_convert_to_ell(
+        this->get_const_device_view(),
+        make_temporary_clone(exec, result)->get_device_view()));
 }
 
 

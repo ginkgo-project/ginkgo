@@ -226,7 +226,8 @@ template <int info, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void abstract_spmv(
     syn::value_list<int, info>, std::shared_ptr<const DefaultExecutor> exec,
-    int num_worker_per_row, const matrix::Ell<MatrixValueType, IndexType>* a,
+    int num_worker_per_row,
+    matrix::view::ell<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
     xstd::type_identity_t<
@@ -243,10 +244,9 @@ void abstract_spmv(
     using b_accessor =
         acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
-    const auto nrows = a->get_size()[0];
-    const auto stride = a->get_stride();
-    const auto num_stored_elements_per_row =
-        a->get_num_stored_elements_per_row();
+    const auto nrows = a.size[0];
+    const auto stride = a.stride;
+    const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
 
     constexpr int num_thread_per_worker =
         (info == 0) ? max_thread_per_worker : info;
@@ -292,7 +292,7 @@ void abstract_spmv(
         const auto a_vals = acc::range<a_accessor>(
             std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
                 num_stored_elements_per_row * stride)}},
-            a->get_const_values());
+            a.values);
         const auto b_vals = acc::range<b_accessor>(
             std::array<acc::size_type, 2>{
                 {static_cast<acc::size_type>(b.size[0]),
@@ -306,8 +306,7 @@ void abstract_spmv(
                 kernel::spmv<num_thread_per_worker, atomic>
                     <<<grid_size, block_size, 0, exec->get_stream()>>>(
                         nrows, num_worker_per_row, acc::as_device_range(a_vals),
-                        a->get_const_col_idxs(), stride,
-                        num_stored_elements_per_row,
+                        a.col_idxs, stride, num_stored_elements_per_row,
                         acc::as_device_range(b_vals), as_device_type(c.values),
                         c.stride);
             }
@@ -319,8 +318,8 @@ void abstract_spmv(
                     <<<grid_size, block_size, 0, exec->get_stream()>>>(
                         nrows, num_worker_per_row,
                         acc::as_device_range(alpha_val),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        stride, num_stored_elements_per_row,
+                        acc::as_device_range(a_vals), a.col_idxs, stride,
+                        num_stored_elements_per_row,
                         acc::as_device_range(b_vals),
                         as_device_type(beta->values), as_device_type(c.values),
                         c.stride);
@@ -337,14 +336,14 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_abstract_spmv, abstract_spmv);
 template <typename ValueType, typename IndexType>
 std::array<int, 3> compute_thread_worker_and_atomicity(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Ell<ValueType, IndexType>* a)
+    matrix::view::ell<ValueType, IndexType> a)
 {
     int num_thread_per_worker = 1;
     int atomic = 0;
     int num_worker_per_row = 1;
 
-    const auto nrows = a->get_size()[0];
-    const auto ell_ncols = a->get_num_stored_elements_per_row();
+    const auto nrows = a.size[0];
+    const auto ell_ncols = a.num_stored_elements_per_row;
     // TODO: num_threads_per_core should be tuned for AMD gpu
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() * num_threads_per_core;
@@ -381,7 +380,7 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Ell<MatrixValueType, IndexType>* a,
+          matrix::view::ell<const MatrixValueType, const IndexType> a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
 {
@@ -414,7 +413,7 @@ template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
                    matrix::view::dense<const MatrixValueType> alpha,
-                   const matrix::Ell<MatrixValueType, IndexType>* a,
+                   matrix::view::ell<const MatrixValueType, const IndexType> a,
                    matrix::view::dense<const InputValueType> b,
                    matrix::view::dense<const OutputValueType> beta,
                    matrix::view::dense<OutputValueType> c)

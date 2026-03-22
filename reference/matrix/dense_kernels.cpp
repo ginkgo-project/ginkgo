@@ -521,15 +521,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::view::dense<const ValueType> source,
-                    matrix::Ell<ValueType, IndexType>* result)
+                    matrix::view::ell<ValueType, IndexType> result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto max_nnz_per_row = result->get_num_stored_elements_per_row();
+    auto num_rows = result.size[0];
+    auto num_cols = result.size[1];
+    auto max_nnz_per_row = result.num_stored_elements_per_row;
     for (size_type i = 0; i < max_nnz_per_row; i++) {
-        for (size_type j = 0; j < result->get_stride(); j++) {
-            result->val_at(j, i) = zero<ValueType>();
-            result->col_at(j, i) = invalid_index<IndexType>();
+        for (size_type j = 0; j < num_rows; j++) {
+            result.val_at(j, i) = zero<ValueType>();
+            result.col_at(j, i) = invalid_index<IndexType>();
         }
     }
     size_type col_idx = 0;
@@ -538,8 +538,8 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
         for (size_type col = 0; col < num_cols; col++) {
             auto val = source(row, col);
             if (is_nonzero(val)) {
-                result->val_at(row, col_idx) = val;
-                result->col_at(row, col_idx) = col;
+                result.val_at(row, col_idx) = val;
+                result.col_at(row, col_idx) = col;
                 col_idx++;
             }
         }
