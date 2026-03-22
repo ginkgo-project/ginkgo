@@ -24,6 +24,7 @@
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/workspace_tree.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -95,10 +96,11 @@ void handle_list(
     size_type index, std::shared_ptr<const LinOp>& matrix,
     std::vector<std::shared_ptr<const LinOpFactory>>& smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& smoother, size_type iteration,
-    std::complex<double> relaxation_factor)
+    std::complex<double> relaxation_factor,
+    solver::detail::WorkspaceNode* ws_node = nullptr)
 {
     auto list_size = smoother_list.size();
-    auto gen_default_smoother = [&] {
+    auto gen_default_smoother = [&]() -> std::shared_ptr<const LinOp> {
         auto exec = matrix->get_executor();
 #if GINKGO_BUILD_MPI
         if (gko::detail::is_distributed(matrix.get())) {
@@ -106,28 +108,37 @@ void handle_list(
             return run<Matrix<ValueType, int32, int32>,
                        Matrix<ValueType, int32, int64>,
                        Matrix<ValueType, int64, int64>>(
-                matrix, [exec, iteration, relaxation_factor](auto matrix) {
+                matrix,
+                [exec, iteration, relaxation_factor,
+                 ws_node](auto matrix) -> std::shared_ptr<const LinOp> {
                     using Mtx = typename decltype(matrix)::element_type;
-                    return share(
-                        build_smoother(
-                            experimental::distributed::preconditioner::Schwarz<
-                                ValueType, typename Mtx::local_index_type,
-                                typename Mtx::global_index_type>::build()
-                                .with_local_solver(
-                                    preconditioner::Jacobi<ValueType>::build()
-                                        .with_max_block_size(1u))
-                                .on(exec),
-                            iteration, casting<ValueType>(relaxation_factor))
-                            ->generate(matrix));
+                    auto factory = build_smoother(
+                        experimental::distributed::preconditioner::Schwarz<
+                            ValueType, typename Mtx::local_index_type,
+                            typename Mtx::global_index_type>::build()
+                            .with_local_solver(
+                                preconditioner::Jacobi<ValueType>::build()
+                                    .with_max_block_size(1u))
+                            .on(exec),
+                        iteration, casting<ValueType>(relaxation_factor));
+                    if (ws_node) {
+                        return solver::detail::generate_with_node(
+                            factory.get(), matrix, ws_node);
+                    }
+                    return factory->generate(matrix);
                 });
         }
 #endif
-        return share(build_smoother(preconditioner::Jacobi<ValueType>::build()
-                                        .with_max_block_size(1u)
-                                        .on(exec),
-                                    iteration,
-                                    casting<ValueType>(relaxation_factor))
-                         ->generate(matrix));
+        auto factory =
+            build_smoother(preconditioner::Jacobi<ValueType>::build()
+                               .with_max_block_size(1u)
+                               .on(exec),
+                           iteration, casting<ValueType>(relaxation_factor));
+        if (ws_node) {
+            return solver::detail::generate_with_node(factory.get(), matrix,
+                                                      ws_node);
+        }
+        return factory->generate(matrix);
     };
     if (list_size != 0) {
         auto temp_index = list_size == 1 ? 0 : index;
@@ -135,6 +146,10 @@ void handle_list(
         auto item = smoother_list.at(temp_index);
         if (item == nullptr) {
             smoother.emplace_back(nullptr);
+        } else if (ws_node) {
+            auto solver =
+                solver::detail::generate_with_node(item.get(), matrix, ws_node);
+            smoother.emplace_back(give(solver));
         } else {
             auto solver = item->generate(matrix);
             smoother.emplace_back(give(solver));
@@ -818,6 +833,7 @@ void Multigrid::generate()
     size_type level = 0;
     auto matrix = this->get_system_matrix();
     auto exec = this->get_executor();
+    auto* mg_ws_node = this->get_workspace_node();
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
@@ -832,6 +848,13 @@ void Multigrid::generate()
             break;
         }
 
+        // Create per-level workspace child node for smoother propagation
+        solver::detail::WorkspaceNode* level_node = nullptr;
+        if (mg_ws_node) {
+            level_node = mg_ws_node->get_or_create_child("level_" +
+                                                         std::to_string(level));
+        }
+
         run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
             float16, std::complex<float16>,
@@ -841,24 +864,41 @@ void Multigrid::generate()
 #endif
             std::complex<float>, std::complex<double>>(
             mg_level,
-            [this](auto mg_level, auto index, auto matrix) {
+            [this, level_node](auto mg_level, auto index, auto matrix) {
                 using value_type =
                     typename std::decay_t<decltype(*mg_level)>::value_type;
-                handle_list<value_type>(
-                    index, matrix, parameters_.pre_smoother, pre_smoother_list_,
-                    parameters_.smoother_iters, parameters_.smoother_relax);
+                // Create smoother child nodes from the level node
+                solver::detail::WorkspaceNode* pre_node = nullptr;
+                solver::detail::WorkspaceNode* mid_node = nullptr;
+                solver::detail::WorkspaceNode* post_node = nullptr;
+                if (level_node) {
+                    pre_node = level_node->get_or_create_child("pre_smoother");
+                    if (parameters_.mid_case ==
+                        multigrid::mid_smooth_type::standalone) {
+                        mid_node =
+                            level_node->get_or_create_child("mid_smoother");
+                    }
+                    if (!parameters_.post_uses_pre) {
+                        post_node =
+                            level_node->get_or_create_child("post_smoother");
+                    }
+                }
+                handle_list<value_type>(index, matrix, parameters_.pre_smoother,
+                                        pre_smoother_list_,
+                                        parameters_.smoother_iters,
+                                        parameters_.smoother_relax, pre_node);
                 if (parameters_.mid_case ==
                     multigrid::mid_smooth_type::standalone) {
                     handle_list<value_type>(
                         index, matrix, parameters_.mid_smoother,
                         mid_smoother_list_, parameters_.smoother_iters,
-                        parameters_.smoother_relax);
+                        parameters_.smoother_relax, mid_node);
                 }
                 if (!parameters_.post_uses_pre) {
                     handle_list<value_type>(
                         index, matrix, parameters_.post_smoother,
                         post_smoother_list_, parameters_.smoother_iters,
-                        parameters_.smoother_relax);
+                        parameters_.smoother_relax, post_node);
                 }
             },
             index, mg_level->get_fine_op());
@@ -881,6 +921,11 @@ void Multigrid::generate()
     cache_.state->generate(this->get_system_matrix().get(), this, 1);
 
     // generate coarsest solver
+    // Create workspace child node for coarse solver propagation
+    solver::detail::WorkspaceNode* coarse_ws_node = nullptr;
+    if (mg_ws_node) {
+        coarse_ws_node = mg_ws_node->get_or_create_child("coarse_solver");
+    }
     run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
         float16, std::complex<float16>,
@@ -890,7 +935,7 @@ void Multigrid::generate()
 #endif
         std::complex<float>, std::complex<double>>(
         last_mg_level,
-        [this](auto mg_level, auto level, auto matrix) {
+        [this, coarse_ws_node](auto mg_level, auto level, auto matrix) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             auto exec = this->get_executor();
@@ -903,10 +948,50 @@ void Multigrid::generate()
                     using experimental::distributed::Matrix;
                     return run<Matrix<value_type, int32, int32>,
                                Matrix<value_type, int32, int64>,
-                               Matrix<value_type, int64,
-                                      int64>>(matrix, [exec](auto matrix) {
-                        using Mtx = typename decltype(matrix)::element_type;
-                        return solver::Gmres<value_type>::build()
+                               Matrix<value_type, int64, int64>>(
+                        matrix,
+                        [exec, coarse_ws_node](
+                            auto matrix) -> std::unique_ptr<LinOp> {
+                            using Mtx = typename decltype(matrix)::element_type;
+                            auto factory =
+                                solver::Gmres<value_type>::build()
+                                    .with_criteria(
+                                        stop::Iteration::build().with_max_iters(
+                                            matrix->get_size()[0]),
+                                        stop::ResidualNorm<value_type>::build()
+                                            .with_reduction_factor(
+                                                std::numeric_limits<
+                                                    absolute_value_type>::
+                                                    epsilon() *
+                                                absolute_value_type{10}))
+                                    .with_krylov_dim(std::min(
+                                        size_type(100), matrix->get_size()[0]))
+                                    .with_preconditioner(
+                                        experimental::distributed::
+                                            preconditioner::Schwarz<
+                                                value_type,
+                                                typename Mtx::local_index_type,
+                                                typename Mtx::
+                                                    global_index_type>::build()
+                                                .with_local_solver(
+                                                    preconditioner::Jacobi<
+                                                        value_type>::build()
+                                                        .with_max_block_size(
+                                                            1u)))
+                                    .on(exec);
+                            if (coarse_ws_node) {
+                                return solver::detail::generate_with_node(
+                                    factory.get(), matrix, coarse_ws_node);
+                            }
+                            return factory->generate(matrix);
+                        });
+                }
+#endif
+                // TODO: unify when dpcpp supports direct solver
+                if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
+                    using absolute_value_type = remove_complex<value_type>;
+                    auto factory =
+                        solver::Gmres<value_type>::build()
                             .with_criteria(
                                 stop::Iteration::build().with_max_iters(
                                     matrix->get_size()[0]),
@@ -918,47 +1003,26 @@ void Multigrid::generate()
                             .with_krylov_dim(
                                 std::min(size_type(100), matrix->get_size()[0]))
                             .with_preconditioner(
-                                experimental::distributed::preconditioner::
-                                    Schwarz<value_type,
-                                            typename Mtx::local_index_type,
-                                            typename Mtx::global_index_type>::
-                                        build()
-                                            .with_local_solver(
-                                                preconditioner::Jacobi<
-                                                    value_type>::build()
-                                                    .with_max_block_size(1u)))
-                            .on(exec)
-                            ->generate(matrix);
-                    });
-                }
-#endif
-                // TODO: unify when dpcpp supports direct solver
-                if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
-                    using absolute_value_type = remove_complex<value_type>;
-                    return solver::Gmres<value_type>::build()
-                        .with_criteria(
-                            stop::Iteration::build().with_max_iters(
-                                matrix->get_size()[0]),
-                            stop::ResidualNorm<value_type>::build()
-                                .with_reduction_factor(
-                                    std::numeric_limits<
-                                        absolute_value_type>::epsilon() *
-                                    absolute_value_type{10}))
-                        .with_krylov_dim(
-                            std::min(size_type(100), matrix->get_size()[0]))
-                        .with_preconditioner(
-                            preconditioner::Jacobi<value_type>::build()
-                                .with_max_block_size(1u))
-                        .on(exec)
-                        ->generate(matrix);
+                                preconditioner::Jacobi<value_type>::build()
+                                    .with_max_block_size(1u))
+                            .on(exec);
+                    if (coarse_ws_node) {
+                        return solver::detail::generate_with_node(
+                            factory.get(), matrix, coarse_ws_node);
+                    }
+                    return factory->generate(matrix);
                 } else {
-                    return experimental::solver::Direct<value_type,
-                                                        int32>::build()
-                        .with_factorization(
-                            experimental::factorization::Lu<value_type,
-                                                            int32>::build())
-                        .on(exec)
-                        ->generate(matrix);
+                    auto factory =
+                        experimental::solver::Direct<value_type, int32>::build()
+                            .with_factorization(
+                                experimental::factorization::Lu<value_type,
+                                                                int32>::build())
+                            .on(exec);
+                    if (coarse_ws_node) {
+                        return solver::detail::generate_with_node(
+                            factory.get(), matrix, coarse_ws_node);
+                    }
+                    return factory->generate(matrix);
                 }
             };
             if (parameters_.coarsest_solver.size() == 0) {
@@ -970,6 +1034,9 @@ void Multigrid::generate()
                 auto solver = parameters_.coarsest_solver.at(temp_index);
                 if (solver == nullptr) {
                     coarsest_solver_ = gen_default_solver();
+                } else if (coarse_ws_node) {
+                    coarsest_solver_ = solver::detail::generate_with_node(
+                        solver.get(), matrix, coarse_ws_node);
                 } else {
                     coarsest_solver_ = solver->generate(matrix);
                 }
