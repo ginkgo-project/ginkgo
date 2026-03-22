@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,6 +25,39 @@ class DistributedBase;
 }  // namespace distributed
 }  // namespace experimental
 
+
+class ExecutorHolder {
+public:
+    /**
+     * Returns the Executor of the object.
+     *
+     * @return Executor of the object
+     */
+    std::shared_ptr<const Executor> get_executor() const noexcept
+    {
+        return exec_;
+    }
+
+protected:
+    // This method is defined as protected since a polymorphic object should not
+    // be created using their constructor directly, but by creating an
+    // std::unique_ptr to it. Defining the constructor as protected keeps these
+    // access rights when inheriting the constructor.
+    /**
+     * Creates a new polymorphic object on the requested executor.
+     *
+     * @param exec  executor where the object will be created
+     */
+    explicit ExecutorHolder(std::shared_ptr<const Executor> exec)
+        : exec_{std::move(exec)}
+    {}
+
+    // preserve the executor of the object
+    explicit ExecutorHolder(const PolymorphicObject& other) { *this = other; }
+
+private:
+    std::shared_ptr<const Executor> exec_;
+};
 
 /**
  * A PolymorphicObject is the abstract base for all "heavy" objects in Ginkgo
@@ -53,8 +86,8 @@ class PolymorphicObject : public log::EnableLogging<PolymorphicObject> {
 public:
     virtual ~PolymorphicObject()
     {
-        this->template log<log::Logger::polymorphic_object_deleted>(exec_.get(),
-                                                                    this);
+        this->template log<log::Logger::polymorphic_object_deleted>(
+            this->get_executor_impl().get(), this);
     }
 
     // preserve the executor of the object
@@ -74,10 +107,10 @@ public:
         std::shared_ptr<const Executor> exec) const
     {
         this->template log<log::Logger::polymorphic_object_create_started>(
-            exec_.get(), this);
+            this->get_executor_impl().get(), this);
         auto created = this->create_default_impl(std::move(exec));
         this->template log<log::Logger::polymorphic_object_create_completed>(
-            exec_.get(), this, created.get());
+            this->get_executor_impl().get(), this, created.get());
         return created;
     }
 
@@ -91,7 +124,7 @@ public:
      */
     std::unique_ptr<PolymorphicObject> create_default() const
     {
-        return this->create_default(exec_);
+        return this->create_default(this->get_executor_impl());
     }
 
     /**
@@ -122,7 +155,7 @@ public:
      */
     std::unique_ptr<PolymorphicObject> clone() const
     {
-        return this->clone(exec_);
+        return this->clone(this->get_executor_impl());
     }
 
     /**
@@ -139,10 +172,10 @@ public:
     PolymorphicObject* copy_from(const PolymorphicObject* other)
     {
         this->template log<log::Logger::polymorphic_object_copy_started>(
-            exec_.get(), other, this);
+            this->get_executor_impl().get(), other, this);
         auto copied = this->copy_from_impl(other);
         this->template log<log::Logger::polymorphic_object_copy_completed>(
-            exec_.get(), other, this);
+            this->get_executor_impl().get(), other, this);
         return copied;
     }
 
@@ -171,10 +204,10 @@ public:
         PolymorphicObject>* copy_from(std::unique_ptr<Derived, Deleter>&& other)
     {
         this->template log<log::Logger::polymorphic_object_move_started>(
-            exec_.get(), other.get(), this);
+            this->get_executor_impl().get(), other.get(), this);
         auto copied = this->copy_from_impl(std::move(other));
         this->template log<log::Logger::polymorphic_object_move_completed>(
-            exec_.get(), other.get(), this);
+            this->get_executor_impl().get(), other.get(), this);
         return copied;
     }
 
@@ -217,10 +250,10 @@ public:
     PolymorphicObject* move_from(ptr_param<PolymorphicObject> other)
     {
         this->template log<log::Logger::polymorphic_object_move_started>(
-            exec_.get(), other.get(), this);
+            this->get_executor_impl().get(), other.get(), this);
         auto moved = this->move_from_impl(other.get());
         this->template log<log::Logger::polymorphic_object_move_completed>(
-            exec_.get(), other.get(), this);
+            this->get_executor_impl().get(), other.get(), this);
         return moved;
     }
 
@@ -235,35 +268,9 @@ public:
      */
     PolymorphicObject* clear() { return this->clear_impl(); }
 
-    /**
-     * Returns the Executor of the object.
-     *
-     * @return Executor of the object
-     */
-    std::shared_ptr<const Executor> get_executor() const noexcept
-    {
-        return exec_;
-    }
-
 protected:
-    // This method is defined as protected since a polymorphic object should not
-    // be created using their constructor directly, but by creating an
-    // std::unique_ptr to it. Defining the constructor as protected keeps these
-    // access rights when inheriting the constructor.
-    /**
-     * Creates a new polymorphic object on the requested executor.
-     *
-     * @param exec  executor where the object will be created
-     */
-    explicit PolymorphicObject(std::shared_ptr<const Executor> exec)
-        : exec_{std::move(exec)}
-    {}
-
-    // preserve the executor of the object
-    explicit PolymorphicObject(const PolymorphicObject& other)
-    {
-        *this = other;
-    }
+    virtual std::shared_ptr<const Executor> get_executor_impl()
+        const noexcept = 0;
 
     /**
      * Implementers of PolymorphicObject should override this function instead
@@ -326,9 +333,6 @@ protected:
      * @return this
      */
     virtual PolymorphicObject* clear_impl() = 0;
-
-private:
-    std::shared_ptr<const Executor> exec_;
 };
 
 
@@ -351,9 +355,15 @@ private:
  *      PolymorphicObject.
  */
 template <typename AbstractObject, typename PolymorphicBase = PolymorphicObject>
-class EnableAbstractPolymorphicObject : public PolymorphicBase {
+class EnableAbstractPolymorphicObject : public PolymorphicBase,
+                                        public ExecutorHolder {
 public:
-    using PolymorphicBase::PolymorphicBase;
+    using ExecutorHolder::ExecutorHolder;
+
+    std::shared_ptr<const Executor> get_executor_impl() const noexcept
+    {
+        return this->get_executor();
+    }
 
     std::unique_ptr<AbstractObject> create_default(
         std::shared_ptr<const Executor> exec) const
