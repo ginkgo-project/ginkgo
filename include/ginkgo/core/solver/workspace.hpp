@@ -126,6 +126,12 @@ public:
         return operators_[op_id].get();
     }
 
+    LinOp* get_mutable_op(int op_id)
+    {
+        GKO_ASSERT(op_id >= 0 && op_id < operators_.size());
+        return operators_[op_id].get();
+    }
+
     template <typename ValueType>
     array<ValueType>& init_or_get_array(int array_id)
     {
