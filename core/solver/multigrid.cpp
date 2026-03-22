@@ -24,6 +24,7 @@
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/workspace_tree.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -87,13 +88,19 @@ casting(const T& x)
 
 /**
  * Generates a component of the hierarchy, through generate_reuse() if reuse
- * data is kept for it.
+ * data is kept for it. Otherwise, the component is generated into the given
+ * workspace node, if any.
  */
 std::unique_ptr<LinOp> generate_component(
     const LinOpFactory* factory, std::shared_ptr<const LinOp> matrix,
-    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data)
+    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
+    solver::detail::WorkspaceNode* ws_node = nullptr)
 {
     if (!reuse_data) {
+        if (ws_node) {
+            return solver::detail::generate_with_node(
+                factory, std::move(matrix), ws_node);
+        }
         return factory->generate(std::move(matrix));
     }
     if (!*reuse_data) {
@@ -114,7 +121,8 @@ void handle_list(
     std::vector<std::shared_ptr<const LinOpFactory>>& smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& smoother, size_type iteration,
     std::complex<double> relaxation_factor,
-    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data)
+    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
+    solver::detail::WorkspaceNode* ws_node = nullptr)
 {
     auto list_size = smoother_list.size();
     auto gen_default_smoother = [&]() -> std::shared_ptr<const LinOp> {
@@ -138,7 +146,7 @@ void handle_list(
                                 .on(exec),
                             iteration, casting<ValueType>(relaxation_factor))
                             .get(),
-                        matrix, reuse_data);
+                        matrix, reuse_data, ws_node);
                 });
         }
 #endif
@@ -148,7 +156,7 @@ void handle_list(
                                .on(exec),
                            iteration, casting<ValueType>(relaxation_factor))
                 .get(),
-            matrix, reuse_data);
+            matrix, reuse_data, ws_node);
     };
     if (list_size != 0) {
         auto temp_index = list_size == 1 ? 0 : index;
@@ -158,7 +166,7 @@ void handle_list(
             smoother.emplace_back(nullptr);
         } else {
             smoother.emplace_back(
-                generate_component(item.get(), matrix, reuse_data));
+                generate_component(item.get(), matrix, reuse_data, ws_node));
         }
     } else {
         smoother.emplace_back(gen_default_smoother());
@@ -727,7 +735,8 @@ void Multigrid::generate_smoothers(
     std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& post_smoother_list,
-    reuse_data_type::level_data* level_reuse)
+    reuse_data_type::level_data* level_reuse,
+    solver::detail::WorkspaceNode* level_node)
 {
     run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
@@ -739,26 +748,43 @@ void Multigrid::generate_smoothers(
         std::complex<float>, std::complex<double>>(
         mg_level,
         [this, &pre_smoother_list, &mid_smoother_list, &post_smoother_list,
-         level_reuse](auto mg_level, auto index, auto matrix) {
+         level_reuse, level_node](auto mg_level, auto index, auto matrix) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
+            // Create smoother child nodes from the level node
+            solver::detail::WorkspaceNode* pre_node = nullptr;
+            solver::detail::WorkspaceNode* mid_node = nullptr;
+            solver::detail::WorkspaceNode* post_node = nullptr;
+            if (level_node) {
+                pre_node = level_node->get_or_create_child("pre_smoother");
+                if (parameters_.mid_case ==
+                    multigrid::mid_smooth_type::standalone) {
+                    mid_node = level_node->get_or_create_child("mid_smoother");
+                }
+                if (!parameters_.post_uses_pre) {
+                    post_node =
+                        level_node->get_or_create_child("post_smoother");
+                }
+            }
             handle_list<value_type>(
                 index, matrix, parameters_.pre_smoother, pre_smoother_list,
                 parameters_.smoother_iters, parameters_.smoother_relax,
-                level_reuse ? &level_reuse->pre_smoother : nullptr);
+                level_reuse ? &level_reuse->pre_smoother : nullptr, pre_node);
             if (parameters_.mid_case ==
                 multigrid::mid_smooth_type::standalone) {
                 handle_list<value_type>(
                     index, matrix, parameters_.mid_smoother, mid_smoother_list,
                     parameters_.smoother_iters, parameters_.smoother_relax,
-                    level_reuse ? &level_reuse->mid_smoother : nullptr);
+                    level_reuse ? &level_reuse->mid_smoother : nullptr,
+                    mid_node);
             }
             if (!parameters_.post_uses_pre) {
                 handle_list<value_type>(
                     index, matrix, parameters_.post_smoother,
                     post_smoother_list, parameters_.smoother_iters,
                     parameters_.smoother_relax,
-                    level_reuse ? &level_reuse->post_smoother : nullptr);
+                    level_reuse ? &level_reuse->post_smoother : nullptr,
+                    post_node);
             }
         },
         index, mg_level->get_fine_op());
@@ -769,7 +795,8 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
     std::shared_ptr<const gko::multigrid::MultigridLevel> last_mg_level,
     size_type level, std::shared_ptr<const LinOp> matrix,
     std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
-    const size_type* recorded_index, size_type* selected_index)
+    const size_type* recorded_index, size_type* selected_index,
+    solver::detail::WorkspaceNode* coarse_ws_node)
 {
     std::unique_ptr<LinOp> coarsest_solver;
     run<gko::multigrid::EnableMultigridLevel, float, double,
@@ -781,8 +808,8 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
 #endif
         std::complex<float>, std::complex<double>>(
         last_mg_level,
-        [this, &coarsest_solver, reuse_data, recorded_index, selected_index](
-            auto mg_level, auto level, auto matrix) {
+        [this, &coarsest_solver, reuse_data, recorded_index, selected_index,
+         coarse_ws_node](auto mg_level, auto level, auto matrix) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             auto exec = this->get_executor();
@@ -825,7 +852,7 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                                                     .with_max_block_size(1u)))
                                 .on(exec)
                                 .get(),
-                            matrix, reuse_data);
+                            matrix, reuse_data, coarse_ws_node);
                     });
                 }
 #endif
@@ -849,7 +876,7 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                                     .with_max_block_size(1u))
                             .on(exec)
                             .get(),
-                        matrix, reuse_data);
+                        matrix, reuse_data, coarse_ws_node);
                 } else {
                     return generate_component(
                         experimental::solver::Direct<value_type, int32>::build()
@@ -858,7 +885,7 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                                                                 int32>::build())
                             .on(exec)
                             .get(),
-                        matrix, reuse_data);
+                        matrix, reuse_data, coarse_ws_node);
                 }
             };
             if (parameters_.coarsest_solver.size() == 0) {
@@ -875,8 +902,8 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                 if (solver == nullptr) {
                     coarsest_solver = gen_default_solver();
                 } else {
-                    coarsest_solver =
-                        generate_component(solver.get(), matrix, reuse_data);
+                    coarsest_solver = generate_component(
+                        solver.get(), matrix, reuse_data, coarse_ws_node);
                 }
             }
         },
@@ -899,6 +926,7 @@ void Multigrid::generate(reuse_data_type* reuse_data)
     bool changed = false;
     std::vector<dim<2>> reused_coarse_sizes;
     std::vector<level_data> new_levels;
+    auto* mg_ws_node = this->get_workspace_node();
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
@@ -940,9 +968,16 @@ void Multigrid::generate(reuse_data_type* reuse_data)
             entry->coarse_size = coarse_size;
         }
 
+        // Create per-level workspace child node for smoother propagation
+        solver::detail::WorkspaceNode* level_node = nullptr;
+        if (mg_ws_node) {
+            level_node = mg_ws_node->get_or_create_child("level_" +
+                                                         std::to_string(level));
+        }
+
         this->generate_smoothers(mg_level, index, pre_smoother_list_,
-                                 mid_smoother_list_, post_smoother_list_,
-                                 entry);
+                                 mid_smoother_list_, post_smoother_list_, entry,
+                                 level_node);
 
         mg_level_list_.emplace_back(mg_level);
         matrix = mg_level_list_.back()->get_coarse_op();
@@ -973,9 +1008,14 @@ void Multigrid::generate(reuse_data_type* reuse_data)
             recorded_coarsest_index = &reuse_data->coarsest_index_;
         }
     }
+    // Create workspace child node for coarse solver propagation
+    solver::detail::WorkspaceNode* coarse_ws_node = nullptr;
+    if (mg_ws_node) {
+        coarse_ws_node = mg_ws_node->get_or_create_child("coarse_solver");
+    }
     coarsest_solver_ = this->generate_coarsest_solver(
         last_mg_level, level, matrix, coarsest_reuse, recorded_coarsest_index,
-        &coarsest_index);
+        &coarsest_index, coarse_ws_node);
 
     // update the reuse data only once everything succeeded
     if (reuse_data) {
