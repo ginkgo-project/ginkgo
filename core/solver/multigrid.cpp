@@ -160,14 +160,6 @@ void handle_list(
 }
 
 
-template <typename Vec>
-void clear_and_reserve(Vec& vec, size_type size)
-{
-    vec.clear();
-    vec.reserve(size);
-}
-
-
 }  // namespace
 
 
@@ -227,9 +219,11 @@ public:
      * @param system_matrix_in  the system matrix
      * @param multigrid_in  the multigrid information
      * @param nrhs_in  the number of right hand side
+     * @param ws_node_in  the workspace node (may be nullptr)
      */
     void generate(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
-                  const size_type nrhs_in);
+                  const size_type nrhs_in,
+                  solver::detail::WorkspaceNode* ws_node_in = nullptr);
 
     /**
      * allocate_memory is a helper function to allocate the memory of one level
@@ -297,31 +291,18 @@ public:
                    const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
                    LinOp* x, cycle_mode mode);
 
-    // current level's nrows x nrhs
-    std::vector<std::shared_ptr<LinOp>> r_list;
-    // next level's nrows x nrhs
-    std::vector<std::shared_ptr<LinOp>> g_list;
-    std::vector<std::shared_ptr<LinOp>> e_list;
-    // constant 1 x 1
-    std::vector<std::shared_ptr<const LinOp>> one_list;
-    std::vector<std::shared_ptr<const LinOp>> next_one_list;
-    std::vector<std::shared_ptr<const LinOp>> neg_one_list;
-    // scale correction workspace (only allocated when scale_correction=true)
-    std::vector<std::shared_ptr<LinOp>> acf_list;  // A*δ scratch, nrows×nrhs
-    std::vector<std::shared_ptr<LinOp>>
-        delta_pre_list;  // A*δ_c / smoother scratch
-    std::vector<std::shared_ptr<LinOp>> alpha_list;  // Rayleigh scalar, 1×nrhs
-    std::vector<std::shared_ptr<LinOp>>
-        denom_list;  // denominator scalar, 1×nrhs
     const LinOp* system_matrix;
     const Multigrid* multigrid;
     size_type nrhs;
+    solver::detail::WorkspaceNode* ws_node = nullptr;
+    std::vector<solver::detail::WorkspaceNode*> level_nodes;
 };
 
 
 void MultigridState::generate(const LinOp* system_matrix_in,
                               const gko::solver::Multigrid* multigrid_in,
-                              const size_type nrhs_in)
+                              const size_type nrhs_in,
+                              solver::detail::WorkspaceNode* ws_node_in)
 {
     system_matrix = system_matrix_in;
     multigrid = multigrid_in;
@@ -330,17 +311,14 @@ void MultigridState::generate(const LinOp* system_matrix_in,
     auto mg_level_list = multigrid->get_mg_level_list();
     auto list_size = mg_level_list.size();
     auto cycle = multigrid->get_cycle();
-    clear_and_reserve(r_list, list_size);
-    clear_and_reserve(g_list, list_size);
-    clear_and_reserve(e_list, list_size);
-    clear_and_reserve(one_list, list_size);
-    clear_and_reserve(next_one_list, list_size);
-    clear_and_reserve(neg_one_list, list_size);
-    if (multigrid_in->get_parameters().scale_correction) {
-        clear_and_reserve(acf_list, list_size);
-        clear_and_reserve(delta_pre_list, list_size);
-        clear_and_reserve(alpha_list, list_size);
-        clear_and_reserve(denom_list, list_size);
+    // Set up workspace level nodes for persistent storage across regeneration
+    ws_node = ws_node_in;
+    level_nodes.clear();
+    level_nodes.reserve(list_size);
+    GKO_ASSERT(ws_node);
+    for (size_type i = 0; i < list_size; i++) {
+        level_nodes.push_back(
+            ws_node->get_or_create_child("level_" + std::to_string(i)));
     }
     // Allocate memory first such that reusing allocation in each iter.
     for (int i = 0; i < mg_level_list.size(); i++) {
@@ -414,27 +392,82 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-    if (level != 0) {
-        // allocate the previous level
-        g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
-    }
-    if (level + 1 == multigrid->get_mg_level_list().size()) {
-        // the last level allocate the g, e for coarsest solver
-        g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
-    }
-    one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
-    neg_one_list.emplace_back(initialize<vec>({-one<value_type>()}, exec));
-    if (multigrid->get_parameters().scale_correction) {
-        acf_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        delta_pre_list.emplace_back(
-            vec::create(exec, dim<2>{current_nrows, nrhs}));
-        alpha_list.emplace_back(vec::create(exec, dim<2>{1, nrhs}));
-        denom_list.emplace_back(vec::create(exec, dim<2>{1, nrhs}));
+
+    GKO_ASSERT(static_cast<size_type>(level) < level_nodes.size());
+    auto* lnode = level_nodes[level];
+    GKO_ASSERT(lnode);
+
+    lnode->bind_executor(exec);
+    auto& storage = lnode->get_local_storage();
+    const bool scale_correction =
+        multigrid->get_parameters().scale_correction;
+    storage.set_size(scale_correction ? 10 : 6, 0);
+
+    // Slot 0: r (current level dimensions)
+    storage.template create_or_get_op<vec>(
+        0,
+        [&] {
+            return vec::create(exec, dim<2>{current_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{current_nrows, nrhs}, nrhs);
+
+    // Slot 1: g (next/coarse level dimensions)
+    storage.template create_or_get_op<vec>(
+        1,
+        [&] {
+            return vec::create(exec, dim<2>{next_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{next_nrows, nrhs}, nrhs);
+
+    // Slot 2: e (next/coarse level dimensions)
+    storage.template create_or_get_op<vec>(
+        2,
+        [&] {
+            return vec::create(exec, dim<2>{next_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{next_nrows, nrhs}, nrhs);
+
+    // Slot 3: one (scalar 1.0)
+    storage.template create_or_get_op<vec>(
+        3, [&] { return initialize<vec>({one<value_type>()}, exec); },
+        typeid(vec), dim<2>{1, 1}, 1);
+
+    // Slot 4: neg_one (scalar -1.0)
+    storage.template create_or_get_op<vec>(
+        4, [&] { return initialize<vec>({-one<value_type>()}, exec); },
+        typeid(vec), dim<2>{1, 1}, 1);
+
+    // Slot 5: next_one (scalar 1.0 for next level's value_type)
+    storage.template create_or_get_op<vec>(
+        5, [&] { return initialize<vec>({one<value_type>()}, exec); },
+        typeid(vec), dim<2>{1, 1}, 1);
+
+    if (scale_correction) {
+        // Slot 6: acf = A*delta scratch (current level)
+        storage.template create_or_get_op<vec>(
+            6,
+            [&] {
+                return vec::create(exec, dim<2>{current_nrows, nrhs});
+            },
+            typeid(vec), dim<2>{current_nrows, nrhs}, nrhs);
+
+        // Slot 7: dp = delta_pre / smoother scratch (current level)
+        storage.template create_or_get_op<vec>(
+            7,
+            [&] {
+                return vec::create(exec, dim<2>{current_nrows, nrhs});
+            },
+            typeid(vec), dim<2>{current_nrows, nrhs}, nrhs);
+
+        // Slot 8: alpha = Rayleigh numerator scalar (1 x nrhs)
+        storage.template create_or_get_op<vec>(
+            8, [&] { return vec::create(exec, dim<2>{1, nrhs}); },
+            typeid(vec), dim<2>{1, nrhs}, nrhs);
+
+        // Slot 9: denom = Rayleigh denominator scalar (1 x nrhs)
+        storage.template create_or_get_op<vec>(
+            9, [&] { return vec::create(exec, dim<2>{1, nrhs}); },
+            typeid(vec), dim<2>{1, nrhs}, nrhs);
     }
 }
 
@@ -456,44 +489,92 @@ void MultigridState::allocate_memory(
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    r_list.emplace_back(vec::create(exec, current_comm,
-                                    dim<2>{current_nrows, nrhs},
-                                    dim<2>{current_local_nrows, nrhs}));
-    if (level != 0) {
-        // allocate the previous level
-        g_list.emplace_back(vec::create(exec, current_comm,
-                                        dim<2>{current_nrows, nrhs},
-                                        dim<2>{current_local_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, current_comm,
-                                        dim<2>{current_nrows, nrhs},
-                                        dim<2>{current_local_nrows, nrhs}));
-        next_one_list.emplace_back(
-            initialize<dense_vec>({one<value_type>()}, exec));
+    GKO_ASSERT(static_cast<size_type>(level) < level_nodes.size());
+    auto* lnode = level_nodes[level];
+    GKO_ASSERT(lnode);
+
+    lnode->bind_executor(exec);
+    auto& storage = lnode->get_local_storage();
+    const bool scale_correction =
+        multigrid->get_parameters().scale_correction;
+    storage.set_size(scale_correction ? 10 : 6, 0);
+
+    // Slot 0: r (current level, distributed)
+    storage.template create_or_get_op<vec>(
+        0,
+        [&] {
+            return vec::create(exec, current_comm,
+                               dim<2>{current_nrows, nrhs},
+                               dim<2>{current_local_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{current_nrows, nrhs}, nrhs);
+
+    // Slot 1: g (next/coarse level, distributed)
+    storage.template create_or_get_op<vec>(
+        1,
+        [&] {
+            return vec::create(exec, next_comm, dim<2>{next_nrows, nrhs},
+                               dim<2>{next_local_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{next_nrows, nrhs}, nrhs);
+
+    // Slot 2: e (next/coarse level, distributed)
+    storage.template create_or_get_op<vec>(
+        2,
+        [&] {
+            return vec::create(exec, next_comm, dim<2>{next_nrows, nrhs},
+                               dim<2>{next_local_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{next_nrows, nrhs}, nrhs);
+
+    // Slot 3: one (scalar 1.0)
+    storage.template create_or_get_op<dense_vec>(
+        3, [&] { return initialize<dense_vec>({one<value_type>()}, exec); },
+        typeid(dense_vec), dim<2>{1, 1}, 1);
+
+    // Slot 4: neg_one (scalar -1.0)
+    storage.template create_or_get_op<dense_vec>(
+        4, [&] { return initialize<dense_vec>({-one<value_type>()}, exec); },
+        typeid(dense_vec), dim<2>{1, 1}, 1);
+
+    // Slot 5: next_one (scalar 1.0 for next level's value_type)
+    storage.template create_or_get_op<dense_vec>(
+        5, [&] { return initialize<dense_vec>({one<value_type>()}, exec); },
+        typeid(dense_vec), dim<2>{1, 1}, 1);
+
+    if (scale_correction) {
+        // Slot 6: acf = A*delta scratch (current level, distributed)
+        storage.template create_or_get_op<vec>(
+            6,
+            [&] {
+                return vec::create(exec, current_comm,
+                                   dim<2>{current_nrows, nrhs},
+                                   dim<2>{current_local_nrows, nrhs});
+            },
+            typeid(vec), dim<2>{current_nrows, nrhs}, nrhs);
+
+        // Slot 7: dp = delta_pre / smoother scratch (current level,
+        // distributed)
+        storage.template create_or_get_op<vec>(
+            7,
+            [&] {
+                return vec::create(exec, current_comm,
+                                   dim<2>{current_nrows, nrhs},
+                                   dim<2>{current_local_nrows, nrhs});
+            },
+            typeid(vec), dim<2>{current_nrows, nrhs}, nrhs);
+
+        // Slot 8: alpha scalar (1 x nrhs, non-distributed)
+        storage.template create_or_get_op<dense_vec>(
+            8, [&] { return dense_vec::create(exec, dim<2>{1, nrhs}); },
+            typeid(dense_vec), dim<2>{1, nrhs}, nrhs);
+
+        // Slot 9: denom scalar (1 x nrhs, non-distributed)
+        storage.template create_or_get_op<dense_vec>(
+            9, [&] { return dense_vec::create(exec, dim<2>{1, nrhs}); },
+            typeid(dense_vec), dim<2>{1, nrhs}, nrhs);
     }
-    if (level + 1 == multigrid->get_mg_level_list().size()) {
-        // the last level allocate the g, e for coarsest solver
-        g_list.emplace_back(vec::create(exec, next_comm,
-                                        dim<2>{next_nrows, nrhs},
-                                        dim<2>{next_local_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, next_comm,
-                                        dim<2>{next_nrows, nrhs},
-                                        dim<2>{next_local_nrows, nrhs}));
-        next_one_list.emplace_back(
-            initialize<dense_vec>({one<value_type>()}, exec));
-    }
-    one_list.emplace_back(initialize<dense_vec>({one<value_type>()}, exec));
-    neg_one_list.emplace_back(
-        initialize<dense_vec>({-one<value_type>()}, exec));
-    if (multigrid->get_parameters().scale_correction) {
-        acf_list.emplace_back(vec::create(exec, current_comm,
-                                          dim<2>{current_nrows, nrhs},
-                                          dim<2>{current_local_nrows, nrhs}));
-        delta_pre_list.emplace_back(
-            vec::create(exec, current_comm, dim<2>{current_nrows, nrhs},
-                        dim<2>{current_local_nrows, nrhs}));
-        alpha_list.emplace_back(dense_vec::create(exec, dim<2>{1, nrhs}));
-        denom_list.emplace_back(dense_vec::create(exec, dim<2>{1, nrhs}));
-    }
+
 }
 
 
@@ -545,9 +626,13 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     using value_type = typename VectorType::value_type;
     auto total_level = multigrid->get_mg_level_list().size();
 
-    auto r = r_list.at(level);
-    auto g = g_list.at(level);
-    auto e = e_list.at(level);
+    auto& level_storage = level_nodes[level]->get_local_storage();
+    auto* r = level_storage.get_mutable_op(0);
+    auto* g = level_storage.get_mutable_op(1);
+    auto* e = level_storage.get_mutable_op(2);
+    auto* one = level_storage.get_op(3);
+    auto* neg_one = level_storage.get_op(4);
+    auto* next_one = level_storage.get_op(5);
     auto mg_level = multigrid->get_mg_level_list().at(level);
     auto pre_smoother = multigrid->get_pre_smoother_list().at(level);
     std::shared_ptr<const LinOp> mid_smoother{nullptr};
@@ -556,12 +641,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         mid_smoother = multigrid->get_mid_smoother_list().at(level);
     }
     auto post_smoother = multigrid->get_post_smoother_list().at(level);
-    auto one = one_list.at(level).get();
-    auto next_one = next_one_list.at(level).get();
-    auto neg_one = neg_one_list.at(level).get();
-
     // scale correction applies at all levels except immediately above coarsest
-    // (at that level the coarse solver provides a near-exact result, sf ≈ 1)
     bool do_scale =
         multigrid->get_parameters().scale_correction && level < total_level - 1;
 
@@ -594,14 +674,16 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     //   δ_pre = sf * δ_pre + smoother(b − sf * Aδ)   [reuses acf, r scratch]
     if (do_scale && use_pre && pre_smoother) {
         auto exec = multigrid->get_executor();
-        auto acf = acf_list.at(level);
-        auto dp = delta_pre_list.at(level);
-        auto alpha_dense = as<matrix::Dense<value_type>>(alpha_list.at(level));
-        auto denom_dense = as<matrix::Dense<value_type>>(denom_list.at(level));
+        auto* acf = level_storage.get_mutable_op(6);
+        auto* dp = level_storage.get_mutable_op(7);
+        auto* alpha_dense =
+            as<matrix::Dense<value_type>>(level_storage.get_mutable_op(8));
+        auto* denom_dense =
+            as<matrix::Dense<value_type>>(level_storage.get_mutable_op(9));
 
         matrix->apply(x, acf);  // acf = A * δ_pre
-        as<VectorType>(x)->compute_dot(b, alpha_list.at(level));
-        as<VectorType>(x)->compute_dot(acf, denom_list.at(level));
+        as<VectorType>(x)->compute_dot(b, level_storage.get_mutable_op(8));
+        as<VectorType>(x)->compute_dot(acf, level_storage.get_mutable_op(9));
         if (exec->copy_val_to_host(denom_dense->get_const_values()) !=
             zero<value_type>()) {
             alpha_dense->inv_scale(denom_dense);  // sf = (δ·b)/(δ·Aδ)
@@ -646,18 +728,17 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         // v cycle only contains one step
         next_mode = next_mode | cycle_mode::end_of_cycle;
     }
-    this->run_mg_cycle(cycle, level + 1, next_level_matrix, g.get(), e.get(),
-                       next_mode);
+    this->run_mg_cycle(cycle, level + 1, next_level_matrix, g, e, next_mode);
     if (level < multigrid->get_mg_level_list().size() - 1) {
         // additional work for non-v_cycle
         if (cycle == multigrid::cycle::f) {
             // f_cycle calls v_cycle in the second cycle
             this->run_mg_cycle(multigrid::cycle::v, level + 1,
-                               next_level_matrix, g.get(), e.get(),
+                               next_level_matrix, g, e,
                                cycle_mode::end_of_cycle);
         } else if (cycle == multigrid::cycle::w) {
-            this->run_mg_cycle(cycle, level + 1, next_level_matrix, g.get(),
-                               e.get(), cycle_mode::end_of_cycle);
+            this->run_mg_cycle(cycle, level + 1, next_level_matrix, g, e,
+                               cycle_mode::end_of_cycle);
         }
     }
 
@@ -671,18 +752,20 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     //   x   += δ_c                       [x = δ_pre + scale-corrected δ_c]
     if (do_scale) {
         auto exec = multigrid->get_executor();
-        auto acf = acf_list.at(level);
-        auto dp = delta_pre_list.at(level);
-        auto alpha_dense = as<matrix::Dense<value_type>>(alpha_list.at(level));
-        auto denom_dense = as<matrix::Dense<value_type>>(denom_list.at(level));
+        auto* acf = level_storage.get_mutable_op(6);
+        auto* dp = level_storage.get_mutable_op(7);
+        auto* alpha_dense =
+            as<matrix::Dense<value_type>>(level_storage.get_mutable_op(8));
+        auto* denom_dense =
+            as<matrix::Dense<value_type>>(level_storage.get_mutable_op(9));
 
         // prolong e into acf (δ_c = prolong(e))
         as<VectorType>(acf)->fill(zero<value_type>());
         mg_level->get_prolong_op()->apply(next_one, e, next_one, acf);
 
         matrix->apply(acf, dp);  // dp = A * δ_c
-        as<VectorType>(acf)->compute_dot(r, alpha_list.at(level));
-        as<VectorType>(acf)->compute_dot(dp, denom_list.at(level));
+        as<VectorType>(acf)->compute_dot(r, level_storage.get_mutable_op(8));
+        as<VectorType>(acf)->compute_dot(dp, level_storage.get_mutable_op(9));
         if (exec->copy_val_to_host(denom_dense->get_const_values()) !=
             zero<value_type>()) {
             alpha_dense->inv_scale(denom_dense);  // sf = (δ_c·r)/(δ_c·Aδ_c)
@@ -918,7 +1001,8 @@ void Multigrid::generate()
     using ws = workspace_traits<Multigrid>;
     this->setup_workspace();
     this->create_state();
-    cache_.state->generate(this->get_system_matrix().get(), this, 1);
+    cache_.state->generate(this->get_system_matrix().get(), this, 1,
+                           this->get_workspace_node());
 
     // generate coarsest solver
     // Create workspace child node for coarse solver propagation
@@ -1135,14 +1219,12 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
     using ws = workspace_traits<Multigrid>;
     if (cache_.state->nrhs != b->get_size()[1]) {
         cache_.state->generate(this->get_system_matrix().get(), this,
-                               b->get_size()[1]);
+                               b->get_size()[1], this->get_workspace_node());
     }
     auto lambda = [&, this](auto mg_level, auto b, auto x) {
         using value_type =
             typename std::decay_t<decltype(*mg_level)>::value_type;
         auto exec = this->get_executor();
-        auto neg_one_op = cache_.state->neg_one_list.at(0);
-        auto one_op = cache_.state->one_list.at(0);
         constexpr uint8 RelativeStoppingId{1};
         auto& stop_status =
             this->template create_workspace_array<stopping_status>(
