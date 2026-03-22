@@ -242,3 +242,33 @@ TYPED_TEST(SellpView, AccessWorks)
     ASSERT_EQ(const_view.slice_lengths, view.slice_lengths);
     ASSERT_EQ(const_view.slice_sets, view.slice_sets);
 }
+
+
+TYPED_TEST(SellpView, AssertTriggersOnOutOfBoundsDeathTest)
+{
+#ifdef NDEBUG
+    GTEST_SKIP() << "Assertion is only enabled in debug mode";
+#endif
+
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    std::vector<value_type> values(21);
+    std::vector<index_type> col_idxs(21);
+    std::vector<gko::size_type> slice_lengths{3, 4};
+    std::vector<gko::size_type> slice_sets{0, 3, 7};
+    gko::matrix::view::sellp<value_type, index_type> view{gko::dim<2>{3, 5},
+                                                          2,
+                                                          3,
+                                                          7,
+                                                          values.data(),
+                                                          col_idxs.data(),
+                                                          slice_lengths.data(),
+                                                          slice_sets.data()};
+
+    // access exceed row per slice
+    EXPECT_EXIT((void)(view.val_at(2, 0)), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view.col_at(2, 0)), check_assertion_exit_code, "");
+    // access exceed the total col
+    EXPECT_EXIT((void)(view.val_at(0, 7)), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view.col_at(0, 7)), check_assertion_exit_code, "");
+}

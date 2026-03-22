@@ -209,6 +209,9 @@ private:
     constexpr size_type linearize_index(size_type row, size_type slice_set,
                                         size_type idx) const noexcept
     {
+        assert(row < slice_size);
+        // note the following does not catch all idx out of bound access.
+        assert(idx < total_cols);
         return (slice_set + idx) * slice_size + row;
     }
 };
