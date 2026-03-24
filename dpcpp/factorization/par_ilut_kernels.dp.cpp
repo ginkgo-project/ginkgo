@@ -54,7 +54,7 @@ template <typename Predicate, typename ValueType, typename IndexType>
 void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* m,
                      matrix::Csr<ValueType, IndexType>* m_out,
-                     matrix::view::coo<ValueType, IndexType> m_out_coo,
+                     matrix::Coo<ValueType, IndexType>* m_out_coo,
                      Predicate pred) GKO_NOT_IMPLEMENTED;
 
 
@@ -63,7 +63,7 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* m,
                       remove_complex<ValueType> threshold,
                       matrix::Csr<ValueType, IndexType>* m_out,
-                      matrix::view::coo<ValueType, IndexType> m_out_coo,
+                      matrix::Coo<ValueType, IndexType>* m_out_coo,
                       bool) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -80,7 +80,7 @@ void threshold_filter_approx(
     const matrix::Csr<ValueType, IndexType>* m, IndexType rank,
     array<ValueType>& tmp, remove_complex<ValueType>& threshold,
     matrix::Csr<ValueType, IndexType>* m_out,
-    matrix::view::coo<ValueType, IndexType> m_out_coo) GKO_NOT_IMPLEMENTED;
+    matrix::Coo<ValueType, IndexType>* m_out_coo) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL);

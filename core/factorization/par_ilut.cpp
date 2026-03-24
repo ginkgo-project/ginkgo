@@ -316,13 +316,12 @@ void ParIlutState<ValueType, IndexType>::iterate()
     auto u_filter_rank = std::max<IndexType>(0, u_nnz - u_nnz_limit - 1);
     remove_complex<ValueType> l_threshold{};
     remove_complex<ValueType> u_threshold{};
-    using null_coo_type = matrix::view::coo<ValueType, IndexType>;
-    null_coo_type null_coo{{}, 0, nullptr, nullptr, nullptr};
+    CooMatrix* null_coo = nullptr;
     if (use_approx_select) {
         // remove approximately smallest candidates from L' and U'^T
-        exec->run(make_threshold_filter_approx(
-            l_new.get(), l_filter_rank, selection_tmp, l_threshold, l.get(),
-            l_coo->get_device_view()));
+        exec->run(make_threshold_filter_approx(l_new.get(), l_filter_rank,
+                                               selection_tmp, l_threshold,
+                                               l.get(), l_coo.get()));
         exec->run(make_threshold_filter_approx(u_new_csc.get(), u_filter_rank,
                                                selection_tmp, u_threshold,
                                                u_csc.get(), null_coo));
@@ -337,13 +336,13 @@ void ParIlutState<ValueType, IndexType>::iterate()
 
         // remove smallest candidates from L' and U'^T
         exec->run(make_threshold_filter(l_new.get(), l_threshold, l.get(),
-                                        l_coo->get_device_view(), true));
+                                        l_coo.get(), true));
         exec->run(make_threshold_filter(u_new_csc.get(), u_threshold,
                                         u_csc.get(), null_coo, true));
     }
     // remove smallest candidates from U'
     exec->run(make_threshold_filter(u_new.get(), u_threshold, u.get(),
-                                    u_coo->get_device_view(), false));
+                                    u_coo.get(), false));
 
     // execute asynchronous iteration
     exec->run(make_compute_l_u_factors(

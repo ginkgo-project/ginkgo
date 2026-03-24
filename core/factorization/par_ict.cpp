@@ -272,7 +272,7 @@ void ParIctState<ValueType, IndexType>::iterate()
         // remove approximately smallest candidates
         exec->run(make_threshold_filter_approx(l_new.get(), l_filter_rank,
                                                selection_tmp, tmp, l.get(),
-                                               l_coo->get_device_view()));
+                                               l_coo.get()));
     } else {
         // select threshold to remove smallest candidates
         remove_complex<ValueType> l_threshold{};
@@ -282,7 +282,7 @@ void ParIctState<ValueType, IndexType>::iterate()
 
         // remove smallest candidates
         exec->run(make_threshold_filter(l_new.get(), l_threshold, l.get(),
-                                        l_coo->get_device_view(), true));
+                                        l_coo.get(), true));
     }
 
     // execute asynchronous iteration

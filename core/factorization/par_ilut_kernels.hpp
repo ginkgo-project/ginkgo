@@ -48,22 +48,22 @@ namespace kernels {
                           array<remove_complex<ValueType>>& tmp2,          \
                           remove_complex<ValueType>& threshold)
 
-#define GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL(ValueType, IndexType)   \
-    void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,       \
-                          const matrix::Csr<ValueType, IndexType>* m,        \
-                          remove_complex<ValueType> threshold,               \
-                          matrix::Csr<ValueType, IndexType>* m_out,          \
-                          matrix::view::coo<ValueType, IndexType> m_out_coo, \
+#define GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL(ValueType, IndexType) \
+    void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,     \
+                          const matrix::Csr<ValueType, IndexType>* m,      \
+                          remove_complex<ValueType> threshold,             \
+                          matrix::Csr<ValueType, IndexType>* m_out,        \
+                          matrix::Coo<ValueType, IndexType>* m_out_coo,    \
                           bool lower)
 
-#define GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL(ValueType, \
-                                                            IndexType) \
-    void threshold_filter_approx(                                      \
-        std::shared_ptr<const DefaultExecutor> exec,                   \
-        const matrix::Csr<ValueType, IndexType>* m, IndexType rank,    \
-        array<ValueType>& tmp, remove_complex<ValueType>& threshold,   \
-        matrix::Csr<ValueType, IndexType>* m_out,                      \
-        matrix::view::coo<ValueType, IndexType> m_out_coo)
+#define GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL(ValueType,        \
+                                                            IndexType)        \
+    void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec, \
+                                 const matrix::Csr<ValueType, IndexType>* m,  \
+                                 IndexType rank, array<ValueType>& tmp,       \
+                                 remove_complex<ValueType>& threshold,        \
+                                 matrix::Csr<ValueType, IndexType>* m_out,    \
+                                 matrix::Coo<ValueType, IndexType>* m_out_coo)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
     constexpr auto sampleselect_searchtree_height = 8;                    \
