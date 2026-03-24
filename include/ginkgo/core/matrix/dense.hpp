@@ -177,7 +177,7 @@ public:
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
 
-    using value_type = ValueType;
+    using value_type = typename EnableMultiVector<Dense>::value_type;
     using index_type = int64;
     using transposed_type = Dense<value_type>;
     using mat_data = matrix_data<value_type, int64>;

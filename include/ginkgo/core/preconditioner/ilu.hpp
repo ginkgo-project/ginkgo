@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -120,10 +120,10 @@ class Ilu
 
 public:
     static_assert(
-        std::is_same_v<gko::detail::get_value_type<LSolverTypeOrValueType>,
-                       gko::detail::get_value_type<USolverTypeOrValueType>>,
+        std::is_same_v<get_value_type_t<LSolverTypeOrValueType>,
+                       get_value_type_t<USolverTypeOrValueType>>,
         "Both the L- and the U-solver must use the same `value_type`!");
-    using value_type = gko::detail::get_value_type<LSolverTypeOrValueType>;
+    using value_type = get_value_type_t<LSolverTypeOrValueType>;
     using l_solver_type =
         std::conditional_t<gko::detail::is_ginkgo_linop<LSolverTypeOrValueType>,
                            LSolverTypeOrValueType, LinOp>;

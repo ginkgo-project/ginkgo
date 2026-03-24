@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -119,7 +119,7 @@ public:
                                    gko::detail::transposed_type<l_solver_type>>,
                                l_solver_type>::value,
                   "l_solver_type::transposed_type must be symmetric");
-    using value_type = gko::detail::get_value_type<LSolverTypeOrValueType>;
+    using value_type = get_value_type_t<LSolverTypeOrValueType>;
     using lh_solver_type = gko::detail::transposed_type<l_solver_type>;
     using index_type = IndexType;
     using transposed_type = Ic<LSolverTypeOrValueType, IndexType>;

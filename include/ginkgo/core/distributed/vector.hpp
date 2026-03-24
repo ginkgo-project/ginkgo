@@ -86,7 +86,7 @@ public:
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
-    using value_type = ValueType;
+    using value_type = typename matrix::EnableMultiVector<Vector>::value_type;
     using absolute_type = remove_complex<Vector>;
     using real_type = absolute_type;
     using complex_type = Vector<to_complex<value_type>>;

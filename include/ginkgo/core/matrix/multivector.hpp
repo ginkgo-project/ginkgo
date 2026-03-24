@@ -9,9 +9,10 @@
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
 
+#include "ginkgo/core/base/type_traits.hpp"
+
 
 namespace gko {
-
 
 // Different type to clarify that only local rows/columns are meant
 struct local_span {
@@ -300,6 +301,7 @@ class EnableMultiVector
     : public EnablePolymorphicObject<ConcreteType, MultiVector>,
       public EnablePolymorphicAssignment<ConcreteType> {
 public:
+    using value_type = get_value_type_t<ConcreteType>;
     using absolute_type = remove_complex<ConcreteType>;
     using real_type = absolute_type;
     using complex_type = to_complex<ConcreteType>;

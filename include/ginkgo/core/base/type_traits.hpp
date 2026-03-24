@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,25 +58,43 @@ template <typename Type>
 using transposed_type = typename transposed_type_impl<Type>::type;
 
 
-// helper to get value_type of concrete type or void for LinOp
-template <typename Type, typename = void>
-struct get_value_type_impl {
-    using type = typename Type::value_type;
-};
-
-// We need to use SFINAE not conditional_t because both type needs to be
-// valid in conditional_t
-template <typename Type>
-struct get_value_type_impl<Type, std::enable_if_t<!is_ginkgo_linop<Type>>> {
-    using type = Type;
-};
-
-
-template <typename Type>
-using get_value_type = typename get_value_type_impl<Type>::type;
-
-
 }  // namespace detail
+
+
+/**
+ * Helper type to deduce the value type (e.g. float, double, std::complex<...>,
+ * ...) from a type.
+ *
+ * @note This can be specialized for user types to enable extracting their value
+ *       type.
+ *
+ * @tparam T Type to deduce value type from
+ */
+template <typename T>
+struct get_value_type {
+    using type = typename T::value_type;
+};
+
+// Use type identity for value types
+#define GKO_DECLARE_GET_VALUE_TYPE(T) \
+    <> struct get_value_type<T> {     \
+        using type = T;               \
+    }
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_VALUE_TYPE);
+#undef GKO_DECLARE_GET_VALUE_TYPE
+
+// Expect that templated types have the value type in first place
+template <template <typename...> typename T, typename ValueType,
+          typename... ExtraArgs>
+struct get_value_type<T<ValueType, ExtraArgs...>> {
+    using type = ValueType;
+};
+
+// @see get_value_type
+template <typename Type>
+using get_value_type_t = typename get_value_type<Type>::type;
+
+
 }  // namespace gko
 
 #endif  // GKO_PUBLIC_CORE_BASE_TYPE_TRAITS_HPP_
