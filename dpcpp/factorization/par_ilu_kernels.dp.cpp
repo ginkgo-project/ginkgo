@@ -1,12 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/factorization/par_ilu_kernels.hpp"
 
 #include <sycl/sycl.hpp>
-
-#include <ginkgo/core/matrix/coo.hpp>
 
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/math.hpp"
@@ -103,14 +101,14 @@ void compute_l_u_factors(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const DpcppExecutor> exec,
-                         size_type iterations,
-                         const matrix::Coo<ValueType, IndexType>* system_matrix,
-                         matrix::Csr<ValueType, IndexType>* l_factor,
-                         matrix::Csr<ValueType, IndexType>* u_factor)
+void compute_l_u_factors(
+    std::shared_ptr<const DpcppExecutor> exec, size_type iterations,
+    matrix::view::coo<const ValueType, const IndexType> system_matrix,
+    matrix::Csr<ValueType, IndexType>* l_factor,
+    matrix::Csr<ValueType, IndexType>* u_factor)
 {
     iterations = (iterations == 0) ? 10 : iterations;
-    const auto num_elements = system_matrix->get_num_stored_elements();
+    const auto num_elements = system_matrix.num_stored_elements;
     const dim3 block_size{default_block_size, 1, 1};
     const dim3 grid_dim{
         static_cast<uint32>(
@@ -119,9 +117,8 @@ void compute_l_u_factors(std::shared_ptr<const DpcppExecutor> exec,
     for (size_type i = 0; i < iterations; ++i) {
         kernel::compute_l_u_factors(
             grid_dim, block_size, 0, exec->get_queue(), num_elements,
-            system_matrix->get_const_row_idxs(),
-            system_matrix->get_const_col_idxs(),
-            as_device_type(system_matrix->get_const_values()),
+            system_matrix.row_idxs, system_matrix.col_idxs,
+            as_device_type(system_matrix.values),
             l_factor->get_const_row_ptrs(), l_factor->get_const_col_idxs(),
             as_device_type(l_factor->get_values()),
             u_factor->get_const_row_ptrs(), u_factor->get_const_col_idxs(),

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <ginkgo/core/factorization/par_ict.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 
@@ -29,10 +30,11 @@ namespace kernels {
                         matrix::Csr<ValueType, IndexType>* l_new)
 
 #define GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType, IndexType) \
-    void compute_factor(std::shared_ptr<const DefaultExecutor> exec,    \
-                        const matrix::Csr<ValueType, IndexType>* a,     \
-                        matrix::Csr<ValueType, IndexType>* l,           \
-                        const matrix::Coo<ValueType, IndexType>* l_coo)
+    void compute_factor(                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType>* a,                     \
+        matrix::Csr<ValueType, IndexType>* l,                           \
+        matrix::view::coo<const ValueType, const IndexType> l_coo)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
     template <typename ValueType, typename IndexType>                \

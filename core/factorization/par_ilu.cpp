@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -145,8 +145,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     }
 
     exec->run(par_ilu_factorization::make_compute_l_u_factors(
-        parameters_.iterations, coo_system_matrix_ptr, l_factor.get(),
-        u_factor_transpose));
+        parameters_.iterations, coo_system_matrix_ptr->get_const_device_view(),
+        l_factor.get(), u_factor_transpose));
 
     // Transpose it again, which is basically a conversion from CSC back to CSR
     // Since the transposed version has the exact same non-zero positions

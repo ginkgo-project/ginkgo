@@ -145,15 +145,15 @@ template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::dense<const ValueType> source,
                     const int64* row_ptrs,
-                    matrix::Coo<ValueType, IndexType>* result)
+                    matrix::view::coo<ValueType, IndexType> result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto num_nonzeros = result->get_num_stored_elements();
+    auto num_rows = result.size[0];
+    auto num_cols = result.size[1];
+    auto num_nonzeros = result.num_stored_elements;
 
-    auto row_idxs = result->get_row_idxs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
+    auto row_idxs = result.row_idxs;
+    auto col_idxs = result.col_idxs;
+    auto values = result.values;
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {

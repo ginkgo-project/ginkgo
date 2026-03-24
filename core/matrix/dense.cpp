@@ -706,7 +706,7 @@ void Dense<ValueType>::convert_impl(Coo<ValueType, IndexType>* result) const
     result->resize(this->get_size(), nnz);
     exec->run(dense::make_convert_to_coo(
         this->get_const_device_view(), row_ptrs.get_const_data(),
-        make_temporary_clone(exec, result).get()));
+        make_temporary_clone(exec, result)->get_device_view()));
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -131,7 +131,8 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
 
     // execute sweeps
     exec->run(par_ic_factorization::make_compute_factor(
-        parameters_.iterations, a_lower_coo.get(), l_factor.get()));
+        parameters_.iterations, a_lower_coo->get_const_device_view(),
+        l_factor.get()));
 
     if (both_factors) {
         auto lh_factor = l_factor->conj_transpose();

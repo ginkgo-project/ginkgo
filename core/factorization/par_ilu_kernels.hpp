@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 
@@ -22,7 +23,7 @@ namespace kernels {
 #define GKO_DECLARE_PAR_ILU_COMPUTE_L_U_FACTORS_KERNEL(ValueType, IndexType) \
     void compute_l_u_factors(                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type iterations,   \
-        const matrix::Coo<ValueType, IndexType>* system_matrix,              \
+        matrix::view::coo<const ValueType, const IndexType> system_matrix,   \
         matrix::Csr<ValueType, IndexType>* l_factor,                         \
         matrix::Csr<ValueType, IndexType>* u_factor)
 

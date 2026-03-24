@@ -52,6 +52,41 @@ struct dense {
 
 
 /**
+ * Non-owning view of a matrix::Coo to be used inside device kernels.
+ * This type is used to provide a simple and stable ABI for passing data between
+ * libraries.
+ *
+ * @tparam ValueType  the value type used to store matrix entries.
+ * @tparam IndexType  the index type used to store row and column indices.
+ */
+template <typename ValueType, typename IndexType>
+struct coo {
+    dim<2> size;
+    size_type num_stored_elements;
+    ValueType* values;
+    IndexType* row_idxs;
+    IndexType* col_idxs;
+
+    /** Constructs a coo view from size, nnz, values, row and column indices. */
+    constexpr coo(dim<2> size, size_type num_stored_elements, ValueType* values,
+                  IndexType* row_idxs, IndexType* col_idxs)
+        : size{size},
+          num_stored_elements{num_stored_elements},
+          values{values},
+          row_idxs{row_idxs},
+          col_idxs{col_idxs}
+    {}
+
+    /** Returns a const view of the same data */
+    constexpr coo<const ValueType, const IndexType> as_const() const
+    {
+        return coo<const ValueType, const IndexType>{
+            size, num_stored_elements, values, row_idxs, col_idxs};
+    }
+};
+
+
+/**
  * Non-owning view of a matrix::Ell to be used inside device kernels.
  * This type is used to provide a simple and stable ABI for passing data between
  * libraries.

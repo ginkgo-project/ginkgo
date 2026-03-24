@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -446,7 +446,7 @@ void compute_factor(syn::value_list<int, subgroup_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     matrix::Csr<ValueType, IndexType>* l,
-                    const matrix::Coo<ValueType, IndexType>* l_coo)
+                    matrix::view::coo<const ValueType, const IndexType> l_coo)
 {
     auto total_nnz = static_cast<IndexType>(l->get_num_stored_elements());
     auto block_size = default_block_size / subgroup_size;
@@ -455,7 +455,7 @@ void compute_factor(syn::value_list<int, subgroup_size>,
         num_blocks, default_block_size, 0, exec->get_queue(),
         a->get_const_row_ptrs(), a->get_const_col_idxs(),
         as_device_type(a->get_const_values()), l->get_const_row_ptrs(),
-        l_coo->get_const_row_idxs(), l->get_const_col_idxs(),
+        l_coo.row_idxs, l->get_const_col_idxs(),
         as_device_type(l->get_values()),
         static_cast<IndexType>(l->get_num_stored_elements()));
 }
@@ -495,7 +495,7 @@ template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     matrix::Csr<ValueType, IndexType>* l,
-                    const matrix::Coo<ValueType, IndexType>* l_coo)
+                    matrix::view::coo<const ValueType, const IndexType> l_coo)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz = 2 * l->get_num_stored_elements();

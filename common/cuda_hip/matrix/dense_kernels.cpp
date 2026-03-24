@@ -441,14 +441,14 @@ template <typename ValueType, typename IndexType>
 void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::dense<const ValueType> source,
                     const int64* row_ptrs,
-                    matrix::Coo<ValueType, IndexType>* result)
+                    matrix::view::coo<ValueType, IndexType> result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
+    auto num_rows = result.size[0];
+    auto num_cols = result.size[1];
 
-    auto row_idxs = result->get_row_idxs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
+    auto row_idxs = result.row_idxs;
+    auto col_idxs = result.col_idxs;
+    auto values = result.values;
 
     auto stride = source.stride;
 

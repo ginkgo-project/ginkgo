@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -260,7 +260,8 @@ void ParIctState<ValueType, IndexType>::iterate()
                                         l_coo->get_row_idxs()));
 
     // execute asynchronous iteration
-    exec->run(make_compute_factor(system_matrix, l_new.get(), l_coo.get()));
+    exec->run(make_compute_factor(system_matrix, l_new.get(),
+                                  l_coo->get_const_device_view()));
 
     // determine ranks for selection/filtering
     IndexType l_nnz = l_new->get_num_stored_elements();
@@ -285,7 +286,8 @@ void ParIctState<ValueType, IndexType>::iterate()
     }
 
     // execute asynchronous iteration
-    exec->run(make_compute_factor(system_matrix, l.get(), l_coo.get()));
+    exec->run(make_compute_factor(system_matrix, l.get(),
+                                  l_coo->get_const_device_view()));
 
     // convert L to L^H
     {

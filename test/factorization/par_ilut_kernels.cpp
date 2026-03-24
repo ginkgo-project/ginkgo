@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -483,14 +483,15 @@ TYPED_TEST(ParIlut, KernelComputeLUIsEquivalentToRef)
     dmtx_u_coo->copy_from(mtx_u_coo);
 
     gko::kernels::reference::par_ilut_factorization::compute_l_u_factors(
-        this->ref, this->mtx_ani.get(), this->mtx_l_ani.get(), mtx_l_coo.get(),
-        this->mtx_u_ani.get(), mtx_u_coo.get(), this->mtx_ut_ani.get());
+        this->ref, this->mtx_ani.get(), this->mtx_l_ani.get(),
+        mtx_l_coo->get_const_device_view(), this->mtx_u_ani.get(),
+        mtx_u_coo->get_const_device_view(), this->mtx_ut_ani.get());
     for (int i = 0; i < 20; ++i) {
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
-            compute_l_u_factors(this->exec, this->dmtx_ani.get(),
-                                this->dmtx_l_ani.get(), dmtx_l_coo.get(),
-                                this->dmtx_u_ani.get(), dmtx_u_coo.get(),
-                                this->dmtx_ut_ani.get());
+            compute_l_u_factors(
+                this->exec, this->dmtx_ani.get(), this->dmtx_l_ani.get(),
+                dmtx_l_coo->get_const_device_view(), this->dmtx_u_ani.get(),
+                dmtx_u_coo->get_const_device_view(), this->dmtx_ut_ani.get());
     }
     auto dmtx_utt_ani = gko::as<Csr>(this->dmtx_ut_ani->transpose());
 

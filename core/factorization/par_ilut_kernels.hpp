@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <ginkgo/core/factorization/par_ilut.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 
@@ -31,13 +32,14 @@ namespace kernels {
                         matrix::Csr<ValueType, IndexType>* u_new)
 
 #define GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL(ValueType, IndexType) \
-    void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,    \
-                             const matrix::Csr<ValueType, IndexType>* a,     \
-                             matrix::Csr<ValueType, IndexType>* l,           \
-                             const matrix::Coo<ValueType, IndexType>* l_coo, \
-                             matrix::Csr<ValueType, IndexType>* u,           \
-                             const matrix::Coo<ValueType, IndexType>* u_coo, \
-                             matrix::Csr<ValueType, IndexType>* u_csc)
+    void compute_l_u_factors(                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        const matrix::Csr<ValueType, IndexType>* a,                          \
+        matrix::Csr<ValueType, IndexType>* l,                                \
+        matrix::view::coo<const ValueType, const IndexType> l_coo,           \
+        matrix::Csr<ValueType, IndexType>* u,                                \
+        matrix::view::coo<const ValueType, const IndexType> u_coo,           \
+        matrix::Csr<ValueType, IndexType>* u_csc)
 
 #define GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL(ValueType, IndexType) \
     void threshold_select(std::shared_ptr<const DefaultExecutor> exec,     \

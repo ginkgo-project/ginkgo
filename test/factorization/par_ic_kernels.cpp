@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -128,9 +128,11 @@ TYPED_TEST(ParIc, KernelComputeFactorIsEquivalentToRef)
         1e-4, static_cast<double>(r<gko::remove_complex<value_type>>::value));
 
     gko::kernels::reference::par_ic_factorization::compute_factor(
-        this->ref, 1, mtx_l_coo.get(), this->mtx_l_ani_init.get());
+        this->ref, 1, mtx_l_coo->get_const_device_view(),
+        this->mtx_l_ani_init.get());
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ic_factorization::compute_factor(
-        this->exec, 100, dmtx_l_coo.get(), this->dmtx_l_ani_init.get());
+        this->exec, 100, dmtx_l_coo->get_const_device_view(),
+        this->dmtx_l_ani_init.get());
 
     GKO_EXPECT_MTX_NEAR(this->mtx_l_ani_init, this->dmtx_l_ani_init, tol);
 }

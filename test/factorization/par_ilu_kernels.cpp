@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -133,10 +133,11 @@ protected:
         auto u_transpose_dmtx = gko::as<Csr>(du->transpose());
 
         gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-            ref, iterations, coo.get(), l.get(), u_transpose_mtx.get());
+            ref, iterations, coo->get_const_device_view(), l.get(),
+            u_transpose_mtx.get());
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilu_factorization::
-            compute_l_u_factors(exec, iterations, dcoo.get(), dl.get(),
-                                u_transpose_dmtx.get());
+            compute_l_u_factors(exec, iterations, dcoo->get_const_device_view(),
+                                dl.get(), u_transpose_dmtx.get());
         auto u_lin_op = u_transpose_mtx->transpose();
         u = gko::as<Csr>(std::move(u_lin_op));
         auto du_lin_op = u_transpose_dmtx->transpose();

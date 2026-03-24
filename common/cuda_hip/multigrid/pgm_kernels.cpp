@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -85,7 +85,7 @@ template <typename ValueType, typename IndexType>
 void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         size_type fine_nnz, const IndexType* row_idxs,
                         const IndexType* col_idxs, const ValueType* vals,
-                        matrix::Coo<ValueType, IndexType>* coarse_coo)
+                        matrix::view::coo<ValueType, IndexType> coarse_coo)
 {
     auto vals_it = as_device_type(vals);
     // this const_cast is necessary as a workaround for CCCL bug
@@ -94,9 +94,9 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto key_it = thrust::make_zip_iterator(thrust::make_tuple(
         const_cast<IndexType*>(row_idxs), const_cast<IndexType*>(col_idxs)));
 
-    auto coarse_vals_it = as_device_type(coarse_coo->get_values());
-    auto coarse_key_it = thrust::make_zip_iterator(thrust::make_tuple(
-        coarse_coo->get_row_idxs(), coarse_coo->get_col_idxs()));
+    auto coarse_vals_it = as_device_type(coarse_coo.values);
+    auto coarse_key_it = thrust::make_zip_iterator(
+        thrust::make_tuple(coarse_coo.row_idxs, coarse_coo.col_idxs));
 
     thrust::reduce_by_key(thrust_policy(exec), key_it, key_it + fine_nnz,
                           vals_it, coarse_key_it, coarse_vals_it);

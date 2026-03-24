@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -481,7 +481,8 @@ TYPED_TEST(ParIlut, KernelComputeLU)
 
     gko::kernels::reference::par_ilut_factorization::compute_l_u_factors(
         this->ref, this->mtx_system.get(), this->mtx_l_system.get(),
-        mtx_l_coo.get(), this->mtx_u_system.get(), mtx_u_coo.get(), mtx_u_csc);
+        mtx_l_coo->get_const_device_view(), this->mtx_u_system.get(),
+        mtx_u_coo->get_const_device_view(), mtx_u_csc);
     auto mtx_utt = gko::as<Csr>(mtx_u_csc->transpose());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_it_expect, this->tol);

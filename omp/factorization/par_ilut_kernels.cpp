@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -242,9 +242,9 @@ template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
                          const matrix::Csr<ValueType, IndexType>* a,
                          matrix::Csr<ValueType, IndexType>* l,
-                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::view::coo<const ValueType, const IndexType>,
                          matrix::Csr<ValueType, IndexType>* u,
-                         const matrix::Coo<ValueType, IndexType>*,
+                         matrix::view::coo<const ValueType, const IndexType>,
                          matrix::Csr<ValueType, IndexType>* u_csc)
 {
     auto num_rows = a->get_size()[0];

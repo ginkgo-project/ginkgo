@@ -135,7 +135,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         coarse_nnz);
     exec->run(pgm::make_compute_coarse_coo(
         nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
-        vals.get_const_data(), coarse_coo.get()));
+        vals.get_const_data(), coarse_coo->get_device_view()));
     // use move_to
     auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
     coarse_csr->move_from(coarse_coo);
