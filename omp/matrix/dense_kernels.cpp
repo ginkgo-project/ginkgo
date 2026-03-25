@@ -467,6 +467,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void scatter_add(std::shared_ptr<const OmpExecutor> exec,
+                 const IndexType* scatter_indices,
+                 matrix::view::dense<const ValueType> source,
+                 matrix::view::dense<ValueType> target)
+{
+    auto nrows = source.size[0];
+    auto ncols = source.size[1];
+    auto src_vals = source.values;
+    auto src_stride = source.stride;
+    auto tgt_vals = target.values;
+    auto tgt_stride = target.stride;
+#pragma omp parallel for
+    for (size_type i = 0; i < nrows; ++i) {
+        auto target_row = static_cast<size_type>(scatter_indices[i]);
+        for (size_type j = 0; j < ncols; ++j) {
+            auto val = src_vals[i * src_stride + j];
+#pragma omp critical
+            tgt_vals[target_row * tgt_stride + j] += val;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SCATTER_ADD_KERNEL);
+
+
 }  // namespace dense
 }  // namespace omp
 }  // namespace kernels
