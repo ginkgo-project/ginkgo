@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -142,7 +142,7 @@ TYPED_TEST(RowGatherer, CanApplyAsyncWithWorkspace)
     auto x = Vector::create(this->mpi_exec, this->comm,
                             gko::dim<2>{this->rg->get_size()[0], 1},
                             gko::dim<2>{expected.get_size(), 1});
-    gko::array<char> workspace;
+    gko::detail::GenericDenseCache workspace;
 
     auto req = this->rg->apply_async(b, x, workspace);
     req.wait();
@@ -153,7 +153,6 @@ TYPED_TEST(RowGatherer, CanApplyAsyncWithWorkspace)
                       expected, 1));
     GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected_vec->get_local_vector(),
                         0.0);
-    ASSERT_GT(workspace.get_size(), 0);
 }
 
 
@@ -173,8 +172,8 @@ TYPED_TEST(RowGatherer, CanApplyAsyncMultipleTimesWithWorkspace)
                              gko::dim<2>{this->rg->get_size()[0], 1},
                              gko::dim<2>{expected.get_size(), 1});
     auto x2 = gko::clone(x1);
-    gko::array<char> workspace1;
-    gko::array<char> workspace2;
+    gko::detail::GenericDenseCache workspace1;
+    gko::detail::GenericDenseCache workspace2;
 
     auto req1 = this->rg->apply_async(b1, x1, workspace1);
     auto req2 = this->rg->apply_async(b2, x2, workspace2);
@@ -299,7 +298,7 @@ TYPED_TEST(RowGatherer, CanApplyAsyncWithEventAndWorkspace)
     auto x = Vector::create(this->mpi_exec, this->comm,
                             gko::dim<2>{this->rg->get_size()[0], 1},
                             gko::dim<2>{expected.get_size(), 1});
-    gko::array<char> workspace;
+    gko::detail::GenericDenseCache workspace;
 
     auto ev = apply_prepare(this->rg.get(), b, workspace);
     auto req = apply_finalize(this->rg.get(), b, x, ev, workspace);
@@ -311,7 +310,6 @@ TYPED_TEST(RowGatherer, CanApplyAsyncWithEventAndWorkspace)
                       expected, 1));
     GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected_vec->get_local_vector(),
                         0.0);
-    ASSERT_GT(workspace.get_size(), 0);
 }
 
 
@@ -331,8 +329,8 @@ TYPED_TEST(RowGatherer, CanApplyAsyncMultipleTimesWithEventAndWorkspace)
                              gko::dim<2>{this->rg->get_size()[0], 1},
                              gko::dim<2>{expected.get_size(), 1});
     auto x2 = gko::clone(x1);
-    gko::array<char> workspace1;
-    gko::array<char> workspace2;
+    gko::detail::GenericDenseCache workspace1;
+    gko::detail::GenericDenseCache workspace2;
 
     auto ev1 = apply_prepare(this->rg.get(), b1, workspace1);
     auto ev2 = apply_prepare(this->rg.get(), b2, workspace2);
@@ -354,9 +352,7 @@ TYPED_TEST(RowGatherer, CanApplyAsyncMultipleTimesWithEventAndWorkspace)
 }
 
 
-TYPED_TEST(
-    RowGatherer,
-    CanApplyAsyncWithEventAndWorkspaceEnsuringPrepareAndFinalizeSeparately)
+TYPED_TEST(RowGatherer, CanOverwriteWorkspaceBetweenPrepareAndFinalize)
 {
     using Dense = gko::matrix::Dense<double>;
     using Vector = gko::experimental::distributed::Vector<double>;
@@ -372,11 +368,15 @@ TYPED_TEST(
     auto x = Vector::create(this->mpi_exec, this->comm,
                             gko::dim<2>{this->rg->get_size()[0], 1},
                             gko::dim<2>{expected.get_size(), 1});
-    gko::array<char> workspace;
+    gko::detail::GenericDenseCache workspace;
 
     auto ev = apply_prepare(this->rg.get(), b, workspace);
-    // we modify the workspace to all 0
-    workspace.fill(static_cast<char>(0));
+    workspace
+        .get<double>(
+            this->rg->get_executor(),
+            gko::dim<2>(
+                this->rg->get_collective_communicator()->get_send_size(), 1))
+        ->fill(0.0);
     this->exec->synchronize();
     auto req = apply_finalize(this->rg.get(), b, x, ev, workspace);
     req.wait();
