@@ -145,6 +145,10 @@ if(GINKGO_HAVE_MUMPS)
     target_sources(${ginkgo_core} PRIVATE solver/mumps.cpp)
 endif()
 
+if(GINKGO_HAVE_HYPRE)
+    target_sources(${ginkgo_core} PRIVATE solver/hypre_boomeramg.cpp)
+endif()
+
 if(GINKGO_BUILD_MPI)
     target_sources(
         ${ginkgo_core}
@@ -214,6 +218,10 @@ endif()
 
 if(GINKGO_HAVE_MUMPS)
     target_link_libraries(${ginkgo_core} PRIVATE MUMPS::MUMPS)
+endif()
+
+if(GINKGO_HAVE_HYPRE)
+    target_link_libraries(${ginkgo_core} PRIVATE HYPRE::HYPRE)
 endif()
 
 if(GINKGO_HAVE_PARMETIS)

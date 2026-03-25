@@ -150,13 +150,11 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     // buffer_3 carries per-DOF vertex flags (one scalar per row),
     // so it must be single-column regardless of the label width.
     auto buffer_3 = share(Vector<remove_complex<ValueType>>::create(
-        exec, comm,
-        dim<2>{system_matrix->get_restriction()->get_size()[0], 1},
+        exec, comm, dim<2>{system_matrix->get_restriction()->get_size()[0], 1},
         dim<2>{n_local_rows, 1}));
     buffer_3->fill(zero<remove_complex<ValueType>>());
     auto buffer_4 = Vector<remove_complex<ValueType>>::create(
-        exec, comm,
-        dim<2>{system_matrix->get_prolongation()->get_size()[0], 1},
+        exec, comm, dim<2>{system_matrix->get_prolongation()->get_size()[0], 1},
         dim<2>{system_matrix->get_prolongation()
                    ->get_local_matrix()
                    ->get_size()[0],
@@ -862,10 +860,13 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 auto eigs_LL =
                     share(local_vec::create(host_exec, dim<2>{2, 1}));
                 condest_LL->condest(condest_rhs_LL.get(), eigs_LL.get());
-                as<NSPSolver<ValueType, LocalIndexType>>(local_solver_)
-                    ->add_scaling(one<ValueType>() / eigs_LL->at(1, 0));
-                std::cout << "RANK " << comm.rank() << ": LL COND: "
-                          << eigs_LL->at(1, 0) / eigs_LL->at(0, 0) << std::endl;
+                if (abs(eigs_LL->at(1, 0)) > 1.0) {
+                    as<NSPSolver<ValueType, LocalIndexType>>(local_solver_)
+                        ->add_scaling(one<ValueType>() / eigs_LL->at(1, 0));
+                }
+                std::cout << "RANK " << comm.rank()
+                          << ": LL LAMBDA MIN: " << eigs_LL->at(0, 0)
+                          << ", LAMBDA MAX: " << eigs_LL->at(1, 0) << std::endl;
             }
             if (!inner_is_direct) {
                 auto condest_II =
@@ -884,10 +885,13 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 auto eigs_II =
                     share(local_vec::create(host_exec, dim<2>{2, 1}));
                 condest_II->condest(condest_rhs_II.get(), eigs_II.get());
-                as<NSPSolver<ValueType, LocalIndexType>>(inner_solver_)
-                    ->add_scaling(one<ValueType>() / eigs_II->at(1, 0));
-                std::cout << "RANK " << comm.rank() << ": II COND: "
-                          << eigs_II->at(1, 0) / eigs_II->at(0, 0) << std::endl;
+                if (abs(eigs_II->at(1, 0)) > 1.0) {
+                    as<NSPSolver<ValueType, LocalIndexType>>(inner_solver_)
+                        ->add_scaling(one<ValueType>() / eigs_II->at(1, 0));
+                }
+                std::cout << "RANK " << comm.rank()
+                          << ": II LAMBDA MIN: " << eigs_II->at(0, 0)
+                          << ", LAMBDA MAX: " << eigs_II->at(1, 0) << std::endl;
             }
         }
 
@@ -935,12 +939,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
         if (schur_complement->get_size()[0] > 0) {
             schur_solver_ =
-                gko::experimental::solver::Direct<ValueType,
-                                                  LocalIndexType>::build()
-                    .with_factorization(
-                        gko::experimental::factorization::Cholesky<
-                            ValueType, LocalIndexType>::build()
-                            .on(exec))
+                gko::experimental::solver::Mumps<ValueType,
+                                                 LocalIndexType>::build()
                     .on(exec)
                     ->generate(schur_complement);
         } else {

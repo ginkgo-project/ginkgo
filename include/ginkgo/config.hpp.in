@@ -103,6 +103,11 @@
 #define GKO_HAVE_MUMPS @GINKGO_HAVE_MUMPS@
 // clang-format on
 
+/* Is HYPRE available for AMG preconditioning? */
+// clang-format off
+#define GKO_HAVE_HYPRE @GINKGO_HAVE_HYPRE@
+// clang-format on
+
 
 /* Is ROCTX available for Profiling? */
 // clang-format off
