@@ -18,3 +18,12 @@ ginkgo_create_common_and_reference_test(
     RESOURCE_LOCAL_CORES
     2
 )
+ginkgo_create_common_and_reference_test(
+    row_scatterer
+    MPI_SIZE
+    6
+    LABELS
+    distributed
+    RESOURCE_LOCAL_CORES
+    2
+)
