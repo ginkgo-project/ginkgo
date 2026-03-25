@@ -46,12 +46,12 @@ constexpr int default_block_size = 512;
 namespace kernel {
 
 
-template <typename ValueType, typename IndexType>
+template <typename DeviceValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void scatter_add_kernel(
     size_type nrows, size_type ncols,
     const IndexType* __restrict__ scatter_indices,
-    const ValueType* __restrict__ src_vals, size_type src_stride,
-    ValueType* __restrict__ tgt_vals, size_type tgt_stride)
+    const DeviceValueType* __restrict__ src_vals, size_type src_stride,
+    DeviceValueType* __restrict__ tgt_vals, size_type tgt_stride)
 {
     auto idx = thread::get_thread_id_flat();
     if (idx >= nrows * ncols) {
@@ -862,8 +862,8 @@ void scatter_add(std::shared_ptr<const DefaultExecutor> exec,
     auto grid_dim = ceildiv(nrows * ncols, default_block_size);
     kernel::scatter_add_kernel<<<grid_dim, default_block_size, 0,
                                  exec->get_stream()>>>(
-        nrows, ncols, scatter_indices, source.values, source.stride,
-        target.values, target.stride);
+        nrows, ncols, scatter_indices, as_device_type(source.values),
+        source.stride, as_device_type(target.values), target.stride);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
