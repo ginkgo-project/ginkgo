@@ -159,6 +159,7 @@ if(GINKGO_BUILD_MPI)
             distributed/partition_helpers.cpp
             distributed/preconditioner/schwarz.cpp
             distributed/row_gatherer.cpp
+            distributed/row_scatterer.cpp
             distributed/spgemm.cpp
             distributed/transpose.cpp
             distributed/vector.cpp
