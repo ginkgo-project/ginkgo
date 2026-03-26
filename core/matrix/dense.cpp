@@ -1616,16 +1616,15 @@ void Dense<ValueType>::compute_norm1_impl(absolute_type* result,
 
 
 template <typename ValueType>
-auto Dense<ValueType>::get_local_device_view()
-    -> MultiVector::device_view<ValueType>
+MultiVector::device_view<ValueType> Dense<ValueType>::get_local_device_view()
 {
     return this->get_device_view();
 }
 
 
 template <typename ValueType>
-auto Dense<ValueType>::get_const_local_device_view() const
-    -> MultiVector::device_view<const ValueType>
+MultiVector::device_view<const ValueType>
+Dense<ValueType>::get_const_local_device_view() const
 {
     return this->get_const_device_view();
 }
@@ -2303,7 +2302,7 @@ void Dense<ValueType>::get_imag(ptr_param<real_type> result) const
 
 
 template <typename ValueType>
-auto Dense<ValueType>::get_device_view() -> device_view
+typename Dense<ValueType>::device_view Dense<ValueType>::get_device_view()
 {
     return device_view{this->get_size(), this->get_stride(),
                        this->get_values()};
@@ -2311,7 +2310,8 @@ auto Dense<ValueType>::get_device_view() -> device_view
 
 
 template <typename ValueType>
-auto Dense<ValueType>::get_const_device_view() const -> const_device_view
+typename Dense<ValueType>::const_device_view
+Dense<ValueType>::get_const_device_view() const
 {
     return const_device_view{this->get_size(), this->get_stride(),
                              this->get_const_values()};

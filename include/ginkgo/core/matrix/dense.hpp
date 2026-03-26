@@ -1108,11 +1108,10 @@ public:
      */
     std::unique_ptr<const real_type> create_real_view() const;
 
-    [[nodiscard]] auto get_local_device_view()
-        -> MultiVector::device_view<value_type>;
+    [[nodiscard]] MultiVector::device_view<value_type> get_local_device_view();
 
-    [[nodiscard]] auto get_const_local_device_view() const
-        -> MultiVector::device_view<const value_type>;
+    [[nodiscard]] MultiVector::device_view<const value_type>
+    get_const_local_device_view() const;
 
     template <typename OtherValueType>
     [[nodiscard]] gko::detail::temporary_conversion<Dense<OtherValueType>>
