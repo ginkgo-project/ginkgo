@@ -1531,6 +1531,14 @@ Dense<ValueType>::get_imag_impl() const
     return get_imag();
 }
 
+
+template <typename ValueType>
+void Dense<ValueType>::compute_absolute_impl(absolute_type* result) const
+{
+    compute_absolute(result);
+}
+
+
 template <typename ValueType>
 void Dense<ValueType>::make_complex_impl(complex_type* result) const
 {
@@ -1612,6 +1620,21 @@ void Dense<ValueType>::compute_norm1_impl(absolute_type* result,
                                           array<char>& tmp) const
 {
     compute_norm1(result, tmp);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2_impl(absolute_type* result) const
+{
+    compute_squared_norm2(result);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2_impl(absolute_type* result,
+                                                  array<char>& tmp) const
+{
+    compute_squared_norm2(result, tmp);
 }
 
 
