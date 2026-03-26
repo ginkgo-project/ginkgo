@@ -126,14 +126,6 @@ public:
     [[nodiscard]] std::unique_ptr<const MultiVector> create_subview(
         local_span rows, local_span columns, dim<2> global_size) const;
 
-    // @todo: this should return something like a device view
-    template <typename ValueType>
-    [[nodiscard]] std::unique_ptr<Dense<ValueType>> create_local_view();
-
-    template <typename ValueType>
-    [[nodiscard]] std::unique_ptr<const Dense<ValueType>> create_local_view()
-        const;
-
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
                          const dim<2>& size = dim<2>{});
@@ -229,19 +221,6 @@ protected:
     [[nodiscard]] virtual std::unique_ptr<const MultiVector>
     create_subview_generic_impl(local_span rows, local_span columns,
                                 dim<2> global_size) const = 0;
-
-    [[nodiscard]] virtual auto create_local_view_impl(
-        syn::variant_from_tuple<supported_value_types> type)
-        -> syn::variant_from_tuple<
-            syn::apply_to_list<std::unique_ptr, dense_types>> = 0;
-
-    [[nodiscard]] virtual auto create_local_view_impl(
-        syn::variant_from_tuple<supported_value_types> type) const
-        -> syn::variant_from_tuple<syn::apply_to_list<
-            std::unique_ptr,
-            syn::apply_to_list<std::add_const_t, dense_types>>> = 0;
-
-    [[nodiscard]] virtual auto get_stride_impl() const -> size_type = 0;
 
 };
 
