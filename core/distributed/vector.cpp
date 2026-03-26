@@ -323,6 +323,14 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_subview_impl(
                   local_.create_subview(rows, columns));
 }
 
+
+template <typename ValueType>
+void Vector<ValueType>::compute_absolute_impl(absolute_type* result) const
+{
+    local_.compute_absolute(&result->local_);
+}
+
+
 template <typename ValueType>
 void Vector<ValueType>::make_complex_impl(complex_type* result) const
 {
@@ -406,6 +414,21 @@ void Vector<ValueType>::compute_norm1_impl(absolute_type* result,
                                            array<char>& tmp) const
 {
     compute_norm1(result, tmp);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_squared_norm2_impl(absolute_type* result) const
+{
+    compute_squared_norm2(result);
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::compute_squared_norm2_impl(absolute_type* result,
+                                                   array<char>& tmp) const
+{
+    compute_squared_norm2(result, tmp);
 }
 
 

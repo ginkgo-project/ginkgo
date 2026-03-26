@@ -718,6 +718,8 @@ protected:
     [[nodiscard]] std::unique_ptr<const Vector> create_subview_impl(
         local_span rows, local_span columns, dim<2> global_size) const override;
 
+    void compute_absolute_impl(absolute_type* result) const override;
+
     void make_complex_impl(complex_type* result) const override;
 
     void get_real_impl(real_type* result) const override;
@@ -750,7 +752,10 @@ protected:
     void compute_norm1_impl(absolute_type* result,
                             array<char>& tmp) const override;
 
-    [[nodiscard]] auto get_stride_impl() const -> size_type override;
+    void compute_squared_norm2_impl(absolute_type* result) const override;
+
+    void compute_squared_norm2_impl(absolute_type* result,
+                                    array<char>& tmp) const override;
 
 private:
     local_vector_type local_;
