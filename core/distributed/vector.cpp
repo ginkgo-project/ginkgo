@@ -410,16 +410,16 @@ void Vector<ValueType>::compute_norm1_impl(absolute_type* result,
 
 
 template <typename ValueType>
-auto Vector<ValueType>::get_local_device_view() ->
-    typename local_vector_type::device_view
+typename Vector<ValueType>::local_vector_type::device_view
+Vector<ValueType>::get_local_device_view()
 {
     return local_.get_device_view();
 }
 
 
 template <typename ValueType>
-auto Vector<ValueType>::get_const_local_device_view() const ->
-    typename local_vector_type::const_device_view
+typename Vector<ValueType>::local_vector_type::const_device_view
+Vector<ValueType>::get_const_local_device_view() const
 {
     return local_.get_const_device_view();
 }

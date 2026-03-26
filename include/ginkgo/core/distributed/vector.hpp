@@ -508,11 +508,11 @@ public:
      */
     std::unique_ptr<real_type> create_real_view();
 
-    [[nodiscard]] auto get_local_device_view() ->
-        typename local_vector_type::device_view;
+    [[nodiscard]] typename local_vector_type::device_view
+    get_local_device_view();
 
-    [[nodiscard]] auto get_const_local_device_view() const ->
-        typename local_vector_type::const_device_view;
+    [[nodiscard]] typename local_vector_type::const_device_view
+    get_const_local_device_view() const;
 
     size_type get_stride() const noexcept { return local_.get_stride(); }
 
