@@ -1,0 +1,11 @@
+[workspace]
+channels = ["https://prefix.dev/conda-forge"]
+preview = ["pixi-build"]
+
+[package]
+name = "ginkgo"
+version = "1.12.0"
+
+[package.build.backend]
+name = "pixi-build-cmake"
+version = "*"
