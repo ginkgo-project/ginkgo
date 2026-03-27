@@ -106,10 +106,7 @@ void MultiVector::get_imag(ptr_param<MultiVector> result) const
 }
 
 
-void MultiVector::fill(syn::variant_from_tuple<supported_value_types> value)
-{
-    this->fill_impl(value);
-}
+void MultiVector::fill(any_scalar value) { this->fill_impl(value); }
 
 
 void MultiVector::scale(any_const_dense_t alpha)

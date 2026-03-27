@@ -36,10 +36,25 @@ using dense_types = syn::apply_to_list<Dense, supported_value_types>;
 
 using any_const_dense_t = syn::variant_from_tuple<syn::apply_to_list<
     ptr_param, syn::apply_to_list<std::add_const_t, dense_types>>>;
+
 using any_dense_type =
     syn::variant_from_tuple<syn::apply_to_list<ptr_param, dense_types>>;
 
-using any_value_t = syn::variant_from_tuple<supported_value_types>;
+class any_scalar : public syn::variant_from_tuple<supported_value_types> {
+public:
+    using base_type = syn::variant_from_tuple<supported_value_types>;
+
+    template <typename T, std::enable_if_t<
+                              std::is_constructible_v<base_type, T&&>, int> = 0>
+    any_scalar(T&& value) : base_type(std::forward<T>(value))
+    {}
+
+    template <
+        typename T,
+        std::enable_if_t<!std::is_constructible_v<base_type, T&&>, int> = 1>
+    any_scalar(T&& value) : base_type(static_cast<double>(value))
+    {}
+};
 
 class MultiVector : public EnableAbstractPolymorphicObject<MultiVector, LinOp> {
 public:
@@ -78,7 +93,7 @@ public:
 
     void get_imag(ptr_param<MultiVector> result) const;
 
-    void fill(any_value_t value);
+    void fill(any_scalar value);
 
     void scale(any_const_dense_t alpha);
 
@@ -165,7 +180,7 @@ protected:
 
     virtual void get_imag_generic_impl(MultiVector* result) const = 0;
 
-    virtual void fill_impl(any_value_t value) = 0;
+    virtual void fill_impl(any_scalar value) = 0;
 
     // @todo: need to fix alpha to a our dense type
     virtual void scale_impl(any_const_dense_t alpha) = 0;
@@ -433,7 +448,7 @@ private:
 
     void get_imag_generic_impl(MultiVector* result) const final;
 
-    void fill_impl(any_value_t value) override final;
+    void fill_impl(any_scalar value) override final;
 
     void scale_impl(any_const_dense_t alpha) override final;
 
@@ -768,13 +783,13 @@ void EnableMultiVector<ConcreteType>::get_imag_generic_impl(
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::fill_impl(any_value_t value)
+void EnableMultiVector<ConcreteType>::fill_impl(any_scalar value)
 {
     std::visit(
         [this](auto value_v) {
             using snd_value_type = std::decay_t<decltype(value_v)>;
-            if constexpr (std::is_same_v<value_type, snd_value_type>) {
-                this->fill_impl(value_v);
+            if constexpr (std::is_convertible_v<snd_value_type, value_type>) {
+                this->fill_impl(static_cast<value_type>(value_v));
             } else {
                 GKO_NOT_IMPLEMENTED;
             }
