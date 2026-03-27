@@ -925,8 +925,8 @@ void EnableMultiVector<ConcreteType>::fill_impl(any_scalar value)
     std::visit(
         [this](auto value_v) {
             using snd_value_type = std::decay_t<decltype(value_v)>;
-            if constexpr (std::is_same_v<value_type, snd_value_type>) {
-                this->fill_impl(value_v);
+            if constexpr (std::is_convertible_v<snd_value_type, value_type>) {
+                this->fill_impl(static_cast<value_type>(value_v));
             } else {
                 GKO_NOT_IMPLEMENTED;
             }
