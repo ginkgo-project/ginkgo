@@ -137,96 +137,7 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::fill(const ValueType value)
-{
-    this->get_executor()->run(dense::make_fill(this->get_device_view(), value));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::scale(ptr_param<const LinOp> alpha)
-{
-    auto exec = this->get_executor();
-    this->scale_impl(make_temporary_clone(exec, alpha).get());
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::inv_scale(ptr_param<const LinOp> alpha)
-{
-    auto exec = this->get_executor();
-    this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
-                                  ptr_param<const LinOp> b)
-{
-    auto exec = this->get_executor();
-    this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
-                          make_temporary_clone(exec, b).get());
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
-                                  ptr_param<const LinOp> b)
-{
-    auto exec = this->get_executor();
-    this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
-                          make_temporary_clone(exec, b).get());
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_dot(ptr_param<const LinOp> b,
-                                   ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_dot_impl(make_temporary_clone(exec, b).get(),
-                           make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
-                                        ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_conj_dot_impl(
-        make_temporary_clone(exec, b).get(),
-        make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_norm2_impl(make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_norm1_impl(make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_squared_norm2_impl(
-        make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::inv_scale_impl(const LinOp* alpha)
+void Dense<ValueType>::inv_scale_impl(const Dense* alpha)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
     if (alpha->get_size()[1] != 1) {
@@ -234,56 +145,44 @@ void Dense<ValueType>::inv_scale_impl(const LinOp* alpha)
         GKO_ASSERT_EQUAL_COLS(this, alpha);
     }
     auto exec = this->get_executor();
-    // if alpha is real (convertible to real) and ValueType complex
-    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
-        is_complex<ValueType>()) {
-        // use the real-complex kernel
-        exec->run(dense::make_inv_scale(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha)
-                ->get_const_device_view(),
-            dynamic_cast<complex_type*>(this)->get_device_view()));
-        // this last cast is a no-op for complex value type and the branch is
-        // never taken for real value type
-    } else {
-        // otherwise: use the normal kernel
-        exec->run(
-            dense::make_inv_scale(make_temporary_conversion<ValueType>(alpha)
-                                      ->get_const_device_view(),
-                                  this->get_device_view()));
-    }
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::scale_impl(const LinOp* alpha)
-{
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    auto exec = this->get_executor();
-    // if alpha is real (convertible to real) and ValueType complex
-    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
-        is_complex<ValueType>()) {
-        // use the real-complex kernel
-        exec->run(dense::make_scale(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha)
-                ->get_const_device_view(),
-            dynamic_cast<complex_type*>(this)->get_device_view()));
-        // this last cast is a no-op for complex value type and the branch is
-        // never taken for real value type
-    } else {
-        // otherwise: use the normal kernel
-        exec->run(dense::make_scale(make_temporary_conversion<ValueType>(alpha)
-                                        ->get_const_device_view(),
+    exec->run(dense::make_inv_scale(alpha->get_const_device_view(),
                                     this->get_device_view()));
-    }
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
+void Dense<ValueType>::scale_impl(const Dense* alpha)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    auto exec = this->get_executor();
+    exec->run(dense::make_scale(
+        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
+        this->get_device_view()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::add_scaled_impl(const Dense* alpha, const Dense* b)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    auto exec = this->get_executor();
+    exec->run(dense::make_add_scaled(alpha->get_const_device_view(),
+                                     b->get_const_device_view(),
+                                     this->get_device_view()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::sub_scaled_impl(const Dense* alpha, const Dense* b)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
     if (alpha->get_size()[1] != 1) {
@@ -293,112 +192,14 @@ void Dense<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     auto exec = this->get_executor();
 
-    // if alpha is real and value type complex
-    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
-        is_complex<ValueType>()) {
-        exec->run(dense::make_add_scaled(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha)
-                ->get_const_device_view(),
-            make_temporary_conversion<to_complex<ValueType>>(b)
-                ->get_const_device_view(),
-            dynamic_cast<complex_type*>(this)->get_device_view()));
-    } else {
-        if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
-            exec->run(dense::make_add_scaled_diag(
-                make_temporary_conversion<ValueType>(alpha)
-                    ->get_const_device_view(),
-                dynamic_cast<const Diagonal<ValueType>*>(b),
-                this->get_device_view()));
-        } else {
-            exec->run(dense::make_add_scaled(
-                make_temporary_conversion<ValueType>(alpha)
-                    ->get_const_device_view(),
-                make_temporary_conversion<ValueType>(b)
-                    ->get_const_device_view(),
-                this->get_device_view()));
-        }
-    }
+    exec->run(dense::make_sub_scaled(alpha->get_const_device_view(),
+                                     b->get_const_device_view(),
+                                     this->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
-{
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    auto exec = this->get_executor();
-
-    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
-        is_complex<ValueType>()) {
-        exec->run(dense::make_sub_scaled(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha)
-                ->get_const_device_view(),
-            make_temporary_conversion<to_complex<ValueType>>(b)
-                ->get_const_device_view(),
-            dynamic_cast<complex_type*>(this)->get_device_view()));
-    } else {
-        if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
-            exec->run(dense::make_sub_scaled_diag(
-                make_temporary_conversion<ValueType>(alpha)
-                    ->get_const_device_view(),
-                dynamic_cast<const Diagonal<ValueType>*>(b),
-                this->get_device_view()));
-        } else {
-            exec->run(dense::make_sub_scaled(
-                make_temporary_conversion<ValueType>(alpha)
-                    ->get_const_device_view(),
-                make_temporary_conversion<ValueType>(b)
-                    ->get_const_device_view(),
-                this->get_device_view()));
-        }
-    }
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_dot(ptr_param<const LinOp> b,
-                                   ptr_param<LinOp> result,
-                                   array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_b = make_temporary_clone(exec, b);
-    auto local_res = make_temporary_clone(exec, result);
-    auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
-    auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
-    exec->run(dense::make_compute_dot(this->get_const_device_view(),
-                                      dense_b->get_const_device_view(),
-                                      dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_dot_impl(const LinOp* b, LinOp* result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    auto dense_b = make_temporary_conversion<ValueType>(b);
-    auto dense_res = make_temporary_conversion<ValueType>(result);
-    array<char> tmp{exec};
-    exec->run(dense::make_compute_dot(this->get_const_device_view(),
-                                      dense_b->get_const_device_view(),
-                                      dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
-                                        ptr_param<LinOp> result,
+void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result,
                                         array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
@@ -408,109 +209,131 @@ void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
         tmp.clear();
         tmp.set_executor(exec);
     }
-    auto local_b = make_temporary_clone(exec, b);
-    auto local_res = make_temporary_clone(exec, result);
-    auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
-    auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
-    exec->run(dense::make_compute_conj_dot(this->get_const_device_view(),
-                                           dense_b->get_const_device_view(),
-                                           dense_res->get_device_view(), tmp));
+    exec->run(dense::make_compute_dot(this->get_const_device_view(),
+                                      b->get_const_device_view(),
+                                      result->get_device_view(), tmp));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot_impl(const LinOp* b,
-                                             LinOp* result) const
+void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
-    auto dense_b = make_temporary_conversion<ValueType>(b);
-    auto dense_res = make_temporary_conversion<ValueType>(result);
     array<char> tmp{exec};
-    exec->run(dense::make_compute_conj_dot(this->get_const_device_view(),
-                                           dense_b->get_const_device_view(),
-                                           dense_res->get_device_view(), tmp));
+    exec->run(dense::make_compute_dot(this->get_const_device_view(),
+                                      b->get_const_device_view(),
+                                      result->get_device_view(), tmp));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result,
-                                     array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_result = make_temporary_clone(exec, result);
-    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
-        local_result.get());
-    exec->run(dense::make_compute_norm2(this->get_const_device_view(),
-                                        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm2_impl(LinOp* result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    auto dense_res =
-        make_temporary_conversion<remove_complex<ValueType>>(result);
-    array<char> tmp{exec};
-    exec->run(dense::make_compute_norm2(this->get_const_device_view(),
-                                        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result,
-                                     array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_result = make_temporary_clone(exec, result);
-    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
-        local_result.get());
-    exec->run(dense::make_compute_norm1(this->get_const_device_view(),
-                                        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    auto dense_res =
-        make_temporary_conversion<remove_complex<ValueType>>(result);
-    array<char> tmp{exec};
-    exec->run(dense::make_compute_norm1(this->get_const_device_view(),
-                                        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
+void Dense<ValueType>::compute_conj_dot_impl(const Dense* b, Dense* result,
                                              array<char>& tmp) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     if (tmp.get_executor() != exec) {
         tmp.clear();
         tmp.set_executor(exec);
     }
-    auto local_result = make_temporary_clone(exec, result);
-    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
-        local_result.get());
+    exec->run(dense::make_compute_conj_dot(this->get_const_device_view(),
+                                           b->get_const_device_view(),
+                                           result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_conj_dot_impl(const Dense* b,
+                                             Dense* result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    array<char> tmp{exec};
+    exec->run(dense::make_compute_conj_dot(this->get_const_device_view(),
+                                           b->get_const_device_view(),
+                                           result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm2_impl(absolute_type* result,
+                                          array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    exec->run(dense::make_compute_norm2(this->get_const_device_view(),
+                                        result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm2_impl(absolute_type* result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    array<char> tmp{exec};
+    exec->run(dense::make_compute_norm2(this->get_const_device_view(),
+                                        result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm1_impl(absolute_type* result,
+                                          array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    exec->run(dense::make_compute_norm1(this->get_const_device_view(),
+                                        result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_norm1_impl(absolute_type* result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    array<char> tmp{exec};
+    exec->run(dense::make_compute_norm1(this->get_const_device_view(),
+                                        result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2_impl(absolute_type* result,
+                                                  array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
     exec->run(dense::make_compute_squared_norm2(
-        this->get_const_device_view(), dense_res->get_device_view(), tmp));
+        this->get_const_device_view(), result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::compute_squared_norm2_impl(absolute_type* result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    array<char> tmp{exec};
+    exec->run(dense::make_compute_squared_norm2(
+        this->get_const_device_view(), result->get_device_view(), tmp));
 }
 
 
@@ -535,16 +358,6 @@ void Dense<ValueType>::compute_mean(ptr_param<LinOp> result,
     auto dense_res = make_temporary_conversion<ValueType>(result);
     exec->run(dense::make_compute_mean(this->get_const_device_view(),
                                        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2_impl(LinOp* result) const
-{
-    auto exec = this->get_executor();
-    array<char> tmp{exec};
-    this->compute_squared_norm2(make_temporary_output_clone(exec, result).get(),
-                                tmp);
 }
 
 
@@ -1398,42 +1211,6 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
         make_temporary_clone(exec, row_collection)->get_device_view()));
 }
 
-template <typename ValueType>
-void Dense<ValueType>::compute_absolute_inplace_impl()
-{
-    this->get_executor()->run(
-        dense::make_inplace_absolute_dense(this->get_device_view()));
-}
-
-template <typename ValueType>
-void Dense<ValueType>::fill_impl(any_value_t value)
-{
-    std::visit(
-        [this](auto value) {
-            using SndValueType = std::decay_t<decltype(value)>;
-            if constexpr (!is_complex<ValueType>() &&
-                          is_complex<SndValueType>()) {
-                GKO_INVALID_STATE(
-                    "Trying to fill a real vector with a complex value");
-            } else {
-                fill(static_cast<ValueType>(value));
-            }
-        },
-        value);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::scale_impl(any_const_dense_t alpha)
-{
-    std::visit([this](auto alpha) { scale(alpha); }, alpha);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::inv_scale_impl(any_const_dense_t alpha)
-{
-    std::visit([this](auto alpha) { inv_scale(alpha); }, alpha);
-}
-
 
 template <typename ValueType>
 std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_with_type_of_impl(
@@ -1489,165 +1266,25 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_subview_impl(
     return const_cast<Dense&>(*this).create_subview(rows, columns);
 }
 
-template <typename ValueType>
-std::unique_ptr<const typename Dense<ValueType>::real_type>
-Dense<ValueType>::create_real_view_impl() const
-{
-    return create_real_view();
-}
 
 template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::real_type>
-Dense<ValueType>::create_real_view_impl()
+void Dense<ValueType>::fill_impl(value_type value)
 {
-    return create_real_view();
-}
-
-template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::absolute_type>
-Dense<ValueType>::compute_absolute_impl() const
-{
-    return compute_absolute();
-}
-
-template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::complex_type>
-Dense<ValueType>::make_complex_impl() const
-{
-    return make_complex();
-}
-
-template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::real_type>
-Dense<ValueType>::get_real_impl() const
-{
-    return get_real();
-}
-
-template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::real_type>
-Dense<ValueType>::get_imag_impl() const
-{
-    return get_imag();
+    this->get_executor()->run(dense::make_fill(this->get_device_view(), value));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_absolute_impl(absolute_type* result) const
-{
-    compute_absolute(result);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::make_complex_impl(complex_type* result) const
-{
-    make_complex(result);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::get_real_impl(real_type* result) const
-{
-    get_real(result);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::get_imag_impl(real_type* result) const
-{
-    get_imag(result);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::add_scaled_impl(any_const_dense_t alpha, const Dense* b)
-{
-    std::visit([this, b](auto alpha) { add_scaled(alpha, b); }, alpha);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::sub_scaled_impl(any_const_dense_t alpha, const Dense* b)
-{
-    std::visit([this, b](auto alpha) { sub_scaled(alpha, b); }, alpha);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result) const
-{
-    compute_dot(b, result);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result,
-                                        array<char>& tmp) const
-{
-    compute_dot(b, result, tmp);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot_impl(const Dense* b,
-                                             Dense* result) const
-{
-    compute_conj_dot(b, result);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot_impl(const Dense* b, Dense* result,
-                                             array<char>& tmp) const
-{
-    compute_conj_dot(b, result, tmp);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm2_impl(absolute_type* result) const
-{
-    compute_norm2(result);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm2_impl(absolute_type* result,
-                                          array<char>& tmp) const
-{
-    compute_norm2(result, tmp);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm1_impl(absolute_type* result) const
-{
-    compute_norm2(result);
-}
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm1_impl(absolute_type* result,
-                                          array<char>& tmp) const
-{
-    compute_norm1(result, tmp);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2_impl(absolute_type* result) const
-{
-    compute_squared_norm2(result);
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2_impl(absolute_type* result,
-                                                  array<char>& tmp) const
-{
-    compute_squared_norm2(result, tmp);
-}
-
-
-template <typename ValueType>
-MultiVector::device_view<ValueType> Dense<ValueType>::get_local_device_view()
+typename Dense<ValueType>::device_view
+Dense<ValueType>::get_local_device_view_impl()
 {
     return this->get_device_view();
 }
 
 
 template <typename ValueType>
-MultiVector::device_view<const ValueType>
-Dense<ValueType>::get_const_local_device_view() const
+typename Dense<ValueType>::const_device_view
+Dense<ValueType>::get_const_local_device_view_impl() const
 {
     return this->get_const_device_view();
 }
@@ -2221,7 +1858,7 @@ std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_absolute_inplace()
+void Dense<ValueType>::compute_absolute_inplace_impl()
 {
     this->get_executor()->run(
         dense::make_inplace_absolute_dense(this->get_device_view()));
@@ -2230,7 +1867,7 @@ void Dense<ValueType>::compute_absolute_inplace()
 
 template <typename ValueType>
 std::unique_ptr<typename Dense<ValueType>::absolute_type>
-Dense<ValueType>::compute_absolute() const
+Dense<ValueType>::compute_absolute_impl() const
 {
     // do not inherit the stride
     auto result = absolute_type::create(this->get_executor(), this->get_size());
@@ -2240,7 +1877,7 @@ Dense<ValueType>::compute_absolute() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_absolute(ptr_param<absolute_type> output) const
+void Dense<ValueType>::compute_absolute_impl(absolute_type* output) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
@@ -2253,7 +1890,7 @@ void Dense<ValueType>::compute_absolute(ptr_param<absolute_type> output) const
 
 template <typename ValueType>
 std::unique_ptr<typename Dense<ValueType>::complex_type>
-Dense<ValueType>::make_complex() const
+Dense<ValueType>::make_complex_impl() const
 {
     auto result = complex_type::create(this->get_executor(), this->get_size());
     this->make_complex(result);
@@ -2262,7 +1899,7 @@ Dense<ValueType>::make_complex() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::make_complex(ptr_param<complex_type> result) const
+void Dense<ValueType>::make_complex_impl(complex_type* result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
@@ -2275,7 +1912,7 @@ void Dense<ValueType>::make_complex(ptr_param<complex_type> result) const
 
 template <typename ValueType>
 std::unique_ptr<typename Dense<ValueType>::real_type>
-Dense<ValueType>::get_real() const
+Dense<ValueType>::get_real_impl() const
 {
     auto result = real_type::create(this->get_executor(), this->get_size());
     this->get_real(result);
@@ -2284,7 +1921,7 @@ Dense<ValueType>::get_real() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::get_real(ptr_param<real_type> result) const
+void Dense<ValueType>::get_real_impl(real_type* result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
@@ -2297,7 +1934,7 @@ void Dense<ValueType>::get_real(ptr_param<real_type> result) const
 
 template <typename ValueType>
 std::unique_ptr<typename Dense<ValueType>::real_type>
-Dense<ValueType>::get_imag() const
+Dense<ValueType>::get_imag_impl() const
 {
     auto result = real_type::create(this->get_executor(), this->get_size());
     this->get_imag(result);
@@ -2306,7 +1943,7 @@ Dense<ValueType>::get_imag() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::get_imag(ptr_param<real_type> result) const
+void Dense<ValueType>::get_imag_impl(real_type* result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
@@ -2350,7 +1987,7 @@ void Dense<ValueType>::add_scaled_identity_impl(const LinOp* a, const LinOp* b)
 
 template <typename ValueType>
 std::unique_ptr<typename Dense<ValueType>::real_type>
-Dense<ValueType>::create_real_view()
+Dense<ValueType>::create_real_view_impl()
 {
     const auto num_rows = this->get_size()[0];
     constexpr bool complex = is_complex<ValueType>();
@@ -2369,7 +2006,7 @@ Dense<ValueType>::create_real_view()
 
 template <typename ValueType>
 std::unique_ptr<const typename Dense<ValueType>::real_type>
-Dense<ValueType>::create_real_view() const
+Dense<ValueType>::create_real_view_impl() const
 {
     const auto num_rows = this->get_size()[0];
     constexpr bool complex = is_complex<ValueType>();
@@ -2420,7 +2057,7 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
 template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, size_type stride)
-    : EnableMultiVector<Dense>(exec, size, type_to_precision<ValueType>),
+    : EnableMultiVector<Dense>(exec, size),
       stride_(stride == 0 ? size[1] : stride),
       values_(exec, size[0] * stride_)
 {}
@@ -2430,7 +2067,7 @@ template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, array<value_type> values,
                         size_type stride)
-    : EnableMultiVector<Dense>(exec, size, type_to_precision<ValueType>),
+    : EnableMultiVector<Dense>(exec, size),
       stride_{stride},
       values_{exec, std::move(values)}
 {
