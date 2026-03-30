@@ -1109,13 +1109,15 @@ protected:
 
     void fill_impl(value_type value) override;
 
-    void scale_impl(const Dense* alpha) override;
+    void scale_impl(scaling_param<value_type> alpha) override;
 
-    void inv_scale_impl(const Dense* alpha) override;
+    void inv_scale_impl(scaling_param<value_type> alpha) override;
 
-    void add_scaled_impl(const Dense* alpha, const Dense* b) override;
+    void add_scaled_impl(scaling_param<value_type> alpha,
+                         const Dense* b) override;
 
-    void sub_scaled_impl(const Dense* alpha, const Dense* b) override;
+    void sub_scaled_impl(scaling_param<value_type> alpha,
+                         const Dense* b) override;
 
     void compute_dot_impl(const Dense* b, Dense* result) const override;
 

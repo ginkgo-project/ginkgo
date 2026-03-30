@@ -137,7 +137,7 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::inv_scale_impl(const Dense* alpha)
+void Dense<ValueType>::inv_scale_impl(scaling_param<value_type> alpha)
 {
     std::visit(
         [this](auto alpha_v) {
@@ -150,7 +150,7 @@ void Dense<ValueType>::inv_scale_impl(const Dense* alpha)
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale_impl(const Dense* alpha)
+void Dense<ValueType>::scale_impl(scaling_param<value_type> alpha)
 {
     std::visit(
         [this](auto alpha_v) {
@@ -163,7 +163,8 @@ void Dense<ValueType>::scale_impl(const Dense* alpha)
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_impl(const Dense* alpha, const Dense* b)
+void Dense<ValueType>::add_scaled_impl(scaling_param<value_type> alpha,
+                                       const Dense* b)
 {
     std::visit(
         [this, b](auto alpha_v) {
@@ -177,7 +178,8 @@ void Dense<ValueType>::add_scaled_impl(const Dense* alpha, const Dense* b)
 
 
 template <typename ValueType>
-void Dense<ValueType>::sub_scaled_impl(const Dense* alpha, const Dense* b)
+void Dense<ValueType>::sub_scaled_impl(scaling_param<value_type> alpha,
+                                       const Dense* b)
 {
     std::visit(
         [this, b](auto alpha_v) {
