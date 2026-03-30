@@ -530,14 +530,14 @@ void Vector<ValueType>::get_imag_impl(real_type* result) const
 template <typename ValueType>
 void Vector<ValueType>::scale_impl(scaling_param<value_type> alpha)
 {
-    local_.scale(alpha);
+    std::visit([this](auto alpha_v) { local_.scale(alpha_v); }, alpha);
 }
 
 
 template <typename ValueType>
 void Vector<ValueType>::inv_scale_impl(scaling_param<value_type> alpha)
 {
-    local_.inv_scale(alpha);
+    std::visit([this](auto alpha_v) { local_.inv_scale(alpha_v); }, alpha);
 }
 
 
@@ -545,8 +545,11 @@ template <typename ValueType>
 void Vector<ValueType>::add_scaled_impl(scaling_param<value_type> alpha,
                                         const Vector* b)
 {
-    auto dense_b = as<Vector>(b);
-    local_.add_scaled(alpha, dense_b->get_local_vector());
+    std::visit(
+        [this, b](auto alpha_v) {
+            local_.add_scaled(alpha_v, b->get_local_vector());
+        },
+        alpha);
 }
 
 
@@ -554,8 +557,11 @@ template <typename ValueType>
 void Vector<ValueType>::sub_scaled_impl(scaling_param<value_type> alpha,
                                         const Vector* b)
 {
-    auto dense_b = as<Vector>(b);
-    local_.sub_scaled(alpha, dense_b->get_local_vector());
+    std::visit(
+        [this, b](auto alpha_v) {
+            local_.sub_scaled(alpha_v, b->get_local_vector());
+        },
+        alpha);
 }
 
 
