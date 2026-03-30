@@ -60,6 +60,26 @@ public:
     {}
 };
 
+/**
+ * The allowed Dense<T> type to be used in scaling operations, e.g. in
+ * scaled_add.
+ *
+ * @tparam ValueType The value type of the vector type on which to call the
+ *                    scaling operation
+ */
+template <typename ValueType>
+struct scaling_param : std::variant<const matrix::Dense<ValueType>*> {};
+
+/**
+ * Specialization for complex types, allows both real and complex scaling
+ * parameters.
+ */
+template <typename ValueType>
+struct scaling_param<std::complex<ValueType>>
+    : std::variant<const matrix::Dense<ValueType>*,
+                   const matrix::Dense<std::complex<ValueType>>*> {};
+
+
 class MultiVector : public EnableAbstractPolymorphicObject<MultiVector, LinOp> {
 public:
     template <typename ValueType>
@@ -179,8 +199,8 @@ public:
     [[nodiscard]] detail::temporary_conversion<MultiVector> as_precision(
         ptr_param<const LinOp> p);
 
-    [[nodiscard]] detail::temporary_conversion<const MultiVector>
-    as_precision(precision p) const;
+    [[nodiscard]] detail::temporary_conversion<const MultiVector> as_precision(
+        precision p) const;
 
     [[nodiscard]] detail::temporary_conversion<const MultiVector> as_precision(
         ptr_param<const MultiVector> p) const;
@@ -436,14 +456,14 @@ protected:
 
     virtual void fill_impl(value_type value) = 0;
 
-    virtual void scale_impl(const matrix::Dense<value_type>* alpha) = 0;
+    virtual void scale_impl(scaling_param<value_type> alpha) = 0;
 
-    virtual void inv_scale_impl(const matrix::Dense<value_type>* alpha) = 0;
+    virtual void inv_scale_impl(scaling_param<value_type> alpha) = 0;
 
-    virtual void add_scaled_impl(const matrix::Dense<value_type>* alpha,
+    virtual void add_scaled_impl(scaling_param<value_type> alpha,
                                  const ConcreteType* b) = 0;
 
-    virtual void sub_scaled_impl(const matrix::Dense<value_type>* alpha,
+    virtual void sub_scaled_impl(scaling_param<value_type> alpha,
                                  const ConcreteType* b) = 0;
 
     virtual void compute_dot_impl(const ConcreteType* b,
@@ -478,8 +498,8 @@ protected:
     virtual void compute_norm1_impl(matrix::Dense<absolute_value_type>* result,
                                     array<char>& tmp) const = 0;
 
-    [[nodiscard]] detail::temporary_conversion<MultiVector>
-    as_precision_impl(precision p) override;
+    [[nodiscard]] detail::temporary_conversion<MultiVector> as_precision_impl(
+        precision p) override;
 
     [[nodiscard]] detail::temporary_conversion<const MultiVector>
     as_precision_impl(precision p) const override;
@@ -936,18 +956,36 @@ void EnableMultiVector<ConcreteType>::fill_impl(any_scalar value)
 }
 
 
+namespace detail {
+
+
+template <typename ValueType, typename DenseType>
+struct scaling_factor_target {
+    using type = std::conditional_t<
+        is_complex<ValueType>() &&
+            !is_complex<typename std::decay_t<
+                std::remove_pointer_t<DenseType>>::value_type>(),
+        remove_complex<ValueType>, ValueType>;
+};
+
+template <typename ValueType, typename DenseType>
+using scaling_factor_target_type =
+    typename scaling_factor_target<ValueType, DenseType>::type;
+
+
+}  // namespace detail
+
+
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::scale_impl(any_const_dense_t alpha)
 {
     std::visit(
         [this](auto alpha_v) {
-            using alpha_type = std::decay_t<decltype(alpha_v)>;
-            if constexpr (std::is_same_v<alpha_type,
-                                         matrix::Dense<value_type>>) {
-                this->scale_impl(alpha_v);
-            } else {
-                GKO_NOT_IMPLEMENTED;
-            }
+            this->scale_impl(scaling_param<value_type>{
+                alpha_v
+                    ->template as_precision<detail::scaling_factor_target_type<
+                        value_type, decltype(alpha_v.get())>>()
+                    .get()});
         },
         alpha);
 }
@@ -958,13 +996,11 @@ void EnableMultiVector<ConcreteType>::inv_scale_impl(any_const_dense_t alpha)
 {
     std::visit(
         [this](auto alpha_v) {
-            using alpha_type = std::decay_t<decltype(alpha_v)>;
-            if constexpr (std::is_same_v<alpha_type,
-                                         matrix::Dense<value_type>>) {
-                this->inv_scale_impl(alpha_v);
-            } else {
-                GKO_NOT_IMPLEMENTED;
-            }
+            this->inv_scale_impl(scaling_param<value_type>{
+                alpha_v
+                    ->template as_precision<detail::scaling_factor_target_type<
+                        value_type, decltype(alpha_v.get())>>()
+                    .get()});
         },
         alpha);
 }
@@ -973,7 +1009,19 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::add_scaled_impl(any_const_dense_t alpha,
                                                       const MultiVector* b)
 {
-    this->add_scaled_impl(alpha, as<const ConcreteType>(b));
+    std::visit(
+        [b, this](auto alpha_v) {
+            this->add_scaled_impl(
+                scaling_param<value_type>{
+                    alpha_v
+                        ->template as_precision<
+                            detail::scaling_factor_target_type<
+                                value_type, decltype(alpha_v.get())>>()
+                        .get()},
+                as<const ConcreteType>(
+                    b->as_precision(this->get_precision()).get()));
+        },
+        alpha);
 }
 
 
@@ -981,7 +1029,19 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::sub_scaled_impl(any_const_dense_t alpha,
                                                       const MultiVector* b)
 {
-    this->sub_scaled_impl(alpha, as<const ConcreteType>(b));
+    std::visit(
+        [b, this](auto alpha_v) {
+            this->sub_scaled_impl(
+                scaling_param<value_type>{
+                    alpha_v
+                        ->template as_precision<
+                            detail::scaling_factor_target_type<
+                                value_type, decltype(alpha_v.get())>>()
+                        .get()},
+                as<const ConcreteType>(
+                    b->as_precision(this->get_precision()).get()));
+        },
+        alpha);
 }
 
 
@@ -989,7 +1049,10 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_dot_impl(
     const MultiVector* b, MultiVector* result) const
 {
-    this->compute_dot_impl(as<const ConcreteType>(b), as<ConcreteType>(result));
+    this->compute_dot_impl(
+        as<const ConcreteType>(b->as_precision(this->get_precision()).get()),
+        as<matrix::Dense<value_type>>(
+            result->as_precision(this->get_precision()).get()));
 }
 
 
@@ -998,8 +1061,11 @@ void EnableMultiVector<ConcreteType>::compute_dot_impl(const MultiVector* b,
                                                        MultiVector* result,
                                                        array<char>& tmp) const
 {
-    this->compute_dot_impl(as<const ConcreteType>(b), as<ConcreteType>(result),
-                           tmp);
+    this->compute_dot_impl(
+        as<const ConcreteType>(b->as_precision(this->get_precision()).get()),
+        as<matrix::Dense<value_type>>(
+            result->as_precision(this->get_precision()).get()),
+        tmp);
 }
 
 
@@ -1007,8 +1073,10 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
     const MultiVector* b, MultiVector* result) const
 {
-    this->compute_conj_dot_impl(as<const ConcreteType>(b),
-                                as<ConcreteType>(result));
+    this->compute_conj_dot_impl(
+        as<const ConcreteType>(b->as_precision(this->get_precision()).get()),
+        as<matrix::Dense<value_type>>(
+            result->as_precision(this->get_precision()).get()));
 }
 
 
@@ -1016,8 +1084,11 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
     const MultiVector* b, MultiVector* result, array<char>& tmp) const
 {
-    this->compute_conj_dot_impl(as<const ConcreteType>(b),
-                                as<ConcreteType>(result), tmp);
+    this->compute_conj_dot_impl(
+        as<const ConcreteType>(b->as_precision(this->get_precision()).get()),
+        as<matrix::Dense<value_type>>(
+            result->as_precision(this->get_precision()).get()),
+        tmp);
 }
 
 
@@ -1025,7 +1096,8 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_norm2_impl(
     MultiVector* result) const
 {
-    this->compute_norm2_impl(as<ConcreteType>(result));
+    this->compute_norm2_impl(as<matrix::Dense<absolute_value_type>>(
+        result->as_precision(as_real(this->get_precision())).get()));
 }
 
 
@@ -1033,7 +1105,10 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_norm2_impl(MultiVector* result,
                                                          array<char>& tmp) const
 {
-    this->compute_norm2_impl(as<ConcreteType>(result), tmp);
+    this->compute_norm2_impl(
+        as<matrix::Dense<absolute_value_type>>(
+            result->as_precision(as_real(this->get_precision())).get()),
+        tmp);
 }
 
 
@@ -1041,7 +1116,8 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
     MultiVector* result) const
 {
-    this->compute_squared_norm2_impl(as<ConcreteType>(result));
+    this->compute_squared_norm2_impl(as<matrix::Dense<absolute_value_type>>(
+        result->as_precision(as_real(this->get_precision())).get()));
 }
 
 
@@ -1049,7 +1125,10 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
     MultiVector* result, array<char>& tmp) const
 {
-    this->compute_squared_norm2_impl(as<ConcreteType>(result), tmp);
+    this->compute_squared_norm2_impl(
+        as<matrix::Dense<absolute_value_type>>(
+            result->as_precision(as_real(this->get_precision())).get()),
+        tmp);
 }
 
 
@@ -1057,7 +1136,8 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_norm1_impl(
     MultiVector* result) const
 {
-    this->compute_norm1_impl(as<ConcreteType>(result));
+    this->compute_norm1_impl(as<matrix::Dense<absolute_value_type>>(
+        result->as_precision(as_real(this->get_precision())).get()));
 }
 
 
@@ -1065,7 +1145,10 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_norm1_impl(MultiVector* result,
                                                          array<char>& tmp) const
 {
-    this->compute_norm1_impl(as<ConcreteType>(result), tmp);
+    this->compute_norm1_impl(
+        as<matrix::Dense<absolute_value_type>>(
+            result->as_precision(as_real(this->get_precision())).get()),
+        tmp);
 }
 
 
