@@ -329,7 +329,7 @@ TYPED_TEST(Dense, CanCreateConstDeviceView)
 TYPED_TEST(Dense, CanCreateSubmatrix)
 {
     using value_type = typename TestFixture::value_type;
-    auto submtx = this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 3});
+    auto submtx = this->mtx->create_subview(gko::span{0, 1}, gko::span{1, 3});
 
     EXPECT_EQ(submtx->get_size(), gko::dim<2>(1, 2));
     EXPECT_EQ(submtx->at(0, 0), value_type{2.0});
@@ -345,8 +345,8 @@ TYPED_TEST(Dense, CanCreateSubmatrixWithGlobalSize)
 {
     using value_type = typename TestFixture::value_type;
     auto submtx_orig =
-        this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 3});
-    auto submtx = this->mtx->create_submatrix(
+        this->mtx->create_subview(gko::span{0, 1}, gko::span{1, 3});
+    auto submtx = this->mtx->create_subview(
         gko::local_span{0, 1}, gko::local_span{1, 3}, gko::dim<2>{1, 2});
 
     GKO_ASSERT_MTX_NEAR(submtx_orig, submtx, 0.0);
@@ -357,40 +357,17 @@ TYPED_TEST(Dense, CanCreateSubmatrixWithGlobalSize)
 TYPED_TEST(Dense, CreateSubmatrixWithGlobalSizeThrowsOnIncorrectSize)
 {
     EXPECT_THROW(
-        this->mtx->create_submatrix(gko::local_span{0, 1},
-                                    gko::local_span{1, 3}, gko::dim<2>{1, 20}),
+        (void)this->mtx->create_subview(
+            gko::local_span{0, 1}, gko::local_span{1, 3}, gko::dim<2>{1, 20}),
         gko::DimensionMismatch);
 }
 
 
 TYPED_TEST(Dense, CanCreateEmptySubmatrix)
 {
-    using value_type = typename TestFixture::value_type;
-    auto submtx = this->mtx->create_submatrix(gko::span{0, 0}, gko::span{1, 1});
+    auto submtx = this->mtx->create_subview(gko::span{0, 0}, gko::span{1, 1});
 
     EXPECT_EQ(submtx->get_size(), gko::dim<2>{});
-}
-
-
-TYPED_TEST(Dense, CanCreateSubmatrixWithStride)
-{
-    using value_type = typename TestFixture::value_type;
-    auto submtx =
-        this->mtx->create_submatrix(gko::span{0, 2}, gko::span{0, 2}, 3);
-
-    EXPECT_EQ(submtx->get_size(), gko::dim<2>(2, 2));
-    EXPECT_EQ(submtx->get_stride(), 3);
-    // The entry submtx->at(1, 0) points to the strided data of this->mtx
-    // which means that it is undefined. Thus it is skipped in the tests
-    EXPECT_EQ(submtx->at(0, 0), value_type{1.0});
-    EXPECT_EQ(submtx->at(0, 1), value_type{2.0});
-    EXPECT_EQ(submtx->at(1, 1), value_type{1.5});
-    EXPECT_EQ(submtx->get_num_stored_elements(), 6);
-    EXPECT_LT(std::distance(this->mtx->get_values(), submtx->get_values()),
-              this->mtx->get_num_stored_elements());
-    EXPECT_EQ(&submtx->at(0, 0), &this->mtx->at(0, 0));
-    EXPECT_EQ(&submtx->at(0, 1), &this->mtx->at(0, 1));
-    EXPECT_EQ(&submtx->at(1, 1), &this->mtx->at(1, 0));
 }
 
 
@@ -472,13 +449,17 @@ private:
           data_(data)
     {}
 
-    std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override
+protected:
+    [[nodiscard]] std::unique_ptr<Dense<>> create_subview_impl(
+        gko::local_span rows, gko::local_span columns) override
     {
-        auto view = create(this->get_executor(), {}, this->get_data());
+        auto view = std::unique_ptr<CustomDense>(
+            new CustomDense(this->get_executor(), {}, this->get_data()));
         gko::matrix::Dense<>::create_view_of_impl()->move_to(view);
         return view;
     }
 
+private:
     int data_;
 };
 
