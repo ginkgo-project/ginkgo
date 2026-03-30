@@ -484,14 +484,14 @@ protected:
 
     void fill_impl(value_type value) override;
 
-    void scale_impl(const matrix::Dense<value_type>* alpha) override;
+    void scale_impl(matrix::scaling_param<value_type> alpha) override;
 
-    void inv_scale_impl(const matrix::Dense<value_type>* alpha) override;
+    void inv_scale_impl(matrix::scaling_param<value_type> alpha) override;
 
-    void add_scaled_impl(const matrix::Dense<value_type>* alpha,
+    void add_scaled_impl(matrix::scaling_param<value_type> alpha,
                          const Vector* b) override;
 
-    void sub_scaled_impl(const matrix::Dense<value_type>* alpha,
+    void sub_scaled_impl(matrix::scaling_param<value_type> alpha,
                          const Vector* b) override;
 
     device_view get_local_device_view_impl() override;
