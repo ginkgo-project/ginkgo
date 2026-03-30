@@ -1295,8 +1295,23 @@ template <typename OtherValueType>
 gko::detail::temporary_conversion<Dense<OtherValueType>>
 Dense<ValueType>::as_precision()
 {
-    return gko::detail::temporary_conversion<Dense<OtherValueType>>::create(
-        this);
+    if constexpr (is_complex<ValueType>() == is_complex<OtherValueType>()) {
+        // The value types are either both real or both complex
+        return gko::detail::temporary_conversion<Dense<OtherValueType>>::create(
+            this);
+    } else if constexpr (is_complex<ValueType>() &&
+                         std::is_same_v<to_complex<OtherValueType>,
+                                        ValueType>) {
+        // The value type of this is complex and the other value type is the
+        // corresponding real value type (std::complex<double> vs double).
+        // This conversion is allowed, since the real view of this can be used
+        return gko::detail::temporary_conversion<Dense<OtherValueType>>::create(
+            this->create_real_view().get());
+    } else {
+        // Conversions from real to complex (or vice versa) that change the
+        // precision are not allowed.
+        GKO_NOT_IMPLEMENTED;
+    }
 }
 
 #define GKO_DECLARE_DENSE_AS_PRECISION(ValueType, OtherValueType) \
@@ -1313,8 +1328,23 @@ template <typename OtherValueType>
 gko::detail::temporary_conversion<const Dense<OtherValueType>>
 Dense<ValueType>::as_precision() const
 {
-    return gko::detail::temporary_conversion<
-        const Dense<OtherValueType>>::create(this);
+    if constexpr (is_complex<ValueType>() == is_complex<OtherValueType>()) {
+        // The value types are either both real or both complex
+        return gko::detail::temporary_conversion<
+            const Dense<OtherValueType>>::create(this);
+    } else if constexpr (is_complex<ValueType>() &&
+                         std::is_same_v<to_complex<OtherValueType>,
+                                        ValueType>) {
+        // The value type of this is complex and the other value type is the
+        // corresponding real value type (std::complex<double> vs double).
+        // This conversion is allowed, since the real view of this can be used
+        return gko::detail::temporary_conversion<const Dense<OtherValueType>>::
+            create(this->create_real_view().get());
+    } else {
+        // Conversions from real to complex (or vice versa) that change the
+        // precision are not allowed.
+        GKO_NOT_IMPLEMENTED;
+    }
 }
 
 #define GKO_DECLARE_DENSE_CONST_AS_PRECISION(ValueType, OtherValueType) \
