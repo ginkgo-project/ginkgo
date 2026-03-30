@@ -165,8 +165,18 @@ template <typename OtherValueType>
 gko::detail::temporary_conversion<Vector<OtherValueType>>
 Vector<ValueType>::as_precision()
 {
-    return gko::detail::temporary_conversion<Vector<OtherValueType>>::create(
-        this);
+    // See the implementation of Dense::as_precision for details
+    if constexpr (is_complex<ValueType>() == is_complex<OtherValueType>()) {
+        return gko::detail::temporary_conversion<
+            Vector<OtherValueType>>::create(this);
+    } else if constexpr (is_complex<ValueType>() &&
+                         std::is_same_v<to_complex<OtherValueType>,
+                                        ValueType>) {
+        return gko::detail::temporary_conversion<
+            Vector<OtherValueType>>::create(this->create_real_view().get());
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
 }
 
 #define GKO_DECLARE_VECTOR_AS_PRECISION(ValueType, OtherValueType) \
@@ -183,8 +193,18 @@ template <typename OtherValueType>
 gko::detail::temporary_conversion<const Vector<OtherValueType>>
 Vector<ValueType>::as_precision() const
 {
-    return gko::detail::temporary_conversion<
-        const Vector<OtherValueType>>::create(this);
+    // See the implementation of Dense::as_precision for details
+    if constexpr (is_complex<ValueType>() == is_complex<OtherValueType>()) {
+        return gko::detail::temporary_conversion<
+            const Vector<OtherValueType>>::create(this);
+    } else if constexpr (is_complex<ValueType>() &&
+                         std::is_same_v<to_complex<OtherValueType>,
+                                        ValueType>) {
+        return gko::detail::temporary_conversion<const Vector<OtherValueType>>::
+            create(this->create_real_view().get());
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
 }
 
 #define GKO_DECLARE_VECTOR_CONST_AS_PRECISION(ValueType, OtherValueType) \
