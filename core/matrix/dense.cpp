@@ -1690,13 +1690,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONST_AS_PRECISION_same);
 
 
 template <typename ValueType>
-auto Dense<ValueType>::get_stride_impl() const -> size_type
-{
-    return get_stride();
-}
-
-
-template <typename ValueType>
 std::unique_ptr<LinOp> Dense<ValueType>::permute(
     const array<int32>* permutation_indices) const
 {
