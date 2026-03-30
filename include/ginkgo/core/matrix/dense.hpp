@@ -1203,8 +1203,8 @@ template <typename VecPtr>
 std::unique_ptr<matrix::Dense<typename detail::pointee<VecPtr>::value_type>>
 make_dense_view(VecPtr&& vector)
 {
-    using value_type = typename detail::pointee<VecPtr>::value_type;
-    return matrix::Dense<value_type>::create_view_of(vector);
+    auto size = vector->get_size();
+    return vector->create_subview({0, size[0]}, {0, size[1]});
 }
 
 
@@ -1220,8 +1220,8 @@ std::unique_ptr<
     const matrix::Dense<typename detail::pointee<VecPtr>::value_type>>
 make_const_dense_view(VecPtr&& vector)
 {
-    using value_type = typename detail::pointee<VecPtr>::value_type;
-    return matrix::Dense<value_type>::create_const_view_of(vector);
+    auto size = vector->get_size();
+    return vector->create_subview({0, size[0]}, {0, size[1]}, size);
 }
 
 
