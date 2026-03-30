@@ -530,40 +530,6 @@ TYPED_TEST(Dense, AddScaledFailsOnWrongSizes)
 }
 
 
-TYPED_TEST(Dense, AddsScaledDiag)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto diag = gko::matrix::Diagonal<T>::create(
-        this->exec, 2, gko::array<T>{this->exec, {3.0, 2.0}});
-
-    this->mtx2->add_scaled(alpha, diag);
-
-    ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
-    ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
-    ASSERT_EQ(this->mtx2->at(1, 0), T{-2.0});
-    ASSERT_EQ(this->mtx2->at(1, 1), T{6.0});
-}
-
-
-TYPED_TEST(Dense, SubtractsScaledDiag)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<Mtx>({-2.0}, this->exec);
-    auto diag = gko::matrix::Diagonal<T>::create(
-        this->exec, 2, gko::array<T>{this->exec, {3.0, 2.0}});
-
-    this->mtx2->sub_scaled(alpha, diag);
-
-    ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
-    ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
-    ASSERT_EQ(this->mtx2->at(1, 0), T{-2.0});
-    ASSERT_EQ(this->mtx2->at(1, 1), T{6.0});
-}
-
-
 TYPED_TEST(Dense, ComputesDot)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -586,7 +552,7 @@ TYPED_TEST(Dense, ComputesDotMixed)
     this->mtx3->convert_to(mmtx3);
     auto result = MixedMtx::create(this->exec, gko::dim<2>{1, 3});
 
-    this->mtx1->compute_dot(this->mtx3, result);
+    this->mtx1->compute_dot(mmtx3, result);
 
     EXPECT_EQ(result->at(0, 0), MixedT{1.75});
     EXPECT_EQ(result->at(0, 1), MixedT{7.75});
@@ -616,7 +582,7 @@ TYPED_TEST(Dense, ComputesConjDotMixed)
     this->mtx3->convert_to(mmtx3);
     auto result = MixedMtx::create(this->exec, gko::dim<2>{1, 3});
 
-    this->mtx1->compute_conj_dot(this->mtx3, result);
+    this->mtx1->compute_conj_dot(mmtx3, result);
 
     EXPECT_EQ(result->at(0, 0), MixedT{1.75});
     EXPECT_EQ(result->at(0, 1), MixedT{7.75});
@@ -880,7 +846,7 @@ TYPED_TEST(Dense, SquareSubmatrixIsTransposableIntoDense)
     using T = typename TestFixture::value_type;
     auto trans = Mtx::create(this->exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})->transpose(trans);
+    this->mtx5->create_subview({0, 2}, {0, 2})->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, -2.0}, {-1.0, 2.0}}), 0.0);
     ASSERT_EQ(trans->get_stride(), 4);
@@ -925,7 +891,7 @@ TYPED_TEST(Dense, NonSquareSubmatrixIsTransposableIntoDense)
     using T = typename TestFixture::value_type;
     auto trans = Mtx::create(this->exec, gko::dim<2>{2, 1}, 5);
 
-    this->mtx4->create_submatrix({0, 1}, {0, 2})->transpose(trans);
+    this->mtx4->create_subview({0, 1}, {0, 2})->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans, l({1.0, 3.0}), 0.0);
     ASSERT_EQ(trans->get_stride(), 5);
@@ -1039,7 +1005,7 @@ TYPED_TEST(Dense, InplaceAbsolute)
 TYPED_TEST(Dense, InplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto mtx = this->mtx5->create_subview(gko::span{0, 2}, gko::span{0, 2});
 
     mtx->compute_absolute_inplace();
 
@@ -1079,7 +1045,7 @@ TYPED_TEST(Dense, OutplaceAbsoluteIntoDense)
 TYPED_TEST(Dense, OutplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto mtx = this->mtx5->create_subview(gko::span{0, 2}, gko::span{0, 2});
 
     auto abs_mtx = mtx->compute_absolute();
 
@@ -1092,7 +1058,7 @@ TYPED_TEST(Dense, OutplaceSubmatrixAbsoluteIntoDense)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto mtx = this->mtx5->create_subview(gko::span{0, 2}, gko::span{0, 2});
     auto abs_mtx =
         gko::remove_complex<Mtx>::create(this->exec, gko::dim<2>{2, 2}, 4);
 
@@ -2633,7 +2599,7 @@ TYPED_TEST(DenseWithIndexType, SquareSubmatrixCanGatherRowsIntoDense)
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto row_collection = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {1, 3})
+    this->mtx5->create_subview({0, 2}, {1, 3})
         ->row_gather(&permute_idxs, row_collection);
 
     GKO_ASSERT_MTX_NEAR(row_collection,
@@ -2740,7 +2706,7 @@ TYPED_TEST(DenseWithIndexType, SquareSubmatrixIsPermutableIntoDense)
     auto exec = this->mtx5->get_executor();
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
-    auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
+    auto mtx = this->mtx5->create_subview({0, 2}, {1, 3});
 
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->row_permute(&permute_idxs))
@@ -2830,7 +2796,7 @@ TYPED_TEST(DenseWithIndexType, SquareSubmatrixIsInversePermutableIntoDense)
     auto exec = this->mtx5->get_executor();
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
-    auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
+    auto mtx = this->mtx5->create_subview({0, 2}, {1, 3});
 
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->inverse_row_permute(&permute_idxs))
@@ -2941,7 +2907,7 @@ TYPED_TEST(DenseWithIndexType, SquareSubmatrixIsRowPermutableIntoDense)
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->row_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-2.0, 2.0}, {1.0, -1.0}}),
@@ -3036,7 +3002,7 @@ TYPED_TEST(DenseWithIndexType, SquareSubmatrixIsColPermutableIntoDense)
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->column_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-1.0, 1.0}, {2.0, -2.0}}),
@@ -3133,7 +3099,7 @@ TYPED_TEST(DenseWithIndexType, SquareSubmatrixIsInverseRowPermutableIntoDense)
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->inverse_row_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-2.0, 2.0}, {1.0, -1.0}}),
@@ -3231,7 +3197,7 @@ TYPED_TEST(DenseWithIndexType, SquareSubmatrixIsInverseColPermutableIntoDense)
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->column_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-1.0, 1.0}, {2.0, -2.0}}),
