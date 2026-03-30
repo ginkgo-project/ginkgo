@@ -91,6 +91,67 @@ constexpr bool is_complex(precision p)
 }
 
 
+constexpr bool is_real(precision p)
+{
+    return
+#if GINKGO_ENABLE_HALF
+        p == precision::fp16 ||
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        p == precision::bf16 ||
+#endif
+        p == precision::fp32 || p == precision::fp64;
+}
+
+
+constexpr precision as_real(precision p)
+{
+    if (is_real(p)) {
+        return p;
+    }
+    switch (p) {
+    case precision::complex_fp32:
+        return precision::fp32;
+    case precision::complex_fp64:
+        return precision::fp64;
+#if GINKGO_ENABLE_HALF
+    case precision::complex_fp16:
+        return precision::fp16;
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    case precision::complex_bf16:
+        return precision::bf16;
+#endif
+    default:
+        GKO_INVALID_STATE("Unsupported precision");
+    }
+}
+
+
+constexpr precision as_complex(precision p)
+{
+    if (is_complex(p)) {
+        return p;
+    }
+    switch (p) {
+    case precision::fp32:
+        return precision::complex_fp32;
+    case precision::fp64:
+        return precision::complex_fp64;
+#if GINKGO_ENABLE_HALF
+    case precision::fp16:
+        return precision::complex_fp16;
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    case precision::bf16:
+        return precision::complex_bf16;
+#endif
+    default:
+        GKO_INVALID_STATE("Unsupported precision");
+    }
+}
+
+
 inline auto precision_to_variant(precision p) -> std::variant<
 #if GINKGO_ENABLE_HALF
     half, std::complex<half>,
