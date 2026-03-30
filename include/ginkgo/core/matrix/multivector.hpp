@@ -181,6 +181,17 @@ public:
     [[nodiscard]] device_view<const ValueType> get_const_local_device_view()
         const;
 
+    /**
+     * Converts this vector into another precision.
+     *
+     * Allowed conversions:
+     * - bf16 <-> fp16 <-> fp32 <-> fp64
+     * - complex_bf16 <-> complex_fp16 <-> complex_fp32 <-> complex_fp64
+     * - complex_P -> P, where P = bf16, fp16, fp32, fp64
+     *
+     * @param p The requested precision
+     * @return A vector with the requested precision
+     */
     [[nodiscard]] gko::detail::temporary_conversion<MultiVector> as_precision(
         precision p);
 
