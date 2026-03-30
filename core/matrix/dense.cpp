@@ -137,64 +137,81 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::inv_scale_impl(const Dense* alpha)
+void Dense<ValueType>::inv_scale_impl(scaling_param<value_type> alpha)
 {
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    auto exec = this->get_executor();
-    exec->run(dense::make_inv_scale(alpha->get_const_device_view(),
-                                    this->get_device_view()));
+    std::visit(
+        [this](auto alpha_v) {
+            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
+            if (alpha_v->get_size()[1] != 1) {
+                // different alpha for each column
+                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
+            }
+            auto exec = this->get_executor();
+            exec->run(dense::make_inv_scale(alpha_v->get_const_device_view(),
+                                            this->get_device_view()));
+        },
+        alpha);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale_impl(const Dense* alpha)
+void Dense<ValueType>::scale_impl(scaling_param<value_type> alpha)
 {
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    auto exec = this->get_executor();
-    exec->run(dense::make_scale(
-        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
-        this->get_device_view()));
+    std::visit(
+        [this](auto alpha_v) {
+            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
+            if (alpha_v->get_size()[1] != 1) {
+                // different alpha for each column
+                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
+            }
+            auto exec = this->get_executor();
+            exec->run(dense::make_scale(alpha_v->get_const_device_view(),
+                                        this->get_device_view()));
+        },
+        alpha);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_impl(const Dense* alpha, const Dense* b)
+void Dense<ValueType>::add_scaled_impl(scaling_param<value_type> alpha,
+                                       const Dense* b)
 {
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    auto exec = this->get_executor();
-    exec->run(dense::make_add_scaled(alpha->get_const_device_view(),
-                                     b->get_const_device_view(),
-                                     this->get_device_view()));
+    std::visit(
+        [this, b](auto alpha_v) {
+            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
+            if (alpha_v->get_size()[1] != 1) {
+                // different alpha for each column
+                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
+            }
+            GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+            auto exec = this->get_executor();
+            exec->run(dense::make_add_scaled(alpha_v->get_const_device_view(),
+                                             b->get_const_device_view(),
+                                             this->get_device_view()));
+        },
+        alpha);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::sub_scaled_impl(const Dense* alpha, const Dense* b)
+void Dense<ValueType>::sub_scaled_impl(scaling_param<value_type> alpha,
+                                       const Dense* b)
 {
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    auto exec = this->get_executor();
+    std::visit(
+        [this, b](auto alpha_v) {
+            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
+            if (alpha_v->get_size()[1] != 1) {
+                // different alpha for each column
+                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
+            }
+            GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+            auto exec = this->get_executor();
 
-    exec->run(dense::make_sub_scaled(alpha->get_const_device_view(),
-                                     b->get_const_device_view(),
-                                     this->get_device_view()));
+            exec->run(dense::make_sub_scaled(alpha_v->get_const_device_view(),
+                                             b->get_const_device_view(),
+                                             this->get_device_view()));
+        },
+        alpha);
 }
 
 
