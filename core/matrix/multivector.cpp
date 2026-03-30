@@ -234,10 +234,6 @@ std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
     return this->create_subview_generic_impl(rows, columns, global_size);
 }
 
-
-size_type MultiVector::get_stride() const noexcept { return get_stride_impl(); }
-
-
 template <typename ValueType>
 MultiVector::device_view<ValueType> MultiVector::get_local_device_view()
 {

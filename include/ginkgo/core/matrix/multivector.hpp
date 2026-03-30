@@ -160,8 +160,6 @@ public:
     [[nodiscard]] device_view<const ValueType> get_const_local_device_view()
         const;
 
-    [[nodiscard]] size_type get_stride() const noexcept;
-
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
                          const dim<2>& size = dim<2>{});
@@ -277,8 +275,6 @@ protected:
 #endif
         device_view<const float>, device_view<const std::complex<float>>,
         device_view<const double>, device_view<const std::complex<double>>> = 0;
-
-    [[nodiscard]] virtual auto get_stride_impl() const -> size_type = 0;
 };
 
 
