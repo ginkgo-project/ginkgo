@@ -10,8 +10,9 @@ namespace gko {
 
 
 enum struct precision {
-    none,
-    any,
+    none,  //!< no precision information is available, incompatible with all
+           //!< other precisions
+    any,   //!< compatible with all other precisions, including none
     fp32,
     complex_fp32,
     fp64,
@@ -33,6 +34,10 @@ constexpr bool operator==(precision a, precision b)
 {
     auto int_a = static_cast<int>(a);
     auto int_b = static_cast<int>(b);
+    if (int_a == static_cast<int>(precision::any) ||
+        int_b == static_cast<int>(precision::any)) {
+        return true;
+    }
     if (int_a == static_cast<int>(precision::none) ||
         int_b == static_cast<int>(precision::none)) {
         return false;
