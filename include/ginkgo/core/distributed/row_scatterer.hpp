@@ -45,7 +45,7 @@ namespace distributed {
  *
  * Example usage:
  * ```c++
- * auto rs = distributed::RowScatterer<int32>::create_from_gatherer(exec, *rg);
+ * auto rs = distributed::RowScatterer<int32>::create_from_gatherer(exec, rg);
  *
  * auto req = rs->apply_async(local_vals);
  * // ... overlap other work while communication is in flight ...
@@ -162,7 +162,7 @@ public:
      */
     static std::unique_ptr<RowScatterer> create_from_gatherer(
         std::shared_ptr<const Executor> exec,
-        const RowGatherer<LocalIndexType>& gatherer);
+        ptr_param<const RowGatherer<LocalIndexType>> gatherer);
 
     /**
      * Create method for an empty RowScatterer.

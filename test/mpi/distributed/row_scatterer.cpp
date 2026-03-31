@@ -50,7 +50,7 @@ protected:
         auto imap = map_type{exec, part, comm.rank(), recv_connections};
         auto coll_comm = std::make_shared<CollCommType>(comm, imap);
         rg = row_gatherer_type::create(exec, coll_comm, imap);
-        rs = row_scatterer_type::create_from_gatherer(exec, *rg);
+        rs = row_scatterer_type::create_from_gatherer(exec, rg);
     }
 
     void SetUp() override { ASSERT_EQ(comm.size(), 6); }

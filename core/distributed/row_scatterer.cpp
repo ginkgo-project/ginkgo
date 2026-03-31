@@ -54,25 +54,34 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 auto lv_local = lv_global->get_local_vector();
                 auto ncols = lv_local->get_size()[1];
 
-                // Pack send buffer
                 dim<2> send_size(coll_comm_->get_send_size(), ncols);
-                auto send_size_in_bytes =
-                    sizeof(ValueType) * send_size[0] * send_size[1];
-                if (!send_workspace_.get_executor() ||
-                    !mpi_exec->memory_accessible(
-                        send_workspace_.get_executor())) {
-                    send_workspace_.set_executor(mpi_exec);
+                const ValueType* send_ptr = nullptr;
+                bool can_send_direct =
+                    !use_host_buffer &&
+                    lv_local->get_stride() == static_cast<size_type>(ncols);
+                if (can_send_direct) {
+                    send_ptr = lv_local->get_const_values();
+                } else {
+                    // Pack into contiguous send buffer
+                    auto send_size_in_bytes =
+                        sizeof(ValueType) * send_size[0] * send_size[1];
+                    if (!send_workspace_.get_executor() ||
+                        !mpi_exec->memory_accessible(
+                            send_workspace_.get_executor())) {
+                        send_workspace_.set_executor(mpi_exec);
+                    }
+                    if (send_size_in_bytes > send_workspace_.get_size()) {
+                        send_workspace_.resize_and_reset(send_size_in_bytes);
+                    }
+                    auto send_buffer = matrix::Dense<ValueType>::create(
+                        mpi_exec, send_size,
+                        make_array_view(mpi_exec, send_size[0] * send_size[1],
+                                        reinterpret_cast<ValueType*>(
+                                            send_workspace_.get_data())),
+                        send_size[1]);
+                    lv_local->convert_to(send_buffer);
+                    send_ptr = send_buffer->get_const_values();
                 }
-                if (send_size_in_bytes > send_workspace_.get_size()) {
-                    send_workspace_.resize_and_reset(send_size_in_bytes);
-                }
-                auto send_buffer = matrix::Dense<ValueType>::create(
-                    mpi_exec, send_size,
-                    make_array_view(mpi_exec, send_size[0] * send_size[1],
-                                    reinterpret_cast<ValueType*>(
-                                        send_workspace_.get_data())),
-                    send_size[1]);
-                lv_local->convert_to(send_buffer);
 
                 // Allocate recv buffer
                 dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
@@ -93,7 +102,6 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 ev->synchronize();
 
                 // Start async MPI communication
-                auto send_ptr = send_buffer->get_values();
                 auto recv_ptr =
                     reinterpret_cast<ValueType*>(recv_workspace_.get_data());
                 mpi::contiguous_type type(
@@ -231,29 +239,16 @@ void RowScatterer<LocalIndexType>::wait_and_accumulate(
 
             dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
 
-            // If recv data is on host (non-GPU-aware MPI), copy to device
-            std::unique_ptr<matrix::Dense<ValueType>> recv_on_exec;
-            if (use_host_buffer) {
-                auto host_recv = matrix::Dense<ValueType>::create(
-                    mpi_exec, recv_size,
-                    make_array_view(mpi_exec, recv_size[0] * recv_size[1],
-                                    reinterpret_cast<ValueType*>(
-                                        recv_workspace_.get_data())),
-                    recv_size[1]);
-                recv_on_exec =
-                    matrix::Dense<ValueType>::create(exec, recv_size);
-                recv_on_exec->copy_from(host_recv);
-            } else {
-                recv_on_exec = matrix::Dense<ValueType>::create(
-                    exec, recv_size,
-                    make_array_view(exec, recv_size[0] * recv_size[1],
-                                    reinterpret_cast<ValueType*>(
-                                        recv_workspace_.get_data())),
-                    recv_size[1]);
-            }
+            auto recv_buffer = matrix::Dense<ValueType>::create(
+                mpi_exec, recv_size,
+                make_array_view(
+                    mpi_exec, recv_size[0] * recv_size[1],
+                    reinterpret_cast<ValueType*>(recv_workspace_.get_data())),
+                recv_size[1]);
 
-            // Accumulate using Dense::scatter_add
-            target_dense->scatter_add(&recv_idxs_, recv_on_exec.get());
+            // scatter_add handles cross-executor copies via
+            // make_temporary_clone
+            target_dense->scatter_add(&recv_idxs_, recv_buffer.get());
         });
 }
 
@@ -330,21 +325,21 @@ template <typename LocalIndexType>
 std::unique_ptr<RowScatterer<LocalIndexType>>
 RowScatterer<LocalIndexType>::create_from_gatherer(
     std::shared_ptr<const Executor> exec,
-    const RowGatherer<LocalIndexType>& gatherer)
+    ptr_param<const RowGatherer<LocalIndexType>> gatherer)
 {
     auto inverse_comm =
-        gatherer.get_collective_communicator()->create_inverse();
+        gatherer->get_collective_communicator()->create_inverse();
 
     // The recv_idxs_ for the scatterer are the send_idxs_ of the gatherer
-    auto num_send_idxs = gatherer.get_num_send_idxs();
+    auto num_send_idxs = gatherer->get_num_send_idxs();
     array<LocalIndexType> recv_idxs(exec, num_send_idxs);
     if (num_send_idxs > 0) {
-        exec->copy_from(gatherer.get_executor(), num_send_idxs,
-                        gatherer.get_const_send_idxs(), recv_idxs.get_data());
+        exec->copy_from(gatherer->get_executor(), num_send_idxs,
+                        gatherer->get_const_send_idxs(), recv_idxs.get_data());
     }
 
     // Size is the transpose of the gatherer's size
-    auto gatherer_size = gatherer.get_size();
+    auto gatherer_size = gatherer->get_size();
     dim<2> size{gatherer_size[1], gatherer_size[0]};
 
     return std::unique_ptr<RowScatterer>(new RowScatterer(
