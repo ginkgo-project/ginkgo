@@ -48,8 +48,8 @@ typename Cg<ValueType>::parameters_type Cg<ValueType>::parse(
 }
 
 template <typename ValueType>
-void Cg<ValueType>::apply_mv(ptr_param<const matrix::MultiVector> b,
-                             ptr_param<matrix::MultiVector> x) const
+void Cg<ValueType>::apply_mv(ptr_param<const MultiVector> b,
+                             ptr_param<MultiVector> x) const
 {
     // @todo: need precision dispatch
     auto dense_b = b.get();
@@ -62,10 +62,10 @@ void Cg<ValueType>::apply_mv(ptr_param<const matrix::MultiVector> b,
     this->setup_workspace();
 
     // Todo fix workspace handling
-    auto r = matrix::MultiVector::create_with_config_of(dense_b);
-    auto z = matrix::MultiVector::create_with_config_of(dense_b);
-    auto p = matrix::MultiVector::create_with_config_of(dense_b);
-    auto q = matrix::MultiVector::create_with_config_of(dense_b);
+    auto r = MultiVector::create_with_config_of(dense_b);
+    auto z = MultiVector::create_with_config_of(dense_b);
+    auto p = MultiVector::create_with_config_of(dense_b);
+    auto q = MultiVector::create_with_config_of(dense_b);
 
     GKO_SOLVER_SCALAR(beta, dense_b);
     GKO_SOLVER_SCALAR(prev_rho, dense_b);
