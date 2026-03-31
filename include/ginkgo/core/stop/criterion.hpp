@@ -99,11 +99,11 @@ public:
         GKO_UPDATER_REGISTER_PARAMETER(size_type, num_iterations);
         // ignore_residual_check default is false
         GKO_UPDATER_REGISTER_PARAMETER(bool, ignore_residual_check);
-        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual);
-        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, residual_norm);
-        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp,
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const MultiVector, residual);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const MultiVector, residual_norm);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const MultiVector,
                                            implicit_sq_residual_norm);
-        GKO_UPDATER_REGISTER_PTR_PARAMETER(const LinOp, solution);
+        GKO_UPDATER_REGISTER_PTR_PARAMETER(const MultiVector, solution);
 
 #undef GKO_UPDATER_REGISTER_PTR_PARAMETER
 #undef GKO_UPDATER_REGISTER_PARAMETER
@@ -204,19 +204,14 @@ protected:
  */
 struct CriterionArgs {
     std::shared_ptr<const LinOp> system_matrix;
-    std::shared_ptr<const LinOp> b;
-    const LinOp* x;
-    const LinOp* initial_residual;
+    std::shared_ptr<const MultiVector> b;
+    const MultiVector* x;
+    const MultiVector* initial_residual;
 
 
     CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
-                  std::shared_ptr<const LinOp> b, const LinOp* x,
-                  const LinOp* initial_residual = nullptr)
-        : system_matrix{system_matrix},
-          b{b},
-          x{x},
-          initial_residual{initial_residual}
-    {}
+                  std::shared_ptr<const MultiVector> b, const MultiVector* x,
+                  const MultiVector* initial_residual = nullptr);
 };
 
 

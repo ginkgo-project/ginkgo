@@ -5,7 +5,6 @@
 #include "ginkgo/core/stop/residual_norm.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 #include "core/base/dispatch_helper.hpp"
@@ -40,56 +39,6 @@ GKO_REGISTER_OPERATION(implicit_residual_norm,
 
 
 template <typename ValueType>
-bool any_is_complex()
-{
-    return false;
-}
-
-
-template <typename ValueType, typename LinOp, typename... Rest>
-bool any_is_complex(const LinOp* in, Rest&&... rest)
-{
-#if GINKGO_BUILD_MPI
-    bool is_complex_distributed = dynamic_cast<const ConvertibleTo<
-        experimental::distributed::Vector<std::complex<double>>>*>(in);
-#else
-    bool is_complex_distributed = false;
-#endif
-
-    return is_complex<ValueType>() || is_complex_distributed ||
-           dynamic_cast<
-               const ConvertibleTo<matrix::Dense<std::complex<double>>>*>(in) ||
-           any_is_complex<ValueType>(std::forward<Rest>(rest)...);
-}
-
-
-template <typename ValueType, typename Function, typename... LinOps>
-void norm_dispatch(Function&& fn, LinOps*... linops)
-{
-#if GINKGO_BUILD_MPI
-    if (gko::detail::is_distributed(linops...)) {
-        if (any_is_complex<ValueType>(linops...)) {
-            experimental::distributed::precision_dispatch<
-                to_complex<ValueType>>(std::forward<Function>(fn), linops...);
-        } else {
-            experimental::distributed::precision_dispatch<ValueType>(
-                std::forward<Function>(fn), linops...);
-        }
-    } else
-#endif
-    {
-        if (any_is_complex<ValueType>(linops...)) {
-            precision_dispatch<to_complex<ValueType>>(
-                std::forward<Function>(fn), linops...);
-        } else {
-            precision_dispatch<ValueType>(std::forward<Function>(fn),
-                                          linops...);
-        }
-    }
-}
-
-
-template <typename ValueType>
 ResidualNormBase<ValueType>::ResidualNormBase(
     std::shared_ptr<const gko::Executor> exec, const CriterionArgs& args,
     remove_complex<ValueType> reduction_factor, mode baseline)
@@ -112,23 +61,15 @@ ResidualNormBase<ValueType>::ResidualNormBase(
             } else {
                 this->starting_tau_ =
                     NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-                auto b_clone = share(as<LinOp>(as<Cloneable>(args.b)->clone()));
+                auto b_clone = share(args.b->clone());
                 args.system_matrix->apply(neg_one_, args.x, one_, b_clone);
-                norm_dispatch<ValueType>(
-                    [&](auto dense_r) {
-                        dense_r->compute_norm2(this->starting_tau_,
-                                               reduction_tmp_);
-                    },
-                    b_clone.get());
+                b_clone->compute_norm2(this->starting_tau_, reduction_tmp_);
             }
         } else {
             this->starting_tau_ = NormVector::create(
                 exec, dim<2>{1, args.initial_residual->get_size()[1]});
-            norm_dispatch<ValueType>(
-                [&](auto dense_r) {
-                    dense_r->compute_norm2(this->starting_tau_, reduction_tmp_);
-                },
-                args.initial_residual);
+            args.initial_residual->compute_norm2(this->starting_tau_,
+                                                 reduction_tmp_);
         }
         break;
     }
@@ -138,11 +79,7 @@ ResidualNormBase<ValueType>::ResidualNormBase(
         }
         this->starting_tau_ =
             NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-        norm_dispatch<ValueType>(
-            [&](auto dense_r) {
-                dense_r->compute_norm2(this->starting_tau_, reduction_tmp_);
-            },
-            args.b.get());
+        args.b->compute_norm2(this->starting_tau_, reduction_tmp_);
         break;
     }
     case mode::absolute: {
@@ -174,22 +111,14 @@ bool ResidualNormBase<ValueType>::check_impl(
         // Otherwise, we skip the residual check.
         return false;
     } else if (updater.residual_ != nullptr) {
-        norm_dispatch<ValueType>(
-            [&](auto dense_r) {
-                dense_r->compute_norm2(u_dense_tau_, reduction_tmp_);
-            },
-            updater.residual_);
+        updater.residual_->compute_norm2(u_dense_tau_, reduction_tmp_);
         dense_tau = u_dense_tau_.get();
     } else if (updater.solution_ != nullptr && system_matrix_ != nullptr &&
                b_ != nullptr) {
         auto exec = this->get_executor();
-        norm_dispatch<ValueType>(
-            [&](auto dense_b, auto dense_x) {
-                auto dense_r = dense_b->clone();
-                system_matrix_->apply(neg_one_, dense_x, one_, dense_r);
-                dense_r->compute_norm2(u_dense_tau_, reduction_tmp_);
-            },
-            b_.get(), updater.solution_);
+        auto dense_r = b_->clone();
+        system_matrix_->apply(neg_one_, updater.solution_, one_, dense_r);
+        dense_r->compute_norm2(u_dense_tau_, reduction_tmp_);
         dense_tau = u_dense_tau_.get();
     } else {
         GKO_NOT_SUPPORTED(nullptr);
@@ -204,6 +133,29 @@ bool ResidualNormBase<ValueType>::check_impl(
 
     return all_converged;
 }
+
+
+template <typename ValueType>
+ResidualNormBase<ValueType>::ResidualNormBase(
+    std::shared_ptr<const gko::Executor> exec)
+    : Criterion(exec), device_storage_{exec, 2}
+{}
+
+
+template <typename ValueType>
+ResidualNorm<ValueType>::ResidualNorm(std::shared_ptr<const gko::Executor> exec)
+    : ResidualNormBase<ValueType>(exec)
+{}
+
+
+template <typename ValueType>
+ResidualNorm<ValueType>::ResidualNorm(const Factory* factory,
+                                      const CriterionArgs& args)
+    : ResidualNormBase<ValueType>(factory->get_executor(), args,
+                                  factory->get_parameters().reduction_factor,
+                                  factory->get_parameters().baseline),
+      parameters_{factory->get_parameters()}
+{}
 
 
 template <typename ValueType>
@@ -228,6 +180,23 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
 
     return all_converged;
 }
+
+
+template <typename ValueType>
+ImplicitResidualNorm<ValueType>::ImplicitResidualNorm(
+    std::shared_ptr<const gko::Executor> exec)
+    : ResidualNormBase<ValueType>(exec)
+{}
+
+
+template <typename ValueType>
+ImplicitResidualNorm<ValueType>::ImplicitResidualNorm(const Factory* factory,
+                                                      const CriterionArgs& args)
+    : ResidualNormBase<ValueType>(factory->get_executor(), args,
+                                  factory->get_parameters().reduction_factor,
+                                  factory->get_parameters().baseline),
+      parameters_{factory->get_parameters()}
+{}
 
 
 #define GKO_DECLARE_RESIDUAL_NORM(ValueType) class ResidualNormBase<ValueType>
