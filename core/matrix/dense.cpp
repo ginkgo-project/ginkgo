@@ -2005,16 +2005,15 @@ Dense<ValueType>::get_const_device_view() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_identity_impl(const LinOp* a, const LinOp* b)
+void Dense<ValueType>::add_scaled_identity_impl(const MultiVector* a,
+                                                const MultiVector* b)
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(dense::make_add_scaled_identity(
-                dense_alpha->get_const_device_view(),
-                dense_beta->get_const_device_view(),
-                dense_x->get_device_view()));
-        },
-        a, b, this);
+    this->get_executor()->run(dense::make_add_scaled_identity(
+        a->as_precision(this->get_precision())
+            ->template get_const_local_device_view<ValueType>(),
+        b->as_precision(this->get_precision())
+            ->template get_const_local_device_view<ValueType>(),
+        this->get_const_device_view()));
 }
 
 

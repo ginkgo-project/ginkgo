@@ -1177,7 +1177,8 @@ private:
     array<index_type> srow_;
     index_type max_nnz_per_row_;
 
-    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
+    void add_scaled_identity_impl(const MultiVector* a,
+                                  const MultiVector* b) override;
 };
 
 

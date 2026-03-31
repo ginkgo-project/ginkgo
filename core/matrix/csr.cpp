@@ -1807,8 +1807,8 @@ void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
-                                                         const LinOp* b)
+void Csr<ValueType, IndexType>::add_scaled_identity_impl(const MultiVector* a,
+                                                         const MultiVector* b)
 {
     bool has_diags{false};
     this->get_executor()->run(
@@ -1818,8 +1818,10 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
             "The matrix has one or more structurally zero diagonal entries!");
     }
     this->get_executor()->run(csr::make_add_scaled_identity(
-        make_temporary_conversion<ValueType>(a)->get_const_device_view(),
-        make_temporary_conversion<ValueType>(b)->get_const_device_view(),
+        a->as_precision(this->get_precision())
+            ->template get_const_local_device_view<ValueType>(),
+        b->as_precision(this->get_precision())
+            ->template get_const_local_device_view<ValueType>(),
         this));
 }
 
