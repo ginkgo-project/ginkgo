@@ -53,8 +53,10 @@ std::unique_ptr<MultiVector> MultiVector::compute_absolute() const
     return this->compute_absolute_generic_impl();
 }
 
+
 void MultiVector::compute_absolute(ptr_param<MultiVector> output) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     this->compute_absolute_generic_impl(output.get());
 }
 
@@ -73,6 +75,7 @@ std::unique_ptr<MultiVector> MultiVector::make_complex() const
 
 void MultiVector::make_complex(ptr_param<MultiVector> result) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     this->make_complex_generic_impl(result.get());
 }
 
@@ -85,6 +88,7 @@ std::unique_ptr<MultiVector> MultiVector::get_real() const
 
 void MultiVector::get_real(ptr_param<MultiVector> result) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     this->get_real_generic_impl(result.get());
 }
 
@@ -97,6 +101,7 @@ std::unique_ptr<MultiVector> MultiVector::get_imag() const
 
 void MultiVector::get_imag(ptr_param<MultiVector> result) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     this->get_imag_generic_impl(result.get());
 }
 
@@ -107,11 +112,32 @@ void MultiVector::fill(syn::variant_from_tuple<supported_value_types> value)
 }
 
 
-void MultiVector::scale(any_const_dense_t alpha) { this->scale_impl(alpha); }
+void MultiVector::scale(any_const_dense_t alpha)
+{
+    std::visit(
+        [this](auto alpha_v) {
+            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
+            if (alpha_v->get_size()[1] != 1) {
+                // different alpha for each column
+                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
+            }
+        },
+        alpha);
+    this->scale_impl(alpha);
+}
 
 
 void MultiVector::inv_scale(any_const_dense_t alpha)
 {
+    std::visit(
+        [this](auto alpha_v) {
+            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
+            if (alpha_v->get_size()[1] != 1) {
+                // different alpha for each column
+                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
+            }
+        },
+        alpha);
     this->inv_scale_impl(alpha);
 }
 
@@ -119,6 +145,16 @@ void MultiVector::inv_scale(any_const_dense_t alpha)
 void MultiVector::add_scaled(any_const_dense_t alpha,
                              ptr_param<const MultiVector> b)
 {
+    std::visit(
+        [this, b](auto alpha_v) {
+            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
+            if (alpha_v->get_size()[1] != 1) {
+                // different alpha for each column
+                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
+            }
+            GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+        },
+        alpha);
     this->add_scaled_impl(alpha, b.get());
 }
 
@@ -126,6 +162,16 @@ void MultiVector::add_scaled(any_const_dense_t alpha,
 void MultiVector::sub_scaled(any_const_dense_t alpha,
                              ptr_param<const MultiVector> b)
 {
+    std::visit(
+        [this, b](auto alpha_v) {
+            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
+            if (alpha_v->get_size()[1] != 1) {
+                // different alpha for each column
+                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
+            }
+            GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+        },
+        alpha);
     this->sub_scaled_impl(alpha, b.get());
 }
 
@@ -133,6 +179,8 @@ void MultiVector::sub_scaled(any_const_dense_t alpha,
 void MultiVector::compute_dot(ptr_param<const MultiVector> b,
                               ptr_param<MultiVector> result) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_dot_impl(b.get(), result.get());
 }
 
@@ -141,6 +189,8 @@ void MultiVector::compute_dot(ptr_param<const MultiVector> b,
                               ptr_param<MultiVector> result,
                               array<char>& tmp) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_dot_impl(b.get(), result.get(), tmp);
 }
 
@@ -148,6 +198,8 @@ void MultiVector::compute_dot(ptr_param<const MultiVector> b,
 void MultiVector::compute_conj_dot(ptr_param<const MultiVector> b,
                                    ptr_param<MultiVector> result) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_conj_dot_impl(b.get(), result.get());
 }
 
@@ -156,12 +208,15 @@ void MultiVector::compute_conj_dot(ptr_param<const MultiVector> b,
                                    ptr_param<MultiVector> result,
                                    array<char>& tmp) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_conj_dot_impl(b.get(), result.get(), tmp);
 }
 
 
 void MultiVector::compute_norm2(ptr_param<MultiVector> result) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_norm2_impl(result.get());
 }
 
@@ -169,12 +224,14 @@ void MultiVector::compute_norm2(ptr_param<MultiVector> result) const
 void MultiVector::compute_norm2(ptr_param<MultiVector> result,
                                 array<char>& tmp) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_norm2_impl(result.get(), tmp);
 }
 
 
 void MultiVector::compute_squared_norm2(ptr_param<MultiVector> result) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_squared_norm2_impl(result.get());
 }
 
@@ -182,12 +239,14 @@ void MultiVector::compute_squared_norm2(ptr_param<MultiVector> result) const
 void MultiVector::compute_squared_norm2(ptr_param<MultiVector> result,
                                         array<char>& tmp) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_squared_norm2_impl(result.get(), tmp);
 }
 
 
 void MultiVector::compute_norm1(ptr_param<MultiVector> result) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_norm1_impl(result.get());
 }
 
@@ -195,6 +254,7 @@ void MultiVector::compute_norm1(ptr_param<MultiVector> result) const
 void MultiVector::compute_norm1(ptr_param<MultiVector> result,
                                 array<char>& tmp) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     this->compute_norm1_impl(result.get(), tmp);
 }
 
