@@ -171,7 +171,7 @@ public:
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
-    void compute_mean(ptr_param<LinOp> result) const;
+    void compute_mean(ptr_param<MultiVector> result) const;
 
     /**
      * Computes the column-wise arithmetic mean of this (multi-)vector using a
@@ -184,7 +184,7 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
+    void compute_mean(ptr_param<MultiVector> result, array<char>& tmp) const;
 
     /**
      * Returns a single element of the multi-vector.
@@ -386,11 +386,6 @@ protected:
     void read_distributed_impl(
         const device_matrix_data<value_type, GlobalIndexType>& data,
         const Partition<LocalIndexType, GlobalIndexType>* partition);
-
-    void apply_impl(const LinOp*, LinOp*) const override;
-
-    void apply_impl(const LinOp*, const LinOp*, const LinOp*,
-                    LinOp*) const override;
 
     /**
      * Creates a distributed vector with the same size and stride as the callers

@@ -9,7 +9,6 @@
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/mpi/mpi_op.hpp"
-#include "ginkgo/core/base/temporary_conversion.hpp"
 
 namespace gko {
 namespace experimental {
@@ -36,20 +35,6 @@ dim<2> compute_global_size(std::shared_ptr<const Executor> exec,
     return {num_global_rows, local_size[1]};
 }
 
-
-template <typename ValueType>
-void Vector<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
-{
-    GKO_NOT_SUPPORTED(this);
-}
-
-
-template <typename ValueType>
-void Vector<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                   const LinOp* beta, LinOp* x) const
-{
-    GKO_NOT_SUPPORTED(this);
-}
 
 template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
@@ -732,7 +717,7 @@ void Vector<ValueType>::compute_squared_norm2_impl(
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_mean(ptr_param<LinOp> result) const
+void Vector<ValueType>::compute_mean(ptr_param<MultiVector> result) const
 {
     array<char> tmp{this->get_executor()};
     this->compute_mean(result, tmp);
@@ -740,7 +725,7 @@ void Vector<ValueType>::compute_mean(ptr_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Vector<ValueType>::compute_mean(ptr_param<LinOp> result,
+void Vector<ValueType>::compute_mean(ptr_param<MultiVector> result,
                                      array<char>& tmp) const
 {
     using MeanVector = local_vector_type;
