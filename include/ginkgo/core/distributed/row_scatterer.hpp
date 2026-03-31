@@ -13,7 +13,6 @@
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
-#include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
