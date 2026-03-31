@@ -193,8 +193,8 @@ private:
     dim<2> size_;
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
     array<LocalIndexType> recv_idxs_;  // local indices to accumulate into
-    mutable array<char> send_workspace_;
-    mutable array<char> recv_workspace_;
+    mutable gko::detail::GenericDenseCache send_cache_;
+    mutable gko::detail::GenericDenseCache recv_cache_;
 };
 
 

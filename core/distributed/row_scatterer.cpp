@@ -62,39 +62,15 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 if (can_send_direct) {
                     send_ptr = lv_local->get_const_values();
                 } else {
-                    // Pack into contiguous send buffer
-                    auto send_size_in_bytes =
-                        sizeof(ValueType) * send_size[0] * send_size[1];
-                    if (!send_workspace_.get_executor() ||
-                        !mpi_exec->memory_accessible(
-                            send_workspace_.get_executor())) {
-                        send_workspace_.set_executor(mpi_exec);
-                    }
-                    if (send_size_in_bytes > send_workspace_.get_size()) {
-                        send_workspace_.resize_and_reset(send_size_in_bytes);
-                    }
-                    auto send_buffer = matrix::Dense<ValueType>::create(
-                        mpi_exec, send_size,
-                        make_array_view(mpi_exec, send_size[0] * send_size[1],
-                                        reinterpret_cast<ValueType*>(
-                                            send_workspace_.get_data())),
-                        send_size[1]);
+                    auto send_buffer =
+                        send_cache_.get<ValueType>(mpi_exec, send_size);
                     lv_local->convert_to(send_buffer);
                     send_ptr = send_buffer->get_const_values();
                 }
 
-                // Allocate recv buffer
                 dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
-                auto recv_size_in_bytes =
-                    sizeof(ValueType) * recv_size[0] * recv_size[1];
-                if (!recv_workspace_.get_executor() ||
-                    !mpi_exec->memory_accessible(
-                        recv_workspace_.get_executor())) {
-                    recv_workspace_.set_executor(mpi_exec);
-                }
-                if (recv_size_in_bytes > recv_workspace_.get_size()) {
-                    recv_workspace_.resize_and_reset(recv_size_in_bytes);
-                }
+                auto recv_buffer =
+                    recv_cache_.get<ValueType>(mpi_exec, recv_size);
 
                 // Synchronize before MPI (GPU stream safety)
                 std::shared_ptr<const gko::detail::Event> ev = nullptr;
@@ -102,12 +78,11 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 ev->synchronize();
 
                 // Start async MPI communication
-                auto recv_ptr =
-                    reinterpret_cast<ValueType*>(recv_workspace_.get_data());
                 mpi::contiguous_type type(
                     ncols, mpi::type_impl<ValueType>::get_type());
                 req = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
-                                                 recv_ptr, type.get());
+                                                 recv_buffer->get_values(),
+                                                 type.get());
             });
         });
     return req;
@@ -140,24 +115,9 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 auto lv_local = lv_global->get_local_vector();
                 auto ncols = lv_local->get_size()[1];
 
-                // Pack send buffer
                 dim<2> send_size(coll_comm_->get_send_size(), ncols);
-                auto send_size_in_bytes =
-                    sizeof(ValueType) * send_size[0] * send_size[1];
-                if (!send_workspace_.get_executor() ||
-                    !mpi_exec->memory_accessible(
-                        send_workspace_.get_executor())) {
-                    send_workspace_.set_executor(mpi_exec);
-                }
-                if (send_size_in_bytes > send_workspace_.get_size()) {
-                    send_workspace_.resize_and_reset(send_size_in_bytes);
-                }
-                auto send_buffer = matrix::Dense<ValueType>::create(
-                    mpi_exec, send_size,
-                    make_array_view(mpi_exec, send_size[0] * send_size[1],
-                                    reinterpret_cast<ValueType*>(
-                                        send_workspace_.get_data())),
-                    send_size[1]);
+                auto send_buffer =
+                    send_cache_.get<ValueType>(mpi_exec, send_size);
                 lv_local->convert_to(send_buffer);
 
                 // Apply weights element-wise
@@ -176,18 +136,9 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                     }
                 }
 
-                // Allocate recv buffer
                 dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
-                auto recv_size_in_bytes =
-                    sizeof(ValueType) * recv_size[0] * recv_size[1];
-                if (!recv_workspace_.get_executor() ||
-                    !mpi_exec->memory_accessible(
-                        recv_workspace_.get_executor())) {
-                    recv_workspace_.set_executor(mpi_exec);
-                }
-                if (recv_size_in_bytes > recv_workspace_.get_size()) {
-                    recv_workspace_.resize_and_reset(recv_size_in_bytes);
-                }
+                auto recv_buffer =
+                    recv_cache_.get<ValueType>(mpi_exec, recv_size);
 
                 // Synchronize before MPI
                 std::shared_ptr<const gko::detail::Event> ev = nullptr;
@@ -195,13 +146,11 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 ev->synchronize();
 
                 // Start async MPI communication
-                auto send_ptr = send_buffer->get_values();
-                auto recv_ptr =
-                    reinterpret_cast<ValueType*>(recv_workspace_.get_data());
                 mpi::contiguous_type type(
                     ncols, mpi::type_impl<ValueType>::get_type());
-                req = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
-                                                 recv_ptr, type.get());
+                req = coll_comm_->i_all_to_all_v(
+                    mpi_exec, send_buffer->get_values(), type.get(),
+                    recv_buffer->get_values(), type.get());
             });
         });
     return req;
@@ -239,12 +188,7 @@ void RowScatterer<LocalIndexType>::wait_and_accumulate(
 
             dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
 
-            auto recv_buffer = matrix::Dense<ValueType>::create(
-                mpi_exec, recv_size,
-                make_array_view(
-                    mpi_exec, recv_size[0] * recv_size[1],
-                    reinterpret_cast<ValueType*>(recv_workspace_.get_data())),
-                recv_size[1]);
+            auto recv_buffer = recv_cache_.get<ValueType>(mpi_exec, recv_size);
 
             // scatter_add handles cross-executor copies via
             // make_temporary_clone
@@ -290,9 +234,7 @@ RowScatterer<LocalIndexType>::RowScatterer(
                               imap.get_non_local_size()),
                    imap.get_global_size()}),
       coll_comm_(std::move(coll_comm)),
-      recv_idxs_(exec),
-      send_workspace_(exec),
-      recv_workspace_(exec)
+      recv_idxs_(exec)
 {
     GKO_THROW_IF_INVALID(
         coll_comm_->get_recv_size() == imap.get_non_local_size(),
@@ -363,9 +305,7 @@ RowScatterer<LocalIndexType>::RowScatterer(std::shared_ptr<const Executor> exec,
     : EnablePolymorphicObject<RowScatterer>(exec),
       DistributedBase(comm),
       coll_comm_(mpi::detail::create_default_collective_communicator(comm)),
-      recv_idxs_(exec),
-      send_workspace_(exec),
-      recv_workspace_(exec)
+      recv_idxs_(exec)
 {}
 
 
@@ -378,9 +318,7 @@ RowScatterer<LocalIndexType>::RowScatterer(
       DistributedBase(coll_comm->get_base_communicator()),
       size_(size),
       coll_comm_(std::move(coll_comm)),
-      recv_idxs_(std::move(recv_idxs)),
-      send_workspace_(exec),
-      recv_workspace_(exec)
+      recv_idxs_(std::move(recv_idxs))
 {}
 
 
@@ -388,9 +326,7 @@ template <typename LocalIndexType>
 RowScatterer<LocalIndexType>::RowScatterer(RowScatterer&& o) noexcept
     : EnablePolymorphicObject<RowScatterer>(o.get_executor()),
       DistributedBase(o.get_communicator()),
-      recv_idxs_(o.get_executor()),
-      send_workspace_(o.get_executor()),
-      recv_workspace_(o.get_executor())
+      recv_idxs_(o.get_executor())
 {
     *this = std::move(o);
 }
@@ -419,8 +355,6 @@ RowScatterer<LocalIndexType>& RowScatterer<LocalIndexType>::operator=(
             o.coll_comm_, mpi::detail::create_default_collective_communicator(
                               o.get_communicator()));
         recv_idxs_ = std::move(o.recv_idxs_);
-        send_workspace_ = std::move(o.send_workspace_);
-        recv_workspace_ = std::move(o.recv_workspace_);
     }
     return *this;
 }
@@ -430,9 +364,7 @@ template <typename LocalIndexType>
 RowScatterer<LocalIndexType>::RowScatterer(const RowScatterer& o)
     : EnablePolymorphicObject<RowScatterer>(o.get_executor()),
       DistributedBase(o.get_communicator()),
-      recv_idxs_(o.get_executor()),
-      send_workspace_(o.get_executor()),
-      recv_workspace_(o.get_executor())
+      recv_idxs_(o.get_executor())
 {
     *this = o;
 }
