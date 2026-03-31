@@ -5,7 +5,6 @@
 #include "ginkgo/core/distributed/row_scatterer.hpp"
 
 #include <ginkgo/core/base/dense_cache.hpp>
-#include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
@@ -13,18 +12,10 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
-#include "core/base/event_kernels.hpp"
 
 namespace gko {
 namespace experimental {
 namespace distributed {
-
-
-namespace event {
-namespace {
-GKO_REGISTER_OPERATION(record_event, event::record_event);
-}
-}  // namespace event
 
 
 template <typename LocalIndexType>
@@ -71,11 +62,6 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
                 auto recv_buffer =
                     recv_cache_.get<ValueType>(mpi_exec, recv_size);
-
-                // Synchronize before MPI (GPU stream safety)
-                std::shared_ptr<const gko::detail::Event> ev = nullptr;
-                lv_local->get_executor()->run(event::make_record_event(ev));
-                ev->synchronize();
 
                 // Start async MPI communication
                 mpi::contiguous_type type(
@@ -139,11 +125,6 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
                 auto recv_buffer =
                     recv_cache_.get<ValueType>(mpi_exec, recv_size);
-
-                // Synchronize before MPI
-                std::shared_ptr<const gko::detail::Event> ev = nullptr;
-                lv_local->get_executor()->run(event::make_record_event(ev));
-                ev->synchronize();
 
                 // Start async MPI communication
                 mpi::contiguous_type type(
