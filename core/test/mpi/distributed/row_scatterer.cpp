@@ -89,7 +89,7 @@ TYPED_TEST(RowScatterer, CanCreateFromGatherer)
     using RowScatterer = typename TestFixture::row_scatterer_type;
 
     auto rg = RowGatherer::create(this->ref, this->coll_comm, this->imap);
-    auto rs = RowScatterer::create_from_gatherer(this->ref, *rg);
+    auto rs = RowScatterer::create_from_gatherer(this->ref, rg);
 
     // The size of the scatterer should be the transpose of the gatherer
     auto rg_size = rg->get_size();
@@ -106,7 +106,7 @@ TYPED_TEST(RowScatterer, ScatterIsGatherTranspose)
     using Dense = gko::matrix::Dense<double>;
 
     auto rg = RowGatherer::create(this->ref, this->coll_comm, this->imap);
-    auto rs = RowScatterer::create_from_gatherer(this->ref, *rg);
+    auto rs = RowScatterer::create_from_gatherer(this->ref, rg);
 
     // Create a distributed vector with known values: each rank owns 3 rows
     // Values: rank*3+0, rank*3+1, rank*3+2
@@ -195,7 +195,7 @@ TYPED_TEST(RowScatterer, CanOverlapWorkWithScatter)
     using Dense = gko::matrix::Dense<double>;
 
     auto rg = RowGatherer::create(this->ref, this->coll_comm, this->imap);
-    auto rs = RowScatterer::create_from_gatherer(this->ref, *rg);
+    auto rs = RowScatterer::create_from_gatherer(this->ref, rg);
 
     // Create distributed vector with known values
     auto num_local_rows = static_cast<gko::int64>(3);
@@ -254,7 +254,7 @@ TYPED_TEST(RowScatterer, WeightedScatterAppliesWeightsCorrectly)
     using Dense = gko::matrix::Dense<double>;
 
     auto rg = RowGatherer::create(this->ref, this->coll_comm, this->imap);
-    auto rs = RowScatterer::create_from_gatherer(this->ref, *rg);
+    auto rs = RowScatterer::create_from_gatherer(this->ref, rg);
 
     // Create distributed vector with all 1s
     auto num_local_rows = static_cast<gko::int64>(3);
@@ -321,7 +321,7 @@ TYPED_TEST(RowScatterer, NonUniformWeightsScatterCorrectly)
     using Dense = gko::matrix::Dense<double>;
 
     auto rg = RowGatherer::create(this->ref, this->coll_comm, this->imap);
-    auto rs = RowScatterer::create_from_gatherer(this->ref, *rg);
+    auto rs = RowScatterer::create_from_gatherer(this->ref, rg);
 
     // Create distributed vector with all 1s
     auto num_local_rows = static_cast<gko::int64>(3);
