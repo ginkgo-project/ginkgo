@@ -581,7 +581,6 @@ void Vector<ValueType>::compute_dot_impl(const Vector* b,
                                          local_vector_type* result,
                                          array<char>& tmp) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res =
@@ -618,7 +617,6 @@ void Vector<ValueType>::compute_conj_dot_impl(const Vector* b,
                                               local_vector_type* result,
                                               array<char>& tmp) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res =
@@ -677,7 +675,6 @@ void Vector<ValueType>::compute_norm1_impl(local_absolute_vector_type* result,
                                            array<char>& tmp) const
 {
     using NormVector = typename local_vector_type::absolute_type;
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
@@ -714,7 +711,6 @@ void Vector<ValueType>::compute_squared_norm2_impl(
     local_absolute_vector_type* result, array<char>& tmp) const
 {
     using NormVector = typename local_vector_type::absolute_type;
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = make_temporary_clone(exec, as<NormVector>(result));
