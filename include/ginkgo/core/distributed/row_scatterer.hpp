@@ -52,13 +52,6 @@ namespace distributed {
  * // target now has accumulated the scattered values
  * ```
  *
- * A weighted variant is also available:
- * ```c++
- * auto req = rs->apply_async(weights, local_vals);
- * rs->wait_and_accumulate(req, target);
- * // target += R^T * diag(weights) * local_vals
- * ```
- *
  * @tparam LocalIndexType  the index type for the stored indices
  */
 template <typename LocalIndexType = int32>
@@ -81,22 +74,6 @@ public:
      * @return  a live mpi::request for the in-flight communication
      */
     [[nodiscard]] mpi::request apply_async(
-        ptr_param<const LinOp> local_values) const;
-
-    /**
-     * Start weighted scattering: sends diag(weights) * local_values.
-     *
-     * Packs `weights[i] * local_values[i]` into the send buffer and
-     * initiates MPI communication.
-     *
-     * @param weights  a Dense matrix with the same dimensions as local_values,
-     *                 used to scale values before scattering
-     * @param local_values  the local values to scatter (distributed::Vector)
-     *
-     * @return  a live mpi::request for the in-flight communication
-     */
-    [[nodiscard]] mpi::request apply_async(
-        ptr_param<const LinOp> weights,
         ptr_param<const LinOp> local_values) const;
 
     /**
