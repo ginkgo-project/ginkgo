@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -95,8 +95,8 @@ public:
                                  const config::type_descriptor& td_for_child =
                                      config::make_type_descriptor<ValueType>());
 
-    void apply_mv(ptr_param<const matrix::MultiVector> b,
-                  ptr_param<matrix::MultiVector> x) const;
+    void apply_mv(ptr_param<const MultiVector> b,
+                  ptr_param<MultiVector> x) const;
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
