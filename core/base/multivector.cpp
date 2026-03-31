@@ -5,7 +5,6 @@
 #include <ginkgo/core/matrix/multivector.hpp>
 
 namespace gko {
-namespace matrix {
 
 
 MultiVector::MultiVector(std::shared_ptr<const Executor> exec,
@@ -345,5 +344,4 @@ std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
 }
 
 
-}  // namespace matrix
 }  // namespace gko
