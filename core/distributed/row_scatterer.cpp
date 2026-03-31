@@ -76,69 +76,6 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
 
 
 template <typename LocalIndexType>
-mpi::request RowScatterer<LocalIndexType>::apply_async(
-    ptr_param<const LinOp> weights, ptr_param<const LinOp> local_values) const
-{
-    mpi::request req;
-    auto exec = this->get_executor();
-    auto use_host_buffer =
-        mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
-    auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
-
-    run<Vector,
-#if GINKGO_ENABLE_HALF
-        half, std::complex<half>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-        bfloat16, std::complex<bfloat16>,
-#endif
-        double, float, std::complex<double>, std::complex<float>>(
-        make_temporary_clone(exec, local_values).get(),
-        [&](const auto* lv_global) {
-            using ValueType =
-                typename std::decay_t<decltype(*lv_global)>::value_type;
-            distributed::precision_dispatch<ValueType>([&]() {
-                auto lv_local = lv_global->get_local_vector();
-                auto ncols = lv_local->get_size()[1];
-
-                dim<2> send_size(coll_comm_->get_send_size(), ncols);
-                auto send_buffer =
-                    send_cache_.get<ValueType>(mpi_exec, send_size);
-                lv_local->convert_to(send_buffer);
-
-                // Apply weights element-wise
-                auto dense_weights = gko::as<matrix::Dense<ValueType>>(
-                    make_temporary_clone(exec, weights).get());
-                GKO_THROW_IF_INVALID(
-                    dense_weights->get_size() == lv_local->get_size(),
-                    "The weights dimensions must match local_values "
-                    "dimensions.");
-                auto dense_weights_on_mpi =
-                    make_temporary_clone(mpi_exec, dense_weights);
-                for (size_type row = 0; row < send_size[0]; ++row) {
-                    for (size_type col = 0; col < send_size[1]; ++col) {
-                        send_buffer->at(row, col) *=
-                            dense_weights_on_mpi->at(row, col);
-                    }
-                }
-
-                dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
-                auto recv_buffer =
-                    recv_cache_.get<ValueType>(mpi_exec, recv_size);
-
-                // Start async MPI communication
-                mpi::contiguous_type type(
-                    ncols, mpi::type_impl<ValueType>::get_type());
-                req = coll_comm_->i_all_to_all_v(
-                    mpi_exec, send_buffer->get_values(), type.get(),
-                    recv_buffer->get_values(), type.get());
-            });
-        });
-    return req;
-}
-
-
-template <typename LocalIndexType>
 void RowScatterer<LocalIndexType>::wait_and_accumulate(
     mpi::request& req, ptr_param<LinOp> distributed_target) const
 {
