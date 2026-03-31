@@ -476,6 +476,7 @@ EnableMultiVector<ConcreteType>::create_with_type_of(
     ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec,
     const dim<2>& global_size, const dim<2>& local_size)
 {
+    GKO_ASSERT_EQUAL_COLS(global_size, local_size);
     return static_cast<const EnableMultiVector*>(other.get())
         ->create_with_type_of_impl(std::move(exec), global_size, local_size,
                                    local_size[1]);
@@ -557,6 +558,7 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_absolute(
     ptr_param<absolute_type> output) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     this->compute_absolute_impl(output.get());
 }
 
@@ -572,6 +574,7 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::make_complex(
     ptr_param<complex_type> output) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     this->make_complex_impl(output.get());
 }
 
@@ -588,6 +591,7 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::get_real(
     ptr_param<real_type> output) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     this->get_real_impl(output.get());
 }
 
@@ -604,6 +608,7 @@ template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::get_imag(
     ptr_param<real_type> output) const
 {
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     this->get_imag_impl(output.get());
 }
 
