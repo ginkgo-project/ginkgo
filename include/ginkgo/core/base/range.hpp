@@ -132,6 +132,30 @@ GKO_ATTRIBUTES GKO_INLINE constexpr bool operator!=(const span& first,
     return !(first == second);
 }
 
+/**
+ * Same as span, except that it only represents a range of _local_ rows/columns
+ */
+struct local_span {
+    constexpr local_span(size_type point) noexcept
+        : local_span{point, point + 1}
+    {}
+
+    constexpr local_span(size_type begin, size_type end) noexcept
+        : begin{begin}, end{end}
+    {}
+
+    constexpr operator span() const { return {begin, end}; }
+
+    constexpr local_span(const span& s) noexcept : local_span(s.begin, s.end) {}
+
+    constexpr bool is_valid() const { return begin <= end; }
+
+    constexpr size_type length() const { return end - begin; }
+
+    size_type begin;
+    size_type end;
+};
+
 
 namespace detail {
 

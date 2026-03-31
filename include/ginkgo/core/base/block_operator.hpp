@@ -8,8 +8,8 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/base/multivector.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/range.hpp>
 
 
 namespace gko {
