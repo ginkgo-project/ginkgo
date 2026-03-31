@@ -63,7 +63,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
-    : matrix::EnableMultiVector<Vector>{exec, global_size},
+    : EnableMultiVector<Vector>{exec, global_size},
       DistributedBase{comm},
       local_{exec, local_size, stride}
 {
@@ -74,7 +74,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           std::unique_ptr<local_vector_type> local_vector)
-    : matrix::EnableMultiVector<Vector>{exec, global_size},
+    : EnableMultiVector<Vector>{exec, global_size},
       DistributedBase{comm},
       local_{exec}
 {
@@ -86,9 +86,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
                           std::unique_ptr<local_vector_type> local_vector)
-    : matrix::EnableMultiVector<Vector>{exec, {}},
-      DistributedBase{comm},
-      local_{exec}
+    : EnableMultiVector<Vector>{exec, {}}, DistributedBase{comm}, local_{exec}
 {
     this->set_size(compute_global_size(exec, comm, local_vector->get_size()));
     local_vector->move_to(&local_);
@@ -530,21 +528,21 @@ void Vector<ValueType>::get_imag_impl(real_type* result) const
 
 
 template <typename ValueType>
-void Vector<ValueType>::scale_impl(matrix::scaling_param<value_type> alpha)
+void Vector<ValueType>::scale_impl(scaling_param<value_type> alpha)
 {
     std::visit([this](auto alpha_v) { local_.scale(alpha_v); }, alpha);
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::inv_scale_impl(matrix::scaling_param<value_type> alpha)
+void Vector<ValueType>::inv_scale_impl(scaling_param<value_type> alpha)
 {
     std::visit([this](auto alpha_v) { local_.inv_scale(alpha_v); }, alpha);
 }
 
 
 template <typename ValueType>
-void Vector<ValueType>::add_scaled_impl(matrix::scaling_param<value_type> alpha,
+void Vector<ValueType>::add_scaled_impl(scaling_param<value_type> alpha,
                                         const Vector* b)
 {
     std::visit(
@@ -556,7 +554,7 @@ void Vector<ValueType>::add_scaled_impl(matrix::scaling_param<value_type> alpha,
 
 
 template <typename ValueType>
-void Vector<ValueType>::sub_scaled_impl(matrix::scaling_param<value_type> alpha,
+void Vector<ValueType>::sub_scaled_impl(scaling_param<value_type> alpha,
                                         const Vector* b)
 {
     std::visit(

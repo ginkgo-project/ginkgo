@@ -15,9 +15,9 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/multivector.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
 
 namespace gko {
 namespace experimental {
@@ -64,7 +64,7 @@ class Partition;
  * @ingroup LinOp
  */
 template <typename ValueType = double>
-class Vector : public matrix::EnableMultiVector<Vector<ValueType>>,
+class Vector : public EnableMultiVector<Vector<ValueType>>,
                public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
                public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
@@ -73,7 +73,7 @@ class Vector : public matrix::EnableMultiVector<Vector<ValueType>>,
                public ConvertibleTo<Vector<next_precision<ValueType, 3>>>,
 #endif
                public DistributedBase {
-    friend class EnablePolymorphicObject<Vector, matrix::MultiVector>;
+    friend class EnablePolymorphicObject<Vector, MultiVector>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;
@@ -81,20 +81,20 @@ class Vector : public matrix::EnableMultiVector<Vector<ValueType>>,
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using matrix::EnableMultiVector<Vector>::convert_to;
-    using matrix::EnableMultiVector<Vector>::move_to;
+    using EnableMultiVector<Vector>::convert_to;
+    using EnableMultiVector<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
-    using typename matrix::EnableMultiVector<Vector>::value_type;
-    using typename matrix::EnableMultiVector<Vector>::absolute_value_type;
+    using typename EnableMultiVector<Vector>::value_type;
+    using typename EnableMultiVector<Vector>::absolute_value_type;
     using absolute_type = remove_complex<Vector>;
     using real_type = absolute_type;
     using complex_type = Vector<to_complex<value_type>>;
     using local_vector_type = gko::matrix::Dense<value_type>;
     using local_absolute_vector_type = gko::matrix::Dense<absolute_value_type>;
-    using typename matrix::EnableMultiVector<Vector>::device_view;
-    using typename matrix::EnableMultiVector<Vector>::const_device_view;
+    using typename EnableMultiVector<Vector>::device_view;
+    using typename EnableMultiVector<Vector>::const_device_view;
 
     /**
      * Reads a vector from the device_matrix_data structure and a global row
@@ -484,14 +484,14 @@ protected:
 
     void fill_impl(value_type value) override;
 
-    void scale_impl(matrix::scaling_param<value_type> alpha) override;
+    void scale_impl(scaling_param<value_type> alpha) override;
 
-    void inv_scale_impl(matrix::scaling_param<value_type> alpha) override;
+    void inv_scale_impl(scaling_param<value_type> alpha) override;
 
-    void add_scaled_impl(matrix::scaling_param<value_type> alpha,
+    void add_scaled_impl(scaling_param<value_type> alpha,
                          const Vector* b) override;
 
-    void sub_scaled_impl(matrix::scaling_param<value_type> alpha,
+    void sub_scaled_impl(scaling_param<value_type> alpha,
                          const Vector* b) override;
 
     device_view get_local_device_view_impl() override;
