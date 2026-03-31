@@ -141,11 +141,6 @@ void Dense<ValueType>::inv_scale_impl(scaling_param<value_type> alpha)
 {
     std::visit(
         [this](auto alpha_v) {
-            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
-            if (alpha_v->get_size()[1] != 1) {
-                // different alpha for each column
-                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
-            }
             auto exec = this->get_executor();
             exec->run(dense::make_inv_scale(alpha_v->get_const_device_view(),
                                             this->get_device_view()));
@@ -159,11 +154,6 @@ void Dense<ValueType>::scale_impl(scaling_param<value_type> alpha)
 {
     std::visit(
         [this](auto alpha_v) {
-            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
-            if (alpha_v->get_size()[1] != 1) {
-                // different alpha for each column
-                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
-            }
             auto exec = this->get_executor();
             exec->run(dense::make_scale(alpha_v->get_const_device_view(),
                                         this->get_device_view()));
@@ -178,12 +168,6 @@ void Dense<ValueType>::add_scaled_impl(scaling_param<value_type> alpha,
 {
     std::visit(
         [this, b](auto alpha_v) {
-            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
-            if (alpha_v->get_size()[1] != 1) {
-                // different alpha for each column
-                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
-            }
-            GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
             auto exec = this->get_executor();
             exec->run(dense::make_add_scaled(alpha_v->get_const_device_view(),
                                              b->get_const_device_view(),
@@ -199,12 +183,6 @@ void Dense<ValueType>::sub_scaled_impl(scaling_param<value_type> alpha,
 {
     std::visit(
         [this, b](auto alpha_v) {
-            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
-            if (alpha_v->get_size()[1] != 1) {
-                // different alpha for each column
-                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
-            }
-            GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
             auto exec = this->get_executor();
 
             exec->run(dense::make_sub_scaled(alpha_v->get_const_device_view(),
@@ -219,8 +197,6 @@ template <typename ValueType>
 void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result,
                                         array<char>& tmp) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     if (tmp.get_executor() != exec) {
         tmp.clear();
@@ -235,8 +211,6 @@ void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result,
 template <typename ValueType>
 void Dense<ValueType>::compute_dot_impl(const Dense* b, Dense* result) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     array<char> tmp{exec};
     exec->run(dense::make_compute_dot(this->get_const_device_view(),
@@ -249,8 +223,6 @@ template <typename ValueType>
 void Dense<ValueType>::compute_conj_dot_impl(const Dense* b, Dense* result,
                                              array<char>& tmp) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     if (tmp.get_executor() != exec) {
         tmp.clear();
@@ -266,8 +238,6 @@ template <typename ValueType>
 void Dense<ValueType>::compute_conj_dot_impl(const Dense* b,
                                              Dense* result) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     array<char> tmp{exec};
     exec->run(dense::make_compute_conj_dot(this->get_const_device_view(),
@@ -280,7 +250,6 @@ template <typename ValueType>
 void Dense<ValueType>::compute_norm2_impl(absolute_type* result,
                                           array<char>& tmp) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     if (tmp.get_executor() != exec) {
         tmp.clear();
@@ -294,7 +263,6 @@ void Dense<ValueType>::compute_norm2_impl(absolute_type* result,
 template <typename ValueType>
 void Dense<ValueType>::compute_norm2_impl(absolute_type* result) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     array<char> tmp{exec};
     exec->run(dense::make_compute_norm2(this->get_const_device_view(),
@@ -306,7 +274,6 @@ template <typename ValueType>
 void Dense<ValueType>::compute_norm1_impl(absolute_type* result,
                                           array<char>& tmp) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     if (tmp.get_executor() != exec) {
         tmp.clear();
@@ -320,7 +287,6 @@ void Dense<ValueType>::compute_norm1_impl(absolute_type* result,
 template <typename ValueType>
 void Dense<ValueType>::compute_norm1_impl(absolute_type* result) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     array<char> tmp{exec};
     exec->run(dense::make_compute_norm1(this->get_const_device_view(),
@@ -332,7 +298,6 @@ template <typename ValueType>
 void Dense<ValueType>::compute_squared_norm2_impl(absolute_type* result,
                                                   array<char>& tmp) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     if (tmp.get_executor() != exec) {
         tmp.clear();
@@ -346,7 +311,6 @@ void Dense<ValueType>::compute_squared_norm2_impl(absolute_type* result,
 template <typename ValueType>
 void Dense<ValueType>::compute_squared_norm2_impl(absolute_type* result) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
     array<char> tmp{exec};
     exec->run(dense::make_compute_squared_norm2(
@@ -1926,7 +1890,6 @@ Dense<ValueType>::compute_absolute_impl() const
 template <typename ValueType>
 void Dense<ValueType>::compute_absolute_impl(absolute_type* output) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
 
     exec->run(dense::make_outplace_absolute_dense(
@@ -1948,7 +1911,6 @@ Dense<ValueType>::make_complex_impl() const
 template <typename ValueType>
 void Dense<ValueType>::make_complex_impl(complex_type* result) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
 
     exec->run(dense::make_make_complex(
@@ -1970,7 +1932,6 @@ Dense<ValueType>::get_real_impl() const
 template <typename ValueType>
 void Dense<ValueType>::get_real_impl(real_type* result) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
 
     exec->run(dense::make_get_real(
@@ -1992,7 +1953,6 @@ Dense<ValueType>::get_imag_impl() const
 template <typename ValueType>
 void Dense<ValueType>::get_imag_impl(real_type* result) const
 {
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
 
     exec->run(dense::make_get_imag(
