@@ -9,34 +9,10 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/range.hpp>
 
 
 namespace gko {
-
-
-// Different type to clarify that only local rows/columns are meant
-struct local_span {
-    constexpr local_span(size_type point) noexcept
-        : local_span{point, point + 1}
-    {}
-
-    constexpr local_span(size_type begin, size_type end) noexcept
-        : begin{begin}, end{end}
-    {}
-
-    constexpr operator span() const { return {begin, end}; }
-
-    constexpr local_span(const span& s) noexcept : local_span(s.begin, s.end) {}
-
-    constexpr bool is_valid() const { return begin <= end; }
-
-    constexpr size_type length() const { return end - begin; }
-
-    size_type begin;
-    size_type end;
-};
-
-
 namespace matrix {
 
 template <typename ValueType>
