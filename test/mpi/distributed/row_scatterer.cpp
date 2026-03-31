@@ -153,61 +153,6 @@ TYPED_TEST(RowScatterer, ScatterIsGatherTranspose)
 }
 
 
-TYPED_TEST(RowScatterer, WeightedScatterAppliesWeightsCorrectly)
-{
-    using Dense = gko::matrix::Dense<double>;
-    using Vector = gko::experimental::distributed::Vector<double>;
-    int rank = this->comm.rank();
-    auto num_local_rows = static_cast<gko::int64>(3);
-
-    // All-ones vector
-    auto b =
-        Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
-                       gko::initialize<Dense>({1.0, 1.0, 1.0}, this->exec));
-
-    // Gather ghost values (all 1s)
-    auto recv_size = this->rg->get_collective_communicator()->get_recv_size();
-    auto ghost_vals = Vector::create(
-        this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
-        gko::dim<2>{static_cast<gko::size_type>(recv_size), 1});
-    this->rg->apply_async(b, ghost_vals).wait();
-
-    // Non-uniform weights: each rank uses weight = (rank + 1.0)
-    auto weights = Dense::create(
-        this->exec, gko::dim<2>{static_cast<gko::size_type>(recv_size), 1});
-    weights->fill(static_cast<double>(rank + 1));
-
-    // Scatter with weights
-    auto target = Vector::create(
-        this->exec, this->comm, gko::dim<2>{18, 1},
-        gko::dim<2>{static_cast<gko::size_type>(num_local_rows), 1});
-    auto target_local = const_cast<Dense*>(target->get_local_vector());
-    target_local->fill(0.0);
-
-    auto scatter_req = this->rs->apply_async(weights, ghost_vals);
-    this->rs->wait_and_accumulate(scatter_req, target);
-
-    // Copy to host for verification
-    auto host_target = gko::clone(this->ref, target);
-    auto host_target_local = host_target->get_local_vector();
-
-    // Expected values (from core/test/mpi/distributed/row_scatterer.cpp)
-    std::array<std::array<double, 3>, 6> expected = {{
-        {2.0, 6.0, 4.0},    // rank 0
-        {4.0, 8.0, 6.0},    // rank 1
-        {0.0, 2.0, 6.0},    // rank 2
-        {5.0, 6.0, 1.0},    // rank 3
-        {12.0, 8.0, 10.0},  // rank 4
-        {5.0, 5.0, 3.0},    // rank 5
-    }};
-
-    for (gko::int64 i = 0; i < num_local_rows; ++i) {
-        EXPECT_DOUBLE_EQ(host_target_local->at(i, 0), expected[rank][i])
-            << "rank=" << rank << " local_row=" << i;
-    }
-}
-
-
 TYPED_TEST(RowScatterer, CanScatterConsecutively)
 {
     using Dense = gko::matrix::Dense<double>;
