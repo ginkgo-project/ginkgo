@@ -2,11 +2,11 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <../../include/ginkgo/core/base/multivector.hpp>
+
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
 
 namespace gko {
-namespace matrix {
 
 
 MultiVector::MultiVector(std::shared_ptr<const Executor> exec,
@@ -347,5 +347,4 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW_CONST);
 
 
-}  // namespace matrix
 }  // namespace gko
