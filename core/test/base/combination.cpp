@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/combination.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -19,10 +20,13 @@ struct DummyOperator : public gko::LinOp {
         : gko::LinOp(exec, gko::dim<2>{1, 1})
     {}
 
-    void apply_impl(const LinOp* b, LinOp* x) const override {}
+    void apply_impl(const gko::MultiVector* b,
+                    gko::MultiVector* x) const override
+    {}
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
+    void apply_impl(const gko::MultiVector* alpha, const gko::MultiVector* b,
+                    const gko::MultiVector* beta,
+                    gko::MultiVector* x) const override
     {}
 };
 
@@ -30,17 +34,18 @@ struct DummyOperator : public gko::LinOp {
 template <typename T>
 class Combination : public ::testing::Test {
 protected:
+    using Dense = gko::matrix::Dense<T>;
     Combination()
         : exec{gko::ReferenceExecutor::create()},
           operators{std::make_shared<DummyOperator>(exec),
                     std::make_shared<DummyOperator>(exec)},
-          coefficients{std::make_shared<DummyOperator>(exec),
-                       std::make_shared<DummyOperator>(exec)}
+          coefficients{Dense::create(exec, gko::dim<2>{1, 1}),
+                       Dense::create(exec, gko::dim<2>{1, 1})}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::vector<std::shared_ptr<gko::LinOp>> operators;
-    std::vector<std::shared_ptr<gko::LinOp>> coefficients;
+    std::vector<std::shared_ptr<Dense>> coefficients;
 };
 
 TYPED_TEST_SUITE(Combination, gko::test::ValueTypes, TypenameNameGenerator);

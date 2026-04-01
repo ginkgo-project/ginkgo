@@ -9,10 +9,17 @@
 #include <memory>
 
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
+namespace matrix {
+
+
+template <typename ValueType>
+class Dense;
+
+
+}
 
 
 /**
@@ -70,7 +77,8 @@ public:
      *
      * @return the scalar of the perturbation
      */
-    const std::shared_ptr<const LinOp> get_scalar() const noexcept
+    const std::shared_ptr<const matrix::Dense<ValueType>> get_scalar()
+        const noexcept
     {
         return scalar_;
     }
@@ -104,7 +112,7 @@ public:
      * @return A smart pointer to the newly created perturbation.
      */
     static std::unique_ptr<Perturbation> create(
-        std::shared_ptr<const LinOp> scalar,
+        std::shared_ptr<const matrix::Dense<ValueType>> scalar,
         std::shared_ptr<const LinOp> basis);
 
     /**
@@ -117,23 +125,26 @@ public:
      * @return A smart pointer to the newly created perturbation.
      */
     static std::unique_ptr<Perturbation> create(
-        std::shared_ptr<const LinOp> scalar, std::shared_ptr<const LinOp> basis,
+        std::shared_ptr<const matrix::Dense<ValueType>> scalar,
+        std::shared_ptr<const LinOp> basis,
         std::shared_ptr<const LinOp> projector);
 
 protected:
     explicit Perturbation(std::shared_ptr<const Executor> exec);
 
-    explicit Perturbation(std::shared_ptr<const LinOp> scalar,
-                          std::shared_ptr<const LinOp> basis);
+    explicit Perturbation(
+        std::shared_ptr<const matrix::Dense<ValueType>> scalar,
+        std::shared_ptr<const LinOp> basis);
 
-    explicit Perturbation(std::shared_ptr<const LinOp> scalar,
-                          std::shared_ptr<const LinOp> basis,
-                          std::shared_ptr<const LinOp> projector);
+    explicit Perturbation(
+        std::shared_ptr<const matrix::Dense<ValueType>> scalar,
+        std::shared_ptr<const LinOp> basis,
+        std::shared_ptr<const LinOp> projector);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const MultiVector* b, MultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const MultiVector* alpha, const MultiVector* b,
+                    const MultiVector* beta, MultiVector* x) const override;
 
     /**
      * Validates the dimensions of the `scalar`, `basis` and `projector`
@@ -145,7 +156,7 @@ protected:
 private:
     std::shared_ptr<const LinOp> basis_;
     std::shared_ptr<const LinOp> projector_;
-    std::shared_ptr<const LinOp> scalar_;
+    std::shared_ptr<const matrix::Dense<ValueType>> scalar_;
 
     // TODO: solve race conditions when multithreading
     mutable struct cache_struct {
@@ -157,23 +168,11 @@ private:
         // allocate linops of cache. The dimension of `intermediate` is
         // (the number of rows of projector, the number of columns of b). Others
         // are 1x1 scalar.
-        void allocate(std::shared_ptr<const Executor> exec, dim<2> size)
-        {
-            using vec = gko::matrix::Dense<ValueType>;
-            if (one == nullptr) {
-                one = initialize<vec>({gko::one<ValueType>()}, exec);
-            }
-            if (alpha_scalar == nullptr) {
-                alpha_scalar = vec::create(exec, gko::dim<2>(1));
-            }
-            if (intermediate == nullptr || intermediate->get_size() != size) {
-                intermediate = vec::create(exec, size);
-            }
-        }
+        void allocate(std::shared_ptr<const Executor> exec, dim<2> size);
 
-        std::unique_ptr<LinOp> intermediate;
-        std::unique_ptr<LinOp> one;
-        std::unique_ptr<LinOp> alpha_scalar;
+        std::unique_ptr<MultiVector> intermediate;
+        std::unique_ptr<matrix::Dense<ValueType>> one;
+        std::unique_ptr<matrix::Dense<ValueType>> alpha_scalar;
     } cache_;
 };
 

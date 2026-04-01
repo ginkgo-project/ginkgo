@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -43,8 +44,8 @@ public:
      *
      * @return a list of coefficients
      */
-    const std::vector<std::shared_ptr<const LinOp>>& get_coefficients()
-        const noexcept
+    const std::vector<std::shared_ptr<const matrix::Dense<ValueType>>>&
+    get_coefficients() const noexcept
     {
         return coefficients_;
     }
@@ -95,7 +96,7 @@ protected:
     void add_operators() {}
 
     template <typename... Rest>
-    void add_operators(std::shared_ptr<const LinOp> coef,
+    void add_operators(std::shared_ptr<const matrix::Dense<ValueType>> coef,
                        std::shared_ptr<const LinOp> oper, Rest&&... rest)
     {
         GKO_ASSERT_EQUAL_DIMENSIONS(coef, dim<2>(1, 1));
@@ -174,7 +175,7 @@ protected:
      * @param rest  other coefficient and operators (interleaved)
      */
     template <typename... Rest>
-    explicit Combination(std::shared_ptr<const LinOp> coef,
+    explicit Combination(std::shared_ptr<const matrix::Dense<ValueType>> coef,
                          std::shared_ptr<const LinOp> oper, Rest&&... rest)
         : Combination(oper->get_executor())
     {
@@ -183,13 +184,13 @@ protected:
                       std::forward<Rest>(rest)...);
     }
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const MultiVector* b, MultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const MultiVector* alpha, const MultiVector* b,
+                    const MultiVector* beta, MultiVector* x) const override;
 
 private:
-    std::vector<std::shared_ptr<const LinOp>> coefficients_;
+    std::vector<std::shared_ptr<const matrix::Dense<ValueType>>> coefficients_;
     std::vector<std::shared_ptr<const LinOp>> operators_;
 
     // TODO: solve race conditions when multithreading
@@ -199,9 +200,9 @@ private:
         cache_struct(const cache_struct& other) {}
         cache_struct& operator=(const cache_struct& other) { return *this; }
 
-        std::unique_ptr<LinOp> zero;
-        std::unique_ptr<LinOp> one;
-        std::unique_ptr<LinOp> intermediate_x;
+        std::unique_ptr<matrix::Dense<ValueType>> zero;
+        std::unique_ptr<matrix::Dense<ValueType>> one;
+        std::unique_ptr<MultiVector> intermediate_x;
     } cache_;
 };
 

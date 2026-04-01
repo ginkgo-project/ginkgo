@@ -451,14 +451,12 @@ dim<2> MultiVector::get_size() const noexcept { return size_; }
 
 
 MultiVector::MultiVector(const MultiVector& other)
-    : EnableAbstractPolymorphicObject(other),
-      size_(other.size_),
-      precision_(other.precision_)
+    : PolymorphicObject(other), size_(other.size_), precision_(other.precision_)
 {}
 
 
 MultiVector::MultiVector(MultiVector&& other)
-    : EnableAbstractPolymorphicObject(std::move(other)),
+    : PolymorphicObject(std::move(other)),
       size_(std::exchange(other.size_, {})),
       precision_(other.precision_)
 {}
@@ -467,7 +465,7 @@ MultiVector::MultiVector(MultiVector&& other)
 MultiVector& MultiVector::operator=(const MultiVector& other)
 {
     if (this != &other) {
-        EnableAbstractPolymorphicObject::operator=(other);
+        PolymorphicObject::operator=(other);
         size_ = other.size_;
     }
     return *this;
@@ -477,7 +475,7 @@ MultiVector& MultiVector::operator=(const MultiVector& other)
 MultiVector& MultiVector::operator=(MultiVector&& other)
 {
     if (this != &other) {
-        EnableAbstractPolymorphicObject::operator=(std::move(other));
+        PolymorphicObject::operator=(std::move(other));
         size_ = std::exchange(other.size_, {});
     }
     return *this;

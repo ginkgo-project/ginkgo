@@ -6,7 +6,6 @@
 
 #include <utility>
 
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
@@ -16,33 +15,13 @@ namespace gko {
 namespace {
 
 
-template <typename Fn>
-auto dispatch_dense(Fn&& fn, LinOp* v)
-{
-    return run<matrix::Dense, float, double,
-#if GINKGO_ENABLE_HALF
-               float16, std::complex<float16>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-               bfloat16, std::complex<bfloat16>,
-#endif
-               std::complex<float>, std::complex<double>>(v,
-                                                          std::forward<Fn>(fn));
-}
-
-
-template <typename LinOpType>
-auto create_vector_blocks(LinOpType* vector,
+template <typename MaybeConstMultiVector>
+auto create_vector_blocks(MaybeConstMultiVector* vector,
                           const std::vector<local_span>& spans)
 {
     return [=](size_type i) {
-        return dispatch_dense(
-            [&](auto* dense) -> std::unique_ptr<LinOpType> {
-                GKO_ENSURE_IN_BOUNDS(i, spans.size());
-                return dense->create_subview(spans[i],
-                                             {0, dense->get_size()[1]});
-            },
-            const_cast<LinOp*>(vector));
+        GKO_ENSURE_IN_BOUNDS(i, spans.size());
+        return vector->create_subview(spans[i], {0, vector->get_size()[1]});
     };
 }
 
@@ -195,7 +174,7 @@ void init_one_cache(std::shared_ptr<const Executor> exec,
 }
 
 
-void BlockOperator::apply_impl(const LinOp* b, LinOp* x) const
+void BlockOperator::apply_impl(const MultiVector* b, MultiVector* x) const
 {
     auto block_b = create_vector_blocks(b, col_spans_);
     auto block_x = create_vector_blocks(x, row_spans_);
@@ -219,8 +198,8 @@ void BlockOperator::apply_impl(const LinOp* b, LinOp* x) const
 }
 
 
-void BlockOperator::apply_impl(const LinOp* alpha, const LinOp* b,
-                               const LinOp* beta, LinOp* x) const
+void BlockOperator::apply_impl(const MultiVector* alpha, const MultiVector* b,
+                               const MultiVector* beta, MultiVector* x) const
 {
     auto block_b = create_vector_blocks(b, col_spans_);
     auto block_x = create_vector_blocks(x, row_spans_);

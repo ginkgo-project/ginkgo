@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <iterator>
 
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/components/fill_array_kernels.hpp"
@@ -26,9 +25,9 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> apply_inner_operators(
+std::unique_ptr<MultiVector> apply_inner_operators(
     const std::vector<std::shared_ptr<const LinOp>>& operators,
-    array<ValueType>& storage, const LinOp* rhs)
+    array<ValueType>& storage, const MultiVector* rhs)
 {
     using Dense = matrix::Dense<ValueType>;
     // determine amount of necessary storage:
@@ -186,38 +185,41 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Composition<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Composition<ValueType>::apply_impl(const MultiVector* b,
+                                        MultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            if (operators_.size() > 1) {
-                operators_[0]->apply(
-                    apply_inner_operators(operators_, storage_, dense_b),
-                    dense_x);
-            } else {
-                operators_[0]->apply(dense_b, dense_x);
-            }
-        },
-        b, x);
+    auto converted_b = b->as_precision(this);
+    auto converted_x = x->as_precision(this);
+    auto dense_b = converted_b.get();
+    auto dense_x = converted_x.get();
+    if (operators_.size() > 1) {
+        operators_[0]->apply(
+            apply_inner_operators(operators_, storage_, dense_b), dense_x);
+    } else {
+        operators_[0]->apply(dense_b, dense_x);
+    }
 }
 
 
 template <typename ValueType>
-void Composition<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                        const LinOp* beta, LinOp* x) const
+void Composition<ValueType>::apply_impl(const MultiVector* alpha,
+                                        const MultiVector* b,
+                                        const MultiVector* beta,
+                                        MultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            if (operators_.size() > 1) {
-                operators_[0]->apply(
-                    dense_alpha,
-                    apply_inner_operators(operators_, storage_, dense_b),
-                    dense_beta, dense_x);
-            } else {
-                operators_[0]->apply(dense_alpha, dense_b, dense_beta, dense_x);
-            }
-        },
-        alpha, b, beta, x);
+    auto converted_alpha = alpha->as_precision(this);
+    auto converted_b = b->as_precision(this);
+    auto converted_x = x->as_precision(this);
+    auto dense_alpha = converted_alpha.get();
+    auto dense_b = converted_b.get();
+    auto dense_x = converted_x.get();
+    if (operators_.size() > 1) {
+        operators_[0]->apply(
+            dense_alpha, apply_inner_operators(operators_, storage_, dense_b),
+            beta, dense_x);
+    } else {
+        operators_[0]->apply(dense_alpha, dense_b, beta, dense_x);
+    }
 }
 
 
