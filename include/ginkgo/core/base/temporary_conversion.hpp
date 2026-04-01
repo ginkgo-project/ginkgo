@@ -226,7 +226,7 @@ public:
     }
 
     template <typename OrigT>
-    static auto create(OrigT* orig_ptr) -> temporary_conversion
+    static temporary_conversion create(OrigT* orig_ptr)
     {
         if constexpr (std::is_same_v<T, OrigT>) {
             return handle_type{orig_ptr, null_deleter<T>{}};
@@ -246,15 +246,27 @@ public:
      * Create a temporary conversion for a base type T from an object of a
      * derived type.
      */
-    template <typename Derived,
-              typename = std::enable_if_t<std::is_base_of_v<T, Derived>>>
-    static auto create(temporary_conversion<Derived>&& derived_ptr)
-        -> temporary_conversion
+    template <typename Derived, typename = std::enable_if_t<std::is_base_of_v<
+                                    std::decay_t<T>, std::decay_t<Derived>>>>
+    static temporary_conversion create_from_derived(
+        temporary_conversion<Derived>&& derived_ptr)
     {
         auto handle = std::move(derived_ptr).empty_out();
         return {handle_type{handle.release(),
                             [deleter = handle.get_deleter()](T* ptr) {
                                 deleter(dynamic_cast<Derived*>(ptr));
+                            }}};
+    }
+
+    template <typename Base, typename = std::enable_if_t<std::is_base_of_v<
+                                 std::decay_t<Base>, std::decay_t<T>>>>
+    static temporary_conversion create_from_base(
+        temporary_conversion<Base>&& base_ptr)
+    {
+        auto handle = std::move(base_ptr).empty_out();
+        return {handle_type{dynamic_cast<T*>(handle.release()),
+                            [deleter = handle.get_deleter()](T* ptr) {
+                                deleter(static_cast<Base*>(ptr));
                             }}};
     }
 
@@ -288,6 +300,40 @@ private:
 
 
 }  // namespace detail
+
+
+/**
+ * Performs polymorphic type conversion of a shared_ptr.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the shared_ptr to the object which should be converted.
+ *
+ * @return If successful, returns a shared_ptr to the subtype, otherwise throws
+ *         NotSupported. This pointer shares ownership with the input pointer.
+ */
+template <typename T, typename U>
+detail::temporary_conversion<T> as(detail::temporary_conversion<U>&& obj)
+{
+    if (!dynamic_cast<T*>(obj.get())) {
+        GKO_NOT_SUPPORTED(*obj.get());
+    }
+    return detail::temporary_conversion<T>::create_from_base(std::move(obj));
+}
+
+template <typename T, typename U>
+detail::temporary_conversion<const T> as(
+    detail::temporary_conversion<const U>&& obj)
+{
+    if (!dynamic_cast<const T*>(obj.get())) {
+        GKO_NOT_SUPPORTED(*obj.get());
+    }
+    return detail::temporary_conversion<const T>::create_from_base(
+        std::move(obj));
+}
+
+
 }  // namespace gko
 
 
