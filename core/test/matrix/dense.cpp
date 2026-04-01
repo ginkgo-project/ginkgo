@@ -40,6 +40,7 @@ protected:
 
     static void assert_empty(gko::ptr_param<gko::matrix::Dense<value_type>> m)
     {
+        ASSERT_EQ(m->get_precision(), gko::type_to_precision<value_type>);
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
@@ -212,6 +213,7 @@ TYPED_TEST(Dense, CanBeCopied)
     this->assert_equal_to_original_mtx(mtx_copy);
     ASSERT_EQ(this->mtx->get_stride(), 4);
     ASSERT_EQ(mtx_copy->get_stride(), 3);
+    ASSERT_EQ(mtx_copy->get_precision(), this->mtx->get_precision());
 }
 
 
@@ -221,6 +223,7 @@ TYPED_TEST(Dense, CanBeMoved)
     mtx_copy->move_from(this->mtx);
     this->assert_equal_to_original_mtx(mtx_copy);
     ASSERT_EQ(mtx_copy->get_stride(), 4);
+    ASSERT_EQ(mtx_copy->get_precision(), this->mtx->get_precision());
 }
 
 
@@ -229,6 +232,7 @@ TYPED_TEST(Dense, CanBeCloned)
     auto mtx_clone = this->mtx->clone();
     this->assert_equal_to_original_mtx(mtx_clone);
     ASSERT_EQ(mtx_clone->get_stride(), 3);
+    ASSERT_EQ(mtx_clone->get_precision(), this->mtx->get_precision());
 }
 
 
@@ -324,6 +328,7 @@ TYPED_TEST(Dense, CanCreateSubmatrix)
     using value_type = typename TestFixture::value_type;
     auto submtx = this->mtx->create_subview(gko::span{0, 1}, gko::span{1, 3});
 
+    EXPECT_EQ(submtx->get_precision(), this->mtx->get_precision());
     EXPECT_EQ(submtx->get_size(), gko::dim<2>(1, 2));
     EXPECT_EQ(submtx->at(0, 0), value_type{2.0});
     EXPECT_EQ(submtx->at(0, 1), value_type{3.0});
@@ -370,6 +375,7 @@ TYPED_TEST(Dense, CanCreateRealView)
     using real_type = gko::remove_complex<value_type>;
     auto real_view = this->mtx->create_real_view();
 
+    EXPECT_EQ(real_view->get_precision(), gko::type_to_precision<real_type>);
     if (gko::is_complex<value_type>()) {
         EXPECT_EQ(real_view->get_size()[0], this->mtx->get_size()[0]);
         EXPECT_EQ(real_view->get_size()[1], 2 * this->mtx->get_size()[1]);
