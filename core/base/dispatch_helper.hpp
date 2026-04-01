@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <memory>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -243,6 +244,189 @@ auto run(std::shared_ptr<T> obj, Func&& f, Args&&... args)
 {
     return run<Base<Types>...>(obj, std::forward<Func>(f),
                                std::forward<Args>(args)...);
+}
+
+/**
+ * Helper to dispatch vectors to the expected precision.
+ * Also handles complex->real conversion if necessary.
+ *
+ * @tparam ValueType Value type to convert the inputs to
+ * @tparam Fn Function type, has signature void(const MultiVector*,
+ *                                              MultiVector*)
+ *
+ * @param fn Function to apply to the converted inputs
+ * @param b Input vector
+ * @param x Output vector
+ */
+template <typename ValueType, typename Fn>
+void precision_dispatch(Fn&& fn, const MultiVector* b, MultiVector* x)
+{
+    auto p = type_to_precision<ValueType>;
+    if constexpr (!is_complex<ValueType>()) {
+        fn(b->create_real_view()->as_precision(p).get(),
+           x->create_real_view()->as_precision(p).get());
+    } else {
+        fn(b->as_precision(p).get(), x->as_precision(p).get());
+    }
+}
+
+
+/**
+ * Specialization for precision_dispatch for operator apply.
+ *
+ * Note: the function needs to have the following signature:
+ *       fn(device_view_type<ValueType>, device_view_type<ValueType>)
+ */
+template <typename ValueType, typename Fn>
+void apply_precision_dispatch(Fn&& fn, const MultiVector* b, MultiVector* x)
+{
+    precision_dispatch<ValueType>(
+        [&fn](auto b_, auto x_) {
+            fn(b_->template get_const_local_device_view<ValueType>(),
+               x_->template get_local_device_view<ValueType>());
+        },
+        b, x);
+}
+
+
+/**
+ * Same as apply_dispatch(Fn, const MultiVector*, MultiVector*), except for the
+ * additional alpha and beta scalars.
+ *
+ * Note: the function needs to have the following signature:
+ *       fn(Dense<ValueType>*, device_view_type<ValueType>, Dense<ValueType>*,
+ *          device_view_type<ValueType>)
+ */
+template <typename ValueType, typename Fn>
+void apply_precision_dispatch(Fn&& fn, const MultiVector* alpha,
+                              const MultiVector* b, const MultiVector* beta,
+                              MultiVector* x)
+{
+    auto p = type_to_precision<ValueType>;
+    auto dense_alpha = as<matrix::Dense<ValueType>>(alpha->as_precision(p));
+    auto dense_beta = as<matrix::Dense<ValueType>>(beta->as_precision(p));
+    precision_dispatch<ValueType>(
+        [&fn, &dense_alpha, &dense_beta](auto b_, auto x_) {
+            fn(dense_alpha.get(),
+               b_->template get_const_local_device_view<ValueType>(),
+               dense_beta.get(),
+               x_->template get_local_device_view<ValueType>());
+        },
+        b, x);
+}
+
+
+/**
+ * Helper function for mixed precision dispatch.
+ * Falls back to apply_dispatch if GINKGO_MIXED_PRECISION is not defined.
+ *
+ * The input vectors will be _not_ be converted to the precision of the
+ * operator. Instead, the underlying precision of each vector will be used.
+ * Exception: If the operator is complex, the vectors will be converted to their
+ *            corresponding real precision.
+ *
+ * @tparam ValueType Value type to ensure compatibility with
+ * @tparam Fn Function type, has signature
+ *            void(const MultiVector* b, MultiVector* x, ValueTypeIn,
+ *                 ValueTypeOut)
+ *
+ * @param fn Function to apply to the inputs
+ * @param b Input vector
+ * @param x Output vector
+ */
+template <typename ValueType, typename Fn>
+void mixed_precision_dispatch(Fn&& fn, const MultiVector* b, MultiVector* x)
+{
+#ifdef GINKGO_MIXED_PRECISION
+    auto precision_b = precision_to_variant(b->get_precision());
+    auto precision_x = precision_to_variant(x->get_precision());
+    std::visit(
+        [&fn, b, x](auto p_b, auto p_x) {
+            using fst_value_type = std::decay_t<decltype(p_b)>;
+            using snd_value_type = std::decay_t<decltype(p_x)>;
+            if constexpr (is_complex<ValueType>() ==
+                              is_complex<fst_value_type>() &&
+                          is_complex<ValueType>() ==
+                              is_complex<snd_value_type>()) {
+                // Either all precisions are real or all precisions are complex
+                fn(b, x, p_b, p_x);
+            } else if constexpr (!is_complex<ValueType>() &&
+                                 is_complex<fst_value_type>() &&
+                                 is_complex<snd_value_type>()) {
+                // ValueType is real and both other precisions are complex
+                fn(b->create_real_view().get(), x->create_real_view().get(),
+                   remove_complex<fst_value_type>(),
+                   remove_complex<snd_value_type>());
+            } else {
+                // real ValueType and one real and one complex precision are not
+                // supported
+                GKO_NOT_IMPLEMENTED;
+            }
+        },
+        precision_b, precision_x);
+#else
+    precision_dispatch<ValueType>(
+        [&fn](auto b_, auto x_, auto...) {
+            fn(b_, x_, ValueType(), ValueType());
+        },
+        b, x);
+#endif
+}
+
+/**
+ * Specialization for mixed_precision_dispatch for operator apply.
+ *
+ * Note: the function needs to have the following signature:
+ *       fn(device_view_type<ValueTypeIn>, device_view_type<ValueTypeOut>,
+ *          ValueTypeIn, ValueTypeOut)
+ */
+template <typename ValueType, typename Fn>
+void apply_mixed_precision_dispatch(Fn&& fn, const MultiVector* b,
+                                    MultiVector* x)
+{
+    mixed_precision_dispatch<ValueType>(
+        [&fn](auto b_, auto x_, auto p_b, auto p_x) {
+            using fst_value_type = std::decay_t<decltype(p_b)>;
+            using snd_value_type = std::decay_t<decltype(p_x)>;
+            fn(b_->template get_const_local_device_view<fst_value_type>(),
+               x_->template get_local_device_view<snd_value_type>(), p_b, p_x);
+        },
+        b, x);
+}
+
+
+/**
+ * Same as mixed_precision_apply_dispatch(Fn, const MultiVector*, MultiVector*),
+ * except for the additional alpha and beta scalars.
+ *
+ * @note the function needs to have the following signature:
+ *       fn(Dense<ValueType>, device_view_type<ValueTypeIn>,
+ *          Dense<ValueTypeOut>, device_view_type<ValueTypeOut>,
+ *          ValueTypeIn, ValueTypeOut)
+ *
+ * @param alpha input scalar converted to precision ValueType if necessary
+ * @param beta input scalar converted to precision of x if necessary
+ */
+template <typename ValueType, typename Fn>
+void apply_mixed_precision_dispatch(Fn&& fn, const MultiVector* alpha,
+                                    const MultiVector* b,
+                                    const MultiVector* beta, MultiVector* x)
+{
+    auto dense_alpha = as<matrix::Dense<ValueType>>(
+        alpha->as_precision(type_to_precision<ValueType>));
+
+    mixed_precision_dispatch<ValueType>(
+        [&fn, &dense_alpha, beta](auto b_, auto x_, auto p_b, auto p_x) {
+            using fst_value_type = std::decay_t<decltype(p_b)>;
+            using snd_value_type = std::decay_t<decltype(p_x)>;
+            auto dense_beta = as<matrix::Dense<snd_value_type>>(
+                beta->as_precision(type_to_precision<snd_value_type>));
+            fn(dense_alpha.get(),
+               b_->template get_const_local_device_view<fst_value_type>(),
+               dense_beta.get(),
+               x_->template get_local_device_view<snd_value_type>(), p_b, p_x);
+        },
+        b, x);
 }
 
 
