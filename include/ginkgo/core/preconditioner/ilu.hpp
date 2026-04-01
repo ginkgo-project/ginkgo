@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,30 +29,6 @@
 
 namespace gko {
 namespace preconditioner {
-namespace detail {
-
-
-template <typename Type>
-constexpr bool support_ilu_parse =
-    std::is_same_v<typename Type::l_solver_type, LinOp>&&
-        std::is_same_v<typename Type::u_solver_type, LinOp>;
-
-
-template <typename Ilu, std::enable_if_t<!support_ilu_parse<Ilu>>* = nullptr>
-typename Ilu::parameters_type ilu_parse(
-    const config::pnode& config, const config::registry& context,
-    const config::type_descriptor& td_for_child)
-{
-    GKO_INVALID_STATE(
-        "preconditioner::Ilu only supports limited type for parse.");
-}
-
-template <typename Ilu, std::enable_if_t<support_ilu_parse<Ilu>>* = nullptr>
-typename Ilu::parameters_type ilu_parse(
-    const config::pnode& config, const config::registry& context,
-    const config::type_descriptor& td_for_child);
-
-}  // namespace detail
 
 
 /**
@@ -66,10 +42,6 @@ typename Ilu::parameters_type ilu_parse(
  * For these solvers, a factory can be provided (with `with_l_solver` and
  * `with_u_solver`) to have more control over their behavior. In particular, it
  * is possible to use an iterative method for solving the triangular systems.
- * The default parameters for an iterative triangluar solver are:
- * - reduction factor = 1e-4
- * - max iteration = <number of rows of the matrix given to the solver>
- * Solvers without such criteria can also be used, in which case none are set.
  *
  * An object of this class can be created with a matrix or a gko::Composition
  * containing two matrices. If created with a matrix, it is factorized before
@@ -93,49 +65,29 @@ typename Ilu::parameters_type ilu_parse(
  *       <LowerTrs, IndexType>. Only the variants with ValueType are supported
  *       in parse.
  *
- * @tparam LSolverTypeOrValueType  type of the solver or the value type used for
- *                                 the L matrix. Defaults to solver::LowerTrs
- * @tparam USolverTypeOrValueType  type of the solver or the value type used for
- *                                 the U matrix Defaults to solver::UpperTrs
+ * @tparam ValueType  the value type used for the L and U matrices.
  * @tparam ReverseApply  default behavior (ReverseApply = false) is first to
  *                       solve with L (Ly = b) and then with U (Ux = y).
  *                       When set to true, it will solve first with U, and then
  *                       with L.
- * @tparam IndexTypeParIlu  Type of the indices when ParIlu is used to generate
- *                          both L and U factors. Irrelevant otherwise.
+ * @tparam IndexType  Type of the indices when ParIlu is used to generate
+ *                    both L and U factors. Irrelevant otherwise.
  *
  * @ingroup precond
  * @ingroup LinOp
  */
-template <typename LSolverTypeOrValueType = solver::LowerTrs<>,
-          typename USolverTypeOrValueType =
-              gko::detail::transposed_type<LSolverTypeOrValueType>,
-          bool ReverseApply = false, typename IndexType = int32>
-class Ilu
-    : public EnableLinOp<Ilu<LSolverTypeOrValueType, USolverTypeOrValueType,
-                             ReverseApply, IndexType>>,
-      public Transposable {
+template <typename ValueType = default_precision, bool ReverseApply = false,
+          typename IndexType = int32>
+class Ilu : public EnableLinOp<Ilu<ValueType, ReverseApply, IndexType>>,
+            public Transposable {
     friend class EnableLinOp<Ilu>;
     friend class EnablePolymorphicObject<Ilu, LinOp>;
 
 public:
-    static_assert(
-        std::is_same_v<gko::detail::get_value_type<LSolverTypeOrValueType>,
-                       gko::detail::get_value_type<USolverTypeOrValueType>>,
-        "Both the L- and the U-solver must use the same `value_type`!");
-    using value_type = gko::detail::get_value_type<LSolverTypeOrValueType>;
-    using l_solver_type =
-        std::conditional_t<gko::detail::is_ginkgo_linop<LSolverTypeOrValueType>,
-                           LSolverTypeOrValueType, LinOp>;
-    using u_solver_type =
-        std::conditional_t<gko::detail::is_ginkgo_linop<USolverTypeOrValueType>,
-                           USolverTypeOrValueType, LinOp>;
+    using value_type = ValueType;
     static constexpr bool performs_reverse_apply = ReverseApply;
     using index_type = IndexType;
-    using transposed_type =
-        Ilu<gko::detail::transposed_type<USolverTypeOrValueType>,
-            gko::detail::transposed_type<LSolverTypeOrValueType>, ReverseApply,
-            IndexType>;
+    using transposed_type = Ilu;
 
     class Factory;
 
@@ -144,28 +96,17 @@ public:
         /**
          * Factory for the L solver
          */
-        std::shared_ptr<const gko::detail::factory_type<l_solver_type>>
-            l_solver_factory{};
+        std::shared_ptr<const LinOpFactory> l_solver_factory{};
 
         /**
          * Factory for the U solver
          */
-        std::shared_ptr<const gko::detail::factory_type<u_solver_type>>
-            u_solver_factory{};
+        std::shared_ptr<const LinOpFactory> u_solver_factory{};
 
         /**
          * Factory for the factorization
          */
         std::shared_ptr<const LinOpFactory> factorization_factory{};
-
-        GKO_DEPRECATED("use with_l_solver instead")
-        parameters_type& with_l_solver_factory(
-            deferred_factory_parameter<
-                const gko::detail::factory_type<l_solver_type>>
-                solver)
-        {
-            return with_l_solver(std::move(solver));
-        }
 
         /**
          * When LSolverTypeOrValueType is a concrete solver type, this only
@@ -173,29 +114,7 @@ public:
          * LSolverTypeOrValueType is a value type, it accepts any LinOpFactory.
          */
         parameters_type& with_l_solver(
-            deferred_factory_parameter<
-                const gko::detail::factory_type<l_solver_type>>
-                solver)
-        {
-            this->l_solver_generator = std::move(solver);
-            this->deferred_factories["l_solver"] = [](const auto& exec,
-                                                      auto& params) {
-                if (!params.l_solver_generator.is_empty()) {
-                    params.l_solver_factory =
-                        params.l_solver_generator.on(exec);
-                }
-            };
-            return *this;
-        }
-
-        GKO_DEPRECATED("use with_u_solver instead")
-        parameters_type& with_u_solver_factory(
-            deferred_factory_parameter<
-                const gko::detail::factory_type<u_solver_type>>
-                solver)
-        {
-            return with_u_solver(std::move(solver));
-        }
+            deferred_factory_parameter<const LinOpFactory> solver);
 
         /**
          * When USolverTypeOrValueType is a concrete solver type, this only
@@ -203,9 +122,7 @@ public:
          * USolverTypeOrValueType is a value type, it accepts any LinOpFactory.
          */
         parameters_type& with_u_solver(
-            deferred_factory_parameter<
-                const gko::detail::factory_type<u_solver_type>>
-                solver)
+            deferred_factory_parameter<const LinOpFactory> solver)
         {
             this->u_solver_generator = std::move(solver);
             this->deferred_factories["u_solver"] = [](const auto& exec,
@@ -216,13 +133,6 @@ public:
                 }
             };
             return *this;
-        }
-
-        GKO_DEPRECATED("use with_factorization instead")
-        parameters_type& with_factorization_factory(
-            deferred_factory_parameter<const LinOpFactory> factorization)
-        {
-            return with_factorization(std::move(factorization));
         }
 
         parameters_type& with_factorization(
@@ -240,14 +150,8 @@ public:
         }
 
     private:
-        deferred_factory_parameter<
-            const gko::detail::factory_type<l_solver_type>>
-            l_solver_generator;
-
-        deferred_factory_parameter<
-            const gko::detail::factory_type<u_solver_type>>
-            u_solver_generator;
-
+        deferred_factory_parameter<const LinOpFactory> l_solver_generator;
+        deferred_factory_parameter<const LinOpFactory> u_solver_generator;
         deferred_factory_parameter<const LinOpFactory> factorization_generator;
     };
 
@@ -274,82 +178,32 @@ public:
     static parameters_type parse(
         const config::pnode& config, const config::registry& context,
         const config::type_descriptor& td_for_child =
-            config::make_type_descriptor<value_type, index_type>())
-    {
-        // parse is not templated, so we can only use SFINAE later
-        return detail::ilu_parse<Ilu>(config, context, td_for_child);
-    }
+            config::make_type_descriptor<value_type, index_type>());
 
     /**
      * Returns the solver which is used for the provided L matrix.
      *
      * @returns  the solver which is used for the provided L matrix
      */
-    std::shared_ptr<const l_solver_type> get_l_solver() const
-    {
-        return l_solver_;
-    }
+    std::shared_ptr<const LinOp> get_l_solver() const { return l_solver_; }
 
     /**
      * Returns the solver which is used for the provided U matrix.
      *
      * @returns  the solver which is used for the provided U matrix
      */
-    std::shared_ptr<const u_solver_type> get_u_solver() const
-    {
-        return u_solver_;
-    }
+    std::shared_ptr<const LinOp> get_u_solver() const { return u_solver_; }
 
-    std::unique_ptr<LinOp> transpose() const override
-    {
-        std::unique_ptr<transposed_type> transposed{
-            new transposed_type{this->get_executor()}};
-        transposed->set_size(gko::transpose(this->get_size()));
-        transposed->l_solver_ =
-            share(as<gko::detail::transposed_type<u_solver_type>>(
-                as<Transposable>(this->get_u_solver())->transpose()));
-        transposed->u_solver_ =
-            share(as<gko::detail::transposed_type<l_solver_type>>(
-                as<Transposable>(this->get_l_solver())->transpose()));
+    std::unique_ptr<LinOp> transpose() const override;
 
-        return std::move(transposed);
-    }
-
-    std::unique_ptr<LinOp> conj_transpose() const override
-    {
-        std::unique_ptr<transposed_type> transposed{
-            new transposed_type{this->get_executor()}};
-        transposed->set_size(gko::transpose(this->get_size()));
-        transposed->l_solver_ =
-            share(as<gko::detail::transposed_type<u_solver_type>>(
-                as<Transposable>(this->get_u_solver())->conj_transpose()));
-        transposed->u_solver_ =
-            share(as<gko::detail::transposed_type<l_solver_type>>(
-                as<Transposable>(this->get_l_solver())->conj_transpose()));
-
-        return std::move(transposed);
-    }
+    std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Copy-assigns an ILU preconditioner. Preserves the executor,
      * shallow-copies the solvers and parameters. Creates a clone of the solvers
      * if they are on the wrong executor.
      */
-    Ilu& operator=(const Ilu& other)
-    {
-        if (&other != this) {
-            EnableLinOp<Ilu>::operator=(other);
-            auto exec = this->get_executor();
-            l_solver_ = other.l_solver_;
-            u_solver_ = other.u_solver_;
-            parameters_ = other.parameters_;
-            if (other.get_executor() != exec) {
-                l_solver_ = gko::clone(exec, l_solver_);
-                u_solver_ = gko::clone(exec, u_solver_);
-            }
-        }
-        return *this;
-    }
+    Ilu& operator=(const Ilu& other);
 
     /**
      * Move-assigns an ILU preconditioner. Preserves the executor,
@@ -357,134 +211,30 @@ public:
      * if they are on the wrong executor. The moved-from object is empty (0x0
      * with nullptr solvers and default parameters)
      */
-    Ilu& operator=(Ilu&& other)
-    {
-        if (&other != this) {
-            EnableLinOp<Ilu>::operator=(other);
-            auto exec = this->get_executor();
-            l_solver_ = std::move(other.l_solver_);
-            u_solver_ = std::move(other.u_solver_);
-            parameters_ = std::exchange(other.parameters_, parameters_type{});
-            if (other.get_executor() != exec) {
-                l_solver_ = gko::clone(exec, l_solver_);
-                u_solver_ = gko::clone(exec, u_solver_);
-            }
-        }
-        return *this;
-    }
+    Ilu& operator=(Ilu&& other);
 
     /**
      * Copy-constructs an ILU preconditioner. Inherits the executor,
      * shallow-copies the solvers and parameters.
      */
-    Ilu(const Ilu& other) : Ilu{other.get_executor()} { *this = other; }
+    Ilu(const Ilu& other);
 
     /**
      * Move-constructs an ILU preconditioner. Inherits the executor,
      * moves the solvers and parameters. The moved-from object is empty (0x0
      * with nullptr solvers and default parameters)
      */
-    Ilu(Ilu&& other) : Ilu{other.get_executor()} { *this = std::move(other); }
+    Ilu(Ilu&& other);
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override
-    {
-        // take care of real-to-complex apply
-        precision_dispatch_real_complex<value_type>(
-            [&](auto dense_b, auto dense_x) {
-                this->set_cache_to(dense_b);
-                if (!ReverseApply) {
-                    l_solver_->apply(dense_b, cache_.intermediate);
-                    if (u_solver_->apply_uses_initial_guess()) {
-                        dense_x->copy_from(cache_.intermediate);
-                    }
-                    u_solver_->apply(cache_.intermediate, dense_x);
-                } else {
-                    u_solver_->apply(dense_b, cache_.intermediate);
-                    if (l_solver_->apply_uses_initial_guess()) {
-                        dense_x->copy_from(cache_.intermediate);
-                    }
-                    l_solver_->apply(cache_.intermediate, dense_x);
-                }
-            },
-            b, x);
-    }
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
-    {
-        precision_dispatch_real_complex<value_type>(
-            [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-                this->set_cache_to(dense_b);
-                if (!ReverseApply) {
-                    l_solver_->apply(dense_b, cache_.intermediate);
-                    u_solver_->apply(dense_alpha, cache_.intermediate,
-                                     dense_beta, dense_x);
-                } else {
-                    u_solver_->apply(dense_b, cache_.intermediate);
-                    l_solver_->apply(dense_alpha, cache_.intermediate,
-                                     dense_beta, dense_x);
-                }
-            },
-            alpha, b, beta, x);
-    }
+                    LinOp* x) const override;
 
-    explicit Ilu(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ilu>(std::move(exec))
-    {}
+    explicit Ilu(std::shared_ptr<const Executor> exec);
 
-    explicit Ilu(const Factory* factory, std::shared_ptr<const LinOp> lin_op)
-        : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
-          parameters_{factory->get_parameters()}
-    {
-        auto comp =
-            std::dynamic_pointer_cast<const Composition<value_type>>(lin_op);
-        std::shared_ptr<const LinOp> l_factor;
-        std::shared_ptr<const LinOp> u_factor;
-
-        // build factorization if we weren't passed a composition
-        if (!comp) {
-            auto exec = lin_op->get_executor();
-            if (!parameters_.factorization_factory) {
-                parameters_.factorization_factory =
-                    factorization::ParIlu<value_type, index_type>::build().on(
-                        exec);
-            }
-            auto fact = std::shared_ptr<const LinOp>(
-                parameters_.factorization_factory->generate(lin_op));
-            // ensure that the result is a composition
-            comp = as<const Composition<value_type>>(fact);
-        }
-        if (comp->get_operators().size() == 2) {
-            l_factor = comp->get_operators()[0];
-            u_factor = comp->get_operators()[1];
-        } else {
-            GKO_NOT_SUPPORTED(comp);
-        }
-        GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, u_factor);
-
-        auto exec = this->get_executor();
-
-        // If no factories are provided, generate default ones
-        if (!parameters_.l_solver_factory) {
-            // when l_solver_type is LinOp, use LowerTrs as the default one
-            l_solver_ = generate_default_solver<std::conditional_t<
-                std::is_same_v<l_solver_type, LinOp>,
-                solver::LowerTrs<value_type, index_type>, l_solver_type>>(
-                exec, l_factor);
-        } else {
-            l_solver_ = parameters_.l_solver_factory->generate(l_factor);
-        }
-        if (!parameters_.u_solver_factory) {
-            // when u_solver_type is LinOp, use UpperTrs as the default one
-            u_solver_ = generate_default_solver<std::conditional_t<
-                std::is_same_v<u_solver_type, LinOp>,
-                solver::UpperTrs<value_type, index_type>, u_solver_type>>(
-                exec, u_factor);
-        } else {
-            u_solver_ = parameters_.u_solver_factory->generate(u_factor);
-        }
-    }
+    explicit Ilu(const Factory* factory, std::shared_ptr<const LinOp> lin_op);
 
     /**
      * Prepares the intermediate vector for the solve by creating it and
@@ -493,59 +243,11 @@ protected:
      * @param b  Right hand side of the first solve. Also acts as the initial
      *           guess, meaning the intermediate value will be a copy of b
      */
-    void set_cache_to(const LinOp* b) const
-    {
-        if (cache_.intermediate == nullptr) {
-            cache_.intermediate =
-                matrix::Dense<value_type>::create(this->get_executor());
-        }
-        // Use b as the initial guess for the first triangular solve
-        cache_.intermediate->copy_from(b);
-    }
-
-
-    /**
-     * Generates a default solver of type SolverType.
-     *
-     * Also checks whether SolverType can be assigned a criteria, and if it
-     * can, it is assigned default values which should be well suited for a
-     * preconditioner.
-     */
-    template <typename SolverType>
-    static std::enable_if_t<solver::has_with_criteria<SolverType>::value,
-                            std::unique_ptr<SolverType>>
-    generate_default_solver(const std::shared_ptr<const Executor>& exec,
-                            const std::shared_ptr<const LinOp>& mtx)
-    {
-        // half can not use constexpr constructor
-        const gko::remove_complex<value_type> default_reduce_residual{1e-4};
-        const unsigned int default_max_iters{
-            static_cast<unsigned int>(mtx->get_size()[0])};
-
-        return SolverType::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(default_max_iters),
-                gko::stop::ResidualNorm<value_type>::build()
-                    .with_reduction_factor(default_reduce_residual))
-            .on(exec)
-            ->generate(mtx);
-    }
-
-    /**
-     * @copydoc generate_default_solver
-     */
-    template <typename SolverType>
-    static std::enable_if_t<!solver::has_with_criteria<SolverType>::value,
-                            std::unique_ptr<SolverType>>
-    generate_default_solver(const std::shared_ptr<const Executor>& exec,
-                            const std::shared_ptr<const LinOp>& mtx)
-    {
-        return SolverType::build().on(exec)->generate(mtx);
-    }
+    void set_cache_to(const LinOp* b) const;
 
 private:
-    std::shared_ptr<const l_solver_type> l_solver_{};
-    std::shared_ptr<const u_solver_type> u_solver_{};
+    std::shared_ptr<const LinOp> l_solver_{};
+    std::shared_ptr<const LinOp> u_solver_{};
     /**
      * Manages a vector as a cache, so there is no need to allocate one every
      * time an intermediate vector is required.

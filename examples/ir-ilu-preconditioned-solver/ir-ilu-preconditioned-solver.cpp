@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     // Generate an ILU preconditioner factory by setting lower and upper
     // triangular solver - in this case the previously defined iterative
     // refinement method.
-    auto ilu_pre_factory = gko::preconditioner::Ilu<ir, ir>::build()
+    auto ilu_pre_factory = gko::preconditioner::Ilu<ValueType>::build()
                                .with_l_solver(gko::clone(trisolve_factory))
                                .with_u_solver(gko::clone(trisolve_factory))
                                .on(exec);
