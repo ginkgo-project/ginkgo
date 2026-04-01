@@ -6,8 +6,8 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/matrix/scaled_permutation_kernels.hpp"
 
 
@@ -38,7 +38,8 @@ ScaledPermutation<ValueType, IndexType>::ScaledPermutation(
     std::shared_ptr<const Executor> exec, array<value_type> scaling_factors,
     array<index_type> permutation_indices)
     : LinOp(exec,
-            dim<2>{scaling_factors.get_size(), scaling_factors.get_size()}),
+            dim<2>{scaling_factors.get_size(), scaling_factors.get_size()},
+            type_to_precision<ValueType>),
       scale_{exec, std::move(scaling_factors)},
       permutation_{exec, std::move(permutation_indices)}
 {
@@ -128,30 +129,27 @@ ScaledPermutation<ValueType, IndexType>::compose(
 
 
 template <typename ValueType, typename IndexType>
-void ScaledPermutation<ValueType, IndexType>::apply_impl(const LinOp* b,
-                                                         LinOp* x) const
+void ScaledPermutation<ValueType, IndexType>::apply_impl(const MultiVector* b,
+                                                         MultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            dense_b->scale_permute(this, dense_x, permute_mode::rows);
-        },
-        b, x);
+    using dense_type = Dense<ValueType>;
+    as<dense_type>(b->as_precision(this))
+        ->scale_permute(this, as<dense_type>(x->as_precision(this).get()),
+                        permute_mode::rows);
 }
 
 
 template <typename ValueType, typename IndexType>
-void ScaledPermutation<ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                                         const LinOp* b,
-                                                         const LinOp* beta,
-                                                         LinOp* x) const
+void ScaledPermutation<ValueType, IndexType>::apply_impl(
+    const MultiVector* alpha, const MultiVector* b, const MultiVector* beta,
+    MultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto tmp = dense_b->scale_permute(this, permute_mode::rows);
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, tmp);
-        },
-        alpha, b, beta, x);
+    using dense_type = Dense<ValueType>;
+    auto tmp = as<dense_type>(b->as_precision(this))
+                   ->scale_permute(this, permute_mode::rows);
+    auto converted_x = as<dense_type>(x->as_precision(this));
+    converted_x->scale(beta);
+    converted_x->add_scaled(alpha, tmp);
 }
 
 

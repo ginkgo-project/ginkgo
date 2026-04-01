@@ -239,33 +239,14 @@ public:
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
-     *
-     * @return this
      */
-    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x);
-
-    /**
-     * @copydoc apply2(cost LinOp *, LinOp *)
-     */
-    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
-
-    /**
-     * Performs the operation x = alpha * Coo * b + x.
-     *
-     * @param alpha  scaling of the result of Coo * b
-     * @param b  vector(s) on which the operator is applied
-     * @param x  output vector(s)
-     *
-     * @return this
-     */
-    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                ptr_param<LinOp> x);
+    void apply2(ptr_param<const MultiVector> b, ptr_param<MultiVector> x) const;
 
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                ptr_param<LinOp> x) const;
+    void apply2(ptr_param<const MultiVector> alpha,
+                ptr_param<const MultiVector> b, ptr_param<MultiVector> x) const;
 
     /**
      * Creates an uninitialized COO matrix of the specified size.
@@ -362,14 +343,15 @@ protected:
      */
     void resize(dim<2> new_size, size_type nnz);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const MultiVector* b, MultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const MultiVector* alpha, const MultiVector* b,
+                    const MultiVector* beta, MultiVector* x) const override;
 
-    void apply2_impl(const LinOp* b, LinOp* x) const;
+    void apply2_impl(const MultiVector* b, MultiVector* x) const;
 
-    void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
+    void apply2_impl(const MultiVector* alpha, const MultiVector* b,
+                     MultiVector* x) const;
 
 private:
     array<value_type> values_;

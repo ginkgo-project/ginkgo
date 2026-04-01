@@ -5,10 +5,10 @@
 #include "ginkgo/core/matrix/diagonal.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
@@ -37,98 +37,49 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Diagonal<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
 {
-    auto exec = this->get_executor();
-
-    if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
-        dynamic_cast<Csr<ValueType, int32>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
-                                        as<Csr<ValueType, int32>>(x), false));
-    } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
-               dynamic_cast<Csr<ValueType, int64>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
-                                        as<Csr<ValueType, int64>>(x), false));
-    } else {
-        precision_dispatch_real_complex<ValueType>(
-            [this, &exec](auto dense_b, auto dense_x) {
-                exec->run(diagonal::make_apply_to_dense(
-                    this, dense_b->get_const_device_view(),
-                    dense_x->get_device_view(), false));
-            },
-            b, x);
-    }
-}
-
-
-template <typename ValueType>
-void Diagonal<ValueType>::rapply_impl(const LinOp* b, LinOp* x) const
-{
-    auto exec = this->get_executor();
-
-    if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
-        dynamic_cast<Csr<ValueType, int32>*>(x)) {
-        exec->run(diagonal::make_right_apply_to_csr(
-            this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
-    } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
-               dynamic_cast<Csr<ValueType, int64>*>(x)) {
-        exec->run(diagonal::make_right_apply_to_csr(
-            this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
-    } else {
-        // no real-to-complex conversion, as this would require doubling the
-        // diagonal entries for the complex-to-real columns
-        precision_dispatch<ValueType>(
-            [this, &exec](auto dense_b, auto dense_x) {
-                exec->run(diagonal::make_right_apply_to_dense(
-                    this, dense_b->get_const_device_view(),
-                    dense_x->get_device_view()));
-            },
-            b, x);
-    }
-}
-
-
-template <typename ValueType>
-void Diagonal<ValueType>::inverse_apply_impl(const LinOp* b, LinOp* x) const
-{
-    auto exec = this->get_executor();
-
-    if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
-        dynamic_cast<Csr<ValueType, int32>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
-                                        as<Csr<ValueType, int32>>(x), true));
-    } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
-               dynamic_cast<Csr<ValueType, int64>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
-                                        as<Csr<ValueType, int64>>(x), true));
-    } else {
-        precision_dispatch_real_complex<ValueType>(
-            [this, &exec](auto dense_b, auto dense_x) {
-                exec->run(diagonal::make_apply_to_dense(
-                    this, dense_b->get_const_device_view(),
-                    dense_x->get_device_view(), true));
-            },
-            b, x);
-    }
-}
-
-
-template <typename ValueType>
-void Diagonal<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                     const LinOp* beta, LinOp* x) const
-{
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto x_clone = dense_x->clone();
-            this->apply_impl(dense_b, x_clone.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
+    apply_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x, auto...) {
+            this->get_executor()->run(
+                diagonal::make_apply_to_dense(this, view_b, view_x, false));
         },
-        alpha, b, beta, x);
+        b, x);
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::apply(ptr_param<const Csr<ValueType, int32>> b,
+                                ptr_param<Csr<ValueType, int32>> x) const
+{
+    LinOp::validate_application_parameters(b.get(), x.get());
+    this->get_executor()->run(
+        diagonal::make_apply_to_csr(this, b.get(), x.get(), false));
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::apply(ptr_param<const Csr<ValueType, int64>> b,
+                                ptr_param<Csr<ValueType, int64>> x) const
+{
+    LinOp::validate_application_parameters(b.get(), x.get());
+    this->get_executor()->run(
+        diagonal::make_apply_to_csr(this, b.get(), x.get(), false));
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::apply_impl(const MultiVector* alpha,
+                                     const MultiVector* b,
+                                     const MultiVector* beta,
+                                     MultiVector* x) const
+{
+    auto converted_x = x->as_precision(this);
+    auto x_clone = converted_x->clone();
+    this->apply_impl(b, x_clone.get());
+    converted_x->scale(as<Dense<ValueType>>(beta->as_precision(this)).get());
+    converted_x->add_scaled(
+        as<Dense<ValueType>>(alpha->as_precision(this)).get(), x_clone.get());
 }
 
 
@@ -347,6 +298,96 @@ void Diagonal<ValueType>::compute_absolute_inplace()
 
     exec->run(diagonal::make_inplace_absolute_array(this->get_values(),
                                                     this->get_size()[0]));
+}
+
+
+template <typename ValueType, typename T, typename U>
+void validate_reverse_application_parameters(const Diagonal<ValueType>* op, T b,
+                                             U x)
+{
+    GKO_ASSERT_REVERSE_CONFORMANT(op, b);
+    GKO_ASSERT_EQUAL_ROWS(b, x);
+    GKO_ASSERT_EQUAL_COLS(op, x);
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::rapply(ptr_param<const MultiVector> b,
+                                 ptr_param<MultiVector> x) const
+{
+    validate_reverse_application_parameters(this, b, x);
+    apply_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x, auto...) {
+            this->get_executor()->run(
+                diagonal::make_right_apply_to_dense(this, view_b, view_x));
+        },
+        b.get(), x.get());
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::rapply(ptr_param<const Csr<ValueType, int32>> b,
+                                 ptr_param<Csr<ValueType, int32>> x) const
+{
+    validate_reverse_application_parameters(this, b, x);
+    this->get_executor()->run(
+        diagonal::make_right_apply_to_csr(this, b.get(), x.get()));
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::rapply(ptr_param<const Csr<ValueType, int64>> b,
+                                 ptr_param<Csr<ValueType, int64>> x) const
+{
+    validate_reverse_application_parameters(this, b, x);
+    this->get_executor()->run(
+        diagonal::make_right_apply_to_csr(this, b.get(), x.get()));
+}
+
+
+template <typename ValueType, typename T, typename U>
+void validate_inverse_application_parameters(const Diagonal<ValueType>* op, T b,
+                                             U x)
+{
+    GKO_ASSERT_CONFORMANT(op, b);
+    GKO_ASSERT_EQUAL_ROWS(b, x);
+    GKO_ASSERT_EQUAL_ROWS(op, x);
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::inverse_apply(ptr_param<const MultiVector> b,
+                                        ptr_param<MultiVector> x) const
+{
+    validate_inverse_application_parameters(this, b, x);
+    apply_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x, auto...) {
+            this->get_executor()->run(
+                diagonal::make_apply_to_dense(this, view_b, view_x, true));
+        },
+        b.get(), x.get());
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::inverse_apply(
+    ptr_param<const Csr<ValueType, int32>> b,
+    ptr_param<Csr<ValueType, int32>> x) const
+{
+    validate_inverse_application_parameters(this, b, x);
+    this->get_executor()->run(
+        diagonal::make_apply_to_csr(this, b.get(), x.get(), true));
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::inverse_apply(
+    ptr_param<const Csr<ValueType, int64>> b,
+    ptr_param<Csr<ValueType, int64>> x) const
+{
+    validate_inverse_application_parameters(this, b, x);
+    this->get_executor()->run(
+        diagonal::make_apply_to_csr(this, b.get(), x.get(), true));
 }
 
 

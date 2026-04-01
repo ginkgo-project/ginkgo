@@ -69,10 +69,10 @@ public:
 protected:
     explicit Identity(std::shared_ptr<const Executor> exec, size_type size = 0);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const MultiVector* b, MultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const MultiVector* alpha, const MultiVector* b,
+                    const MultiVector* beta, MultiVector* x) const override;
 };
 
 

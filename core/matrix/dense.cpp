@@ -334,7 +334,7 @@ void Dense<ValueType>::compute_mean(ptr_param<MultiVector> result,
         tmp.clear();
         tmp.set_executor(exec);
     }
-    auto dense_res = result->as_precision(this->get_precision());
+    auto dense_res = result->as_precision(this);
     exec->run(dense::make_compute_mean(
         this->get_const_device_view(),
         dense_res->template get_local_device_view<value_type>(), tmp));
@@ -1981,11 +1981,11 @@ void Dense<ValueType>::add_scaled_identity_impl(const MultiVector* a,
                                                 const MultiVector* b)
 {
     this->get_executor()->run(dense::make_add_scaled_identity(
-        a->as_precision(this->get_precision())
+        a->as_precision(this)
             ->template get_const_local_device_view<ValueType>(),
-        b->as_precision(this->get_precision())
+        b->as_precision(this)
             ->template get_const_local_device_view<ValueType>(),
-        this->get_const_device_view()));
+        this->get_device_view()));
 }
 
 

@@ -6,7 +6,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 
@@ -262,44 +261,36 @@ void Permutation<IndexType>::write(
 }
 
 
-template <typename Functor>
-void dispatch_dense(const LinOp* op, Functor fn)
+template <typename IndexType>
+void Permutation<IndexType>::apply_impl(const MultiVector* in,
+                                        MultiVector* out) const
 {
-    using matrix::Dense;
-    using std::complex;
-    run<Dense,
-#if GINKGO_ENABLE_HALF
-        gko::float16, std::complex<gko::float16>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-        gko::bfloat16, std::complex<gko::bfloat16>,
-#endif
-        double, float, std::complex<double>, std::complex<float>>(op, fn);
+    std::visit(
+        [this, in, out](auto p) {
+            using DenseType = Dense<std::decay_t<decltype(p)>>;
+            as<DenseType>(in)->permute(
+                this, as<DenseType>(out->as_precision(in)).get(),
+                permute_mode::rows);
+        },
+        precision_to_variant(in->get_precision()));
 }
 
 
 template <typename IndexType>
-void Permutation<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
+void Permutation<IndexType>::apply_impl(const MultiVector* alpha,
+                                        const MultiVector* in,
+                                        const MultiVector* beta,
+                                        MultiVector* out) const
 {
-    dispatch_dense(in, [&](auto dense_in) {
-        auto dense_out = make_temporary_conversion<
-            typename gko::detail::pointee<decltype(dense_in)>::value_type>(out);
-        dense_in->permute(this, dense_out.get(), permute_mode::rows);
-    });
-}
-
-
-template <typename IndexType>
-void Permutation<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
-                                        const LinOp* beta, LinOp* out) const
-{
-    dispatch_dense(in, [&](auto dense_in) {
-        auto dense_out = make_temporary_conversion<
-            typename gko::detail::pointee<decltype(dense_in)>::value_type>(out);
-        auto tmp = dense_in->permute(this, permute_mode::rows);
-        dense_out->scale(beta);
-        dense_out->add_scaled(alpha, tmp);
-    });
+    std::visit(
+        [this, in, out, alpha, beta](auto p) {
+            using DenseType = Dense<std::decay_t<decltype(p)>>;
+            auto converted_out = as<DenseType>(out->as_precision(in));
+            auto tmp = as<DenseType>(in)->permute(this, permute_mode::rows);
+            converted_out->scale(beta);
+            converted_out->add_scaled(alpha, tmp);
+        },
+        precision_to_variant(in->get_precision()));
 }
 
 

@@ -5,9 +5,9 @@
 #include "ginkgo/core/matrix/identity.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+#include "core/base/dispatch_helper.hpp"
 
 
 namespace gko {
@@ -15,22 +15,24 @@ namespace matrix {
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Identity<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
 {
     as<Cloneable>(x)->copy_from(as<Cloneable>(b));
 }
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                     const LinOp* beta, LinOp* x) const
+void Identity<ValueType>::apply_impl(const MultiVector* alpha,
+                                     const MultiVector* b,
+                                     const MultiVector* beta,
+                                     MultiVector* x) const
 {
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, dense_b);
-        },
-        alpha, b, beta, x);
+    auto dense_alpha = as<Dense<ValueType>>(alpha->as_precision(this));
+    auto dense_beta = as<Dense<ValueType>>(beta->as_precision(this));
+    auto converted_x = x->as_precision(this);
+
+    converted_x->scale(dense_beta.get());
+    converted_x->add_scaled(dense_alpha.get(), b->as_precision(this).get());
 }
 
 

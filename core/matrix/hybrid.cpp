@@ -9,13 +9,13 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -189,32 +189,28 @@ Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const MultiVector* b,
+                                              MultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            auto ell_mtx = this->get_ell();
-            auto coo_mtx = this->get_coo();
-            ell_mtx->apply(dense_b, dense_x);
-            coo_mtx->apply2(dense_b, dense_x);
-        },
-        b, x);
+    auto converted_b = b->as_precision(this);
+    auto converted_x = x->as_precision(this);
+    ell_->apply(converted_b.get(), converted_x.get());
+    coo_->apply2(converted_b.get(), converted_x.get());
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                              const LinOp* b, const LinOp* beta,
-                                              LinOp* x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
+                                              const MultiVector* b,
+                                              const MultiVector* beta,
+                                              MultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto ell_mtx = this->get_ell();
-            auto coo_mtx = this->get_coo();
-            ell_mtx->apply(dense_alpha, dense_b, dense_beta, dense_x);
-            coo_mtx->apply2(dense_alpha, dense_b, dense_x);
-        },
-        alpha, b, beta, x);
+    auto converted_alpha = alpha->as_precision(this);
+    auto converted_b = b->as_precision(this);
+    auto converted_x = x->as_precision(this);
+    ell_->apply(converted_alpha.get(), converted_b.get(), beta,
+                converted_x.get());
+    coo_->apply2(converted_alpha.get(), converted_b.get(), converted_x.get());
 }
 
 

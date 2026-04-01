@@ -10,13 +10,13 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -113,8 +113,8 @@ Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
-                                       ptr_param<LinOp> x)
+void Coo<ValueType, IndexType>::apply2(ptr_param<const MultiVector> b,
+                                       ptr_param<MultiVector> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
@@ -122,22 +122,10 @@ void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
                       make_temporary_clone(exec, x).get());
 }
 
-
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
-                                       ptr_param<LinOp> x) const
-{
-    this->validate_application_parameters(b.get(), x.get());
-    auto exec = this->get_executor();
-    this->apply2_impl(make_temporary_clone(exec, b).get(),
-                      make_temporary_clone(exec, x).get());
-}
-
-
-template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
-                                       ptr_param<const LinOp> b,
-                                       ptr_param<LinOp> x)
+void Coo<ValueType, IndexType>::apply2(ptr_param<const MultiVector> alpha,
+                                       ptr_param<const MultiVector> b,
+                                       ptr_param<MultiVector> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -149,73 +137,62 @@ void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
-                                       ptr_param<const LinOp> b,
-                                       ptr_param<LinOp> x) const
+void Coo<ValueType, IndexType>::apply_impl(const MultiVector* b,
+                                           MultiVector* x) const
 {
-    this->validate_application_parameters(b.get(), x.get());
-    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-    auto exec = this->get_executor();
-    this->apply2_impl(make_temporary_clone(exec, alpha).get(),
-                      make_temporary_clone(exec, b).get(),
-                      make_temporary_clone(exec, x).get());
-}
-
-
-template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
-{
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(coo::make_spmv(
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_x->get_device_view()));
+    apply_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x, auto...) {
+            this->get_executor()->run(
+                coo::make_spmv(this->get_const_device_view(), view_b, view_x));
         },
         b, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                           const LinOp* beta, LinOp* x) const
+void Coo<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
+                                           const MultiVector* b,
+                                           const MultiVector* beta,
+                                           MultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+    apply_precision_dispatch<ValueType>(
+        [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x,
+               auto...) {
             this->get_executor()->run(coo::make_advanced_spmv(
                 dense_alpha->get_const_device_view(),
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_beta->get_const_device_view(),
-                dense_x->get_device_view()));
+                this->get_const_device_view(), view_b,
+                dense_beta->get_const_device_view(), view_x));
         },
         alpha, b, beta, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
+void Coo<ValueType, IndexType>::apply2_impl(const MultiVector* b,
+                                            MultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(coo::make_spmv2(
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_x->get_device_view()));
+    apply_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x, auto...) {
+            this->get_executor()->run(
+                coo::make_spmv2(this->get_const_device_view(), view_b, view_x));
         },
         b, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2_impl(const LinOp* alpha, const LinOp* b,
-                                            LinOp* x) const
+void Coo<ValueType, IndexType>::apply2_impl(const MultiVector* alpha,
+                                            const MultiVector* b,
+                                            MultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_x) {
+    auto dense_alpha = as<Dense<ValueType>>(alpha->as_precision(this));
+    apply_precision_dispatch<ValueType>(
+        [this, &dense_alpha](auto view_b, auto view_x, auto...) {
             this->get_executor()->run(coo::make_advanced_spmv2(
                 dense_alpha->get_const_device_view(),
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_x->get_device_view()));
+                this->get_const_device_view(), view_b, view_x));
         },
-        alpha, b, x);
+        b, x);
 }
 
 

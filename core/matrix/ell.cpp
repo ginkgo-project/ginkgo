@@ -9,7 +9,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -19,6 +18,7 @@
 #include "core/base/allocator.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -128,34 +128,33 @@ Ell<ValueType, IndexType>::Ell(Ell&& other) : Ell(other.get_executor())
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Ell<ValueType, IndexType>::apply_impl(const MultiVector* b,
+                                           MultiVector* x) const
 {
-    mixed_precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(ell::make_spmv(
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_x->get_device_view()));
+    apply_mixed_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x, auto...) {
+            this->get_executor()->run(
+                ell::make_spmv(this->get_const_device_view(), view_b, view_x));
         },
         b, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                           const LinOp* beta, LinOp* x) const
+void Ell<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
+                                           const MultiVector* b,
+                                           const MultiVector* beta,
+                                           MultiVector* x) const
 {
-    mixed_precision_dispatch_real_complex<ValueType>(
-        [this, alpha, beta](auto dense_b, auto dense_x) {
-            auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
-            auto dense_beta = make_temporary_conversion<
-                typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
+    apply_mixed_precision_dispatch<ValueType>(
+        [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x,
+               auto...) {
             this->get_executor()->run(ell::make_advanced_spmv(
                 dense_alpha->get_const_device_view(),
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_beta->get_const_device_view(),
-                dense_x->get_device_view()));
+                this->get_const_device_view(), view_b,
+                dense_beta->get_const_device_view(), view_x));
         },
-        b, x);
+        alpha, b, beta, x);
 }
 
 

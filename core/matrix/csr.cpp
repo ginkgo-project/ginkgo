@@ -10,7 +10,6 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -26,6 +25,7 @@
 
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -181,6 +181,26 @@ Csr<ValueType, IndexType>::create_const(
     return create(exec, size, gko::detail::array_const_cast(std::move(values)),
                   gko::detail::array_const_cast(std::move(col_idxs)),
                   gko::detail::array_const_cast(std::move(row_ptrs)), strategy);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::scale(ptr_param<const MultiVector> alpha)
+
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    this->scale_impl(make_temporary_clone(exec, alpha).get());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::inv_scale(ptr_param<const MultiVector> alpha)
+
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
 }
 
 
@@ -371,25 +391,16 @@ Csr<ValueType, IndexType>::Csr(Csr<ValueType, IndexType>&& other)
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Csr<ValueType, IndexType>::apply_impl(const MultiVector* b,
+                                           MultiVector* x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using TCsr = Csr<ValueType, IndexType>;
-    if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
-        // if b is a CSR matrix, we compute a SpGeMM
-        auto x_csr = as<TCsr>(x);
-        this->get_executor()->run(csr::make_spgemm(
-            this, b_csr, make_builder_unique_ptr(x_csr).get()));
-    } else {
-        mixed_precision_dispatch_real_complex<ValueType>(
-            [this](auto dense_b, auto dense_x) {
-                this->get_executor()->run(csr::make_spmv(
-                    this->get_actual_strategy(), max_nnz_per_row_, this,
-                    dense_b->get_const_device_view(),
-                    dense_x->get_device_view()));
-            },
-            b, x);
-    }
+    apply_mixed_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x, auto...) {
+            this->get_executor()->run(
+                csr::make_spmv(this->get_actual_strategy(), max_nnz_per_row_,
+                               this, view_b, view_x));
+        },
+        b, x);
 }
 
 
@@ -491,44 +502,20 @@ void Csr<ValueType, IndexType>::make_srow()
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                           const LinOp* beta, LinOp* x) const
+void Csr<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
+                                           const MultiVector* b,
+                                           const MultiVector* beta,
+                                           MultiVector* x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using RealDense = Dense<remove_complex<ValueType>>;
-    using TCsr = Csr<ValueType, IndexType>;
-    if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
-        // if b is a CSR matrix, we compute a SpGeMM
-        auto x_csr = as<TCsr>(x);
-        auto x_copy = x_csr->clone();
-        this->get_executor()->run(csr::make_advanced_spgemm(
-            as<Dense<ValueType>>(alpha)->get_const_device_view(), this, b_csr,
-            as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
-            make_builder_unique_ptr(x_csr).get()));
-    } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
-        // if b is an identity matrix, we compute an SpGEAM
-        auto x_csr = as<TCsr>(x);
-        auto x_copy = x_csr->clone();
-        this->get_executor()->run(csr::make_spgeam(
-            as<Dense<ValueType>>(alpha)->get_const_device_view(), this,
-            as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
-            make_builder_unique_ptr(x_csr).get()));
-    } else {
-        mixed_precision_dispatch_real_complex<ValueType>(
-            [this, alpha, beta](auto dense_b, auto dense_x) {
-                auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
-                auto dense_beta = make_temporary_conversion<
-                    typename std::decay_t<decltype(*dense_x)>::value_type>(
-                    beta);
-                this->get_executor()->run(csr::make_advanced_spmv(
-                    this->get_actual_strategy(), max_nnz_per_row_,
-                    dense_alpha->get_const_device_view(), this,
-                    dense_b->get_const_device_view(),
-                    dense_beta->get_const_device_view(),
-                    dense_x->get_device_view()));
-            },
-            b, x);
-    }
+    apply_mixed_precision_dispatch<ValueType>(
+        [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x,
+               auto...) {
+            this->get_executor()->run(csr::make_advanced_spmv(
+                this->get_actual_strategy(), max_nnz_per_row_,
+                dense_alpha->get_const_device_view(), this, view_b,
+                dense_beta->get_const_device_view(), view_x));
+        },
+        alpha, b, beta, x);
 }
 
 
@@ -1787,22 +1774,23 @@ Csr<ValueType, IndexType>::compute_absolute() const
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::scale_impl(const LinOp* alpha)
+void Csr<ValueType, IndexType>::scale_impl(const MultiVector* alpha)
 {
     auto exec = this->get_executor();
-    exec->run(csr::make_scale(
-        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
-        this));
+    exec->run(csr::make_scale(as<Dense<ValueType>>(alpha->as_precision(this))
+                                  ->get_const_device_view(),
+                              this));
 }
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
+void Csr<ValueType, IndexType>::inv_scale_impl(const MultiVector* alpha)
 {
     auto exec = this->get_executor();
-    exec->run(csr::make_inv_scale(
-        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
-        this));
+    exec->run(
+        csr::make_inv_scale(as<Dense<ValueType>>(alpha->as_precision(this))
+                                ->get_const_device_view(),
+                            this));
 }
 
 
@@ -1818,9 +1806,9 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const MultiVector* a,
             "The matrix has one or more structurally zero diagonal entries!");
     }
     this->get_executor()->run(csr::make_add_scaled_identity(
-        a->as_precision(this->get_precision())
+        a->as_precision(this)
             ->template get_const_local_device_view<ValueType>(),
-        b->as_precision(this->get_precision())
+        b->as_precision(this)
             ->template get_const_local_device_view<ValueType>(),
         this));
 }
