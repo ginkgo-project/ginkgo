@@ -484,17 +484,8 @@ void scatter_add(std::shared_ptr<const OmpExecutor> exec,
         auto target_row = static_cast<size_type>(scatter_indices[i]);
         for (size_type j = 0; j < ncols; ++j) {
             auto val = src_vals[i * src_stride + j];
-            if constexpr (is_complex<ValueType>()) {
-                auto* tgt = reinterpret_cast<remove_complex<ValueType>*>(
-                    &tgt_vals[target_row * tgt_stride + j]);
-#pragma omp atomic
-                tgt[0] += real(val);
-#pragma omp atomic
-                tgt[1] += imag(val);
-            } else {
-#pragma omp atomic
-                tgt_vals[target_row * tgt_stride + j] += val;
-            }
+#pragma omp critical
+            tgt_vals[target_row * tgt_stride + j] += val;
         }
     }
 }
