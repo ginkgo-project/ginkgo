@@ -92,6 +92,7 @@ public:
      */
     Combination(Combination&&);
 
+protected:
     void add_operators() {}
 
     template <typename... Rest>
@@ -112,7 +113,6 @@ public:
         add_operators(std::forward<Rest>(rest)...);
     }
 
-protected:
     /**
      * Creates an empty linear combination (0x0 operator).
      *
