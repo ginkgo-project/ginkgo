@@ -36,14 +36,6 @@ using supported_value_types =
 #endif
                >;
 
-using dense_types = syn::apply_to_list<matrix::Dense, supported_value_types>;
-
-using any_const_dense_t = syn::variant_from_tuple<syn::apply_to_list<
-    ptr_param, syn::apply_to_list<std::add_const_t, dense_types>>>;
-
-using any_dense_type =
-    syn::variant_from_tuple<syn::apply_to_list<ptr_param, dense_types>>;
-
 class any_scalar : public syn::variant_from_tuple<supported_value_types> {
 public:
     using base_type = syn::variant_from_tuple<supported_value_types>;
@@ -122,14 +114,18 @@ public:
 
     void fill(any_scalar value);
 
-    void scale(any_const_dense_t alpha);
+    // Todo figure out real * complex, since this has a special dense kernel
+    void scale(ptr_param<const MultiVector> alpha);
 
-    void inv_scale(any_const_dense_t alpha);
+    void inv_scale(ptr_param<const MultiVector> alpha);
 
-    void add_scaled(any_const_dense_t alpha, ptr_param<const MultiVector> b);
+    void add_scaled(ptr_param<const MultiVector> alpha,
+                    ptr_param<const MultiVector> b);
 
-    void sub_scaled(any_const_dense_t alpha, ptr_param<const MultiVector> b);
+    void sub_scaled(ptr_param<const MultiVector> alpha,
+                    ptr_param<const MultiVector> b);
 
+    // @todo: the result can only be one of Dense<...>
     void compute_dot(ptr_param<const MultiVector> b,
                      ptr_param<MultiVector> result) const;
 
@@ -247,14 +243,14 @@ protected:
     virtual void fill_impl(any_scalar value) = 0;
 
     // @todo: need to fix alpha to a our dense type
-    virtual void scale_impl(any_const_dense_t alpha) = 0;
+    virtual void scale_impl(const MultiVector* alpha) = 0;
 
-    virtual void inv_scale_impl(any_const_dense_t alpha) = 0;
+    virtual void inv_scale_impl(const MultiVector* alpha) = 0;
 
-    virtual void add_scaled_impl(any_const_dense_t alpha,
+    virtual void add_scaled_impl(const MultiVector* alpha,
                                  const MultiVector* b) = 0;
 
-    virtual void sub_scaled_impl(any_const_dense_t alpha,
+    virtual void sub_scaled_impl(const MultiVector* alpha,
                                  const MultiVector* b) = 0;
 
     virtual void compute_dot_impl(const MultiVector* b,
@@ -590,13 +586,13 @@ private:
 
     void fill_impl(any_scalar value) override final;
 
-    void scale_impl(any_const_dense_t alpha) override final;
+    void scale_impl(const MultiVector* alpha) override final;
 
-    void inv_scale_impl(any_const_dense_t alpha) override final;
+    void inv_scale_impl(const MultiVector* alpha) override final;
 
-    void add_scaled_impl(any_const_dense_t alpha, const MultiVector* b) final;
+    void add_scaled_impl(const MultiVector* alpha, const MultiVector* b) final;
 
-    void sub_scaled_impl(any_const_dense_t alpha, const MultiVector* b) final;
+    void sub_scaled_impl(const MultiVector* alpha, const MultiVector* b) final;
 
     void compute_dot_impl(const MultiVector* b,
                           MultiVector* result) const final;
@@ -959,89 +955,95 @@ void EnableMultiVector<ConcreteType>::fill_impl(any_scalar value)
 namespace detail {
 
 
-template <typename ValueType, typename DenseType>
+template <typename ValueType, typename AlphaValueType>
 struct scaling_factor_target {
-    using type = std::conditional_t<
-        is_complex<ValueType>() &&
-            !is_complex<typename std::decay_t<
-                std::remove_pointer_t<DenseType>>::value_type>(),
-        remove_complex<ValueType>, ValueType>;
+    using type = std::conditional_t<is_complex<ValueType>() &&
+                                        !is_complex<AlphaValueType>(),
+                                    remove_complex<ValueType>, ValueType>;
 };
 
-template <typename ValueType, typename DenseType>
+template <typename ValueType, typename AlphaValueType>
 using scaling_factor_target_type =
-    typename scaling_factor_target<ValueType, DenseType>::type;
+    typename scaling_factor_target<ValueType, AlphaValueType>::type;
 
 
 }  // namespace detail
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::scale_impl(any_const_dense_t alpha)
+void EnableMultiVector<ConcreteType>::scale_impl(const MultiVector* alpha)
 {
     std::visit(
-        [this](auto alpha_v) {
+        [this, alpha](auto p) {
+            using alpha_value_type = std::decay_t<decltype(p)>;
+            auto alpha_v = as<matrix::Dense<alpha_value_type>>(alpha);
             this->scale_impl(scaling_param<value_type>{
                 alpha_v
                     ->template as_precision<detail::scaling_factor_target_type<
-                        value_type, decltype(alpha_v.get())>>()
+                        value_type, alpha_value_type>>()
                     .get()});
         },
-        alpha);
+        precision_to_variant(alpha->get_precision()));
 }
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::inv_scale_impl(any_const_dense_t alpha)
+void EnableMultiVector<ConcreteType>::inv_scale_impl(const MultiVector* alpha)
 {
     std::visit(
-        [this](auto alpha_v) {
+        [this, alpha](auto p) {
+            using alpha_value_type = std::decay_t<decltype(p)>;
+            auto alpha_v = as<matrix::Dense<alpha_value_type>>(alpha);
             this->inv_scale_impl(scaling_param<value_type>{
                 alpha_v
                     ->template as_precision<detail::scaling_factor_target_type<
-                        value_type, decltype(alpha_v.get())>>()
+                        value_type, alpha_value_type>>()
                     .get()});
         },
-        alpha);
+        precision_to_variant(alpha->get_precision()));
 }
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::add_scaled_impl(any_const_dense_t alpha,
+void EnableMultiVector<ConcreteType>::add_scaled_impl(const MultiVector* alpha,
                                                       const MultiVector* b)
 {
     std::visit(
-        [b, this](auto alpha_v) {
+        [this, alpha, b](auto p) {
+            using alpha_value_type = std::decay_t<decltype(p)>;
+            auto alpha_v = as<matrix::Dense<alpha_value_type>>(alpha);
             this->add_scaled_impl(
                 scaling_param<value_type>{
                     alpha_v
                         ->template as_precision<
                             detail::scaling_factor_target_type<
-                                value_type, decltype(alpha_v.get())>>()
+                                value_type, alpha_value_type>>()
                         .get()},
                 as<const ConcreteType>(
                     b->as_precision(this->get_precision()).get()));
         },
-        alpha);
+        precision_to_variant(alpha->get_precision()));
 }
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::sub_scaled_impl(any_const_dense_t alpha,
+void EnableMultiVector<ConcreteType>::sub_scaled_impl(const MultiVector* alpha,
                                                       const MultiVector* b)
 {
     std::visit(
-        [b, this](auto alpha_v) {
+        [this, alpha, b](auto p) {
+            using alpha_value_type = std::decay_t<decltype(p)>;
+            auto alpha_v = as<matrix::Dense<alpha_value_type>>(alpha);
             this->sub_scaled_impl(
                 scaling_param<value_type>{
                     alpha_v
                         ->template as_precision<
                             detail::scaling_factor_target_type<
-                                value_type, decltype(alpha_v.get())>>()
+                                value_type, alpha_value_type>>()
                         .get()},
                 as<const ConcreteType>(
                     b->as_precision(this->get_precision()).get()));
         },
-        alpha);
+        precision_to_variant(alpha->get_precision()));
 }
 
 
