@@ -124,7 +124,6 @@ Isai<IsaiType, ValueType, IndexType>::parse(
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 Isai<IsaiType, ValueType, IndexType>::Isai(
     const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
-
     : LinOp(factory->get_executor(), system_matrix->get_size(),
             type_to_precision<ValueType>),
       parameters_{factory->get_parameters()}
@@ -144,8 +143,8 @@ Isai<IsaiType, ValueType, IndexType>::Isai(
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-void Isai<IsaiType, ValueType, IndexType>::apply_impl(const LinOp* b,
-                                                      LinOp* x) const
+void Isai<IsaiType, ValueType, IndexType>::apply_impl(const MultiVector* b,
+                                                      MultiVector* x) const
 
 {
     approximate_inverse_->apply(b, x);
@@ -153,10 +152,10 @@ void Isai<IsaiType, ValueType, IndexType>::apply_impl(const LinOp* b,
 
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-void Isai<IsaiType, ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                                      const LinOp* b,
-                                                      const LinOp* beta,
-                                                      LinOp* x) const
+void Isai<IsaiType, ValueType, IndexType>::apply_impl(const MultiVector* alpha,
+                                                      const MultiVector* b,
+                                                      const MultiVector* beta,
+                                                      MultiVector* x) const
 
 {
     approximate_inverse_->apply(alpha, b, beta, x);
