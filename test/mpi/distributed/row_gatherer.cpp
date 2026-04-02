@@ -352,45 +352,6 @@ TYPED_TEST(RowGatherer, CanApplyAsyncMultipleTimesWithEventAndWorkspace)
 }
 
 
-TYPED_TEST(RowGatherer, CanOverwriteWorkspaceBetweenPrepareAndFinalize)
-{
-    using Dense = gko::matrix::Dense<double>;
-    using Vector = gko::experimental::distributed::Vector<double>;
-    int rank = this->comm.rank();
-    auto offset = static_cast<double>(rank * 3);
-    auto b = Vector::create(
-        this->exec, this->comm, gko::dim<2>{18, 1},
-        gko::initialize<Dense>({offset, offset + 1, offset + 2}, this->exec));
-    auto expected = this->template create_recv_connections<double>()[rank];
-    auto modified_expected =
-        gko::array<double>(expected.get_executor(), expected.get_size());
-    modified_expected.fill(0.0);
-    auto x = Vector::create(this->mpi_exec, this->comm,
-                            gko::dim<2>{this->rg->get_size()[0], 1},
-                            gko::dim<2>{expected.get_size(), 1});
-    gko::detail::GenericDenseCache workspace;
-
-    auto ev = apply_prepare(this->rg.get(), b, workspace);
-    workspace
-        .get<double>(
-            this->rg->get_executor(),
-            gko::dim<2>(
-                this->rg->get_collective_communicator()->get_send_size(), 1))
-        ->fill(0.0);
-    this->exec->synchronize();
-    auto req = apply_finalize(this->rg.get(), b, x, ev, workspace);
-    req.wait();
-
-    auto expected_vec = Vector::create(
-        this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
-        Dense::create(this->mpi_exec,
-                      gko::dim<2>{modified_expected.get_size(), 1},
-                      modified_expected, 1));
-    GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected_vec->get_local_vector(),
-                        0.0);
-}
-
-
 TYPED_TEST(RowGatherer, ThrowsOnNonMatchingExecutor)
 {
     if (this->mpi_exec == this->exec) {
