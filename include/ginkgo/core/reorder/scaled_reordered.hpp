@@ -102,10 +102,10 @@ protected:
     explicit ScaledReordered(const Factory* factory,
                              std::shared_ptr<const LinOp> system_matrix);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const MultiVector* b, MultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const MultiVector* alpha, const MultiVector* b,
+                    const MultiVector* beta, MultiVector* x) const override;
 
     /**
      * Prepares the intermediate right hand side, solution and intermediate
@@ -118,26 +118,10 @@ protected:
      * case the inner operator uses an initial guess, will be scaled and
      * permuted accordingly.
      */
-    void set_cache_to(const LinOp* b, const LinOp* x) const
-    {
-        if (cache_.inner_b == nullptr ||
-            cache_.inner_b->get_size() != b->get_size()) {
-            const auto size = b->get_size();
-            cache_.inner_b =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-            cache_.inner_x =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-            cache_.intermediate =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-        }
-        cache_.inner_b->copy_from(as<Cloneable>(b));
-        if (inner_operator_->apply_uses_initial_guess()) {
-            cache_.inner_x->copy_from(as<Cloneable>(x));
-        }
-    }
+    void set_cache_to(const MultiVector* b, const MultiVector* x) const;
 
 private:
-    std::shared_ptr<LinOp> system_matrix_{};
+    std::shared_ptr<matrix::Csr<ValueType, IndexType>> system_matrix_{};
     std::shared_ptr<const LinOp> inner_operator_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> row_scaling_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> col_scaling_{};

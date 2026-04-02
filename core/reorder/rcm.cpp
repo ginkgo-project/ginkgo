@@ -169,9 +169,9 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
         as<ConvertibleTo<Mtx>>(op)->convert_to(conv_csr);
         if (!parameters_.skip_symmetrize) {
             auto scalar = initialize<Scalar>({one<ValueType>()}, exec);
-            auto id = Identity::create(exec, conv_csr->get_size()[0]);
             // compute A^T + A
-            conv_csr->transpose()->apply(scalar, id, scalar, conv_csr);
+            conv_csr = conv_csr->scale_add(scalar, scalar,
+                                           as<Mtx>(conv_csr->transpose()));
         }
         if (exec != work_exec) {
             conv_csr = gko::clone(work_exec, std::move(conv_csr));
