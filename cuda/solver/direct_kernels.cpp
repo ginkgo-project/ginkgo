@@ -104,9 +104,15 @@ struct direct_vendor_state {
     cudssConfig_t config = nullptr;
     cudssData_t data = nullptr;
     cudssMatrix_t A = nullptr;
+    cudaStream_t stream = nullptr;
 
     ~direct_vendor_state()
     {
+        // Synchronize the stream before cleanup to ensure all async
+        // cuDSS operations are complete.
+        if (stream) {
+            cudaStreamSynchronize(stream);
+        }
         if (A) {
             cudssMatrixDestroy(A);
         }
@@ -144,8 +150,8 @@ void generate(
         auto st = std::make_shared<state>();
 
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssCreate(&st->handle));
-        GKO_ASSERT_NO_CUDSS_ERRORS(
-            cudssSetStream(st->handle, exec->get_stream()));
+        st->stream = exec->get_stream();
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssSetStream(st->handle, st->stream));
 
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssConfigCreate(&st->config));
 

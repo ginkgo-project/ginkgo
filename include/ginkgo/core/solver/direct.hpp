@@ -151,8 +151,10 @@ private:
 
     std::unique_ptr<lower_type> lower_solver_;
     std::unique_ptr<upper_type> upper_solver_;
-    std::shared_ptr<direct_vendor_state> vendor_state_;
+    // vendor_system_matrix_ must be declared before vendor_state_ so that
+    // the cuDSS handles are destroyed before the CSR data they reference.
     std::shared_ptr<const LinOp> vendor_system_matrix_;
+    std::shared_ptr<direct_vendor_state> vendor_state_;
 };
 
 
