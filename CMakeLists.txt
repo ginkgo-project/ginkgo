@@ -384,6 +384,14 @@ set(GINKGO_HAVE_ROCTX 0)
 if(GINKGO_BUILD_HIP AND ROCTX_FOUND)
     set(GINKGO_HAVE_ROCTX 1)
 endif()
+# Automatically find cuDSS
+set(GINKGO_HAVE_CUDSS 0)
+if(GINKGO_BUILD_CUDA)
+    find_package(cuDSS QUIET)
+    if(cuDSS_FOUND)
+        set(GINKGO_HAVE_CUDSS 1)
+    endif()
+endif()
 
 # Switch off HWLOC for Windows and MacOS
 if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))

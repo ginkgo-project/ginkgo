@@ -66,6 +66,7 @@
 #include "core/solver/cgs_kernels.hpp"
 #include "core/solver/chebyshev_kernels.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
+#include "core/solver/direct_kernels.hpp"
 #include "core/solver/fcg_kernels.hpp"
 #include "core/solver/gcr_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
@@ -596,6 +597,18 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);
 
 
 }  // namespace upper_trs
+
+
+#if GKO_HAVE_CUDSS
+namespace direct {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIRECT_GENERATE_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_DIRECT_SOLVE_KERNEL);
+
+
+}  // namespace direct
+#endif  // GKO_HAVE_CUDSS
 
 
 namespace fcg {

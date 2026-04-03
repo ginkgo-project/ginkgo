@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,11 +12,26 @@
 #include <ginkgo/core/solver/solver_base.hpp>
 
 #include "core/config/config_helper.hpp"
+#include "core/solver/direct_kernels.hpp"
 
 
 namespace gko {
 namespace experimental {
 namespace solver {
+
+
+#if GKO_HAVE_CUDSS
+namespace direct_dispatch {
+namespace {
+
+
+GKO_REGISTER_OPERATION(vendor_generate, direct::generate);
+GKO_REGISTER_OPERATION(vendor_solve, direct::solve);
+
+
+}  // anonymous namespace
+}  // namespace direct_dispatch
+#endif  // GKO_HAVE_CUDSS
 
 
 template <typename ValueType, typename IndexType>
@@ -34,6 +49,36 @@ Direct<ValueType, IndexType>::parse(const config::pnode& config,
         params.with_factorization(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
+    }
+    if (auto& obj = config_check.get("algorithm")) {
+        auto alg_str = obj.get_string();
+        if (alg_str == "factorization") {
+            params.with_algorithm(direct_algorithm::factorization);
+        } else if (alg_str == "vendor") {
+            params.with_algorithm(direct_algorithm::vendor);
+        } else {
+            GKO_INVALID_CONFIG_VALUE("algorithm", alg_str);
+        }
+    }
+    if (auto& obj = config_check.get("vendor_params")) {
+        vendor_parameters vp{};
+        config::config_check_decorator vp_check(obj);
+        if (auto& mt = vp_check.get("matrix_type")) {
+            vp.matrix_type = gko::config::get_value<int>(mt);
+        }
+        if (auto& mv = vp_check.get("matrix_view")) {
+            vp.matrix_view = gko::config::get_value<int>(mv);
+        }
+        if (auto& ra = vp_check.get("reordering_alg")) {
+            vp.reordering_alg = gko::config::get_value<int>(ra);
+        }
+        if (auto& he = vp_check.get("hybrid_execute")) {
+            vp.hybrid_execute = gko::config::get_value<bool>(he);
+        }
+        if (auto& hm = vp_check.get("hybrid_memory")) {
+            vp.hybrid_memory = gko::config::get_value<bool>(hm);
+        }
+        params.with_vendor_params(vp);
     }
 
     return params;
@@ -74,9 +119,16 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
         EnableLinOp<Direct>::operator=(other);
         gko::solver::EnableSolverBase<Direct, factorization_type>::operator=(
             other);
-        const auto exec = this->get_executor();
-        lower_solver_ = other.lower_solver_->clone(exec);
-        upper_solver_ = other.upper_solver_->clone(exec);
+        vendor_state_ = other.vendor_state_;
+        vendor_system_matrix_ = other.vendor_system_matrix_;
+        if (other.lower_solver_) {
+            const auto exec = this->get_executor();
+            lower_solver_ = other.lower_solver_->clone(exec);
+            upper_solver_ = other.upper_solver_->clone(exec);
+        } else {
+            lower_solver_ = nullptr;
+            upper_solver_ = nullptr;
+        }
     }
     return *this;
 }
@@ -90,7 +142,8 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
         EnableLinOp<Direct>::operator=(std::move(other));
         gko::solver::EnableSolverBase<Direct, factorization_type>::operator=(
             std::move(other));
-        const auto exec = this->get_executor();
+        vendor_state_ = std::move(other.vendor_state_);
+        vendor_system_matrix_ = std::move(other.vendor_system_matrix_);
         lower_solver_ = std::move(other.lower_solver_);
         upper_solver_ = std::move(other.upper_solver_);
     }
@@ -125,14 +178,30 @@ template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Factory* factory,
                                      std::shared_ptr<const LinOp> system_matrix)
     : EnableLinOp<Direct>{factory->get_executor(), system_matrix->get_size()},
-      gko::solver::EnableSolverBase<
-          Direct, factorization::Factorization<ValueType, IndexType>>{
-          generate_factorization<ValueType, IndexType>(
-              factory->get_parameters().factorization, system_matrix)}
+      gko::solver::EnableSolverBase<Direct, factorization_type>{}
 {
     using factorization::storage_type;
-    const auto factors = this->get_system_matrix();
     const auto exec = this->get_executor();
+    const auto& params = factory->get_parameters();
+
+#if GKO_HAVE_CUDSS
+    if (params.algorithm == direct_algorithm::vendor) {
+        using CsrType = matrix::Csr<ValueType, IndexType>;
+        auto csr = copy_and_convert_to<CsrType>(exec, system_matrix);
+        // Keep CSR alive — cuDSS references its data via zero-copy
+        vendor_system_matrix_ = csr;
+
+        exec->run(direct_dispatch::make_vendor_generate(
+            csr.get(), vendor_state_, params.vendor_params));
+        return;
+    }
+#endif  // GKO_HAVE_CUDSS
+
+    // Default: Factorization path
+    auto factors = generate_factorization<ValueType, IndexType>(
+        params.factorization, system_matrix);
+    this->set_system_matrix(factors);
+
     const auto type = factors->get_storage_type();
     const bool lower_unit_diag = type == storage_type::combined_lu ||
                                  type == storage_type::combined_ldu ||
@@ -145,7 +214,7 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
     if (separate_diag) {
         GKO_NOT_SUPPORTED(type);
     }
-    const auto num_rhs = factory->get_parameters().num_rhs;
+    const auto num_rhs = params.num_rhs;
     const auto lower_factory = lower_type::build()
                                    .with_num_rhs(num_rhs)
                                    .with_unit_diagonal(lower_unit_diag)
@@ -179,6 +248,38 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
 template <typename ValueType, typename IndexType>
 void Direct<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+#if GKO_HAVE_CUDSS
+    if (vendor_state_) {
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_b, auto dense_x) {
+                using Dense = matrix::Dense<ValueType>;
+                const auto exec = this->get_executor();
+                const auto nrhs = dense_b->get_size()[1];
+                if (nrhs <= 1) {
+                    exec->run(direct_dispatch::make_vendor_solve(
+                        vendor_state_.get(), dense_b, dense_x));
+                } else {
+                    const auto nrows = dense_b->get_size()[0];
+                    auto tmp_b = Dense::create(exec, dim<2>{nrows, 1});
+                    auto tmp_x = Dense::create(exec, dim<2>{nrows, 1});
+                    auto mut_b = const_cast<std::remove_const_t<
+                        std::remove_pointer_t<decltype(dense_b)>>*>(dense_b);
+                    for (size_type j = 0; j < nrhs; ++j) {
+                        mut_b->create_submatrix(span{0, nrows}, span{j, j + 1})
+                            ->convert_to(tmp_b);
+                        exec->run(direct_dispatch::make_vendor_solve(
+                            vendor_state_.get(), tmp_b.get(), tmp_x.get()));
+                        dense_x
+                            ->create_submatrix(span{0, nrows}, span{j, j + 1})
+                            ->copy_from(tmp_x);
+                    }
+                }
+            },
+            b, x);
+        return;
+    }
+#endif  // GKO_HAVE_CUDSS
+
     if (!this->get_system_matrix() || !this->lower_solver_ ||
         !this->upper_solver_) {
         return;
@@ -202,6 +303,21 @@ void Direct<ValueType, IndexType>::apply_impl(const LinOp* alpha,
                                               const LinOp* b, const LinOp* beta,
                                               LinOp* x) const
 {
+#if GKO_HAVE_CUDSS
+    if (vendor_state_) {
+        precision_dispatch_real_complex<ValueType>(
+            [this](auto dense_alpha, auto dense_b, auto dense_beta,
+                   auto dense_x) {
+                auto tmp = dense_x->clone();
+                this->apply_impl(dense_b, tmp.get());
+                dense_x->scale(dense_beta);
+                dense_x->add_scaled(dense_alpha, tmp);
+            },
+            alpha, b, beta, x);
+        return;
+    }
+#endif  // GKO_HAVE_CUDSS
+
     if (!this->get_system_matrix() || !this->lower_solver_ ||
         !this->upper_solver_) {
         return;
