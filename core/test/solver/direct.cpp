@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -66,6 +66,30 @@ TYPED_TEST(Direct, PassExplicitFactory)
         Solver::build().with_factorization(lu_factory).on(this->exec);
 
     ASSERT_EQ(factory->get_parameters().factorization, lu_factory);
+}
+
+
+TYPED_TEST(Direct, FactoryAcceptsVendorAlgorithm)
+{
+    using Solver = typename TestFixture::Solver;
+
+    auto factory =
+        Solver::build()
+            .with_algorithm(gko::experimental::solver::direct_algorithm::vendor)
+            .with_vendor_params(gko::experimental::solver::vendor_parameters{
+                3, 0, 0, false, false})
+            .on(this->exec);
+
+    ASSERT_EQ(factory->get_parameters().algorithm,
+              gko::experimental::solver::direct_algorithm::vendor);
+    ASSERT_EQ(factory->get_parameters().vendor_params.matrix_type, 3);
+}
+
+
+TYPED_TEST(Direct, FactoryDefaultsToFactorizationAlgorithm)
+{
+    ASSERT_EQ(this->factory->get_parameters().algorithm,
+              gko::experimental::solver::direct_algorithm::factorization);
 }
 
 
