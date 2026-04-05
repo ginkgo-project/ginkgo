@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -253,6 +253,7 @@ GKO_CUDA_DATA_TYPE(std::complex<gko::bfloat16>, CUDA_C_16BF);
 GKO_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
 GKO_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
 GKO_CUDA_DATA_TYPE(int32, CUDA_R_32I);
+GKO_CUDA_DATA_TYPE(int64, CUDA_R_64I);
 GKO_CUDA_DATA_TYPE(int8, CUDA_R_8I);
 
 #undef GKO_CUDA_DATA_TYPE

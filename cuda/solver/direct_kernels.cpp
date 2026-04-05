@@ -8,7 +8,6 @@
 #if GKO_HAVE_CUDSS
 
 
-#include <complex>
 #include <type_traits>
 
 #include <cudss.h>
@@ -17,6 +16,8 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+
+#include "cuda/base/types.hpp"
 
 
 namespace gko {
@@ -36,44 +37,6 @@ namespace {
                     std::to_string(static_cast<int>(_status)) + ")"); \
         }                                                             \
     } while (false)
-
-
-template <typename T>
-struct cuda_type_map;
-
-template <>
-struct cuda_type_map<float> {
-    static constexpr cudaDataType_t value = CUDA_R_32F;
-};
-
-template <>
-struct cuda_type_map<double> {
-    static constexpr cudaDataType_t value = CUDA_R_64F;
-};
-
-template <>
-struct cuda_type_map<std::complex<float>> {
-    static constexpr cudaDataType_t value = CUDA_C_32F;
-};
-
-template <>
-struct cuda_type_map<std::complex<double>> {
-    static constexpr cudaDataType_t value = CUDA_C_64F;
-};
-
-
-template <typename T>
-struct cuda_index_type_map;
-
-template <>
-struct cuda_index_type_map<int32> {
-    static constexpr cudaDataType_t value = CUDA_R_32I;
-};
-
-template <>
-struct cuda_index_type_map<int64> {
-    static constexpr cudaDataType_t value = CUDA_R_64I;
-};
 
 
 template <typename T>
@@ -189,8 +152,8 @@ void generate(
             const_cast<IndexType*>(matrix->get_const_row_ptrs()), nullptr,
             const_cast<IndexType*>(matrix->get_const_col_idxs()),
             const_cast<ValueType*>(matrix->get_const_values()),
-            cuda_index_type_map<IndexType>::value,
-            cuda_type_map<ValueType>::value, mtype, mview, CUDSS_BASE_ZERO));
+            cuda_data_type<IndexType>(), cuda_data_type<ValueType>(), mtype,
+            mview, CUDSS_BASE_ZERO));
 
         // Allocate temporary dense vectors for analysis/factorization.
         // Some cuDSS versions require non-null data pointers.
@@ -204,11 +167,11 @@ void generate(
         cudssMatrix_t tmp_b = nullptr;
         cudssMatrix_t tmp_x = nullptr;
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_b, nrows, 1, nrows, tmp_b_data,
-            cuda_type_map<ValueType>::value, CUDSS_LAYOUT_COL_MAJOR));
+            &tmp_b, nrows, 1, nrows, tmp_b_data, cuda_data_type<ValueType>(),
+            CUDSS_LAYOUT_COL_MAJOR));
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_x, nrows, 1, nrows, tmp_x_data,
-            cuda_type_map<ValueType>::value, CUDSS_LAYOUT_COL_MAJOR));
+            &tmp_x, nrows, 1, nrows, tmp_x_data, cuda_data_type<ValueType>(),
+            CUDSS_LAYOUT_COL_MAJOR));
 
         GKO_ASSERT_NO_CUDSS_ERRORS(
             cudssExecute(st->handle, CUDSS_PHASE_ANALYSIS, st->config, st->data,
@@ -275,10 +238,10 @@ void solve(std::shared_ptr<const CudaExecutor> exec,
         cudssMatrix_t cudss_x = nullptr;
 
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &cudss_b, nrows, 1, nrows, b_data, cuda_type_map<ValueType>::value,
+            &cudss_b, nrows, 1, nrows, b_data, cuda_data_type<ValueType>(),
             CUDSS_LAYOUT_COL_MAJOR));
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &cudss_x, nrows, 1, nrows, x_data, cuda_type_map<ValueType>::value,
+            &cudss_x, nrows, 1, nrows, x_data, cuda_data_type<ValueType>(),
             CUDSS_LAYOUT_COL_MAJOR));
 
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssExecute(
