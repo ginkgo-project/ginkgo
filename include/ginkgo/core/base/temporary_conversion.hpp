@@ -89,6 +89,14 @@ public:
  */
 template <typename TargetType>
 struct conversion_target_helper {
+    constexpr static bool is_distributed =
+#if GINKGO_BUILD_MPI
+        std::is_base_of_v<experimental::distributed::DistributedBase,
+                          TargetType>;
+#else
+        false;
+#endif
+
     /**
      * Creates an empty object on the same executor as source.
      * *
@@ -96,17 +104,29 @@ struct conversion_target_helper {
      * @param source  The source object for the conversion
      * @return  An unique_ptr of TargetType on the same executor as source.
      */
-    template <typename SourceType,
-              typename = std::enable_if_t<std::is_base_of<
-                  ConvertibleTo<TargetType>, SourceType>::value>>
+    template <typename SourceType>
     static std::unique_ptr<TargetType> create_empty(const SourceType* source)
     {
-        return TargetType::create(source->get_executor());
+        if constexpr (is_distributed) {
+            return TargetType::create(
+                source->get_executor(),
+                as<experimental::distributed::DistributedBase>(source)
+                    ->get_communicator());
+        } else {
+            return TargetType::create(source->get_executor());
+        }
     }
 
     static std::unique_ptr<TargetType> create_empty(const TargetType* source)
     {
-        return TargetType::create(source->get_executor());
+        if constexpr (is_distributed) {
+            return TargetType::create(
+                source->get_executor(),
+                as<experimental::distributed::DistributedBase>(source)
+                    ->get_communicator());
+        } else {
+            return TargetType::create(source->get_executor());
+        }
     }
 };
 
@@ -230,16 +250,16 @@ public:
     {
         if constexpr (std::is_same_v<T, OrigT>) {
             return handle_type{orig_ptr, null_deleter<T>{}};
-        } else {
-            // if the cast is successful, obj is of dynamic type candidate_type
-            // so we can convert from this type to TargetType
-            auto converted =
-                conversion_target_helper<std::decay_t<T>>::create_empty(
-                    orig_ptr);
-            orig_ptr->convert_to(converted);
-            return {handle_type(converted.release(),
-                                convert_back_deleter<T, OrigT>{orig_ptr})};
         }
+        if (auto p = dynamic_cast<T*>(orig_ptr)) {
+            return {handle_type{p, null_deleter<T>{}}};
+        }
+        using DecayT = std::decay_t<T>;
+        auto converted =
+            conversion_target_helper<DecayT>::create_empty(orig_ptr);
+        as<ConvertibleTo<DecayT>>(orig_ptr)->convert_to(converted);
+        return {handle_type(converted.release(),
+                            convert_back_deleter<T, OrigT>{orig_ptr})};
     }
 
     /**
