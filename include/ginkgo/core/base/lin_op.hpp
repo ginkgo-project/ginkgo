@@ -212,8 +212,9 @@ protected:
     virtual void apply_impl(const MultiVector* b, MultiVector* x) const = 0;
 
     /**
-     * Implementers of LinOp should override this function instead
-     * of apply(const LinOp *, const LinOp *, const LinOp *, LinOp *).
+     * Default implementation of apply(const MultiVector*, const MultiVector*,
+     * const MultiVector*, MultiVector*). Implementers of LinOp may override
+     * this function to provide a custom implementation.
      *
      * @param alpha  scaling of the result of op(b)
      * @param b  vector(s) on which the operator is applied
@@ -221,7 +222,7 @@ protected:
      * @param x  output vector(s)
      */
     virtual void apply_impl(const MultiVector* alpha, const MultiVector* b,
-                            const MultiVector* beta, MultiVector* x) const = 0;
+                            const MultiVector* beta, MultiVector* x) const;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
