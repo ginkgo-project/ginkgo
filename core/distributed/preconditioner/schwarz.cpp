@@ -9,7 +9,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -86,83 +85,75 @@ bool Schwarz<ValueType, LocalIndexType,
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const LinOp* b, LinOp* x) const
+    const MultiVector* b, MultiVector* x) const
 {
-    precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
+    precision_dispatch<ValueType>(
+        [&](auto converted_b, auto converted_x) {
+            auto exec = this->get_executor();
+            auto dense_b = as<Vector<ValueType>>(converted_b);
+            auto dense_x = as<Vector<ValueType>>(converted_x);
+
+            // Two-level
+            if (this->coarse_solver_ != nullptr &&
+                this->coarse_level_ != nullptr) {
+                if (this->local_solver_) {
+                    this->local_solver_->apply(
+                        dense_b->get_local_vector(),
+                        detail::get_local_mutable(dense_x));
+                }
+                auto coarse_level =
+                    as<gko::multigrid::MultigridLevel>(this->coarse_level_);
+                auto restrict_op = coarse_level->get_restrict_op();
+                auto prolong_op = coarse_level->get_prolong_op();
+                auto coarse_op = as<experimental::distributed::Matrix<
+                    ValueType, LocalIndexType, GlobalIndexType>>(
+                    coarse_level->get_coarse_op());
+
+                // Coarse solve vector cache init
+                // Should allocate only in the first apply call if the number of
+                // rhs is unchanged.
+                auto cs_ncols = dense_x->get_size()[1];
+                auto cs_local_nrows =
+                    coarse_op->get_diag_matrix()->get_size()[0];
+                auto cs_global_nrows = coarse_op->get_size()[0];
+                auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
+                auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
+                auto comm = coarse_op->get_communicator();
+                csol_cache_.init(exec, comm, cs_global_size, cs_local_size);
+                crhs_cache_.init(exec, comm, cs_global_size, cs_local_size);
+
+                // Additive apply of coarse correction
+                restrict_op->apply(dense_b, crhs_cache_.get());
+                // TODO: Does it make sense to restrict dense_x (to csol_cache)
+                // to provide a good initial guess for the coarse solver ?
+                if (this->coarse_solver_->apply_uses_initial_guess()) {
+                    csol_cache_->copy_from(crhs_cache_.get());
+                }
+                this->coarse_solver_->apply(crhs_cache_.get(),
+                                            csol_cache_.get());
+                prolong_op->apply(this->coarse_weight_, csol_cache_.get(),
+                                  this->local_weight_, dense_x);
+            } else if (this->local_solver_ != nullptr) {
+                this->local_solver_->apply(dense_b->get_local_vector(),
+                                           detail::get_local_mutable(dense_x));
+            }
         },
         b, x);
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-template <typename VectorType>
-void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
-    const VectorType* dense_b, VectorType* dense_x) const
-{
-    using Vector = matrix::Dense<ValueType>;
-    using dist_vec = experimental::distributed::Vector<ValueType>;
-    auto exec = this->get_executor();
-
-    // Two-level
-    if (this->coarse_solver_ != nullptr && this->coarse_level_ != nullptr) {
-        if (this->local_solver_) {
-            this->local_solver_->apply(gko::detail::get_local(dense_b),
-                                       gko::detail::get_local(dense_x));
-        }
-        auto coarse_level =
-            as<gko::multigrid::MultigridLevel>(this->coarse_level_);
-        auto restrict_op = coarse_level->get_restrict_op();
-        auto prolong_op = coarse_level->get_prolong_op();
-        auto coarse_op =
-            as<experimental::distributed::Matrix<ValueType, LocalIndexType,
-                                                 GlobalIndexType>>(
-                coarse_level->get_coarse_op());
-
-        // Coarse solve vector cache init
-        // Should allocate only in the first apply call if the number of rhs is
-        // unchanged.
-        auto cs_ncols = dense_x->get_size()[1];
-        auto cs_local_nrows = coarse_op->get_diag_matrix()->get_size()[0];
-        auto cs_global_nrows = coarse_op->get_size()[0];
-        auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
-        auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
-        auto comm = coarse_op->get_communicator();
-        csol_cache_.init(exec, comm, cs_global_size, cs_local_size);
-        crhs_cache_.init(exec, comm, cs_global_size, cs_local_size);
-
-        // Additive apply of coarse correction
-        restrict_op->apply(dense_b, crhs_cache_.get());
-        // TODO: Does it make sense to restrict dense_x (to csol_cache) to
-        // provide a good initial guess for the coarse solver ?
-        if (this->coarse_solver_->apply_uses_initial_guess()) {
-            csol_cache_->copy_from(crhs_cache_.get());
-        }
-        this->coarse_solver_->apply(crhs_cache_.get(), csol_cache_.get());
-        prolong_op->apply(this->coarse_weight_, csol_cache_.get(),
-                          this->local_weight_, dense_x);
-    } else if (this->local_solver_ != nullptr) {
-        this->local_solver_->apply(gko::detail::get_local(dense_b),
-                                   gko::detail::get_local(dense_x));
-    }
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
+    const MultiVector* alpha, const MultiVector* b, const MultiVector* beta,
+    MultiVector* x) const
 {
     // only dispatch distributed case
-    experimental::distributed::precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            cache_.init_from(dense_x);
-            cache_->copy_from(dense_x);
-            this->apply_impl(dense_b, cache_.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, cache_.get());
-        },
-        alpha, b, beta, x);
+    auto dense_x = as<Vector<ValueType>>(x->as_precision(this));
+    cache_.init_from(dense_x.get());
+    cache_->copy_from(dense_x.get());
+    this->apply_impl(b, cache_.get());
+    dense_x->scale(beta);
+    dense_x->add_scaled(alpha, cache_.get());
 }
 
 
@@ -212,8 +203,9 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
         auto exec = this->get_executor();
 
         using Csr = matrix::Csr<ValueType, LocalIndexType>;
-        auto diag_matrix_copy = share(Csr::create(exec));
-        as<ConvertibleTo<Csr>>(diag_matrix)->convert_to(diag_matrix_copy);
+        auto diag_matrix_csr =
+            gko::detail::temporary_conversion<const Csr>::create(
+                diag_matrix.get());
 
         auto off_diag_matrix = copy_and_convert_to<Csr>(
             exec, as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
@@ -234,10 +226,9 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             exec, diag_matrix->get_size()[0]);
         auto one = initialize<matrix::Dense<ValueType>>(
             {::gko::one<ValueType>()}, exec);
-        l1_diag_csr->apply(one, id, one, diag_matrix_copy);
 
-        this->set_solver(
-            gko::share(parameters_.local_solver->generate(diag_matrix_copy)));
+        this->set_solver(gko::share(parameters_.local_solver->generate(
+            l1_diag_csr->scale_add(one, one, diag_matrix_csr.get()))));
     } else {
         this->set_solver(
             gko::share(parameters_.local_solver->generate(diag_matrix)));

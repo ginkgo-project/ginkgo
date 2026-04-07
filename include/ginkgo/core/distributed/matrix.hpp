@@ -716,6 +716,8 @@ public:
      * The vector's row partition has to be the same as the matrix's column
      * partition. The scaling is done in-place.
      *
+     * @note: The local and non-local matrices must be in the CSR format.
+     *
      * @param scaling_factors  The vector containing the scaling factors.
      */
     void col_scale(ptr_param<const global_vector_type> scaling_factors);
@@ -724,6 +726,8 @@ public:
      * Scales the rows of the matrix by the respective entries of the vector.
      * The vector and the matrix have to have the same row partition.
      * The scaling is done in-place.
+     *
+     * @note: The local and non-local matrices must be in the CSR format.
      *
      * @param scaling_factors  The vector containing the scaling factors.
      */
@@ -749,10 +753,10 @@ protected:
                     std::shared_ptr<LinOp> diag_linop,
                     std::shared_ptr<LinOp> off_diag_linop);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const MultiVector* b, MultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const MultiVector* alpha, const MultiVector* b,
+                    const MultiVector* beta, MultiVector* x) const override;
 
 private:
     std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;
