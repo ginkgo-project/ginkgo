@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,7 +38,7 @@ public:
     static double get_value(const ScalarCache& cache);
 
     // access to the scalars
-    static const std::map<std::string, std::shared_ptr<const gko::LinOp>>&
+    static const std::map<std::string, std::shared_ptr<const MultiVector>>&
     get_scalars(const ScalarCache& cache);
 };
 

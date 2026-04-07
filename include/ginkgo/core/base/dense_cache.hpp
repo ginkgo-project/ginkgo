@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,7 +18,7 @@
 namespace gko {
 
 
-class LinOp;
+class MultiVector;
 
 
 namespace matrix {
@@ -172,7 +172,7 @@ struct ScalarCache {
 private:
     std::shared_ptr<const Executor> exec;
     double value;
-    mutable std::map<std::string, std::shared_ptr<const gko::LinOp>> scalars;
+    mutable std::map<std::string, std::shared_ptr<const MultiVector>> scalars;
 };
 
 
