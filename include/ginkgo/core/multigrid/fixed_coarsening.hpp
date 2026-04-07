@@ -81,33 +81,15 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override
-    {
-        this->get_composition()->apply(b, x);
-    }
+    void apply_impl(const MultiVector* b, MultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
-    {
-        this->get_composition()->apply(alpha, b, beta, x);
-    }
+    void apply_impl(const MultiVector* alpha, const MultiVector* b,
+                    const MultiVector* beta, MultiVector* x) const override;
 
-    explicit FixedCoarsening(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
-    {}
+    explicit FixedCoarsening(std::shared_ptr<const Executor> exec);
 
     explicit FixedCoarsening(const Factory* factory,
-                             std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(), system_matrix->get_size()),
-          EnableMultigridLevel<ValueType>(system_matrix),
-          parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
-    {
-        if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existing matrix
-            this->generate();
-        }
-    }
+                             std::shared_ptr<const LinOp> system_matrix);
 
     void generate();
 

@@ -36,6 +36,46 @@ GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
 
 template <typename ValueType, typename IndexType>
+void FixedCoarsening<ValueType, IndexType>::apply_impl(const MultiVector* b,
+                                                       MultiVector* x) const
+{
+    this->get_composition()->apply(b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void FixedCoarsening<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
+                                                       const MultiVector* b,
+                                                       const MultiVector* beta,
+                                                       MultiVector* x) const
+{
+    this->get_composition()->apply(alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+FixedCoarsening<ValueType, IndexType>::FixedCoarsening(
+    std::shared_ptr<const Executor> exec)
+    : LinOp(std::move(exec))
+{}
+
+
+template <typename ValueType, typename IndexType>
+FixedCoarsening<ValueType, IndexType>::FixedCoarsening(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : LinOp(factory->get_executor(), system_matrix->get_size()),
+      EnableMultigridLevel<ValueType>(system_matrix),
+      parameters_{factory->get_parameters()},
+      system_matrix_{system_matrix}
+{
+    if (system_matrix_->get_size()[0] != 0) {
+        // generate on the existing matrix
+        this->generate();
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 void FixedCoarsening<ValueType, IndexType>::generate()
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
@@ -76,15 +116,11 @@ void FixedCoarsening<ValueType, IndexType>::generate()
     auto prolong_op = gko::as<csr_type>(share(restrict_op->transpose()));
 
     // TODO: Can be done with submatrix index_set.
-    auto coarse_matrix =
-        share(csr_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
-    coarse_matrix->set_strategy(fixed_coarsening_op->get_strategy());
-    auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
-    tmp->set_strategy(fixed_coarsening_op->get_strategy());
-    fixed_coarsening_op->apply(prolong_op, tmp);
-    restrict_op->apply(tmp, coarse_matrix);
+    auto tmp = fixed_coarsening_op->multiply(prolong_op);
+    auto coarse_mtx = share(restrict_op->multiply(tmp));
+    coarse_mtx->set_strategy(fixed_coarsening_op->get_strategy());
 
-    this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
+    this->set_multigrid_level(prolong_op, coarse_mtx, restrict_op);
 }
 
 
