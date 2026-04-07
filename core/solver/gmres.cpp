@@ -7,19 +7,20 @@
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
-#include "core/distributed/helpers.hpp"
 #include "core/mpi/mpi_op.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
@@ -124,25 +125,10 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 }
 
 
-template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
-{
-    if (!this->get_system_matrix()) {
-        return;
-    }
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
-        },
-        b, x);
-}
-
-
 template <typename ValueType, typename = void>
 struct help_compute_norm {
-    template <typename VectorType>
     static void compute_next_krylov_norm_into_hessenberg(
-        const VectorType* next_krylov,
+        const MultiVector* next_krylov,
         matrix::Dense<ValueType>* hessenberg_norm_entry,
         matrix::Dense<remove_complex<ValueType>>*, array<char>& reduction_tmp)
     {
@@ -152,9 +138,9 @@ struct help_compute_norm {
 
 
 // Orthogonalization helper functions
-template <typename ValueType, typename VectorType>
+template <typename ValueType>
 void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
-                       VectorType* krylov_bases, VectorType* next_krylov,
+                       MultiVector* krylov_bases, MultiVector* next_krylov,
                        array<char>& reduction_tmp, size_type restart_iter,
                        size_type num_rows, size_type num_rhs,
                        size_type local_num_rows)
@@ -179,21 +165,18 @@ void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
 
 template <typename ValueType>
 void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
-                   matrix::Dense<ValueType>* next_krylov,
-                   const size_type num_rhs, const size_type restart_iter)
+                   MultiVector* next_krylov, const size_type num_rhs,
+                   const size_type restart_iter)
 {
-    return;
-}
-
-
 #if GINKGO_BUILD_MPI
-template <typename ValueType>
-void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
-                   experimental::distributed::Vector<ValueType>* next_krylov,
-                   const size_type num_rhs, const size_type restart_iter)
-{
+    auto dist_vec = dynamic_cast<experimental::distributed::Vector<ValueType>*>(
+        next_krylov);
+    if (!dist_vec) {
+        return;
+    }
+
     auto exec = hessenberg_iter->get_executor();
-    const auto comm = next_krylov->get_communicator();
+    const auto comm = dist_vec->get_communicator();
     exec->synchronize();
     // hessenberg_iter is the size of all non-zeros for this iteration, but we
     // are not setting the last values for each rhs here. Values that would be
@@ -204,7 +187,7 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
     int message_size = static_cast<int>((restart_iter + 1) * num_rhs);
     auto sum_op = gko::experimental::mpi::sum<ValueType>();
     if (experimental::mpi::requires_host_buffer(exec, comm)) {
-        ::gko::detail::DenseCache<ValueType> host_reduction_buffer;
+        gko::detail::DenseCache<ValueType> host_reduction_buffer;
         host_reduction_buffer.init(exec->get_master(),
                                    hessenberg_reduce->get_size());
         host_reduction_buffer->copy_from(hessenberg_reduce);
@@ -215,13 +198,15 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
         comm.all_reduce(exec, hessenberg_reduce->get_values(), message_size,
                         sum_op.get_op());
     }
-}
+#else
+    return;
 #endif
+}
 
 
-template <typename ValueType, typename VectorType>
+template <typename ValueType>
 void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
-                       VectorType* krylov_bases, VectorType* next_krylov,
+                       MultiVector* krylov_bases, MultiVector* next_krylov,
                        size_type restart_iter, size_type num_rows,
                        size_type num_rhs, size_type local_num_rows)
 {
@@ -232,9 +217,8 @@ void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get())
-            ->get_const_device_view(),
-        gko::detail::get_local(next_krylov)->get_const_device_view(),
+        krylov_basis_small->template get_const_local_device_view<ValueType>(),
+        next_krylov->template get_const_local_device_view<ValueType>(),
         hessenberg_iter->get_device_view()));
     finish_reduce(hessenberg_iter, next_krylov, num_rhs, restart_iter);
     for (size_type i = 0; i <= restart_iter; i++) {
@@ -250,9 +234,9 @@ void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
 }
 
 
-template <typename ValueType, typename VectorType>
+template <typename ValueType>
 void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
-                        VectorType* krylov_bases, VectorType* next_krylov,
+                        MultiVector* krylov_bases, MultiVector* next_krylov,
                         matrix::Dense<ValueType>* hessenberg_aux,
                         const matrix::Dense<ValueType>* one_op,
                         size_type restart_iter, size_type num_rows,
@@ -265,9 +249,8 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get())
-            ->get_const_device_view(),
-        gko::detail::get_local(next_krylov)->get_const_device_view(),
+        krylov_basis_small->template get_const_local_device_view<ValueType>(),
+        next_krylov->template get_const_local_device_view<ValueType>(),
         hessenberg_iter->get_device_view()));
     finish_reduce(hessenberg_iter, next_krylov, num_rhs, restart_iter);
     for (size_type i = 0; i <= restart_iter; i++) {
@@ -284,9 +267,8 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
     auto hessenberg_aux_iter = hessenberg_aux->create_subview(
         local_span{0, restart_iter + 2}, local_span{0, num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get())
-            ->get_const_device_view(),
-        gko::detail::get_local(next_krylov)->get_const_device_view(),
+        krylov_basis_small->template get_const_local_device_view<ValueType>(),
+        next_krylov->template get_const_local_device_view<ValueType>(),
         hessenberg_aux_iter->get_device_view()));
     finish_reduce(hessenberg_aux_iter.get(), next_krylov, num_rhs,
                   restart_iter);
@@ -309,9 +291,8 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
 template <typename ValueType>
 struct help_compute_norm<ValueType,
                          std::enable_if_t<is_complex_s<ValueType>::value>> {
-    template <typename VectorType>
     static void compute_next_krylov_norm_into_hessenberg(
-        const VectorType* next_krylov,
+        const MultiVector* next_krylov,
         matrix::Dense<ValueType>* hessenberg_norm_entry,
         matrix::Dense<remove_complex<ValueType>>* next_krylov_norm_tmp,
         array<char>& reduction_tmp)
@@ -323,12 +304,18 @@ struct help_compute_norm<ValueType,
 
 
 template <typename ValueType>
-template <typename VectorType>
-void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
-                                        VectorType* dense_x) const
+void Gmres<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
 {
-    using Vector = VectorType;
-    using LocalVector = matrix::Dense<typename Vector::value_type>;
+    if (!this->get_system_matrix()) {
+        return;
+    }
+
+    auto converted_b = b->as_precision(this);
+    auto converted_x = x->as_precision(this);
+    auto dense_b = converted_b.get();
+    auto dense_x = converted_x.get();
+
+    using LocalVector = matrix::Dense<ValueType>;
     using NormVector = typename LocalVector::absolute_type;
     using ws = workspace_traits<Gmres>;
 
@@ -339,7 +326,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     const auto is_flexible = this->get_parameters().flexible;
     const auto num_rows = this->get_size()[0];
     const auto local_num_rows =
-        ::gko::detail::get_local(dense_b)->get_size()[0];
+        dense_b->template get_const_local_device_view<ValueType>().size[0];
     const auto num_rhs = dense_b->get_size()[1];
     const auto krylov_dim = this->get_krylov_dim();
     GKO_SOLVER_VECTOR(residual, dense_b);
@@ -348,7 +335,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto krylov_bases = this->create_workspace_op_with_type_of(
         ws::krylov_bases, dense_b, dim<2>{num_rows * (krylov_dim + 1), num_rhs},
         dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
-    VectorType* preconditioned_krylov_bases = nullptr;
+    MultiVector* preconditioned_krylov_bases = nullptr;
     if (is_flexible) {
         preconditioned_krylov_bases = this->create_workspace_op_with_type_of(
             ws::preconditioned_krylov_bases, dense_b,
@@ -398,7 +385,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     GKO_SOLVER_ONE_MINUS_ONE();
 
     bool one_changed{};
-    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS(converted_b->get_size()[1]);
     auto& final_iter_nums = this->template create_workspace_array<size_type>(
         ws::final_iter_nums, num_rhs);
 
@@ -407,8 +394,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // givens_sin = givens_cos = 0
     // reset stop status
     exec->run(gmres::make_initialize(
-        gko::detail::get_local(dense_b)->get_const_device_view(),
-        gko::detail::get_local(residual)->get_device_view(),
+        dense_b->template get_const_local_device_view<ValueType>(),
+        residual->template get_local_device_view<ValueType>(),
         givens_sin->get_device_view(), givens_cos->get_device_view(),
         stop_status.get_data()));
     // residual = residual - Ax
@@ -420,16 +407,16 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
     exec->run(gmres::make_restart(
-        gko::detail::get_local(residual)->get_const_device_view(),
+        residual->template get_const_local_device_view<ValueType>(),
         residual_norm->get_const_device_view(),
         residual_norm_collection->get_device_view(),
-        gko::detail::get_local(krylov_bases)->get_device_view(),
+        krylov_bases->template get_local_device_view<ValueType>(),
         final_iter_nums.get_data()));
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        residual);
+        std::shared_ptr<const MultiVector>(dense_b, [](const MultiVector*) {}),
+        dense_x, residual);
 
     int total_iter = -1;
     size_type restart_iter = 0;
@@ -479,10 +466,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 stop_status.get_const_data()));
             // before_preconditioner = krylov_bases * y
             exec->run(gmres::make_multi_axpy(
-                gko::detail::get_local(krylov_bases)->get_const_device_view(),
+                krylov_bases->template get_const_local_device_view<ValueType>(),
                 y->get_const_device_view(),
-                gko::detail::get_local(before_preconditioner)
-                    ->get_device_view(),
+                before_preconditioner
+                    ->template get_local_device_view<ValueType>(),
                 final_iter_nums.get_const_data(), stop_status.get_data()));
 
             // x = x + get_preconditioner() * before_preconditioner
@@ -500,10 +487,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             exec->run(gmres::make_restart(
-                gko::detail::get_local(residual)->get_const_device_view(),
+                residual->template get_const_local_device_view<ValueType>(),
                 residual_norm->get_const_device_view(),
                 residual_norm_collection->get_device_view(),
-                gko::detail::get_local(krylov_bases)->get_device_view(),
+                krylov_bases->template get_local_device_view<ValueType>(),
                 final_iter_nums.get_data()));
             restart_iter = 0;
         }
@@ -516,7 +503,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             local_span{local_num_rows * (restart_iter + 1),
                        local_num_rows * (restart_iter + 2)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-        std::unique_ptr<VectorType> preconditioned_krylov;
+        std::unique_ptr<MultiVector> preconditioned_krylov;
         auto preconditioned_krylov_vector = preconditioned_vector;
         if (is_flexible) {
             preconditioned_krylov = preconditioned_krylov_bases->create_subview(
@@ -620,10 +607,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 dim<2>{num_rows * (restart_iter + 1), num_rhs});
         // after_preconditioner = preconditioned_krylov_bases * y
         exec->run(gmres::make_multi_axpy(
-            gko::detail::get_local(preconditioned_krylov_bases_small.get())
-                ->get_const_device_view(),
+            preconditioned_krylov_bases_small
+                ->template get_const_local_device_view<ValueType>(),
             y->get_const_device_view(),
-            gko::detail::get_local(after_preconditioner)->get_device_view(),
+            after_preconditioner->template get_local_device_view<ValueType>(),
             final_iter_nums.get_const_data(), stop_status.get_data()));
     } else {
         auto krylov_bases_small = krylov_bases->create_subview(
@@ -632,10 +619,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             dim<2>{num_rows * (restart_iter + 1), num_rhs});
         // before_preconditioner = krylov_bases * y
         exec->run(gmres::make_multi_axpy(
-            gko::detail::get_local(krylov_bases_small.get())
-                ->get_const_device_view(),
+            krylov_bases_small
+                ->template get_const_local_device_view<ValueType>(),
             y->get_const_device_view(),
-            gko::detail::get_local(before_preconditioner)->get_device_view(),
+            before_preconditioner->template get_local_device_view<ValueType>(),
             final_iter_nums.get_const_data(), stop_status.get_data()));
 
         // after_preconditioner = get_preconditioner() * before_preconditioner
@@ -648,20 +635,14 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                  const LinOp* beta, LinOp* x) const
+void Gmres<ValueType>::apply_impl(const MultiVector* alpha,
+                                  const MultiVector* b, const MultiVector* beta,
+                                  MultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
-        },
-        alpha, b, beta, x);
+    LinOp::apply_impl(alpha, b, beta, x);
 }
 
 

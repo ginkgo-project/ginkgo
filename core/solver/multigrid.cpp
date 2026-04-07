@@ -101,7 +101,7 @@ void handle_list(
     auto gen_default_smoother = [&] {
         auto exec = matrix->get_executor();
 #if GINKGO_BUILD_MPI
-        if (gko::detail::is_distributed(matrix.get())) {
+        if (experimental::distributed::detail::is_distributed(matrix.get())) {
             using experimental::distributed::Matrix;
             return run<Matrix<ValueType, int32, int32>,
                        Matrix<ValueType, int32, int64>,
@@ -268,7 +268,7 @@ public:
      */
     void run_mg_cycle(multigrid::cycle cycle, size_type level,
                       const std::shared_ptr<const LinOp>& matrix,
-                      const LinOp* b, LinOp* x, cycle_mode mode);
+                      const MultiVector* b, MultiVector* x, cycle_mode mode);
 
     /**
      * @copydoc run_cycle
@@ -279,18 +279,18 @@ public:
      */
     template <typename VectorType>
     void run_cycle(multigrid::cycle cycle, size_type level,
-                   const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
-                   LinOp* x, cycle_mode mode);
+                   const std::shared_ptr<const LinOp>& matrix,
+                   const MultiVector* b, MultiVector* x, cycle_mode mode);
 
     // current level's nrows x nrhs
-    std::vector<std::shared_ptr<LinOp>> r_list;
+    std::vector<std::shared_ptr<MultiVector>> r_list;
     // next level's nrows x nrhs
-    std::vector<std::shared_ptr<LinOp>> g_list;
-    std::vector<std::shared_ptr<LinOp>> e_list;
+    std::vector<std::shared_ptr<MultiVector>> g_list;
+    std::vector<std::shared_ptr<MultiVector>> e_list;
     // constant 1 x 1
-    std::vector<std::shared_ptr<const LinOp>> one_list;
-    std::vector<std::shared_ptr<const LinOp>> next_one_list;
-    std::vector<std::shared_ptr<const LinOp>> neg_one_list;
+    std::vector<std::shared_ptr<const MultiVector>> one_list;
+    std::vector<std::shared_ptr<const MultiVector>> next_one_list;
+    std::vector<std::shared_ptr<const MultiVector>> neg_one_list;
     const LinOp* system_matrix;
     const Multigrid* multigrid;
     size_type nrhs;
@@ -331,7 +331,8 @@ void MultigridState::generate(const LinOp* system_matrix_in,
             [&, this](auto mg_level, auto i, auto cycle, auto current_nrows,
                       auto next_nrows) {
 #if GINKGO_BUILD_MPI
-                if (gko::detail::is_distributed(system_matrix_in)) {
+                if (experimental::distributed::detail::is_distributed(
+                        system_matrix_in)) {
                     using value_type =
                         typename std::decay_t<decltype(*mg_level)>::value_type;
                     using VectorType =
@@ -347,14 +348,17 @@ void MultigridState::generate(const LinOp* system_matrix_in,
                     auto current_comm = distributed_fine->get_communicator();
                     auto next_comm = distributed_coarse->get_communicator();
                     auto current_local_nrows =
-                        ::gko::detail::run_matrix(fine, [](auto* fine_mat) {
-                            return fine_mat->get_diag_matrix()->get_size()[0];
-                        });
+                        experimental::distributed::detail::run_matrix(
+                            fine, [](auto* fine_mat) {
+                                return fine_mat->get_diag_matrix()
+                                    ->get_size()[0];
+                            });
                     auto next_local_nrows =
-                        ::gko::detail::run_matrix(coarse, [](auto* coarse_mat) {
-                            return coarse_mat->get_off_diag_matrix()
-                                ->get_size()[0];
-                        });
+                        experimental::distributed::detail::run_matrix(
+                            coarse, [](auto* coarse_mat) {
+                                return coarse_mat->get_off_diag_matrix()
+                                    ->get_size()[0];
+                            });
                     this->allocate_memory<VectorType>(
                         i, cycle, current_comm, next_comm, current_nrows,
                         next_nrows, current_local_nrows, next_local_nrows);
@@ -457,7 +461,8 @@ void MultigridState::allocate_memory(
 
 void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
                                   const std::shared_ptr<const LinOp>& matrix,
-                                  const LinOp* b, LinOp* x, cycle_mode mode)
+                                  const MultiVector* b, MultiVector* x,
+                                  cycle_mode mode)
 {
     if (level == multigrid->get_mg_level_list().size()) {
         multigrid->get_coarsest_solver()->apply(b, x);
@@ -474,7 +479,8 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
         std::complex<float>, std::complex<double>>(
         mg_level, [&, this](auto mg_level) {
 #if GINKGO_BUILD_MPI
-            if (gko::detail::is_distributed(matrix.get())) {
+            if (experimental::distributed::detail::is_distributed(
+                    matrix.get())) {
                 using value_type =
                     typename std::decay_t<decltype(*mg_level)>::value_type;
                 this->run_cycle<
@@ -495,7 +501,8 @@ void MultigridState::run_mg_cycle(multigrid::cycle cycle, size_type level,
 template <typename VectorType>
 void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
                                const std::shared_ptr<const LinOp>& matrix,
-                               const LinOp* b, LinOp* x, cycle_mode mode)
+                               const MultiVector* b, MultiVector* x,
+                               cycle_mode mode)
 {
     using value_type = typename VectorType::value_type;
     auto total_level = multigrid->get_mg_level_list().size();
@@ -787,7 +794,8 @@ void Multigrid::generate()
             // TODO: maybe remove fixed index type
             auto gen_default_solver = [&]() -> std::unique_ptr<LinOp> {
 #if GINKGO_BUILD_MPI
-                if (gko::detail::is_distributed(matrix.get())) {
+                if (gko::experimental::distributed::detail::is_distributed(
+                        matrix.get())) {
                     using absolute_value_type = remove_complex<value_type>;
                     using experimental::distributed::Matrix;
                     return run<Matrix<value_type, int32, int32>,
@@ -868,14 +876,15 @@ void Multigrid::generate()
 }
 
 
-void Multigrid::apply_impl(const LinOp* b, LinOp* x) const
+void Multigrid::apply_impl(const MultiVector* b, MultiVector* x) const
 {
     this->apply_with_initial_guess_impl(b, x,
                                         this->get_default_initial_guess());
 }
 
 
-void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
+void Multigrid::apply_with_initial_guess_impl(const MultiVector* b,
+                                              MultiVector* x,
                                               initial_guess_mode guess) const
 {
     if (!this->get_system_matrix() || !this->get_system_matrix()->get_size()) {
@@ -885,10 +894,10 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
     auto lambda = [this, guess](auto mg_level, auto b, auto x) {
         using value_type =
             typename std::decay_t<decltype(*mg_level)>::value_type;
-        experimental::precision_dispatch_real_complex_distributed<value_type>(
-            [this, guess](auto dense_b, auto dense_x) {
-                prepare_initial_guess(dense_b, dense_x, guess);
-                this->apply_dense_impl(dense_b, dense_x, guess);
+        precision_dispatch<value_type>(
+            [this, guess](auto converted_b, auto converted_x) {
+                prepare_initial_guess(converted_b, converted_x, guess);
+                this->apply_dense_impl(converted_b, converted_x, guess);
             },
             b, x);
     };
@@ -905,17 +914,18 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
 }
 
 
-void Multigrid::apply_impl(const LinOp* alpha, const LinOp* b,
-                           const LinOp* beta, LinOp* x) const
+void Multigrid::apply_impl(const MultiVector* alpha, const MultiVector* b,
+                           const MultiVector* beta, MultiVector* x) const
 {
     this->apply_with_initial_guess_impl(alpha, b, beta, x,
                                         this->get_default_initial_guess());
 }
 
 
-void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
-                                              const LinOp* b, const LinOp* beta,
-                                              LinOp* x,
+void Multigrid::apply_with_initial_guess_impl(const MultiVector* alpha,
+                                              const MultiVector* b,
+                                              const MultiVector* beta,
+                                              MultiVector* x,
                                               initial_guess_mode guess) const
 {
     if (!this->get_system_matrix() || !this->get_system_matrix()->get_size()) {
@@ -926,16 +936,15 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
                                 auto x) {
         using value_type =
             typename std::decay_t<decltype(*mg_level)>::value_type;
-        experimental::precision_dispatch_real_complex_distributed<value_type>(
-            [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
-                          auto dense_x) {
-                prepare_initial_guess(dense_b, dense_x, guess);
-                auto x_clone = dense_x->clone();
-                this->apply_dense_impl(dense_b, x_clone.get(), guess);
-                dense_x->scale(dense_beta);
-                dense_x->add_scaled(dense_alpha, x_clone);
+        precision_dispatch<value_type>(
+            [this, guess, alpha, beta](auto converted_b, auto converted_x) {
+                prepare_initial_guess(converted_b, converted_x, guess);
+                auto x_clone = converted_x->clone();
+                this->apply_dense_impl(converted_b, x_clone.get(), guess);
+                converted_x->scale(beta);
+                converted_x->add_scaled(alpha, x_clone);
             },
-            alpha, b, beta, x);
+            b, x);
     };
     auto first_mg_level = this->get_mg_level_list().front();
     run<gko::multigrid::EnableMultigridLevel, float, double,
@@ -950,8 +959,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
 }
 
 
-template <typename VectorType>
-void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
+void Multigrid::apply_dense_impl(const MultiVector* b, MultiVector* x,
                                  initial_guess_mode guess) const
 {
     using ws = workspace_traits<Multigrid>;
@@ -959,7 +967,7 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
         cache_.state->generate(this->get_system_matrix().get(), this,
                                b->get_size()[1]);
     }
-    auto lambda = [&, this](auto mg_level, auto b, auto x) {
+    auto lambda = [&, this](auto mg_level, auto b_, auto x_) {
         using value_type =
             typename std::decay_t<decltype(*mg_level)>::value_type;
         auto exec = this->get_executor();
@@ -968,13 +976,14 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
         constexpr uint8 RelativeStoppingId{1};
         auto& stop_status =
             this->template create_workspace_array<stopping_status>(
-                ws::stop, b->get_size()[1]);
+                ws::stop, b_->get_size()[1]);
         bool one_changed{};
         exec->run(multigrid::make_initialize(stop_status));
         auto stop_criterion = this->get_stop_criterion_factory()->generate(
             this->get_system_matrix(),
-            std::shared_ptr<const LinOp>(b, null_deleter<const LinOp>{}), x,
-            nullptr);
+            std::shared_ptr<const MultiVector>(
+                b_, null_deleter<const MultiVector>{}),
+            x_, nullptr);
         int iter = -1;
 
         while (true) {
@@ -986,11 +995,11 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                     // currently, the residual will computed additionally in
                     // stop_criterion when users require the corresponding
                     // residual check.
-                    .solution(x)
+                    .solution(x_)
                     .check(RelativeStoppingId, true, &stop_status,
                            &one_changed);
             this->template log<log::Logger::iteration_complete>(
-                this, b, x, iter, nullptr, nullptr, nullptr, &stop_status,
+                this, b_, x_, iter, nullptr, nullptr, nullptr, &stop_status,
                 all_stopped);
             if (all_stopped) {
                 break;
@@ -1001,7 +1010,7 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                 mode = mode | multigrid::cycle_mode::x_is_zero;
             }
             cache_.state->run_mg_cycle(this->get_parameters().cycle, 0,
-                                       this->get_system_matrix(), b, x, mode);
+                                       this->get_system_matrix(), b_, x_, mode);
         }
     };
 

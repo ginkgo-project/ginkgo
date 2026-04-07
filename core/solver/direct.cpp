@@ -7,7 +7,6 @@
 #include <memory>
 #include <string>
 
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
@@ -180,47 +179,46 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
 
 
 template <typename ValueType, typename IndexType>
-void Direct<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Direct<ValueType, IndexType>::apply_impl(const MultiVector* b,
+                                              MultiVector* x) const
 {
     if (!this->get_system_matrix() || !this->lower_solver_ ||
         !this->upper_solver_) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            using Vector = matrix::Dense<ValueType>;
-            using ws = gko::solver::workspace_traits<Direct>;
-            this->setup_workspace();
-            auto intermediate = this->create_workspace_op_with_config_of(
-                ws::intermediate, dense_b);
-            lower_solver_->apply(dense_b, intermediate);
-            upper_solver_->apply(intermediate, dense_x);
-        },
-        b, x);
+    using ws = gko::solver::workspace_traits<Direct>;
+    this->setup_workspace();
+    auto converted_b = b->as_precision(this);
+    auto converted_x = x->as_precision(this);
+    auto intermediate = this->create_workspace_op_with_config_of(
+        ws::intermediate, converted_b.get());
+    lower_solver_->apply(converted_b.get(), intermediate);
+    upper_solver_->apply(intermediate, converted_x.get());
 }
 
 
 template <typename ValueType, typename IndexType>
-void Direct<ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                              const LinOp* b, const LinOp* beta,
-                                              LinOp* x) const
+void Direct<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
+                                              const MultiVector* b,
+                                              const MultiVector* beta,
+                                              MultiVector* x) const
 {
     if (!this->get_system_matrix() || !this->lower_solver_ ||
         !this->upper_solver_) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            using Vector = matrix::Dense<ValueType>;
-            using ws = gko::solver::workspace_traits<Direct>;
-            this->setup_workspace();
-            auto intermediate = this->create_workspace_op_with_config_of(
-                ws::intermediate, dense_b);
-            lower_solver_->apply(dense_b, intermediate);
-            upper_solver_->apply(dense_alpha, intermediate, dense_beta,
-                                 dense_x);
-        },
-        alpha, b, beta, x);
+
+    using ws = gko::solver::workspace_traits<Direct>;
+    this->setup_workspace();
+    auto converted_b = b->as_precision(this);
+    auto converted_x = x->as_precision(this);
+    auto dense_alpha = as<matrix::Dense<ValueType>>(alpha->as_precision(this));
+    auto dense_beta = as<matrix::Dense<ValueType>>(beta->as_precision(this));
+    auto intermediate = this->create_workspace_op_with_config_of(
+        ws::intermediate, converted_b.get());
+    lower_solver_->apply(converted_b.get(), intermediate);
+    upper_solver_->apply(dense_alpha.get(), intermediate, dense_beta.get(),
+                         converted_x.get());
 }
 
 

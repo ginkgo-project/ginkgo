@@ -10,16 +10,25 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "core/solver/idr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
 namespace gko {
+namespace matrix {
+namespace dense {
+
+
+GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
+
+
+}  // namespace dense
+}  // namespace matrix
 namespace solver {
 namespace idr {
 namespace {
@@ -102,7 +111,6 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
 {
     using std::swap;
     using SubspaceType = typename VectorType::value_type;
-    using Vector = matrix::Dense<SubspaceType>;
     using AbsType = remove_complex<ValueType>;
     using ws = workspace_traits<Idr>;
 
@@ -122,17 +130,17 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
     GKO_SOLVER_VECTOR(t, dense_b);
     GKO_SOLVER_VECTOR(helper, dense_b);
 
-    auto m = this->template create_workspace_op<Vector>(
+    auto m = this->template create_workspace_op<VectorType>(
         ws::m, gko::dim<2>{subspace_dim, subspace_dim * nrhs});
 
-    auto g = this->template create_workspace_op<Vector>(
+    auto g = this->template create_workspace_op<VectorType>(
         ws::g, gko::dim<2>{problem_size, subspace_dim * nrhs});
-    auto u = this->template create_workspace_op<Vector>(
+    auto u = this->template create_workspace_op<VectorType>(
         ws::u, gko::dim<2>{problem_size, subspace_dim * nrhs});
 
-    auto f = this->template create_workspace_op<Vector>(
+    auto f = this->template create_workspace_op<VectorType>(
         ws::f, gko::dim<2>{subspace_dim, nrhs});
-    auto c = this->template create_workspace_op<Vector>(
+    auto c = this->template create_workspace_op<VectorType>(
         ws::c, gko::dim<2>{subspace_dim, nrhs});
 
     auto omega =
@@ -148,7 +156,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
     // Stored in column major order and complex conjugated. So, if the
     // matrix containing the subspace vectors in row major order is called P,
     // subspace_vectors actually contains P^H.
-    auto subspace_vectors = this->template create_workspace_op<Vector>(
+    auto subspace_vectors = this->template create_workspace_op<VectorType>(
         ws::subspace, gko::dim<2>(subspace_dim, problem_size));
 
     GKO_SOLVER_ONE_MINUS_ONE();
@@ -158,7 +166,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
     subspace_neg_one_op->fill(-one<SubspaceType>());
 
     bool one_changed{};
-    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
+    GKO_SOLVER_STOP_REDUCTION_ARRAYS(dense_b->get_size()[1]);
 
     // Initialization
     // m = identity
@@ -168,10 +176,9 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
             std::default_random_engine(15));
         subspace_vectors->read(subspace_vectors_data);
     }
-    exec->run(idr::make_initialize(
-        nrhs, gko::detail::get_local(m)->get_device_view(),
-        gko::detail::get_local(subspace_vectors)->get_device_view(),
-        is_deterministic, stop_status));
+    exec->run(idr::make_initialize(nrhs, m->get_device_view(),
+                                   subspace_vectors->get_device_view(),
+                                   is_deterministic, stop_status));
 
     // omega = 1
     omega->fill(one<SubspaceType>());
@@ -187,8 +194,8 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        residual);
+        std::shared_ptr<const VectorType>(dense_b, [](const VectorType*) {}),
+        dense_x, residual);
 
     int total_iter = -1;
 
@@ -228,27 +235,25 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
         }
 
         // f = P^H * residual
-        subspace_vectors->apply(residual, f);
+        exec->run(gko::matrix::dense::make_simple_apply(
+            subspace_vectors->get_const_device_view(),
+            residual->get_const_device_view(), f->get_device_view()));
 
         for (size_type k = 0; k < subspace_dim; k++) {
             // c = M \ f = (c_1, ..., c_s)^T
             // v = residual - sum i=[k,s) of (c_i * g_i)
             exec->run(idr::make_step_1(
-                nrhs, k, gko::detail::get_local(m)->get_const_device_view(),
-                gko::detail::get_local(f)->get_const_device_view(),
-                gko::detail::get_local(residual)->get_const_device_view(),
-                gko::detail::get_local(g)->get_const_device_view(),
-                gko::detail::get_local(c)->get_device_view(),
-                gko::detail::get_local(v)->get_device_view(), stop_status));
+                nrhs, k, m->get_const_device_view(), f->get_const_device_view(),
+                residual->get_const_device_view(), g->get_const_device_view(),
+                c->get_device_view(), v->get_device_view(), stop_status));
 
             this->get_preconditioner()->apply(v, helper);
 
             // u_k = omega * precond_vector + sum i=[k,s) of (c_i * u_i)
-            exec->run(idr::make_step_2(
-                nrhs, k, gko::detail::get_local(omega)->get_const_device_view(),
-                gko::detail::get_local(helper)->get_const_device_view(),
-                gko::detail::get_local(c)->get_const_device_view(),
-                gko::detail::get_local(u)->get_device_view(), stop_status));
+            exec->run(idr::make_step_2(nrhs, k, omega->get_const_device_view(),
+                                       helper->get_const_device_view(),
+                                       c->get_const_device_view(),
+                                       u->get_device_view(), stop_status));
 
             auto u_k = u->create_subview(local_span{0, problem_size},
                                          local_span{k * nrhs, (k + 1) * nrhs});
@@ -270,17 +275,11 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
             // dense_x += beta * u_k
             // f = (0,...,0,f_k+1 - beta * m_k+1,k,...,f_s-1 - beta * m_s-1,k)
             exec->run(idr::make_step_3(
-                nrhs, k,
-                gko::detail::get_local(subspace_vectors)
-                    ->get_const_device_view(),
-                gko::detail::get_local(g)->get_device_view(),
-                gko::detail::get_local(helper)->get_device_view(),
-                gko::detail::get_local(u)->get_device_view(),
-                gko::detail::get_local(m)->get_device_view(),
-                gko::detail::get_local(f)->get_device_view(),
-                gko::detail::get_local(alpha)->get_device_view(),
-                gko::detail::get_local(residual)->get_device_view(),
-                gko::detail::get_local(dense_x)->get_device_view(),
+                nrhs, k, subspace_vectors->get_const_device_view(),
+                g->get_device_view(), helper->get_device_view(),
+                u->get_device_view(), m->get_device_view(),
+                f->get_device_view(), alpha->get_device_view(),
+                residual->get_device_view(), dense_x->get_device_view(),
                 stop_status));
         }
 
@@ -300,10 +299,10 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
         // end if
         // residual -= omega * t
         // dense_x += omega * v
-        exec->run(idr::make_compute_omega(
-            nrhs, kappa, gko::detail::get_local(tht)->get_const_device_view(),
-            gko::detail::get_local(residual_norm)->get_const_device_view(),
-            gko::detail::get_local(omega)->get_device_view(), stop_status));
+        exec->run(
+            idr::make_compute_omega(nrhs, kappa, tht->get_const_device_view(),
+                                    residual_norm->get_const_device_view(),
+                                    omega->get_device_view(), stop_status));
 
         t->scale(subspace_neg_one_op);
         residual->add_scaled(omega, t);
@@ -330,45 +329,36 @@ Idr<ValueType>::Idr(const Factory* factory,
 
 
 template <typename ValueType>
-void Idr<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Idr<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            // If ValueType is complex, the subspace matrix P will be complex
-            // anyway.
-            if (!is_complex<ValueType>() && this->get_complex_subspace()) {
-                auto complex_b = dense_b->make_complex();
-                auto complex_x = dense_x->make_complex();
-                this->iterate(complex_b.get(), complex_x.get());
-                complex_x->get_real(
-                    dynamic_cast<matrix::Dense<remove_complex<ValueType>>*>(
-                        dense_x));
-            } else {
-                this->iterate(dense_b, dense_x);
-            }
-        },
-        b, x);
+    auto converted_b = as<matrix::Dense<ValueType>>(b->as_precision(this));
+    if (!is_complex<ValueType>() && this->get_complex_subspace()) {
+        auto converted_x =
+            as<matrix::Dense<remove_complex<ValueType>>>(x->as_precision(this));
+        auto complex_b = converted_b->make_complex();
+        auto complex_x = converted_x->make_complex();
+        this->iterate(
+            as<matrix::Dense<to_complex<ValueType>>>(complex_b.get()),
+            as<matrix::Dense<to_complex<ValueType>>>(complex_x.get()));
+        complex_x->get_real(converted_x.get());
+    } else {
+        auto converted_x = as<matrix::Dense<ValueType>>(x->as_precision(this));
+        this->iterate(converted_b.get(), converted_x.get());
+    }
 }
 
 
 template <typename ValueType>
-void Idr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                const LinOp* beta, LinOp* x) const
+void Idr<ValueType>::apply_impl(const MultiVector* alpha, const MultiVector* b,
+                                const MultiVector* beta, MultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto x_clone = dense_x->clone();
-            this->apply_impl(dense_b, x_clone.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
-        },
-        alpha, b, beta, x);
+    LinOp::apply_impl(alpha, b, beta, x);
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,8 +68,7 @@ void symbolic_cholesky(
         auto lt_factor = as<matrix_type>(factors->transpose());
         const auto scalar =
             initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
-        const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
-        lt_factor->apply(scalar, id, scalar, factors);
+        factors = factors->scale_add(scalar, scalar, lt_factor);
     }
 }
 
@@ -116,8 +115,7 @@ void symbolic_cholesky_device(
         auto lt_factor = as<matrix_type>(factors->transpose());
         const auto scalar =
             initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
-        const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
-        lt_factor->apply(scalar, id, scalar, factors);
+        factors = factors->scale_add(scalar, scalar, lt_factor);
     }
 }
 
@@ -156,9 +154,8 @@ void symbolic_lu_near_symm(
                                   mtx->get_const_row_ptrs()));
         // compute A + A^T symbolically
         const auto scalar = gko::initialize<scalar_type>({one<float>()}, exec);
-        const auto symm_mtx = as<float_matrix_type>(float_mtx->transpose());
-        const auto id = id_type::create(exec, size[0]);
-        float_mtx->apply(scalar, id, scalar, symm_mtx);
+        const auto symm_mtx = float_mtx->scale_add(
+            scalar, scalar, as<float_matrix_type>(float_mtx->transpose()));
         // compute Cholesky factorization
         std::unique_ptr<elimination_forest<IndexType>> forest;
         symbolic_cholesky(symm_mtx.get(), true, symm_factors, forest);

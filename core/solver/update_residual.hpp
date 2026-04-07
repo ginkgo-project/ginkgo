@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,10 +16,10 @@ namespace gko {
 namespace solver {
 
 
-template <typename SolverType, typename VectorType, typename LogFunc>
-bool update_residual(SolverType* solver, int iter, const VectorType* dense_b,
-                     VectorType* dense_x, VectorType* residual,
-                     const VectorType*& residual_ptr,
+template <typename SolverType, typename LogFunc>
+bool update_residual(SolverType* solver, int iter, const MultiVector* dense_b,
+                     MultiVector* dense_x, MultiVector* residual,
+                     const MultiVector*& residual_ptr,
                      std::unique_ptr<gko::stop::Criterion>& stop_criterion,
                      array<stopping_status>& stop_status, LogFunc log)
 {

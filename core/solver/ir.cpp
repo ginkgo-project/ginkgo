@@ -6,12 +6,11 @@
 
 #include <string>
 
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/config/config_helper.hpp"
-#include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
 #include "core/solver/solver_base.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -196,7 +195,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Ir<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
 {
     this->apply_with_initial_guess_impl(b, x,
                                         this->get_default_initial_guess());
@@ -204,26 +203,9 @@ void Ir<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_with_initial_guess_impl(
-    const LinOp* b, LinOp* x, initial_guess_mode guess) const
-{
-    if (!this->get_system_matrix()) {
-        return;
-    }
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this, guess](auto dense_b, auto dense_x) {
-            prepare_initial_guess(dense_b, dense_x, guess);
-            this->apply_dense_impl(dense_b, dense_x, guess);
-        },
-        b, x);
-}
-
-
-template <typename ValueType>
-template <typename VectorType>
-void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
-                                     VectorType* dense_x,
-                                     initial_guess_mode guess) const
+void Ir<ValueType>::apply_with_initial_guess_prepared_impl(
+    const MultiVector* dense_b, MultiVector* dense_x,
+    initial_guess_mode guess) const
 {
     using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Ir>;
@@ -244,13 +226,13 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
     }
     // zero input the residual is dense_b
-    const VectorType* residual_ptr =
+    const MultiVector* residual_ptr =
         guess == initial_guess_mode::zero ? dense_b : residual;
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        residual_ptr);
+        std::shared_ptr<const MultiVector>(dense_b, [](const MultiVector*) {}),
+        dense_x, residual_ptr);
 
     int iter = -1;
     while (true) {
@@ -289,8 +271,23 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
 
 template <typename ValueType>
-void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                               const LinOp* beta, LinOp* x) const
+void Ir<ValueType>::apply_with_initial_guess_impl(
+    const MultiVector* b, MultiVector* x, initial_guess_mode guess) const
+{
+    if (!this->get_system_matrix()) {
+        return;
+    }
+    auto converted_b = b->as_precision(this);
+    auto converted_x = x->as_precision(this);
+    auto dense_b = converted_b.get();
+    auto dense_x = converted_x.get();
+    prepare_initial_guess(dense_b, dense_x, guess);
+    this->apply_with_initial_guess_prepared_impl(dense_b, dense_x, guess);
+}
+
+template <typename ValueType>
+void Ir<ValueType>::apply_impl(const MultiVector* alpha, const MultiVector* b,
+                               const MultiVector* beta, MultiVector* x) const
 {
     this->apply_with_initial_guess_impl(alpha, b, beta, x,
                                         this->get_default_initial_guess());
@@ -298,22 +295,21 @@ void Ir<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType>
 void Ir<ValueType>::apply_with_initial_guess_impl(
-    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
-    initial_guess_mode guess) const
+    const MultiVector* alpha, const MultiVector* b, const MultiVector* beta,
+    MultiVector* x, initial_guess_mode guess) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
-                      auto dense_x) {
-            prepare_initial_guess(dense_b, dense_x, guess);
-            auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get(), guess);
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
-        },
-        alpha, b, beta, x);
+    auto converted_b = b->as_precision(this);
+    auto converted_x = x->as_precision(this);
+    auto dense_b = converted_b.get();
+    auto dense_x = converted_x.get();
+    prepare_initial_guess(dense_b, dense_x, guess);
+    auto x_clone = dense_x->clone();
+    this->apply_with_initial_guess_prepared_impl(dense_b, x_clone.get(), guess);
+    dense_x->scale(beta);
+    dense_x->add_scaled(alpha, x_clone);
 }
 
 
