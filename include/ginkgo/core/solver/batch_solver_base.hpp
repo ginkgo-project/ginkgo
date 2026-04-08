@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -207,20 +207,19 @@ class EnableBatchSolver
 public:
     using real_type = remove_complex<ValueType>;
 
-    const ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
-                                ptr_param<MultiVector<ValueType>> x) const
+    void apply(ptr_param<const MultiVector<ValueType>> b,
+               ptr_param<MultiVector<ValueType>> x) const
     {
         this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, x).get());
-        return self();
     }
 
-    const ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> alpha,
-                                ptr_param<const MultiVector<ValueType>> b,
-                                ptr_param<const MultiVector<ValueType>> beta,
-                                ptr_param<MultiVector<ValueType>> x) const
+    void apply(ptr_param<const MultiVector<ValueType>> alpha,
+               ptr_param<const MultiVector<ValueType>> b,
+               ptr_param<const MultiVector<ValueType>> beta,
+               ptr_param<MultiVector<ValueType>> x) const
     {
         this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                               x.get());
@@ -229,32 +228,6 @@ public:
                          make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, beta).get(),
                          make_temporary_clone(exec, x).get());
-        return self();
-    }
-
-    ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
-                          ptr_param<MultiVector<ValueType>> x)
-    {
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        return self();
-    }
-
-    ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> alpha,
-                          ptr_param<const MultiVector<ValueType>> b,
-                          ptr_param<const MultiVector<ValueType>> beta,
-                          ptr_param<MultiVector<ValueType>> x)
-    {
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        return self();
     }
 
 protected:

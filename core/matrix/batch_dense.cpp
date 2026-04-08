@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -118,37 +118,32 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
-Dense<ValueType>* Dense<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x)
+void Dense<ValueType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                             ptr_param<MultiVector<ValueType>> x)
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply_impl(make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType>
-const Dense<ValueType>* Dense<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x) const
+void Dense<ValueType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                             ptr_param<MultiVector<ValueType>> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply_impl(make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType>
-Dense<ValueType>* Dense<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> alpha,
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<const MultiVector<ValueType>> beta,
-    ptr_param<MultiVector<ValueType>> x)
+void Dense<ValueType>::apply(ptr_param<const MultiVector<ValueType>> alpha,
+                             ptr_param<const MultiVector<ValueType>> b,
+                             ptr_param<const MultiVector<ValueType>> beta,
+                             ptr_param<MultiVector<ValueType>> x)
 {
     this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                           x.get());
@@ -157,16 +152,14 @@ Dense<ValueType>* Dense<ValueType>::apply(
                      make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, beta).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType>
-const Dense<ValueType>* Dense<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> alpha,
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<const MultiVector<ValueType>> beta,
-    ptr_param<MultiVector<ValueType>> x) const
+void Dense<ValueType>::apply(ptr_param<const MultiVector<ValueType>> alpha,
+                             ptr_param<const MultiVector<ValueType>> b,
+                             ptr_param<const MultiVector<ValueType>> beta,
+                             ptr_param<MultiVector<ValueType>> x) const
 {
     this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                           x.get());
@@ -175,7 +168,6 @@ const Dense<ValueType>* Dense<ValueType>::apply(
                      make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, beta).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,46 +41,39 @@ std::unique_ptr<Identity<ValueType>> Identity<ValueType>::create(
 
 
 template <typename ValueType>
-Identity<ValueType>* Identity<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x)
+void Identity<ValueType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                                ptr_param<MultiVector<ValueType>> x)
 {
     static_cast<const Identity*>(this)->apply(b, x);
-    return this;
 }
 
 
 template <typename ValueType>
-const Identity<ValueType>* Identity<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x) const
+void Identity<ValueType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                                ptr_param<MultiVector<ValueType>> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply_impl(make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType>
-Identity<ValueType>* Identity<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> alpha,
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<const MultiVector<ValueType>> beta,
-    ptr_param<MultiVector<ValueType>> x)
+void Identity<ValueType>::apply(ptr_param<const MultiVector<ValueType>> alpha,
+                                ptr_param<const MultiVector<ValueType>> b,
+                                ptr_param<const MultiVector<ValueType>> beta,
+                                ptr_param<MultiVector<ValueType>> x)
 {
     static_cast<const Identity*>(this)->apply(alpha, b, beta, x);
-    return this;
 }
 
 
 template <typename ValueType>
-const Identity<ValueType>* Identity<ValueType>::apply(
-    ptr_param<const MultiVector<ValueType>> alpha,
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<const MultiVector<ValueType>> beta,
-    ptr_param<MultiVector<ValueType>> x) const
+void Identity<ValueType>::apply(ptr_param<const MultiVector<ValueType>> alpha,
+                                ptr_param<const MultiVector<ValueType>> b,
+                                ptr_param<const MultiVector<ValueType>> beta,
+                                ptr_param<MultiVector<ValueType>> x) const
 {
     this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                           x.get());
@@ -89,7 +82,6 @@ const Identity<ValueType>* Identity<ValueType>::apply(
                      make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, beta).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 

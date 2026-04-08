@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -124,33 +124,29 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x)
+void Csr<ValueType, IndexType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                                      ptr_param<MultiVector<ValueType>> x)
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply_impl(make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x) const
+void Csr<ValueType, IndexType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                                      ptr_param<MultiVector<ValueType>> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply_impl(make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
+void Csr<ValueType, IndexType>::apply(
     ptr_param<const MultiVector<ValueType>> alpha,
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<const MultiVector<ValueType>> beta,
@@ -163,12 +159,11 @@ Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
                      make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, beta).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
+void Csr<ValueType, IndexType>::apply(
     ptr_param<const MultiVector<ValueType>> alpha,
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<const MultiVector<ValueType>> beta,
@@ -181,7 +176,6 @@ const Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
                      make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, beta).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
