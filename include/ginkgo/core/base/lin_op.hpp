@@ -123,23 +123,6 @@ public:
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
-     *
-     * @return this
-     */
-    void apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
-    {
-        this->template log<log::Logger::linop_apply_started>(this, b.get(),
-                                                             x.get());
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b.get(),
-                                                               x.get());
-    }
-
-    /**
-     * @copydoc apply(const LinOp *, LinOp *)
      */
     void apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
     {
@@ -153,6 +136,7 @@ public:
                                                                x.get());
     }
 
+
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
      *
@@ -160,30 +144,9 @@ public:
      * @param b  vector(s) on which the operator is applied
      * @param beta  scaling of the input x
      * @param x  output vector(s)
-     *
-     * @return this
      */
     void apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-               ptr_param<const LinOp> beta, ptr_param<LinOp> x)
-    {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-    }
-
-    /**
-     * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
-     */
-    const void apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                     ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
+               ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha.get(), b.get(), beta.get(), x.get());
