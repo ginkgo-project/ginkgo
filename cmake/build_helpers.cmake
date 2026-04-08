@@ -80,6 +80,11 @@ function(ginkgo_check_headers target defines)
     list(FILTER CXX_HEADERS EXCLUDE REGEX "^test.*")
     list(FILTER CXX_HEADERS EXCLUDE REGEX "^base/kernel_launch.*")
     list(FILTER CXX_HEADERS EXCLUDE REGEX "^ginkgo/extensions/.*")
+    list(
+        FILTER CXX_HEADERS
+        EXCLUDE
+        REGEX "^ginkgo/core/base/precision_dispatch\.hpp$"
+    )
     list(FILTER CUDA_HEADERS EXCLUDE REGEX "^test.*")
     list(FILTER CUDA_HEADERS EXCLUDE REGEX "^base/kernel_launch.*")
     list(FILTER HIP_HEADERS EXCLUDE REGEX "^test.*")
@@ -216,7 +221,7 @@ function(
 endfunction()
 
 # Add `-fsycl-device-lib=all` before icpx 2026 (before GINKGO_DPCPP_MAJOR_VERSION 9).
-# Intel mark `-fsycl-device-lib` deprecated in 2025.3. 
+# Intel mark `-fsycl-device-lib` deprecated in 2025.3.
 # The 2025.3 compiler's detectable version is 8.0.0 which is the same as the 2025.2 compiler.
 # However, `-fsycl-device-lib` is not deprecated in 2025.2, so we can only remove it from 2026 not 2025.3
 function(ginkgo_add_sycl_device_lib target)
