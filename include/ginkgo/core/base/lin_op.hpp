@@ -797,6 +797,14 @@ private:
     virtual void add_scaled_identity_impl(const LinOp* a, const LinOp* b) = 0;
 };
 
+template <typename ConcreteObject, typename PolymorphicBase>
+class EnableClonableObject
+    : public EnablePolymorphicObject<ConcreteObject, PolymorphicBase>,
+      public EnablePolymorphicAssignment<ConcreteObject> {
+public:
+    using EnablePolymorphicObject<ConcreteObject,
+                                  PolymorphicBase>::EnablePolymorphicObject;
+};
 
 /**
  * The EnableLinOp mixin can be used to provide sensible default implementations
@@ -834,11 +842,10 @@ private:
  */
 template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
 class EnableLinOp
-    : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteLinOp> {
+    : public EnableClonableObject<ConcreteLinOp, PolymorphicBase> {
 public:
-    using EnablePolymorphicObject<ConcreteLinOp,
-                                  PolymorphicBase>::EnablePolymorphicObject;
+    using EnableClonableObject<ConcreteLinOp,
+                               PolymorphicBase>::EnableClonableObject;
     using PolymorphicBase::apply;
 
 protected:
