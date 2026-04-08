@@ -126,7 +126,7 @@ public:
      *
      * @return this
      */
-    LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
+    void apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
     {
         this->template log<log::Logger::linop_apply_started>(this, b.get(),
                                                              x.get());
@@ -136,13 +136,12 @@ public:
                          make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b.get(),
                                                                x.get());
-        return this;
     }
 
     /**
      * @copydoc apply(const LinOp *, LinOp *)
      */
-    const LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
+    void apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
     {
         this->template log<log::Logger::linop_apply_started>(this, b.get(),
                                                              x.get());
@@ -152,7 +151,6 @@ public:
                          make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b.get(),
                                                                x.get());
-        return this;
     }
 
     /**
@@ -165,8 +163,8 @@ public:
      *
      * @return this
      */
-    LinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                 ptr_param<const LinOp> beta, ptr_param<LinOp> x)
+    void apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+               ptr_param<const LinOp> beta, ptr_param<LinOp> x)
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha.get(), b.get(), beta.get(), x.get());
@@ -179,14 +177,13 @@ public:
                          make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha.get(), b.get(), beta.get(), x.get());
-        return this;
     }
 
     /**
      * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                       ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
+    const void apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                     ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha.get(), b.get(), beta.get(), x.get());
@@ -199,7 +196,6 @@ public:
                          make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha.get(), b.get(), beta.get(), x.get());
-        return this;
     }
 
     /**

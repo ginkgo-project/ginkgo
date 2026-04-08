@@ -241,12 +241,12 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x);
+    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x);
 
     /**
      * @copydoc apply2(cost LinOp *, LinOp *)
      */
-    const LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
+    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
 
     /**
      * Performs the operation x = alpha * Coo * b + x.
@@ -257,14 +257,14 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                  ptr_param<LinOp> x);
+    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                ptr_param<LinOp> x);
 
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                        ptr_param<LinOp> x) const;
+    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                ptr_param<LinOp> x) const;
 
     /**
      * Creates an uninitialized COO matrix of the specified size.

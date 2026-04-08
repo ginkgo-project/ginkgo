@@ -113,33 +113,31 @@ Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
-                                         ptr_param<LinOp> x)
+void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
+                                       ptr_param<LinOp> x)
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply2_impl(make_temporary_clone(exec, b).get(),
                       make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
-                                               ptr_param<LinOp> x) const
+void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
+                                       ptr_param<LinOp> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply2_impl(make_temporary_clone(exec, b).get(),
                       make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
-                                         ptr_param<const LinOp> b,
-                                         ptr_param<LinOp> x)
+void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
+                                       ptr_param<const LinOp> b,
+                                       ptr_param<LinOp> x)
 {
     this->validate_application_parameters(b.get(), x.get());
     GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -147,14 +145,13 @@ LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
     this->apply2_impl(make_temporary_clone(exec, alpha).get(),
                       make_temporary_clone(exec, b).get(),
                       make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
-                                               ptr_param<const LinOp> b,
-                                               ptr_param<LinOp> x) const
+void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
+                                       ptr_param<const LinOp> b,
+                                       ptr_param<LinOp> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -162,7 +159,6 @@ const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
     this->apply2_impl(make_temporary_clone(exec, alpha).get(),
                       make_temporary_clone(exec, b).get(),
                       make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
