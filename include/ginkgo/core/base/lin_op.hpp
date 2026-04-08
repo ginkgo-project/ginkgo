@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -880,35 +880,7 @@ class EnableLinOp
 public:
     using EnablePolymorphicObject<ConcreteLinOp,
                                   PolymorphicBase>::EnablePolymorphicObject;
-
-    const ConcreteLinOp* apply(ptr_param<const LinOp> b,
-                               ptr_param<LinOp> x) const
-    {
-        PolymorphicBase::apply(b, x);
-        return self();
-    }
-
-    ConcreteLinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
-    {
-        PolymorphicBase::apply(b, x);
-        return self();
-    }
-
-    const ConcreteLinOp* apply(ptr_param<const LinOp> alpha,
-                               ptr_param<const LinOp> b,
-                               ptr_param<const LinOp> beta,
-                               ptr_param<LinOp> x) const
-    {
-        PolymorphicBase::apply(alpha, b, beta, x);
-        return self();
-    }
-
-    ConcreteLinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                         ptr_param<const LinOp> beta, ptr_param<LinOp> x)
-    {
-        PolymorphicBase::apply(alpha, b, beta, x);
-        return self();
-    }
+    using PolymorphicBase::apply;
 
 protected:
     GKO_ENABLE_SELF(ConcreteLinOp);
