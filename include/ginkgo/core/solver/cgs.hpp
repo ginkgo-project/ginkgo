@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,10 +42,10 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Cgs
-    : public EnableLinOp<Cgs<ValueType>>,
+    : public EnablePolymorphicObject<Cgs<ValueType>, LinOp>,
       public EnablePreconditionedIterativeSolver<ValueType, Cgs<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Cgs>;
+    friend class EnablePolymorphicObject<Cgs, LinOp>;
     friend class EnablePolymorphicObject<Cgs, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -101,13 +101,14 @@ protected:
                     LinOp* x) const override;
 
     explicit Cgs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Cgs>(std::move(exec))
+        : EnablePolymorphicObject<Cgs, LinOp>(std::move(exec))
     {}
 
     explicit Cgs(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Cgs>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
+        : EnablePolymorphicObject<Cgs, LinOp>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Cgs<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

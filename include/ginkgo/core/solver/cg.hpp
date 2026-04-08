@@ -48,7 +48,7 @@ template <typename ValueType = default_precision>
 class Cg : public EnablePolymorphicObject<Cg<ValueType>, LinOp>,
            public EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>,
            public Transposable {
-    // friend class EnableLinOp<Cg>;
+    // friend class EnablePolymorphicObject<Cg, LinOp>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 

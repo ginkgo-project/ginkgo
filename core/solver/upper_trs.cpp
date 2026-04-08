@@ -53,7 +53,7 @@ UpperTrs<ValueType, IndexType>::parse(
 
 template <typename ValueType, typename IndexType>
 UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
-    : EnableLinOp<UpperTrs>(other.get_executor())
+    : EnablePolymorphicObject<UpperTrs, LinOp>(other.get_executor())
 {
     *this = other;
 }
@@ -61,7 +61,7 @@ UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
 
 template <typename ValueType, typename IndexType>
 UpperTrs<ValueType, IndexType>::UpperTrs(UpperTrs&& other)
-    : EnableLinOp<UpperTrs>(other.get_executor())
+    : EnablePolymorphicObject<UpperTrs, LinOp>(other.get_executor())
 {
     *this = std::move(other);
 }
@@ -72,7 +72,7 @@ UpperTrs<ValueType, IndexType>& UpperTrs<ValueType, IndexType>::operator=(
     const UpperTrs& other)
 {
     if (this != &other) {
-        EnableLinOp<UpperTrs>::operator=(other);
+        EnablePolymorphicObject<UpperTrs, LinOp>::operator=(other);
         EnableSolverBase<UpperTrs, CsrMatrix>::operator=(other);
         this->parameters_ = other.parameters_;
         this->generate();
@@ -86,7 +86,7 @@ UpperTrs<ValueType, IndexType>& UpperTrs<ValueType, IndexType>::operator=(
     UpperTrs&& other)
 {
     if (this != &other) {
-        EnableLinOp<UpperTrs>::operator=(std::move(other));
+        EnablePolymorphicObject<UpperTrs, LinOp>::operator=(std::move(other));
         EnableSolverBase<UpperTrs, CsrMatrix>::operator=(std::move(other));
         this->parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (this->get_executor() == other.get_executor()) {

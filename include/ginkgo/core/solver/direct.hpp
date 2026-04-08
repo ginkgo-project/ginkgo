@@ -30,11 +30,12 @@ namespace solver {
  *                    system matrix
  */
 template <typename ValueType, typename IndexType>
-class Direct : public EnableLinOp<Direct<ValueType, IndexType>>,
-               public gko::solver::EnableSolverBase<
-                   Direct<ValueType, IndexType>,
-                   factorization::Factorization<ValueType, IndexType>>,
-               public Transposable {
+class Direct
+    : public EnablePolymorphicObject<Direct<ValueType, IndexType>, LinOp>,
+      public gko::solver::EnableSolverBase<
+          Direct<ValueType, IndexType>,
+          factorization::Factorization<ValueType, IndexType>>,
+      public Transposable {
     friend class EnablePolymorphicObject<Direct, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
