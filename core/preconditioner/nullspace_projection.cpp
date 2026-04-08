@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
 #include "core/config/config_helper.hpp"
