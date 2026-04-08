@@ -72,15 +72,15 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
 
 template <typename ValueType>
 Chebyshev<ValueType>::Chebyshev(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Chebyshev>(std::move(exec))
+    : EnablePolymorphicObject<Chebyshev, LinOp>(std::move(exec))
 {}
 
 
 template <typename ValueType>
 Chebyshev<ValueType>::Chebyshev(const Factory* factory,
                                 std::shared_ptr<const LinOp> system_matrix)
-    : EnableLinOp<Chebyshev>(factory->get_executor(),
-                             gko::transpose(system_matrix->get_size())),
+    : EnablePolymorphicObject<Chebyshev, LinOp>(
+          factory->get_executor(), gko::transpose(system_matrix->get_size())),
       EnablePreconditionedIterativeSolver<ValueType, Chebyshev<ValueType>>{
           std::move(system_matrix), factory->get_parameters()},
       parameters_{factory->get_parameters()}
@@ -103,7 +103,7 @@ template <typename ValueType>
 Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(const Chebyshev& other)
 {
     if (&other != this) {
-        EnableLinOp<Chebyshev>::operator=(other);
+        EnablePolymorphicObject<Chebyshev, LinOp>::operator=(other);
         EnablePreconditionedIterativeSolver<
             ValueType, Chebyshev<ValueType>>::operator=(other);
         this->parameters_ = other.parameters_;
@@ -118,7 +118,7 @@ template <typename ValueType>
 Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(Chebyshev&& other)
 {
     if (&other != this) {
-        EnableLinOp<Chebyshev>::operator=(std::move(other));
+        EnablePolymorphicObject<Chebyshev, LinOp>::operator=(std::move(other));
         EnablePreconditionedIterativeSolver<
             ValueType, Chebyshev<ValueType>>::operator=(std::move(other));
         this->parameters_ = std::exchange(other.parameters_, parameters_type{});

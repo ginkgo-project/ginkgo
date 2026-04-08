@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,11 +49,11 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Bicgstab
-    : public EnableLinOp<Bicgstab<ValueType>>,
+    : public EnablePolymorphicObject<Bicgstab<ValueType>, LinOp>,
       public EnablePreconditionedIterativeSolver<ValueType,
                                                  Bicgstab<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Bicgstab>;
+    friend class EnablePolymorphicObject<Bicgstab, LinOp>;
     friend class EnablePolymorphicObject<Bicgstab, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -108,13 +108,14 @@ protected:
                     LinOp* x) const override;
 
     explicit Bicgstab(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Bicgstab>(std::move(exec))
+        : EnablePolymorphicObject<Bicgstab, LinOp>(std::move(exec))
     {}
 
     explicit Bicgstab(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Bicgstab>(factory->get_executor(),
-                                gko::transpose(system_matrix->get_size())),
+        : EnablePolymorphicObject<Bicgstab, LinOp>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Bicgstab<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

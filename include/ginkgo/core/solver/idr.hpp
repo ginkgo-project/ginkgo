@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,10 +54,10 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Idr
-    : public EnableLinOp<Idr<ValueType>>,
+    : public EnablePolymorphicObject<Idr<ValueType>, LinOp>,
       public EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Idr>;
+    friend class EnablePolymorphicObject<Idr, LinOp>;
     friend class EnablePolymorphicObject<Idr, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -224,13 +224,14 @@ protected:
     void iterate(const VectorType* dense_b, VectorType* dense_x) const;
 
     explicit Idr(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Idr>(std::move(exec))
+        : EnablePolymorphicObject<Idr, LinOp>(std::move(exec))
     {}
 
     explicit Idr(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Idr>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
+        : EnablePolymorphicObject<Idr, LinOp>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

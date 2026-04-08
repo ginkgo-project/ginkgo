@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -46,10 +46,10 @@ constexpr size_type gcr_default_krylov_dim = 100u;
  */
 template <typename ValueType = default_precision>
 class Gcr
-    : public EnableLinOp<Gcr<ValueType>>,
+    : public EnablePolymorphicObject<Gcr<ValueType>, LinOp>,
       public EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Gcr>;
+    friend class EnablePolymorphicObject<Gcr, LinOp>;
     friend class EnablePolymorphicObject<Gcr, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -121,13 +121,14 @@ protected:
                     LinOp* x) const override;
 
     explicit Gcr(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Gcr>(std::move(exec))
+        : EnablePolymorphicObject<Gcr, LinOp>(std::move(exec))
     {}
 
     explicit Gcr(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Gcr>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
+        : EnablePolymorphicObject<Gcr, LinOp>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

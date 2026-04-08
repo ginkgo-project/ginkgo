@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -52,7 +52,7 @@ std::unique_ptr<LinOp> Direct<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Direct& other)
-    : EnableLinOp<Direct>{other.get_executor()}
+    : EnablePolymorphicObject<Direct, LinOp>{other.get_executor()}
 {
     *this = other;
 }
@@ -60,7 +60,7 @@ Direct<ValueType, IndexType>::Direct(const Direct& other)
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(Direct&& other)
-    : EnableLinOp<Direct>{other.get_executor()}
+    : EnablePolymorphicObject<Direct, LinOp>{other.get_executor()}
 {
     *this = std::move(other);
 }
@@ -71,7 +71,7 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
     const Direct& other)
 {
     if (this != &other) {
-        EnableLinOp<Direct>::operator=(other);
+        EnablePolymorphicObject<Direct, LinOp>::operator=(other);
         gko::solver::EnableSolverBase<Direct, factorization_type>::operator=(
             other);
         const auto exec = this->get_executor();
@@ -87,7 +87,7 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
     Direct&& other)
 {
     if (this != &other) {
-        EnableLinOp<Direct>::operator=(std::move(other));
+        EnablePolymorphicObject<Direct, LinOp>::operator=(std::move(other));
         gko::solver::EnableSolverBase<Direct, factorization_type>::operator=(
             std::move(other));
         const auto exec = this->get_executor();
@@ -100,7 +100,7 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Direct>{exec}
+    : EnablePolymorphicObject<Direct, LinOp>{exec}
 {}
 
 
@@ -124,7 +124,8 @@ generate_factorization(
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Factory* factory,
                                      std::shared_ptr<const LinOp> system_matrix)
-    : EnableLinOp<Direct>{factory->get_executor(), system_matrix->get_size()},
+    : EnablePolymorphicObject<Direct, LinOp>{factory->get_executor(),
+                                             system_matrix->get_size()},
       gko::solver::EnableSolverBase<
           Direct, factorization::Factorization<ValueType, IndexType>>{
           generate_factorization<ValueType, IndexType>(

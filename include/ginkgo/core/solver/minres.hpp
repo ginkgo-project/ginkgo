@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,10 +55,10 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Minres
-    : public EnableLinOp<Minres<ValueType>>,
+    : public EnablePolymorphicObject<Minres<ValueType>, LinOp>,
       public EnablePreconditionedIterativeSolver<ValueType, Minres<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Minres>;
+    friend class EnablePolymorphicObject<Minres, LinOp>;
     friend class EnablePolymorphicObject<Minres, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 

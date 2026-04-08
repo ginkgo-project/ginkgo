@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -78,12 +78,12 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Ir : public EnableLinOp<Ir<ValueType>>,
+class Ir : public EnablePolymorphicObject<Ir<ValueType>, LinOp>,
            public EnableSolverBase<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
            public EnableApplyWithInitialGuess<Ir<ValueType>>,
            public Transposable {
-    friend class EnableLinOp<Ir>;
+    friend class EnablePolymorphicObject<Ir, LinOp>;
     friend class EnablePolymorphicObject<Ir, LinOp>;
     friend class EnableApplyWithInitialGuess<Ir>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
@@ -223,13 +223,14 @@ protected:
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
 
     explicit Ir(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ir>(std::move(exec))
+        : EnablePolymorphicObject<Ir, LinOp>(std::move(exec))
     {}
 
     explicit Ir(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Ir>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
+        : EnablePolymorphicObject<Ir, LinOp>(
+              factory->get_executor(),
+              gko::transpose(system_matrix->get_size())),
           EnableSolverBase<Ir>{std::move(system_matrix)},
           EnableIterativeBase<Ir>{
               stop::combine(factory->get_parameters().criteria)},
