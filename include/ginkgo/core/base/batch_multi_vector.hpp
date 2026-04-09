@@ -143,7 +143,7 @@ public:
      *
      * @return the number of batch items
      */
-    size_type get_num_batch_items() const
+    inline size_type get_num_batch_items() const
     {
         return batch_size_.get_num_batch_items();
     }
