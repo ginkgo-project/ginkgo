@@ -237,9 +237,8 @@ if(GINKGO_BUILD_HIP)
     elseif(
         GINKGO_HIP_PLATFORM_AMD
         AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 7.1
-        AND GINKGO_HIP_VERSION VERSION_LESS 7.2
     )
-        # https://github.com/ROCm/rocm-libraries/pull/1769 should fix this issue in ROCm 7.1.1.
+        # track this issue by https://github.com/ROCm/rocm-libraries/issues/6309 
         # HIP VERSION does not use the exact version number as ROCm. Need to wait for ROCm 7.1.1 to set proper range for ROCm 7.1.0
         message(
             STATUS
@@ -251,6 +250,7 @@ if(GINKGO_BUILD_HIP)
         set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE ON)
     endif()
 endif()
+
 if(GINKGO_BUILD_SYCL)
     include(cmake/sycl.cmake)
 endif()
