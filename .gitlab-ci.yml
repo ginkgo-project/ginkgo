@@ -212,6 +212,20 @@ build/cuda130/nompi/gcc/cuda/release/shared:
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.30.8 cuda/13.0.2 gcc/14.3.0"
 
+build/cuda131/nompi/gcc/cuda/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_tum-nvidia
+  variables:
+    BUILD_CUDA: "ON"
+    BUILD_HWLOC: "OFF"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.30.8 cuda/13.1.1 gcc/14.3.0"
+
 # ROCm 4.5 and friends
 build/amd/nompi/gcc/rocm45/release/shared:
   extends:
@@ -306,6 +320,21 @@ build/amd/openmpi/gcc/rocm600/release/static:
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     MODULE_LOAD: "cmake/3.24.4 rocm/6.0.0 gcc/13.3.0 openmpi/5.0.7"
+
+build/amd/nompi/gcc/rocm720/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_tum-amd
+  variables:
+    BUILD_HIP: "ON"
+    BUILD_OMP: "OFF"
+    BUILD_HWLOC: "OFF"
+    BUILD_TYPE: "Release"
+    ENABLE_BFLOAT16: "OFF"
+    ENABLE_HALF: "OFF"
+    MODULE_LOAD: "cmake/3.25.3 rocm/7.2.0 gcc/12.4.0"
 
 build/amd/nompi/gcc/rocm573/debug/shared:
   extends:
