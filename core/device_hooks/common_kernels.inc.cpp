@@ -76,6 +76,8 @@
 #include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/pipe_cg_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
+#include "core/sketch/count_sketch_kernels.hpp"
+#include "core/sketch/gaussian_sketch_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
 
@@ -1167,6 +1169,28 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);
 
 
 }  // namespace implicit_residual_norm
+
+
+namespace gaussian_sketch {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_GAUSSIAN_SKETCH_GENERATE);
+
+
+}  // namespace gaussian_sketch
+
+
+namespace count_sketch {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COUNT_SKETCH_GENERATE);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COUNT_SKETCH_APPLY);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COUNT_SKETCH_RAPPLY);
+
+
+}  // namespace count_sketch
+
+
 }  // namespace GKO_HOOK_MODULE
 }  // namespace kernels
 }  // namespace gko

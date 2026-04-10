@@ -95,6 +95,8 @@ target_sources(
         matrix/scaled_permutation.cpp
         matrix/sellp.cpp
         matrix/sparsity_csr.cpp
+        sketch/count_sketch.cpp
+        sketch/gaussian_sketch.cpp
         multigrid/fixed_coarsening.cpp
         multigrid/pgm.cpp
         preconditioner/batch_jacobi.cpp
