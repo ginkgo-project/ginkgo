@@ -36,9 +36,8 @@ GaussianSketch<ValueType>::GaussianSketch(
         sketch_matrix_->get_device_view(), seed_));
 
     // Compute and store transpose for rapply
-    sketch_matrix_t_ = matrix::Dense<ValueType>::create(
-        exec, dim<2>{input_size, sketch_size});
-    sketch_matrix_->transpose(sketch_matrix_t_);
+    sketch_matrix_t_ = gko::share(
+        gko::as<matrix::Dense<ValueType>>(sketch_matrix_->transpose()));
 }
 
 
