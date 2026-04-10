@@ -13,6 +13,7 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/transform_output_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
+#include <thrust/pair.h>
 #include <thrust/sort.h>
 
 #include <ginkgo/core/base/array.hpp>
