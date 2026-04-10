@@ -52,6 +52,8 @@ target_sources(
         preconditioner/jacobi_kernels.cpp
         preconditioner/sor_kernels.cpp
         reorder/rcm_kernels.cpp
+        sketch/count_sketch_kernels.cpp
+        sketch/gaussian_sketch_kernels.cpp
         solver/batch_bicgstab_kernels.cpp
         solver/batch_cg_kernels.cpp
         solver/bicg_kernels.cpp
