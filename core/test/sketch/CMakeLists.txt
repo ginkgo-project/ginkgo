@@ -1,0 +1,2 @@
+ginkgo_create_test(gaussian_sketch)
+ginkgo_create_test(count_sketch)
