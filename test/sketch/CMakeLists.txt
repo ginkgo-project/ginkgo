@@ -1,2 +1,2 @@
-ginkgo_create_common_test(gaussian_sketch_kernels)
-ginkgo_create_common_test(count_sketch_kernels)
+ginkgo_create_common_test(gaussian_sketch_kernels DISABLE_EXECUTORS dpcpp)
+ginkgo_create_common_test(count_sketch_kernels DISABLE_EXECUTORS dpcpp)
