@@ -9,7 +9,6 @@
 #include <ginkgo/core/base/math.hpp>
 
 #include "common/cuda_hip/base/types.hpp"
-#include "common/cuda_hip/components/atomic.hpp"
 
 
 namespace gko {
@@ -47,6 +46,9 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 namespace kernel {
 
 
+// Gather-based: each thread computes one output element x[out_row, col]
+// by scanning all input rows that hash to out_row. No atomics needed,
+// deterministic accumulation order matches the reference kernel.
 template <typename DeviceValueType, typename IndexType>
 __global__ void count_sketch_apply(const IndexType* __restrict__ hash_map,
                                    const DeviceValueType* __restrict__ signs,
@@ -58,25 +60,21 @@ __global__ void count_sketch_apply(const IndexType* __restrict__ hash_map,
 {
     auto tid = blockIdx.x * blockDim.x + threadIdx.x;
     auto total_out = x_rows * num_cols;
-    if (tid < total_out) {
-        auto row = tid / num_cols;
-        auto col = tid % num_cols;
-        x[row * x_stride + col] = zero<DeviceValueType>();
-    }
-    __syncthreads();
-
-    auto total_in = input_size * num_cols;
-    for (auto idx = tid; idx < total_in; idx += blockDim.x * gridDim.x) {
-        auto i = idx / num_cols;
+    for (auto idx = tid; idx < total_out; idx += blockDim.x * gridDim.x) {
+        auto out_row = idx / num_cols;
         auto col = idx % num_cols;
-        auto target_row = hash_map[i];
-        auto sign = signs[i];
-        atomic_add(&x[target_row * x_stride + col],
-                   sign * b[i * b_stride + col]);
+        auto acc = zero<DeviceValueType>();
+        for (size_type i = 0; i < input_size; ++i) {
+            if (hash_map[i] == static_cast<IndexType>(out_row)) {
+                acc += signs[i] * b[i * b_stride + col];
+            }
+        }
+        x[out_row * x_stride + col] = acc;
     }
 }
 
 
+// Gather-based rapply: each thread computes one output element x[row, out_col]
 template <typename DeviceValueType, typename IndexType>
 __global__ void count_sketch_rapply(const IndexType* __restrict__ hash_map,
                                     const DeviceValueType* __restrict__ signs,
@@ -88,21 +86,16 @@ __global__ void count_sketch_rapply(const IndexType* __restrict__ hash_map,
 {
     auto tid = blockIdx.x * blockDim.x + threadIdx.x;
     auto total_out = num_rows * x_cols;
-    if (tid < total_out) {
-        auto row = tid / x_cols;
-        auto col = tid % x_cols;
-        x[row * x_stride + col] = zero<DeviceValueType>();
-    }
-    __syncthreads();
-
-    auto total_in = num_rows * input_size;
-    for (auto idx = tid; idx < total_in; idx += blockDim.x * gridDim.x) {
-        auto row = idx / input_size;
-        auto i = idx % input_size;
-        auto target_col = hash_map[i];
-        auto sign = signs[i];
-        atomic_add(&x[row * x_stride + target_col],
-                   sign * b[row * b_stride + i]);
+    for (auto idx = tid; idx < total_out; idx += blockDim.x * gridDim.x) {
+        auto row = idx / x_cols;
+        auto out_col = idx % x_cols;
+        auto acc = zero<DeviceValueType>();
+        for (size_type i = 0; i < input_size; ++i) {
+            if (hash_map[i] == static_cast<IndexType>(out_col)) {
+                acc += signs[i] * b[row * b_stride + i];
+            }
+        }
+        x[row * x_stride + out_col] = acc;
     }
 }
 
