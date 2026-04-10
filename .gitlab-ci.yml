@@ -226,88 +226,7 @@ build/cuda131/nompi/gcc/cuda/release/shared:
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.30.8 cuda/13.1.1 gcc/14.3.0"
 
-# ROCm 4.5 and friends
-build/amd/nompi/gcc/rocm45/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-rocm45-nompi-gnu8-llvm8
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    NONDEFAULT_STREAM: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_HWLOC: "OFF"
-
-build/amd/nompi/clang/rocm45/release/static:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm45-nompi-gnu8-llvm8
-  variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    ENABLE_HALF: "OFF"
-    ENABLE_BFLOAT16: "ON"
-
-build/amd/nompi/clang/rocm45/debug/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm45-nompi-gnu8-llvm8
-  variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
-
-# ROCm 5.1.4 and friends
-build/amd/nompi/gcc/rocm514/debug/static:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm514-nompi-gnu11-llvm11
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Debug"
-    BUILD_SHARED_LIBS: "OFF"
-
-build/amd/nompi/clang/rocm514/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm514-nompi-gnu11-llvm11
-  variables:
-    CXX_COMPILER: "clang++"
-    BUILD_OMP: "ON"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Release"
-    ENABLE_HALF: "ON"
-    ENABLE_BFLOAT16: "ON"
-
-# without omp
-build/amd/nompi/gcc/rocm514_wo_omp/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm514-nompi-gnu11-llvm11
-  variables:
-    BUILD_OMP: "OFF"
-    BUILD_MPI: "OFF"
-    BUILD_HIP: "ON"
-    BUILD_TYPE: "Release"
-
-build/amd/openmpi/gcc/rocm600/release/static:
+build/amd/openmpi/gcc/rocm602/release/static:
   extends:
     - .build_and_test_tum_template
     - .default_variables
@@ -319,7 +238,7 @@ build/amd/openmpi/gcc/rocm600/release/static:
     BUILD_MPI: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
-    MODULE_LOAD: "cmake/3.24.4 rocm/6.0.0 gcc/13.3.0 openmpi/5.0.7"
+    MODULE_LOAD: "cmake/3.24.4 rocm/6.0.2 gcc/13.3.0 openmpi/5.0.7"
 
 build/amd/nompi/gcc/rocm720/release/shared:
   extends:

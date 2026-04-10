@@ -621,10 +621,6 @@ TEST_F(Csr, MultiplySparseWithSparseIsEquivalentToRef)
 }
 
 
-// TODO: broken in ROCm <= 4.5
-#ifndef GKO_COMPILING_HIP
-
-
 TEST_F(Csr, MultiplyWithEmptyIsEquivalentToRef)
 {
     set_up_apply_data<Mtx::classical>();
@@ -639,9 +635,6 @@ TEST_F(Csr, MultiplyWithEmptyIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(dresult, result, 0);
     ASSERT_TRUE(dresult->is_sorted_by_column_index());
 }
-
-
-#endif
 
 
 TEST_F(Csr, MultiplyReuseCrossExecutor)

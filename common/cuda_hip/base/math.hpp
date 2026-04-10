@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,7 +68,7 @@ struct device_numeric_limits<__half> {
 };
 
 
-#if defined(GKO_COMPILING_CUDA)
+#ifdef GKO_COMPILING_CUDA
 
 
 template <>
@@ -101,9 +101,6 @@ struct device_numeric_limits<__nv_bfloat16> {
 #ifdef GKO_COMPILING_HIP
 
 
-#if HIP_VERSION >= 60200000
-
-
 template <>
 struct device_numeric_limits<__hip_bfloat16> {
     static GKO_ATTRIBUTES GKO_INLINE auto inf()
@@ -129,35 +126,6 @@ struct device_numeric_limits<__hip_bfloat16> {
 };
 
 
-#else
-
-
-template <>
-struct device_numeric_limits<hip_bfloat16> {
-    static GKO_ATTRIBUTES GKO_INLINE auto inf()
-    {
-        hip_bfloat16 vals;
-        vals.data = static_cast<uint16>(0b0'11111111'0000000u);
-        return vals;
-    }
-
-    static GKO_ATTRIBUTES GKO_INLINE auto max()
-    {
-        hip_bfloat16 vals;
-        vals.data = static_cast<uint16>(0b0'11111110'1111111u);
-        return vals;
-    }
-
-    static GKO_ATTRIBUTES GKO_INLINE auto min()
-    {
-        hip_bfloat16 vals;
-        vals.data = static_cast<uint16>(0b0'00000001'0000000u);
-        return vals;
-    }
-};
-
-
-#endif
 #endif
 
 namespace detail {
@@ -375,8 +343,7 @@ __device__ __forceinline__ bool is_finite(const thrust::complex<__half>& value)
 __device__ __forceinline__ bool is_nan(const vendor_bf16& val)
 {
     // from the cuda_bf16.hpp, amd_hip_bf16.h
-#if GINKGO_HIP_PLATFORM_HCC && HIP_VERSION >= 60200000 || \
-    (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
+#if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
     return __hisnan(val);
 #else
     return isnan(static_cast<float>(val));
@@ -391,8 +358,7 @@ __device__ __forceinline__ bool is_nan(const thrust::complex<vendor_bf16>& val)
 
 __device__ __forceinline__ vendor_bf16 abs(const vendor_bf16& val)
 {
-#if GINKGO_HIP_PLATFORM_HCC && HIP_VERSION >= 60200000 || \
-    (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
+#if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
     return __habs(val);
 #else
     return static_cast<vendor_bf16>(abs(static_cast<float>(val)));
@@ -402,8 +368,7 @@ __device__ __forceinline__ vendor_bf16 abs(const vendor_bf16& val)
 
 __device__ __forceinline__ vendor_bf16 sqrt(const vendor_bf16& val)
 {
-#if GINKGO_HIP_PLATFORM_HCC && HIP_VERSION >= 60200000 || \
-    (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
+#if (defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 800)
     return hsqrt(val);
 #else
     return static_cast<vendor_bf16>(sqrt(static_cast<float>(val)));
@@ -424,28 +389,7 @@ __device__ __forceinline__ bool is_finite(
     return is_finite(value.real()) && is_finite(value.imag());
 }
 
-#if defined(GKO_COMPILING_HIP) && HIP_VERSION < 60200000
 
-
-// hip_bfloat16 does not have a constexpr constructor from int
-template <>
-GKO_INLINE vendor_bf16 one<vendor_bf16>()
-{
-    vendor_bf16 val;
-    val.data = static_cast<uint16>(0b0'01111111'0000000u);
-    return val;
-}
-
-// hip_bfloat16 does not have an implicit conversion from float
-template <>
-GKO_INLINE thrust::complex<vendor_bf16> one<thrust::complex<vendor_bf16>>()
-{
-    thrust::complex<vendor_bf16> val(one<vendor_bf16>());
-    return val;
-}
-
-
-#endif
 #endif  // GINKGO_ENABLE_BFLOAT16
 #endif  // defined(__CUDACC__) || defined(GKO_COMPILING_HIP)
 
