@@ -268,7 +268,10 @@ include(cmake/compiler_features.cmake)
 include(cmake/generate_ginkgo_hpp.cmake)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /permissive-")
+    # MSVC has macro for min/max, it leads C2589 issue with CUDA 13.2.
+    # We disable it by -DNOMINMAX
+    # similar issue: https://stackoverflow.com/questions/1825904/error-c2589-on-stdnumeric-limitsdoublemin
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive-")
 endif()
 if(MINGW OR CYGWIN)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
