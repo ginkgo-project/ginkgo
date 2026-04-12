@@ -15,7 +15,7 @@ endif()
 find_package(NVTX REQUIRED)
 
 if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL 13)
-    find_package(Thrust REQUIRED)
+    find_package(Thrust REQUIRED CONFIG HINTS ${CUDAToolkit_LIBRARY_ROOT})
     thrust_create_target(Thrust)
 endif()
 
