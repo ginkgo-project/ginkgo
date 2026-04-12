@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -324,7 +324,7 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    Csr* apply(ptr_param<const MultiVector<value_type>> b,
+    void apply(ptr_param<const MultiVector<value_type>> b,
                ptr_param<MultiVector<value_type>> x);
 
     /**
@@ -337,7 +337,7 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    Csr* apply(ptr_param<const MultiVector<value_type>> alpha,
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
                ptr_param<const MultiVector<value_type>> b,
                ptr_param<const MultiVector<value_type>> beta,
                ptr_param<MultiVector<value_type>> x);
@@ -345,18 +345,18 @@ public:
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
-    const Csr* apply(ptr_param<const MultiVector<value_type>> b,
-                     ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> b,
+               ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, const
      * MultiVector<value_type>*, const MultiVector<value_type>*,
      * MultiVector<value_type>*)
      */
-    const Csr* apply(ptr_param<const MultiVector<value_type>> alpha,
-                     ptr_param<const MultiVector<value_type>> b,
-                     ptr_param<const MultiVector<value_type>> beta,
-                     ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
+               ptr_param<const MultiVector<value_type>> b,
+               ptr_param<const MultiVector<value_type>> beta,
+               ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * Performs in-place row and column scaling for this matrix.
