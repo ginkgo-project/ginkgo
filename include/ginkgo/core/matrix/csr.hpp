@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -101,7 +101,7 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
+class Csr : public EnableClonableLinOp<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>,
@@ -138,8 +138,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Csr>::convert_to;
-    using EnableLinOp<Csr>::move_to;
+    using EnableClonableLinOp<Csr>::convert_to;
+    using EnableClonableLinOp<Csr>::move_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;

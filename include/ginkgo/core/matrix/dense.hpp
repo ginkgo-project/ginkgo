@@ -87,7 +87,7 @@ class SparsityCsr;
  */
 template <typename ValueType = default_precision>
 class Dense
-    : public EnableLinOp<Dense<ValueType>>,
+    : public EnableClonableLinOp<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
@@ -141,8 +141,8 @@ class Dense
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableLinOp<Dense>::convert_to;
-    using EnableLinOp<Dense>::move_to;
+    using EnableClonableLinOp<Dense>::convert_to;
+    using EnableClonableLinOp<Dense>::move_to;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Coo<ValueType, int32>>::convert_to;

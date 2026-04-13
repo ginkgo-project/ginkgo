@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -78,7 +78,7 @@ TEST(ProfilerHook, LogsAllocateCopyOperation)
 }
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::EnableClonableLinOp<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
@@ -86,7 +86,7 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     DummyLinOp(const Factory* factory, std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyLinOp>(factory->get_executor()),
+        : gko::EnableClonableLinOp<DummyLinOp>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
         this->get_executor()->run(DummyOperation{});
@@ -94,7 +94,7 @@ public:
 
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyLinOp>(exec, size)
+        : EnableClonableLinOp<DummyLinOp>(exec, size)
     {}
 
 protected:

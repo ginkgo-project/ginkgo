@@ -45,10 +45,10 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Cg : public EnablePolymorphicObject<Cg<ValueType>, LinOp>,
+class Cg : public EnableLinOp<Cg<ValueType>>,
            public EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>,
            public Transposable {
-    // friend class EnablePolymorphicObject<Cg, LinOp>;
+    friend class EnableLinOp<Cg, LinOp>;
     friend class EnablePolymorphicObject<Cg, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -104,14 +104,13 @@ protected:
                     LinOp* x) const override;
 
     explicit Cg(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Cg, LinOp>(std::move(exec))
+        : EnableLinOp<Cg>(std::move(exec))
     {}
 
     explicit Cg(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
-        : EnablePolymorphicObject<Cg, LinOp>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : EnableLinOp<Cg>(factory->get_executor(),
+                          gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

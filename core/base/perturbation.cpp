@@ -15,7 +15,7 @@ Perturbation<ValueType>& Perturbation<ValueType>::operator=(
     const Perturbation& other)
 {
     if (&other != this) {
-        EnableLinOp<Perturbation>::operator=(other);
+        EnableClonableLinOp<Perturbation>::operator=(other);
         auto exec = this->get_executor();
         scalar_ = other.scalar_;
         basis_ = other.basis_;
@@ -35,7 +35,7 @@ Perturbation<ValueType>& Perturbation<ValueType>::operator=(
     Perturbation&& other)
 {
     if (&other != this) {
-        EnableLinOp<Perturbation>::operator=(std::move(other));
+        EnableClonableLinOp<Perturbation>::operator=(std::move(other));
         auto exec = this->get_executor();
         scalar_ = std::move(other.scalar_);
         basis_ = std::move(other.basis_);
@@ -68,7 +68,7 @@ Perturbation<ValueType>::Perturbation(Perturbation&& other)
 
 template <typename ValueType>
 Perturbation<ValueType>::Perturbation(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Perturbation>(std::move(exec))
+    : EnableClonableLinOp<Perturbation>(std::move(exec))
 {}
 
 
@@ -87,8 +87,8 @@ template <typename ValueType>
 Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
                                       std::shared_ptr<const LinOp> basis,
                                       std::shared_ptr<const LinOp> projector)
-    : EnableLinOp<Perturbation>(basis->get_executor(),
-                                gko::dim<2>{basis->get_size()[0]}),
+    : EnableClonableLinOp<Perturbation>(basis->get_executor(),
+                                        gko::dim<2>{basis->get_size()[0]}),
       basis_{std::move(basis)},
       projector_{std::move(projector)},
       scalar_{std::move(scalar)}

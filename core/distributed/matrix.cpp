@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,7 +49,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const RowGatherer<LocalIndexType>> row_gather_template,
     ptr_param<const LinOp> local_matrix_template,
     ptr_param<const LinOp> non_local_matrix_template)
-    : EnableLinOp<Matrix>{exec},
+    : EnableClonableLinOp<Matrix>{exec},
       DistributedBase{row_gather_template->get_communicator()},
       row_gatherer_{row_gather_template->clone(exec)},
       imap_{exec},
@@ -69,7 +69,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
     std::shared_ptr<LinOp> local_linop)
-    : EnableLinOp<Matrix>{exec},
+    : EnableClonableLinOp<Matrix>{exec},
       DistributedBase{comm},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           exec, mpi::detail::create_default_collective_communicator(comm))},
@@ -87,7 +87,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     index_map<LocalIndexType, GlobalIndexType> imap,
     std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop)
-    : EnableLinOp<Matrix>{exec},
+    : EnableClonableLinOp<Matrix>{exec},
       DistributedBase{comm},
       row_gatherer_(RowGatherer<LocalIndexType>::create(
           exec,
@@ -671,8 +671,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
-    : EnableLinOp<Matrix<value_type, local_index_type,
-                         global_index_type>>{other.get_executor()},
+    : EnableClonableLinOp<Matrix<value_type, local_index_type,
+                                 global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
@@ -686,8 +686,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
-    : EnableLinOp<Matrix<value_type, local_index_type,
-                         global_index_type>>{other.get_executor()},
+    : EnableClonableLinOp<Matrix<value_type, local_index_type,
+                                 global_index_type>>{other.get_executor()},
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},

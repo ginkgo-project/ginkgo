@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -193,8 +193,6 @@ class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Jacobi>::convert_to;
-    using EnableLinOp<Jacobi>::move_to;
     using ConvertibleTo<matrix::Dense<ValueType>>::convert_to;
     using ConvertibleTo<matrix::Dense<ValueType>>::move_to;
     using value_type = ValueType;

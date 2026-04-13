@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,8 +73,6 @@ class Schwarz
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Schwarz>::convert_to;
-    using EnableLinOp<Schwarz>::move_to;
     using value_type = ValueType;
     using index_type = GlobalIndexType;
     using local_index_type = LocalIndexType;
