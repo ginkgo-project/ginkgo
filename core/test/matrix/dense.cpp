@@ -450,7 +450,8 @@ TYPED_TEST(Dense, CanMakeConstView)
 }
 
 
-class CustomDense : public gko::EnableLinOp<CustomDense, gko::matrix::Dense<>> {
+class CustomDense
+    : public gko::EnableClonableLinOp<CustomDense, gko::matrix::Dense<>> {
     friend class gko::EnablePolymorphicObject<CustomDense,
                                               gko::matrix::Dense<>>;
 
@@ -467,8 +468,8 @@ public:
 private:
     explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
                          gko::dim<2> size = {}, int data = 0)
-        : gko::EnableLinOp<CustomDense, gko::matrix::Dense<>>(std::move(exec),
-                                                              size),
+        : gko::EnableClonableLinOp<CustomDense, gko::matrix::Dense<>>(
+              std::move(exec), size),
           data_(data)
     {}
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,7 +38,7 @@ class Dense;
  */
 template <typename ValueType = default_precision>
 class Diagonal
-    : public EnableLinOp<Diagonal<ValueType>>,
+    : public EnableClonableLinOp<Diagonal<ValueType>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
@@ -61,8 +61,8 @@ class Diagonal
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableLinOp<Diagonal>::convert_to;
-    using EnableLinOp<Diagonal>::move_to;
+    using EnableClonableLinOp<Diagonal>::convert_to;
+    using EnableClonableLinOp<Diagonal>::move_to;
     using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
     using ConvertibleTo<Csr<ValueType, int32>>::move_to;
     using ConvertibleTo<Csr<ValueType, int64>>::convert_to;

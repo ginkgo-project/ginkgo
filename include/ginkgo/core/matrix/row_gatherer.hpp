@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -40,7 +40,7 @@ namespace matrix {
  * @ingroup LinOp
  */
 template <typename IndexType = int32>
-class RowGatherer : public EnableLinOp<RowGatherer<IndexType>> {
+class RowGatherer : public EnableClonableLinOp<RowGatherer<IndexType>> {
     friend class EnablePolymorphicObject<RowGatherer, LinOp>;
 
 public:

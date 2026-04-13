@@ -55,7 +55,7 @@ Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
     const Sellp& other)
 {
     if (&other != this) {
-        EnableLinOp<Sellp>::operator=(other);
+        EnableClonableLinOp<Sellp>::operator=(other);
         values_ = other.values_;
         col_idxs_ = other.col_idxs_;
         slice_lengths_ = other.slice_lengths_;
@@ -72,7 +72,7 @@ Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
     Sellp&& other)
 {
     if (&other != this) {
-        EnableLinOp<Sellp>::operator=(std::move(other));
+        EnableClonableLinOp<Sellp>::operator=(std::move(other));
         values_ = std::move(other.values_);
         col_idxs_ = std::move(other.col_idxs_);
         slice_lengths_ = std::move(other.slice_lengths_);
@@ -116,7 +116,7 @@ Sellp<ValueType, IndexType>::Sellp(std::shared_ptr<const Executor> exec,
                                    const dim<2>& size, size_type slice_size,
                                    size_type stride_factor,
                                    size_type total_cols)
-    : EnableLinOp<Sellp>(exec, size),
+    : EnableClonableLinOp<Sellp>(exec, size),
       values_(exec, slice_size * total_cols),
       col_idxs_(exec, slice_size * total_cols),
       slice_lengths_(exec, ceildiv(size[0], slice_size)),

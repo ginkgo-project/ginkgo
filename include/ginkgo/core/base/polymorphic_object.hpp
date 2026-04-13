@@ -38,6 +38,9 @@ public:
         return exec_;
     }
 
+    // preserve the executor of the object
+    ExecutorHolder& operator=(const ExecutorHolder&) { return *this; }
+
 protected:
     // This method is defined as protected since a polymorphic object should not
     // be created using their constructor directly, but by creating an

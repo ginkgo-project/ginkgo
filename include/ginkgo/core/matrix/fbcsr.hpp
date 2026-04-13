@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -97,7 +97,7 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Fbcsr
-    : public EnableLinOp<Fbcsr<ValueType, IndexType>>,
+    : public EnableClonableLinOp<Fbcsr<ValueType, IndexType>>,
       public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Fbcsr<next_precision<ValueType, 2>, IndexType>>,
@@ -132,16 +132,16 @@ public:
 
     /**
      * For moving to another Fbcsr of the same type, use the default
-     *  implementation provided by EnableLinOp via the
+     *  implementation provided by EnableClonableLinOp via the
      *  EnablePolymorphicAssignment mixin.
      */
-    using EnableLinOp<Fbcsr<ValueType, IndexType>>::move_to;
+    using EnableClonableLinOp<Fbcsr<ValueType, IndexType>>::move_to;
 
     /**
      * For converting (copying) to another Fbcsr of the same type,
-     * use the default implementation provided by EnableLinOp.
+     * use the default implementation provided by EnableClonableLinOp.
      */
-    using EnableLinOp<Fbcsr<ValueType, IndexType>>::convert_to;
+    using EnableClonableLinOp<Fbcsr<ValueType, IndexType>>::convert_to;
 
     using ConvertibleTo<
         Fbcsr<next_precision<ValueType>, IndexType>>::convert_to;

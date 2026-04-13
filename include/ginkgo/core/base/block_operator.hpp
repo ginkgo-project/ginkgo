@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,7 +73,7 @@ struct value_span {
  * BlockOperator, which will requires copying any block that is associated with
  * a different executor.
  */
-class BlockOperator final : public EnableLinOp<BlockOperator> {
+class BlockOperator final : public EnableClonableLinOp<BlockOperator> {
     friend class EnablePolymorphicObject<BlockOperator, LinOp>;
 
 public:

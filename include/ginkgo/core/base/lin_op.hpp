@@ -841,15 +841,21 @@ public:
  * @ingroup LinOp
  */
 template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
-class EnableLinOp
+class EnableClonableLinOp
     : public EnableClonableObject<ConcreteLinOp, PolymorphicBase> {
 public:
     using EnableClonableObject<ConcreteLinOp,
                                PolymorphicBase>::EnableClonableObject;
     using PolymorphicBase::apply;
+};
 
-protected:
-    GKO_ENABLE_SELF(ConcreteLinOp);
+template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
+class EnableLinOp
+    : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase> {
+public:
+    using EnablePolymorphicObject<ConcreteLinOp,
+                                  PolymorphicBase>::EnablePolymorphicObject;
+    using PolymorphicBase::apply;
 };
 
 

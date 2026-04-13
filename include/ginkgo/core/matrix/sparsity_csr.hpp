@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -48,12 +48,13 @@ class Fbcsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class SparsityCsr : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
-                    public ConvertibleTo<Csr<ValueType, IndexType>>,
-                    public ConvertibleTo<Dense<ValueType>>,
-                    public ReadableFromMatrixData<ValueType, IndexType>,
-                    public WritableToMatrixData<ValueType, IndexType>,
-                    public Transposable {
+class SparsityCsr
+    : public EnableClonableLinOp<SparsityCsr<ValueType, IndexType>>,
+      public ConvertibleTo<Csr<ValueType, IndexType>>,
+      public ConvertibleTo<Dense<ValueType>>,
+      public ReadableFromMatrixData<ValueType, IndexType>,
+      public WritableToMatrixData<ValueType, IndexType>,
+      public Transposable {
     friend class EnablePolymorphicObject<SparsityCsr, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
@@ -61,8 +62,8 @@ class SparsityCsr : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<SparsityCsr>::convert_to;
-    using EnableLinOp<SparsityCsr>::move_to;
+    using EnableClonableLinOp<SparsityCsr>::convert_to;
+    using EnableClonableLinOp<SparsityCsr>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;

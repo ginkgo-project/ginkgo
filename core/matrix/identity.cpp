@@ -61,7 +61,7 @@ std::unique_ptr<LinOp> Identity<ValueType>::conj_transpose() const
 template <typename ValueType>
 Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec,
                               size_type size)
-    : EnableLinOp<Identity>(exec, dim<2>{size})
+    : EnableClonableLinOp<Identity>(exec, dim<2>{size})
 {}
 
 

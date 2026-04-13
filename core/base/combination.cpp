@@ -36,7 +36,7 @@ Combination<ValueType>& Combination<ValueType>::operator=(
     const Combination& other)
 {
     if (&other != this) {
-        EnableLinOp<Combination>::operator=(other);
+        EnableClonableLinOp<Combination>::operator=(other);
         auto exec = this->get_executor();
         coefficients_ = other.coefficients_;
         operators_ = other.operators_;
@@ -58,7 +58,7 @@ template <typename ValueType>
 Combination<ValueType>& Combination<ValueType>::operator=(Combination&& other)
 {
     if (&other != this) {
-        EnableLinOp<Combination>::operator=(std::move(other));
+        EnableClonableLinOp<Combination>::operator=(std::move(other));
         auto exec = this->get_executor();
         coefficients_ = std::move(other.coefficients_);
         operators_ = std::move(other.operators_);
