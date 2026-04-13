@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 include(cmake/hip_helpers.cmake)
 include(CheckLanguage)
 check_language(HIP)
-ginkgo_check_hip_detection_issue()
 
 enable_language(HIP)
 
