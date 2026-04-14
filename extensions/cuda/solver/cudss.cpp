@@ -292,9 +292,9 @@ void CuDss<ValueType, IndexType>::refactorize(
             &tmp_x, nrows, 1, nrows, static_cast<ValueType*>(nullptr),
             cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
 
-        // Re-run factorization only — symbolic analysis is reused
+        // Re-run numeric factorization only — symbolic analysis is reused
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssExecute(
-            state_->handle, CUDSS_PHASE_FACTORIZATION, state_->config,
+            state_->handle, CUDSS_PHASE_REFACTORIZATION, state_->config,
             state_->data, state_->A, tmp_x, tmp_b));
 
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(tmp_b));
@@ -362,8 +362,8 @@ void CuDss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                         state_->handle, CUDSS_PHASE_SOLVE, state_->config,
                         state_->data, state_->A, cudss_x, cudss_b));
 
-                    cudssMatrixDestroy(cudss_b);
-                    cudssMatrixDestroy(cudss_x);
+                    GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(cudss_b));
+                    GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(cudss_x));
 
                     if (x_strided) {
                         cudaMemcpy2D(dense_x->get_values(),
