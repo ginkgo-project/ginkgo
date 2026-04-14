@@ -133,7 +133,6 @@ set(GINKGO_OPENMP_FLAGS "@OpenMP_CXX_FLAGS@")
 set(GINKGO_HAVE_TAU "@GINKGO_HAVE_TAU@")
 set(GINKGO_HAVE_VTUNE "@GINKGO_HAVE_VTUNE@")
 set(GINKGO_HAVE_METIS "@GINKGO_HAVE_METIS@")
-set(GINKGO_HAVE_CUDSS @GINKGO_HAVE_CUDSS@)
 set_and_check(VTune_PATH "@VTune_PATH@")
 
 # ensure Threads settings
@@ -167,10 +166,6 @@ if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_CUDA)
     enable_language(CUDA)
     find_dependency(CUDAToolkit)
     find_dependency(NVTX)
-endif()
-
-if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_HAVE_CUDSS)
-    find_dependency(cuDSS)
 endif()
 
 if((NOT GINKGO_BUILD_SHARED_LIBS) AND GINKGO_BUILD_HIP)

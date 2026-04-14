@@ -381,15 +381,6 @@ struct Direct
     {
         config_map["num_rhs"] = pnode{3};
         param.with_num_rhs(3u);
-        config_map["algorithm"] = pnode{"vendor"};
-        param.with_algorithm(
-            gko::experimental::solver::direct_algorithm::vendor);
-        config_map["vendor_params"] =
-            pnode{{{"matrix_type", pnode{3}}, {"matrix_view", pnode{2}}}};
-        gko::experimental::solver::vendor_parameters vp;
-        vp.matrix_type = 3;
-        vp.matrix_view = 2;
-        param.with_vendor_params(vp);
         if (from_reg) {
             config_map["factorization"] = pnode{"linop_factory"};
             param.with_factorization(
@@ -410,11 +401,6 @@ struct Direct
         auto ans_param = answer->get_parameters();
 
         ASSERT_EQ(res_param.num_rhs, ans_param.num_rhs);
-        ASSERT_EQ(res_param.algorithm, ans_param.algorithm);
-        ASSERT_EQ(res_param.vendor_params.matrix_type,
-                  ans_param.vendor_params.matrix_type);
-        ASSERT_EQ(res_param.vendor_params.matrix_view,
-                  ans_param.vendor_params.matrix_view);
         if (from_reg) {
             ASSERT_EQ(res_param.factorization, ans_param.factorization);
         } else {

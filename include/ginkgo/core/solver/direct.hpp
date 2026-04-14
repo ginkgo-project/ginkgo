@@ -6,7 +6,6 @@
 #define GKO_PUBLIC_CORE_SOLVER_DIRECT_HPP_
 
 
-#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -18,34 +17,6 @@
 namespace gko {
 namespace experimental {
 namespace solver {
-
-
-/**
- * Algorithm selection for Direct solver.
- */
-enum class direct_algorithm {
-    factorization,  ///< L/U factorization + triangular solve (default)
-    vendor          ///< Vendor-specific direct solver (cuDSS on CUDA)
-};
-
-
-/**
- * Vendor-specific parameters for Direct solver.
- * Integer values map to vendor-specific enums (e.g. cudssMatrixType_t).
- */
-struct vendor_parameters {
-    int matrix_type = 0;  ///< 0=GENERAL, 1=SYMMETRIC, 2=HERMITIAN, 3=SPD, 4=HPD
-    int matrix_view = 0;  ///< 0=FULL, 1=UPPER, 2=LOWER
-    int reordering_alg = 0;       ///< vendor-specific reordering (0=default)
-    bool hybrid_execute = false;  ///< hybrid host/device execution
-    bool hybrid_memory = false;   ///< hybrid CPU+GPU memory
-};
-
-
-/**
- * Forward declaration of opaque vendor state.
- */
-struct direct_vendor_state;
 
 
 /**
@@ -93,16 +64,6 @@ public:
         /** The factorization factory to use for generating the factors. */
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             factorization);
-
-        /** Algorithm selection for the direct solve. */
-        direct_algorithm GKO_FACTORY_PARAMETER_SCALAR(
-            algorithm, direct_algorithm::factorization);
-
-        /**
-         * Vendor-specific parameters. Only used when algorithm == vendor.
-         */
-        vendor_parameters GKO_FACTORY_PARAMETER_SCALAR(vendor_params,
-                                                       vendor_parameters{});
     };
     GKO_ENABLE_LIN_OP_FACTORY(Direct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -151,10 +112,6 @@ private:
 
     std::unique_ptr<lower_type> lower_solver_;
     std::unique_ptr<upper_type> upper_solver_;
-    // vendor_system_matrix_ must be declared before vendor_state_ so that
-    // the cuDSS handles are destroyed before the CSR data they reference.
-    std::shared_ptr<const LinOp> vendor_system_matrix_;
-    std::shared_ptr<direct_vendor_state> vendor_state_;
 };
 
 

@@ -98,11 +98,6 @@
 // clang-format on
 #endif
 
-/* Is cuDSS available for direct solving? */
-// clang-format off
-#define GKO_HAVE_CUDSS @GINKGO_HAVE_CUDSS@
-// clang-format on
-
 /* Is ROCTX available for Profiling? */
 // clang-format off
 #define GKO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@

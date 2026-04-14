@@ -69,28 +69,4 @@ TYPED_TEST(Direct, PassExplicitFactory)
 }
 
 
-TYPED_TEST(Direct, FactoryAcceptsVendorAlgorithm)
-{
-    using Solver = typename TestFixture::Solver;
-
-    auto factory =
-        Solver::build()
-            .with_algorithm(gko::experimental::solver::direct_algorithm::vendor)
-            .with_vendor_params(gko::experimental::solver::vendor_parameters{
-                3, 0, 0, false, false})
-            .on(this->exec);
-
-    ASSERT_EQ(factory->get_parameters().algorithm,
-              gko::experimental::solver::direct_algorithm::vendor);
-    ASSERT_EQ(factory->get_parameters().vendor_params.matrix_type, 3);
-}
-
-
-TYPED_TEST(Direct, FactoryDefaultsToFactorizationAlgorithm)
-{
-    ASSERT_EQ(this->factory->get_parameters().algorithm,
-              gko::experimental::solver::direct_algorithm::factorization);
-}
-
-
 }  // namespace
