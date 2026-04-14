@@ -247,6 +247,83 @@ CuDss<ValueType, IndexType>::CuDss(const Factory* factory,
 
 
 template <typename ValueType, typename IndexType>
+void CuDss<ValueType, IndexType>::refactorize(
+    std::shared_ptr<const LinOp> new_matrix)
+{
+    if constexpr (!is_cudss_supported_type<ValueType>()) {
+        GKO_NOT_SUPPORTED(this);
+    } else {
+        const auto exec = this->get_executor();
+        using CsrType = matrix::Csr<ValueType, IndexType>;
+        auto csr = copy_and_convert_to<CsrType>(exec, new_matrix);
+
+        GKO_ASSERT_EQUAL_DIMENSIONS(csr, system_matrix_);
+        const auto old_csr = dynamic_cast<const CsrType*>(system_matrix_.get());
+        GKO_ASSERT(old_csr);
+        GKO_ASSERT(csr->get_num_stored_elements() ==
+                   old_csr->get_num_stored_elements());
+
+        // Replace the stored CSR matrix
+        system_matrix_ = csr;
+
+        const auto nrows = static_cast<int64_t>(csr->get_size()[0]);
+        const auto ncols = static_cast<int64_t>(csr->get_size()[1]);
+        const auto nnz = static_cast<int64_t>(csr->get_num_stored_elements());
+
+        // Destroy old cuDSS matrix wrapper
+        if (state_->A) {
+            cudssMatrixDestroy(state_->A);
+            state_->A = nullptr;
+        }
+
+        // Create new wrapper pointing to updated CSR data
+        const auto& params =
+            this->get_parameters();  // not available — use stored mtype/mview
+        // Re-create with GENERAL/FULL defaults; for correct matrix_type/view,
+        // we store them from the factory parameters during generate().
+        // For now, use the values from the original factory.
+        auto mtype = static_cast<cudssMatrixType_t>(params.matrix_type);
+        auto mview = static_cast<cudssMatrixViewType_t>(params.matrix_view);
+
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateCsr(
+            &state_->A, nrows, ncols, nnz,
+            const_cast<IndexType*>(csr->get_const_row_ptrs()), nullptr,
+            const_cast<IndexType*>(csr->get_const_col_idxs()),
+            const_cast<ValueType*>(csr->get_const_values()),
+            cuda_data_type<IndexType>(), cuda_data_type<ValueType>(), mtype,
+            mview, CUDSS_BASE_ZERO));
+
+        // Temporary dense vectors for factorization phase
+        ValueType* tmp_b_data = nullptr;
+        ValueType* tmp_x_data = nullptr;
+        cudaMalloc(&tmp_b_data, nrows * sizeof(ValueType));
+        cudaMalloc(&tmp_x_data, nrows * sizeof(ValueType));
+        cudaMemset(tmp_b_data, 0, nrows * sizeof(ValueType));
+        cudaMemset(tmp_x_data, 0, nrows * sizeof(ValueType));
+
+        cudssMatrix_t tmp_b = nullptr;
+        cudssMatrix_t tmp_x = nullptr;
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
+            &tmp_b, nrows, 1, nrows, tmp_b_data, cuda_data_type<ValueType>(),
+            CUDSS_LAYOUT_COL_MAJOR));
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
+            &tmp_x, nrows, 1, nrows, tmp_x_data, cuda_data_type<ValueType>(),
+            CUDSS_LAYOUT_COL_MAJOR));
+
+        // Re-run factorization only — symbolic analysis is reused
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssExecute(
+            state_->handle, CUDSS_PHASE_FACTORIZATION, state_->config,
+            state_->data, state_->A, tmp_x, tmp_b));
+
+        cudssMatrixDestroy(tmp_b);
+        cudssMatrixDestroy(tmp_x);
+        cudaFree(tmp_b_data);
+        cudaFree(tmp_x_data);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 void CuDss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     if constexpr (!is_cudss_supported_type<ValueType>()) {

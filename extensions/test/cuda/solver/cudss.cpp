@@ -127,4 +127,53 @@ TEST_F(CuDss, AdvancedApplyMatchesRef)
 }
 
 
+TEST_F(CuDss, RefactorizeWithUpdatedValuesMatchesRef)
+{
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx, 1);
+    auto cudss_solver = this->cudss_factory->generate(this->dmtx);
+
+    // First solve with original matrix
+    cudss_solver->apply(this->dinput, this->doutput);
+
+    // Scale all matrix values by 2 — same sparsity, different numerics
+    auto scaled_mtx = gko::share(gko::clone(this->ref, this->mtx));
+    for (gko::size_type i = 0; i < scaled_mtx->get_num_stored_elements(); ++i) {
+        scaled_mtx->get_values()[i] *= 2.0;
+    }
+    auto d_scaled_mtx = gko::share(gko::clone(this->exec, scaled_mtx));
+
+    // Reference: generate a fresh solver with the scaled matrix
+    auto ref_solver = this->ref_factory->generate(scaled_mtx);
+    ref_solver->apply(this->input, this->output);
+
+    // CuDss: refactorize with the scaled matrix, then solve
+    cudss_solver->refactorize(d_scaled_mtx);
+    cudss_solver->apply(this->dinput, this->doutput);
+
+    GKO_ASSERT_MTX_NEAR(this->output, this->doutput, 100 * r<double>::value);
+}
+
+
+TEST_F(CuDss, ParseConfigCreatesCorrectFactory)
+{
+    auto config_map = CuDssSolver::get_default_config_map();
+    auto reg = gko::config::registry{config_map};
+
+    gko::config::pnode::map_type conf_map;
+    conf_map["type"] = gko::config::pnode{"ext::cuda::solver::CuDss"};
+    conf_map["matrix_type"] = gko::config::pnode{3};
+    conf_map["matrix_view"] = gko::config::pnode{2};
+    conf_map["reordering_alg"] = gko::config::pnode{1};
+    auto conf = gko::config::pnode{conf_map};
+
+    auto params = CuDssSolver::parse(conf, reg);
+
+    ASSERT_EQ(params.matrix_type, 3);
+    ASSERT_EQ(params.matrix_view, 2);
+    ASSERT_EQ(params.reordering_alg, 1);
+    ASSERT_EQ(params.hybrid_execute, false);
+    ASSERT_EQ(params.hybrid_memory, false);
+}
+
+
 }  // namespace

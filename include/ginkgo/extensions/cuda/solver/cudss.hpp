@@ -100,6 +100,18 @@ public:
 
     CuDss& operator=(CuDss&&) noexcept;
 
+    /**
+     * Re-run the numeric factorization with updated matrix values.
+     *
+     * The new matrix must have the same sparsity pattern (dimensions and
+     * number of non-zeros) as the matrix used in generate(). Only the
+     * numeric factorization phase is re-executed; the symbolic analysis
+     * from the initial generate() is reused.
+     *
+     * @param new_matrix  the updated system matrix (same sparsity pattern)
+     */
+    void refactorize(std::shared_ptr<const LinOp> new_matrix);
+
 protected:
     explicit CuDss(std::shared_ptr<const Executor> exec);
 
