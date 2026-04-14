@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -106,9 +106,9 @@ struct Ic : PreconditionerConfigTest<::gko::preconditioner::Ic<float, int>,
 };
 
 
-struct Ilu : PreconditionerConfigTest<
-                 ::gko::preconditioner::Ilu<float, float, true, int>,
-                 ::gko::preconditioner::Ilu<double, double, false, int>> {
+struct Ilu
+    : PreconditionerConfigTest<::gko::preconditioner::Ilu<float, true, int>,
+                               ::gko::preconditioner::Ilu<double, false, int>> {
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"preconditioner::Ilu"}}};

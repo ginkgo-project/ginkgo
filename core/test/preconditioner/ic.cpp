@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,7 +27,7 @@ protected:
     using value_type = double;
     using index_type = gko::int32;
     using solver_type = gko::solver::Bicgstab<value_type>;
-    using ic_prec_type = gko::preconditioner::Ic<solver_type>;
+    using ic_prec_type = gko::preconditioner::Ic<value_type>;
     using ic_type = gko::factorization::ParIc<value_type, index_type>;
 
     IcFactory()
@@ -66,19 +66,6 @@ TEST_F(IcFactory, CanSetFactorizationFactory)
                           .on(this->exec);
 
     ASSERT_EQ(ic_factory->get_parameters().factorization_factory,
-              this->fact_factory);
-}
-
-
-TEST_F(IcFactory, DeprecatedFactoryParameter)
-{
-    auto ilu_factory = ic_prec_type::build()
-                           .with_l_solver_factory(this->l_factory)
-                           .with_factorization_factory(this->fact_factory)
-                           .on(this->exec);
-
-    ASSERT_EQ(ilu_factory->get_parameters().l_solver_factory, this->l_factory);
-    ASSERT_EQ(ilu_factory->get_parameters().factorization_factory,
               this->fact_factory);
 }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -118,8 +118,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 .with_iterations(FLAGS_parilu_iterations)
                                 .with_skip_sorting(true)
                                 .on(exec));
-             return gko::preconditioner::Ic<gko::solver::LowerTrs<etype, itype>,
-                                            itype>::build()
+             return gko::preconditioner::Ic<etype, itype>::build()
                  .with_factorization(fact)
                  .on(exec);
          }},
@@ -132,11 +131,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                      .with_fill_in_limit(FLAGS_parilut_limit)
                      .with_skip_sorting(true)
                      .on(exec));
-             return gko::preconditioner::
-                 Ilu<gko::solver::LowerTrs<etype, itype>,
-                     gko::solver::UpperTrs<etype, itype>, false, itype>::build()
-                     .with_factorization(fact)
-                     .on(exec);
+             return gko::preconditioner::Ilu<etype, false, itype>::build()
+                 .with_factorization(fact)
+                 .on(exec);
          }},
         {"parilu",
          [](std::shared_ptr<const gko::Executor> exec) {
@@ -145,11 +142,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 .with_iterations(FLAGS_parilu_iterations)
                                 .with_skip_sorting(true)
                                 .on(exec));
-             return gko::preconditioner::
-                 Ilu<gko::solver::LowerTrs<etype, itype>,
-                     gko::solver::UpperTrs<etype, itype>, false, itype>::build()
-                     .with_factorization(fact)
-                     .on(exec);
+             return gko::preconditioner::Ilu<etype, false, itype>::build()
+                 .with_factorization(fact)
+                 .on(exec);
          }},
         {"parilut",
          [](std::shared_ptr<const gko::Executor> exec) {
@@ -160,18 +155,15 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                      .with_fill_in_limit(FLAGS_parilut_limit)
                      .with_skip_sorting(true)
                      .on(exec));
-             return gko::preconditioner::
-                 Ilu<gko::solver::LowerTrs<etype, itype>,
-                     gko::solver::UpperTrs<etype, itype>, false, itype>::build()
-                     .with_factorization(fact)
-                     .on(exec);
+             return gko::preconditioner::Ilu<etype, false, itype>::build()
+                 .with_factorization(fact)
+                 .on(exec);
          }},
         {"ic",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(
                  gko::factorization::Ic<etype, itype>::build().on(exec));
-             return gko::preconditioner::Ic<gko::solver::LowerTrs<etype, itype>,
-                                            itype>::build()
+             return gko::preconditioner::Ic<etype, itype>::build()
                  .with_factorization(fact)
                  .on(exec);
          }},
@@ -179,11 +171,9 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(
                  gko::factorization::Ilu<etype, itype>::build().on(exec));
-             return gko::preconditioner::
-                 Ilu<gko::solver::LowerTrs<etype, itype>,
-                     gko::solver::UpperTrs<etype, itype>, false, itype>::build()
-                     .with_factorization(fact)
-                     .on(exec);
+             return gko::preconditioner::Ilu<etype, false, itype>::build()
+                 .with_factorization(fact)
+                 .on(exec);
          }},
         {"paric-isai",
          [](std::shared_ptr<const gko::Executor> exec) {
@@ -196,9 +186,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::preconditioner::LowerIsai<etype, itype>::build()
                      .with_sparsity_power(FLAGS_isai_power)
                      .on(exec));
-             return gko::preconditioner::Ic<
-                        gko::preconditioner::LowerIsai<etype, itype>,
-                        itype>::build()
+             return gko::preconditioner::Ic<etype, itype>::build()
                  .with_factorization(fact)
                  .with_l_solver(lisai)
                  .on(exec);
@@ -216,9 +204,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::preconditioner::LowerIsai<etype, itype>::build()
                      .with_sparsity_power(FLAGS_isai_power)
                      .on(exec));
-             return gko::preconditioner::Ic<
-                        gko::preconditioner::LowerIsai<etype, itype>,
-                        itype>::build()
+             return gko::preconditioner::Ic<etype, itype>::build()
                  .with_factorization(fact)
                  .with_l_solver(lisai)
                  .on(exec);
@@ -238,10 +224,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::preconditioner::UpperIsai<etype, itype>::build()
                      .with_sparsity_power(FLAGS_isai_power)
                      .on(exec));
-             return gko::preconditioner::Ilu<
-                        gko::preconditioner::LowerIsai<etype, itype>,
-                        gko::preconditioner::UpperIsai<etype, itype>, false,
-                        itype>::build()
+             return gko::preconditioner::Ilu<etype, false, itype>::build()
                  .with_factorization(fact)
                  .with_l_solver(lisai)
                  .with_u_solver(uisai)
@@ -264,10 +247,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::preconditioner::UpperIsai<etype, itype>::build()
                      .with_sparsity_power(FLAGS_isai_power)
                      .on(exec));
-             return gko::preconditioner::Ilu<
-                        gko::preconditioner::LowerIsai<etype, itype>,
-                        gko::preconditioner::UpperIsai<etype, itype>, false,
-                        itype>::build()
+             return gko::preconditioner::Ilu<etype, false, itype>::build()
                  .with_factorization(fact)
                  .with_l_solver(lisai)
                  .with_u_solver(uisai)
@@ -281,9 +261,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::preconditioner::LowerIsai<etype, itype>::build()
                      .with_sparsity_power(FLAGS_isai_power)
                      .on(exec));
-             return gko::preconditioner::Ic<
-                        gko::preconditioner::LowerIsai<etype, itype>,
-                        itype>::build()
+             return gko::preconditioner::Ic<etype, itype>::build()
                  .with_factorization(fact)
                  .with_l_solver(lisai)
                  .on(exec);
@@ -300,10 +278,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::preconditioner::UpperIsai<etype, itype>::build()
                      .with_sparsity_power(FLAGS_isai_power)
                      .on(exec));
-             return gko::preconditioner::Ilu<
-                        gko::preconditioner::LowerIsai<etype, itype>,
-                        gko::preconditioner::UpperIsai<etype, itype>, false,
-                        itype>::build()
+             return gko::preconditioner::Ilu<etype, false, itype>::build()
                  .with_factorization(fact)
                  .with_l_solver(lisai)
                  .with_u_solver(uisai)
@@ -401,12 +376,10 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 .on(exec));
              return gko::experimental::distributed::preconditioner::Schwarz<
                         etype, itype>::build()
-                 .with_local_solver(gko::preconditioner::Ilu<
-                                        gko::solver::LowerTrs<etype, itype>,
-                                        gko::solver::UpperTrs<etype, itype>,
-                                        false, itype>::build()
-                                        .with_factorization(fact)
-                                        .on(exec))
+                 .with_local_solver(
+                     gko::preconditioner::Ilu<etype, false, itype>::build()
+                         .with_factorization(fact)
+                         .on(exec))
                  .on(exec);
          }},
         {"schwarz-ic",
@@ -418,8 +391,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
              return gko::experimental::distributed::preconditioner::Schwarz<
                         etype, itype>::build()
                  .with_local_solver(
-                     gko::preconditioner::Ic<
-                         gko::solver::LowerTrs<etype, itype>, itype>::build()
+                     gko::preconditioner::Ic<etype, itype>::build()
                          .with_factorization(fact)
                          .on(exec))
                  .on(exec);

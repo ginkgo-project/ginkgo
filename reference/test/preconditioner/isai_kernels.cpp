@@ -1460,6 +1460,7 @@ TYPED_TEST(Isai, AdvancedApplySpdComposition)
 TYPED_TEST(Isai, UseWithIluPreconditioner)
 {
     using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using T = typename TestFixture::value_type;
     using LowerIsai = typename TestFixture::LowerIsai;
@@ -1468,9 +1469,11 @@ TYPED_TEST(Isai, UseWithIluPreconditioner)
     auto result = Dense::create(this->exec, vec->get_size());
     auto mtx = gko::share(Dense::create_with_config_of(this->l_dense));
     this->l_dense->apply(this->u_dense, mtx);
-    auto ilu_factory = gko::preconditioner::Ilu<LowerIsai, UpperIsai, false,
-                                                index_type>::build()
-                           .on(this->exec);
+    auto ilu_factory =
+        gko::preconditioner::Ilu<value_type, false, index_type>::build()
+            .with_l_solver(LowerIsai::build())
+            .with_u_solver(UpperIsai::build())
+            .on(this->exec);
     auto ilu = ilu_factory->generate(mtx);
 
     ilu->apply(vec, result);

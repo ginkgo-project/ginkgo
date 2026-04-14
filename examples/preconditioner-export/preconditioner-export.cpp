@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -98,6 +98,9 @@ int main(int argc, char* argv[])
         output_suffix = output_suffix + "-" + argv[i];
     }
 
+    using LowerIsai = gko::preconditioner::LowerIsai<>;
+    using UpperIsai = gko::preconditioner::UpperIsai<>;
+
     // handle different preconditioners
     if (precond == "jacobi") {
         // jacobi: max_block_size, accuracy, storage_optimization
@@ -167,18 +170,19 @@ int main(int argc, char* argv[])
             sparsity_power = std::stoi(argv[4]);
         }
         auto factory =
-            gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>,
-                                     gko::preconditioner::UpperIsai<>>::build()
+            gko::preconditioner::Ilu<>::build()
                 .with_factorization(fact_factory)
-                .with_l_solver(gko::preconditioner::LowerIsai<>::build()
-                                   .with_sparsity_power(sparsity_power))
-                .with_u_solver(gko::preconditioner::UpperIsai<>::build()
-                                   .with_sparsity_power(sparsity_power))
+                .with_l_solver(
+                    LowerIsai::build().with_sparsity_power(sparsity_power))
+                .with_u_solver(
+                    UpperIsai::build().with_sparsity_power(sparsity_power))
                 .on(exec);
         auto ilu_isai = try_generate([&] { return factory->generate(mtx); });
-        output(ilu_isai->get_l_solver()->get_approximate_inverse(),
+        output(gko::as<LowerIsai>(ilu_isai->get_l_solver())
+                   ->get_approximate_inverse(),
                matrix + ".ilu-isai" + output_suffix + "-l");
-        output(ilu_isai->get_u_solver()->get_approximate_inverse(),
+        output(gko::as<UpperIsai>(ilu_isai->get_u_solver())
+                   ->get_approximate_inverse(),
                matrix + ".ilu-isai" + output_suffix + "-u");
     } else if (precond == "parilu-isai") {
         // parilu-isai: iterations, sparsity power
@@ -193,18 +197,19 @@ int main(int argc, char* argv[])
         }
         auto fact_factory = gko::share(fact_parameter.on(exec));
         auto factory =
-            gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>,
-                                     gko::preconditioner::UpperIsai<>>::build()
+            gko::preconditioner::Ilu<>::build()
                 .with_factorization(fact_factory)
-                .with_l_solver(gko::preconditioner::LowerIsai<>::build()
-                                   .with_sparsity_power(sparsity_power))
-                .with_u_solver(gko::preconditioner::UpperIsai<>::build()
-                                   .with_sparsity_power(sparsity_power))
+                .with_l_solver(
+                    LowerIsai::build().with_sparsity_power(sparsity_power))
+                .with_u_solver(
+                    UpperIsai::build().with_sparsity_power(sparsity_power))
                 .on(exec);
         auto ilu_isai = try_generate([&] { return factory->generate(mtx); });
-        output(ilu_isai->get_l_solver()->get_approximate_inverse(),
+        output(gko::as<LowerIsai>(ilu_isai->get_l_solver())
+                   ->get_approximate_inverse(),
                matrix + ".parilu-isai" + output_suffix + "-l");
-        output(ilu_isai->get_u_solver()->get_approximate_inverse(),
+        output(gko::as<UpperIsai>(ilu_isai->get_u_solver())
+                   ->get_approximate_inverse(),
                matrix + ".parilu-isai" + output_suffix + "-u");
     } else if (precond == "parilut-isai") {
         // parilut-isai: iterations, fill-in limit, sparsity power
@@ -222,18 +227,19 @@ int main(int argc, char* argv[])
         }
         auto fact_factory = gko::share(fact_parameter.on(exec));
         auto factory =
-            gko::preconditioner::Ilu<gko::preconditioner::LowerIsai<>,
-                                     gko::preconditioner::UpperIsai<>>::build()
+            gko::preconditioner::Ilu<>::build()
                 .with_factorization(fact_factory)
-                .with_l_solver(gko::preconditioner::LowerIsai<>::build()
-                                   .with_sparsity_power(sparsity_power))
-                .with_u_solver(gko::preconditioner::UpperIsai<>::build()
-                                   .with_sparsity_power(sparsity_power))
+                .with_l_solver(
+                    LowerIsai::build().with_sparsity_power(sparsity_power))
+                .with_u_solver(
+                    UpperIsai::build().with_sparsity_power(sparsity_power))
                 .on(exec);
         auto ilu_isai = try_generate([&] { return factory->generate(mtx); });
-        output(ilu_isai->get_l_solver()->get_approximate_inverse(),
+        output(gko::as<LowerIsai>(ilu_isai->get_l_solver())
+                   ->get_approximate_inverse(),
                matrix + ".parilut-isai" + output_suffix + "-l");
-        output(ilu_isai->get_u_solver()->get_approximate_inverse(),
+        output(gko::as<UpperIsai>(ilu_isai->get_u_solver())
+                   ->get_approximate_inverse(),
                matrix + ".parilut-isai" + output_suffix + "-u");
     }
 }
