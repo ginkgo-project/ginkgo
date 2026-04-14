@@ -154,6 +154,71 @@ TEST_F(CuDss, RefactorizeWithUpdatedValuesMatchesRef)
 }
 
 
+TEST_F(CuDss, ApplyToStridedSingleRhsMatchesRef)
+{
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx, 1);
+    auto ref_solver = this->ref_factory->generate(this->mtx);
+    auto cudss_solver = this->cudss_factory->generate(this->dmtx);
+    const auto nrows = this->mtx->get_size()[0];
+
+    // Create a wider dense matrix and take a column view to get strided vectors
+    auto wide_input = vector_type::create(this->ref, gko::dim<2>{nrows, 3});
+    auto wide_output = vector_type::create(this->ref, gko::dim<2>{nrows, 3});
+    // Copy input into column 1 (middle column, stride = 3)
+    for (gko::size_type i = 0; i < nrows; ++i) {
+        wide_input->at(i, 1) = this->input->at(i, 0);
+        wide_output->at(i, 1) = this->output->at(i, 0);
+    }
+    auto d_wide_input = gko::clone(this->exec, wide_input);
+    auto d_wide_output = gko::clone(this->exec, wide_output);
+
+    // Create strided submatrix views (column 1 of the 3-column matrix)
+    auto strided_input =
+        d_wide_input->create_submatrix(gko::span{0, nrows}, gko::span{1, 2});
+    auto strided_output =
+        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{1, 2});
+
+    // Reference solve with non-strided vectors
+    ref_solver->apply(this->input, this->output);
+
+    // CuDss solve with strided vectors
+    cudss_solver->apply(strided_input, strided_output);
+
+    GKO_ASSERT_MTX_NEAR(this->output, strided_output, 100 * r<double>::value);
+}
+
+
+TEST_F(CuDss, ApplyToStridedMultipleRhsMatchesRef)
+{
+    this->initialize_data(gko::matrices::location_ani4_amd_mtx, 3);
+    auto ref_solver = this->ref_factory->generate(this->mtx);
+    auto cudss_solver = this->cudss_factory->generate(this->dmtx);
+    const auto nrows = this->mtx->get_size()[0];
+
+    // Create a wider matrix (6 cols) and take columns 1..3 as a strided view
+    auto wide_input = vector_type::create(this->ref, gko::dim<2>{nrows, 6});
+    auto wide_output = vector_type::create(this->ref, gko::dim<2>{nrows, 6});
+    for (gko::size_type i = 0; i < nrows; ++i) {
+        for (gko::size_type j = 0; j < 3; ++j) {
+            wide_input->at(i, j + 1) = this->input->at(i, j);
+            wide_output->at(i, j + 1) = this->output->at(i, j);
+        }
+    }
+    auto d_wide_input = gko::clone(this->exec, wide_input);
+    auto d_wide_output = gko::clone(this->exec, wide_output);
+
+    auto strided_input =
+        d_wide_input->create_submatrix(gko::span{0, nrows}, gko::span{1, 4});
+    auto strided_output =
+        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{1, 4});
+
+    ref_solver->apply(this->input, this->output);
+    cudss_solver->apply(strided_input, strided_output);
+
+    GKO_ASSERT_MTX_NEAR(this->output, strided_output, 100 * r<double>::value);
+}
+
+
 TEST_F(CuDss, ParseConfigCreatesCorrectFactory)
 {
     auto config_map = CuDssSolver::get_default_config_map();
