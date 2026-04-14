@@ -213,12 +213,6 @@ CuDss<ValueType, IndexType>::CuDss(const Factory* factory,
 
         cudssMatrix_t tmp_b = nullptr;
         cudssMatrix_t tmp_x = nullptr;
-        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_b, nrows, 1, nrows, static_cast<ValueType*>(nullptr),
-            cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
-        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_x, nrows, 1, nrows, static_cast<ValueType*>(nullptr),
-            cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
 
         GKO_ASSERT_NO_CUDSS_ERRORS(
             cudssExecute(st->handle, CUDSS_PHASE_ANALYSIS, st->config, st->data,
@@ -227,9 +221,6 @@ CuDss<ValueType, IndexType>::CuDss(const Factory* factory,
         GKO_ASSERT_NO_CUDSS_ERRORS(
             cudssExecute(st->handle, CUDSS_PHASE_FACTORIZATION, st->config,
                          st->data, st->A, tmp_x, tmp_b));
-
-        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(tmp_b));
-        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(tmp_x));
 
         state_ = std::move(st);
     }
@@ -285,20 +276,11 @@ void CuDss<ValueType, IndexType>::refactorize(
 
         cudssMatrix_t tmp_b = nullptr;
         cudssMatrix_t tmp_x = nullptr;
-        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_b, nrows, 1, nrows, static_cast<ValueType*>(nullptr),
-            cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
-        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_x, nrows, 1, nrows, static_cast<ValueType*>(nullptr),
-            cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
 
         // Re-run numeric factorization only — symbolic analysis is reused
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssExecute(
             state_->handle, CUDSS_PHASE_REFACTORIZATION, state_->config,
             state_->data, state_->A, tmp_x, tmp_b));
-
-        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(tmp_b));
-        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(tmp_x));
     }
 }
 
