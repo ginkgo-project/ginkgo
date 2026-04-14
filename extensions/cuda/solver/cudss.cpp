@@ -211,22 +211,14 @@ CuDss<ValueType, IndexType>::CuDss(const Factory* factory,
             cuda_data_type<IndexType>(), cuda_data_type<ValueType>(), mtype,
             mview, CUDSS_BASE_ZERO));
 
-        // Allocate temporary dense vectors for analysis/factorization.
-        ValueType* tmp_b_data = nullptr;
-        ValueType* tmp_x_data = nullptr;
-        cudaMalloc(&tmp_b_data, nrows * sizeof(ValueType));
-        cudaMalloc(&tmp_x_data, nrows * sizeof(ValueType));
-        cudaMemset(tmp_b_data, 0, nrows * sizeof(ValueType));
-        cudaMemset(tmp_x_data, 0, nrows * sizeof(ValueType));
-
         cudssMatrix_t tmp_b = nullptr;
         cudssMatrix_t tmp_x = nullptr;
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_b, nrows, 1, nrows, tmp_b_data, cuda_data_type<ValueType>(),
-            CUDSS_LAYOUT_COL_MAJOR));
+            &tmp_b, nrows, 1, nrows, static_cast<ValueType*>(nullptr),
+            cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_x, nrows, 1, nrows, tmp_x_data, cuda_data_type<ValueType>(),
-            CUDSS_LAYOUT_COL_MAJOR));
+            &tmp_x, nrows, 1, nrows, static_cast<ValueType*>(nullptr),
+            cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
 
         GKO_ASSERT_NO_CUDSS_ERRORS(
             cudssExecute(st->handle, CUDSS_PHASE_ANALYSIS, st->config, st->data,
@@ -236,10 +228,8 @@ CuDss<ValueType, IndexType>::CuDss(const Factory* factory,
             cudssExecute(st->handle, CUDSS_PHASE_FACTORIZATION, st->config,
                          st->data, st->A, tmp_x, tmp_b));
 
-        cudssMatrixDestroy(tmp_b);
-        cudssMatrixDestroy(tmp_x);
-        cudaFree(tmp_b_data);
-        cudaFree(tmp_x_data);
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(tmp_b));
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(tmp_x));
 
         state_ = std::move(st);
     }
@@ -293,32 +283,22 @@ void CuDss<ValueType, IndexType>::refactorize(
             cuda_data_type<IndexType>(), cuda_data_type<ValueType>(), mtype,
             mview, CUDSS_BASE_ZERO));
 
-        // Temporary dense vectors for factorization phase
-        ValueType* tmp_b_data = nullptr;
-        ValueType* tmp_x_data = nullptr;
-        cudaMalloc(&tmp_b_data, nrows * sizeof(ValueType));
-        cudaMalloc(&tmp_x_data, nrows * sizeof(ValueType));
-        cudaMemset(tmp_b_data, 0, nrows * sizeof(ValueType));
-        cudaMemset(tmp_x_data, 0, nrows * sizeof(ValueType));
-
         cudssMatrix_t tmp_b = nullptr;
         cudssMatrix_t tmp_x = nullptr;
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_b, nrows, 1, nrows, tmp_b_data, cuda_data_type<ValueType>(),
-            CUDSS_LAYOUT_COL_MAJOR));
+            &tmp_b, nrows, 1, nrows, static_cast<ValueType*>(nullptr),
+            cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-            &tmp_x, nrows, 1, nrows, tmp_x_data, cuda_data_type<ValueType>(),
-            CUDSS_LAYOUT_COL_MAJOR));
+            &tmp_x, nrows, 1, nrows, static_cast<ValueType*>(nullptr),
+            cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
 
         // Re-run factorization only — symbolic analysis is reused
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssExecute(
             state_->handle, CUDSS_PHASE_FACTORIZATION, state_->config,
             state_->data, state_->A, tmp_x, tmp_b));
 
-        cudssMatrixDestroy(tmp_b);
-        cudssMatrixDestroy(tmp_x);
-        cudaFree(tmp_b_data);
-        cudaFree(tmp_x_data);
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(tmp_b));
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(tmp_x));
     }
 }
 
