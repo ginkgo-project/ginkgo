@@ -7,13 +7,7 @@
 #include <memory>
 #include <optional>
 
-
-#if HIP_VERSION >= 50200000
 #include <hipsparse/hipsparse.h>
-#else
-#include <hipsparse.h>
-#endif
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>

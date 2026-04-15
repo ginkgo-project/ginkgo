@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -60,7 +60,6 @@ struct gcc_atomic_intrinsic_type_map<double> {
 };
 
 
-#if HIP_VERSION >= 50100000
 // These intrinsics can be found used in clang/test/SemaCUDA/atomic-ops.cu
 // in the LLVM source code
 
@@ -70,13 +69,6 @@ struct gcc_atomic_intrinsic_type_map<double> {
     __hip_atomic_store(ptr, value, memorder, scope)
 #define HIP_SCOPE_GPU __HIP_MEMORY_SCOPE_AGENT
 #define HIP_SCOPE_THREADBLOCK __HIP_MEMORY_SCOPE_WORKGROUP
-#else
-#define HIP_ATOMIC_LOAD(ptr, memorder, scope) __atomic_load_n(ptr, memorder)
-#define HIP_ATOMIC_STORE(ptr, value, memorder, scope) \
-    __atomic_store_n(ptr, value, memorder)
-#define HIP_SCOPE_GPU -1
-#define HIP_SCOPE_THREADBLOCK -1
-#endif
 
 
 /**

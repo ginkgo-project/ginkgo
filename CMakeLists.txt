@@ -231,7 +231,7 @@ if(GINKGO_BUILD_HIP)
         # HIP VERSION does not use the exact version number as ROCm. Need to wait for ROCm 7.1.1 to set proper range for ROCm 7.1.0
         message(
             STATUS
-            "Disable custom thrust namespace for hip 7.1 because hip does not adapt the custom namespace fully."
+            "Disable custom thrust namespace after hip 7.1 because hip does not adapt the custom namespace fully."
         )
         set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE OFF)
     else()

@@ -6,13 +6,7 @@
 
 #include <array>
 
-
-#if HIP_VERSION >= 50200000
 #include <hipfft/hipfft.h>
-#else
-#include <hipfft.h>
-#endif
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>

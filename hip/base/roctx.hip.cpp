@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,11 +8,7 @@
 
 
 #if GINKGO_HIP_PLATFORM_HCC && GKO_HAVE_ROCTX
-#if HIP_VERSION >= 50200000
 #include <roctracer/roctx.h>
-#else
-#include <roctx.h>
-#endif
 #endif
 
 
