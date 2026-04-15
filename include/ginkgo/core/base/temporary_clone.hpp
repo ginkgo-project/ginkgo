@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -53,7 +53,7 @@ public:
      */
     void operator()(pointer ptr) const
     {
-        original_->copy_from(ptr);
+        // original_->copy_from(ptr);
         delete ptr;
     }
 
@@ -111,7 +111,8 @@ struct temporary_clone_helper {
     static std::unique_ptr<T> create(std::shared_ptr<const Executor> exec,
                                      T* ptr, bool)
     {
-        return gko::clone(std::move(exec), ptr);
+        return nullptr;
+        // return gko::clone(std::move(exec), ptr);
     }
 };
 

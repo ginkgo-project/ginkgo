@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -208,8 +208,8 @@ public:
         if (input->get_executor() == exec) {
             generated = this->AbstractFactory::generate(input);
         } else {
-            generated =
-                this->AbstractFactory::generate(gko::clone(exec, input));
+            // generated =
+            //     this->AbstractFactory::generate(gko::clone(exec, input));
         }
         this->template log<
             gko::log::Logger::batch_linop_factory_generate_completed>(

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -292,8 +292,8 @@ public:
             lh_solver_ = other.lh_solver_;
             parameters_ = other.parameters_;
             if (other.get_executor() != exec) {
-                l_solver_ = gko::clone(exec, l_solver_);
-                lh_solver_ = gko::clone(exec, lh_solver_);
+                // l_solver_ = gko::clone(exec, l_solver_);
+                // lh_solver_ = gko::clone(exec, lh_solver_);
             }
         }
         return *this;
@@ -310,12 +310,12 @@ public:
         if (&other != this) {
             EnableLinOp<Ic>::operator=(other);
             auto exec = this->get_executor();
-            l_solver_ = std::move(other.l_solver_);
-            lh_solver_ = std::move(other.lh_solver_);
+            // l_solver_ = std::move(other.l_solver_);
+            // lh_solver_ = std::move(other.lh_solver_);
             parameters_ = std::exchange(other.parameters_, parameters_type{});
             if (other.get_executor() != exec) {
-                l_solver_ = gko::clone(exec, l_solver_);
-                lh_solver_ = gko::clone(exec, lh_solver_);
+                // l_solver_ = gko::clone(exec, l_solver_);
+                // lh_solver_ = gko::clone(exec, lh_solver_);
             }
         }
         return *this;
@@ -343,7 +343,7 @@ protected:
                 this->set_cache_to(dense_b);
                 l_solver_->apply(dense_b, cache_.intermediate);
                 if (lh_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(cache_.intermediate);
+                    // dense_x->copy_from(cache_.intermediate);
                 }
                 lh_solver_->apply(cache_.intermediate, dense_x);
             },
@@ -437,7 +437,7 @@ protected:
                 matrix::Dense<value_type>::create(this->get_executor());
         }
         // Use b as the initial guess for the first triangular solve
-        cache_.intermediate->copy_from(b);
+        // cache_.intermediate->copy_from(b);
     }
 
     /**

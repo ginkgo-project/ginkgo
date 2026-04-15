@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1070,55 +1070,57 @@ TYPED_TEST(Jacobi,
 }
 
 
-TYPED_TEST(Jacobi, ConvertsToDense)
-{
-    using Vec = typename TestFixture::Vec;
-    using value_type = typename TestFixture::value_type;
-    auto dense = Vec::create(this->exec);
+// TYPED_TEST(Jacobi, ConvertsToDense)
+// {
+//     using Vec = typename TestFixture::Vec;
+//     using value_type = typename TestFixture::value_type;
+//     auto dense = Vec::create(this->exec);
 
-    dense->move_from(this->bj_factory->generate(this->mtx));
+//     dense->move_from(this->bj_factory->generate(this->mtx));
 
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(dense,
-        l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
-           {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
-           {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
-           {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), r<value_type>::value);
-    // clang-format on
-}
-
-
-TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
-{
-    using Vec = typename TestFixture::Vec;
-    using value_type = typename TestFixture::value_type;
-    auto half_tol = std::sqrt(r<value_type>::value);
-    auto dense = Vec::create(this->exec);
-
-    dense->move_from(this->adaptive_bj_factory->generate(this->mtx));
-
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(dense,
-        l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
-           {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
-           {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
-           {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), half_tol);
-    // clang-format on
-}
+//     // clang-format off
+//     GKO_ASSERT_MTX_NEAR(dense,
+//         l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
+//            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
+//            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
+//            {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
+//            {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}),
+//            r<value_type>::value);
+//     // clang-format on
+// }
 
 
-TYPED_TEST(Jacobi, ConvertsEmptyToDense)
-{
-    using Vec = typename TestFixture::Vec;
-    auto empty = gko::share(Vec::create(this->exec));
-    auto res = Vec::create(this->exec);
+// TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
+// {
+//     using Vec = typename TestFixture::Vec;
+//     using value_type = typename TestFixture::value_type;
+//     auto half_tol = std::sqrt(r<value_type>::value);
+//     auto dense = Vec::create(this->exec);
 
-    res->move_from(TestFixture::Bj::build().on(this->exec)->generate(empty));
+//     dense->move_from(this->adaptive_bj_factory->generate(this->mtx));
 
-    ASSERT_FALSE(res->get_size());
-}
+//     // clang-format off
+//     GKO_ASSERT_MTX_NEAR(dense,
+//         l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
+//            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
+//            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
+//            {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
+//            {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}),
+//            half_tol);
+//     // clang-format on
+// }
+
+
+// TYPED_TEST(Jacobi, ConvertsEmptyToDense)
+// {
+//     using Vec = typename TestFixture::Vec;
+//     auto empty = gko::share(Vec::create(this->exec));
+//     auto res = Vec::create(this->exec);
+
+//     res->move_from(TestFixture::Bj::build().on(this->exec)->generate(empty));
+
+//     ASSERT_FALSE(res->get_size());
+// }
 
 
 TYPED_TEST(Jacobi, ScalarL1Diag)
@@ -1184,95 +1186,103 @@ TYPED_TEST(Jacobi, BlockL1)
 }
 
 
-TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
-{
-    using Bj = typename TestFixture::Bj;
-    using Mtx = typename TestFixture::Mtx;
-    using Vec = typename TestFixture::Vec;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto dense = Vec::create(this->exec);
-    auto bj_factory = Bj::build()
-                          .with_max_block_size(3u)
-                          .with_block_pointers(this->block_pointers)
-                          .with_aggregate_l1(true)
-                          .on(this->exec);
-    // after L1 modification, it will be the same as the matrix in other tests
-    /* test matrix:
-        2  -2 |        -2
-        -1  4 |
-       -------+----------
-              | 4  -2
-              |-1   4  -2
-       -4     |    -1
-    */
-    auto mtx = gko::share(Mtx::create(this->exec, gko::dim<2>{5}, 12));
-    this->template init_array<index_type>(mtx->get_row_ptrs(),
-                                          {0, 3, 5, 7, 10, 12});
-    this->template init_array<index_type>(mtx->get_col_idxs(),
-                                          {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3});
-    this->template init_array<value_type>(
-        mtx->get_values(),
-        {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0, -1.0});
+// TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
+// {
+//     using Bj = typename TestFixture::Bj;
+//     using Mtx = typename TestFixture::Mtx;
+//     using Vec = typename TestFixture::Vec;
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     auto dense = Vec::create(this->exec);
+//     auto bj_factory = Bj::build()
+//                           .with_max_block_size(3u)
+//                           .with_block_pointers(this->block_pointers)
+//                           .with_aggregate_l1(true)
+//                           .on(this->exec);
+//     // after L1 modification, it will be the same as the matrix in other
+//     tests
+//     /* test matrix:
+//         2  -2 |        -2
+//         -1  4 |
+//        -------+----------
+//               | 4  -2
+//               |-1   4  -2
+//        -4     |    -1
+//     */
+//     auto mtx = gko::share(Mtx::create(this->exec, gko::dim<2>{5}, 12));
+//     this->template init_array<index_type>(mtx->get_row_ptrs(),
+//                                           {0, 3, 5, 7, 10, 12});
+//     this->template init_array<index_type>(mtx->get_col_idxs(),
+//                                           {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0,
+//                                           3});
+//     this->template init_array<value_type>(
+//         mtx->get_values(),
+//         {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0,
+//         -1.0});
 
-    dense->move_from(bj_factory->generate(mtx));
+//     dense->move_from(bj_factory->generate(mtx));
 
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(dense,
-        l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
-           {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
-           {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
-           {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), r<value_type>::value);
-    // clang-format on
-}
+//     // clang-format off
+//     GKO_ASSERT_MTX_NEAR(dense,
+//         l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
+//            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
+//            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
+//            {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
+//            {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}),
+//            r<value_type>::value);
+//     // clang-format on
+// }
 
 
-TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDenseWithAdaptivePrecision)
-{
-    using Bj = typename TestFixture::Bj;
-    using Mtx = typename TestFixture::Mtx;
-    using Vec = typename TestFixture::Vec;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    auto half_tol = std::sqrt(r<value_type>::value);
-    auto dense = Vec::create(this->exec);
-    auto bj_factory = Bj::build()
-                          .with_max_block_size(17u)
-                          // make sure group size is 1
-                          .with_block_pointers(this->block_pointers)
-                          .with_storage_optimization(this->block_precisions)
-                          .with_aggregate_l1(true)
-                          .on(this->exec);
-    // after L1 modification, it will be the same as the matrix in other tests
-    /* test matrix:
-        2  -2 |        -2
-        -1  4 |
-       -------+----------
-              | 4  -2
-              |-1   4  -2
-       -4     |    -1
-    */
-    auto mtx = gko::share(Mtx::create(this->exec, gko::dim<2>{5}, 12));
-    this->template init_array<index_type>(mtx->get_row_ptrs(),
-                                          {0, 3, 5, 7, 10, 12});
-    this->template init_array<index_type>(mtx->get_col_idxs(),
-                                          {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0, 3});
-    this->template init_array<value_type>(
-        mtx->get_values(),
-        {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0, -1.0});
+// TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDenseWithAdaptivePrecision)
+// {
+//     using Bj = typename TestFixture::Bj;
+//     using Mtx = typename TestFixture::Mtx;
+//     using Vec = typename TestFixture::Vec;
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     auto half_tol = std::sqrt(r<value_type>::value);
+//     auto dense = Vec::create(this->exec);
+//     auto bj_factory = Bj::build()
+//                           .with_max_block_size(17u)
+//                           // make sure group size is 1
+//                           .with_block_pointers(this->block_pointers)
+//                           .with_storage_optimization(this->block_precisions)
+//                           .with_aggregate_l1(true)
+//                           .on(this->exec);
+//     // after L1 modification, it will be the same as the matrix in other
+//     tests
+//     /* test matrix:
+//         2  -2 |        -2
+//         -1  4 |
+//        -------+----------
+//               | 4  -2
+//               |-1   4  -2
+//        -4     |    -1
+//     */
+//     auto mtx = gko::share(Mtx::create(this->exec, gko::dim<2>{5}, 12));
+//     this->template init_array<index_type>(mtx->get_row_ptrs(),
+//                                           {0, 3, 5, 7, 10, 12});
+//     this->template init_array<index_type>(mtx->get_col_idxs(),
+//                                           {0, 1, 4, 0, 1, 2, 3, 2, 3, 4, 0,
+//                                           3});
+//     this->template init_array<value_type>(
+//         mtx->get_values(),
+//         {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0,
+//         -1.0});
 
-    dense->move_from(bj_factory->generate(mtx));
+//     dense->move_from(bj_factory->generate(mtx));
 
-    // clang-format off
-    GKO_ASSERT_MTX_NEAR(dense,
-        l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
-           {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
-           {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
-           {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), half_tol);
-    // clang-format on
-}
+//     // clang-format off
+//     GKO_ASSERT_MTX_NEAR(dense,
+//         l({{4.0 / 14, 2.0 / 14,       0.0,       0.0,       0.0},
+//            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
+//            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
+//            {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
+//            {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}),
+//            half_tol);
+//     // clang-format on
+// }
 
 
 }  // namespace

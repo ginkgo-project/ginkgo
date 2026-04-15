@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -282,7 +282,7 @@ public:
             GKO_ASSERT_EQUAL_DIMENSIONS(self(), new_precond);
             GKO_ASSERT_IS_SQUARE_MATRIX(new_precond);
             if (new_precond->get_executor() != exec) {
-                new_precond = gko::clone(exec, new_precond);
+                // new_precond = gko::clone(exec, new_precond);
             }
         }
         Preconditionable::set_preconditioner(new_precond);
@@ -647,7 +647,7 @@ protected:
             GKO_ASSERT_EQUAL_DIMENSIONS(self(), new_system_matrix);
             GKO_ASSERT_IS_SQUARE_MATRIX(new_system_matrix);
             if (new_system_matrix->get_executor() != exec) {
-                new_system_matrix = gko::clone(exec, new_system_matrix);
+                // new_system_matrix = gko::clone(exec, new_system_matrix);
             }
         }
         this->set_system_matrix_base(new_system_matrix);
@@ -770,7 +770,7 @@ public:
     {
         auto exec = self()->get_executor();
         if (new_stop_factory && new_stop_factory->get_executor() != exec) {
-            new_stop_factory = gko::clone(exec, new_stop_factory);
+            // new_stop_factory = gko::clone(exec, new_stop_factory);
         }
         IterativeBase::set_stop_criterion_factory(new_stop_factory);
     }

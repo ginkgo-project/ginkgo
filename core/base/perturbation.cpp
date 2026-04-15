@@ -21,9 +21,9 @@ Perturbation<ValueType>& Perturbation<ValueType>::operator=(
         basis_ = other.basis_;
         projector_ = other.projector_;
         if (other.get_executor() != exec) {
-            scalar_ = gko::clone(exec, scalar_);
-            basis_ = gko::clone(exec, basis_);
-            projector_ = gko::clone(exec, projector_);
+            // scalar_ = gko::clone(exec, scalar_);
+            // basis_ = gko::clone(exec, basis_);
+            // projector_ = gko::clone(exec, projector_);
         }
     }
     return *this;
@@ -37,13 +37,13 @@ Perturbation<ValueType>& Perturbation<ValueType>::operator=(
     if (&other != this) {
         EnableClonableLinOp<Perturbation>::operator=(std::move(other));
         auto exec = this->get_executor();
-        scalar_ = std::move(other.scalar_);
-        basis_ = std::move(other.basis_);
-        projector_ = std::move(other.projector_);
+        // scalar_ = std::move(other.scalar_);
+        // basis_ = std::move(other.basis_);
+        // projector_ = std::move(other.projector_);
         if (other.get_executor() != exec) {
-            scalar_ = gko::clone(exec, scalar_);
-            basis_ = gko::clone(exec, basis_);
-            projector_ = gko::clone(exec, projector_);
+            // scalar_ = gko::clone(exec, scalar_);
+            // basis_ = gko::clone(exec, basis_);
+            // projector_ = gko::clone(exec, projector_);
         }
     }
     return *this;

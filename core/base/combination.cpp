@@ -43,10 +43,10 @@ Combination<ValueType>& Combination<ValueType>::operator=(
         // if the operators are on the wrong executor, copy them over
         if (other.get_executor() != exec) {
             for (auto& coef : coefficients_) {
-                coef = gko::clone(exec, coef);
+                // coef = gko::clone(exec, coef);
             }
             for (auto& op : operators_) {
-                op = gko::clone(exec, op);
+                // op = gko::clone(exec, op);
             }
         }
     }
@@ -65,10 +65,10 @@ Combination<ValueType>& Combination<ValueType>::operator=(Combination&& other)
         // if the operators are on the wrong executor, copy them over
         if (other.get_executor() != exec) {
             for (auto& coef : coefficients_) {
-                coef = gko::clone(exec, coef);
+                // coef = gko::clone(exec, coef);
             }
             for (auto& op : operators_) {
-                op = gko::clone(exec, op);
+                // op = gko::clone(exec, op);
             }
         }
     }
@@ -99,7 +99,7 @@ std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
     transposed->set_size(gko::transpose(this->get_size()));
     // copy coefficients
     for (auto& coef : get_coefficients()) {
-        transposed->coefficients_.push_back(share(coef->clone()));
+        // transposed->coefficients_.push_back(share(coef->clone()));
     }
     // transpose operators
     for (auto& op : get_operators()) {
@@ -157,7 +157,7 @@ void Combination<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             if (cache_.intermediate_x == nullptr ||
                 cache_.intermediate_x->get_size() != dense_x->get_size()) {
-                cache_.intermediate_x = dense_x->clone();
+                // cache_.intermediate_x = dense_x->clone();
             }
             this->apply_impl(dense_b, cache_.intermediate_x.get());
             dense_x->scale(dense_beta);

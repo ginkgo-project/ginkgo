@@ -111,7 +111,7 @@ Composition<ValueType>& Composition<ValueType>::operator=(
         // if the operators are on the wrong executor, copy them over
         if (other.get_executor() != exec) {
             for (auto& op : operators_) {
-                op = gko::clone(exec, op);
+                // op = gko::clone(exec, op);
             }
         }
     }
@@ -129,7 +129,7 @@ Composition<ValueType>& Composition<ValueType>::operator=(Composition&& other)
         // if the operators are on the wrong executor, copy them over
         if (other.get_executor() != exec) {
             for (auto& op : operators_) {
-                op = gko::clone(exec, op);
+                // op = gko::clone(exec, op);
             }
         }
     }

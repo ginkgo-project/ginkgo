@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,9 +38,9 @@ Factorization<ValueType, IndexType>::unpack() const
     switch (this->get_storage_type()) {
     case storage_type::empty:
         GKO_NOT_SUPPORTED(nullptr);
-    case storage_type::composition:
-    case storage_type::symm_composition:
-        return this->clone();
+    // case storage_type::composition:
+    // case storage_type::symm_composition:
+    //     return this->clone();
     case storage_type::combined_lu: {
         // count nonzeros
         array<index_type> l_row_ptrs{exec, size[0] + 1};
