@@ -46,7 +46,6 @@ set(GINKGO_HIP_SOURCES
     ${BATCH_CG_INSTANTIATE}
     solver/lower_trs_kernels.hip.cpp
     solver/upper_trs_kernels.hip.cpp
-    solver/direct_kernels.hip.cpp
     ${GKO_UNIFIED_COMMON_SOURCES}
     ${GKO_CUDA_HIP_COMMON_SOURCES}
 )
