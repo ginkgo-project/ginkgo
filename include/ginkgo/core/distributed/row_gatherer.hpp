@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,7 +42,7 @@ std::shared_ptr<const gko::detail::Event> apply_prepare(
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event> apply_prepare(
     const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
-    array<char>& workspace);
+    gko::detail::GenericDenseCache& workspace);
 
 // give access to test function on protected function
 template <typename LocalIndexType>
@@ -55,7 +55,7 @@ template <typename LocalIndexType>
 mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
                             ptr_param<const LinOp> b, ptr_param<LinOp> x,
                             std::shared_ptr<const gko::detail::Event>,
-                            array<char>& workspace);
+                            gko::detail::GenericDenseCache& workspace);
 
 
 }  // namespace detail
@@ -99,16 +99,16 @@ class RowGatherer final
     friend std::shared_ptr<const gko::detail::Event>
     detail::apply_prepare<LocalIndexType>(const RowGatherer* rg,
                                           ptr_param<const LinOp> b);
-    friend std::shared_ptr<const gko::detail::Event>
-    detail::apply_prepare<LocalIndexType>(const RowGatherer* rg,
-                                          ptr_param<const LinOp> b,
-                                          array<char>& workspace);
+    friend std::shared_ptr<const gko::detail::Event> detail::apply_prepare<
+        LocalIndexType>(const RowGatherer* rg, ptr_param<const LinOp> b,
+                        gko::detail::GenericDenseCache& workspace);
     friend mpi::request detail::apply_finalize<LocalIndexType>(
         const RowGatherer* rg, ptr_param<const LinOp> b, ptr_param<LinOp> x,
         std::shared_ptr<const gko::detail::Event>);
     friend mpi::request detail::apply_finalize<LocalIndexType>(
         const RowGatherer* rg, ptr_param<const LinOp> b, ptr_param<LinOp> x,
-        std::shared_ptr<const gko::detail::Event>, array<char>& workspace);
+        std::shared_ptr<const gko::detail::Event>,
+        gko::detail::GenericDenseCache& workspace);
 
 public:
     /**
@@ -147,9 +147,9 @@ public:
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
      */
-    [[nodiscard]] mpi::request apply_async(ptr_param<const LinOp> b,
-                                           ptr_param<LinOp> x,
-                                           array<char>& workspace) const;
+    [[nodiscard]] mpi::request apply_async(
+        ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        gko::detail::GenericDenseCache& workspace) const;
 
     /**
      * Returns the size of the row gatherer.
@@ -243,15 +243,17 @@ protected:
         ptr_param<const LinOp> b) const;
 
     std::shared_ptr<const gko::detail::Event> apply_prepare(
-        ptr_param<const LinOp> b, array<char>& workspace) const;
+        ptr_param<const LinOp> b,
+        gko::detail::GenericDenseCache& workspace) const;
 
     mpi::request apply_finalize(
         ptr_param<const LinOp> b, ptr_param<LinOp> x,
         std::shared_ptr<const gko::detail::Event>) const;
 
-    mpi::request apply_finalize(ptr_param<const LinOp> b, ptr_param<LinOp> x,
-                                std::shared_ptr<const gko::detail::Event>,
-                                array<char>& workspace) const;
+    mpi::request apply_finalize(
+        ptr_param<const LinOp> b, ptr_param<LinOp> x,
+        std::shared_ptr<const gko::detail::Event>,
+        gko::detail::GenericDenseCache& workspace) const;
 
 private:
     /**
@@ -281,7 +283,7 @@ private:
     dim<2> size_;
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
     array<LocalIndexType> send_idxs_;
-    mutable array<char> send_workspace_;
+    mutable gko::detail::GenericDenseCache send_cache_;
 };
 
 
