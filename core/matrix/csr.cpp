@@ -178,6 +178,10 @@ void Csr<ValueType, IndexType>::validate_data() const
                                     this->get_num_stored_elements() + 1)),
                  "row_ptrs must be within bounds");
     GKO_VALIDATE(validation::is_within_nonegative_bounds(
+                     row_ptrs_, static_cast<IndexType>(
+                                    this->get_num_stored_elements() + 1)),
+                 "row_ptrs must be within bounds");
+    GKO_VALIDATE(validation::is_within_nonegative_bounds(
                      col_idxs_, static_cast<IndexType>(this->get_size()[1])),
                  "col_idxs must be within bounds");
     GKO_VALIDATE(validation::sparse_matrix_values_are_finite(values_),

@@ -28,6 +28,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/base/dispatch_helper.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"

@@ -19,6 +19,7 @@
 
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/factorization/factorization_kernels.hpp"
@@ -53,6 +54,21 @@ GKO_REGISTER_OPERATION(add_diagonal_elements,
 
 }  // anonymous namespace
 }  // namespace jacobi
+
+
+template <typename ValueType, typename IndexType>
+void Jacobi<ValueType, IndexType>::validate_data() const
+{
+    const auto max_bs = this->get_parameters().max_block_size;
+
+    GKO_VALIDATE(
+        validation::is_valid_block_pointers<IndexType>(
+            this->parameters_.block_pointers, static_cast<size_type>(max_bs)),
+        "Block pointers are not ascending or a block exceeds max_block_size.");
+    GKO_VALIDATE(
+        validation::sparse_matrix_values_are_finite<ValueType>(this->blocks_),
+        "Jacobi blocks contain non-finite values (NaN/Inf).");
+}
 
 
 template <typename ValueType, typename IndexType>

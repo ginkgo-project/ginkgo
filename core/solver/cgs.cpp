@@ -41,6 +41,8 @@ void Cgs<ValueType>::validate_data() const
 {
     validation::validate_system_matrix<ValueType, int32>(
         this->get_system_matrix());
+    validation::is_valid_preconditioner<ValueType, int32>(
+        this->get_preconditioner());
 }
 
 

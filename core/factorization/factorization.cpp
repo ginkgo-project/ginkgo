@@ -4,11 +4,15 @@
 
 #include "ginkgo/core/factorization/factorization.hpp"
 
+#include <iostream>
+
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/base/array_access.hpp"
+#include "core/base/validation.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 
 
@@ -27,6 +31,17 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+validation::ValidationResult has_valid_output();
+
+
+template <typename ValueType, typename IndexType>
+void Factorization<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(this->has_valid_output(), "Invalid output.");
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -372,6 +387,30 @@ void Factorization<ValueType, IndexType>::apply_impl(const LinOp* alpha,
     default:
         GKO_NOT_SUPPORTED(storage_type_);
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+validation::ValidationResult
+Factorization<ValueType, IndexType>::has_valid_output() const
+{
+    auto unpacked = this->unpack();
+    for (const auto& op : unpacked->factors_->get_operators()) {
+        if (auto csr_mtx =
+                dynamic_cast<const matrix::Csr<ValueType, IndexType>*>(
+                    op.get())) {
+            try {
+                csr_mtx->validate_data();
+            } catch (const gko::InvalidData& e) {
+                return {false, 0};
+            }
+            auto result = validation::has_non_zero_diagonal(csr_mtx);
+            if (!result.isValid) {
+                return result;
+            }
+        }
+    }
+    return {true, 0};
 }
 
 

@@ -12,6 +12,8 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
+#include "core/base/validation.hpp"
+
 
 namespace gko {
 namespace experimental {
@@ -82,6 +84,8 @@ public:
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     using diag_type = matrix::Diagonal<ValueType>;
     using composition_type = Composition<ValueType>;
+
+    validation::ValidationResult has_valid_output() const;
 
     /**
      * Transforms the factorization from a compact representation suitable only
@@ -177,6 +181,8 @@ public:
 
     static std::unique_ptr<Factorization> create_from_combined_ldl(
         std::unique_ptr<matrix_type> matrix);
+
+    void validate_data() const override;
 
 protected:
     explicit Factorization(std::shared_ptr<const Executor> exec);

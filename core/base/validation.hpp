@@ -178,6 +178,118 @@ void validate_system_matrix(std::shared_ptr<const LinOp> mtx)
 }
 
 
+template <typename ValueType, typename IndexType>
+ValidationResult is_valid_preconditioner(std::shared_ptr<const LinOp> prec)
+{
+    return {true, 0};
+}
+
+
+template <typename ValueType, typename IndexType>
+ValidationResult is_triangular_system_matrix(std::shared_ptr<const LinOp> mtx)
+{
+    using Mtx = matrix::Csr<ValueType, IndexType>;
+
+    auto exec = mtx->get_executor();
+    auto master = exec->get_master();
+    auto host_mtx = gko::copy_and_convert_to<Mtx>(master, mtx);
+    const auto mtx_dim = host_mtx->get_size()[0];
+    const auto row_ptrs = host_mtx->get_const_row_ptrs();
+    const auto col_idxs = host_mtx->get_const_col_idxs();
+    const auto values = host_mtx->get_const_values();
+
+    bool is_upper = true;
+    bool is_lower = true;
+
+    for (size_type i = 0; i < mtx_dim; i++) {
+        bool diagonal_found = false;
+
+        for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
+            const auto col = col_idxs[j];
+            const auto val = values[j];
+
+            if (col == i) {
+                if (gko::is_zero(val)) {
+                    return {false, static_cast<size_t>(i)};
+                }
+                diagonal_found = true;
+            } else if (col > i) {
+                is_lower = false;
+            } else if (col < i) {
+                is_upper = false;
+            }
+            if (!is_lower && !is_upper) {
+                return {false, static_cast<size_t>(i)};
+            }
+        }
+        if (!diagonal_found) {
+            return {false, static_cast<size_t>(i)};
+        }
+    }
+    return {true, 0};
+}
+
+
+template <typename ValueType, typename IndexType>
+ValidationResult has_non_zero_diagonal(
+    const matrix::Csr<ValueType, IndexType>* mtx)
+{
+    const auto exec = mtx->get_executor();
+    const auto master = exec->get_master();
+    auto host_mtx = make_temporary_clone(master, mtx);
+    const auto row_ptrs = host_mtx->get_const_row_ptrs();
+    const auto col_idxs = host_mtx->get_const_col_idxs();
+    const auto values = host_mtx->get_const_values();
+    const auto num_rows = host_mtx->get_size()[0];
+
+    for (size_type i = 0; i < num_rows; i++) {
+        bool diagonal_found = false;
+        for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
+            if (col_idxs[j] == i) {
+                if (gko::is_zero(values[j])) {
+                    return {false, static_cast<size_t>(i)};
+                }
+                diagonal_found = true;
+                break;
+            }
+        }
+        if (!diagonal_found) {
+            return {false, static_cast<size_t>(i)};
+        }
+    }
+    return {true, 0};
+}
+
+
+template <typename IndexType>
+ValidationResult is_valid_block_pointers(
+    const gko::array<IndexType>& block_ptrs, const size_t max_block_size)
+{
+    const auto host_ptrs = block_ptrs.copy_to_host();
+    for (size_t i = 0; i + 1 < host_ptrs.size(); ++i) {
+        const auto start = host_ptrs[i];
+        const auto end = host_ptrs[i + 1];
+
+        if (end < start) {
+            return {false, i};
+        }
+
+        const size_type gap = static_cast<size_type>(end - start);
+        if (gap > max_block_size) {
+            return {false, i};
+        }
+    }
+    return {true, 0};
+}
+
+
+template <typename ValueType>
+ValidationResult is_finite_block(const gko::array<ValueType>& blocks)
+{
+    return sparse_matrix_values_are_finite(blocks);
+}
+
+
 }  // namespace validation
 }  // namespace gko
 
