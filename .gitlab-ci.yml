@@ -226,7 +226,7 @@ build/cuda131/nompi/gcc/cuda/release/shared:
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.30.8 cuda/13.1.1 gcc/14.3.0"
 
-build/amd/openmpi/gcc/rocm602/release/static:
+build/amd/openmpi/gcc/rocm620/debug/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
@@ -237,39 +237,9 @@ build/amd/openmpi/gcc/rocm602/release/static:
     BUILD_HWLOC: "OFF"
     BUILD_MPI: "ON"
     BUILD_OMP: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "OFF"
-    MODULE_LOAD: "cmake/3.24.4 rocm/6.0.2 gcc/13.3.0 openmpi/5.0.7"
-
-build/amd/nompi/gcc/rocm720/release/shared:
-  extends:
-    - .build_and_test_tum_template
-    - .default_variables
-    - .full_test_condition
-    - .use_tum-amd
-  variables:
-    BUILD_HIP: "ON"
-    BUILD_OMP: "OFF"
-    BUILD_HWLOC: "OFF"
-    BUILD_TYPE: "Release"
-    ENABLE_BFLOAT16: "OFF"
-    ENABLE_HALF: "OFF"
-    MODULE_LOAD: "cmake/3.25.3 rocm/7.2.0 gcc/12.4.0"
-
-build/amd/openmpi/gcc/rocm610/debug/shared:
-  extends:
-    - .build_and_test_tum_template
-    - .default_variables
-    - .full_test_condition
-    - .use_tum-amd
-  variables:
-    BUILD_HIP: "ON"
-    BUILD_HWLOC: "OFF"
-    BUILD_MPI: "ON"
-    BUILD_OMP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "ON"
-    MODULE_LOAD: "cmake/3.24.4 rocm/6.1.0 gcc/13.3.0 openmpi/5.0.7"
+    MODULE_LOAD: "cmake/3.24.4 rocm/6.2.0 gcc/13.3.0 openmpi/5.0.7"
 
 # rocm 6.3.x is the last version support MI50 officially
 build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:
@@ -314,6 +284,21 @@ build/amd/nompi/gcc/rocm710/release/shared:
     BUILD_OMP: "OFF"
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.29.6 rocm/7.1.0 gcc/14.3.0"
+
+build/amd/nompi/gcc/rocm720/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-amd
+  variables:
+    BUILD_HIP: "ON"
+    BUILD_OMP: "OFF"
+    BUILD_HWLOC: "OFF"
+    BUILD_TYPE: "Release"
+    ENABLE_BFLOAT16: "OFF"
+    ENABLE_HALF: "OFF"
+    MODULE_LOAD: "cmake/3.25.3 rocm/7.2.0 gcc/12.4.0"
 
 # no cuda but latest gcc and clang
 build/nocuda/nompi/gcc/core/debug/static:
