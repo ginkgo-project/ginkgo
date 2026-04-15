@@ -4,9 +4,12 @@
 
 #include "ginkgo/core/multigrid/hmis.hpp"
 
+#include <fstream>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -21,7 +24,6 @@
 #include "core/config/config_helper.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/hmis_kernels.hpp"
-
 
 namespace gko {
 namespace multigrid {
@@ -127,6 +129,9 @@ Hmis<ValueType, IndexType>::generate_local(
     auto prolong_op = share(csr_type::create(
         exec, gko::dim<2>{fine_dim, coarse_dim}, std::move(prolong_vals_array),
         std::move(prolong_col_idxs_array), std::move(prolong_row_ptrs_array)));
+
+    std::ofstream out_p{"p.mtx"};
+    gko::write(out_p, prolong_op);
 
     // Phase 5: Restriction = P^T
     auto restrict_op = gko::as<csr_type>(share(prolong_op->transpose()));
