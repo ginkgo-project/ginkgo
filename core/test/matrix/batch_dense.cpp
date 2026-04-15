@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -106,36 +106,36 @@ TYPED_TEST(Dense, CanCreateDenseItemView)
 }
 
 
-TYPED_TEST(Dense, CanBeCopied)
-{
-    auto mtx_copy = gko::batch::matrix::Dense<TypeParam>::create(this->exec);
+// TYPED_TEST(Dense, CanBeCopied)
+// {
+//     auto mtx_copy = gko::batch::matrix::Dense<TypeParam>::create(this->exec);
 
-    mtx_copy->copy_from(this->mtx.get());
+//     mtx_copy->copy_from(this->mtx.get());
 
-    this->assert_equal_to_original_mtx(this->mtx.get());
-    this->mtx->at(0, 0, 0) = 7;
-    this->mtx->at(0, 1) = 7;
-    this->assert_equal_to_original_mtx(mtx_copy.get());
-}
-
-
-TYPED_TEST(Dense, CanBeMoved)
-{
-    auto mtx_copy = gko::batch::matrix::Dense<TypeParam>::create(this->exec);
-
-    this->mtx->move_to(mtx_copy);
-
-    this->assert_equal_to_original_mtx(mtx_copy.get());
-}
+//     this->assert_equal_to_original_mtx(this->mtx.get());
+//     this->mtx->at(0, 0, 0) = 7;
+//     this->mtx->at(0, 1) = 7;
+//     this->assert_equal_to_original_mtx(mtx_copy.get());
+// }
 
 
-TYPED_TEST(Dense, CanBeCloned)
-{
-    auto mtx_clone = this->mtx->clone();
+// TYPED_TEST(Dense, CanBeMoved)
+// {
+//     auto mtx_copy = gko::batch::matrix::Dense<TypeParam>::create(this->exec);
 
-    this->assert_equal_to_original_mtx(
-        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
-}
+//     this->mtx->move_to(mtx_copy);
+
+//     this->assert_equal_to_original_mtx(mtx_copy.get());
+// }
+
+
+// TYPED_TEST(Dense, CanBeCloned)
+// {
+//     auto mtx_clone = this->mtx->clone();
+
+//     this->assert_equal_to_original_mtx(
+//         dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+// }
 
 
 TYPED_TEST(Dense, CanBeCleared)

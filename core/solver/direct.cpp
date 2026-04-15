@@ -75,8 +75,8 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
         gko::solver::EnableSolverBase<Direct, factorization_type>::operator=(
             other);
         const auto exec = this->get_executor();
-        lower_solver_ = other.lower_solver_->clone(exec);
-        upper_solver_ = other.upper_solver_->clone(exec);
+        // lower_solver_ = other.lower_solver_->clone(exec);
+        // upper_solver_ = other.upper_solver_->clone(exec);
     }
     return *this;
 }

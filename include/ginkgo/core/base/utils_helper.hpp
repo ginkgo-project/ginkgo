@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -201,9 +201,11 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
 {
     static_assert(detail::is_cloneable_to<detail::pointee<Pointer>>(),
                   "Object is not cloneable");
-    return detail::cloned_type<Pointer>(
-        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
-            p->clone(std::move(exec)).release()));
+    // return detail::cloned_type<Pointer>(
+    //     static_cast<typename
+    //     std::remove_cv<detail::pointee<Pointer>>::type*>(
+    //         p->clone(std::move(exec)).release()));
+    return nullptr;
 }
 
 

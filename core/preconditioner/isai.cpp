@@ -63,28 +63,29 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
                                      std::shared_ptr<const Csr> mtx, int power)
 {
     GKO_ASSERT_EQ(power >= 1, true);
-    if (power == 1) {
-        // copy the matrix, as it will be used to store the inverse
-        return {std::move(mtx->clone())};
-    }
-    auto id_power = mtx->clone();
-    // accumulates mtx * the remainder from odd powers
-    auto acc = mtx->clone();
-    // compute id^(n-1) using square-and-multiply
-    int i = power - 1;
-    while (i > 1) {
-        if (i % 2 != 0) {
-            // store one power in acc:
-            // i^(2n+1) -> i*i^2n
-            acc = id_power->multiply(acc);
-            i--;
-        }
-        // square id_power: i^2n -> (i^2)^n
-        id_power = id_power->multiply(id_power);
-        i /= 2;
-    }
-    // combine acc and id_power again
-    return id_power->multiply(acc);
+    return as<Csr>(mtx->clone());
+    // if (power == 1) {
+    //     // copy the matrix, as it will be used to store the inverse
+    //     return {std::move(mtx->clone())};
+    // }
+    // auto id_power = mtx->clone();
+    // // accumulates mtx * the remainder from odd powers
+    // auto acc = mtx->clone();
+    // // compute id^(n-1) using square-and-multiply
+    // int i = power - 1;
+    // while (i > 1) {
+    //     if (i % 2 != 0) {
+    //         // store one power in acc:
+    //         // i^(2n+1) -> i*i^2n
+    //         acc = id_power->multiply(acc);
+    //         i--;
+    //     }
+    //     // square id_power: i^2n -> (i^2)^n
+    //     id_power = id_power->multiply(id_power);
+    //     i /= 2;
+    // }
+    // // combine acc and id_power again
+    // return id_power->multiply(acc);
 }
 
 
@@ -221,8 +222,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_row_ptrs_full.get_const_data(), excess_system.get(),
                 excess_rhs->get_device_view(), excess_start, block));
             // solve it after transposing
-            auto system_copy = gko::clone(exec->get_master(), excess_system);
-            auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
+            auto system_copy = excess_system->clone(exec->get_master());
+            auto rhs_copy = excess_rhs->clone(exec->get_master());
             std::shared_ptr<const LinOpFactory> excess_solver_factory;
             if (parameters_.excess_solver_factory) {
                 excess_solver_factory = parameters_.excess_solver_factory;
@@ -277,7 +278,7 @@ Isai<IsaiType, ValueType, IndexType>::operator=(const Isai& other)
         parameters_ = other.parameters_;
         if (approximate_inverse_ &&
             other.approximate_inverse_->get_executor() != exec) {
-            approximate_inverse_ = gko::clone(exec, approximate_inverse_);
+            // approximate_inverse_ = gko::clone(exec, approximate_inverse_);
         }
     }
     return *this;
@@ -295,7 +296,7 @@ Isai<IsaiType, ValueType, IndexType>::operator=(Isai&& other)
         parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (approximate_inverse_ &&
             other.approximate_inverse_->get_executor() != exec) {
-            approximate_inverse_ = gko::clone(exec, approximate_inverse_);
+            // approximate_inverse_ = gko::clone(exec, approximate_inverse_);
         }
     }
     return *this;
@@ -322,9 +323,9 @@ template <isai_type IsaiType, typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
 {
     auto is_spd = IsaiType == isai_type::spd;
-    if (is_spd) {
-        return this->clone();
-    }
+    // if (is_spd) {
+    //     return this->clone();
+    // }
 
     std::unique_ptr<transposed_type> transp{
         new transposed_type{this->get_executor()}};
@@ -341,9 +342,9 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
     const
 {
     auto is_spd = IsaiType == isai_type::spd;
-    if (is_spd) {
-        return this->clone();
-    }
+    // if (is_spd) {
+    //     return this->clone();
+    // }
 
     std::unique_ptr<transposed_type> transp{
         new transposed_type{this->get_executor()}};

@@ -176,7 +176,7 @@ BlockOperator::BlockOperator(
     for (auto& row : blocks) {
         for (auto& block : row) {
             if (block && block->get_executor() != exec) {
-                blocks_.push_back(gko::clone(exec, block));
+                // blocks_.push_back(gko::clone(exec, block));
             } else {
                 blocks_.push_back(std::move(block));
             }
@@ -270,8 +270,9 @@ BlockOperator& BlockOperator::operator=(const BlockOperator& other)
         row_spans_ = other.row_spans_;
         blocks_.clear();
         for (const auto& block : other.blocks_) {
-            blocks_.emplace_back(block == nullptr ? nullptr
-                                                  : gko::clone(exec, block));
+            blocks_.emplace_back(block == nullptr
+                                     ? nullptr
+                                     : nullptr /*gko::clone(exec, block)*/);
         }
     }
     return *this;
@@ -293,7 +294,7 @@ BlockOperator& BlockOperator::operator=(BlockOperator&& other)
         if (exec != other.get_executor()) {
             for (auto& block : blocks_) {
                 if (block != nullptr) {
-                    block = gko::clone(exec, block);
+                    // block = gko::clone(exec, block);
                 }
             }
         }

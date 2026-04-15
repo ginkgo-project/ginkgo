@@ -71,7 +71,7 @@ void Ir<ValueType>::set_solver(std::shared_ptr<const LinOp> new_solver)
         GKO_ASSERT_EQUAL_DIMENSIONS(new_solver, this);
         GKO_ASSERT_IS_SQUARE_MATRIX(new_solver);
         if (new_solver->get_executor() != exec) {
-            new_solver = gko::clone(exec, new_solver);
+            // new_solver = gko::clone(exec, new_solver);
         }
     }
     solver_ = new_solver;
@@ -84,7 +84,7 @@ void Ir<ValueType>::set_relaxation_factor(
 {
     auto exec = this->get_executor();
     if (new_factor && new_factor->get_executor() != exec) {
-        new_factor = gko::clone(exec, new_factor);
+        // new_factor = gko::clone(exec, new_factor);
     }
     relaxation_factor_ = new_factor;
 }
@@ -277,10 +277,10 @@ void Ir<ValueType>::apply_with_initial_guess_impl(
         [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
                       auto dense_x) {
             prepare_initial_guess(dense_b, dense_x, guess);
-            auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get(), guess);
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
+            // auto x_clone = dense_x->clone();
+            // this->apply_dense_impl(dense_b, x_clone.get(), guess);
+            // dense_x->scale(dense_beta);
+            // dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

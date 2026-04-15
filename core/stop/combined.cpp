@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -69,8 +69,8 @@ Combined::Factory& Combined::Factory::operator=(const Combined::Factory& other)
         parameters_type new_parameters;
         new_parameters.criteria.clear();
         for (auto criterion : other.get_parameters().criteria) {
-            new_parameters.criteria.push_back(
-                gko::clone(this->get_executor(), criterion));
+            // new_parameters.criteria.push_back(
+            //     gko::clone(this->get_executor(), criterion));
         }
         Base::operator=(Factory(this->get_executor(), new_parameters));
     }

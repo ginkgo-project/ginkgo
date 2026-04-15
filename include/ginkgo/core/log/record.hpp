@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -48,20 +48,20 @@ struct iteration_complete_data {
                             bool all_stopped = false)
         : num_iterations{num_iterations}, all_stopped(all_stopped)
     {
-        this->solver = solver->clone();
-        this->solution = solution->clone();
+        // this->solver = solver->clone();
+        // this->solution = solution->clone();
         if (right_hand_side != nullptr) {
-            this->right_hand_side = right_hand_side->clone();
+            // this->right_hand_side = right_hand_side->clone();
         }
         if (residual != nullptr) {
-            this->residual = residual->clone();
+            // this->residual = residual->clone();
         }
         if (residual_norm != nullptr) {
-            this->residual_norm = residual_norm->clone();
+            // this->residual_norm = residual_norm->clone();
         }
         if (implicit_sq_residual_norm != nullptr) {
-            this->implicit_sq_residual_norm =
-                implicit_sq_residual_norm->clone();
+            // this->implicit_sq_residual_norm =
+            //     implicit_sq_residual_norm->clone();
         }
         if (status != nullptr) {
             this->status = *status;
@@ -102,9 +102,9 @@ struct polymorphic_object_data {
                             const PolymorphicObject* output = nullptr)
         : exec{exec}
     {
-        this->input = input->clone();
+        // this->input = input->clone();
         if (output != nullptr) {
-            this->output = output->clone();
+            // this->output = output->clone();
         }
     }
 };
@@ -123,15 +123,15 @@ struct linop_data {
     linop_data(const LinOp* A, const LinOp* alpha, const LinOp* b,
                const LinOp* beta, const LinOp* x)
     {
-        this->A = A->clone();
+        // this->A = A->clone();
         if (alpha != nullptr) {
-            this->alpha = alpha->clone();
+            // this->alpha = alpha->clone();
         }
-        this->b = b->clone();
+        // this->b = b->clone();
         if (beta != nullptr) {
-            this->beta = beta->clone();
+            // this->beta = beta->clone();
         }
-        this->x = x->clone();
+        // this->x = x->clone();
     }
 };
 
@@ -148,9 +148,9 @@ struct linop_factory_data {
                        const LinOp* output)
         : factory{factory}
     {
-        this->input = input->clone();
+        // this->input = input->clone();
         if (output != nullptr) {
-            this->output = output->clone();
+            // this->output = output->clone();
         }
     }
 };
@@ -189,14 +189,14 @@ struct criterion_data {
           converged{converged}
     {
         if (residual != nullptr) {
-            this->residual = std::unique_ptr<const LinOp>(residual->clone());
+            // this->residual = std::unique_ptr<const LinOp>(residual->clone());
         }
         if (residual_norm != nullptr) {
-            this->residual_norm =
-                std::unique_ptr<const LinOp>(residual_norm->clone());
+            // this->residual_norm =
+            // std::unique_ptr<const LinOp>(residual_norm->clone());
         }
         if (solution != nullptr) {
-            this->solution = std::unique_ptr<const LinOp>(solution->clone());
+            // this->solution = std::unique_ptr<const LinOp>(solution->clone());
         }
     }
 };

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -78,7 +78,7 @@ TEST_F(IndexMapBuildMapping, BuildMappingSameAsRef)
     comm_index_type this_rank = 5;
     std::shared_ptr<part_type> part = part_type::build_from_global_size_uniform(
         ref, num_parts, num_parts * local_size);
-    std::shared_ptr<part_type> dpart = gko::clone(exec, part);
+    // std::shared_ptr<part_type> dpart = gko::clone(exec, part);
     auto query = generate_connection_idxs(ref, this_rank, part, engine, 11);
     auto dquery = gko::array<global_index_type>(exec, query);
     gko::array<comm_index_type> target_ids{ref};

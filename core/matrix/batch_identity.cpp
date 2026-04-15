@@ -89,7 +89,7 @@ template <typename ValueType>
 void Identity<ValueType>::apply_impl(const MultiVector<ValueType>* b,
                                      MultiVector<ValueType>* x) const
 {
-    x->copy_from(b);
+    // x->copy_from(b);
 }
 
 
