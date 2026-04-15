@@ -1,6 +1,7 @@
 ginkgo_create_test(elimination_forest)
 ginkgo_create_test(ic)
 ginkgo_create_test(ilu)
+ginkgo_create_test(factorization)
 ginkgo_create_test(par_ic)
 ginkgo_create_test(par_ict)
 ginkgo_create_test(par_ilu)

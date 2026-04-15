@@ -174,7 +174,8 @@ void Csr<ValueType, IndexType>::validate_data() const
     GKO_VALIDATE(validation::is_sorted(row_ptrs_),
                  "row_ptrs must be non-descending");
     GKO_VALIDATE(validation::is_within_nonegative_bounds(
-                     row_ptrs_, static_cast<IndexType>(this->get_size()[0])),
+                     row_ptrs_, static_cast<IndexType>(
+                                    this->get_num_stored_elements() + 1)),
                  "row_ptrs must be within bounds");
     GKO_VALIDATE(validation::is_within_nonegative_bounds(
                      col_idxs_, static_cast<IndexType>(this->get_size()[1])),

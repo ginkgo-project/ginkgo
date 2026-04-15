@@ -352,4 +352,13 @@ TYPED_TEST(IsaiFactory, ThrowsNoConversionCsrU)
 }
 
 
+TYPED_TEST(IsaiFactory, ValidateIsaiMatrix)
+{
+    using Csr = typename TestFixture::Csr;
+    auto mtx = gko::share(Csr::create(this->exec, gko::dim<2>{2, 2}));
+
+    EXPECT_NO_THROW(this->general_isai_factory->generate(mtx));
+}
+
+
 }  // namespace
