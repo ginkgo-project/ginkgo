@@ -214,6 +214,8 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    void validate_data() const override;
+
 protected:
     explicit Isai(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}

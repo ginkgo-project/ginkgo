@@ -230,18 +230,19 @@ TYPED_TEST(Cg, RecognizesInvalidSystemMatrix)
                  gko::InvalidData);
 }
 
-TYPED_TEST(Cg, Cg_RecognizesNonSymmetricSystemMatrix)
+
+TYPED_TEST(Cg, RecognizesNonSymmetricSystemMatrix)
 {
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
 
-    std::shared_ptr<const gko::LinOp> mtx =
+    std::shared_ptr<const gko::LinOp> m =
         gko::initialize<Mtx>({{value_type{1.0}, value_type{2.0}},
                               {value_type{3.0}, value_type{4.0}}},
                              this->exec);
 
-    ASSERT_THROW(this->cg_factory->generate(mtx)->validate_data(),
+    ASSERT_THROW(this->cg_factory->generate(m)->validate_data(),
                  gko::InvalidData);
 }
 

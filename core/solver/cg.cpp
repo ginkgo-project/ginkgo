@@ -47,7 +47,10 @@ void Cg<ValueType>::validate_data() const
 {
     validation::validate_system_matrix<ValueType, int32>(
         this->get_system_matrix());
-    GKO_VALIDATE(is_symmetric<ValueType>(this->get_system_matrix().get()),
+    GKO_VALIDATE((validation::is_valid_preconditioner<ValueType, int32>(
+                     this->get_preconditioner())),
+                 "Invalid preconditioner.");
+    GKO_VALIDATE((is_symmetric<ValueType>(this->get_system_matrix().get())),
                  "The system matrix is not symmetric.");
 }
 
@@ -278,30 +281,26 @@ validation::ValidationResult is_symmetric(const LinOp* mat)
     auto exec = mat->get_executor();
     auto master = exec->get_master();
 
-    auto cg_mtx = gko::copy_and_convert_to<Mtx>(exec, mat);
+    auto host_mtx = gko::copy_and_convert_to<Mtx>(master, mat);
 
-    if (cg_mtx->get_size()[0] != cg_mtx->get_size()[1]) {
+    if (host_mtx->get_size()[0] != host_mtx->get_size()[1]) {
         return {false, 0};
     }
 
-    auto trans_cg_mtx =
-        gko::copy_and_convert_to<Mtx>(exec, cg_mtx.get()->transpose().get());
+    auto trans_temp = host_mtx->transpose();
+    auto trans_host_mtx =
+        gko::copy_and_convert_to<Mtx>(master, trans_temp.get());
 
-    auto host_cg_mtx = gko::copy_and_convert_to<Mtx>(master, cg_mtx.get());
-    auto host_trans_cg_mtx =
-        gko::copy_and_convert_to<Mtx>(master, trans_cg_mtx.get());
+    auto row_ptrs = host_mtx->get_const_row_ptrs();
+    auto col_idxs = host_mtx->get_const_col_idxs();
+    auto values = host_mtx->get_const_values();
 
-    auto row_ptrs = host_cg_mtx->get_const_row_ptrs();
-    auto col_idxs = host_cg_mtx->get_const_col_idxs();
-    auto values = host_cg_mtx->get_const_values();
+    auto trans_row_ptrs = trans_host_mtx->get_const_row_ptrs();
+    auto trans_col_idxs = trans_host_mtx->get_const_col_idxs();
+    auto trans_values = trans_host_mtx->get_const_values();
+    auto nnz = host_mtx->get_num_stored_elements();
 
-    auto trans_row_ptrs = host_trans_cg_mtx->get_const_row_ptrs();
-    auto trans_col_idxs = host_trans_cg_mtx->get_const_col_idxs();
-    auto trans_values = host_trans_cg_mtx->get_const_values();
-
-    auto nnz = host_cg_mtx->get_num_stored_elements();
-
-    for (size_type i = 0; i < host_cg_mtx->get_size()[0]; ++i) {
+    for (size_type i = 0; i < host_mtx->get_size()[0]; ++i) {
         if (row_ptrs[i] != trans_row_ptrs[i]) {
             return {false, i};
         }
