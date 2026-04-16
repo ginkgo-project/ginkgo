@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -77,6 +77,8 @@ public:
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
+    using device_view = view::hybrid<value_type, index_type>;
+    using const_device_view = view::hybrid<const value_type, const index_type>;
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
     using absolute_type = remove_complex<Hybrid>;
@@ -641,6 +643,20 @@ public:
      */
     template <typename HybType>
     std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
+
+    /**
+     * Returns a non-owning device view of this matrix.
+     *
+     * @return a device view of this matrix.
+     */
+    device_view get_device_view();
+
+    /**
+     * Returns a non-owning const device view of this matrix.
+     *
+     * @return a const device view of this matrix.
+     */
+    const_device_view get_const_device_view() const;
 
     /**
      * Creates an uninitialized Hybrid matrix of specified method.

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,8 +6,8 @@
 #define GKO_CORE_MATRIX_HYBRID_KERNELS_HPP_
 
 
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 
@@ -30,14 +30,14 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                        \
         const device_matrix_data<ValueType, IndexType>& data,               \
         const int64* row_ptrs, const int64* coo_row_ptrs,                   \
-        matrix::Hybrid<ValueType, IndexType>* result)
+        matrix::view::hybrid<ValueType, IndexType> result)
 
-#define GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)      \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,        \
-                        const matrix::Hybrid<ValueType, IndexType>* source, \
-                        const IndexType* ell_row_ptrs,                      \
-                        const IndexType* coo_row_ptrs,                      \
-                        matrix::Csr<ValueType, IndexType>* result)
+#define GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL(ValueType, IndexType) \
+    void convert_to_csr(                                               \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        matrix::view::hybrid<const ValueType, const IndexType> source, \
+        const IndexType* ell_row_ptrs, const IndexType* coo_row_ptrs,  \
+        matrix::Csr<ValueType, IndexType>* result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                     \

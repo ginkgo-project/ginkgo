@@ -114,6 +114,23 @@ Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
+typename Hybrid<ValueType, IndexType>::device_view
+Hybrid<ValueType, IndexType>::get_device_view()
+{
+    return device_view{ell_->get_device_view(), coo_->get_device_view()};
+}
+
+
+template <typename ValueType, typename IndexType>
+typename Hybrid<ValueType, IndexType>::const_device_view
+Hybrid<ValueType, IndexType>::get_const_device_view() const
+{
+    return const_device_view{ell_->get_const_device_view(),
+                             coo_->get_const_device_view()};
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<Hybrid<ValueType, IndexType>>
 Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
                                      std::shared_ptr<strategy_type> strategy)
@@ -316,8 +333,8 @@ void Hybrid<ValueType, IndexType>::convert_to(
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
         exec->run(hybrid::make_convert_to_csr(
-            this, ell_row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(),
-            tmp.get()));
+            this->get_const_device_view(), ell_row_ptrs.get_const_data(),
+            coo_row_ptrs.get_const_data(), tmp.get()));
     }
     result->make_srow();
 }
@@ -367,9 +384,9 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
                                                 coo_row_ptrs.get_data()));
     coo_nnz = get_element(coo_row_ptrs, num_rows);
     this->resize(data.get_size(), ell_max_nnz, coo_nnz);
-    exec->run(
-        hybrid::make_fill_in_matrix_data(*local_data, row_ptrs.get_const_data(),
-                                         coo_row_ptrs.get_const_data(), this));
+    exec->run(hybrid::make_fill_in_matrix_data(
+        *local_data, row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(),
+        this->get_device_view()));
 }
 
 
