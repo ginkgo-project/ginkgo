@@ -33,8 +33,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto input, auto output) {
-#if defined(GKO_COMPILING_DPCPP) ||                            \
-    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+#if defined(GKO_COMPILING_DPCPP) || defined(GKO_COMPILING_HIP) || \
     (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
             using bridge_type =
                 device_type<highest_precision<InValueType, OutValueType>>;
@@ -454,8 +453,7 @@ void row_gather(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto orig, auto rows, auto gathered) {
-#if defined(GKO_COMPILING_DPCPP) ||                            \
-    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+#if defined(GKO_COMPILING_DPCPP) || defined(GKO_COMPILING_HIP) || \
     (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
             using bridge_type =
                 device_type<highest_precision<ValueType, OutputType>>;

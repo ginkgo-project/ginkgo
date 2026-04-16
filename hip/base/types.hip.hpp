@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,20 +10,13 @@
 
 #include <hip/hip_complex.h>
 #include <hip/hip_fp16.h>
-
-#include <ginkgo/core/base/types.hpp>
-
-
-#if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
-#else
-#include <hipblas.h>
-#endif
 #include <thrust/complex.h>
 
 #include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 #include "common/cuda_hip/base/bf16_alias.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
