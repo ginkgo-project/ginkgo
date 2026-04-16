@@ -10,11 +10,8 @@
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -408,19 +405,19 @@ template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
                        matrix::view::dense<const ValueType> source,
                        const int64* coo_row_ptrs,
-                       matrix::Hybrid<ValueType, IndexType>* result)
+                       matrix::view::hybrid<ValueType, IndexType> result)
 {
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto ell_lim = result->get_ell_num_stored_elements_per_row();
+    const auto num_rows = result.size[0];
+    const auto num_cols = result.size[1];
+    const auto ell_lim = result.ell_part.num_stored_elements_per_row;
     const auto in_vals = as_device_type(source.values);
     const auto in_stride = source.stride;
-    const auto ell_stride = result->get_ell_stride();
-    auto ell_cols = result->get_ell_col_idxs();
-    auto ell_vals = as_device_type(result->get_ell_values());
-    auto coo_rows = result->get_coo_row_idxs();
-    auto coo_cols = result->get_coo_col_idxs();
-    auto coo_vals = as_device_type(result->get_coo_values());
+    const auto ell_stride = result.ell_part.stride;
+    auto ell_cols = result.ell_part.col_idxs;
+    auto ell_vals = as_device_type(result.ell_part.values);
+    auto coo_rows = result.coo_part.row_idxs;
+    auto coo_cols = result.coo_part.col_idxs;
+    auto coo_vals = as_device_type(result.coo_part.values);
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(num_rows, [=](sycl::item<1> item) {

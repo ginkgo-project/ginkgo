@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
@@ -442,7 +443,7 @@ void Csr<ValueType, IndexType>::convert_to(
     auto tmp = make_temporary_clone(exec, result);
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
     exec->run(csr::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
-                                          tmp.get()));
+                                          tmp->get_device_view()));
 }
 
 

@@ -13,10 +13,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
 #include "core/base/allocator.hpp"
@@ -910,22 +906,20 @@ template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
                        const matrix::Csr<ValueType, IndexType>* source,
                        const int64*,
-                       matrix::Hybrid<ValueType, IndexType>* result)
+                       matrix::view::hybrid<ValueType, IndexType> result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto strategy = result->get_strategy();
-    auto ell_lim = result->get_ell_num_stored_elements_per_row();
-    auto coo_val = result->get_coo_values();
-    auto coo_col = result->get_coo_col_idxs();
-    auto coo_row = result->get_coo_row_idxs();
+    auto num_rows = result.size[0];
+    auto num_cols = result.size[1];
+    auto ell_lim = result.ell_part.num_stored_elements_per_row;
+    auto coo_val = result.coo_part.values;
+    auto coo_col = result.coo_part.col_idxs;
+    auto coo_row = result.coo_part.row_idxs;
 
     // Initial Hybrid Matrix
-    for (size_type i = 0; i < result->get_ell_num_stored_elements_per_row();
-         i++) {
-        for (size_type j = 0; j < result->get_ell_stride(); j++) {
-            result->ell_val_at(j, i) = zero<ValueType>();
-            result->ell_col_at(j, i) = invalid_index<IndexType>();
+    for (size_type i = 0; i < ell_lim; i++) {
+        for (size_type j = 0; j < result.ell_part.stride; j++) {
+            result.ell_part.val_at(j, i) = zero<ValueType>();
+            result.ell_part.col_at(j, i) = invalid_index<IndexType>();
         }
     }
 
@@ -938,8 +932,8 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
         while (csr_idx < csr_row_ptrs[row + 1]) {
             const auto val = csr_vals[csr_idx];
             if (ell_idx < ell_lim) {
-                result->ell_val_at(row, ell_idx) = val;
-                result->ell_col_at(row, ell_idx) =
+                result.ell_part.val_at(row, ell_idx) = val;
+                result.ell_part.col_at(row, ell_idx) =
                     source->get_const_col_idxs()[csr_idx];
                 ell_idx++;
             } else {
