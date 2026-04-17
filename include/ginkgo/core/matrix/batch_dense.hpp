@@ -46,6 +46,7 @@ namespace matrix {
  */
 template <typename ValueType = default_precision>
 class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
+                    public EnableClonableAssignment<Dense<ValueType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
                     public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
 #endif
@@ -59,8 +60,8 @@ class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableBatchLinOp<Dense>::convert_to;
-    using EnableBatchLinOp<Dense>::move_to;
+    using EnableClonableAssignment<Dense>::convert_to;
+    using EnableClonableAssignment<Dense>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;

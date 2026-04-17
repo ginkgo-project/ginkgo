@@ -117,7 +117,7 @@ protected:
 
         auto exec = this->get_executor();
 
-        // system_matrix_ = gko::clone(exec, system_matrix);
+        system_matrix_ = gko::clone(exec, system_matrix);
 
         // Scale the system matrix if scaling coefficients are provided
         if (parameters_.row_scaling) {
@@ -181,9 +181,9 @@ protected:
             cache_.intermediate =
                 matrix::Dense<value_type>::create(this->get_executor(), size);
         }
-        // cache_.inner_b->copy_from(b);
+        cache_.inner_b->copy_from(as<ClonableObject>(b));
         if (inner_operator_->apply_uses_initial_guess()) {
-            // cache_.inner_x->copy_from(x);
+            cache_.inner_x->copy_from(as<ClonableObject>(x));
         }
     }
 

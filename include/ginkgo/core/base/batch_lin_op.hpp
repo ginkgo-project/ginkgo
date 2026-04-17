@@ -208,8 +208,8 @@ public:
         if (input->get_executor() == exec) {
             generated = this->AbstractFactory::generate(input);
         } else {
-            // generated =
-            //     this->AbstractFactory::generate(gko::clone(exec, input));
+            generated =
+                this->AbstractFactory::generate(gko::clone(exec, input));
         }
         this->template log<
             gko::log::Logger::batch_linop_factory_generate_completed>(
@@ -248,8 +248,7 @@ public:
  */
 template <typename ConcreteBatchLinOp, typename PolymorphicBase = BatchLinOp>
 class EnableBatchLinOp
-    : public EnablePolymorphicObject<ConcreteBatchLinOp, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteBatchLinOp> {
+    : public EnablePolymorphicObject<ConcreteBatchLinOp, PolymorphicBase> {
 public:
     using EnablePolymorphicObject<ConcreteBatchLinOp,
                                   PolymorphicBase>::EnablePolymorphicObject;

@@ -104,12 +104,12 @@ protected:
         auto exec = this->get_executor();
         coefficients_.push_back(std::move(coef));
         operators_.push_back(std::move(oper));
-        // if (coefficients_.back()->get_executor() != exec) {
-        //     coefficients_.back() = gko::clone(exec, coefficients_.back());
-        // }
-        // if (operators_.back()->get_executor() != exec) {
-        //     operators_.back() = gko::clone(exec, operators_.back());
-        // }
+        if (coefficients_.back()->get_executor() != exec) {
+            coefficients_.back() = gko::clone(exec, coefficients_.back());
+        }
+        if (operators_.back()->get_executor() != exec) {
+            operators_.back() = gko::clone(exec, operators_.back());
+        }
         add_operators(std::forward<Rest>(rest)...);
     }
 

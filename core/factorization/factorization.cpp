@@ -38,9 +38,10 @@ Factorization<ValueType, IndexType>::unpack() const
     switch (this->get_storage_type()) {
     case storage_type::empty:
         GKO_NOT_SUPPORTED(nullptr);
-    // case storage_type::composition:
-    // case storage_type::symm_composition:
-    //     return this->clone();
+    case storage_type::composition:
+    case storage_type::symm_composition:
+        GKO_NOT_SUPPORTED(nullptr);  // enable clone for composition? but
+                                     // require all components is clonable
     case storage_type::combined_lu: {
         // count nonzeros
         array<index_type> l_row_ptrs{exec, size[0] + 1};

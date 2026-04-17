@@ -278,7 +278,7 @@ protected:
             GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(self(), new_system_matrix);
             GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(new_system_matrix);
             if (new_system_matrix->get_executor() != exec) {
-                // new_system_matrix = gko::clone(exec, new_system_matrix);
+                new_system_matrix = gko::clone(exec, new_system_matrix);
             }
         }
         this->set_system_matrix_base(new_system_matrix);
@@ -291,7 +291,7 @@ protected:
             GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(self(), new_precond);
             GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(new_precond);
             if (new_precond->get_executor() != exec) {
-                // new_precond = gko::clone(exec, new_precond);
+                new_precond = gko::clone(exec, new_precond);
             }
         }
         this->set_preconditioner_base(new_precond);

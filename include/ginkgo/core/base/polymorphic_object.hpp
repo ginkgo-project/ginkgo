@@ -566,22 +566,10 @@ public:
 
     std::unique_ptr<ClonableObject> clone() const { return this->clone_impl(); }
 
-    // ClonableObject* copy_from(const ClonableObject* other)
-    // {
-    //     auto copied = this->copy_from_impl(other);
-    //     return copied;
-    // }
-
     ClonableObject* copy_from(ptr_param<const ClonableObject> other)
     {
         auto copied = this->copy_from_impl(other.get());
         return copied;
-    }
-
-    ClonableObject* move_from(ClonableObject* other)
-    {
-        auto moved = this->move_from_impl(other);
-        return moved;
     }
 
     ClonableObject* move_from(ptr_param<ClonableObject> other)

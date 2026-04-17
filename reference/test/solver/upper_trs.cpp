@@ -98,15 +98,15 @@ TYPED_TEST(UpperTrs, UpperTrsFactoryCreatesCorrectSolver)
 // }
 
 
-// TYPED_TEST(UpperTrs, CanBeCleared)
-// {
-//     this->upper_trs_solver->clear();
+TYPED_TEST(UpperTrs, CanBeCleared)
+{
+    this->upper_trs_solver->clear();
 
-//     auto solver_mtx = this->upper_trs_solver->get_system_matrix();
+    auto solver_mtx = this->upper_trs_solver->get_system_matrix();
 
-//     ASSERT_EQ(this->upper_trs_solver->get_size(), gko::dim<2>(0, 0));
-//     ASSERT_EQ(solver_mtx, nullptr);
-// }
+    ASSERT_EQ(this->upper_trs_solver->get_size(), gko::dim<2>(0, 0));
+    ASSERT_EQ(solver_mtx, nullptr);
+}
 
 
 }  // namespace

@@ -98,36 +98,36 @@ TYPED_TEST(MultiVector, CanCreateDenseItemView)
 }
 
 
-// TYPED_TEST(MultiVector, CanBeCopied)
-// {
-//     auto mtx_copy = gko::batch::MultiVector<TypeParam>::create(this->exec);
+TYPED_TEST(MultiVector, CanBeCopied)
+{
+    auto mtx_copy = gko::batch::MultiVector<TypeParam>::create(this->exec);
 
-//     mtx_copy->copy_from(this->mtx.get());
+    mtx_copy->copy_from(this->mtx.get());
 
-//     this->assert_equal_to_original_mtx(this->mtx.get());
-//     this->mtx->at(0, 0, 0) = 7;
-//     this->mtx->at(0, 1) = 7;
-//     this->assert_equal_to_original_mtx(mtx_copy.get());
-// }
-
-
-// TYPED_TEST(MultiVector, CanBeMoved)
-// {
-//     auto mtx_copy = gko::batch::MultiVector<TypeParam>::create(this->exec);
-
-//     this->mtx->move_to(mtx_copy.get());
-
-//     this->assert_equal_to_original_mtx(mtx_copy.get());
-// }
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->at(0, 0, 0) = 7;
+    this->mtx->at(0, 1) = 7;
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
 
 
-// TYPED_TEST(MultiVector, CanBeCloned)
-// {
-//     auto mtx_clone = this->mtx->clone();
+TYPED_TEST(MultiVector, CanBeMoved)
+{
+    auto mtx_copy = gko::batch::MultiVector<TypeParam>::create(this->exec);
 
-//     this->assert_equal_to_original_mtx(
-//         dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
-// }
+    this->mtx->move_to(mtx_copy.get());
+
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
+
+
+TYPED_TEST(MultiVector, CanBeCloned)
+{
+    auto mtx_clone = this->mtx->clone();
+
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+}
 
 
 TYPED_TEST(MultiVector, CanBeCleared)

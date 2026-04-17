@@ -176,7 +176,7 @@ BlockOperator::BlockOperator(
     for (auto& row : blocks) {
         for (auto& block : row) {
             if (block && block->get_executor() != exec) {
-                // blocks_.push_back(gko::clone(exec, block));
+                blocks_.push_back(gko::clone(exec, block));
             } else {
                 blocks_.push_back(std::move(block));
             }

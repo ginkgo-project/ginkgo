@@ -343,7 +343,8 @@ protected:
                 this->set_cache_to(dense_b);
                 l_solver_->apply(dense_b, cache_.intermediate);
                 if (lh_solver_->apply_uses_initial_guess()) {
-                    // dense_x->copy_from(cache_.intermediate);
+                    dense_x->copy_from(
+                        as<ClonableObject>(cache_.intermediate.get()));
                 }
                 lh_solver_->apply(cache_.intermediate, dense_x);
             },
@@ -437,7 +438,8 @@ protected:
                 matrix::Dense<value_type>::create(this->get_executor());
         }
         // Use b as the initial guess for the first triangular solve
-        // cache_.intermediate->copy_from(b);
+        as<ClonableObject>(cache_.intermediate.get())
+            ->copy_from(as<ClonableObject>(b));
     }
 
     /**
