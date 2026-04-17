@@ -53,7 +53,7 @@ public:
      */
     void operator()(pointer ptr) const
     {
-        // original_->copy_from(ptr);
+        as<ClonableObject>(original_)->copy_from(as<ClonableObject>(ptr));
         delete ptr;
     }
 
@@ -111,8 +111,7 @@ struct temporary_clone_helper {
     static std::unique_ptr<T> create(std::shared_ptr<const Executor> exec,
                                      T* ptr, bool)
     {
-        return nullptr;
-        // return gko::clone(std::move(exec), ptr);
+        return gko::clone(std::move(exec), ptr);
     }
 };
 

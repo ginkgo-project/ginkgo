@@ -282,7 +282,7 @@ public:
             GKO_ASSERT_EQUAL_DIMENSIONS(self(), new_precond);
             GKO_ASSERT_IS_SQUARE_MATRIX(new_precond);
             if (new_precond->get_executor() != exec) {
-                // new_precond = gko::clone(exec, new_precond);
+                new_precond = gko::clone(exec, new_precond);
             }
         }
         Preconditionable::set_preconditioner(new_precond);
@@ -647,7 +647,7 @@ protected:
             GKO_ASSERT_EQUAL_DIMENSIONS(self(), new_system_matrix);
             GKO_ASSERT_IS_SQUARE_MATRIX(new_system_matrix);
             if (new_system_matrix->get_executor() != exec) {
-                // new_system_matrix = gko::clone(exec, new_system_matrix);
+                new_system_matrix = gko::clone(exec, new_system_matrix);
             }
         }
         this->set_system_matrix_base(new_system_matrix);

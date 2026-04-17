@@ -161,39 +161,39 @@ TYPED_TEST(Csr, CanCreateSpCsrItemView)
 }
 
 
-// TYPED_TEST(Csr, CanBeCopied)
-// {
-//     using BatchCsrMtx = typename TestFixture::BatchCsrMtx;
+TYPED_TEST(Csr, CanBeCopied)
+{
+    using BatchCsrMtx = typename TestFixture::BatchCsrMtx;
 
-//     auto mtx_copy = BatchCsrMtx::create(this->exec);
+    auto mtx_copy = BatchCsrMtx::create(this->exec);
 
-//     mtx_copy->copy_from(this->mtx.get());
+    mtx_copy->copy_from(this->mtx.get());
 
-//     this->assert_equal_to_original_mtx(this->mtx.get());
-//     this->mtx->get_values()[0] = 7;
-//     this->assert_equal_to_original_mtx(mtx_copy.get());
-// }
-
-
-// TYPED_TEST(Csr, CanBeMoved)
-// {
-//     using BatchCsrMtx = typename TestFixture::BatchCsrMtx;
-
-//     auto mtx_copy = BatchCsrMtx::create(this->exec);
-
-//     this->mtx->move_to(mtx_copy);
-
-//     this->assert_equal_to_original_mtx(mtx_copy.get());
-// }
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->mtx->get_values()[0] = 7;
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
 
 
-// TYPED_TEST(Csr, CanBeCloned)
-// {
-//     auto mtx_clone = this->mtx->clone();
+TYPED_TEST(Csr, CanBeMoved)
+{
+    using BatchCsrMtx = typename TestFixture::BatchCsrMtx;
 
-//     this->assert_equal_to_original_mtx(
-//         dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
-// }
+    auto mtx_copy = BatchCsrMtx::create(this->exec);
+
+    this->mtx->move_to(mtx_copy);
+
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
+
+
+TYPED_TEST(Csr, CanBeCloned)
+{
+    auto mtx_clone = this->mtx->clone();
+
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+}
 
 
 TYPED_TEST(Csr, CanBeCleared)

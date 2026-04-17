@@ -354,8 +354,8 @@ public:
         if (input->get_executor() == exec) {
             generated = this->AbstractFactory::generate(input);
         } else {
-            // generated =
-            //     this->AbstractFactory::generate(gko::clone(exec, input));
+            generated =
+                this->AbstractFactory::generate(gko::clone(exec, input));
         }
         this->template log<log::Logger::linop_factory_generate_completed>(
             this, input.get(), generated.get());

@@ -46,6 +46,7 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr final
     : public EnableBatchLinOp<Csr<ValueType, IndexType>>,
+      public EnableClonableAssignment<Csr<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>,
 #endif
@@ -61,8 +62,8 @@ class Csr final
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableBatchLinOp<Csr>::convert_to;
-    using EnableBatchLinOp<Csr>::move_to;
+    using EnableClonableAssignment<Csr>::convert_to;
+    using EnableClonableAssignment<Csr>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;

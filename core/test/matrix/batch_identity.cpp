@@ -65,36 +65,34 @@ TYPED_TEST(Identity, CanBeEmpty)
 }
 
 
-// TYPED_TEST(Identity, CanBeCopied)
-// {
-//     auto mtx_copy =
-//     gko::batch::matrix::Identity<TypeParam>::create(this->exec);
+TYPED_TEST(Identity, CanBeCopied)
+{
+    auto mtx_copy = gko::batch::matrix::Identity<TypeParam>::create(this->exec);
 
-//     mtx_copy->copy_from(this->mtx.get());
+    mtx_copy->copy_from(this->mtx.get());
 
-//     this->assert_equal_to_original_mtx(this->mtx.get());
-//     this->assert_equal_to_original_mtx(mtx_copy.get());
-// }
-
-
-// TYPED_TEST(Identity, CanBeMoved)
-// {
-//     auto mtx_copy =
-//     gko::batch::matrix::Identity<TypeParam>::create(this->exec);
-
-//     this->mtx->move_to(mtx_copy);
-
-//     this->assert_equal_to_original_mtx(mtx_copy.get());
-// }
+    this->assert_equal_to_original_mtx(this->mtx.get());
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
 
 
-// TYPED_TEST(Identity, CanBeCloned)
-// {
-//     auto mtx_clone = this->mtx->clone();
+TYPED_TEST(Identity, CanBeMoved)
+{
+    auto mtx_copy = gko::batch::matrix::Identity<TypeParam>::create(this->exec);
 
-//     this->assert_equal_to_original_mtx(
-//         dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
-// }
+    this->mtx->move_to(mtx_copy);
+
+    this->assert_equal_to_original_mtx(mtx_copy.get());
+}
+
+
+TYPED_TEST(Identity, CanBeCloned)
+{
+    auto mtx_clone = this->mtx->clone();
+
+    this->assert_equal_to_original_mtx(
+        dynamic_cast<decltype(this->mtx.get())>(mtx_clone.get()));
+}
 
 
 TYPED_TEST(Identity, CanBeCleared)
@@ -123,34 +121,34 @@ TYPED_TEST(Identity, FailsToConstructForRectangularSizes)
 }
 
 
-// TYPED_TEST(Identity, CanApplytoMultiVector)
-// {
-//     using MVec = typename TestFixture::MVec;
-//     using value_type = typename TestFixture::value_type;
-//     auto x = this->mvec->clone();
-//     x->fill(gko::zero<value_type>());
-//     ASSERT_EQ(x->at(0, 0, 0), value_type{0.0});
+TYPED_TEST(Identity, CanApplytoMultiVector)
+{
+    using MVec = typename TestFixture::MVec;
+    using value_type = typename TestFixture::value_type;
+    auto x = this->mvec->clone();
+    x->fill(gko::zero<value_type>());
+    ASSERT_EQ(x->at(0, 0, 0), value_type{0.0});
 
-//     this->mtx->apply(this->mvec, x);
+    this->mtx->apply(this->mvec, x);
 
-//     GKO_ASSERT_BATCH_MTX_NEAR(this->mvec, x, 0.0);
-// }
+    GKO_ASSERT_BATCH_MTX_NEAR(this->mvec, x, 0.0);
+}
 
 
-// TYPED_TEST(Identity, CanAdvancedApplytoMultiVector)
-// {
-//     using MVec = typename TestFixture::MVec;
-//     using value_type = typename TestFixture::value_type;
-//     auto x = this->mvec->clone();
-//     x->fill(gko::one<value_type>());
-//     ASSERT_EQ(x->at(0, 0, 0), value_type{1.0});
-//     auto alpha = gko::batch::initialize<MVec>({{1.0}, {-1.0}}, this->exec);
-//     auto beta = gko::batch::initialize<MVec>({{2.0}, {-4.0}}, this->exec);
-//     auto axpby = x->clone();
-//     axpby->scale(beta);
-//     axpby->add_scaled(alpha, this->mvec);
+TYPED_TEST(Identity, CanAdvancedApplytoMultiVector)
+{
+    using MVec = typename TestFixture::MVec;
+    using value_type = typename TestFixture::value_type;
+    auto x = this->mvec->clone();
+    x->fill(gko::one<value_type>());
+    ASSERT_EQ(x->at(0, 0, 0), value_type{1.0});
+    auto alpha = gko::batch::initialize<MVec>({{1.0}, {-1.0}}, this->exec);
+    auto beta = gko::batch::initialize<MVec>({{2.0}, {-4.0}}, this->exec);
+    auto axpby = x->clone();
+    axpby->scale(beta);
+    axpby->add_scaled(alpha, this->mvec);
 
-//     this->mtx->apply(alpha, this->mvec, beta, x);
+    this->mtx->apply(alpha, this->mvec, beta, x);
 
-//     GKO_ASSERT_BATCH_MTX_NEAR(axpby, x, 0.0);
-// }
+    GKO_ASSERT_BATCH_MTX_NEAR(axpby, x, 0.0);
+}

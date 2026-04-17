@@ -276,31 +276,31 @@ TYPED_TEST(Jacobi, CanBeClearedWithAdaptivePrecision)
 }
 
 
-// TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
-// {
-//     using value_type = typename TestFixture::value_type;
-//     using index_type = typename TestFixture::index_type;
-//     using Bj = typename TestFixture::Bj;
-//     gko::matrix_data<value_type, index_type> data;
-//     auto csr = gko::share(
-//         gko::matrix::Csr<value_type, index_type>::create(this->exec));
-//     csr->copy_from(this->mtx);
-//     auto scalar_j = this->scalar_j_factory->generate(csr);
+TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Bj = typename TestFixture::Bj;
+    gko::matrix_data<value_type, index_type> data;
+    auto csr = gko::share(
+        gko::matrix::Csr<value_type, index_type>::create(this->exec));
+    csr->copy_from(this->mtx);
+    auto scalar_j = this->scalar_j_factory->generate(csr);
 
-//     auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
-//     dense_j->copy_from(scalar_j);
-//     auto j_val = scalar_j->get_blocks();
+    auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
+    scalar_j->convert_to(dense_j);
+    auto j_val = scalar_j->get_blocks();
 
-//     for (auto i = 0; i < dense_j->get_size()[0]; ++i) {
-//         for (auto j = 0; j < dense_j->get_size()[1]; ++j) {
-//             if (i == j) {
-//                 EXPECT_EQ(dense_j->at(i, j), j_val[j]);
-//             } else {
-//                 EXPECT_EQ(dense_j->at(i, j), value_type{0.0});
-//             }
-//         }
-//     }
-// }
+    for (auto i = 0; i < dense_j->get_size()[0]; ++i) {
+        for (auto j = 0; j < dense_j->get_size()[1]; ++j) {
+            if (i == j) {
+                EXPECT_EQ(dense_j->at(i, j), j_val[j]);
+            } else {
+                EXPECT_EQ(dense_j->at(i, j), value_type{0.0});
+            }
+        }
+    }
+}
 
 
 TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)

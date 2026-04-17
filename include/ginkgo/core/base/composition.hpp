@@ -100,9 +100,9 @@ protected:
         }
         auto exec = this->get_executor();
         operators_.push_back(std::move(oper));
-        // if (operators_.back()->get_executor() != exec) {
-        //     operators_.back() = gko::clone(exec, operators_.back());
-        // }
+        if (operators_.back()->get_executor() != exec) {
+            operators_.back() = gko::clone(exec, operators_.back());
+        }
         this->set_size(dim<2>{operators_.front()->get_size()[0],
                               operators_.back()->get_size()[1]});
         add_operators(std::forward<Rest>(rest)...);

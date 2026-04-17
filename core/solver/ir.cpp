@@ -71,7 +71,7 @@ void Ir<ValueType>::set_solver(std::shared_ptr<const LinOp> new_solver)
         GKO_ASSERT_EQUAL_DIMENSIONS(new_solver, this);
         GKO_ASSERT_IS_SQUARE_MATRIX(new_solver);
         if (new_solver->get_executor() != exec) {
-            // new_solver = gko::clone(exec, new_solver);
+            new_solver = gko::clone(exec, new_solver);
         }
     }
     solver_ = new_solver;
@@ -84,7 +84,7 @@ void Ir<ValueType>::set_relaxation_factor(
 {
     auto exec = this->get_executor();
     if (new_factor && new_factor->get_executor() != exec) {
-        // new_factor = gko::clone(exec, new_factor);
+        new_factor = gko::clone(exec, new_factor);
     }
     relaxation_factor_ = new_factor;
 }
