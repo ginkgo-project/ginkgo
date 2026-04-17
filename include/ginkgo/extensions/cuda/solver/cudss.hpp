@@ -88,7 +88,7 @@ public:
      * config::registry. Users can pass this to the registry constructor
      * to enable JSON/YAML configuration of CuDss.
      */
-    static config::configuration_map get_default_config_map();
+    static config::configuration_map get_config_map();
 
     /** Creates a copy of the solver (shares factorization state). */
     CuDss(const CuDss&);

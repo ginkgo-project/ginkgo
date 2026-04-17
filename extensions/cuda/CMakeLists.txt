@@ -6,7 +6,7 @@ find_package(cuDSS QUIET)
 if(NOT cuDSS_FOUND)
     message(
         STATUS
-        "cuDSS not found — ext::cuda::solver::CuDss will not be built"
+        "cuDSS not found — gko::ext::cuda::solver::CuDss will not be built"
     )
     return()
 endif()

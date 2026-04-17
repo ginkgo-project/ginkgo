@@ -1,16 +1,39 @@
-include(FindPackageHandleStandardArgs)
+#.rst:
+# FindcuDSS
+# ---------
+#
+# Find the NVIDIA cuDSS (CUDA Direct Sparse Solver) library.
+#
+# Imported targets
+# ^^^^^^^^^^^^^^^^
+#
+# This module defines the following :prop_tgt:`IMPORTED` target:
+#
+# ``cuDSS::cuDSS``
+#   The cuDSS library, if found.
+#
+# Result variables
+# ^^^^^^^^^^^^^^^^
+#
+# This module will set the following variables in your project:
+#
+# ``CUDSS_INCLUDE_DIR``
+#   where to find cudss.h
+#
+# ``CUDSS_LIBRARY``
+#   the library to link against in order to use cuDSS.
+#
+# ``cuDSS_FOUND``
+#   If false, do not try to use the cuDSS library.
+#
+# Hints
+# ^^^^^
+#
+# ``CUDSS_DIR``
+#   Set this variable or the corresponding environment variable to a cuDSS
+#   installation prefix to help locate it.
 
-# Determine CUDA major version for version-specific cuDSS lookup
-if(CMAKE_CUDA_COMPILER)
-    execute_process(
-        COMMAND ${CMAKE_CUDA_COMPILER} --version
-        OUTPUT_VARIABLE _nvcc_version_output
-        ERROR_QUIET
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    string(REGEX MATCH "V([0-9]+)" _cuda_major "${_nvcc_version_output}")
-    set(_cuda_major "${CMAKE_MATCH_1}")
-endif()
+include(FindPackageHandleStandardArgs)
 
 find_path(
     CUDSS_INCLUDE_DIR
@@ -19,16 +42,11 @@ find_path(
     PATH_SUFFIXES include
 )
 
-# Prefer version-specific cuDSS library matching CUDA major version
 find_library(
     CUDSS_LIBRARY
     NAMES cudss
     HINTS ${CUDSS_DIR} $ENV{CUDSS_DIR} ${CUDA_TOOLKIT_ROOT_DIR}
-    PATH_SUFFIXES
-        lib/x86_64-linux-gnu/libcudss/${_cuda_major}
-        lib64/libcudss/${_cuda_major}
-        lib
-        lib64
+    PATH_SUFFIXES lib lib64
 )
 
 find_package_handle_standard_args(

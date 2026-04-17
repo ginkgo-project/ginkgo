@@ -44,10 +44,6 @@ if(GINKGO_BUILD_CUDA AND GINKGO_BUILD_OMP)
     list(APPEND EXAMPLES_LIST custom-matrix-format)
 endif()
 
-if(GINKGO_BUILD_CUDA)
-    list(APPEND EXAMPLES_LIST direct-solver)
-endif()
-
 if(GINKGO_BUILD_EXTLIB_EXAMPLE)
     list(APPEND EXAMPLES_LIST external-lib-interfacing)
 endif()

@@ -406,6 +406,17 @@ CuDss<ValueType, IndexType>::parse(const config::pnode& config,
                                    const config::type_descriptor& td_for_child)
 {
     auto params = CuDss::build();
+    // config_check_decorator is only available in core, so we manually
+    // check for unknown keys here.
+    const std::set<std::string> allowed_keys = {
+        "type",           "value_type",     "matrix_type",  "matrix_view",
+        "reordering_alg", "hybrid_execute", "hybrid_memory"};
+    if (config.get_tag() == config::pnode::tag_t::map) {
+        for (const auto& [key, _] : config.get_map()) {
+            GKO_THROW_IF_INVALID(allowed_keys.count(key),
+                                 key + " is not an allowed key.");
+        }
+    }
     if (const auto& obj = config.get("matrix_type"); obj) {
         params.with_matrix_type(static_cast<int>(obj.get_integer()));
     }
@@ -426,7 +437,7 @@ CuDss<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
-config::configuration_map CuDss<ValueType, IndexType>::get_default_config_map()
+config::configuration_map CuDss<ValueType, IndexType>::get_config_map()
 {
     return {{"ext::cuda::solver::CuDss",
              [](const config::pnode& config, const config::registry& context,
