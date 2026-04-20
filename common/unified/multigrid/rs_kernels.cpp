@@ -24,135 +24,32 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace rs {
 
 template <typename ValueType, typename IndexType>
-void compute_soc_mask(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* A,
-                      remove_complex<ValueType> theta,
-                      bool* is_strong)  // size: A->nnz
+void compute_soc_and_run_rs(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Csr<ValueType, IndexType>* A,
+                            remove_complex<ValueType> theta,
+                            array<bool>& is_strong, array<IndexType>& lambda,
+                            array<IndexType>& cf_marker, IndexType& coarse_size)
 {
     GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RS_COMPUTE_SOC_MASK_KERNEL);
-
-// template <typename ValueType, typename IndexType>
-// void compute_soc_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
-//                           const matrix::Csr<ValueType, IndexType>* A,
-//                           remove_complex<ValueType> theta, IndexType*
-//                           row_ptrs)
-// {
-//     GKO_NOT_IMPLEMENTED;
-// }
-
-// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-//     GKO_DECLARE_RS_COMPUTE_SOC_ROW_PTRS_KERNEL);
+    GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL);
 
 
-// template <typename ValueType, typename IndexType>
-// void fill_soc(std::shared_ptr<const DefaultExecutor> exec,
-//               const matrix::Csr<ValueType, IndexType>* A,
-//               remove_complex<ValueType> theta,
-//               matrix::Csr<ValueType, IndexType>* S)
-// {
-//     GKO_NOT_IMPLEMENTED;
-// }
-
-// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_FILL_SOC_KERNEL);
-
-
-// Compute lambda_i = number of strong neighbors
 template <typename ValueType, typename IndexType>
-void compute_lambda(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* A,
-                    const bool* is_strong, IndexType* lambda)
+void fill_coarse_and_compute_prolong_row_ptrs(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<IndexType>& cf_marker, array<IndexType>& coarse_rows,
+    array<IndexType>& fine_to_coarse,
+    const matrix::Csr<ValueType, IndexType>* A, const array<bool>& is_strong,
+    array<IndexType>& row_ptrs)
 {
     GKO_NOT_IMPLEMENTED;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RS_COMPUTE_LAMBDA_KERNEL);
-
-
-// Init all nodes as undecided (0)
-template <typename IndexType>
-void init_cf(std::shared_ptr<const DefaultExecutor> exec,
-             array<IndexType>& cf_marker)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_INIT_CF_KERNEL);
-
-
-// Classical RS greedy selection
-template <typename ValueType, typename IndexType>
-void rs_coarsening(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Csr<ValueType, IndexType>* A,
-                   const bool* is_strong, IndexType* lambda,
-                   array<IndexType>& cf_marker)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_COARSENING_KERNEL);
-
-
-// Cleanup: ensure no undecided remain (make them F)
-template <typename IndexType>
-void rs_cleanup(std::shared_ptr<const DefaultExecutor> exec,
-                array<IndexType>& cf_marker)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_CLEANUP_KERNEL);
-
-
-// Count C-points
-template <typename IndexType>
-void count_coarse(std::shared_ptr<const DefaultExecutor> exec,
-                  const array<IndexType>& cf_marker, IndexType* coarse_size)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_COUNT_COARSE_KERNEL);
-
-
-// Fill coarse row index array
-template <typename IndexType>
-void fill_coarse_rows(std::shared_ptr<const DefaultExecutor> exec,
-                      const array<IndexType>& cf_marker, IndexType* coarse_rows)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_FILL_COARSE_ROWS_KERNEL);
-
-
-template <typename IndexType>
-void fill_fine_to_coarse(std::shared_ptr<const DefaultExecutor> exec,
-                         const array<IndexType>& cf_marker,
-                         IndexType* fine_to_coarse)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_FILL_FINE_TO_COARSE_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void compute_interpolation_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,
-                                    const matrix::Csr<ValueType, IndexType>* A,
-                                    const bool* is_strong,
-                                    const array<IndexType>& cf_marker,
-                                    IndexType* row_ptrs)
-{
-    GKO_NOT_IMPLEMENTED;
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_ROW_PTRS_KERNEL);
+    GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

@@ -31,18 +31,23 @@ namespace reference {
 namespace rs {
 
 template <typename ValueType, typename IndexType>
-void compute_soc_mask(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* A,
-                      remove_complex<ValueType> theta,
-                      bool* is_strong)  // size: A->nnz
+void compute_soc_and_run_rs(std::shared_ptr<const ReferenceExecutor> exec,
+                            const matrix::Csr<ValueType, IndexType>* A,
+                            remove_complex<ValueType> theta,
+                            array<bool>& is_strong, array<IndexType>& lambda,
+                            array<IndexType>& cf_marker, IndexType& coarse_size)
 {
     using real_type = remove_complex<ValueType>;
     const auto n = A->get_size()[0];
     const auto* a_row_ptrs = A->get_const_row_ptrs();
+    const auto* a_col_idxs = A->get_const_col_idxs();
     const auto* a_vals = A->get_const_values();
+    bool* is_strong_vals = is_strong.get_data();
+    auto* lambda_vals = lambda.get_data();
+    auto* cf = cf_marker.get_data();
 
+    /// 1. COMPUTE SOC MASK
     // assuming an M-matrix
-
     for (IndexType i = 0; i < n; ++i) {
         real_type max_offdiag = zero<real_type>();
 
@@ -56,156 +61,34 @@ void compute_soc_mask(std::shared_ptr<const ReferenceExecutor> exec,
         // pass 2: set mask
         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
             const auto j = A->get_const_col_idxs()[jj];
-            is_strong[jj] =
+            is_strong_vals[jj] =
                 (j != i && -real(a_vals[jj]) >= theta * max_offdiag);
         }
     }
-}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RS_COMPUTE_SOC_MASK_KERNEL);
-
-
-// template <typename ValueType, typename IndexType>
-// void compute_soc_row_ptrs(std::shared_ptr<const ReferenceExecutor> exec,
-//                           const matrix::Csr<ValueType, IndexType>* A,
-//                           remove_complex<ValueType> theta, IndexType*
-//                           row_ptrs)
-// {
-//     using real_type = remove_complex<ValueType>;
-
-//     const auto n = A->get_size()[0];
-//     const auto* a_row_ptrs = A->get_const_row_ptrs();
-//     const auto* a_col_idxs = A->get_const_col_idxs();
-//     const auto* a_vals = A->get_const_values();
-
-//     row_ptrs[0] = 0;
-
-//     for (IndexType i = 0; i < n; ++i) {
-//         real_type max_offdiag = zero<real_type>();
-//         IndexType row_nnz = 0;
-
-//         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-//             const auto j = a_col_idxs[jj];
-//             if (j != i) {
-//                 // assuming an M-matrix
-//                 max_offdiag = std::max(max_offdiag, -real(a_vals[jj]));
-//             }
-//         }
-
-//         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-//             const auto j = a_col_idxs[jj];
-//             if (j != i && -real(a_vals[jj]) >= theta * max_offdiag) {
-//                 row_nnz++;
-//             }
-//         }
-
-//         row_ptrs[i + 1] = row_ptrs[i] + row_nnz;
-//     }
-// }
-
-// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-//     GKO_DECLARE_RS_COMPUTE_SOC_ROW_PTRS_KERNEL);
-
-
-// template <typename ValueType, typename IndexType>
-// void fill_soc(std::shared_ptr<const ReferenceExecutor> exec,
-//               const matrix::Csr<ValueType, IndexType>* A,
-//               remove_complex<ValueType> theta,
-//               matrix::Csr<ValueType, IndexType>* S)
-// {
-//     using real_type = remove_complex<ValueType>;
-
-//     const auto n = A->get_size()[0];
-//     const auto* a_row_ptrs = A->get_const_row_ptrs();
-//     const auto* a_col_idxs = A->get_const_col_idxs();
-//     const auto* a_vals = A->get_const_values();
-
-//     const auto* s_row_ptrs = S->get_const_row_ptrs();
-//     auto* s_col_idxs = S->get_col_idxs();
-//     auto* s_vals = S->get_values();
-
-//     for (IndexType i = 0; i < n; ++i) {
-//         real_type max_offdiag = zero<real_type>();
-
-//         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-//             const auto j = a_col_idxs[jj];
-//             if (j != i) {
-//                 max_offdiag = std::max(max_offdiag, -real(a_vals[jj]));
-//             }
-//         }
-
-//         IndexType write_pos = s_row_ptrs[i];
-
-//         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-//             const auto j = a_col_idxs[jj];
-//             if (j != i && -real(a_vals[jj]) >= theta * max_offdiag) {
-//                 s_col_idxs[write_pos] = j;
-//                 s_vals[write_pos] = one<ValueType>();
-//                 write_pos++;
-//             }
-//         }
-//     }
-// }
-
-// GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_FILL_SOC_KERNEL);
-
-
-// Compute lambda_i = number of strong neighbors
-template <typename ValueType, typename IndexType>
-void compute_lambda(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* A,
-                    const bool* is_strong, IndexType* lambda)
-{
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-
+    /// 2. COMPUTE lambda_i = number of strong nbrs
     for (IndexType i = 0; i < n; ++i) {
         IndexType count = 0;
         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-            if (is_strong[jj]) count++;
+            if (is_strong_vals[jj]) count++;
         }
-        lambda[i] = count;
+        lambda_vals[i] = count;
     }
-}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RS_COMPUTE_LAMBDA_KERNEL);
-
-
-// Init all nodes as undecided (0)
-template <typename IndexType>
-void init_cf(std::shared_ptr<const ReferenceExecutor> exec,
-             array<IndexType>& cf_marker)
-{
-    auto* cf = cf_marker.get_data();
+    /// 3. INIT ALL NODES AS UNDECIDED (0)
     for (size_type i = 0; i < cf_marker.get_size(); ++i) {
         cf[i] = 0;  // 0 = undecided
     }
-}
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_INIT_CF_KERNEL);
-
-
-template <typename ValueType, typename IndexType>
-void rs_coarsening(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Csr<ValueType, IndexType>* A,
-                   const bool* is_strong, IndexType* lambda,
-                   array<IndexType>& cf_marker)
-{
-    const auto n = A->get_size()[0];
-    const auto* row_ptrs = A->get_const_row_ptrs();
-    const auto* col_idxs = A->get_const_col_idxs();
-    auto* cf = cf_marker.get_data();
-
+    /// 4. RS-COARSENING
     while (true) {
         // Find max lambda among undecided (cf == 0)
         IndexType max_idx = -1;
         IndexType max_val = -1;
 
         for (IndexType i = 0; i < n; ++i) {
-            if (cf[i] == 0 && lambda[i] > max_val) {
-                max_val = lambda[i];
+            if (cf[i] == 0 && lambda_vals[i] > max_val) {
+                max_val = lambda_vals[i];
                 max_idx = i;
             }
         }
@@ -213,113 +96,82 @@ void rs_coarsening(std::shared_ptr<const ReferenceExecutor> exec,
 
         cf[max_idx] = 1;  // C-point
 
-        for (IndexType jj = row_ptrs[max_idx]; jj < row_ptrs[max_idx + 1];
+        for (IndexType jj = a_row_ptrs[max_idx]; jj < a_row_ptrs[max_idx + 1];
              ++jj) {
-            if (is_strong[jj]) {
-                const auto j = col_idxs[jj];
+            if (is_strong_vals[jj]) {
+                const auto j = a_col_idxs[jj];
                 if (cf[j] == 0) {
                     cf[j] = -1;  // F-point
                     // update neighbors of the newly marked F-point
-                    for (IndexType kk = row_ptrs[j]; kk < row_ptrs[j + 1];
+                    for (IndexType kk = a_row_ptrs[j]; kk < a_row_ptrs[j + 1];
                          ++kk) {
-                        if (is_strong[kk] && cf[col_idxs[kk]] == 0) {
-                            lambda[col_idxs[kk]]--;
+                        if (is_strong_vals[kk] && cf[a_col_idxs[kk]] == 0) {
+                            lambda_vals[a_col_idxs[kk]]--;
                         }
                     }
                 }
             }
         }
     }
-}
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_COARSENING_KERNEL);
-
-
-// Cleanup: ensure no undecided remain (make them F)
-template <typename IndexType>
-void rs_cleanup(std::shared_ptr<const ReferenceExecutor> exec,
-                array<IndexType>& cf_marker)
-{
-    auto* cf = cf_marker.get_data();
+    /// 5. CLEANUP, MAKE SURE NO UNDECIDED REMAIN
     for (size_type i = 0; i < cf_marker.get_size(); ++i) {
         if (cf[i] == 0) {  // undecided
             cf[i] = -1;    // make F
         }
     }
-}
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_CLEANUP_KERNEL);
-
-
-// Count C-points
-template <typename IndexType>
-void count_coarse(std::shared_ptr<const ReferenceExecutor> exec,
-                  const array<IndexType>& cf_marker, IndexType* coarse_size)
-{
+    /// 6. COUNT C-POINTS
     IndexType count = 0;
-    const auto* cf = cf_marker.get_const_data();
-
     for (size_type i = 0; i < cf_marker.get_size(); ++i) {
         if (cf[i] == 1) {
             count++;
         }
     }
-
-    *coarse_size = count;
+    coarse_size = count;
 }
 
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_COUNT_COARSE_KERNEL);
-
-
-// Fill coarse row index array
-template <typename IndexType>
-void fill_coarse_rows(std::shared_ptr<const ReferenceExecutor> exec,
-                      const array<IndexType>& cf_marker, IndexType* coarse_rows)
-{
-    const auto* cf = cf_marker.get_const_data();
-
-    IndexType idx = 0;
-    for (size_type i = 0; i < cf_marker.get_size(); ++i) {
-        if (cf[i] == 1) {
-            coarse_rows[idx++] = static_cast<IndexType>(i);
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_FILL_COARSE_ROWS_KERNEL);
-
-
-template <typename IndexType>
-void fill_fine_to_coarse(std::shared_ptr<const ReferenceExecutor> exec,
-                         const array<IndexType>& cf_marker,
-                         IndexType* fine_to_coarse)
-{
-    const auto* cf = cf_marker.get_const_data();
-    IndexType coarse_id = 0;
-    for (size_type i = 0; i < cf_marker.get_size(); ++i) {
-        if (cf[i] == 1) {
-            fine_to_coarse[i] = coarse_id++;
-        } else {
-            fine_to_coarse[i] = -1;
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_FILL_FINE_TO_COARSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void compute_interpolation_row_ptrs(
+void fill_coarse_and_compute_prolong_row_ptrs(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* A, const bool* is_strong,
-    const array<IndexType>& cf_marker, IndexType* row_ptrs)
+    const array<IndexType>& cf_marker, array<IndexType>& coarse_rows,
+    array<IndexType>& fine_to_coarse,
+    const matrix::Csr<ValueType, IndexType>* A, const array<bool>& is_strong,
+    array<IndexType>& row_ptrs)
 {
+    const auto* cf = cf_marker.get_const_data();
+    auto* coarse_rows_vals = coarse_rows.get_data();
+    auto* fine_to_coarse_vals = fine_to_coarse.get_data();
+    auto* row_ptrs_vals = row_ptrs.get_data();
+    const bool* is_strong_vals = is_strong.get_const_data();
     const auto n = A->get_size()[0];
     const auto* a_row_ptrs = A->get_const_row_ptrs();
     const auto* a_col_idxs = A->get_const_col_idxs();
-    const auto* cf = cf_marker.get_const_data();
 
-    row_ptrs[0] = 0;
+    /// 1. Fill COARSE ROW INDEX ARRAY
+    IndexType idx = 0;
+    for (size_type i = 0; i < cf_marker.get_size(); ++i) {
+        if (cf[i] == 1) {
+            coarse_rows_vals[idx++] = static_cast<IndexType>(i);
+        }
+    }
+
+    /// 2. FILL IN THE fine_to_coarse
+    IndexType coarse_id = 0;
+    for (size_type i = 0; i < cf_marker.get_size(); ++i) {
+        if (cf[i] == 1) {
+            fine_to_coarse_vals[i] = coarse_id++;
+        } else {
+            fine_to_coarse_vals[i] = -1;
+        }
+    }
+
+    /// 3. COMPUTE INTERPOLATION ROW PTRS
+    row_ptrs_vals[0] = 0;
     for (IndexType i = 0; i < n; ++i) {
         IndexType row_nnz = 0;
         if (cf[i] == 1) {
@@ -327,17 +179,17 @@ void compute_interpolation_row_ptrs(
         } else {
             // count strong C-neighbors
             for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-                if (is_strong[jj] && cf[a_col_idxs[jj]] == 1) {
+                if (is_strong_vals[jj] && cf[a_col_idxs[jj]] == 1) {
                     row_nnz++;
                 }
             }
         }
-        row_ptrs[i + 1] = row_ptrs[i] + row_nnz;
+        row_ptrs_vals[i + 1] = row_ptrs_vals[i] + row_nnz;
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_ROW_PTRS_KERNEL);
+    GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

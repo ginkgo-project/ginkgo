@@ -31,19 +31,9 @@ namespace {
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
-// GKO_REGISTER_OPERATION(compute_soc_row_ptrs, rs::compute_soc_row_ptrs);
-GKO_REGISTER_OPERATION(compute_soc_mask, rs::compute_soc_mask);
-// GKO_REGISTER_OPERATION(fill_soc, rs::fill_soc);
-GKO_REGISTER_OPERATION(compute_lambda, rs::compute_lambda);
-GKO_REGISTER_OPERATION(init_cf, rs::init_cf);
-GKO_REGISTER_OPERATION(rs_coarsening, rs::rs_coarsening);
-GKO_REGISTER_OPERATION(rs_cleanup, rs::rs_cleanup);
-GKO_REGISTER_OPERATION(fill_coarse_rows, rs::fill_coarse_rows);
-GKO_REGISTER_OPERATION(count_coarse, rs::count_coarse);
-
-GKO_REGISTER_OPERATION(fill_fine_to_coarse, rs::fill_fine_to_coarse);
-GKO_REGISTER_OPERATION(compute_interpolation_row_ptrs,
-                       rs::compute_interpolation_row_ptrs);
+GKO_REGISTER_OPERATION(compute_soc_and_run_rs, rs::compute_soc_and_run_rs);
+GKO_REGISTER_OPERATION(fill_coarse_and_compute_prolong_row_ptrs,
+                       rs::fill_coarse_and_compute_prolong_row_ptrs);
 GKO_REGISTER_OPERATION(compute_interpolation, rs::compute_interpolation);
 
 }  // anonymous namespace
@@ -69,42 +59,28 @@ void Rs<ValueType, IndexType>::generate()
         this->set_fine_op(rs_op_shared_ptr);
     }
 
-    // build Strength-of-Connection (SOC) mask, 1 byte per NNZ of the system
-    // matrix
+    // define arrays
     array<bool> is_strong(exec, rs_op->get_num_stored_elements());
-
-    exec->run(rs::make_compute_soc_mask(rs_op, parameters_.strength_threshold,
-                                        is_strong.get_data()));
-
-    // compute lambda
     array<IndexType> lambda(exec, fine_dim);
-    exec->run(rs::make_compute_lambda(rs_op, is_strong.get_const_data(),
-                                      lambda.get_data()));
-
-    // greedy RS C/F splitting: 0 = undecided, 1 = C, -1 = F
     array<IndexType> cf_marker(exec, fine_dim);
-    exec->run(rs::make_init_cf(cf_marker));
-    exec->run(rs::make_rs_coarsening(rs_op, is_strong.get_const_data(),
-                                     lambda.get_data(), cf_marker));
-    exec->run(rs::make_rs_cleanup(cf_marker));
-
-    // extract coarse dims and mappings
     IndexType coarse_dim{};
-    exec->run(rs::make_count_coarse(cf_marker, &coarse_dim));
+    // build Strength-of-Connection (SOC) mask, 1 byte per NNZ of the system
+    // matrix, compute lambda, perform greedy RS C/F splitting:
+    // 0 = undecided, 1 = C, -1 = F,
+    // then extract coarse dims
+    exec->run(rs::make_compute_soc_and_run_rs(
+        rs_op, parameters_.strength_threshold, is_strong, lambda, cf_marker,
+        coarse_dim));
     const size_type coarse_dim_size = static_cast<size_type>(coarse_dim);
 
+    // fill in coarse_rows and fine_to_coarse, build prolongation using
+    // interpolation
     array<IndexType> coarse_rows(exec, coarse_dim_size);
-    exec->run(rs::make_fill_coarse_rows(cf_marker, coarse_rows.get_data()));
-
     array<IndexType> fine_to_coarse(exec, fine_dim);
-    exec->run(
-        rs::make_fill_fine_to_coarse(cf_marker, fine_to_coarse.get_data()));
-
-    // build prolongation using interpolation
     array<IndexType> prolong_row_ptrs(exec, fine_dim + 1);
-    exec->run(rs::make_compute_interpolation_row_ptrs(
-        rs_op, is_strong.get_const_data(), cf_marker,
-        prolong_row_ptrs.get_data()));
+    exec->run(rs::make_fill_coarse_and_compute_prolong_row_ptrs(
+        cf_marker, coarse_rows, fine_to_coarse, rs_op, is_strong,
+        prolong_row_ptrs));
 
     IndexType prolong_nnz =
         exec->copy_val_to_host(prolong_row_ptrs.get_const_data() + fine_dim);

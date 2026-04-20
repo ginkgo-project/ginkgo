@@ -51,98 +51,54 @@ protected:
 };
 
 
-TEST_F(Rs, ComputeSocMask)
+TEST_F(Rs, ComputeSocAndRunRs)
 {
     auto A = csr::create(exec, gko::dim<2>{3, 3}, 7);
     A->read({{2.0, -1.0, 0.0}, {-1.0, 2.0, -1.0}, {0.0, -1.0, 2.0}});
 
     gko::array<bool> is_strong(exec, 7);
+    gko::array<index_type> lambda(exec, 3);
+    gko::array<index_type> cf(exec, 3);
+    index_type coarse{};
 
-    gko::kernels::reference::rs::compute_soc_mask(exec, A.get(), 0.5,
-                                                  is_strong.get_data());
+    gko::kernels::reference::rs::compute_soc_and_run_rs(
+        exec, A.get(), 0.5, is_strong, lambda, cf, coarse);
 
     std::vector<bool> expected{false, true, true, false, true, true, false};
 
     for (int i = 0; i < 7; ++i) {
         ASSERT_EQ(is_strong.get_const_data()[i], expected[i]);
     }
-}
-
-
-TEST_F(Rs, ComputeLambda)
-{
-    this->setup_test_data();
-    gko::array<index_type> lambda(exec, 3);
-
-    gko::kernels::reference::rs::compute_lambda(
-        exec, A.get(), is_strong.get_const_data(), lambda.get_data());
-
     ASSERT_EQ(lambda.get_const_data()[0], 1);
     ASSERT_EQ(lambda.get_const_data()[1], 2);
     ASSERT_EQ(lambda.get_const_data()[2], 1);
-}
-
-
-TEST_F(Rs, RsCoarsening)
-{
-    this->setup_test_data();
-    gko::array<index_type> lambda(exec, 3);
-    lambda.get_data()[0] = 1;
-    lambda.get_data()[1] = 2;
-    lambda.get_data()[2] = 1;
-
-    gko::array<index_type> cf(exec, 3);
-    gko::kernels::reference::rs::init_cf(exec, cf);
-
-    gko::kernels::reference::rs::rs_coarsening(
-        exec, A.get(), is_strong.get_const_data(), lambda.get_data(), cf);
-
     ASSERT_EQ(cf.get_const_data()[0], -1);
     ASSERT_EQ(cf.get_const_data()[1], 1);
     ASSERT_EQ(cf.get_const_data()[2], -1);
+    ASSERT_EQ(coarse, 1);
 }
 
 
-TEST_F(Rs, RsCleanup)
+TEST_F(Rs, FillCoarseAndComputeProlongRowPtrs)
 {
+    this->setup_test_data();
     gko::array<index_type> cf(exec, 3);
-    cf.get_data()[0] = 0;
+    cf.get_data()[0] = -1;
     cf.get_data()[1] = 1;
     cf.get_data()[2] = -1;
-
-    gko::kernels::reference::rs::rs_cleanup(exec, cf);
-
-    ASSERT_EQ(cf.get_const_data()[0], -1);
-    ASSERT_EQ(cf.get_const_data()[1], 1);
-    ASSERT_EQ(cf.get_const_data()[2], -1);
-}
-
-
-TEST_F(Rs, FillFineToCoarse)
-{
-    this->setup_test_data();
     gko::array<index_type> f2c(exec, 3);
+    gko::array<index_type> p_row_ptrs(exec, 4);
+    gko::array<index_type> coarse(exec, 1);
 
-    gko::kernels::reference::rs::fill_fine_to_coarse(exec, cf, f2c.get_data());
+    gko::kernels::reference::rs::fill_coarse_and_compute_prolong_row_ptrs(
+        exec, cf, coarse, f2c, A.get(), is_strong, p_row_ptrs);
 
     // C-points get sequential IDs, F-points get -1
-    ASSERT_EQ(f2c.get_const_data()[0], 0);
-    ASSERT_EQ(f2c.get_const_data()[1], -1);
-    ASSERT_EQ(f2c.get_const_data()[2], 1);
-}
-
-
-TEST_F(Rs, ComputeInterpolationRowPtrs)
-{
-    this->setup_test_data();
-    gko::array<index_type> p_row_ptrs(exec, 4);
-
-    gko::kernels::reference::rs::compute_interpolation_row_ptrs(
-        exec, A.get(), is_strong.get_const_data(), cf, p_row_ptrs.get_data());
-
-    // Row 0 (C): 1 nz, Row 1 (F): 2 nz (strong C-neighbors 0,2), Row 2 (C): 1
-    // nz
-    std::vector<index_type> expected{0, 1, 3, 4};
+    ASSERT_EQ(f2c.get_const_data()[0], -1);
+    ASSERT_EQ(f2c.get_const_data()[1], 0);
+    ASSERT_EQ(f2c.get_const_data()[2], -1);
+    ASSERT_EQ(coarse.get_const_data()[0], 1);
+    std::vector<index_type> expected{0, 1, 2, 3};
     for (int i = 0; i < 4; ++i) {
         ASSERT_EQ(p_row_ptrs.get_const_data()[i], expected[i]);
     }
@@ -172,35 +128,6 @@ TEST_F(Rs, ComputeInterpolation)
 
     ASSERT_EQ(P->get_const_col_idxs()[3], 1);
     ASSERT_DOUBLE_EQ(P->get_const_values()[3], 1.0);
-}
-
-
-TEST_F(Rs, CountCoarse)
-{
-    gko::array<index_type> cf(exec, 3);
-    cf.get_data()[0] = -1;
-    cf.get_data()[1] = 1;
-    cf.get_data()[2] = -1;
-
-    index_type coarse{};
-    gko::kernels::reference::rs::count_coarse(exec, cf, &coarse);
-
-    ASSERT_EQ(coarse, 1);
-}
-
-
-TEST_F(Rs, FillCoarseRows)
-{
-    gko::array<index_type> cf(exec, 3);
-    cf.get_data()[0] = -1;
-    cf.get_data()[1] = 1;
-    cf.get_data()[2] = -1;
-
-    gko::array<index_type> coarse(exec, 1);
-
-    gko::kernels::reference::rs::fill_coarse_rows(exec, cf, coarse.get_data());
-
-    ASSERT_EQ(coarse.get_const_data()[0], 1);
 }
 
 

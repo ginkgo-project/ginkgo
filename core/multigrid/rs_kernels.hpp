@@ -21,66 +21,22 @@ namespace gko {
 namespace kernels {
 namespace rs {
 
-#define GKO_DECLARE_RS_COMPUTE_SOC_MASK_KERNEL(ValueType, IndexType)   \
-    void compute_soc_mask(std::shared_ptr<const DefaultExecutor> exec, \
-                          const matrix::Csr<ValueType, IndexType>* A,  \
-                          remove_complex<ValueType> theta, bool* is_strong)
-
-// #define GKO_DECLARE_RS_COMPUTE_SOC_ROW_PTRS_KERNEL(ValueType, IndexType)    \
-//     void compute_soc_row_ptrs(std::shared_ptr<const DefaultExecutor> exec,  \
-//                               const matrix::Csr<ValueType, IndexType>* A,   \
-//                               remove_complex<ValueType> strength_threshold, \
-//                               IndexType* row_ptrs)
-
-// #define GKO_DECLARE_RS_FILL_SOC_KERNEL(ValueType, IndexType) \
-//     void fill_soc(                                           \
-//         std::shared_ptr<const DefaultExecutor> exec,         \
-//         const matrix::Csr<ValueType, IndexType>* A,          \
-//         remove_complex<ValueType> strength_threshold,        \
-//         matrix::Csr<ValueType, IndexType>*                   \
-//             soc)  // I tried using SparsityCsr here but it doesn't support all
-//                   // the types. Not sure what'd be the difference either way.
-
-#define GKO_DECLARE_RS_COMPUTE_LAMBDA_KERNEL(ValueType, IndexType)   \
-    void compute_lambda(std::shared_ptr<const DefaultExecutor> exec, \
-                        const matrix::Csr<ValueType, IndexType>* A,  \
-                        const bool* is_strong, IndexType* lambda)
-
-#define GKO_DECLARE_RS_INIT_CF_KERNEL(IndexType)              \
-    void init_cf(std::shared_ptr<const DefaultExecutor> exec, \
-                 array<IndexType>& cf_marker)
-
-#define GKO_DECLARE_RS_COARSENING_KERNEL(ValueType, IndexType)      \
-    void rs_coarsening(std::shared_ptr<const DefaultExecutor> exec, \
-                       const matrix::Csr<ValueType, IndexType>* A,  \
-                       const bool* is_strong, IndexType* lambda,    \
-                       array<IndexType>& cf_marker)
-
-#define GKO_DECLARE_RS_CLEANUP_KERNEL(IndexType)                 \
-    void rs_cleanup(std::shared_ptr<const DefaultExecutor> exec, \
-                    array<IndexType>& cf_marker)
-
-#define GKO_DECLARE_RS_COUNT_COARSE_KERNEL(IndexType)              \
-    void count_coarse(std::shared_ptr<const DefaultExecutor> exec, \
-                      const array<IndexType>& cf_marker,           \
-                      IndexType* coarse_dim)
-
-#define GKO_DECLARE_RS_FILL_COARSE_ROWS_KERNEL(IndexType)              \
-    void fill_coarse_rows(std::shared_ptr<const DefaultExecutor> exec, \
-                          const array<IndexType>& cf_marker,           \
-                          IndexType* coarse_rows)
-
-#define GKO_DECLARE_RS_FILL_FINE_TO_COARSE_KERNEL(IndexType)              \
-    void fill_fine_to_coarse(std::shared_ptr<const DefaultExecutor> exec, \
-                             const array<IndexType>& cf_marker,           \
-                             IndexType* fine_to_coarse)
-
-#define GKO_DECLARE_RS_COMPUTE_INTERPOLATION_ROW_PTRS_KERNEL(ValueType,    \
-                                                             IndexType)    \
-    void compute_interpolation_row_ptrs(                                   \
+#define GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType) \
+    void compute_soc_and_run_rs(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Csr<ValueType, IndexType>* A, const bool* is_strong, \
-        const array<IndexType>& cf_marker, IndexType* row_ptrs)
+        const matrix::Csr<ValueType, IndexType>* A,                        \
+        remove_complex<ValueType> theta, array<bool>& is_strong,           \
+        array<IndexType>& lambda, array<IndexType>& cf_marker,             \
+        IndexType& coarse_dim)
+
+#define GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL(   \
+    ValueType, IndexType)                                                 \
+    void fill_coarse_and_compute_prolong_row_ptrs(                        \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const array<IndexType>& cf_marker, array<IndexType>& coarse_rows, \
+        array<IndexType>& fine_to_coarse,                                 \
+        const matrix::Csr<ValueType, IndexType>* A,                       \
+        const array<bool>& is_strong, array<IndexType>& row_ptrs)
 
 #define GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL(ValueType, IndexType)   \
     void compute_interpolation(                                             \
@@ -90,27 +46,13 @@ namespace rs {
         matrix::Csr<ValueType, IndexType>* P)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_RS_COMPUTE_SOC_MASK_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_RS_COMPUTE_LAMBDA_KERNEL(ValueType, IndexType);      \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_RS_INIT_CF_KERNEL(IndexType);                        \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_RS_COARSENING_KERNEL(ValueType, IndexType);          \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_RS_CLEANUP_KERNEL(IndexType);                        \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_RS_COUNT_COARSE_KERNEL(IndexType);                   \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_RS_FILL_COARSE_ROWS_KERNEL(IndexType);               \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_RS_FILL_FINE_TO_COARSE_KERNEL(IndexType);            \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_ROW_PTRS_KERNEL(ValueType,  \
-                                                         IndexType); \
-    template <typename ValueType, typename IndexType>                \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL(ValueType,  \
+                                                                   IndexType); \
+    template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL(ValueType, IndexType)
 
 
