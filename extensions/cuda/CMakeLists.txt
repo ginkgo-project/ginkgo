@@ -2,8 +2,8 @@ if(NOT GINKGO_BUILD_CUDA)
     return()
 endif()
 
-find_package(cuDSS QUIET)
-if(NOT cuDSS_FOUND)
+find_package(cudss 0.7.1 CONFIG QUIET)
+if(NOT cudss_FOUND)
     message(
         STATUS
         "cuDSS not found — gko::ext::cuda::solver::CuDss will not be built"
@@ -15,7 +15,7 @@ message(STATUS "Building ginkgo_cudss extension")
 
 add_library(ginkgo_cudss solver/cudss.cpp)
 
-target_link_libraries(ginkgo_cudss PRIVATE cuDSS::cuDSS CUDA::cudart)
+target_link_libraries(ginkgo_cudss PRIVATE cudss CUDA::cudart)
 
 # Use the standard Ginkgo include path setup (public headers)
 ginkgo_default_includes(ginkgo_cudss)
