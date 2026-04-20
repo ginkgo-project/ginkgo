@@ -127,7 +127,7 @@ min_iters(size_type count, Args&&... criteria)
     std::vector<deferred_factory_parameter<const CriterionFactory>>
         criterion_vec{std::forward<Args>(criteria)...};
     return min_iters(count, Combined::build().with_criteria(criterion_vec));
-};
+}
 
 
 }  // namespace stop

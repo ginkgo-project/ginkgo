@@ -266,9 +266,13 @@ TYPED_TEST(SellpView, AssertTriggersOnOutOfBoundsDeathTest)
                                                           slice_sets.data()};
 
     // access exceed row per slice
-    EXPECT_EXIT((void)(view.val_at(2, 0)), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(view.col_at(2, 0)), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view.val_at(2, slice_sets.at(0), 0)),
+                check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view.col_at(2, slice_sets.at(0), 0)),
+                check_assertion_exit_code, "");
     // access exceed the total col
-    EXPECT_EXIT((void)(view.val_at(0, 7)), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(view.col_at(0, 7)), check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view.val_at(0, slice_sets.at(0), 7)),
+                check_assertion_exit_code, "");
+    EXPECT_EXIT((void)(view.col_at(0, slice_sets.at(0), 7)),
+                check_assertion_exit_code, "");
 }
