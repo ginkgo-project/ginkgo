@@ -16,9 +16,6 @@
 #include "matrices/config.hpp"
 
 
-namespace {
-
-
 class CuDss : public ::testing::Test {
 protected:
     using value_type = double;
@@ -180,9 +177,14 @@ TEST_F(CuDss, ApplyToStridedSingleRhsMatchesRef)
     // Reference solve with non-strided vectors
     ref_solver->apply(this->input, this->output);
 
+    const auto input_stride_before = strided_input->get_stride();
+    const auto output_stride_before = strided_output->get_stride();
+
     // CuDss solve with strided vectors
     cudss_solver->apply(strided_input, strided_output);
 
+    ASSERT_EQ(strided_input->get_stride(), input_stride_before);
+    ASSERT_EQ(strided_output->get_stride(), output_stride_before);
     GKO_ASSERT_MTX_NEAR(this->output, strided_output,
                         100 * r<value_type>::value);
 }
@@ -211,8 +213,14 @@ TEST_F(CuDss, ApplyToStridedMultipleRhsMatchesRef)
         d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{1, 4});
 
     ref_solver->apply(this->input, this->output);
+
+    const auto input_stride_before = strided_input->get_stride();
+    const auto output_stride_before = strided_output->get_stride();
+
     cudss_solver->apply(strided_input, strided_output);
 
+    ASSERT_EQ(strided_input->get_stride(), input_stride_before);
+    ASSERT_EQ(strided_output->get_stride(), output_stride_before);
     GKO_ASSERT_MTX_NEAR(this->output, strided_output,
                         100 * r<value_type>::value);
 }
@@ -250,6 +258,3 @@ TEST_F(CuDss, ParseConfigThrowsOnUnknownKey)
 
     ASSERT_THROW(CuDssSolver::parse(conf, reg), gko::InvalidStateError);
 }
-
-
-}  // namespace

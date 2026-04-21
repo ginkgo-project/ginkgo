@@ -6,9 +6,12 @@
 #define GKO_PUBLIC_EXTENSIONS_CUDA_SOLVER_CUDSS_HPP_
 
 
+#include <complex>
 #include <memory>
+#include <type_traits>
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 
@@ -17,6 +20,33 @@ namespace gko {
 namespace ext {
 namespace cuda {
 namespace solver {
+
+
+namespace detail {
+
+
+template <typename T>
+struct is_cudss_supported_value_type : std::false_type {};
+
+template <>
+struct is_cudss_supported_value_type<float> : std::true_type {};
+template <>
+struct is_cudss_supported_value_type<double> : std::true_type {};
+template <>
+struct is_cudss_supported_value_type<std::complex<float>> : std::true_type {};
+template <>
+struct is_cudss_supported_value_type<std::complex<double>> : std::true_type {};
+
+
+}  // namespace detail
+
+
+#define GKO_EXT_CUDSS_ASSERT_SUPPORTED_VALUE_TYPE                        \
+    static_assert(                                                       \
+        ::gko::ext::cuda::solver::detail::is_cudss_supported_value_type< \
+            ValueType>::value,                                           \
+        "cuDSS only supports float, double, std::complex<float>, and "   \
+        "std::complex<double> value types")
 
 
 /**
@@ -37,6 +67,8 @@ template <typename ValueType, typename IndexType = int32>
 class CuDss : public EnableLinOp<CuDss<ValueType, IndexType>> {
     friend class EnableLinOp<CuDss>;
     friend class EnablePolymorphicObject<CuDss, LinOp>;
+    GKO_EXT_CUDSS_ASSERT_SUPPORTED_VALUE_TYPE;
+    GKO_ASSERT_SUPPORTED_INDEX_TYPE;
 
 public:
     using value_type = ValueType;
@@ -46,14 +78,39 @@ public:
 
     struct parameters_type : enable_parameters_type<parameters_type, Factory> {
         /**
-         * cuDSS matrix type.
-         * 0=GENERAL, 1=SYMMETRIC, 2=HERMITIAN, 3=SPD, 4=HPD
+         * cuDSS matrix type, mapping to `cudssMatrixType_t`:
+         *   - 0 = GENERAL   (unsymmetric)
+         *   - 1 = SYMMETRIC (real symmetric)
+         *   - 2 = HERMITIAN (complex Hermitian)
+         *   - 3 = SPD       (symmetric positive definite)
+         *   - 4 = HPD       (Hermitian positive definite)
+         *
+         * @warning Ginkgo's ::gko::matrix::Csr stores the full matrix. cuDSS
+         *          expects that when `matrix_type` is SYMMETRIC / HERMITIAN /
+         *          SPD / HPD, the supplied CSR contains **only** the triangle
+         *          indicated by `matrix_view` (plus the diagonal). Passing a
+         *          fully-stored symmetric matrix with one of these types is
+         *          not the documented input contract and can produce
+         *          incorrect results. To use the symmetric factorizations,
+         *          extract the upper or lower triangle into a new CSR before
+         *          constructing the solver. For a fully-stored matrix, use
+         *          GENERAL (0) together with `matrix_view = FULL` (0).
          */
         int GKO_FACTORY_PARAMETER_SCALAR(matrix_type, 0);
 
         /**
-         * cuDSS matrix view type.
-         * 0=FULL, 1=UPPER, 2=LOWER
+         * cuDSS matrix view, mapping to `cudssMatrixViewType_t`:
+         *   - 0 = FULL  (entire matrix stored in CSR)
+         *   - 1 = LOWER (only strictly-lower + diagonal stored in CSR)
+         *   - 2 = UPPER (only strictly-upper + diagonal stored in CSR)
+         *
+         * This tells cuDSS what the CSR data actually contains; it is not a
+         * filter applied to a fully-stored matrix. Use FULL (0) for
+         * unsymmetric matrices and when passing a fully-stored symmetric
+         * matrix with `matrix_type = GENERAL`. Use LOWER / UPPER only when
+         * the CSR itself stores just that triangle (in combination with
+         * `matrix_type` SYMMETRIC / HERMITIAN / SPD / HPD). See the
+         * `matrix_type` warning above.
          */
         int GKO_FACTORY_PARAMETER_SCALAR(matrix_view, 0);
 
