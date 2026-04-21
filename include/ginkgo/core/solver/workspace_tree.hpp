@@ -29,7 +29,11 @@ namespace detail {
 
 class WorkspaceNode {
 public:
-    WorkspaceNode() : local_storage_{ReferenceExecutor::create()} {}
+    explicit WorkspaceNode(std::shared_ptr<const Executor> exec)
+        : local_storage_{std::move(exec)}
+    {
+        GKO_ASSERT(local_storage_.get_executor() != nullptr);
+    }
 
     WorkspaceNode* get_or_create_child(const std::string& tag)
     {
@@ -37,7 +41,8 @@ public:
         if (it != children_.end()) {
             return it->second.get();
         }
-        auto child = std::make_unique<WorkspaceNode>();
+        auto child =
+            std::make_unique<WorkspaceNode>(local_storage_.get_executor());
         child->tag_ = tag;
         child->num_rhs_ = num_rhs_;
         auto* ptr = child.get();
@@ -98,7 +103,8 @@ std::unique_ptr<LinOp> generate_with_node(const LinOpFactory* factory,
 
 class Workspace {
 public:
-    static std::unique_ptr<Workspace> create(size_type num_rhs = 1);
+    static std::unique_ptr<Workspace> create(
+        std::shared_ptr<const Executor> exec, size_type num_rhs = 1);
     static std::unique_ptr<Workspace> create_non_owning(
         detail::WorkspaceNode* node);
 
