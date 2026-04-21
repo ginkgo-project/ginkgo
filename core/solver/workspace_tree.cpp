@@ -13,15 +13,18 @@ namespace detail {
 
 SolverBaseLinOp::SolverBaseLinOp(std::shared_ptr<const Executor> exec)
 {
-    owned_workspace_ = Workspace::create();
+    owned_workspace_ = Workspace::create(std::move(exec));
     node_ = owned_workspace_->root();
-    node_->bind_executor(std::move(exec));
 }
 
-SolverBaseLinOp::SolverBaseLinOp(const SolverBaseLinOp& /*other*/)
+SolverBaseLinOp::SolverBaseLinOp(const SolverBaseLinOp& other)
 {
-    owned_workspace_ = Workspace::create();
-    node_ = owned_workspace_->root();
+    if (other.node_) {
+        owned_workspace_ =
+            Workspace::create(other.node_->get_local_storage().get_executor(),
+                              other.node_->get_num_rhs());
+        node_ = owned_workspace_->root();
+    }
 }
 
 SolverBaseLinOp::SolverBaseLinOp(SolverBaseLinOp&& other) noexcept
@@ -106,10 +109,11 @@ std::unique_ptr<Workspace> invalidate_and_extract_workspace(
 }
 
 
-std::unique_ptr<Workspace> Workspace::create(size_type num_rhs)
+std::unique_ptr<Workspace> Workspace::create(
+    std::shared_ptr<const Executor> exec, size_type num_rhs)
 {
     std::unique_ptr<Workspace> ws(new Workspace());
-    ws->owned_root_ = std::make_unique<detail::WorkspaceNode>();
+    ws->owned_root_ = std::make_unique<detail::WorkspaceNode>(std::move(exec));
     ws->owned_root_->set_num_rhs(num_rhs);
     ws->node_ = ws->owned_root_.get();
     return ws;

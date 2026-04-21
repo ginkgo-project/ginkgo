@@ -61,7 +61,7 @@ TEST_F(WorkspaceIntegration, GenerateWithoutWorkspaceStillWorks)
 
 TEST_F(WorkspaceIntegration, GenerateWithWorkspace)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -75,7 +75,7 @@ TEST_F(WorkspaceIntegration, GenerateWithWorkspace)
 
 TEST_F(WorkspaceIntegration, GenerateWithWorkspaceAndApply)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
@@ -91,7 +91,7 @@ TEST_F(WorkspaceIntegration, GenerateWithWorkspaceAndApply)
 
 TEST_F(WorkspaceIntegration, ExtractWorkspaceDestroysSolver)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -108,7 +108,7 @@ TEST_F(WorkspaceIntegration, ExtractWorkspaceDestroysSolver)
 
 TEST_F(WorkspaceIntegration, ExtractAndRegenerate)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -125,7 +125,7 @@ TEST_F(WorkspaceIntegration, ExtractAndRegenerate)
 
 TEST_F(WorkspaceIntegration, ExtractAndRegenerateAndApply)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
@@ -146,7 +146,7 @@ TEST_F(WorkspaceIntegration, ExtractAndRegenerateAndApply)
 
 TEST_F(WorkspaceIntegration, NestedSolverPropagatesWorkspace)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -170,7 +170,7 @@ TEST_F(WorkspaceIntegration, NestedSolverPropagatesWorkspace)
 
 TEST_F(WorkspaceIntegration, CrossFactoryReuse)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto cg_factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -193,7 +193,7 @@ TEST_F(WorkspaceIntegration, CrossFactoryReuse)
 
 TEST_F(WorkspaceIntegration, DescribeShowsTreeStructure)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -222,7 +222,7 @@ TEST_F(WorkspaceIntegration, ExtractFromNonSolverThrows)
 
 TEST_F(WorkspaceIntegration, WorkspaceReusesAllocationsAcrossRegenerate)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
@@ -246,7 +246,7 @@ TEST_F(WorkspaceIntegration, WorkspaceReusesAllocationsAcrossRegenerate)
 
 TEST_F(WorkspaceIntegration, MultipleExtractRegenerateCycles)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -266,7 +266,7 @@ TEST_F(WorkspaceIntegration, MultipleExtractRegenerateCycles)
 
 TEST_F(WorkspaceIntegration, WorkspaceWithCustomNumRhs)
 {
-    auto ws = Workspace::create(4);
+    auto ws = Workspace::create(exec, 4);
     ASSERT_EQ(ws->get_num_rhs(), gko::size_type{4});
 
     auto factory =
@@ -281,7 +281,7 @@ TEST_F(WorkspaceIntegration, WorkspaceWithCustomNumRhs)
 
 TEST_F(WorkspaceIntegration, WorkspacePropagesToJacobiPreconditioner)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
@@ -303,7 +303,7 @@ TEST_F(WorkspaceIntegration, WorkspacePropagesToJacobiPreconditioner)
 
 TEST_F(WorkspaceIntegration, DeeplyNestedWorkspace)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
@@ -331,7 +331,7 @@ TEST_F(WorkspaceIntegration, DeeplyNestedWorkspace)
 
 TEST_F(WorkspaceIntegration, CrossFactoryReusePreservesTree)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     // First: CG with preconditioner
     auto cg_factory =
         Cg::build()
@@ -375,7 +375,7 @@ TEST_F(WorkspaceIntegration, GenerateWithoutWorkspaceApplyWorks)
 
 TEST_F(WorkspaceIntegration, GmresWithWorkspaceAndApply)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Gmres::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
@@ -393,7 +393,7 @@ TEST_F(WorkspaceIntegration, GmresWithWorkspaceAndApply)
 
 TEST_F(WorkspaceIntegration, DescribeOutputIsNonEmpty)
 {
-    auto ws = Workspace::create();
+    auto ws = Workspace::create(exec);
     auto factory =
         Cg::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
