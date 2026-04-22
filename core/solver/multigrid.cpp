@@ -97,7 +97,7 @@ void handle_list(
     std::vector<std::shared_ptr<const LinOpFactory>>& smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& smoother, size_type iteration,
     std::complex<double> relaxation_factor,
-    solver::detail::WorkspaceNode* ws_node = nullptr)
+    solver::Workspace* ws_node = nullptr)
 {
     auto list_size = smoother_list.size();
     auto gen_default_smoother = [&]() -> std::shared_ptr<const LinOp> {
@@ -122,8 +122,7 @@ void handle_list(
                             .on(exec),
                         iteration, casting<ValueType>(relaxation_factor));
                     if (ws_node) {
-                        return solver::detail::generate_with_node(
-                            factory.get(), matrix, ws_node);
+                        return factory->generate(matrix, ws_node);
                     }
                     return factory->generate(matrix);
                 });
@@ -135,8 +134,7 @@ void handle_list(
                                .on(exec),
                            iteration, casting<ValueType>(relaxation_factor));
         if (ws_node) {
-            return solver::detail::generate_with_node(factory.get(), matrix,
-                                                      ws_node);
+            return factory->generate(matrix, ws_node);
         }
         return factory->generate(matrix);
     };
@@ -147,8 +145,7 @@ void handle_list(
         if (item == nullptr) {
             smoother.emplace_back(nullptr);
         } else if (ws_node) {
-            auto solver =
-                solver::detail::generate_with_node(item.get(), matrix, ws_node);
+            auto solver = item->generate(matrix, ws_node);
             smoother.emplace_back(give(solver));
         } else {
             auto solver = item->generate(matrix);
@@ -223,7 +220,7 @@ public:
      */
     void generate(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
                   const size_type nrhs_in,
-                  solver::detail::WorkspaceNode* ws_node_in = nullptr);
+                  solver::Workspace* ws_node_in = nullptr);
 
     /**
      * allocate_memory is a helper function to allocate the memory of one level
@@ -294,15 +291,15 @@ public:
     const LinOp* system_matrix;
     const Multigrid* multigrid;
     size_type nrhs;
-    solver::detail::WorkspaceNode* ws_node = nullptr;
-    std::vector<solver::detail::WorkspaceNode*> level_nodes;
+    solver::Workspace* ws_node = nullptr;
+    std::vector<solver::Workspace*> level_nodes;
 };
 
 
 void MultigridState::generate(const LinOp* system_matrix_in,
                               const gko::solver::Multigrid* multigrid_in,
                               const size_type nrhs_in,
-                              solver::detail::WorkspaceNode* ws_node_in)
+                              solver::Workspace* ws_node_in)
 {
     system_matrix = system_matrix_in;
     multigrid = multigrid_in;
@@ -932,7 +929,7 @@ void Multigrid::generate()
         }
 
         // Create per-level workspace child node for smoother propagation
-        solver::detail::WorkspaceNode* level_node = nullptr;
+        solver::Workspace* level_node = nullptr;
         if (mg_ws_node) {
             level_node = mg_ws_node->get_or_create_child("level_" +
                                                          std::to_string(level));
@@ -951,9 +948,9 @@ void Multigrid::generate()
                 using value_type =
                     typename std::decay_t<decltype(*mg_level)>::value_type;
                 // Create smoother child nodes from the level node
-                solver::detail::WorkspaceNode* pre_node = nullptr;
-                solver::detail::WorkspaceNode* mid_node = nullptr;
-                solver::detail::WorkspaceNode* post_node = nullptr;
+                solver::Workspace* pre_node = nullptr;
+                solver::Workspace* mid_node = nullptr;
+                solver::Workspace* post_node = nullptr;
                 if (level_node) {
                     pre_node = level_node->get_or_create_child("pre_smoother");
                     if (parameters_.mid_case ==
@@ -1006,7 +1003,7 @@ void Multigrid::generate()
 
     // generate coarsest solver
     // Create workspace child node for coarse solver propagation
-    solver::detail::WorkspaceNode* coarse_ws_node = nullptr;
+    solver::Workspace* coarse_ws_node = nullptr;
     if (mg_ws_node) {
         coarse_ws_node = mg_ws_node->get_or_create_child("coarse_solver");
     }
@@ -1064,8 +1061,8 @@ void Multigrid::generate()
                                                             1u)))
                                     .on(exec);
                             if (coarse_ws_node) {
-                                return solver::detail::generate_with_node(
-                                    factory.get(), matrix, coarse_ws_node);
+                                return factory->generate(matrix,
+                                                         coarse_ws_node);
                             }
                             return factory->generate(matrix);
                         });
@@ -1091,8 +1088,7 @@ void Multigrid::generate()
                                     .with_max_block_size(1u))
                             .on(exec);
                     if (coarse_ws_node) {
-                        return solver::detail::generate_with_node(
-                            factory.get(), matrix, coarse_ws_node);
+                        return factory->generate(matrix, coarse_ws_node);
                     }
                     return factory->generate(matrix);
                 } else {
@@ -1103,8 +1099,7 @@ void Multigrid::generate()
                                                                 int32>::build())
                             .on(exec);
                     if (coarse_ws_node) {
-                        return solver::detail::generate_with_node(
-                            factory.get(), matrix, coarse_ws_node);
+                        return factory->generate(matrix, coarse_ws_node);
                     }
                     return factory->generate(matrix);
                 }
@@ -1119,8 +1114,7 @@ void Multigrid::generate()
                 if (solver == nullptr) {
                     coarsest_solver_ = gen_default_solver();
                 } else if (coarse_ws_node) {
-                    coarsest_solver_ = solver::detail::generate_with_node(
-                        solver.get(), matrix, coarse_ws_node);
+                    coarsest_solver_ = solver->generate(matrix, coarse_ws_node);
                 } else {
                     coarsest_solver_ = solver->generate(matrix);
                 }
@@ -1339,10 +1333,7 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
           stop::combine(factory->get_parameters().criteria)},
       parameters_{factory->get_parameters()}
 {
-    if (components.workspace) {
-        this->set_workspace(std::move(components.workspace));
-        this->get_workspace_node()->bind_executor(this->get_executor());
-    }
+    this->adopt_workspace(components, this->get_executor());
     this->validate();
     if (!parameters_.level_selector) {
         auto mg_level_size = parameters_.mg_level.size();

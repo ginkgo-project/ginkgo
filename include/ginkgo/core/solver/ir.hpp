@@ -258,19 +258,15 @@ protected:
               stop::combine(factory->get_parameters().criteria)},
           parameters_{factory->get_parameters()}
     {
-        if (components.workspace) {
-            this->set_workspace(std::move(components.workspace));
-            this->get_workspace_node()->bind_executor(this->get_executor());
-        }
+        this->adopt_workspace(components, this->get_executor());
         if (parameters_.generated_solver) {
             this->set_solver(parameters_.generated_solver);
         } else if (parameters_.solver) {
             auto* node = this->get_workspace_node();
             if (node) {
                 auto child = node->get_or_create_child("solver");
-                this->set_solver(solver::detail::generate_with_node(
-                    parameters_.solver.get(), this->get_system_matrix(),
-                    child));
+                this->set_solver(parameters_.solver->generate(
+                    this->get_system_matrix(), child));
             } else {
                 this->set_solver(
                     parameters_.solver->generate(this->get_system_matrix()));
