@@ -409,7 +409,7 @@ TEST_F(WorkspaceIntegration, DescribeOutputIsNonEmpty)
 
     // Should contain workspace node info
     ASSERT_FALSE(oss.str().empty());
-    ASSERT_NE(oss.str().find("WorkspaceNode"), std::string::npos);
+    ASSERT_NE(oss.str().find("Workspace"), std::string::npos);
 }
 
 

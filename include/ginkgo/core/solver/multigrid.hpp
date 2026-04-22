@@ -516,8 +516,7 @@ protected:
         std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
         std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
         std::vector<std::shared_ptr<const LinOp>>& post_smoother_list,
-        reuse_data_type::level_data* level_reuse,
-        detail::WorkspaceNode* level_node);
+        reuse_data_type::level_data* level_reuse, Workspace* level_node);
 
     /**
      * Generates the solver for the coarsest level.
@@ -541,7 +540,7 @@ protected:
         size_type level, std::shared_ptr<const LinOp> matrix,
         std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
         const size_type* recorded_index, size_type* selected_index,
-        detail::WorkspaceNode* coarse_ws_node);
+        Workspace* coarse_ws_node);
 
     explicit Multigrid(std::shared_ptr<const Executor> exec);
 
