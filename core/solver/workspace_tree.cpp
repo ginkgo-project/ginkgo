@@ -14,7 +14,7 @@ namespace detail {
 SolverBaseLinOp::SolverBaseLinOp(std::shared_ptr<const Executor> exec)
 {
     owned_workspace_ = Workspace::create(std::move(exec));
-    node_ = owned_workspace_->root();
+    node_ = owned_workspace_.get();
 }
 
 SolverBaseLinOp::SolverBaseLinOp(const SolverBaseLinOp& other)
@@ -23,14 +23,14 @@ SolverBaseLinOp::SolverBaseLinOp(const SolverBaseLinOp& other)
         owned_workspace_ =
             Workspace::create(other.node_->get_local_storage().get_executor(),
                               other.node_->get_num_rhs());
-        node_ = owned_workspace_->root();
+        node_ = owned_workspace_.get();
     }
 }
 
 SolverBaseLinOp::SolverBaseLinOp(SolverBaseLinOp&& other) noexcept
 {
     owned_workspace_ = std::move(other.owned_workspace_);
-    node_ = owned_workspace_ ? owned_workspace_->root() : nullptr;
+    node_ = owned_workspace_ ? owned_workspace_.get() : nullptr;
     other.node_ = nullptr;
 }
 
@@ -43,7 +43,7 @@ SolverBaseLinOp& SolverBaseLinOp::operator=(SolverBaseLinOp&& other) noexcept
 {
     if (this != &other) {
         owned_workspace_ = std::move(other.owned_workspace_);
-        node_ = owned_workspace_ ? owned_workspace_->root() : nullptr;
+        node_ = owned_workspace_ ? owned_workspace_.get() : nullptr;
         other.node_ = nullptr;
     }
     return *this;
@@ -52,10 +52,10 @@ SolverBaseLinOp& SolverBaseLinOp::operator=(SolverBaseLinOp&& other) noexcept
 void SolverBaseLinOp::set_workspace(std::unique_ptr<Workspace> ws)
 {
     owned_workspace_ = std::move(ws);
-    node_ = owned_workspace_ ? owned_workspace_->root() : nullptr;
+    node_ = owned_workspace_.get();
 }
 
-void SolverBaseLinOp::set_workspace_node(WorkspaceNode* node)
+void SolverBaseLinOp::set_workspace_node(Workspace* node)
 {
     owned_workspace_ = nullptr;
     node_ = node;
@@ -67,11 +67,25 @@ std::unique_ptr<Workspace> SolverBaseLinOp::extract_workspace()
     return std::move(owned_workspace_);
 }
 
+void SolverBaseLinOp::adopt_workspace(LinOpGenerateComponents& components,
+                                      std::shared_ptr<const Executor> exec)
+{
+    if (components.workspace) {
+        set_workspace(std::move(components.workspace));
+        node_->bind_executor(std::move(exec));
+    } else if (components.workspace_view) {
+        set_workspace_node(components.workspace_view);
+    }
+}
 
-void WorkspaceNode::describe(std::ostream& os, int indent) const
+
+}  // namespace detail
+
+
+void Workspace::describe(std::ostream& os, int indent) const
 {
     std::string prefix(indent, ' ');
-    os << prefix << "WorkspaceNode";
+    os << prefix << "Workspace";
     if (!tag_.empty()) {
         os << " [" << tag_ << "]";
     }
@@ -81,18 +95,6 @@ void WorkspaceNode::describe(std::ostream& os, int indent) const
         pair.second->describe(os, indent + 2);
     }
 }
-
-
-std::unique_ptr<LinOp> generate_with_node(const LinOpFactory* factory,
-                                          std::shared_ptr<const LinOp> matrix,
-                                          WorkspaceNode* node)
-{
-    auto ws = Workspace::create_non_owning(node);
-    return factory->generate(std::move(matrix), std::move(ws));
-}
-
-
-}  // namespace detail
 
 
 std::unique_ptr<Workspace> invalidate_and_extract_workspace(
@@ -112,24 +114,10 @@ std::unique_ptr<Workspace> invalidate_and_extract_workspace(
 std::unique_ptr<Workspace> Workspace::create(
     std::shared_ptr<const Executor> exec, size_type num_rhs)
 {
-    std::unique_ptr<Workspace> ws(new Workspace());
-    ws->owned_root_ = std::make_unique<detail::WorkspaceNode>(std::move(exec));
-    ws->owned_root_->set_num_rhs(num_rhs);
-    ws->node_ = ws->owned_root_.get();
+    auto ws = std::unique_ptr<Workspace>(new Workspace(std::move(exec)));
+    ws->set_num_rhs(num_rhs);
     return ws;
 }
-
-
-std::unique_ptr<Workspace> Workspace::create_non_owning(
-    detail::WorkspaceNode* node)
-{
-    std::unique_ptr<Workspace> ws(new Workspace());
-    ws->node_ = node;
-    return ws;
-}
-
-
-void Workspace::describe(std::ostream& os) const { node_->describe(os, 0); }
 
 
 }  // namespace solver

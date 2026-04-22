@@ -13,88 +13,89 @@
 namespace {
 
 
-class WorkspaceNodeTest : public ::testing::Test {
+class WorkspaceTest : public ::testing::Test {
 protected:
     std::shared_ptr<const gko::Executor> exec =
         gko::ReferenceExecutor::create();
 };
 
 
-TEST_F(WorkspaceNodeTest, DefaultConstructsEmpty)
+TEST_F(WorkspaceTest, DefaultConstructsEmpty)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     ASSERT_FALSE(node.has_child("anything"));
 }
 
 
-TEST_F(WorkspaceNodeTest, GetOrCreateChildCreatesNew)
+TEST_F(WorkspaceTest, GetOrCreateChildCreatesNew)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     auto child = node.get_or_create_child("preconditioner");
     ASSERT_NE(child, nullptr);
     ASSERT_TRUE(node.has_child("preconditioner"));
 }
 
 
-TEST_F(WorkspaceNodeTest, GetOrCreateChildReturnsExisting)
+TEST_F(WorkspaceTest, GetOrCreateChildReturnsExisting)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     auto child1 = node.get_or_create_child("preconditioner");
     auto child2 = node.get_or_create_child("preconditioner");
     ASSERT_EQ(child1, child2);
 }
 
 
-TEST_F(WorkspaceNodeTest, GetChildReturnsNullForMissing)
+TEST_F(WorkspaceTest, GetChildReturnsNullForMissing)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     ASSERT_EQ(node.get_child("missing"), nullptr);
 }
 
 
-TEST_F(WorkspaceNodeTest, BindExecutorSetsOnLocalStorage)
+TEST_F(WorkspaceTest, BindExecutorSetsOnLocalStorage)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
-    node.bind_executor(exec);
-    ASSERT_EQ(node.get_local_storage().get_executor(), exec);
+    auto other = gko::ReferenceExecutor::create();
+    gko::solver::Workspace node{exec};
+    node.bind_executor(other);
+    ASSERT_EQ(node.get_local_storage().get_executor(), other);
 }
 
 
-TEST_F(WorkspaceNodeTest, NumRhsDefaultsToZero)
+TEST_F(WorkspaceTest, NumRhsDefaultsToZero)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     ASSERT_EQ(node.get_num_rhs(), gko::size_type{0});
 }
 
 
-TEST_F(WorkspaceNodeTest, SetNumRhsOnNode)
+TEST_F(WorkspaceTest, SetNumRhsOnNode)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     node.set_num_rhs(4);
     ASSERT_EQ(node.get_num_rhs(), gko::size_type{4});
 }
 
 
-TEST_F(WorkspaceNodeTest, NewChildInheritsNumRhs)
+TEST_F(WorkspaceTest, NewChildInheritsNumRhs)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     node.set_num_rhs(4);
     auto child = node.get_or_create_child("child");
     ASSERT_EQ(child->get_num_rhs(), gko::size_type{4});
 }
 
 
-TEST_F(WorkspaceNodeTest, NewChildInheritsExecutor)
+TEST_F(WorkspaceTest, NewChildInheritsExecutor)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     auto child = node.get_or_create_child("child");
     ASSERT_EQ(child->get_local_storage().get_executor(), exec);
 }
 
 
-TEST_F(WorkspaceNodeTest, MultipleChildrenCoexist)
+TEST_F(WorkspaceTest, MultipleChildrenCoexist)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     auto a = node.get_or_create_child("pre_smoother");
     auto b = node.get_or_create_child("post_smoother");
     ASSERT_NE(a, b);
@@ -103,24 +104,14 @@ TEST_F(WorkspaceNodeTest, MultipleChildrenCoexist)
 }
 
 
-TEST_F(WorkspaceNodeTest, DescribeOutputContainsTag)
+TEST_F(WorkspaceTest, DescribeOutputContainsTag)
 {
-    gko::solver::detail::WorkspaceNode node{exec};
+    gko::solver::Workspace node{exec};
     node.get_or_create_child("preconditioner");
     std::ostringstream oss;
     node.describe(oss);
     ASSERT_NE(oss.str().find("preconditioner"), std::string::npos);
 }
-
-
-// --- Workspace tests ---
-
-
-class WorkspaceTest : public ::testing::Test {
-protected:
-    std::shared_ptr<const gko::Executor> exec =
-        gko::ReferenceExecutor::create();
-};
 
 
 TEST_F(WorkspaceTest, CreateReturnsOwningWithDefaultNumRhs)
@@ -135,22 +126,6 @@ TEST_F(WorkspaceTest, CreateWithCustomNumRhs)
 {
     auto ws = gko::solver::Workspace::create(exec, 4);
     ASSERT_EQ(ws->get_num_rhs(), gko::size_type{4});
-}
-
-
-TEST_F(WorkspaceTest, RootReturnsNonNull)
-{
-    auto ws = gko::solver::Workspace::create(exec);
-    ASSERT_NE(ws->root(), nullptr);
-}
-
-
-TEST_F(WorkspaceTest, CreateNonOwningPointsToNode)
-{
-    gko::solver::detail::WorkspaceNode node{exec};
-    auto ws = gko::solver::Workspace::create_non_owning(&node);
-    ASSERT_NE(ws, nullptr);
-    ASSERT_EQ(ws->root(), &node);
 }
 
 

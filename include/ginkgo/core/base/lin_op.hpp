@@ -359,11 +359,17 @@ private:
  */
 struct LinOpGenerateComponents {
     std::shared_ptr<const LinOp> system_matrix;
+    // Set when the caller transfers ownership of a workspace to the factory.
     std::unique_ptr<solver::Workspace> workspace;
+    // Set when the caller lends a non-owning workspace node (inner solver).
+    // At most one of workspace / workspace_view is non-null.
+    solver::Workspace* workspace_view = nullptr;
 
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix);
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
                             std::unique_ptr<solver::Workspace> ws);
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
+                            solver::Workspace* view);
     ~LinOpGenerateComponents();
     LinOpGenerateComponents(LinOpGenerateComponents&&) noexcept;
     LinOpGenerateComponents& operator=(LinOpGenerateComponents&&) noexcept;
@@ -383,6 +389,9 @@ public:
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> input,
         std::unique_ptr<solver::Workspace> ws) const;
+
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input,
+                                    solver::Workspace* workspace_view) const;
 };
 
 
