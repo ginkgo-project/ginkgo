@@ -18,31 +18,52 @@
 namespace gko {
 
 
-// Forward declarations for generate_with_node
 class LinOp;
 class LinOpFactory;
 
 
 namespace solver {
+
+
 namespace detail {
 
 
-class WorkspaceNode {
+class SolverBaseLinOp;
+
+
+}  // namespace detail
+
+
+/**
+ * The Workspace is a node in a solver's temporary-storage tree. It owns a
+ * flat slot container for operators and arrays (detail::workspace) plus a
+ * map of named child Workspaces for sub-solvers. Every node is bound to an
+ * executor at construction; children inherit their parent's executor.
+ *
+ * Top-level workspaces are constructed via Workspace::create and passed into
+ * LinOpFactory::generate(matrix, unique_ptr<Workspace>). Inner solvers
+ * receive a non-owning Workspace* (a child created via get_or_create_child on
+ * the parent) and are wired in via LinOpFactory::generate(matrix, Workspace*).
+ */
+class Workspace {
 public:
-    explicit WorkspaceNode(std::shared_ptr<const Executor> exec)
+    explicit Workspace(std::shared_ptr<const Executor> exec)
         : local_storage_{std::move(exec)}
     {
         GKO_ASSERT(local_storage_.get_executor() != nullptr);
     }
 
-    WorkspaceNode* get_or_create_child(const std::string& tag)
+    static std::unique_ptr<Workspace> create(
+        std::shared_ptr<const Executor> exec, size_type num_rhs = 1);
+
+    Workspace* get_or_create_child(const std::string& tag)
     {
         auto it = children_.find(tag);
         if (it != children_.end()) {
             return it->second.get();
         }
-        auto child =
-            std::make_unique<WorkspaceNode>(local_storage_.get_executor());
+        auto child = std::unique_ptr<Workspace>(
+            new Workspace(local_storage_.get_executor()));
         child->tag_ = tag;
         child->num_rhs_ = num_rhs_;
         auto* ptr = child.get();
@@ -50,7 +71,7 @@ public:
         return ptr;
     }
 
-    WorkspaceNode* get_child(const std::string& tag) const
+    Workspace* get_child(const std::string& tag) const
     {
         auto it = children_.find(tag);
         if (it != children_.end()) {
@@ -75,49 +96,18 @@ public:
 
     void describe(std::ostream& os, int indent = 0) const;
 
-    workspace& get_local_storage() { return local_storage_; }
+    detail::workspace& get_local_storage() { return local_storage_; }
 
-    const workspace& get_local_storage() const { return local_storage_; }
+    const detail::workspace& get_local_storage() const
+    {
+        return local_storage_;
+    }
 
 private:
-    friend class SolverBaseLinOp;
-
-    workspace local_storage_;
-    std::map<std::string, std::unique_ptr<WorkspaceNode>> children_;
+    detail::workspace local_storage_;
+    std::map<std::string, std::unique_ptr<Workspace>> children_;
     std::string tag_;
     size_type num_rhs_ = 0;
-};
-
-
-/**
- * Generates a LinOp from a factory, passing a workspace node to the
- * generated object for workspace tree propagation.
- */
-std::unique_ptr<LinOp> generate_with_node(const LinOpFactory* factory,
-                                          std::shared_ptr<const LinOp> matrix,
-                                          WorkspaceNode* node);
-
-
-}  // namespace detail
-
-
-class Workspace {
-public:
-    static std::unique_ptr<Workspace> create(
-        std::shared_ptr<const Executor> exec, size_type num_rhs = 1);
-    static std::unique_ptr<Workspace> create_non_owning(
-        detail::WorkspaceNode* node);
-
-    size_type get_num_rhs() const { return node_->get_num_rhs(); }
-
-    detail::WorkspaceNode* root() const { return node_; }
-
-    void describe(std::ostream& os) const;
-
-private:
-    Workspace() = default;
-    std::unique_ptr<detail::WorkspaceNode> owned_root_;
-    detail::WorkspaceNode* node_ = nullptr;
 };
 
 

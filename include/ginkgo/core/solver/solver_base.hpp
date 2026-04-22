@@ -522,12 +522,20 @@ protected:
     /**
      * Sets a workspace node on this solver (non-owning, for inner solvers).
      */
-    void set_workspace_node(WorkspaceNode* node);
+    void set_workspace_node(Workspace* node);
 
     /**
      * Returns the workspace node for this solver.
      */
-    WorkspaceNode* get_workspace_node() const { return node_; }
+    Workspace* get_workspace_node() const { return node_; }
+
+    /**
+     * Adopts either the owned workspace or the non-owning view from
+     * LinOpGenerateComponents, depending on which was provided, and binds
+     * the owned case to `exec`.
+     */
+    void adopt_workspace(LinOpGenerateComponents& components,
+                         std::shared_ptr<const Executor> exec);
 
     /**
      * Extracts the owned workspace. Only succeeds on the top-level solver.
@@ -540,7 +548,7 @@ private:
     solver::invalidate_and_extract_workspace(std::unique_ptr<LinOp>& solver);
 
     mutable std::unique_ptr<solver::Workspace> owned_workspace_;
-    mutable WorkspaceNode* node_ = nullptr;
+    mutable Workspace* node_ = nullptr;
 
     std::shared_ptr<const LinOp> system_matrix_;
 };
@@ -890,9 +898,8 @@ protected:
             auto* node = this->get_workspace_node();
             if (node) {
                 auto child = node->get_or_create_child("preconditioner");
-                this->set_preconditioner(detail::generate_with_node(
-                    params.preconditioner.get(), this->get_system_matrix(),
-                    child));
+                this->set_preconditioner(params.preconditioner->generate(
+                    this->get_system_matrix(), child));
             } else {
                 this->set_preconditioner(
                     params.preconditioner->generate(this->get_system_matrix()));

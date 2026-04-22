@@ -132,10 +132,7 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
               factory->get_parameters().factorization,
               components.system_matrix)}
 {
-    if (components.workspace) {
-        this->set_workspace(std::move(components.workspace));
-        this->get_workspace_node()->bind_executor(this->get_executor());
-    }
+    this->adopt_workspace(components, this->get_executor());
     using factorization::storage_type;
     const auto factors = this->get_system_matrix();
     const auto exec = this->get_executor();
