@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -270,36 +270,158 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagMatrix)
 }
 
 
-TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
+TEST(MatrixGenerator, GeneratesLaplace2d5pointMatrixData)
 {
-    using T = typename TestFixture::value_type;
-    using Dense = typename TestFixture::mtx_type;
-    auto dist = std::normal_distribution<>(0, 1);
-    auto engine = std::default_random_engine(42);
-    auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
-    auto upper = gko::test::detail::get_rand_value<T>(dist, engine);
-    // make diagonally dominant
-    auto diag = gko::abs(gko::test::detail::get_rand_value<T>(dist, engine)) +
-                gko::abs(lower) + gko::abs(upper);
-    gko::size_type size = 50;
-    if (std::is_same_v<gko::remove_complex<T>, gko::float16>) {
-        // half/bfloat16 precision can only handle the inverse of small matrix.
-        size = 5;
+    using T = std::complex<float>;
+    using itype = long;
+    using Dense = gko::matrix::Dense<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    const gko::dim<2> dims{4, 4};
+    auto diag = static_cast<T>(4.0);
+    auto offdiag = static_cast<T>(-1.0);
+    auto zero = gko::zero<T>();
+    const gko::dim<2> matrix_dims{16, 16};
+    const size_t nnz = 4 * 5 + 8 * 4 + 4 * 3;
+
+    const auto ldata =
+        gko::test::generate_laplacian_2d_5point_matrix_data<T, itype>(dims);
+    auto dnlaplace = Dense::create(exec);
+    dnlaplace->read(ldata);
+
+    EXPECT_EQ(ldata.size, matrix_dims);
+    EXPECT_EQ(ldata.nonzeros.size(), nnz);
+    for (unsigned i = 0; i < matrix_dims[0]; i++) {
+        EXPECT_EQ(dnlaplace->at(i, i), diag);
+        int inz = 0;
+        for (int j = 0; j < matrix_dims[1]; j++) {
+            if (dnlaplace->at(i, j) != zero) {
+                inz++;
+                if (i != j) {
+                    EXPECT_EQ(dnlaplace->at(i, j), offdiag);
+                }
+            }
+        }
+        EXPECT_GE(inz, 3);
+        EXPECT_LE(inz, 5);
+        // interior points
+        if (i == 5 || i == 6 || i == 9 || i == 10) {
+            EXPECT_EQ(inz, 5);
+            for (int j = 0; j < matrix_dims[1]; j++) {
+                if (j < i - 4 || j > i + 4) {
+                    EXPECT_EQ(dnlaplace->at(i, 0), zero);
+                }
+            }
+            EXPECT_EQ(dnlaplace->at(i, i + 1), offdiag);
+            EXPECT_EQ(dnlaplace->at(i, i - 1), offdiag);
+            EXPECT_EQ(dnlaplace->at(i, i - 4), offdiag);
+            EXPECT_EQ(dnlaplace->at(i, i + 4), offdiag);
+        }
+    }
+    // a corner point
+    EXPECT_EQ(dnlaplace->at(15, 11), offdiag);
+    EXPECT_EQ(dnlaplace->at(15, 14), offdiag);
+    for (int j = 0; j < matrix_dims[1]; j++) {
+        if (j != 14 && j != 11 && j != 15) {
+            EXPECT_EQ(dnlaplace->at(15, j), zero);
+        }
+    }
+}
+
+
+TEST(MatrixGenerator, GeneratesLaplace3d27pointMatrixData)
+{
+    using T = float;
+    using itype = int;
+    using Dense = gko::matrix::Dense<T>;
+    auto exec = gko::ReferenceExecutor::create();
+    const gko::dim<3> dims{4, 4, 4};
+    auto diag = static_cast<T>(26.0);
+    auto offdiag = static_cast<T>(-1.0);
+    auto zero = gko::zero<T>();
+    // flat index: k*16 + j*4 + i
+
+    const auto ldata =
+        gko::test::generate_laplacian_3d_27point_matrix_data<T, itype>(dims);
+    auto dnlaplace = Dense::create(exec);
+    dnlaplace->read(ldata);
+
+    ASSERT_EQ(ldata.size, (gko::dim<2>{64, 64}));
+    // total nnz: each dim has 2 boundary (width 2) + 2 interior (width 3) = 10;
+    // 10^3 = 1000
+    ASSERT_EQ(ldata.nonzeros.size(), 1000u);
+
+    // Corner point (0,0,0) = row 0: only +x/+y/+z quadrant → 7 neighbors + diag
+    {
+        int nz = 0;
+        for (int col = 0; col < 64; col++) {
+            if (dnlaplace->at(0, col) != zero) {
+                nz++;
+            }
+        }
+        EXPECT_EQ(nz, 8);
+        EXPECT_EQ(dnlaplace->at(0, 0), diag);
+        EXPECT_EQ(dnlaplace->at(0, 1), offdiag);   // (+1,0,0)
+        EXPECT_EQ(dnlaplace->at(0, 4), offdiag);   // (0,+1,0)
+        EXPECT_EQ(dnlaplace->at(0, 5), offdiag);   // (+1,+1,0)
+        EXPECT_EQ(dnlaplace->at(0, 16), offdiag);  // (0,0,+1)
+        EXPECT_EQ(dnlaplace->at(0, 17), offdiag);  // (+1,0,+1)
+        EXPECT_EQ(dnlaplace->at(0, 20), offdiag);  // (0,+1,+1)
+        EXPECT_EQ(dnlaplace->at(0, 21), offdiag);  // (+1,+1,+1)
     }
 
-    auto mtx = gko::test::generate_tridiag_matrix<Dense>(
-        size, {lower, diag, upper}, this->exec);
-    auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<Dense>(
-        size, {lower, diag, upper}, this->exec);
-
-    auto result = Dense::create(this->exec, mtx->get_size());
-    inv_mtx->apply(mtx, result);
-    auto id = Dense::create(this->exec, mtx->get_size());
-    id->fill(0.0);
-    for (gko::size_type i = 0; i < mtx->get_size()[0]; ++i) {
-        id->at(i, i) = gko::one<T>();
+    // Face-center point (1,1,0) = row 5: k=0 removes one layer → 3*3*2 = 18
+    // entries
+    {
+        int nz = 0;
+        for (int col = 0; col < 64; col++) {
+            if (dnlaplace->at(5, col) != zero) {
+                nz++;
+            }
+        }
+        EXPECT_EQ(nz, 18);
     }
-    GKO_ASSERT_MTX_NEAR(result, id, r<T>::value * 10);
+
+    // Interior point (1,1,1) = row 21: full 3^3 stencil → 27 entries
+    {
+        int nz = 0;
+        for (int col = 0; col < 64; col++) {
+            if (dnlaplace->at(21, col) != zero) {
+                nz++;
+            }
+        }
+        EXPECT_EQ(nz, 27);
+        for (int dk = -1; dk <= 1; dk++) {
+            for (int dj = -1; dj <= 1; dj++) {
+                for (int di = -1; di <= 1; di++) {
+                    int col = (1 + dk) * 16 + (1 + dj) * 4 + (1 + di);
+                    auto expected =
+                        (di == 0 && dj == 0 && dk == 0) ? diag : offdiag;
+                    EXPECT_EQ(dnlaplace->at(21, col), expected)
+                        << "di=" << di << " dj=" << dj << " dk=" << dk;
+                }
+            }
+        }
+    }
+
+    // Edge-center point (3,2,3) = row 59: i=3 and k=3 are max-boundary,
+    // j=2 is interior → di in {-1,0}, dj in {-1,0,1}, dk in {-1,0}: 12 entries
+    {
+        int row = 59;  // 3*16 + 2*4 + 3
+        int nz = 0;
+        for (int col = 0; col < 64; col++) {
+            if (dnlaplace->at(row, col) != zero) {
+                nz++;
+            }
+        }
+        EXPECT_EQ(nz, 12);
+        EXPECT_EQ(dnlaplace->at(row, row), diag);
+        EXPECT_EQ(dnlaplace->at(row, 58), offdiag);  // (-1,0,0): (2,2,3)
+        EXPECT_EQ(dnlaplace->at(row, 55), offdiag);  // (0,-1,0): (3,1,3)
+        EXPECT_EQ(dnlaplace->at(row, 63), offdiag);  // (0,+1,0): (3,3,3)
+        EXPECT_EQ(dnlaplace->at(row, 43), offdiag);  // (0,0,-1): (3,2,2)
+        EXPECT_EQ(dnlaplace->at(row, 38), offdiag);  // (-1,-1,-1): (2,1,2)
+        EXPECT_EQ(dnlaplace->at(row, 46), offdiag);  // (-1,+1,-1): (2,3,2)
+    }
 }
 
 

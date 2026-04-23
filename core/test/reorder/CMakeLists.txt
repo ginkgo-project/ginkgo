@@ -1,4 +1,5 @@
 ginkgo_create_test(amd)
+ginkgo_create_test(multicolor)
 if(GINKGO_HAVE_METIS)
     ginkgo_create_test(nested_dissection)
 endif()

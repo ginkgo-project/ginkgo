@@ -56,6 +56,7 @@
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/sor_kernels.hpp"
+#include "core/reorder/multicolor_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/solver/batch_cg_kernels.hpp"
@@ -1120,6 +1121,12 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_RCM_COMPUTE_PERMUTATION_KERNEL);
 
 
 }  // namespace rcm
+
+namespace multicolor {
+
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_MULTICOLOR_COMPUTE_PERMUTATION_CSR_KERNEL);
+
+}  // namespace multicolor
 
 
 namespace pgm {
