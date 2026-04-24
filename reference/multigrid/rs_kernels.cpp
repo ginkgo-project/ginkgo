@@ -14,12 +14,6 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
-#include "core/base/allocator.hpp"
-#include "core/base/iterator_factory.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
-#include "core/matrix/csr_builder.hpp"
-
-
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -29,6 +23,55 @@ namespace reference {
  * @ingroup rs
  */
 namespace rs {
+
+template <typename ValueType, typename IndexType>
+void check_m_matrix(std::shared_ptr<const ReferenceExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* matrix,
+                    array<bool>& is_m_matrix_array)
+{
+    const auto num_rows = matrix->get_size()[0];
+    const auto row_ptrs = matrix->get_const_row_ptrs();
+    const auto col_idxs = matrix->get_const_col_idxs();
+    const auto values = matrix->get_const_values();
+
+    bool is_m_matrix = true;
+
+    for (size_type row = 0; row < num_rows; ++row) {
+        bool has_diag = false;
+
+        for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; ++nz) {
+            const auto col = col_idxs[nz];
+            const auto val = real(values[nz]);
+
+            if (row == col) {
+                has_diag = true;
+                if (val <= 0.0) {
+                    is_m_matrix = false;
+                    break;
+                }
+            } else {
+                if (val > 0.0) {
+                    is_m_matrix = false;
+                    break;
+                }
+            }
+        }
+
+        if (!has_diag) {
+            is_m_matrix = false;
+        }
+
+        if (!is_m_matrix) {
+            break;
+        }
+    }
+
+    is_m_matrix_array.get_data()[0] = is_m_matrix;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL);
+
 
 template <typename ValueType, typename IndexType>
 void compute_soc_and_run_rs(std::shared_ptr<const ReferenceExecutor> exec,

@@ -18,7 +18,6 @@
 
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/rs_kernels.hpp"
 
 
@@ -31,6 +30,7 @@ namespace {
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 
+GKO_REGISTER_OPERATION(check_m_matrix, rs::check_m_matrix);
 GKO_REGISTER_OPERATION(compute_soc_and_run_rs, rs::compute_soc_and_run_rs);
 GKO_REGISTER_OPERATION(fill_coarse_and_compute_prolong_row_ptrs,
                        rs::fill_coarse_and_compute_prolong_row_ptrs);
@@ -57,6 +57,13 @@ void Rs<ValueType, IndexType>::generate()
             exec, system_matrix_, parameters_.skip_sorting);
         rs_op = rs_op_shared_ptr.get();
         this->set_fine_op(rs_op_shared_ptr);
+    }
+    array<bool> is_m_matrix_array(exec, 1);
+    exec->run(rs::make_check_m_matrix(rs_op, is_m_matrix_array));
+    if (!exec->copy_val_to_host(is_m_matrix_array.get_const_data())) {
+        GKO_NOT_SUPPORTED(
+            "RS coarsening requires an M-matrix (strictly positive diagonal, "
+            "non-positive off-diagonals).");
     }
 
     // define arrays

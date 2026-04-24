@@ -21,6 +21,11 @@ namespace gko {
 namespace kernels {
 namespace rs {
 
+#define GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL(ValueType, IndexType)       \
+    void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,     \
+                        const matrix::Csr<ValueType, IndexType>* matrix, \
+                        array<bool>& is_m_matrix_array)
+
 #define GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType) \
     void compute_soc_and_run_rs(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                       \
@@ -47,6 +52,8 @@ namespace rs {
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
+    template <typename ValueType, typename IndexType>                          \
+    GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL(ValueType, IndexType);                \
     template <typename ValueType, typename IndexType>                          \
     GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType);        \
     template <typename ValueType, typename IndexType>                          \

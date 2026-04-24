@@ -7,7 +7,7 @@
 #include <ginkgo/core/base/math.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
-#include "common/unified/base/kernel_launch_reduction.hpp"
+#include "common/unified/base/kernel_launch_reduction.hpp"  // USE THIS FOR M MATRIX CHECK LATER
 #include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "ginkgo/core/base/exception_helpers.hpp"
@@ -22,6 +22,17 @@ namespace GKO_DEVICE_NAMESPACE {
  * @ingroup rs
  */
 namespace rs {
+
+template <typename ValueType, typename IndexType>
+void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
+                    const matrix::Csr<ValueType, IndexType>* matrix,
+                    array<bool>& is_m_matrix_array)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void compute_soc_and_run_rs(std::shared_ptr<const DefaultExecutor> exec,
