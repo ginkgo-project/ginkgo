@@ -130,17 +130,16 @@ void assert_ell_view(std::shared_ptr<const gko::EXEC_TYPE> exec)
             gko::matrix::view::ell<device_type, IndexType> view{
                 gko::dim<2>{2, 3}, 2, 3, values, col_idxs};
             if (view.size == gko::dim<2>(2, 3) &&
-                    view.num_stored_elements_per_row == 2,
-                view.stride == 3 && view.values == values &&
-                    view.col_idxs == col_idxs &&
-                    &view.val_at(0, 0) == &values[0] &&
-                    &view.val_at(1, 0) == &values[1] &&
-                    &view.val_at(1, 1) == &values[4] &&
-                    view.val_at(1, 1) == gko::one<device_type>() &&
-                    &view.col_at(0, 0) == &col_idxs[0] &&
-                    &view.col_at(1, 0) == &col_idxs[1] &&
-                    &view.col_at(1, 1) == &col_idxs[4] &&
-                    view.col_at(1, 1) == gko::zero<IndexType>()) {
+                view.num_stored_elements_per_row == 2 && view.stride == 3 &&
+                view.values == values && view.col_idxs == col_idxs &&
+                &view.val_at(0, 0) == &values[0] &&
+                &view.val_at(1, 0) == &values[1] &&
+                &view.val_at(1, 1) == &values[4] &&
+                view.val_at(1, 1) == gko::one<device_type>() &&
+                &view.col_at(0, 0) == &col_idxs[0] &&
+                &view.col_at(1, 0) == &col_idxs[1] &&
+                &view.col_at(1, 1) == &col_idxs[4] &&
+                view.col_at(1, 1) == gko::zero<IndexType>()) {
                 *correct = true;
             }
         },
@@ -148,9 +147,76 @@ void assert_ell_view(std::shared_ptr<const gko::EXEC_TYPE> exec)
     ASSERT_TRUE(get_element(correct, 0));
 }
 
+
 TYPED_TEST(EllView, WorksOnDevice)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     assert_ell_view<value_type, index_type>(this->exec);
+}
+
+
+template <typename ValueIndexType>
+class SellpView : public CommonTestFixture {
+public:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+};
+
+TYPED_TEST_SUITE(SellpView, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
+
+
+template <typename ValueType, typename IndexType>
+void assert_sellp_view(std::shared_ptr<const gko::EXEC_TYPE> exec)
+{
+    gko::array<bool> correct{exec, {false}};
+    gko::array<ValueType> values{exec, 21};
+    gko::array<IndexType> col_idxs{exec, 21};
+    gko::array<gko::size_type> slice_lengths{exec, {3, 4}};
+    gko::array<gko::size_type> slice_sets{exec, {0, 3, 7}};
+    values.fill(gko::one<ValueType>());
+    col_idxs.fill(gko::zero<IndexType>());
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto values, auto col_idxs, auto slice_lengths,
+                      auto slice_sets, auto correct) {
+            using device_type = std::decay_t<decltype(values[0])>;
+            gko::matrix::view::sellp<device_type, IndexType> view{
+                gko::dim<2>{3, 5}, 2,         3, 7, values, col_idxs,
+                slice_lengths,     slice_sets};
+            if (view.size == gko::dim<2>(3, 5) && view.slice_size == 2 &&
+                view.stride_factor == 3 && view.total_cols == 7 &&
+                view.values == values && view.col_idxs == col_idxs &&
+                view.slice_lengths == slice_lengths &&
+                view.slice_sets == slice_sets &&
+                &view.val_at(0, slice_sets[0], 0) == &values[0] &&
+                &view.val_at(1, slice_sets[0], 0) == &values[1] &&
+                &view.val_at(1, slice_sets[0], 1) == &values[3] &&
+                &view.val_at(0, slice_sets[1], 0) == &values[6] &&
+                &view.val_at(1, slice_sets[1], 0) == &values[7] &&
+                &view.val_at(1, slice_sets[1], 1) == &values[9] &&
+                view.val_at(1, slice_sets[1], 1) == gko::one<device_type>() &&
+                &view.col_at(0, slice_sets[0], 0) == &col_idxs[0] &&
+                &view.col_at(1, slice_sets[0], 0) == &col_idxs[1] &&
+                &view.col_at(1, slice_sets[0], 1) == &col_idxs[3] &&
+                &view.col_at(0, slice_sets[1], 0) == &col_idxs[6] &&
+                &view.col_at(1, slice_sets[1], 0) == &col_idxs[7] &&
+                &view.col_at(1, slice_sets[1], 1) == &col_idxs[9] &&
+                view.col_at(1, slice_sets[1], 1) == gko::zero<IndexType>()) {
+                *correct = true;
+            }
+        },
+        1, values, col_idxs, slice_lengths, slice_sets, correct);
+    ASSERT_TRUE(get_element(correct, 0));
+}
+
+
+TYPED_TEST(SellpView, WorksOnDevice)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    assert_sellp_view<value_type, index_type>(this->exec);
 }

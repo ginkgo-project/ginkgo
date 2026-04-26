@@ -118,7 +118,7 @@ namespace kernels {
 #define GKO_DECLARE_CSR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType)      \
     void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,     \
                           const matrix::Csr<ValueType, IndexType>* source, \
-                          matrix::Sellp<ValueType, IndexType>* result)
+                          matrix::view::sellp<ValueType, IndexType> result)
 
 #define GKO_DECLARE_CSR_TRANSPOSE_KERNEL(ValueType, IndexType)    \
     void transpose(std::shared_ptr<const DefaultExecutor> exec,   \

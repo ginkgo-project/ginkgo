@@ -107,18 +107,16 @@ GKO_ENABLE_DEFAULT_HOST(advanced_spmv_kernel, advanced_spmv_kernel);
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
-          const matrix::Sellp<ValueType, IndexType>* a,
+          matrix::view::sellp<const ValueType, const IndexType> a,
           matrix::view::dense<const ValueType> b,
           matrix::view::dense<ValueType> c)
 {
     const dim3 blockSize(default_block_size);
-    const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
-                        b.size[1]);
+    const dim3 gridSize(ceildiv(a.size[0], default_block_size), b.size[1]);
 
-    spmv_kernel(gridSize, blockSize, 0, exec->get_queue(), a->get_size()[0],
-                b.size[1], b.stride, c.stride, a->get_slice_size(),
-                a->get_const_slice_sets(), a->get_const_values(),
-                a->get_const_col_idxs(), b.values, c.values);
+    spmv_kernel(gridSize, blockSize, 0, exec->get_queue(), a.size[0], b.size[1],
+                b.stride, c.stride, a.slice_size, a.slice_sets, a.values,
+                a.col_idxs, b.values, c.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
@@ -127,20 +125,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    matrix::view::dense<const ValueType> alpha,
-                   const matrix::Sellp<ValueType, IndexType>* a,
+                   matrix::view::sellp<const ValueType, const IndexType> a,
                    matrix::view::dense<const ValueType> b,
                    matrix::view::dense<const ValueType> beta,
                    matrix::view::dense<ValueType> c)
 {
     const dim3 blockSize(default_block_size);
-    const dim3 gridSize(ceildiv(a->get_size()[0], default_block_size),
-                        b.size[1]);
+    const dim3 gridSize(ceildiv(a.size[0], default_block_size), b.size[1]);
 
-    advanced_spmv_kernel(
-        gridSize, blockSize, 0, exec->get_queue(), a->get_size()[0], b.size[1],
-        b.stride, c.stride, a->get_slice_size(), a->get_const_slice_sets(),
-        alpha.values, a->get_const_values(), a->get_const_col_idxs(), b.values,
-        beta.values, c.values);
+    advanced_spmv_kernel(gridSize, blockSize, 0, exec->get_queue(), a.size[0],
+                         b.size[1], b.stride, c.stride, a.slice_size,
+                         a.slice_sets, alpha.values, a.values, a.col_idxs,
+                         b.values, beta.values, c.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

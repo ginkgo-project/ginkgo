@@ -335,14 +335,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                       matrix::view::dense<const ValueType> source,
-                      matrix::Sellp<ValueType, IndexType>* result)
+                      matrix::view::sellp<ValueType, IndexType> result)
 {
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto vals = result->get_values();
-    const auto col_idxs = result->get_col_idxs();
-    const auto slice_sets = result->get_slice_sets();
-    const auto slice_size = result->get_slice_size();
+    const auto num_rows = result.size[0];
+    const auto num_cols = result.size[1];
+    const auto vals = result.values;
+    const auto col_idxs = result.col_idxs;
+    const auto slice_sets = result.slice_sets;
+    const auto slice_size = result.slice_size;
     const auto num_slices = ceildiv(num_rows, slice_size);
 #pragma omp parallel for
     for (size_type slice = 0; slice < num_slices; slice++) {

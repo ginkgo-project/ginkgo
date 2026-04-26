@@ -25,27 +25,27 @@ namespace sellp {
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
-          const matrix::Sellp<ValueType, IndexType>* a,
+          matrix::view::sellp<const ValueType, const IndexType> a,
           matrix::view::dense<const ValueType> b,
           matrix::view::dense<ValueType> c)
 {
-    auto col_idxs = a->get_const_col_idxs();
-    auto slice_lengths = a->get_const_slice_lengths();
-    auto slice_sets = a->get_const_slice_sets();
-    auto slice_size = a->get_slice_size();
-    auto slice_num = ceildiv(a->get_size()[0] + slice_size - 1, slice_size);
+    auto col_idxs = a.col_idxs;
+    auto slice_lengths = a.slice_lengths;
+    auto slice_sets = a.slice_sets;
+    auto slice_size = a.slice_size;
+    auto slice_num = ceildiv(a.size[0] + slice_size - 1, slice_size);
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
-            if (global_row >= a->get_size()[0]) {
+            if (global_row >= a.size[0]) {
                 break;
             }
             for (size_type j = 0; j < c.size[1]; j++) {
                 c(global_row, j) = zero<ValueType>();
             }
             for (size_type i = 0; i < slice_lengths[slice]; i++) {
-                auto val = a->val_at(row, slice_sets[slice], i);
-                auto col = a->col_at(row, slice_sets[slice], i);
+                auto val = a.val_at(row, slice_sets[slice], i);
+                auto col = a.col_at(row, slice_sets[slice], i);
                 if (col != invalid_index<IndexType>()) {
                     for (size_type j = 0; j < c.size[1]; j++) {
                         c(global_row, j) += val * b(col, j);
@@ -62,23 +62,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMV_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    matrix::view::dense<const ValueType> alpha,
-                   const matrix::Sellp<ValueType, IndexType>* a,
+                   matrix::view::sellp<const ValueType, const IndexType> a,
                    matrix::view::dense<const ValueType> b,
                    matrix::view::dense<const ValueType> beta,
                    matrix::view::dense<ValueType> c)
 {
-    auto vals = a->get_const_values();
-    auto col_idxs = a->get_const_col_idxs();
-    auto slice_lengths = a->get_const_slice_lengths();
-    auto slice_sets = a->get_const_slice_sets();
-    auto slice_size = a->get_slice_size();
-    auto slice_num = ceildiv(a->get_size()[0] + slice_size - 1, slice_size);
+    auto vals = a.values;
+    auto col_idxs = a.col_idxs;
+    auto slice_lengths = a.slice_lengths;
+    auto slice_sets = a.slice_sets;
+    auto slice_size = a.slice_size;
+    auto slice_num = ceildiv(a.size[0] + slice_size - 1, slice_size);
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
-            if (global_row >= a->get_size()[0]) {
+            if (global_row >= a.size[0]) {
                 break;
             }
             for (size_type j = 0; j < c.size[1]; j++) {
@@ -89,8 +89,8 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                 }
             }
             for (size_type i = 0; i < slice_lengths[slice]; i++) {
-                auto val = a->val_at(row, slice_sets[slice], i);
-                auto col = a->col_at(row, slice_sets[slice], i);
+                auto val = a.val_at(row, slice_sets[slice], i);
+                auto col = a.col_at(row, slice_sets[slice], i);
                 if (col != invalid_index<IndexType>()) {
                     for (size_type j = 0; j < c.size[1]; j++) {
                         c(global_row, j) += valpha * val * b(col, j);
@@ -139,13 +139,13 @@ template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          const device_matrix_data<ValueType, IndexType>& data,
                          const int64* row_ptrs,
-                         matrix::Sellp<ValueType, IndexType>* output)
+                         matrix::view::sellp<ValueType, IndexType> output)
 {
-    const auto slice_size = output->get_slice_size();
-    const auto slice_sets = output->get_const_slice_sets();
-    const auto cols = output->get_col_idxs();
-    const auto vals = output->get_values();
-    for (size_type row = 0; row < output->get_size()[0]; row++) {
+    const auto slice_size = output.slice_size;
+    const auto slice_sets = output.slice_sets;
+    const auto cols = output.col_idxs;
+    const auto vals = output.values;
+    for (size_type row = 0; row < output.size[0]; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_end = row_ptrs[row + 1];
         const auto row_nnz = row_end - row_begin;
@@ -174,18 +174,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
-                   const matrix::Sellp<ValueType, IndexType>* source,
+                   matrix::view::sellp<const ValueType, const IndexType> source,
                    matrix::view::dense<ValueType> result)
 {
-    auto num_rows = source->get_size()[0];
-    auto num_cols = source->get_size()[1];
-    auto vals = source->get_const_values();
-    auto col_idxs = source->get_const_col_idxs();
-    auto slice_lengths = source->get_const_slice_lengths();
-    auto slice_sets = source->get_const_slice_sets();
-    auto slice_size = source->get_slice_size();
-    auto slice_num =
-        ceildiv(source->get_size()[0] + slice_size - 1, slice_size);
+    auto num_rows = source.size[0];
+    auto num_cols = source.size[1];
+    auto vals = source.values;
+    auto col_idxs = source.col_idxs;
+    auto slice_lengths = source.slice_lengths;
+    auto slice_sets = source.slice_sets;
+    auto slice_size = source.slice_size;
+    auto slice_num = ceildiv(source.size[0] + slice_size - 1, slice_size);
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
             size_type global_row = slice * slice_size + row;
@@ -208,18 +207,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Sellp<ValueType, IndexType>* source,
-                            IndexType* result)
+void count_nonzeros_per_row(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::sellp<const ValueType, const IndexType> source,
+    IndexType* result)
 {
-    auto num_rows = source->get_size()[0];
-    auto slice_size = source->get_slice_size();
+    auto num_rows = source.size[0];
+    auto slice_size = source.slice_size;
     auto slice_num = ceildiv(num_rows, slice_size);
 
-    const auto vals = source->get_const_values();
-    const auto slice_lengths = source->get_const_slice_lengths();
-    const auto slice_sets = source->get_const_slice_sets();
-    const auto col_idxs = source->get_const_col_idxs();
+    const auto vals = source.values;
+    const auto slice_lengths = source.slice_lengths;
+    const auto slice_sets = source.slice_sets;
+    const auto col_idxs = source.col_idxs;
 
     for (size_type slice = 0; slice < slice_num; slice++) {
         for (size_type row = 0; row < slice_size; row++) {
@@ -244,18 +244,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Sellp<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
+void convert_to_csr(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::sellp<const ValueType, const IndexType> source,
+    matrix::Csr<ValueType, IndexType>* result)
 {
-    auto num_rows = source->get_size()[0];
-    auto slice_size = source->get_slice_size();
+    auto num_rows = source.size[0];
+    auto slice_size = source.slice_size;
     auto slice_num = ceildiv(num_rows, slice_size);
 
-    const auto source_vals = source->get_const_values();
-    const auto source_slice_lengths = source->get_const_slice_lengths();
-    const auto source_slice_sets = source->get_const_slice_sets();
-    const auto source_col_idxs = source->get_const_col_idxs();
+    const auto source_vals = source.values;
+    const auto source_slice_lengths = source.slice_lengths;
+    const auto source_slice_sets = source.slice_sets;
+    const auto source_col_idxs = source.col_idxs;
 
     auto result_vals = result->get_values();
     auto result_row_ptrs = result->get_row_ptrs();
@@ -290,18 +291,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
-                      const matrix::Sellp<ValueType, IndexType>* orig,
-                      matrix::Diagonal<ValueType>* diag)
+void extract_diagonal(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::sellp<const ValueType, const IndexType> orig,
+    matrix::Diagonal<ValueType>* diag)
 {
     const auto diag_size = diag->get_size()[0];
-    const auto slice_size = orig->get_slice_size();
-    const auto slice_num = ceildiv(orig->get_size()[0], slice_size);
+    const auto slice_size = orig.slice_size;
+    const auto slice_num = ceildiv(orig.size[0], slice_size);
 
-    const auto orig_values = orig->get_const_values();
-    const auto orig_slice_sets = orig->get_const_slice_sets();
-    const auto orig_slice_lengths = orig->get_const_slice_lengths();
-    const auto orig_col_idxs = orig->get_const_col_idxs();
+    const auto orig_values = orig.values;
+    const auto orig_slice_sets = orig.slice_sets;
+    const auto orig_slice_lengths = orig.slice_lengths;
+    const auto orig_col_idxs = orig.col_idxs;
     auto diag_values = diag->get_values();
 
     for (size_type slice = 0; slice < slice_num; slice++) {
@@ -311,10 +313,9 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
                 break;
             }
             for (size_type i = 0; i < orig_slice_lengths[slice]; i++) {
-                if (orig->col_at(row, orig_slice_sets[slice], i) ==
-                    global_row) {
+                if (orig.col_at(row, orig_slice_sets[slice], i) == global_row) {
                     diag_values[global_row] =
-                        orig->val_at(row, orig_slice_sets[slice], i);
+                        orig.val_at(row, orig_slice_sets[slice], i);
                     break;
                 }
             }

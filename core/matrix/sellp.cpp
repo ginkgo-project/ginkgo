@@ -150,14 +150,41 @@ Sellp<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
 }
 
 
+/** get the non-owning device view */
+template <typename ValueType, typename IndexType>
+auto Sellp<ValueType, IndexType>::get_device_view() -> device_view
+{
+    return device_view{this->get_size(),          this->get_slice_size(),
+                       this->get_stride_factor(), this->get_total_cols(),
+                       this->get_values(),        this->get_col_idxs(),
+                       this->get_slice_lengths(), this->get_slice_sets()};
+}
+
+
+/** get the const non-owning device view */
+template <typename ValueType, typename IndexType>
+auto Sellp<ValueType, IndexType>::get_const_device_view() const
+    -> const_device_view
+{
+    return const_device_view{this->get_size(),
+                             this->get_slice_size(),
+                             this->get_stride_factor(),
+                             this->get_total_cols(),
+                             this->get_const_values(),
+                             this->get_const_col_idxs(),
+                             this->get_const_slice_lengths(),
+                             this->get_const_slice_sets()};
+}
+
+
 template <typename ValueType, typename IndexType>
 void Sellp<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(
-                sellp::make_spmv(this, dense_b->get_const_device_view(),
-                                 dense_x->get_device_view()));
+            this->get_executor()->run(sellp::make_spmv(
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -170,8 +197,8 @@ void Sellp<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             this->get_executor()->run(sellp::make_advanced_spmv(
-                dense_alpha->get_const_device_view(), this,
-                dense_b->get_const_device_view(),
+                dense_alpha->get_const_device_view(),
+                this->get_const_device_view(), dense_b->get_const_device_view(),
                 dense_beta->get_const_device_view(),
                 dense_x->get_device_view()));
         },
@@ -256,7 +283,8 @@ void Sellp<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(sellp::make_fill_in_dense(this, tmp_result->get_device_view()));
+    exec->run(sellp::make_fill_in_dense(this->get_const_device_view(),
+                                        tmp_result->get_device_view()));
 }
 
 
@@ -277,7 +305,7 @@ void Sellp<ValueType, IndexType>::convert_to(
         auto tmp = make_temporary_clone(exec, result);
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
         exec->run(sellp::make_count_nonzeros_per_row(
-            this, tmp->row_ptrs_.get_data()));
+            this->get_const_device_view(), tmp->row_ptrs_.get_data()));
         exec->run(sellp::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                      num_rows + 1));
         const auto nnz =
@@ -285,7 +313,8 @@ void Sellp<ValueType, IndexType>::convert_to(
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
-        exec->run(sellp::make_convert_to_csr(this, tmp.get()));
+        exec->run(sellp::make_convert_to_csr(this->get_const_device_view(),
+                                             tmp.get()));
     }
     result->make_srow();
 }
@@ -318,8 +347,8 @@ void Sellp<ValueType, IndexType>::read(const device_mat_data& data)
         get_element(slice_sets_, slice_sets_.get_size() - 1);
     values_.resize_and_reset(total_cols * slice_size_);
     col_idxs_.resize_and_reset(total_cols * slice_size_);
-    exec->run(sellp::make_fill_in_matrix_data(*local_data,
-                                              row_ptrs.get_const_data(), this));
+    exec->run(sellp::make_fill_in_matrix_data(
+        *local_data, row_ptrs.get_const_data(), this->get_device_view()));
 }
 
 
@@ -378,7 +407,8 @@ Sellp<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(sellp::make_fill_array(diag->get_values(), diag->get_size()[0],
                                      zero<ValueType>()));
-    exec->run(sellp::make_extract_diagonal(this, diag.get()));
+    exec->run(sellp::make_extract_diagonal(this->get_const_device_view(),
+                                           diag.get()));
     return diag;
 }
 
