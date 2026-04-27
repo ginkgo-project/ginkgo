@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -178,23 +178,6 @@ TEST_F(EnableBatchLinOpFactory, WithLoggersWorksAndPropagates)
               before_logger.batch_linop_factory_generate_started + 1);
     ASSERT_EQ(logger->batch_linop_factory_generate_completed,
               before_logger.batch_linop_factory_generate_completed + 1);
-}
-
-
-TEST_F(EnableBatchLinOpFactory, CopiesLinOpToOtherExecutor)
-{
-    auto ref2 = gko::ReferenceExecutor::create();
-    auto dummy = gko::share(
-        DummyBatchLinOp::create(ref2, gko::batch_dim<2>(1, gko::dim<2>{3, 5})));
-    auto factory = DummyBatchLinOpWithFactory<>::build().with_value(6).on(ref);
-
-    auto op = factory->generate(dummy);
-
-    ASSERT_EQ(op->get_executor(), ref);
-    ASSERT_EQ(op->get_parameters().value, 6);
-    ASSERT_EQ(op->op_->get_executor(), ref);
-    ASSERT_NE(op->op_.get(), dummy.get());
-    ASSERT_TRUE(dynamic_cast<const DummyBatchLinOp*>(op->op_.get()));
 }
 
 

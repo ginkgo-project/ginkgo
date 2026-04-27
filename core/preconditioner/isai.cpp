@@ -278,7 +278,7 @@ Isai<IsaiType, ValueType, IndexType>::operator=(const Isai& other)
         parameters_ = other.parameters_;
         if (approximate_inverse_ &&
             other.approximate_inverse_->get_executor() != exec) {
-            // approximate_inverse_ = gko::clone(exec, approximate_inverse_);
+            approximate_inverse_ = gko::clone(exec, approximate_inverse_);
         }
     }
     return *this;
@@ -296,7 +296,7 @@ Isai<IsaiType, ValueType, IndexType>::operator=(Isai&& other)
         parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (approximate_inverse_ &&
             other.approximate_inverse_->get_executor() != exec) {
-            // approximate_inverse_ = gko::clone(exec, approximate_inverse_);
+            approximate_inverse_ = gko::clone(exec, approximate_inverse_);
         }
     }
     return *this;
@@ -323,9 +323,13 @@ template <isai_type IsaiType, typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
 {
     auto is_spd = IsaiType == isai_type::spd;
-    // if (is_spd) {
-    //     return this->clone();
-    // }
+    if (is_spd) {
+        auto cloned = std::unique_ptr<Isai>(new Isai{this->get_executor()});
+        cloned->EnableLinOp<Isai>::operator=(*this);
+        cloned->approximate_inverse_ = approximate_inverse_;
+        cloned->parameters_ = parameters_;
+        return cloned;
+    }
 
     std::unique_ptr<transposed_type> transp{
         new transposed_type{this->get_executor()}};
@@ -342,9 +346,13 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
     const
 {
     auto is_spd = IsaiType == isai_type::spd;
-    // if (is_spd) {
-    //     return this->clone();
-    // }
+    if (is_spd) {
+        auto cloned = std::unique_ptr<Isai>(new Isai{this->get_executor()});
+        cloned->EnableLinOp<Isai>::operator=(*this);
+        cloned->approximate_inverse_ = approximate_inverse_;
+        cloned->parameters_ = parameters_;
+        return cloned;
+    }
 
     std::unique_ptr<transposed_type> transp{
         new transposed_type{this->get_executor()}};

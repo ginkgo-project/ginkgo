@@ -39,9 +39,19 @@ Factorization<ValueType, IndexType>::unpack() const
     case storage_type::empty:
         GKO_NOT_SUPPORTED(nullptr);
     case storage_type::composition:
-    case storage_type::symm_composition:
-        GKO_NOT_SUPPORTED(nullptr);  // enable clone for composition? but
-                                     // require all components is clonable
+    case storage_type::symm_composition: {
+        // bring the original clone function here
+        auto clone = std::unique_ptr<Factorization>{
+            new Factorization{this->get_executor()}};
+        clone->EnableLinOp<Factorization<ValueType, IndexType>>::operator=(
+            *this);
+        clone->storage_type_ = storage_type_;
+        // composition clone only copy the pointer when they are on the same
+        // executor
+        clone->factors_ = Composition<ValueType>::create(
+            factors_->get_operators().begin(), factors_->get_operators().end());
+        return clone;
+    }
     case storage_type::combined_lu: {
         // count nonzeros
         array<index_type> l_row_ptrs{exec, size[0] + 1};

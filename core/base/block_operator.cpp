@@ -270,9 +270,8 @@ BlockOperator& BlockOperator::operator=(const BlockOperator& other)
         row_spans_ = other.row_spans_;
         blocks_.clear();
         for (const auto& block : other.blocks_) {
-            blocks_.emplace_back(block == nullptr
-                                     ? nullptr
-                                     : nullptr /*gko::clone(exec, block)*/);
+            blocks_.emplace_back(block == nullptr ? nullptr
+                                                  : gko::clone(exec, block));
         }
     }
     return *this;
@@ -294,7 +293,7 @@ BlockOperator& BlockOperator::operator=(BlockOperator&& other)
         if (exec != other.get_executor()) {
             for (auto& block : blocks_) {
                 if (block != nullptr) {
-                    // block = gko::clone(exec, block);
+                    block = gko::clone(exec, block);
                 }
             }
         }
