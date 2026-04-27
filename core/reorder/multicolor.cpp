@@ -63,30 +63,24 @@ Multicolor<ValueType, IndexType>::Multicolor(const Factory* factory,
       parameters_{factory->get_parameters()}
 {
     using CsrType = matrix::Csr<ValueType, IndexType>;
+    auto exec = this->get_executor();
     auto sysmat = args.system_matrix;
     auto const size = sysmat->get_size()[0];
 
-    // The reordering is not supported on DPC++, use the host instead
-    const auto is_dpcpp_executor = bool(
-        std::dynamic_pointer_cast<const DpcppExecutor>(this->get_executor()));
-    auto work_exec = is_dpcpp_executor ? this->get_executor()->get_master()
-                                       : this->get_executor();
-
-    std::shared_ptr<const SparsityMatrix> matrix =
-        SparsityMatrix::create(work_exec);
+    std::shared_ptr<const SparsityMatrix> matrix;
+    // SparsityMatrix::create(exec);
 
     if (auto csrmat = std::dynamic_pointer_cast<const CsrType>(sysmat)) {
-        // args.system_matrix->convert_to(matrix.get());
         const auto n = csrmat->get_size()[0];
         const auto nnz = csrmat->get_num_stored_elements();
         matrix = SparsityMatrix::create_const(
-            work_exec, sysmat->get_size(),
-            make_const_array_view<IndexType>(work_exec, nnz,
+            exec, sysmat->get_size(),
+            make_const_array_view<IndexType>(exec, nnz,
                                              csrmat->get_const_col_idxs()),
-            make_const_array_view<IndexType>(work_exec, size + 1,
+            make_const_array_view<IndexType>(exec, size + 1,
                                              csrmat->get_const_row_ptrs()));
-    } else if (auto smat = std::dynamic_pointer_cast<const SparsityMatrix>(
-                   args.system_matrix)) {
+    } else if (auto smat =
+                   std::dynamic_pointer_cast<const SparsityMatrix>(sysmat)) {
         matrix = smat;
     } else {
         GKO_NOT_SUPPORTED(sysmat);
@@ -95,35 +89,19 @@ Multicolor<ValueType, IndexType>::Multicolor(const Factory* factory,
     // The adjacency matrix has to be square.
     GKO_ASSERT_IS_SQUARE_MATRIX(sysmat);
 
-    permutation_ = PermutationMatrix::create(work_exec, size);
+    permutation_ = PermutationMatrix::create(exec, size);
 
     // To make it explicit.
     inv_permutation_ = nullptr;
     if (parameters_.construct_inverse_permutation) {
-        inv_permutation_ = PermutationMatrix::create(work_exec, size);
+        inv_permutation_ = PermutationMatrix::create(exec, size);
+    } else {
+        GKO_NOT_IMPLEMENTED;
     }
 
     multicolor_reorder(
         matrix.get(), color_ptrs_, permutation_->get_permutation(),
         inv_permutation_ ? inv_permutation_->get_permutation() : nullptr);
-
-    // Copy back results to gpu if necessary.
-    if (is_dpcpp_executor) {
-        const auto gpu_exec = this->get_executor();
-        auto gpu_perm = share(PermutationMatrix::create(gpu_exec, size));
-        gpu_perm->copy_from(permutation_);
-        permutation_ = gpu_perm;
-        if (inv_permutation_) {
-            auto gpu_inv_perm =
-                share(PermutationMatrix::create(gpu_exec, size));
-            gpu_inv_perm->copy_from(inv_permutation_);
-            inv_permutation_ = gpu_inv_perm;
-        }
-    }
-    // auto permutation_array =
-    //     make_array_view(this->get_executor(), permutation_->get_size()[0],
-    //                     permutation_->get_permutation());
-    // this->set_permutation_array(permutation_array);
 }
 
 

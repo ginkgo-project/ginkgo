@@ -32,6 +32,16 @@ namespace reorder {
 
 
 /**
+ * A multicolor reordering, also known as independent set reordering.
+ *
+ * This is intended for reordering an arbitrary sparse matrix with symmetric
+ * structure so that preconditioners/smoothers such as Gauss-Seidel and ILU
+ * can be applied in parallel.
+ *
+ * The reference implementation is based on a simple greedy approach, while
+ * the parallel implementations use the Jones-Plassman-Luby (JPL) algorithm
+ * or a variant of it.
+ *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
  *
