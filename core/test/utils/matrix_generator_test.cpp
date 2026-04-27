@@ -270,6 +270,39 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagMatrix)
 }
 
 
+TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
+{
+    using T = typename TestFixture::value_type;
+    using Dense = typename TestFixture::mtx_type;
+    auto dist = std::normal_distribution<>(0, 1);
+    auto engine = std::default_random_engine(42);
+    auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
+    auto upper = gko::test::detail::get_rand_value<T>(dist, engine);
+    // make diagonally dominant
+    auto diag = gko::abs(gko::test::detail::get_rand_value<T>(dist, engine)) +
+                gko::abs(lower) + gko::abs(upper);
+    gko::size_type size = 50;
+    if (std::is_same_v<gko::remove_complex<T>, gko::float16>) {
+        // half/bfloat16 precision can only handle the inverse of small matrix.
+        size = 5;
+    }
+
+    auto mtx = gko::test::generate_tridiag_matrix<Dense>(
+        size, {lower, diag, upper}, this->exec);
+    auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<Dense>(
+        size, {lower, diag, upper}, this->exec);
+
+    auto result = Dense::create(this->exec, mtx->get_size());
+    inv_mtx->apply(mtx, result);
+    auto id = Dense::create(this->exec, mtx->get_size());
+    id->fill(0.0);
+    for (gko::size_type i = 0; i < mtx->get_size()[0]; ++i) {
+        id->at(i, i) = gko::one<T>();
+    }
+    GKO_ASSERT_MTX_NEAR(result, id, r<T>::value * 10);
+}
+
+
 TEST(MatrixGenerator, GeneratesLaplace2d5pointMatrixData)
 {
     using T = std::complex<float>;

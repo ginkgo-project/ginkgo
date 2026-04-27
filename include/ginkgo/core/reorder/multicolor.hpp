@@ -95,13 +95,6 @@ public:
          * constructed along with the normal permutation matrix.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(construct_inverse_permutation, true);
-
-        /**
-         * This parameter controls the strategy used to determine a starting
-         * vertex.
-         */
-        // starting_strategy GKO_FACTORY_PARAMETER_SCALAR(
-        //     strategy, starting_strategy::pseudo_peripheral);
     };
     GKO_ENABLE_REORDERING_BASE_FACTORY(Multicolor, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
