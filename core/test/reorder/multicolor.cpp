@@ -14,9 +14,6 @@
 #include "core/test/utils/reordering.hpp"
 
 
-namespace {
-
-
 template <typename IndexType>
 class Multicolor : public ::testing::Test {
 protected:
@@ -95,6 +92,3 @@ TYPED_TEST(Multicolor, GeneratesCorrectOrderingWithSparsityCsrInput)
     EXPECT_EQ(permv, expected.old_to_new);
     EXPECT_EQ(ipermv, expected.new_to_old);
 }
-
-
-}  // namespace

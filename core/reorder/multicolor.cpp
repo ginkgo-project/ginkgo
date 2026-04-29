@@ -68,7 +68,6 @@ Multicolor<ValueType, IndexType>::Multicolor(const Factory* factory,
     auto const size = sysmat->get_size()[0];
 
     std::shared_ptr<const SparsityMatrix> matrix;
-    // SparsityMatrix::create(exec);
 
     if (auto csrmat = std::dynamic_pointer_cast<const CsrType>(sysmat)) {
         const auto n = csrmat->get_size()[0];
