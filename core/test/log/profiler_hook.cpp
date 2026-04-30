@@ -71,7 +71,7 @@ std::string normalize_type_name(std::string s)
 }
 #endif
 
-static void normalize_type_names(std::vector<std::string> & output,
+void normalize_type_names(std::vector<std::string> & output,
                                  std::vector<std::string> & expected) {
     #ifdef _MSC_VER
     std::transform(output.begin(), output.end(), output.begin(),
