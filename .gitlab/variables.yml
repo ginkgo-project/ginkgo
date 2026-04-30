@@ -1,7 +1,6 @@
 # Templates with reasonable defaults for builds and tests
 .default_variables:
   variables:
-    BENCHMARK_SERVER: "FINECI"
     CXX_COMPILER: "g++"
     CUDA_COMPILER: "nvcc"
     BUILD_TYPE: "Debug"
@@ -12,7 +11,6 @@
     BUILD_HIP: "OFF"
     BUILD_SYCL: "OFF"
     BUILD_HWLOC: "ON"
-    BUILD_PAPI_SDE: "OFF"
     BUILD_MPI: "OFF"
     MPI_AS_ROOT: "OFF"
     FAST_TESTS: "OFF"
@@ -21,7 +19,10 @@
     MIXED_PRECISION: "ON"
     ENABLE_HALF: "ON"
     ENABLE_BFLOAT16: "OFF"
-    CONFIG_LOG: "ON"
     CXX_FLAGS: "-Wpedantic"
     EXTRA_CMAKE_FLAGS: ""
     CI_PROJECT_DIR_SUFFIX: ""
+    CUDA_ARCH: ""
+    MDOULE_LOAD: ""
+    SPACK_LOAD: ""
+    ONEAPI_DEVICE_SELECTOR: ""
