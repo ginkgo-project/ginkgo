@@ -48,7 +48,9 @@ std::string normalize_type_name(std::string s)
 
     for (;;) {
         auto pos = s.find(class_tok);
-        if (pos == std::string::npos) break;
+        if (pos == std::string::npos) {
+            break;
+        }
         s.erase(pos, class_tok.size());
     }
     for (;;) {
