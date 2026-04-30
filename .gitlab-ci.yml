@@ -552,22 +552,6 @@ build/icpx202421/gpu/release/shared:
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
     MODULE_LOAD: "cmake/3.28.6 intel-oneapi-compilers/2024.2.1 intel-oneapi-dpl/2022.6.1 intel-oneapi-tbb/2021.13.1 intel-oneapi-mkl/2024.2.1"
 
-# TODO: Enable when debug shared library size issues are fixed
-# build/dpcpp/level_zero_igpu/debug/shared:
-#   extends:
-#     - .build_and_test_template
-#     - .default_variables
-#     - .full_test_condition
-#     - .use_gko-oneapi-gpu
-#   variables:
-#     CXX_COMPILER: "dpcpp"
-#     CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-#     BUILD_SYCL: "ON"
-#     BUILD_TYPE: "Debug"
-#     BUILD_SHARED_LIBS: "ON"
-#     DPCPP_SINGLE_MODE: "ON"
-#     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
-
 # It gives two available backends of GPU on tests
 build/dpcpp/gpu/release/shared:
   extends:
@@ -585,46 +569,6 @@ build/dpcpp/gpu/release/shared:
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
     BUILD_HWLOC: "OFF"
-
-# windows jobs
-# Note that this is using Powershell, not bash
-# Disable it now until the server is back
-# build/windows-cuda/release/shared:
-#   extends:
-#     - .quick_test_condition
-#   stage: build
-#   script:
-#     - if (Test-Path build) { rm -r -fo build }
-#     - if (Test-Path install) { rm -r -fo install }
-#     - mkdir build
-#     - mkdir install
-#     - nvidia-smi
-#     - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=ON "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
-#     - cmake --build build --config Release -j16
-#     - ctest --test-dir build -C Release --no-tests=error --output-on-failure
-#     - $env:PATH+=";$pwd/install/bin"
-#     - cmake --install build --config Release
-#     - cmake --build build --target test_install --config Release
-#   tags:
-#     - windows-cuda
-
-# build/windows/release/shared:
-#   extends:
-#     - .full_test_condition
-#   stage: build
-#   script:
-#     - if (Test-Path build) { rm -r -fo build }
-#     - if (Test-Path install) { rm -r -fo install }
-#     - mkdir build
-#     - mkdir install
-#     - cmake -B build -DBUILD_SHARED_LIBS=ON -DGINKGO_BUILD_CUDA=OFF "-DCMAKE_INSTALL_PREFIX=$pwd\install" .
-#     - cmake --build build --config Release -j16
-#     - ctest --test-dir build -C Release --no-tests=error --output-on-failure -j16
-#     - $env:PATH+=";$pwd/install/bin"
-#     - cmake --install build --config Release
-#     - cmake --build build --target test_install --config Release
-#   tags:
-#     - windows
 
 # Job with important warnings as error
 warnings:
@@ -797,22 +741,6 @@ gh-pages:
   needs: []
 
 
-threadsanitizer:
-  stage: QoS_tools
-  extends:
-    - .default_variables
-    - .deploy_condition
-    - .before_script_template
-    - .use_gko-rocm514-nompi-gnu11-llvm11
-    - .disable_job_condition
-  script:
-    - LD_PRELOAD=/usr/local/lib/libomp.so
-      CC=clang CXX=clang++
-        ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=TSAN
-        -DCTEST_MEMORYCHECK_TYPE=ThreadSanitizer
-        -DCTEST_MEMORYCHECK_SANITIZER_OPTIONS=ignore_noninstrumented_modules=1
-        --timeout 6000
-
 leaksanitizer:
   stage: QoS_tools
   extends:
@@ -872,48 +800,3 @@ new-issue-on-failure:
       - develop
       - master
   dependencies: []
-
-
-## Benchmark SpMV
-benchmark-cuda-spmv-build:
-  extends:
-    - .build_template
-    - .default_variables
-    - .use_gko_cuda114-openmpi-gnu10-llvm12
-    - .benchmark-spmv-cuda-rules
-    - .disable_job_condition
-  stage: benchmark-build
-  variables:
-    BUILD_OMP: "ON"
-    BUILD_CUDA: "ON"
-    BUILD_MPI: "ON"
-    MPI_AS_ROOT: "ON"
-    BUILD_HIP: "OFF"
-    BUILD_TYPE: "Release"
-    CUDA_ARCH: 80
-    USE_NAME: "benchmark-cuda-spmv-${CI_PIPELINE_ID}"
-    KEEP_CONTAINER: "ON"
-    USE_SLURM: 0
-
-
-# The name must be of the same as above without `-build`
-benchmark-cuda-spmv:
-  extends:
-    - .benchmark_template
-    - .default_variables
-    - .use_gko_cuda114-openmpi-gnu10-llvm12
-    - .benchmark-spmv-cuda-rules
-    - .disable_job_condition
-  stage: benchmark-cuda
-  variables:
-    BENCHMARK_REPO: git@github.com:ginkgo-project/ginkgo-data.git
-    USE_NAME: "benchmark-cuda-spmv-${CI_PIPELINE_ID}"
-    SLURM_PARTITION: "accelerated"
-    SLURM_GRES: "gpu:1"
-    SLURM_EXCLUSIVE: "ON"
-    SLURM_TIME: "4:00:00"
-    BENCHMARK: "spmv"
-    EXECUTOR: "cuda"
-    SYSTEM_NAME: "A100"
-  dependencies: null
-  needs: [ "benchmark-cuda-spmv-build" ]

@@ -39,12 +39,6 @@
     - nvidia-gpus-p100
     - tum
 
-.use_gko-rocm45-nompi-gnu8-llvm8:
-  image: ginkgohub/rocm:45-mvapich2-gnu8-llvm8
-  tags:
-    - private_ci
-    - amd-gpu
-
 .use_gko-rocm514-nompi-gnu11-llvm11:
   image: ginkgohub/rocm:514-openmpi-gnu11-llvm11
   tags:
