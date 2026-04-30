@@ -40,7 +40,7 @@ make_hooks(std::vector<std::string>& output)
 }
 
 #ifdef _MSC_VER
-static std::string normalize_type_name(std::string s)
+std::string normalize_type_name(std::string s)
 {
     // Remove all MSVC-specific "class " and "struct " tokens
     const std::string class_tok = "class ";
