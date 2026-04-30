@@ -19,13 +19,8 @@
 
 #include "cuda/test/utils.hpp"
 
-#ifdef _MSC_VER
+
 constexpr double tol = 1e-13;
-#else
-constexpr double tol = 1e-14;
-#endif
-
-
 
 namespace {
 
