@@ -97,6 +97,7 @@ target_sources(
         matrix/sparsity_csr.cpp
         sketch/count_sketch.cpp
         sketch/gaussian_sketch.cpp
+        sketch/sparse_stack.cpp
         multigrid/fixed_coarsening.cpp
         multigrid/pgm.cpp
         preconditioner/batch_jacobi.cpp

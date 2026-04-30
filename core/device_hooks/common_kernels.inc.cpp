@@ -78,6 +78,7 @@
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/sketch/count_sketch_kernels.hpp"
 #include "core/sketch/gaussian_sketch_kernels.hpp"
+#include "core/sketch/sparse_stack_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
 
@@ -1189,6 +1190,14 @@ GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COUNT_SKETCH_RAPPLY);
 
 
 }  // namespace count_sketch
+
+namespace sparse_stack {
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPARSE_STACK_GENERATE);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPARSE_STACK_APPLY);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPARSE_STACK_RAPPLY);
+
+}  // namespace sparse_stack
 
 
 }  // namespace GKO_HOOK_MODULE

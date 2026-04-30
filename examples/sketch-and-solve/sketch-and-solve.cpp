@@ -246,6 +246,8 @@ int main(int argc, char* argv[])
          cxxopts::value<int>()->default_value("50"))
         ("k,sketch-size", "Sketch dimension (default: 4*n)",
          cxxopts::value<int>()->default_value("0"))
+         ("z,zeta", "Non-zeros per column for SparseStack",
+         cxxopts::value<int>()->default_value("4"))
         ("s,seed", "Random seed for sketch operators",
          cxxopts::value<unsigned long long>()->default_value("42"))
         ("d,data-seed", "Random seed for problem generation",
@@ -270,6 +272,7 @@ int main(int argc, char* argv[])
     auto data_seed = args["data-seed"].as<unsigned int>();
     auto num_reps = args["num-reps"].as<int>();
     auto sketch_type = args["sketch"].as<std::string>();
+    auto zeta = static_cast<gko::size_type>(args["zeta"].as<int>());
     auto k = static_cast<gko::size_type>(args["sketch-size"].as<int>());
     if (k == 0) {
         k = std::min(4 * n, m);
@@ -329,6 +332,24 @@ int main(int argc, char* argv[])
         auto x = vec::create(exec, gko::dim<2>{n, 1});
         sketch_and_solve(exec, problem.A.get(), problem.b.get(), x.get(),
                          cs.get(), "CountSketch", num_reps, setup_us);
+    }
+
+    if (sketch_type == "all" || sketch_type == "sparsestack") {
+        exec->synchronize();
+        auto t0 = std::chrono::steady_clock::now();
+        
+        auto ss = gko::sketch::SparseStack<ValueType, IndexType>::create(
+            exec, k, m, zeta, seed);
+            
+        exec->synchronize();
+        auto t1 = std::chrono::steady_clock::now();
+        auto setup_us = std::chrono::duration_cast<std::chrono::microseconds>(
+                            t1 - t0)
+                            .count();
+        auto x = vec::create(exec, gko::dim<2>{n, 1});
+        
+        sketch_and_solve(exec, problem.A.get(), problem.b.get(), x.get(),
+                         ss.get(), "SparseStack", num_reps, setup_us);
     }
 
     // Direct baseline

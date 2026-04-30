@@ -46,6 +46,7 @@ set(CUDA_HIP_SOURCES
     solver/cb_gmres_kernels.cpp
     sketch/count_sketch_kernels.cpp
     sketch/gaussian_sketch_kernels.cpp
+    sketch/sparse_stack_kernels.cpp
     solver/idr_kernels.cpp
     solver/multigrid_kernels.cpp
     stop/criterion_kernels.cpp
