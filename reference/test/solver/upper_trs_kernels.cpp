@@ -36,23 +36,6 @@ protected:
     UpperTrs()
         : exec(gko::ReferenceExecutor::create()),
           ref(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
-              {{1, 3.0, 1.0}, {0.0, 1, 2.0}, {0.0, 0.0, 1}}, exec)),
-          mtx2(gko::initialize<Mtx>(
-              {{2, 3.0, 1.0}, {0.0, 3, 2.0}, {0.0, 0.0, 4}}, exec)),
-          mtx_big_upper(gko::initialize<Mtx>({{365.0, 97.0, -654.0, 8.0, 91.0},
-                                              {0.0, -642.0, 684.0, 68.0, 387.0},
-                                              {0.0, 0.0, 134, -651.0, 654.0},
-                                              {0.0, 0.0, 0.0, 43.0, -789.0},
-                                              {0.0, 0.0, 0.0, 0.0, 124.0}},
-                                             exec)),
-          mtx_big_general(
-              gko::initialize<Mtx>({{365.0, 97.0, -654.0, 8.0, 91.0},
-                                    {6.0, -642.0, 684.0, 68.0, 387.0},
-                                    {0.0, 0.0, 134, -651.0, 654.0},
-                                    {0.0, 0.0, -1.0, 43.0, -789.0},
-                                    {0.0, 2.0, 0.0, 4.0, 124.0}},
-                                   exec)),
           upper_trs_factory(Solver::build().on(exec)),
           upper_trs_syncfree_factory(
               Solver::build()
@@ -61,7 +44,25 @@ protected:
           upper_trs_factory_mrhs(Solver::build().with_num_rhs(2u).on(exec)),
           upper_trs_factory_unit(
               Solver::build().with_unit_diagonal(true).on(exec))
-    {}
+    {
+        mtx = gko::initialize<Mtx>(
+              {{1, 3.0, 1.0}, {0.0, 1, 2.0}, {0.0, 0.0, 1}}, exec);
+        mtx2 = gko::initialize<Mtx>(
+            {{2, 3.0, 1.0}, {0.0, 3, 2.0}, {0.0, 0.0, 4}}, exec);
+        mtx_big_upper = gko::initialize<Mtx>({{365.0, 97.0, -654.0, 8.0, 91.0},
+                                            {0.0, -642.0, 684.0, 68.0, 387.0},
+                                            {0.0, 0.0, 134, -651.0, 654.0},
+                                            {0.0, 0.0, 0.0, 43.0, -789.0},
+                                            {0.0, 0.0, 0.0, 0.0, 124.0}},
+                                            exec);
+        mtx_big_general =
+            gko::initialize<Mtx>({{365.0, 97.0, -654.0, 8.0, 91.0},
+                                {6.0, -642.0, 684.0, 68.0, 387.0},
+                                {0.0, 0.0, 134, -651.0, 654.0},
+                                {0.0, 0.0, -1.0, 43.0, -789.0},
+                                {0.0, 2.0, 0.0, 4.0, 124.0}},
+                                exec);
+    }
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<const gko::ReferenceExecutor> ref;

@@ -21,11 +21,12 @@ protected:
     using Mtx = gko::matrix::Dense<T>;
 
     Perturbation()
-        : exec{gko::ReferenceExecutor::create()},
-          basis{gko::initialize<Mtx>({2.0, 1.0}, exec)},
-          projector{gko::initialize<Mtx>({I<T>({3.0, 2.0})}, exec)},
-          scalar{gko::initialize<Mtx>({2.0}, exec)}
-    {}
+        : exec{gko::ReferenceExecutor::create()}
+    {
+        basis = {gko::initialize<Mtx>({2.0, 1.0}, exec)};
+        projector = {gko::initialize<Mtx>({I<T>({3.0, 2.0})}, exec)};
+        scalar = {gko::initialize<Mtx>({2.0}, exec)};
+    }
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<gko::LinOp> basis;

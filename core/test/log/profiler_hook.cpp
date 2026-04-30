@@ -39,6 +39,41 @@ make_hooks(std::vector<std::string>& output)
         });
 }
 
+#ifdef _MSC_VER
+static std::string normalize_type_name(std::string s)
+{
+    // Remove all MSVC-specific "class " and "struct " tokens
+    const std::string class_tok = "class ";
+    const std::string struct_tok = "struct ";
+
+    for (;;) {
+        auto pos = s.find(class_tok);
+        if (pos == std::string::npos) break;
+        s.erase(pos, class_tok.size());
+    }
+    for (;;) {
+        auto pos = s.find(struct_tok);
+        if (pos == std::string::npos) break;
+        s.erase(pos, struct_tok.size());
+    }
+    return s;
+}
+#endif
+
+static void normalize_type_names(std::vector<std::string> & output,
+                                 std::vector<std::string> & expected) {
+    #ifdef _MSC_VER
+    std::transform(output.begin(), output.end(), output.begin(),
+            [](std::string s) { return normalize_type_name(std::move(s)); });
+
+    std::transform(expected.begin(), expected.end(), expected.begin(),
+            [](std::string s) { return normalize_type_name(std::move(s)); });
+    #endif
+
+}
+
+
+
 
 class DummyOperation : public gko::Operation {
 public:
@@ -160,6 +195,9 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
                                          false);
 
     exec->remove_logger(logger);
+
+    normalize_type_names(output, expected);
+
     ASSERT_EQ(output, expected);
 }
 
@@ -207,6 +245,8 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
     linop->apply(linop, outvec);
     linop->apply(alpha, invec, scalar, linop);
 
+    normalize_type_names(output, expected);
+
     ASSERT_EQ(output, expected);
 }
 
@@ -245,6 +285,9 @@ TEST(ProfilerHook, LogsIteration)
     solver->apply(alpha, mtx, alpha, mtx);
 
     solver->remove_logger(logger);
+
+    normalize_type_names(output, expected);
+
     ASSERT_EQ(output, expected);
 }
 

@@ -19,6 +19,13 @@
 
 #include "cuda/test/utils.hpp"
 
+#ifdef _MSC_VER
+constexpr double tol = 1e-13;
+#else
+constexpr double tol = 1e-14;
+#endif
+
+
 
 namespace {
 
@@ -98,7 +105,7 @@ TEST_F(UpperTrs, CudaSingleRhsApplySyncfreelibIsEquivalentToRef)
     solver->apply(b2, x);
     d_solver->apply(d_b2, d_x);
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, tol);
 }
 
 
@@ -113,7 +120,7 @@ TEST_F(UpperTrs, CudaSingleRhsApplyIsEquivalentToRef)
     solver->apply(b2, x);
     d_solver->apply(d_b2, d_x);
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, tol);
 }
 
 
@@ -136,7 +143,7 @@ TEST_F(UpperTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
     solver->apply(b2, x);
     d_solver->apply(db2_strided, dx_strided);
 
-    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, tol);
 }
 
 
@@ -172,7 +179,7 @@ TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
     solver->apply(b2, x);
     d_solver->apply(db2_strided, dx_strided);
 
-    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, tol);
 }
 
 

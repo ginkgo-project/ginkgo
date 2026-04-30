@@ -50,26 +50,6 @@ protected:
                           .with_max_unassigned_ratio(0.1)
                           .with_skip_sorting(true)
                           .on(exec)),
-          fine_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
-               I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
-              exec)),
-          coarse_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0})}, exec)),
-          restrict_ans((gko::initialize<Vec>(
-              {I<VT>({0.0, -1.0}), I<VT>({2.0, 0.0})}, exec))),
-          prolong_ans(gko::initialize<Vec>(
-              {I<VT>({0.0, -2.0}), I<VT>({1.0, -2.0}), I<VT>({1.0, -2.0}),
-               I<VT>({0.0, -1.0}), I<VT>({2.0, 1.0})},
-              exec)),
-          prolong_applyans(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0}),
-               I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0})},
-              exec)),
-          fine_x(gko::initialize<Vec>(
-              {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
-               I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
-              exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
                           std::make_shared<typename Mtx::classical>())),
           weight(WeightMtx::create(
@@ -79,6 +59,33 @@ protected:
                              std::make_shared<typename Mtx::classical>())),
           agg(exec, 5)
     {
+
+        fine_b = gko::initialize<Vec>(
+              {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
+               I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
+              exec);
+
+        coarse_b = gko::initialize<Vec>(
+              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0})}, exec);
+
+        restrict_ans = (gko::initialize<Vec>(
+              {I<VT>({0.0, -1.0}), I<VT>({2.0, 0.0})}, exec));
+
+        prolong_ans = gko::initialize<Vec>(
+              {I<VT>({0.0, -2.0}), I<VT>({1.0, -2.0}), I<VT>({1.0, -2.0}),
+               I<VT>({0.0, -1.0}), I<VT>({2.0, 1.0})},
+              exec);
+
+        prolong_applyans = gko::initialize<Vec>(
+              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0}),
+               I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0})},
+              exec);
+
+        fine_x = gko::initialize<Vec>(
+              {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
+               I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
+              exec);
+
         this->create_mtx(mtx.get(), weight.get(), &agg, coarse.get());
         mg_level = pgm_factory->generate(mtx);
         mtx_diag = weight->extract_diagonal();
