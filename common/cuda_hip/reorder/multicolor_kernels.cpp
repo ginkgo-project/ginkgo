@@ -20,7 +20,7 @@
 
 namespace gko {
 namespace kernels {
-namespace GKO_EXECTUTOR_NAMESPACE {
+namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The reordering namespace.
  *
@@ -46,6 +46,6 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 
 }  // namespace multicolor
-}  // namespace GKO_EXECTUTOR_NAMESPACE
+}  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

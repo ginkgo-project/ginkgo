@@ -6,6 +6,7 @@
 #define GKO_CORE_REORDER_MULTICOLOR_KERNELS_HPP_
 
 
+#include <memory>
 #include <vector>
 
 #include <ginkgo/core/base/executor.hpp>

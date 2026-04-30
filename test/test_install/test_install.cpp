@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -430,6 +430,12 @@ int main()
     {
         using Bj = gko::preconditioner::Jacobi<>;
         auto test = Bj::build().with_max_block_size(1u).on(exec);
+    }
+
+    // core/reorder/multicolor.cpp
+    {
+        using Mc = gko::reorder::Multicolor<>;
+        auto test = Mc::build().on(exec);
     }
 
     // core/solver/batch_bicgstab.hpp
