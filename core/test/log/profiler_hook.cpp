@@ -57,6 +57,15 @@ std::string normalize_type_name(std::string s)
         auto pos = s.find(struct_tok);
         if (pos == std::string::npos) break;
         s.erase(pos, struct_tok.size());
+    auto pos = s.find(class_tok);
+    while (pos != std::string::npos) {
+        s.erase(pos, class_tok.size());
+        pos = s.find(class_tok);
+    }
+    pos = s.find(struct_tok);
+    while (pos != std::string::npos) {
+        s.erase(pos, struct_tok.size());
+        auto pos = s.find(struct_tok);
     }
     return s;
 }
