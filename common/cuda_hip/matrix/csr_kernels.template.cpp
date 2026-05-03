@@ -105,23 +105,22 @@ template <typename ValueType, typename IndexType>
 __device__ __forceinline__ bool block_segment_scan_reverse(
     const IndexType* __restrict__ ind, ValueType* __restrict__ val)
 {
-    bool last = true;
     const auto reg_ind = ind[threadIdx.x];
-#pragma unroll
-    for (int i = 1; i < spmv_block_size; i <<= 1) {
-        if (i == 1 && threadIdx.x < spmv_block_size - 1 &&
-            reg_ind == ind[threadIdx.x + 1]) {
-            last = false;
+    bool last = (threadIdx.x == spmv_block_size - 1) ||
+                (reg_ind != ind[threadIdx.x + 1]);
+    __syncthreads();
+    // Thread 0 computes an inclusive prefix sum within each segment serially.
+    // The original parallel Hillis-Steele scan produces incorrect results on
+    // Blackwell (sm_120) with NVCC 13.2, likely due to a codegen issue with
+    // the shared-memory read-modify-write pattern in __forceinline__ functions.
+    if (threadIdx.x == 0) {
+        for (int t = 1; t < spmv_block_size; t++) {
+            if (ind[t] == ind[t - 1]) {
+                val[t] += val[t - 1];
+            }
         }
-        auto temp = zero<ValueType>();
-        if (threadIdx.x >= i && reg_ind == ind[threadIdx.x - i]) {
-            temp = val[threadIdx.x - i];
-        }
-        group::this_thread_block().sync();
-        val[threadIdx.x] += temp;
-        group::this_thread_block().sync();
     }
-
+    __syncthreads();
     return last;
 }
 
@@ -2046,13 +2045,13 @@ int compute_items_per_thread(std::shared_ptr<const DefaultExecutor> exec)
     const int version =
         (exec->get_major_version() << 4) + exec->get_minor_version();
     // The num_item is decided to make the occupancy 100%
-    // TODO: Extend this list when new GPU is released
-    //       Tune this parameter
+    // TODO: Tune this parameter for newer architectures
     // 128 threads/block the number of items per threads
     // 3.0 3.5: 6
     // 3.7: 14
     // 5.0, 5.3, 6.0, 6.2: 8
     // 5.2, 6.1, 7.0: 12
+    // 7.5+ (Turing/Ampere/Ada/Hopper/Blackwell): 12 (same as Volta)
     int num_item = 6;
     switch (version) {
     case 0x50:
@@ -2068,6 +2067,10 @@ int compute_items_per_thread(std::shared_ptr<const DefaultExecutor> exec)
         break;
     case 0x37:
         num_item = 14;
+        break;
+    default:
+        if (version > 0x70) num_item = 12;
+        break;
     }
 
 
