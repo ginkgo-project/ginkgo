@@ -106,8 +106,10 @@ __device__ __forceinline__ bool block_segment_scan_reverse(
     const IndexType* __restrict__ ind, ValueType* __restrict__ val)
 {
     const auto reg_ind = ind[threadIdx.x];
-    bool last = (threadIdx.x == spmv_block_size - 1) ||
-                (reg_ind != ind[threadIdx.x + 1]);
+    bool last = true;
+    if (threadIdx.x < spmv_block_size - 1) {
+        last = (reg_ind != ind[threadIdx.x + 1]);
+    }
     __syncthreads();
     // Thread 0 computes an inclusive prefix sum within each segment serially.
     // The original parallel Hillis-Steele scan produces incorrect results on
