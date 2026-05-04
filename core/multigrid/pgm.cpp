@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -88,12 +88,17 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     gko::array<IndexType> row_idxs(exec, nnz);
     gko::array<IndexType> col_idxs(exec, nnz);
     gko::array<ValueType> vals(exec, nnz);
+    // might always need to use int64? because nnz can be larger than IndexType
+    // max.
+    gko::array<IndexType> mapping(exec, nnz);
     exec->copy_from(exec, nnz, fine_csr->get_const_values(), vals.get_data());
 
     if (nnz == 0) {
         return matrix::Csr<ValueType, IndexType>::create(
             exec, dim<2>(num_agg, non_local_num_agg));
     }
+
+    exec->run(pgm::make_fill_seq_array(mapping.get_data(), nnz));
 
     // map row_ptrs to coarse row index
     exec->run(pgm::make_map_row(num, fine_csr->get_const_row_ptrs(),
@@ -104,12 +109,15 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
                                 col_idxs.get_data()));
     // sort by row, col
     exec->run(pgm::make_sort_row_major(nnz, row_idxs.get_data(),
-                                       col_idxs.get_data(), vals.get_data()));
+                                       col_idxs.get_data(), vals.get_data(),
+                                       mapping.get_data()));
     // compute the total nnz and create the fine csr
     size_type coarse_nnz = 0;
     exec->run(pgm::make_count_unrepeated_nnz(nnz, row_idxs.get_const_data(),
                                              col_idxs.get_const_data(),
                                              &coarse_nnz));
+    // mapping can be col index for sparsity csr
+
     // reduce by key (row, col)
     auto coarse_coo = matrix::Coo<ValueType, IndexType>::create(
         exec,
