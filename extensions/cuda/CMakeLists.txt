@@ -5,7 +5,7 @@ endif()
 if(NOT cudss_FOUND)
     message(
         STATUS
-        "cuDSS not found — gko::ext::cuda::solver::CuDss will not be built"
+        "cuDSS not found — gko::ext::cuda::solver::Cudss will not be built"
     )
     return()
 endif()

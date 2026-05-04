@@ -64,7 +64,7 @@ constexpr cudaDataType_t cuda_data_type()
 
 
 template <typename ValueType, typename IndexType>
-struct CuDss<ValueType, IndexType>::state {
+struct Cudss<ValueType, IndexType>::state {
     cudssHandle_t handle = nullptr;
     cudssConfig_t config = nullptr;
     cudssData_t data = nullptr;
@@ -93,33 +93,33 @@ struct CuDss<ValueType, IndexType>::state {
 
 
 template <typename ValueType, typename IndexType>
-CuDss<ValueType, IndexType>::CuDss(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<CuDss>{exec}
+Cudss<ValueType, IndexType>::Cudss(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Cudss>{exec}
 {}
 
 
 template <typename ValueType, typename IndexType>
-CuDss<ValueType, IndexType>::CuDss(const CuDss& other)
-    : EnableLinOp<CuDss>{other.get_executor()}
+Cudss<ValueType, IndexType>::Cudss(const Cudss& other)
+    : EnableLinOp<Cudss>{other.get_executor()}
 {
     *this = other;
 }
 
 
 template <typename ValueType, typename IndexType>
-CuDss<ValueType, IndexType>::CuDss(CuDss&& other) noexcept
-    : EnableLinOp<CuDss>{other.get_executor()}
+Cudss<ValueType, IndexType>::Cudss(Cudss&& other) noexcept
+    : EnableLinOp<Cudss>{other.get_executor()}
 {
     *this = std::move(other);
 }
 
 
 template <typename ValueType, typename IndexType>
-CuDss<ValueType, IndexType>& CuDss<ValueType, IndexType>::operator=(
-    const CuDss& other)
+Cudss<ValueType, IndexType>& Cudss<ValueType, IndexType>::operator=(
+    const Cudss& other)
 {
     if (this != &other) {
-        EnableLinOp<CuDss>::operator=(other);
+        EnableLinOp<Cudss>::operator=(other);
         system_matrix_ = other.system_matrix_;
         state_ = other.state_;
     }
@@ -128,11 +128,11 @@ CuDss<ValueType, IndexType>& CuDss<ValueType, IndexType>::operator=(
 
 
 template <typename ValueType, typename IndexType>
-CuDss<ValueType, IndexType>& CuDss<ValueType, IndexType>::operator=(
-    CuDss&& other) noexcept
+Cudss<ValueType, IndexType>& Cudss<ValueType, IndexType>::operator=(
+    Cudss&& other) noexcept
 {
     if (this != &other) {
-        EnableLinOp<CuDss>::operator=(std::move(other));
+        EnableLinOp<Cudss>::operator=(std::move(other));
         system_matrix_ = std::move(other.system_matrix_);
         state_ = std::move(other.state_);
     }
@@ -141,9 +141,9 @@ CuDss<ValueType, IndexType>& CuDss<ValueType, IndexType>::operator=(
 
 
 template <typename ValueType, typename IndexType>
-CuDss<ValueType, IndexType>::CuDss(const Factory* factory,
+Cudss<ValueType, IndexType>::Cudss(const Factory* factory,
                                    std::shared_ptr<const LinOp> system_matrix)
-    : EnableLinOp<CuDss>{factory->get_executor(), system_matrix->get_size()}
+    : EnableLinOp<Cudss>{factory->get_executor(), system_matrix->get_size()}
 {
     const auto exec = this->get_executor();
     auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
@@ -218,7 +218,7 @@ CuDss<ValueType, IndexType>::CuDss(const Factory* factory,
 
 
 template <typename ValueType, typename IndexType>
-void CuDss<ValueType, IndexType>::refactorize(
+void Cudss<ValueType, IndexType>::refactorize(
     std::shared_ptr<const LinOp> new_matrix)
 {
     const auto exec = this->get_executor();
@@ -265,7 +265,7 @@ void CuDss<ValueType, IndexType>::refactorize(
 
 
 template <typename ValueType, typename IndexType>
-void CuDss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
@@ -346,7 +346,7 @@ void CuDss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType, typename IndexType>
-void CuDss<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
+void Cudss<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                              const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
@@ -361,12 +361,12 @@ void CuDss<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType, typename IndexType>
-typename CuDss<ValueType, IndexType>::parameters_type
-CuDss<ValueType, IndexType>::parse(const config::pnode& config,
+typename Cudss<ValueType, IndexType>::parameters_type
+Cudss<ValueType, IndexType>::parse(const config::pnode& config,
                                    const config::registry& context,
                                    const config::type_descriptor& td_for_child)
 {
-    auto params = CuDss::build();
+    auto params = Cudss::build();
     // config_check_decorator is only available in core, so we manually
     // check for unknown keys here.
     const std::set<std::string> allowed_keys = {
@@ -398,19 +398,19 @@ CuDss<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
-config::configuration_map CuDss<ValueType, IndexType>::get_config_map()
+config::configuration_map Cudss<ValueType, IndexType>::get_config_map()
 {
-    return {{"ext::cuda::solver::CuDss",
+    return {{"ext::cuda::solver::Cudss",
              [](const config::pnode& config, const config::registry& context,
                 config::type_descriptor td)
                  -> deferred_factory_parameter<LinOpFactory> {
-                 return CuDss<ValueType, IndexType>::parse(config, context, td);
+                 return Cudss<ValueType, IndexType>::parse(config, context, td);
              }}};
 }
 
 
 #define GKO_DECLARE_CUDSS(ValueType, IndexType) \
-    class CuDss<ValueType, IndexType>
+    class Cudss<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(GKO_DECLARE_CUDSS);
 
 

@@ -16,17 +16,17 @@
 #include "matrices/config.hpp"
 
 
-class CuDss : public ::testing::Test {
+class Cudss : public ::testing::Test {
 protected:
     using value_type = double;
     using index_type = gko::int32;
-    using CuDssSolver = gko::ext::cuda::solver::CuDss<value_type, index_type>;
+    using CudssSolver = gko::ext::cuda::solver::Cudss<value_type, index_type>;
     using Direct = gko::experimental::solver::Direct<value_type, index_type>;
     using Lu = gko::experimental::factorization::Lu<value_type, index_type>;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
     using vector_type = gko::matrix::Dense<value_type>;
 
-    CuDss()
+    Cudss()
         : ref(gko::ReferenceExecutor::create()),
           exec(gko::CudaExecutor::create(0, ref)),
           rand_engine(633)
@@ -55,7 +55,7 @@ protected:
                 .with_num_rhs(static_cast<gko::size_type>(nrhs))
                 .on(ref);
 
-        cudss_factory = CuDssSolver::build().on(exec);
+        cudss_factory = CudssSolver::build().on(exec);
 
         alpha = gen_mtx(1, 1);
         beta = gen_mtx(1, 1);
@@ -75,7 +75,7 @@ protected:
     std::shared_ptr<gko::CudaExecutor> exec;
     std::default_random_engine rand_engine;
     std::unique_ptr<typename Direct::Factory> ref_factory;
-    std::unique_ptr<typename CuDssSolver::Factory> cudss_factory;
+    std::unique_ptr<typename CudssSolver::Factory> cudss_factory;
     std::shared_ptr<matrix_type> mtx;
     std::shared_ptr<matrix_type> dmtx;
     std::shared_ptr<vector_type> alpha;
@@ -90,7 +90,7 @@ protected:
 };
 
 
-TEST_F(CuDss, ApplyToSingleRhsMatchesRef)
+TEST_F(Cudss, ApplyToSingleRhsMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 1);
     auto ref_solver = this->ref_factory->generate(this->mtx);
@@ -104,7 +104,7 @@ TEST_F(CuDss, ApplyToSingleRhsMatchesRef)
 }
 
 
-TEST_F(CuDss, ApplyToMultipleRhsMatchesRef)
+TEST_F(Cudss, ApplyToMultipleRhsMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 6);
     auto ref_solver = this->ref_factory->generate(this->mtx);
@@ -118,7 +118,7 @@ TEST_F(CuDss, ApplyToMultipleRhsMatchesRef)
 }
 
 
-TEST_F(CuDss, AdvancedApplyMatchesRef)
+TEST_F(Cudss, AdvancedApplyMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 1);
     auto ref_solver = this->ref_factory->generate(this->mtx);
@@ -132,7 +132,7 @@ TEST_F(CuDss, AdvancedApplyMatchesRef)
 }
 
 
-TEST_F(CuDss, RefactorizeWithUpdatedValuesMatchesRef)
+TEST_F(Cudss, RefactorizeWithUpdatedValuesMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 1);
     auto cudss_solver = this->cudss_factory->generate(this->dmtx);
@@ -148,7 +148,7 @@ TEST_F(CuDss, RefactorizeWithUpdatedValuesMatchesRef)
     // Reference: generate a fresh solver with the scaled matrix
     auto ref_solver = this->ref_factory->generate(scaled_mtx);
     ref_solver->apply(this->input, this->output);
-    // CuDss: refactorize with the scaled matrix, then solve
+    // Cudss: refactorize with the scaled matrix, then solve
     cudss_solver->refactorize(d_scaled_mtx);
     cudss_solver->apply(this->dinput, this->doutput);
 
@@ -157,7 +157,7 @@ TEST_F(CuDss, RefactorizeWithUpdatedValuesMatchesRef)
 }
 
 
-TEST_F(CuDss, ApplyToStridedSingleRhsMatchesRef)
+TEST_F(Cudss, ApplyToStridedSingleRhsMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 1);
     auto ref_solver = this->ref_factory->generate(this->mtx);
@@ -186,7 +186,7 @@ TEST_F(CuDss, ApplyToStridedSingleRhsMatchesRef)
     auto wide_input_before = gko::clone(d_wide_input);
     auto wide_output_before = gko::clone(d_wide_output);
 
-    // CuDss solve with strided vectors
+    // Cudss solve with strided vectors
     cudss_solver->apply(strided_input, strided_output);
 
     ASSERT_EQ(strided_input->get_stride(), input_stride_before);
@@ -207,7 +207,7 @@ TEST_F(CuDss, ApplyToStridedSingleRhsMatchesRef)
 }
 
 
-TEST_F(CuDss, ApplyToStridedMultipleRhsMatchesRef)
+TEST_F(Cudss, ApplyToStridedMultipleRhsMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 3);
     auto ref_solver = this->ref_factory->generate(this->mtx);
@@ -255,18 +255,18 @@ TEST_F(CuDss, ApplyToStridedMultipleRhsMatchesRef)
 }
 
 
-TEST_F(CuDss, ParseConfigCreatesCorrectFactory)
+TEST_F(Cudss, ParseConfigCreatesCorrectFactory)
 {
-    auto config_map = CuDssSolver::get_config_map();
+    auto config_map = CudssSolver::get_config_map();
     auto reg = gko::config::registry{config_map};
     gko::config::pnode::map_type conf_map;
-    conf_map["type"] = gko::config::pnode{"ext::cuda::solver::CuDss"};
+    conf_map["type"] = gko::config::pnode{"ext::cuda::solver::Cudss"};
     conf_map["matrix_type"] = gko::config::pnode{3};
     conf_map["matrix_view"] = gko::config::pnode{2};
     conf_map["reordering_alg"] = gko::config::pnode{1};
     auto conf = gko::config::pnode{conf_map};
 
-    auto params = CuDssSolver::parse(conf, reg);
+    auto params = CudssSolver::parse(conf, reg);
 
     ASSERT_EQ(params.matrix_type, 3);
     ASSERT_EQ(params.matrix_view, 2);
@@ -276,14 +276,14 @@ TEST_F(CuDss, ParseConfigCreatesCorrectFactory)
 }
 
 
-TEST_F(CuDss, ParseConfigThrowsOnUnknownKey)
+TEST_F(Cudss, ParseConfigThrowsOnUnknownKey)
 {
-    auto config_map = CuDssSolver::get_config_map();
+    auto config_map = CudssSolver::get_config_map();
     auto reg = gko::config::registry{config_map};
     gko::config::pnode::map_type conf_map;
-    conf_map["type"] = gko::config::pnode{"ext::cuda::solver::CuDss"};
+    conf_map["type"] = gko::config::pnode{"ext::cuda::solver::Cudss"};
     conf_map["invalid_key"] = gko::config::pnode{42};
     auto conf = gko::config::pnode{conf_map};
 
-    ASSERT_THROW(CuDssSolver::parse(conf, reg), gko::InvalidStateError);
+    ASSERT_THROW(CudssSolver::parse(conf, reg), gko::InvalidStateError);
 }

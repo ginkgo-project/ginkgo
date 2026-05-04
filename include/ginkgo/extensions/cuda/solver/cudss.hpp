@@ -64,9 +64,9 @@ struct is_cudss_supported_value_type<std::complex<double>> : std::true_type {};
  * @tparam IndexType  the index type of the system matrix
  */
 template <typename ValueType, typename IndexType = int32>
-class CuDss : public EnableLinOp<CuDss<ValueType, IndexType>> {
-    friend class EnableLinOp<CuDss>;
-    friend class EnablePolymorphicObject<CuDss, LinOp>;
+class Cudss : public EnableLinOp<Cudss<ValueType, IndexType>> {
+    friend class EnableLinOp<Cudss>;
+    friend class EnablePolymorphicObject<Cudss, LinOp>;
     GKO_EXT_CUDSS_ASSERT_SUPPORTED_VALUE_TYPE;
     GKO_ASSERT_SUPPORTED_INDEX_TYPE;
 
@@ -129,7 +129,7 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(hybrid_memory, false);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(CuDss, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY(Cudss, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -143,19 +143,19 @@ public:
     /**
      * Returns a configuration_map for registering this type with a
      * config::registry. Users can pass this to the registry constructor
-     * to enable JSON/YAML configuration of CuDss.
+     * to enable JSON/YAML configuration of Cudss.
      */
     static config::configuration_map get_config_map();
 
     /** Creates a copy of the solver (shares factorization state). */
-    CuDss(const CuDss&);
+    Cudss(const Cudss&);
 
     /** Moves from the given solver, leaving it empty. */
-    CuDss(CuDss&&) noexcept;
+    Cudss(Cudss&&) noexcept;
 
-    CuDss& operator=(const CuDss&);
+    Cudss& operator=(const Cudss&);
 
-    CuDss& operator=(CuDss&&) noexcept;
+    Cudss& operator=(Cudss&&) noexcept;
 
     /**
      * Re-run the numeric factorization with updated matrix values.
@@ -170,9 +170,9 @@ public:
     void refactorize(std::shared_ptr<const LinOp> new_matrix);
 
 protected:
-    explicit CuDss(std::shared_ptr<const Executor> exec);
+    explicit Cudss(std::shared_ptr<const Executor> exec);
 
-    CuDss(const Factory* factory, std::shared_ptr<const LinOp> system_matrix);
+    Cudss(const Factory* factory, std::shared_ptr<const LinOp> system_matrix);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
