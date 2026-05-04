@@ -93,13 +93,11 @@ protected:
 TEST_F(Cudss, ApplyToSingleRhsMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 1);
-    auto ref_solver = this->ref_factory->generate(this->mtx);
     auto cudss_solver = this->cudss_factory->generate(this->dmtx);
 
-    ref_solver->apply(this->input, this->output);
     cudss_solver->apply(this->dinput, this->doutput);
 
-    GKO_ASSERT_MTX_NEAR(this->output, this->doutput,
+    GKO_ASSERT_MTX_NEAR(this->doutput, this->solution,
                         100 * r<value_type>::value);
 }
 
@@ -107,13 +105,11 @@ TEST_F(Cudss, ApplyToSingleRhsMatchesRef)
 TEST_F(Cudss, ApplyToMultipleRhsMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 6);
-    auto ref_solver = this->ref_factory->generate(this->mtx);
     auto cudss_solver = this->cudss_factory->generate(this->dmtx);
 
-    ref_solver->apply(this->input, this->output);
     cudss_solver->apply(this->dinput, this->doutput);
 
-    GKO_ASSERT_MTX_NEAR(this->output, this->doutput,
+    GKO_ASSERT_MTX_NEAR(this->doutput, this->solution,
                         100 * r<value_type>::value);
 }
 
@@ -135,20 +131,15 @@ TEST_F(Cudss, AdvancedApplyMatchesRef)
 TEST_F(Cudss, RefactorizeWithUpdatedValuesMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 1);
-    auto cudss_solver = this->cudss_factory->generate(this->dmtx);
-    // First solve with original matrix
-    cudss_solver->apply(this->dinput, this->doutput);
-    // Scale all matrix values by 2 — same sparsity, different numerics
     auto scaled_mtx = gko::share(gko::clone(this->ref, this->mtx));
     for (gko::size_type i = 0; i < scaled_mtx->get_num_stored_elements(); ++i) {
         scaled_mtx->get_values()[i] *= 2.0;
     }
     auto d_scaled_mtx = gko::share(gko::clone(this->exec, scaled_mtx));
-
-    // Reference: generate a fresh solver with the scaled matrix
     auto ref_solver = this->ref_factory->generate(scaled_mtx);
     ref_solver->apply(this->input, this->output);
-    // Cudss: refactorize with the scaled matrix, then solve
+    auto cudss_solver = this->cudss_factory->generate(this->dmtx);
+
     cudss_solver->refactorize(d_scaled_mtx);
     cudss_solver->apply(this->dinput, this->doutput);
 
@@ -160,33 +151,25 @@ TEST_F(Cudss, RefactorizeWithUpdatedValuesMatchesRef)
 TEST_F(Cudss, ApplyToStridedSingleRhsMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 1);
-    auto ref_solver = this->ref_factory->generate(this->mtx);
     auto cudss_solver = this->cudss_factory->generate(this->dmtx);
     const auto nrows = this->mtx->get_size()[0];
     auto wide_input = this->gen_mtx(nrows, 3);
     auto wide_output = this->gen_mtx(nrows, 3);
-    // Copy input into column 1 (middle column, stride = 3)
     for (gko::size_type i = 0; i < nrows; ++i) {
         wide_input->at(i, 1) = this->input->at(i, 0);
         wide_output->at(i, 1) = this->output->at(i, 0);
     }
     auto d_wide_input = gko::clone(this->exec, wide_input);
     auto d_wide_output = gko::clone(this->exec, wide_output);
-    // Create strided submatrix views (column 1 of the 3-column matrix)
     auto strided_input =
         d_wide_input->create_submatrix(gko::span{0, nrows}, gko::span{1, 2});
     auto strided_output =
         d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{1, 2});
-
-    // Reference solve with non-strided vectors
-    ref_solver->apply(this->input, this->output);
-
     const auto input_stride_before = strided_input->get_stride();
     const auto output_stride_before = strided_output->get_stride();
     auto wide_input_before = gko::clone(d_wide_input);
     auto wide_output_before = gko::clone(d_wide_output);
 
-    // Cudss solve with strided vectors
     cudss_solver->apply(strided_input, strided_output);
 
     ASSERT_EQ(strided_input->get_stride(), input_stride_before);
@@ -202,7 +185,7 @@ TEST_F(Cudss, ApplyToStridedSingleRhsMatchesRef)
         wide_output_before->create_submatrix(gko::span{0, nrows},
                                              gko::span{2, 3}),
         0);
-    GKO_ASSERT_MTX_NEAR(this->output, strided_output,
+    GKO_ASSERT_MTX_NEAR(strided_output, this->solution,
                         100 * r<value_type>::value);
 }
 
@@ -210,7 +193,6 @@ TEST_F(Cudss, ApplyToStridedSingleRhsMatchesRef)
 TEST_F(Cudss, ApplyToStridedMultipleRhsMatchesRef)
 {
     this->initialize_data(gko::matrices::location_ani4_amd_mtx, 3);
-    auto ref_solver = this->ref_factory->generate(this->mtx);
     auto cudss_solver = this->cudss_factory->generate(this->dmtx);
     const auto nrows = this->mtx->get_size()[0];
     auto wide_input = this->gen_mtx(nrows, 6);
@@ -227,9 +209,6 @@ TEST_F(Cudss, ApplyToStridedMultipleRhsMatchesRef)
         d_wide_input->create_submatrix(gko::span{0, nrows}, gko::span{1, 4});
     auto strided_output =
         d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{1, 4});
-
-    ref_solver->apply(this->input, this->output);
-
     const auto input_stride_before = strided_input->get_stride();
     const auto output_stride_before = strided_output->get_stride();
     auto wide_input_before = gko::clone(d_wide_input);
@@ -250,7 +229,7 @@ TEST_F(Cudss, ApplyToStridedMultipleRhsMatchesRef)
         wide_output_before->create_submatrix(gko::span{0, nrows},
                                              gko::span{4, 6}),
         0);
-    GKO_ASSERT_MTX_NEAR(this->output, strided_output,
+    GKO_ASSERT_MTX_NEAR(strided_output, this->solution,
                         100 * r<value_type>::value);
 }
 
