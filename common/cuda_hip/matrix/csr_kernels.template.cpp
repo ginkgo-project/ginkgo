@@ -103,26 +103,28 @@ __host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
 
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__ bool block_segment_scan_reverse(
-    const IndexType* __restrict__ ind, ValueType* __restrict__ val)
+    const IndexType* __restrict__ ind, ValueType* val)
+// NOTE: val must NOT carry __restrict__. On Blackwell (sm_120) with NVCC 13.2,
+// __restrict__ on a __shared__ pointer causes register promotion of
+// val[threadIdx.x], suppressing the st.shared before __syncthreads() and
+// corrupting the Hillis-Steele accumulation.
 {
-    const auto reg_ind = ind[threadIdx.x];
     bool last = true;
-    if (threadIdx.x < spmv_block_size - 1) {
-        last = (reg_ind != ind[threadIdx.x + 1]);
-    }
-    __syncthreads();
-    // Thread 0 computes an inclusive prefix sum within each segment serially.
-    // The original parallel Hillis-Steele scan produces incorrect results on
-    // Blackwell (sm_120) with NVCC 13.2, likely due to a codegen issue with
-    // the shared-memory read-modify-write pattern in __forceinline__ functions.
-    if (threadIdx.x == 0) {
-        for (int t = 1; t < spmv_block_size; t++) {
-            if (ind[t] == ind[t - 1]) {
-                val[t] += val[t - 1];
-            }
+    const auto reg_ind = ind[threadIdx.x];
+#pragma unroll
+    for (int i = 1; i < spmv_block_size; i <<= 1) {
+        if (i == 1 && threadIdx.x < spmv_block_size - 1 &&
+            reg_ind == ind[threadIdx.x + 1]) {
+            last = false;
         }
+        auto temp = zero<ValueType>();
+        if (threadIdx.x >= i && reg_ind == ind[threadIdx.x - i]) {
+            temp = val[threadIdx.x - i];
+        }
+        group::this_thread_block().sync();
+        val[threadIdx.x] += temp;
+        group::this_thread_block().sync();
     }
-    __syncthreads();
     return last;
 }
 
