@@ -59,7 +59,11 @@ protected:
 
         alpha = gen_mtx(1, 1);
         beta = gen_mtx(1, 1);
-        input = gen_mtx(num_rows, nrhs);
+        // input = A * solution
+        solution = gen_mtx(num_rows, nrhs);
+        input = vector_type::create(
+            ref, gko::dim<2>{num_rows, static_cast<gko::size_type>(nrhs)});
+        mtx->apply(solution, input);
         output = gen_mtx(num_rows, nrhs);
         dalpha = gko::clone(exec, alpha);
         dbeta = gko::clone(exec, beta);
@@ -76,6 +80,7 @@ protected:
     std::shared_ptr<matrix_type> dmtx;
     std::shared_ptr<vector_type> alpha;
     std::shared_ptr<vector_type> beta;
+    std::shared_ptr<vector_type> solution;
     std::shared_ptr<vector_type> input;
     std::shared_ptr<vector_type> output;
     std::shared_ptr<vector_type> dalpha;
@@ -158,9 +163,8 @@ TEST_F(CuDss, ApplyToStridedSingleRhsMatchesRef)
     auto ref_solver = this->ref_factory->generate(this->mtx);
     auto cudss_solver = this->cudss_factory->generate(this->dmtx);
     const auto nrows = this->mtx->get_size()[0];
-    // Create a wider dense matrix and take a column view to get strided vectors
-    auto wide_input = vector_type::create(this->ref, gko::dim<2>{nrows, 3});
-    auto wide_output = vector_type::create(this->ref, gko::dim<2>{nrows, 3});
+    auto wide_input = this->gen_mtx(nrows, 3);
+    auto wide_output = this->gen_mtx(nrows, 3);
     // Copy input into column 1 (middle column, stride = 3)
     for (gko::size_type i = 0; i < nrows; ++i) {
         wide_input->at(i, 1) = this->input->at(i, 0);
@@ -179,12 +183,25 @@ TEST_F(CuDss, ApplyToStridedSingleRhsMatchesRef)
 
     const auto input_stride_before = strided_input->get_stride();
     const auto output_stride_before = strided_output->get_stride();
+    auto wide_input_before = gko::clone(d_wide_input);
+    auto wide_output_before = gko::clone(d_wide_output);
 
     // CuDss solve with strided vectors
     cudss_solver->apply(strided_input, strided_output);
 
     ASSERT_EQ(strided_input->get_stride(), input_stride_before);
     ASSERT_EQ(strided_output->get_stride(), output_stride_before);
+    GKO_ASSERT_MTX_NEAR(d_wide_input, wide_input_before, 0);
+    GKO_ASSERT_MTX_NEAR(
+        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{0, 1}),
+        wide_output_before->create_submatrix(gko::span{0, nrows},
+                                             gko::span{0, 1}),
+        0);
+    GKO_ASSERT_MTX_NEAR(
+        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{2, 3}),
+        wide_output_before->create_submatrix(gko::span{0, nrows},
+                                             gko::span{2, 3}),
+        0);
     GKO_ASSERT_MTX_NEAR(this->output, strided_output,
                         100 * r<value_type>::value);
 }
@@ -196,9 +213,8 @@ TEST_F(CuDss, ApplyToStridedMultipleRhsMatchesRef)
     auto ref_solver = this->ref_factory->generate(this->mtx);
     auto cudss_solver = this->cudss_factory->generate(this->dmtx);
     const auto nrows = this->mtx->get_size()[0];
-    // Create a wider matrix (6 cols) and take columns 1..3 as a strided view
-    auto wide_input = vector_type::create(this->ref, gko::dim<2>{nrows, 6});
-    auto wide_output = vector_type::create(this->ref, gko::dim<2>{nrows, 6});
+    auto wide_input = this->gen_mtx(nrows, 6);
+    auto wide_output = this->gen_mtx(nrows, 6);
     for (gko::size_type i = 0; i < nrows; ++i) {
         for (gko::size_type j = 0; j < 3; ++j) {
             wide_input->at(i, j + 1) = this->input->at(i, j);
@@ -216,11 +232,24 @@ TEST_F(CuDss, ApplyToStridedMultipleRhsMatchesRef)
 
     const auto input_stride_before = strided_input->get_stride();
     const auto output_stride_before = strided_output->get_stride();
+    auto wide_input_before = gko::clone(d_wide_input);
+    auto wide_output_before = gko::clone(d_wide_output);
 
     cudss_solver->apply(strided_input, strided_output);
 
     ASSERT_EQ(strided_input->get_stride(), input_stride_before);
     ASSERT_EQ(strided_output->get_stride(), output_stride_before);
+    GKO_ASSERT_MTX_NEAR(d_wide_input, wide_input_before, 0);
+    GKO_ASSERT_MTX_NEAR(
+        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{0, 1}),
+        wide_output_before->create_submatrix(gko::span{0, nrows},
+                                             gko::span{0, 1}),
+        0);
+    GKO_ASSERT_MTX_NEAR(
+        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{4, 6}),
+        wide_output_before->create_submatrix(gko::span{0, nrows},
+                                             gko::span{4, 6}),
+        0);
     GKO_ASSERT_MTX_NEAR(this->output, strided_output,
                         100 * r<value_type>::value);
 }

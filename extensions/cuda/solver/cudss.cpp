@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <set>
 #include <type_traits>
 
 #include <cuda_runtime.h>
@@ -272,7 +273,8 @@ void CuDss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             const auto exec = this->get_executor();
             const auto nrhs = dense_b->get_size()[1];
             if (nrhs <= 1) {
-                const auto nrows = static_cast<int64_t>(dense_b->get_size()[0]);
+                const auto nrows = dense_b->get_size()[0];
+                const auto nrows_i64 = static_cast<int64_t>(nrows);
 
                 if (nrows == 0) {
                     return;
@@ -286,31 +288,31 @@ void CuDss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                 ValueType* b_data =
                     const_cast<ValueType*>(dense_b->get_const_values());
                 ValueType* x_data = dense_x->get_values();
-                ValueType* b_buf = nullptr;
-                ValueType* x_buf = nullptr;
+                std::unique_ptr<Dense> b_buf;
+                std::unique_ptr<Dense> x_buf;
 
                 if (b_strided) {
-                    cudaMalloc(&b_buf, nrows * sizeof(ValueType));
-                    cudaMemcpy2D(
-                        b_buf, sizeof(ValueType), dense_b->get_const_values(),
-                        dense_b->get_stride() * sizeof(ValueType),
-                        sizeof(ValueType), nrows, cudaMemcpyDeviceToDevice);
-                    b_data = b_buf;
+                    b_buf = Dense::create(exec, dim<2>{nrows, 1});
+                    auto mut_b = const_cast<std::remove_const_t<
+                        std::remove_pointer_t<decltype(dense_b)>>*>(dense_b);
+                    mut_b->create_submatrix(span{0, nrows}, span{0, 1})
+                        ->convert_to(b_buf);
+                    b_data = b_buf->get_values();
                 }
                 if (x_strided) {
-                    cudaMalloc(&x_buf, nrows * sizeof(ValueType));
-                    cudaMemset(x_buf, 0, nrows * sizeof(ValueType));
-                    x_data = x_buf;
+                    x_buf = Dense::create(exec, dim<2>{nrows, 1});
+                    x_buf->fill(zero<ValueType>());
+                    x_data = x_buf->get_values();
                 }
 
                 cudssMatrix_t cudss_b = nullptr;
                 cudssMatrix_t cudss_x = nullptr;
 
                 GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-                    &cudss_b, nrows, 1, nrows, b_data,
+                    &cudss_b, nrows_i64, 1, nrows_i64, b_data,
                     cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
                 GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-                    &cudss_x, nrows, 1, nrows, x_data,
+                    &cudss_x, nrows_i64, 1, nrows_i64, x_data,
                     cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
 
                 GKO_ASSERT_NO_CUDSS_ERRORS(cudssExecute(
@@ -321,14 +323,8 @@ void CuDss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                 GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(cudss_x));
 
                 if (x_strided) {
-                    cudaMemcpy2D(dense_x->get_values(),
-                                 dense_x->get_stride() * sizeof(ValueType),
-                                 x_buf, sizeof(ValueType), sizeof(ValueType),
-                                 nrows, cudaMemcpyDeviceToDevice);
-                    cudaFree(x_buf);
-                }
-                if (b_buf) {
-                    cudaFree(b_buf);
+                    dense_x->create_submatrix(span{0, nrows}, span{0, 1})
+                        ->copy_from(x_buf);
                 }
             } else {
                 const auto nrows = dense_b->get_size()[0];
