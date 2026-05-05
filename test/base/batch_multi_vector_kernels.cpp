@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-// SPDX-License-Identifier: BSD-3-Clause
-
 #include "core/base/batch_multi_vector_kernels.hpp"
 
 #include <memory>
