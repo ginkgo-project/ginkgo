@@ -109,7 +109,6 @@ class Multigrid : public EnablePolymorphicObject<Multigrid, LinOp>,
                   public EnableIterativeBase<Multigrid>,
                   public EnableApplyWithInitialGuess<Multigrid> {
     friend class EnablePolymorphicObject<Multigrid, LinOp>;
-    friend class EnablePolymorphicObject<Multigrid, LinOp>;
     friend class EnableApplyWithInitialGuess<Multigrid>;
 
 public:

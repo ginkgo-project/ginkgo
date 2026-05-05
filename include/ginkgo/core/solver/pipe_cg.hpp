@@ -63,7 +63,6 @@ class PipeCg
       public EnablePreconditionedIterativeSolver<ValueType, PipeCg<ValueType>>,
       public Transposable {
     friend class EnablePolymorphicObject<PipeCg, LinOp>;
-    friend class EnablePolymorphicObject<PipeCg, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

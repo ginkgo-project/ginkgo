@@ -84,7 +84,6 @@ class Ir : public EnablePolymorphicObject<Ir<ValueType>, LinOp>,
            public EnableApplyWithInitialGuess<Ir<ValueType>>,
            public Transposable {
     friend class EnablePolymorphicObject<Ir, LinOp>;
-    friend class EnablePolymorphicObject<Ir, LinOp>;
     friend class EnableApplyWithInitialGuess<Ir>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 

@@ -216,68 +216,6 @@ TYPED_TEST(ScaledReordered, ThrowOnNonSquareMatrix)
 }
 
 
-// TYPED_TEST(ScaledReordered, CanBeCopied)
-// {
-//     using SR = typename TestFixture::SR;
-//     auto scaled_reordered_fact = SR::build()
-//                                      .with_row_scaling(this->diag)
-//                                      .with_col_scaling(this->diag)
-//                                      .with_reordering(this->rcm_factory)
-//                                      .with_inner_operator(this->solver_factory)
-//                                      .on(this->exec);
-//     auto scaled_reordered = scaled_reordered_fact->generate(this->mtx);
-//     auto before_system_matrix = scaled_reordered->get_system_matrix();
-//     auto before_inner_operator = scaled_reordered->get_inner_operator();
-//     auto copied = SR::build().on(this->exec)->generate(this->rcm_mtx);
-
-//     copied->copy_from(scaled_reordered);
-
-//     ASSERT_EQ(before_system_matrix, copied->get_system_matrix());
-//     ASSERT_EQ(before_inner_operator, copied->get_inner_operator());
-// }
-
-
-// TYPED_TEST(ScaledReordered, CanBeMoved)
-// {
-//     using SR = typename TestFixture::SR;
-//     auto scaled_reordered_fact = SR::build()
-//                                      .with_row_scaling(this->diag)
-//                                      .with_col_scaling(this->diag)
-//                                      .with_reordering(this->rcm_factory)
-//                                      .with_inner_operator(this->solver_factory)
-//                                      .on(this->exec);
-//     auto scaled_reordered = scaled_reordered_fact->generate(this->mtx);
-//     auto before_system_matrix = scaled_reordered->get_system_matrix();
-//     auto before_inner_operator = scaled_reordered->get_inner_operator();
-//     auto moved = SR::build().on(this->exec)->generate(this->rcm_mtx);
-
-//     moved->move_from(scaled_reordered);
-
-//     ASSERT_EQ(before_system_matrix, moved->get_system_matrix());
-//     ASSERT_EQ(before_inner_operator, moved->get_inner_operator());
-// }
-
-
-// TYPED_TEST(ScaledReordered, CanBeCloned)
-// {
-//     using SR = typename TestFixture::SR;
-//     auto scaled_reordered_fact = SR::build()
-//                                      .with_row_scaling(this->diag)
-//                                      .with_col_scaling(this->diag)
-//                                      .with_reordering(this->rcm_factory)
-//                                      .with_inner_operator(this->solver_factory)
-//                                      .on(this->exec);
-//     auto scaled_reordered = scaled_reordered_fact->generate(this->mtx);
-//     auto before_system_matrix = scaled_reordered->get_system_matrix();
-//     auto before_inner_operator = scaled_reordered->get_inner_operator();
-
-//     auto cloned = scaled_reordered->clone();
-
-//     ASSERT_EQ(before_system_matrix, cloned->get_system_matrix());
-//     ASSERT_EQ(before_inner_operator, cloned->get_inner_operator());
-// }
-
-
 TYPED_TEST(ScaledReordered, AppliesWithoutOperators)
 {
     using SR = typename TestFixture::SR;

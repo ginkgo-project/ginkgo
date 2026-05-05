@@ -5,13 +5,13 @@ ginkgo_create_common_test(
     LABELS
     distributed
 )
-# ginkgo_create_common_test(
-#     index_map_kernels
-#     DISABLE_EXECUTORS
-#     dpcpp
-#     LABELS
-#     distributed
-# )
+ginkgo_create_common_test(
+    index_map_kernels
+    DISABLE_EXECUTORS
+    dpcpp
+    LABELS
+    distributed
+)
 ginkgo_create_common_test(
     matrix_kernels
     DISABLE_EXECUTORS

@@ -50,7 +50,6 @@ class Gcr
       public EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>,
       public Transposable {
     friend class EnablePolymorphicObject<Gcr, LinOp>;
-    friend class EnablePolymorphicObject<Gcr, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

@@ -97,7 +97,6 @@ class CbGmres : public EnablePolymorphicObject<CbGmres<ValueType>, LinOp>,
                 public EnablePreconditionedIterativeSolver<ValueType,
                                                            CbGmres<ValueType>> {
     friend class EnablePolymorphicObject<CbGmres, LinOp>;
-    friend class EnablePolymorphicObject<CbGmres, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

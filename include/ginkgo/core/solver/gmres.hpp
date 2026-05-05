@@ -74,7 +74,6 @@ class Gmres
       public EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>,
       public Transposable {
     friend class EnablePolymorphicObject<Gmres, LinOp>;
-    friend class EnablePolymorphicObject<Gmres, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

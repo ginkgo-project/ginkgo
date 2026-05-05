@@ -344,29 +344,32 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
 }
 
 
-// TEST_F(Gmres, GmresApplyMultipleRHSIsEquivalentToRef)
-// {
-//     using gko::solver::gmres::ortho_method;
-//     auto base_params = gko::clone(ref, ref_gmres_factory)->get_parameters();
+TEST_F(Gmres, GmresApplyMultipleRHSIsEquivalentToRef)
+{
+    using gko::solver::gmres::ortho_method;
+    auto base_params = Solver::build().with_criteria(
+        gko::stop::Iteration::build().with_max_iters(246u),
+        gko::stop::ResidualNorm<value_type>::build().with_reduction_factor(
+            value_type{1e-15}));
 
-//     for (auto ortho :
-//          {ortho_method::mgs, ortho_method::cgs, ortho_method::cgs2}) {
-//         SCOPED_TRACE(ortho);
-//         int m = 123;
-//         int n = 5;
-//         auto ref_solver =
-//             base_params.with_ortho_method(ortho).on(ref)->generate(mtx);
-//         auto exec_solver =
-//             base_params.with_ortho_method(ortho).on(exec)->generate(d_mtx);
-//         auto b = gen_mtx(m, n);
-//         auto x = gen_mtx(m, n);
-//         auto d_b = gko::clone(exec, b);
-//         auto d_x = gko::clone(exec, x);
+    for (auto ortho :
+         {ortho_method::mgs, ortho_method::cgs, ortho_method::cgs2}) {
+        SCOPED_TRACE(ortho);
+        int m = 123;
+        int n = 5;
+        auto ref_solver =
+            base_params.with_ortho_method(ortho).on(ref)->generate(mtx);
+        auto exec_solver =
+            base_params.with_ortho_method(ortho).on(exec)->generate(d_mtx);
+        auto b = gen_mtx(m, n);
+        auto x = gen_mtx(m, n);
+        auto d_b = gko::clone(exec, b);
+        auto d_x = gko::clone(exec, x);
 
-//         ref_solver->apply(b, x);
-//         exec_solver->apply(d_b, d_x);
+        ref_solver->apply(b, x);
+        exec_solver->apply(d_b, d_x);
 
-//         GKO_ASSERT_MTX_NEAR(d_b, b, 0);
-//         GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
-//     }
-// }
+        GKO_ASSERT_MTX_NEAR(d_b, b, 0);
+        GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
+    }
+}

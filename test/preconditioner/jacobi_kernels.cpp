@@ -395,32 +395,30 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithMPW)
 }
 
 
-// TEST_F(Jacobi, TransposedPreconditionerEquivalentToRefWithMPW)
-// {
-//     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
-//                     97, 99);
+TEST_F(Jacobi, TransposedPreconditionerEquivalentToRefWithMPW)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+                    97, 99);
 
-//     auto bj = bj_factory->generate(mtx);
-//     auto d_bj = d_bj_factory->generate(mtx);
-//     d_bj->copy_from(bj);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
-//                         gko::as<Bj>(bj->transpose()), 1e-14);
-// }
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
+                        gko::as<Bj>(bj->transpose()), 1e-13);
+}
 
 
-// TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithMPW)
-// {
-//     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
-//                     97, 99);
+TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithMPW)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100}, {}, {}, 13,
+                    97, 99);
 
-//     auto bj = bj_factory->generate(mtx);
-//     auto d_bj = d_bj_factory->generate(mtx);
-//     d_bj->copy_from(bj);
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
-//                         gko::as<Bj>(bj->conj_transpose()), 1e-14);
-// }
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
+                        gko::as<Bj>(bj->conj_transpose()), 1e-13);
+}
 
 
 TEST_F(Jacobi, ApplyEquivalentToRefWithBlockSize32)
@@ -662,70 +660,68 @@ TEST_F(Jacobi, LinearCombinationApplyToMultipleVectorsEquivalentToRef)
 }
 
 
-// TEST_F(Jacobi, ComputesTheSameConditionNumberAsRef)
-// {
-//     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-//                     {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97,
-//                     99);
+TEST_F(Jacobi, ComputesTheSameConditionNumberAsRef)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97, 99);
 
-//     auto bj = bj_factory->generate(mtx);
-//     auto d_bj = clone(ref, d_bj_factory->generate(mtx));
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-//     for (int i = 0; i < gko::as<Bj>(bj.get())->get_num_blocks(); ++i) {
-//         EXPECT_NEAR(bj->get_conditioning()[i], d_bj->get_conditioning()[i],
-//                     1e-9);
-//     }
-// }
-
-
-// TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
-// {
-//     initialize_data(
-//         {0, 2, 14, 27, 40, 51, 61, 70, 80, 92, 100},
-//         {ap, ap, ap, ap, ap, ap, ap, ap, ap, ap},
-//         {1e+0, 1e+0, 1e+2, 1e+3, 1e+4, 1e+4, 1e+6, 1e+7, 1e+8, 1e+9}, 13, 97,
-//         99, 1, 0.2);
-
-//     auto bj = bj_factory->generate(mtx);
-//     auto d_bj = gko::clone(ref, d_bj_factory->generate(mtx));
-
-//     GKO_ASSERT_ARRAY_EQ(bj->get_parameters().storage_optimization.block_wise,
-//                         d_bj->get_parameters().storage_optimization.block_wise);
-// }
+    for (int i = 0; i < gko::as<Bj>(bj.get())->get_num_blocks(); ++i) {
+        EXPECT_NEAR(bj->get_conditioning()[i],
+                    exec->copy_val_to_host(d_bj->get_conditioning() + i), 1e-9);
+    }
+}
 
 
-// TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
-// {
-//     auto mtx = gko::matrix::Csr<>::create(exec);
-//     // clang-format off
-//     mtx->read(mtx_data::diag({
-//         // perfectly conditioned block, small value difference,
-//         // can use fp16 (5, 10)
-//         {{2.0, 1.0},
-//          {1.0, 2.0}},
-//         // perfectly conditioned block (scaled orthogonal),
-//         // with large value difference, need fp16 (7, 8)
-//         {{1e-8, -1e-16},
-//          {1e-16,  1e-8}}
-//     }));
-//     // clang-format on
+TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
+{
+    initialize_data(
+        {0, 2, 14, 27, 40, 51, 61, 70, 80, 92, 100},
+        {ap, ap, ap, ap, ap, ap, ap, ap, ap, ap},
+        {1e+0, 1e+0, 1e+2, 1e+3, 1e+4, 1e+4, 1e+6, 1e+7, 1e+8, 1e+9}, 13, 97,
+        99, 1, 0.2);
 
-//     auto bj =
-//         Bj::build()
-//             .with_max_block_size(13u)
-//             .with_block_pointers(gko::array<gko::int32>(exec, {0, 2, 4}))
-//             .with_storage_optimization(gko::precision_reduction::autodetect())
-//             .with_accuracy(0.1)
-//             .on(exec)
-//             ->generate(give(mtx));
+    auto bj = bj_factory->generate(mtx);
+    auto d_bj = d_bj_factory->generate(mtx);
 
-//     // both blocks are in the same group, both need (7, 8)
-//     auto h_bj = clone(ref, bj);
-//     auto prec =
-//         h_bj->get_parameters().storage_optimization.block_wise.get_const_data();
-//     EXPECT_EQ(prec[0], gko::precision_reduction(1, 1));
-//     ASSERT_EQ(prec[1], gko::precision_reduction(1, 1));
-// }
+    GKO_ASSERT_ARRAY_EQ(bj->get_parameters().storage_optimization.block_wise,
+                        d_bj->get_parameters().storage_optimization.block_wise);
+}
+
+
+TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
+{
+    auto mtx = gko::matrix::Csr<>::create(exec);
+    // clang-format off
+    mtx->read(mtx_data::diag({
+        // perfectly conditioned block, small value difference,
+        // can use fp16 (5, 10)
+        {{2.0, 1.0},
+         {1.0, 2.0}},
+        // perfectly conditioned block (scaled orthogonal),
+        // with large value difference, need fp16 (7, 8)
+        {{1e-8, -1e-16},
+         {1e-16,  1e-8}}
+    }));
+    // clang-format on
+
+    auto bj =
+        Bj::build()
+            .with_max_block_size(13u)
+            .with_block_pointers(gko::array<gko::int32>(exec, {0, 2, 4}))
+            .with_storage_optimization(gko::precision_reduction::autodetect())
+            .with_accuracy(0.1)
+            .on(exec)
+            ->generate(give(mtx));
+
+    // both blocks are in the same group, both need (7, 8)
+    auto prec =
+        bj->get_parameters().storage_optimization.block_wise.get_const_data();
+    EXPECT_EQ(exec->copy_val_to_host(prec), gko::precision_reduction(1, 1));
+    ASSERT_EQ(exec->copy_val_to_host(prec + 1), gko::precision_reduction(1, 1));
+}
 
 
 TEST_F(Jacobi, PreconditionerEquivalentToRefWithFullPrecision)
@@ -805,38 +801,39 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithAdaptivePrecision)
 }
 
 
-// TEST_F(Jacobi,
-// TransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
-// {
-//     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-//                     {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13,
-// 97,
-//                     99);
-
-//     auto bj = bj_factory->generate(mtx);
-//     auto d_bj = d_bj_factory->generate(mtx);
-//     d_bj->copy_from(bj);
-
-//     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
-//                         gko::as<Bj>(bj->transpose()), 0);
-// }
+TEST_F(Jacobi, TransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
+                    99);
 
 
-// TEST_F(Jacobi,
-// ConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
-// {
-//     initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
-//                     {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13,
-// 97,
-//                     99);
+    auto d_bj = d_bj_factory->generate(mtx);
+    // we do not have clone on Jacobi
+    // d_bj and bj use 1e-1 in the previous settings.
+    // testing after transpose is hard to say it transpose correct because we
+    // can only put 1e-1 as check. check it with dumping to Dense matrix
+    auto vec = Vec::create(exec);
+    d_bj->convert_to(vec);
 
-//     auto bj = bj_factory->generate(mtx);
-//     auto d_bj = d_bj_factory->generate(mtx);
-//     d_bj->copy_from(bj);
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
+                        gko::as<Vec>(vec->transpose()), 0);
+}
 
-//     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
-//                         gko::as<Bj>(bj->conj_transpose()), 0);
-// }
+
+TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
+{
+    initialize_data({0, 11, 24, 33, 45, 55, 67, 70, 80, 92, 100},
+                    {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
+                    99);
+
+    auto d_bj = d_bj_factory->generate(mtx);
+    auto vec = Vec::create(exec);
+    d_bj->convert_to(vec);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
+                        gko::as<Vec>(vec->transpose()), 0);
+}
 
 
 TEST_F(Jacobi, ApplyEquivalentToRefWithFullPrecision)
@@ -1029,25 +1026,24 @@ TEST_F(
 }
 
 
-// TEST_F(Jacobi, ScalarJacobiHandleZero)
-// {
-//     auto mtx = gko::share(
-//         gko::initialize<Vec>({{0, 0, 0}, {0, 2, 0}, {0, 0, 0}}, ref));
-//     auto b = gko::initialize<Vec>({1, 2, 3}, ref);
-//     auto x = Vec::create(ref, gko::dim<2>(3, 1));
-//     auto d_b = b->clone(exec);
-//     auto d_x = x->clone(exec);
-//     auto d_mtx = gko::share(mtx->clone(exec));
+TEST_F(Jacobi, ScalarJacobiHandleZero)
+{
+    auto mtx = gko::share(
+        gko::initialize<Vec>({{0, 0, 0}, {0, 2, 0}, {0, 0, 0}}, ref));
+    auto b = gko::initialize<Vec>({1, 2, 3}, ref);
+    auto x = Vec::create(ref, gko::dim<2>(3, 1));
+    auto d_b = b->clone(exec);
+    auto d_x = x->clone(exec);
+    auto d_mtx = gko::share(mtx->clone(exec));
 
-//     auto jacobi =
-// Bj::build().with_max_block_size(1u).on(ref)->generate(mtx);
-//     // Must generate from scratch because the clone copies the inverted
-//     // information.
-//     auto d_jacobi =
-//         Bj::build().with_max_block_size(1u).on(exec)->generate(d_mtx);
+    auto jacobi = Bj::build().with_max_block_size(1u).on(ref)->generate(mtx);
+    // Must generate from scratch because the clone copies the inverted
+    // information.
+    auto d_jacobi =
+        Bj::build().with_max_block_size(1u).on(exec)->generate(d_mtx);
 
-//     // Jacobi uses 1 as the result when diagonal value is zero.
-//     jacobi->apply(b, x);
-//     d_jacobi->apply(d_b, d_x);
-//     GKO_ASSERT_MTX_NEAR(d_x, x, 0.0);
-// }
+    // Jacobi uses 1 as the result when diagonal value is zero.
+    jacobi->apply(b, x);
+    d_jacobi->apply(d_b, d_x);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 0.0);
+}

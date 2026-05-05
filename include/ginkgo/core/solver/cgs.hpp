@@ -46,7 +46,6 @@ class Cgs
       public EnablePreconditionedIterativeSolver<ValueType, Cgs<ValueType>>,
       public Transposable {
     friend class EnablePolymorphicObject<Cgs, LinOp>;
-    friend class EnablePolymorphicObject<Cgs, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
