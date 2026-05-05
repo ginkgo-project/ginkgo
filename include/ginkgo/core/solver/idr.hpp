@@ -58,7 +58,6 @@ class Idr
       public EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>,
       public Transposable {
     friend class EnablePolymorphicObject<Idr, LinOp>;
-    friend class EnablePolymorphicObject<Idr, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

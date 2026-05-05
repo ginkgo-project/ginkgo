@@ -709,13 +709,12 @@ protected:
             pair.dev->clear();
             guarded_fn(std::move(pair));
         }
-        /* Disable the test with clone, since cloning is not correctly
-        supported
+        /* Disable the test with clone, since cloning is not correctly supported
          * for types that contain factories as members.
          * TODO: reenable when cloning of factories is figured out
         {
-            SCOPED_TRACE("Unpreconditioned solver with 0 iterations via
-            clone"); guarded_fn(
+            SCOPED_TRACE("Unpreconditioned solver with 0 iterations via clone");
+            guarded_fn(
                 test_pair<SolverType>{Config::build(ref, 0, check_residual)
                                           .on(ref)
                                           ->generate(mtx.ref),
@@ -786,17 +785,6 @@ protected:
                                    !gko::is_complex<value_type>()
                                ? 2
                                : 1);
-        // No 0x0 cleared/defaulted solvers, as they would be inconsistent with
-        // `vec`
-        // {
-        //     SCOPED_TRACE("Unpreconditioned solver with 0 iterations via
-        //     clone"); guarded_fn(
-        //         test_pair<SolverType>{Config::build(ref, nrhs,
-        //         check_residual)
-        //                                   .on(ref)
-        //                                   ->generate(mtx.ref),
-        //                               exec});
-        // }
         {
             SCOPED_TRACE("Unpreconditioned solver with 0 iterations");
             guarded_fn(
@@ -933,8 +921,7 @@ protected:
 
 using SolverTypes =
     ::testing::Types<Cg, Cgs, Fcg, PipeCg, Bicg, Bicgstab,
-                     /* "IDR uses different initialization approaches even
-                     when
+                     /* "IDR uses different initialization approaches even when
                         deterministic", Idr<1>, Idr<4>,*/
                      Ir, Chebyshev, CbGmres<2>, CbGmres<10>, Gmres<2>,
                      Gmres<10>, FGmres<2>, FGmres<10>, Gcr<2>, Gcr<10>, Minres,

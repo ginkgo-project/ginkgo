@@ -59,7 +59,6 @@ class Minres
       public EnablePreconditionedIterativeSolver<ValueType, Minres<ValueType>>,
       public Transposable {
     friend class EnablePolymorphicObject<Minres, LinOp>;
-    friend class EnablePolymorphicObject<Minres, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

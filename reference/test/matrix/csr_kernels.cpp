@@ -1727,7 +1727,6 @@ std::unique_ptr<gko::matrix::Csr<ValueType, IndexType>> ref_permute(
     auto tmp2 = gko::as<Csr>(gko::as<gko::ClonableObject>(tmp.get())->clone());
     col_permutation_csr->apply(tmp, tmp2);
     return gko::as<Csr>(tmp2->transpose());
-    return nullptr;
 }
 
 

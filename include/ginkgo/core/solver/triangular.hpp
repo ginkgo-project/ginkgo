@@ -68,7 +68,6 @@ class LowerTrs
                               matrix::Csr<ValueType, IndexType>>,
       public Transposable {
     friend class EnablePolymorphicObject<LowerTrs, LinOp>;
-    friend class EnablePolymorphicObject<LowerTrs, LinOp>;
     friend class UpperTrs<ValueType, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
@@ -238,7 +237,6 @@ class UpperTrs
       public EnableSolverBase<UpperTrs<ValueType, IndexType>,
                               matrix::Csr<ValueType, IndexType>>,
       public Transposable {
-    friend class EnablePolymorphicObject<UpperTrs, LinOp>;
     friend class EnablePolymorphicObject<UpperTrs, LinOp>;
     friend class LowerTrs<ValueType, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;

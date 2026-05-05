@@ -78,7 +78,9 @@ TEST_F(IndexMapBuildMapping, BuildMappingSameAsRef)
     comm_index_type this_rank = 5;
     std::shared_ptr<part_type> part = part_type::build_from_global_size_uniform(
         ref, num_parts, num_parts * local_size);
-    // std::shared_ptr<part_type> dpart = gko::clone(exec, part);
+    std::shared_ptr<part_type> dpart =
+        part_type::build_from_global_size_uniform(exec, num_parts,
+                                                  num_parts * local_size);
     auto query = generate_connection_idxs(ref, this_rank, part, engine, 11);
     auto dquery = gko::array<global_index_type>(exec, query);
     gko::array<comm_index_type> target_ids{ref};
@@ -236,7 +238,9 @@ protected:
 
     std::shared_ptr<part_type> part = part_type::build_from_global_size_uniform(
         ref, num_parts, num_parts* local_size);
-    std::shared_ptr<part_type> dpart = gko::clone(exec, part);
+    std::shared_ptr<part_type> dpart =
+        part_type::build_from_global_size_uniform(exec, num_parts,
+                                                  num_parts* local_size);
 
     std::default_random_engine engine;
 };
