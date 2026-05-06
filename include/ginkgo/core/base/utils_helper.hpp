@@ -422,11 +422,12 @@ inline std::shared_ptr<const std::decay_t<T>> as(std::shared_ptr<const U> obj)
 template <typename Pointer>
 inline detail::cloned_type<Pointer> clone(const Pointer& p)
 {
-    static_assert(detail::is_cloneable<detail::pointee<Pointer>>(),
-                  "Object is not cloneable");
-    return detail::cloned_type<Pointer>(
-        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
-            p->clone().release()));
+    // static_assert(detail::is_cloneable<detail::pointee<Pointer>>(),
+    //               "Object is not cloneable");
+    using type = typename std::remove_cv<detail::pointee<Pointer>>::type;
+    // wrap it into ptr_param to accept different type of pointer
+    return detail::cloned_type<Pointer>(dynamic_cast<type*>(
+        as<ClonableObject>(ptr_param<const type>(p).get())->clone().release()));
 }
 
 
@@ -457,7 +458,6 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
         dynamic_cast<type*>(as<ClonableObject>(ptr_param<const type>(p).get())
                                 ->clone(std::move(exec))
                                 .release()));
-    return nullptr;
 }
 
 
