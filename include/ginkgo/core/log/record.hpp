@@ -28,6 +28,7 @@ namespace detail {
 template <typename T>
 std::unique_ptr<T> clone_or_nullptr(T* input)
 {
+    // whether throw exception if input is not clonable?
     if (auto tmp = dynamic_cast<const ClonableObject*>(input)) {
         return as<T>(tmp->clone());
     }
@@ -117,7 +118,9 @@ struct polymorphic_object_data {
         : exec{exec}
     {
         this->input = detail::clone_or_nullptr(input);
-        this->output = detail::clone_or_nullptr(output);
+        if (output != nullptr) {
+            this->output = detail::clone_or_nullptr(output);
+        }
     }
 };
 

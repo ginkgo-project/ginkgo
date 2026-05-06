@@ -53,8 +53,6 @@ class Jacobi final : public EnableBatchLinOp<Jacobi<ValueType, IndexType>> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    // using EnableBatchLinOp<Jacobi>::convert_to;
-    // using EnableBatchLinOp<Jacobi>::move_to;
     using value_type = ValueType;
     using index_type = IndexType;
     using matrix_type = batch::matrix::Csr<ValueType, IndexType>;

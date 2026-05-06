@@ -310,12 +310,12 @@ public:
         if (&other != this) {
             EnableLinOp<Ic>::operator=(other);
             auto exec = this->get_executor();
-            // l_solver_ = std::move(other.l_solver_);
-            // lh_solver_ = std::move(other.lh_solver_);
+            l_solver_ = std::move(other.l_solver_);
+            lh_solver_ = std::move(other.lh_solver_);
             parameters_ = std::exchange(other.parameters_, parameters_type{});
             if (other.get_executor() != exec) {
-                // l_solver_ = gko::clone(exec, l_solver_);
-                // lh_solver_ = gko::clone(exec, lh_solver_);
+                l_solver_ = gko::clone(exec, l_solver_);
+                lh_solver_ = gko::clone(exec, lh_solver_);
             }
         }
         return *this;

@@ -832,7 +832,7 @@ TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
     d_bj->convert_to(vec);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
-                        gko::as<Vec>(vec->transpose()), 0);
+                        gko::as<Vec>(vec->conj_transpose()), 0);
 }
 
 
