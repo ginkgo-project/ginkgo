@@ -102,82 +102,82 @@ struct CloneableDerived : Base {
 };
 
 
-// TEST(Clone, ClonesUniquePointer)
-// {
-//     std::unique_ptr<CloneableDerived> p(new CloneableDerived());
+TEST(Clone, ClonesUniquePointer)
+{
+    std::unique_ptr<CloneableDerived> p(new CloneableDerived());
 
-//     auto clone = gko::clone(p);
+    auto clone = gko::clone(p);
 
-//     ::testing::StaticAssertTypeEq<decltype(clone),
-//                                   std::unique_ptr<CloneableDerived>>();
-//     ASSERT_NE(p.get(), clone.get());
-// }
-
-
-// TEST(Clone, ClonesSharedPointer)
-// {
-//     std::shared_ptr<CloneableDerived> p(new CloneableDerived());
-
-//     auto clone = gko::clone(p);
-
-//     ::testing::StaticAssertTypeEq<decltype(clone),
-//                                   std::unique_ptr<CloneableDerived>>();
-//     ASSERT_NE(p.get(), clone.get());
-// }
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<CloneableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+}
 
 
-// TEST(Clone, ClonesPlainPointer)
-// {
-//     std::unique_ptr<CloneableDerived> p(new CloneableDerived());
+TEST(Clone, ClonesSharedPointer)
+{
+    std::shared_ptr<CloneableDerived> p(new CloneableDerived());
 
-//     auto clone = gko::clone(p.get());
+    auto clone = gko::clone(p);
 
-//     ::testing::StaticAssertTypeEq<decltype(clone),
-//                                   std::unique_ptr<CloneableDerived>>();
-//     ASSERT_NE(p.get(), clone.get());
-// }
-
-
-// TEST(CloneTo, ClonesUniquePointer)
-// {
-//     auto exec = gko::ReferenceExecutor::create();
-//     std::unique_ptr<CloneableDerived> p(new CloneableDerived());
-
-//     auto clone = gko::clone(exec, p);
-
-//     ::testing::StaticAssertTypeEq<decltype(clone),
-//                                   std::unique_ptr<CloneableDerived>>();
-//     ASSERT_NE(p.get(), clone.get());
-//     ASSERT_EQ(clone->executor, exec);
-// }
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<CloneableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+}
 
 
-// TEST(CloneTo, ClonesSharedPointer)
-// {
-//     auto exec = gko::ReferenceExecutor::create();
-//     std::shared_ptr<CloneableDerived> p(new CloneableDerived());
+TEST(Clone, ClonesPlainPointer)
+{
+    std::unique_ptr<CloneableDerived> p(new CloneableDerived());
 
-//     auto clone = gko::clone(exec, p);
+    auto clone = gko::clone(p.get());
 
-//     ::testing::StaticAssertTypeEq<decltype(clone),
-//                                   std::unique_ptr<CloneableDerived>>();
-//     ASSERT_NE(p.get(), clone.get());
-//     ASSERT_EQ(clone->executor, exec);
-// }
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<CloneableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+}
 
 
-// TEST(CloneTo, ClonesPlainPointer)
-// {
-//     auto exec = gko::ReferenceExecutor::create();
-//     std::unique_ptr<CloneableDerived> p(new CloneableDerived());
+TEST(CloneTo, ClonesUniquePointer)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::unique_ptr<CloneableDerived> p(new CloneableDerived());
 
-//     auto clone = gko::clone(exec, p.get());
+    auto clone = gko::clone(exec, p);
 
-//     ::testing::StaticAssertTypeEq<decltype(clone),
-//                                   std::unique_ptr<CloneableDerived>>();
-//     ASSERT_NE(p.get(), clone.get());
-//     ASSERT_EQ(clone->executor, exec);
-// }
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<CloneableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+    ASSERT_EQ(clone->executor, exec);
+}
+
+
+TEST(CloneTo, ClonesSharedPointer)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::shared_ptr<CloneableDerived> p(new CloneableDerived());
+
+    auto clone = gko::clone(exec, p);
+
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<CloneableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+    ASSERT_EQ(clone->executor, exec);
+}
+
+
+TEST(CloneTo, ClonesPlainPointer)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    std::unique_ptr<CloneableDerived> p(new CloneableDerived());
+
+    auto clone = gko::clone(exec, p.get());
+
+    ::testing::StaticAssertTypeEq<decltype(clone),
+                                  std::unique_ptr<CloneableDerived>>();
+    ASSERT_NE(p.get(), clone.get());
+    ASSERT_EQ(clone->executor, exec);
+}
 
 
 TEST(Share, SharesSharedPointer)
