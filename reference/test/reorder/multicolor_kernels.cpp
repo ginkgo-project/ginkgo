@@ -17,9 +17,6 @@
 #include "core/test/utils/reordering.hpp"
 
 
-namespace {
-
-
 class Multicolor : public ::testing::Test {
 protected:
     using v_type = double;
@@ -135,6 +132,3 @@ TEST_F(Multicolor, CreatesCorrectPermutations3d27p)
     EXPECT_EQ(expected_ordering.old_to_new, perm);
     EXPECT_EQ(expected_ordering.new_to_old, invperm);
 }
-
-
-}  // namespace

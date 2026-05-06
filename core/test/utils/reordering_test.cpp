@@ -14,9 +14,6 @@
 #include "core/test/utils/matrix_generator.hpp"
 
 
-namespace {
-
-
 template <typename i_type>
 bool is_permutation(const gko::size_type perm_size, const i_type* input_perm)
 {
@@ -186,6 +183,3 @@ TEST_F(Multicolor3d27pt, GivesCorrectPermutation)
     EXPECT_EQ(ordering.old_to_new[42], 7);
     EXPECT_EQ(ordering.old_to_new[43], nrows / 8 + 7);
 }
-
-
-}  // namespace

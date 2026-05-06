@@ -83,8 +83,6 @@ void compute_permutation_csr(std::shared_ptr<const ReferenceExecutor> exec,
         }
         color_ptrs[ic + 1] = color_ptrs[ic] + color_size;
     }
-    // assert(permutation.end() == permutation.begin() +
-    // color_ptrs[num_colors]);
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

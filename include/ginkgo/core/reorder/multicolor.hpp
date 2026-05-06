@@ -40,7 +40,9 @@ namespace reorder {
  *
  * The reference implementation is based on a simple greedy approach, while
  * the parallel implementations use the Jones-Plassman-Luby (JPL) algorithm
- * or a variant of it.
+ * described in: "A Parallel Graph Coloring Heuristic" by Mark T. Jones and
+ * Paul E. Plassmann, SIAM Journal on Scientific Computing 1993 14:3, 654-669,
+ * doi:10.1137/0914041.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
@@ -92,11 +94,6 @@ public:
      * The last entry stores the total number of rows.
      */
     std::vector<index_type> get_color_pointers() const { return color_ptrs_; }
-
-    /*const array<index_type>& get_permutation_array() const override
-    {
-        return permutation_array_;
-    }*/
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
