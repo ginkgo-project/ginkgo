@@ -76,7 +76,6 @@ std::unique_ptr<LinOp> Ic<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>& Ic<ValueType, IndexType>::operator=(const Ic& other)
-
 {
     if (&other != this) {
         EnableLinOp<Ic>::operator=(other);
@@ -85,8 +84,8 @@ Ic<ValueType, IndexType>& Ic<ValueType, IndexType>::operator=(const Ic& other)
         lh_solver_ = other.lh_solver_;
         parameters_ = other.parameters_;
         if (other.get_executor() != exec) {
-            // l_solver_ = gko::clone(exec, l_solver_);
-            // lh_solver_ = gko::clone(exec, lh_solver_);
+            l_solver_ = gko::clone(exec, l_solver_);
+            lh_solver_ = gko::clone(exec, lh_solver_);
         }
     }
     return *this;
@@ -99,12 +98,12 @@ Ic<ValueType, IndexType>& Ic<ValueType, IndexType>::operator=(Ic&& other)
     if (&other != this) {
         EnableLinOp<Ic>::operator=(other);
         auto exec = this->get_executor();
-        // l_solver_ = std::move(other.l_solver_);
-        // lh_solver_ = std::move(other.lh_solver_);
+        l_solver_ = std::move(other.l_solver_);
+        lh_solver_ = std::move(other.lh_solver_);
         parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (other.get_executor() != exec) {
-            // l_solver_ = gko::clone(exec, l_solver_);
-            // lh_solver_ = gko::clone(exec, lh_solver_);
+            l_solver_ = gko::clone(exec, l_solver_);
+            lh_solver_ = gko::clone(exec, lh_solver_);
         }
     }
     return *this;

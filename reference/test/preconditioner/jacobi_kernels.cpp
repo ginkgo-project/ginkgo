@@ -1076,7 +1076,7 @@ TYPED_TEST(Jacobi, ConvertsToDense)
     using value_type = typename TestFixture::value_type;
     auto dense = Vec::create(this->exec);
 
-    this->bj_factory->generate(this->mtx)->convert_to(dense);
+    this->bj_factory->generate(this->mtx)->move_to(dense);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense,

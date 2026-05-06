@@ -154,53 +154,6 @@ protected:
     virtual std::unique_ptr<PolymorphicObject> create_default_impl(
         std::shared_ptr<const Executor> exec) const = 0;
 
-    // /**
-    //  * Implementers of PolymorphicObject should implement this function
-    //  instead
-    //  * of copy_from(const PolymorphicObject *).
-    //  *
-    //  * @param other  the object to copy
-    //  *
-    //  * @return this
-    //  */
-    // virtual PolymorphicObject* copy_from_impl(
-    //     const PolymorphicObject* other) = 0;
-
-    // /**
-    //  * Implementers of PolymorphicObject should implement this function
-    //  instead
-    //  * of copy_from(std::unique_ptr<PolymorphicObject>).
-    //  *
-    //  * @param other  the object to move from
-    //  *
-    //  * @return this
-    //  */
-    // virtual PolymorphicObject* copy_from_impl(
-    //     std::unique_ptr<PolymorphicObject> other) = 0;
-
-    // /**
-    //  * Implementers of PolymorphicObject should implement this function
-    //  instead
-    //  * of move_from(PolymorphicObject *).
-    //  *
-    //  * @param other  the object to move from
-    //  *
-    //  * @return this
-    //  */
-    // virtual PolymorphicObject* move_from_impl(PolymorphicObject* other) = 0;
-
-    // /**
-    //  * Implementers of PolymorphicObject should implement this function
-    //  instead
-    //  * of move_from(std::unique_ptr<PolymorphicObject>).
-    //  *
-    //  * @param other  the object to move from
-    //  *
-    //  * @return this
-    //  */
-    // virtual PolymorphicObject* move_from_impl(
-    //     std::unique_ptr<PolymorphicObject> other) = 0;
-
     /**
      * Implementers of PolymorphicObject should implement this function instead
      * of clear().
