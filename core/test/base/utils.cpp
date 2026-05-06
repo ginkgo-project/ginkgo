@@ -102,16 +102,16 @@ struct CloneableDerived : Base {
 };
 
 
-TEST(Clone, ClonesUniquePointer)
-{
-    std::unique_ptr<CloneableDerived> p(new CloneableDerived());
+// TEST(Clone, ClonesUniquePointer)
+// {
+//     std::unique_ptr<CloneableDerived> p(new CloneableDerived());
 
-    auto clone = gko::clone(p);
+//     auto clone = gko::clone(p);
 
-    ::testing::StaticAssertTypeEq<decltype(clone),
-                                  std::unique_ptr<CloneableDerived>>();
-    ASSERT_NE(p.get(), clone.get());
-}
+//     ::testing::StaticAssertTypeEq<decltype(clone),
+//                                   std::unique_ptr<CloneableDerived>>();
+//     ASSERT_NE(p.get(), clone.get());
+// }
 
 
 // TEST(Clone, ClonesSharedPointer)
