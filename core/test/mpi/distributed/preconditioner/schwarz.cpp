@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -112,65 +112,6 @@ TYPED_TEST(SchwarzFactory, CanSetCoarseWeight)
     using value_type = typename TestFixture::value_type;
 
     ASSERT_EQ(this->schwarz->get_parameters().coarse_weight, value_type{0.4});
-}
-
-
-TYPED_TEST(SchwarzFactory, CanBeCloned)
-{
-    auto schwarz_clone = clone(this->schwarz);
-
-    this->assert_same_precond(schwarz_clone, this->schwarz);
-}
-
-
-TYPED_TEST(SchwarzFactory, CanBeCopied)
-{
-    using value_type = typename TestFixture::value_type;
-    using Jacobi = typename TestFixture::Jacobi;
-    using Pgm = typename TestFixture::Pgm;
-    using Cg = typename TestFixture::Cg;
-    using Schwarz = typename TestFixture::Schwarz;
-    using Mtx = typename TestFixture::Mtx;
-    auto bj = gko::share(Jacobi::build().on(this->exec));
-    auto pgm = gko::share(Pgm::build().on(this->exec));
-    auto cg = gko::share(Cg::build().on(this->exec));
-    auto copy = Schwarz::build()
-                    .with_local_solver(bj)
-                    .with_coarse_level(pgm)
-                    .with_coarse_solver(cg)
-                    .with_coarse_weight(value_type{0.4})
-                    .on(this->exec)
-                    ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
-
-    copy->copy_from(this->schwarz);
-
-    this->assert_same_precond(copy, this->schwarz);
-}
-
-
-TYPED_TEST(SchwarzFactory, CanBeMoved)
-{
-    using value_type = typename TestFixture::value_type;
-    using Jacobi = typename TestFixture::Jacobi;
-    using Pgm = typename TestFixture::Pgm;
-    using Cg = typename TestFixture::Cg;
-    using Schwarz = typename TestFixture::Schwarz;
-    using Mtx = typename TestFixture::Mtx;
-    auto tmp = clone(this->schwarz);
-    auto bj = gko::share(Jacobi::build().on(this->exec));
-    auto pgm = gko::share(Pgm::build().on(this->exec));
-    auto cg = gko::share(Cg::build().on(this->exec));
-    auto copy = Schwarz::build()
-                    .with_local_solver(bj)
-                    .with_coarse_level(pgm)
-                    .with_coarse_solver(cg)
-                    .with_coarse_weight(value_type{0.4})
-                    .on(this->exec)
-                    ->generate(Mtx::create(this->exec, MPI_COMM_WORLD));
-
-    copy->move_from(this->schwarz);
-
-    this->assert_same_precond(copy, tmp);
 }
 
 

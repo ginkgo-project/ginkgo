@@ -456,15 +456,17 @@ public:
                                                     const part_type* part,
                                                     int rank)
     {
-        auto host_part = gko::clone(this->ref, part);
-        auto range_bounds = host_part->get_range_bounds();
-        auto part_ids = host_part->get_part_ids();
         std::vector<global_index_type> gather_idxs;
-        for (gko::size_type range_id = 0;
-             range_id < host_part->get_num_ranges(); ++range_id) {
-            if (part_ids[range_id] == rank) {
-                for (global_index_type global_row = range_bounds[range_id];
-                     global_row < range_bounds[range_id + 1]; ++global_row) {
+        for (gko::size_type range_id = 0; range_id < part->get_num_ranges();
+             ++range_id) {
+            if (this->exec->copy_val_to_host(part->get_part_ids() + range_id) ==
+                rank) {
+                for (global_index_type global_row =
+                         this->exec->copy_val_to_host(part->get_range_bounds() +
+                                                      range_id);
+                     global_row < this->exec->copy_val_to_host(
+                                      part->get_range_bounds() + range_id + 1);
+                     ++global_row) {
                     gather_idxs.push_back(global_row);
                 }
             }
