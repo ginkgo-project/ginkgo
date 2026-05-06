@@ -452,7 +452,8 @@ TYPED_TEST(Dense, CanMakeConstView)
 
 // but the clone will not work properly?
 class CustomDense
-    : public gko::EnablePolymorphicObject<CustomDense, gko::matrix::Dense<>> {
+    : public gko::EnablePolymorphicObject<CustomDense, gko::matrix::Dense<>>,
+      public gko::ConvertibleTo<CustomDense> {
     friend class gko::EnablePolymorphicObject<CustomDense,
                                               gko::matrix::Dense<>>;
 
@@ -465,6 +466,57 @@ public:
     }
 
     int get_data() const { return data_; }
+
+    void convert_to(CustomDense* result) const override { *result = *this; }
+
+    void move_to(CustomDense* result) override { *result = std::move(*this); }
+
+    CustomDense& operator=(const CustomDense& other)
+    {
+        if (&other != this) {
+            gko::EnablePolymorphicObject<
+                CustomDense, gko::matrix::Dense<>>::operator=(other);
+            data_ = other.data_;
+        }
+        return *this;
+    }
+
+    CustomDense& operator=(CustomDense&& other)
+    {
+        if (&other != this) {
+            gko::EnablePolymorphicObject<
+                CustomDense, gko::matrix::Dense<>>::operator=(std::move(other));
+            data_ = std::exchange(other.data_, 0);
+        }
+        return *this;
+    }
+
+    ClonableObject* copy_from_impl(const ClonableObject* other) override
+    {
+        gko::as<gko::ConvertibleTo<CustomDense>>(other)->convert_to(this);
+        return this;
+    }
+
+    ClonableObject* copy_from_impl(
+        std::unique_ptr<ClonableObject> other) override
+    {
+        gko::as<gko::ConvertibleTo<CustomDense>>(other.get())->move_to(this);
+        return this;
+    }
+
+    ClonableObject* move_from_impl(ClonableObject* other) override
+    {
+        gko::as<ConvertibleTo<CustomDense>>(other)->move_to(this);
+        return this;
+    }
+
+    ClonableObject* move_from_impl(
+        std::unique_ptr<ClonableObject> other) override
+    {
+        gko::as<ConvertibleTo<CustomDense>>(other.get())->move_to(this);
+        return this;
+    }
+
 
 private:
     explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
@@ -495,6 +547,16 @@ TEST(DenseView, CustomViewKeepsRuntimeType)
     ASSERT_EQ(view->get_values(), vector->get_values());
     EXPECT_TRUE(dynamic_cast<CustomDense*>(view.get()));
     ASSERT_EQ(dynamic_cast<CustomDense*>(view.get())->get_data(), 2);
+}
+
+TEST(DenseView, Clone)
+{
+    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
+                                      gko::dim<2>{3, 4}, 2);
+
+    auto v = gko::share(vector->clone());
+
+    GKO_ASSERT_EQ(gko::as<CustomDense>(v)->get_data(), 2);
 }
 
 
