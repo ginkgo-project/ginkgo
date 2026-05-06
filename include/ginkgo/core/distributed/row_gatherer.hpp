@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -90,7 +90,7 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
 template <typename LocalIndexType = int32>
 class RowGatherer final
     : public EnablePolymorphicObject<RowGatherer<LocalIndexType>>,
-      public EnablePolymorphicAssignment<RowGatherer<LocalIndexType>>,
+      public EnableClonableAssignment<RowGatherer<LocalIndexType>>,
       public DistributedBase {
     friend class EnablePolymorphicObject<RowGatherer, PolymorphicObject>;
     template <typename ValueT, typename LocalIndexT, typename GlobalIndexT>

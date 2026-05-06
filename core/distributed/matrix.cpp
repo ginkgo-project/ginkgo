@@ -51,11 +51,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     ptr_param<const LinOp> non_local_matrix_template)
     : EnableClonableLinOp<Matrix>{exec},
       DistributedBase{row_gather_template->get_communicator()},
-      row_gatherer_{row_gather_template->clone(exec)},
+      row_gatherer_{clone(exec, row_gather_template)},
       imap_{exec},
       one_scalar_{exec, 1.0},
-      local_mtx_{local_matrix_template->clone(exec)},
-      non_local_mtx_{non_local_matrix_template->clone(exec)}
+      local_mtx_{clone(exec, local_matrix_template.get())},
+      non_local_mtx_{clone(exec, non_local_matrix_template.get())}
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -206,9 +206,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->copy_from(this->local_mtx_);
-    result->non_local_mtx_->copy_from(this->non_local_mtx_);
-    result->row_gatherer_->copy_from(this->row_gatherer_);
+    as<ClonableObject>(result->local_mtx_)
+        ->copy_from(as<ClonableObject>(this->local_mtx_));
+    as<ClonableObject>(result->non_local_mtx_)
+        ->copy_from(as<ClonableObject>(this->non_local_mtx_));
+    as<ClonableObject>(result->row_gatherer_)
+        ->copy_from(as<ClonableObject>(this->row_gatherer_));
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -221,9 +224,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->move_from(this->local_mtx_);
-    result->non_local_mtx_->move_from(this->non_local_mtx_);
-    result->row_gatherer_->move_from(this->row_gatherer_);
+    as<ClonableObject>(result->local_mtx_)
+        ->move_from(as<ClonableObject>(this->local_mtx_));
+    as<ClonableObject>(result->non_local_mtx_)
+        ->move_from(as<ClonableObject>(this->non_local_mtx_));
+    as<ClonableObject>(result->row_gatherer_)
+        ->move_from(as<ClonableObject>(this->row_gatherer_));
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
     this->set_size({});
@@ -238,9 +244,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->copy_from(this->local_mtx_.get());
-    result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
-    result->row_gatherer_->copy_from(this->row_gatherer_);
+    as<ClonableObject>(result->local_mtx_)
+        ->copy_from(as<ClonableObject>(this->local_mtx_.get()));
+    as<ClonableObject>(result->non_local_mtx_)
+        ->copy_from(as<ClonableObject>(this->non_local_mtx_.get()));
+    as<ClonableObject>(result->row_gatherer_)
+        ->copy_from(as<ClonableObject>(this->row_gatherer_));
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -707,9 +716,12 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         GKO_ASSERT_EQ(other.get_communicator().size(),
                       this->get_communicator().size());
         this->set_size(other.get_size());
-        local_mtx_->copy_from(other.local_mtx_);
-        non_local_mtx_->copy_from(other.non_local_mtx_);
-        row_gatherer_->copy_from(other.row_gatherer_);
+        as<ClonableObject>(local_mtx_)
+            ->copy_from(as<ClonableObject>(other.local_mtx_));
+        as<ClonableObject>(non_local_mtx_)
+            ->copy_from(as<ClonableObject>(other.non_local_mtx_));
+        as<ClonableObject>(row_gatherer_)
+            ->copy_from(as<ClonableObject>(other.row_gatherer_));
         imap_ = other.imap_;
     }
     return *this;
@@ -725,9 +737,12 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
                       this->get_communicator().size());
         this->set_size(other.get_size());
         other.set_size({});
-        local_mtx_->move_from(other.local_mtx_);
-        non_local_mtx_->move_from(other.non_local_mtx_);
-        row_gatherer_->move_from(other.row_gatherer_);
+        as<ClonableObject>(local_mtx_)
+            ->move_from(as<ClonableObject>(other.local_mtx_));
+        as<ClonableObject>(non_local_mtx_)
+            ->move_from(as<ClonableObject>(other.non_local_mtx_));
+        as<ClonableObject>(row_gatherer_)
+            ->move_from(as<ClonableObject>(other.row_gatherer_));
         imap_ = std::move(other.imap_);
     }
     return *this;
