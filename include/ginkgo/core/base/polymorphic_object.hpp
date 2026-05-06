@@ -650,28 +650,62 @@ public:
 
     void move_to(result_type* result) override { *result = std::move(*self()); }
 
-private:
-    ClonableObject* copy_from_impl(const ClonableObject* other)
+protected:
+    ClonableObject* copy_from_impl(const ClonableObject* other) override
     {
+        self()->template log<log::Logger::polymorphic_object_copy_started>(
+            self()->get_executor().get(),
+            dynamic_cast<const PolymorphicObject*>(this),
+            dynamic_cast<const PolymorphicObject*>(other));
         as<ConvertibleTo<ConcreteType>>(other)->convert_to(self());
+        self()->template log<log::Logger::polymorphic_object_copy_completed>(
+            self()->get_executor().get(),
+            dynamic_cast<const PolymorphicObject*>(this),
+            dynamic_cast<const PolymorphicObject*>(other));
         return this;
     }
 
-    ClonableObject* copy_from_impl(std::unique_ptr<ClonableObject> other)
+    ClonableObject* copy_from_impl(
+        std::unique_ptr<ClonableObject> other) override
     {
-        as<ConvertibleTo<ConcreteType>>(other.get())->move_to(self());
+        self()->template log<log::Logger::polymorphic_object_copy_started>(
+            self()->get_executor().get(),
+            dynamic_cast<const PolymorphicObject*>(this),
+            dynamic_cast<const PolymorphicObject*>(other.get()));
+        as<ConvertibleTo<ConcreteType>>(other.get())->convert_to(self());
+        self()->template log<log::Logger::polymorphic_object_copy_completed>(
+            self()->get_executor().get(),
+            dynamic_cast<const PolymorphicObject*>(this),
+            dynamic_cast<const PolymorphicObject*>(other.get()));
         return this;
     }
 
-    ClonableObject* move_from_impl(ClonableObject* other)
+    ClonableObject* move_from_impl(ClonableObject* other) override
     {
+        self()->template log<log::Logger::polymorphic_object_move_started>(
+            self()->get_executor().get(),
+            dynamic_cast<const PolymorphicObject*>(other),
+            dynamic_cast<const PolymorphicObject*>(this));
         as<ConvertibleTo<ConcreteType>>(other)->move_to(self());
+        self()->template log<log::Logger::polymorphic_object_move_completed>(
+            self()->get_executor().get(),
+            dynamic_cast<const PolymorphicObject*>(other),
+            dynamic_cast<const PolymorphicObject*>(this));
         return this;
     }
 
-    ClonableObject* move_from_impl(std::unique_ptr<ClonableObject> other)
+    ClonableObject* move_from_impl(
+        std::unique_ptr<ClonableObject> other) override
     {
+        self()->template log<log::Logger::polymorphic_object_move_started>(
+            self()->get_executor().get(),
+            dynamic_cast<const PolymorphicObject*>(other.get()),
+            dynamic_cast<const PolymorphicObject*>(this));
         as<ConvertibleTo<ConcreteType>>(other.get())->move_to(self());
+        self()->template log<log::Logger::polymorphic_object_move_completed>(
+            self()->get_executor().get(),
+            dynamic_cast<const PolymorphicObject*>(other.get()),
+            dynamic_cast<const PolymorphicObject*>(this));
         return this;
     }
 
