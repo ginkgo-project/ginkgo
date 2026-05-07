@@ -70,12 +70,19 @@ namespace pgm {
         const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg, \
         array<IndexType>& intermediate_agg)
 
+#define GKO_DECLARE_PGM_SORT_ROW_MAJOR(ValueType, IndexType)         \
+    void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, \
+                        size_type nnz, IndexType* row_idxs,          \
+                        IndexType* col_idxs, ValueType* vals,        \
+                        IndexType* mapping_cols)
+
 #define GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType)         \
     void compute_coarse_coo(                                             \
         std::shared_ptr<const DefaultExecutor> exec, size_type fine_nnz, \
         const IndexType* row_idxs, const IndexType* col_idxs,            \
         const ValueType* vals,                                           \
-        matrix::view::coo<ValueType, IndexType> coarse_coo)
+        matrix::view::coo<ValueType, IndexType> coarse_coo,              \
+        IndexType* mapping_rows)
 
 #define GKO_DECLARE_PGM_GATHER_INDEX(IndexType)                    \
     void gather_index(std::shared_ptr<const DefaultExecutor> exec, \
@@ -102,6 +109,8 @@ namespace pgm {
     GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>              \
+    GKO_DECLARE_PGM_SORT_ROW_MAJOR(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType);      \
     template <typename IndexType>                                  \
