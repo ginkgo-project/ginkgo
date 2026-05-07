@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,21 +42,9 @@ make_hooks(std::vector<std::string>& output)
 #ifdef _MSC_VER
 std::string normalize_type_name(std::string s)
 {
-    // Remove all MSVC-specific "class " and "struct " tokens
     const std::string class_tok = "class ";
     const std::string struct_tok = "struct ";
 
-    for (;;) {
-        auto pos = s.find(class_tok);
-        if (pos == std::string::npos) {
-            break;
-        }
-        s.erase(pos, class_tok.size());
-    }
-    for (;;) {
-        auto pos = s.find(struct_tok);
-        if (pos == std::string::npos) break;
-        s.erase(pos, struct_tok.size());
     auto pos = s.find(class_tok);
     while (pos != std::string::npos) {
         s.erase(pos, class_tok.size());
@@ -65,25 +53,27 @@ std::string normalize_type_name(std::string s)
     pos = s.find(struct_tok);
     while (pos != std::string::npos) {
         s.erase(pos, struct_tok.size());
-        auto pos = s.find(struct_tok);
+        pos = s.find(
+            struct_tok);  // was: auto pos = ... (bug: shadowed outer pos)
     }
     return s;
 }
+
 #endif
 
-void normalize_type_names(std::vector<std::string> & output,
-                                 std::vector<std::string> & expected) {
-    #ifdef _MSC_VER
-    std::transform(output.begin(), output.end(), output.begin(),
-            [](std::string s) { return normalize_type_name(std::move(s)); });
+void normalize_type_names(std::vector<std::string>& output,
+                          std::vector<std::string>& expected)
+{
+#ifdef _MSC_VER
+    std::transform(
+        output.begin(), output.end(), output.begin(),
+        [](std::string s) { return normalize_type_name(std::move(s)); });
 
-    std::transform(expected.begin(), expected.end(), expected.begin(),
-            [](std::string s) { return normalize_type_name(std::move(s)); });
-    #endif
-
+    std::transform(
+        expected.begin(), expected.end(), expected.begin(),
+        [](std::string s) { return normalize_type_name(std::move(s)); });
+#endif
 }
-
-
 
 
 class DummyOperation : public gko::Operation {
