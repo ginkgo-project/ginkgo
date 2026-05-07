@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -331,4 +331,38 @@ TEST_F(Pgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
                         gko::as<Csr>(mg_level->get_coarse_op()),
                         r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_row_gather_view, row_gather_view);
+}
+
+
+TEST_F(Pgm, ReGenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
+{
+    initialize_data();
+    gko::test::unsort_matrix(system_mtx, rand_engine);
+    d_system_mtx = gko::clone(exec, system_mtx);
+    auto mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
+                                .with_deterministic(true)
+                                .on(ref);
+    auto d_mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
+                                  .with_deterministic(true)
+                                  .on(exec);
+
+    auto mg_level = mg_level_factory->generate(system_mtx);
+    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+    auto original_coarse = gko::clone(gko::as<Csr>(mg_level->get_coarse_op()));
+    auto d_original_coarse =
+        gko::clone(gko::as<Csr>(d_mg_level->get_coarse_op()));
+    auto alpha = gko::initialize<Mtx>({gko::one<value_type>() * 2}, exec);
+    system_mtx->scale(alpha);
+    d_system_mtx->scale(alpha);
+    d_mg_level->update_matrix_value(d_system_mtx);
+    mg_level->update_matrix_value(system_mtx);
+    original_coarse->scale(alpha);
+    d_original_coarse->scale(alpha);
+
+    GKO_ASSERT_MTX_NEAR(original_coarse,
+                        gko::as<Csr>(mg_level->get_coarse_op()),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_original_coarse,
+                        gko::as<Csr>(d_mg_level->get_coarse_op()),
+                        r<value_type>::value);
 }

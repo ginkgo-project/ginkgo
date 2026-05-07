@@ -4,10 +4,13 @@
 
 #include "ginkgo/core/multigrid/pgm.hpp"
 
+#include <utility>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -29,6 +32,7 @@
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -49,13 +53,15 @@ GKO_REGISTER_OPERATION(assign_to_exist_agg, pgm::assign_to_exist_agg);
 GKO_REGISTER_OPERATION(sort_agg, pgm::sort_agg);
 GKO_REGISTER_OPERATION(map_row, pgm::map_row);
 GKO_REGISTER_OPERATION(map_col, pgm::map_col);
-GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
+GKO_REGISTER_OPERATION(sort_row_major, pgm::sort_row_major);
 GKO_REGISTER_OPERATION(count_unrepeated_nnz, pgm::count_unrepeated_nnz);
 GKO_REGISTER_OPERATION(compute_coarse_coo, pgm::compute_coarse_coo);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(gather_index, pgm::gather_index);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 
 
 }  // anonymous namespace
@@ -90,11 +96,13 @@ void agg_to_restrict(std::shared_ptr<const Executor> exec, IndexType num_agg,
 
 
 template <typename ValueType, typename IndexType>
-std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
-    std::shared_ptr<const Executor> exec,
-    const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
-    const gko::array<IndexType>& agg, IndexType off_diag_num_agg,
-    const gko::array<IndexType>& off_diag_agg)
+std::pair<std::shared_ptr<matrix::Csr<ValueType, IndexType>>,
+          std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>>>
+generate_coarse(std::shared_ptr<const Executor> exec,
+                const matrix::Csr<ValueType, IndexType>* fine_csr,
+                IndexType num_agg, const gko::array<IndexType>& agg,
+                IndexType off_diag_num_agg,
+                const gko::array<IndexType>& off_diag_agg)
 {
     const auto num = fine_csr->get_size()[0];
     const auto nnz = fine_csr->get_num_stored_elements();
@@ -103,15 +111,16 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     gko::array<ValueType> vals(exec, nnz);
     // might always need to use int64? because nnz can be larger than IndexType
     // max.
-    gko::array<IndexType> mapping(exec, nnz);
+    gko::array<IndexType> mapping_cols(exec, nnz);
     exec->copy_from(exec, nnz, fine_csr->get_const_values(), vals.get_data());
 
     if (nnz == 0) {
-        return matrix::Csr<ValueType, IndexType>::create(
-            exec, dim<2>(num_agg, off_diag_num_agg));
+        return std::make_pair(matrix::Csr<ValueType, IndexType>::create(
+                                  exec, dim<2>(num_agg, off_diag_num_agg)),
+                              nullptr);
     }
 
-    exec->run(pgm::make_fill_seq_array(mapping.get_data(), nnz));
+    exec->run(pgm::make_fill_seq_array(mapping_cols.get_data(), nnz));
 
     // map row_ptrs to coarse row index
     exec->run(pgm::make_map_row(num, fine_csr->get_const_row_ptrs(),
@@ -127,14 +136,14 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     // stable_sort_by_key
     exec->run(pgm::make_sort_row_major(nnz, row_idxs.get_data(),
                                        col_idxs.get_data(), vals.get_data(),
-                                       mapping.get_data()));
+                                       mapping_cols.get_data()));
     // compute the total nnz and create the fine csr
     size_type coarse_nnz = 0;
     exec->run(pgm::make_count_unrepeated_nnz(nnz, row_idxs.get_const_data(),
                                              col_idxs.get_const_data(),
                                              &coarse_nnz));
     // mapping can be col index for sparsity csr
-
+    gko::array<IndexType> mapping_rows(exec, coarse_nnz + 1);
     // reduce by key (row, col)
     auto coarse_coo = matrix::Coo<ValueType, IndexType>::create(
         exec,
@@ -143,19 +152,26 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         coarse_nnz);
     exec->run(pgm::make_compute_coarse_coo(
         nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
-        vals.get_const_data(), coarse_coo->get_device_view()));
+        vals.get_const_data(), coarse_coo->get_device_view(),
+        mapping_rows.get_data()));
+    exec->run(pgm::make_prefix_sum_nonnegative(mapping_rows.get_data(),
+                                               coarse_nnz + 1));
     // use move_to
     auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
     coarse_csr->move_from(coarse_coo);
-    return std::move(coarse_csr);
+    auto mapping_csr = matrix::SparsityCsr<ValueType, IndexType>::create(
+        exec, dim<2>{coarse_nnz, nnz}, std::move(mapping_cols),
+        std::move(mapping_rows));
+    return std::make_pair(std::move(coarse_csr), std::move(mapping_csr));
 }
 
 
 template <typename ValueType, typename IndexType>
-std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
-    std::shared_ptr<const Executor> exec,
-    const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
-    const gko::array<IndexType>& agg)
+std::pair<std::shared_ptr<matrix::Csr<ValueType, IndexType>>,
+          std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>>>
+generate_coarse(std::shared_ptr<const Executor> exec,
+                const matrix::Csr<ValueType, IndexType>* fine_csr,
+                IndexType num_agg, const gko::array<IndexType>& agg)
 {
     return generate_coarse(exec, fine_csr, num_agg, agg, num_agg, agg);
 }
@@ -265,9 +281,9 @@ Pgm<ValueType, IndexType>::generate_local(
 
     // Construct the coarse matrix
     // TODO: improve it
-    auto coarse_matrix =
+    auto [coarse_matrix, mapping_matrix] =
         generate_coarse(exec, local_matrix.get(), num_agg_, agg_);
-
+    mapping_local_ = mapping_matrix;
     return std::tie(prolong_row_gather, coarse_matrix, restrict_sparsity);
 }
 
@@ -446,11 +462,12 @@ void Pgm<ValueType, IndexType>::generate()
             // different row and col maps.
             auto off_diag_csr =
                 as<const csr_type>(matrix->get_off_diag_matrix());
-            auto result_off_diag_csr = generate_coarse(
+            auto [result_off_diag_csr, mapping_non_local] = generate_coarse(
                 exec, off_diag_csr.get(),
                 static_cast<IndexType>(std::get<1>(result)->get_size()[0]),
                 agg_, static_cast<IndexType>(coarse_imap.get_non_local_size()),
                 off_diag_map);
+            mapping_non_local_ = mapping_non_local;
 
             // setup the generated linop.
             auto coarse = share(
@@ -565,28 +582,69 @@ void Pgm<ValueType, IndexType>::update_matrix_value(
             auto pgm_local_op =
                 gko::as<const csr_type>(matrix->get_local_matrix());
 
-            auto coarse_local_matrix = generate_coarse(
-                this->get_executor(), pgm_local_op.get(), num_agg_, agg_);
+            auto pgm_local_vals = matrix::Dense<ValueType>::create_const(
+                this->get_executor(),
+                dim<2>{pgm_local_op->get_num_stored_elements(), 1},
+                make_const_array_view(this->get_executor(),
+                                      pgm_local_op->get_num_stored_elements(),
+                                      pgm_local_op->get_const_values()),
+                1);
+            using global_index_type =
+                typename std::decay_t<decltype(*matrix)>::global_index_type;
+            auto coarse =
+                as<experimental::distributed::Matrix<ValueType, IndexType,
+                                                     global_index_type>>(
+                    this->get_coarse_op());
+            // current composition only return const
+            auto coarse_local = const_cast<csr_type*>(
+                gko::as<csr_type>(coarse->get_local_matrix()).get());
+            auto coarse_local_vals = matrix::Dense<ValueType>::create(
+                this->get_executor(),
+                dim<2>{coarse_local->get_num_stored_elements(), 1},
+                make_array_view(this->get_executor(),
+                                coarse_local->get_num_stored_elements(),
+                                coarse_local->get_values()),
+                1);
+            mapping_local_->apply(pgm_local_vals, coarse_local_vals);
+            // auto [coarse_local_matrix, mapping_local] = generate_coarse(
+            //     this->get_executor(), pgm_local_op.get(), num_agg_, agg_);
 
             auto non_local_csr =
                 as<const csr_type>(matrix->get_non_local_matrix());
-
-            auto result_non_local_csr =
-                generate_coarse(exec, non_local_csr.get(), num_agg_, agg_,
-                                non_local_num_agg_, non_local_col_map_);
+            auto non_local_vals = matrix::Dense<ValueType>::create_const(
+                this->get_executor(),
+                dim<2>{non_local_csr->get_num_stored_elements(), 1},
+                make_const_array_view(this->get_executor(),
+                                      non_local_csr->get_num_stored_elements(),
+                                      non_local_csr->get_const_values()),
+                1);
+            // current composition only return const
+            auto coarse_non_local = const_cast<csr_type*>(
+                gko::as<csr_type>(coarse->get_non_local_matrix()).get());
+            auto coarse_non_local_vals = matrix::Dense<ValueType>::create(
+                this->get_executor(),
+                dim<2>{coarse_non_local->get_num_stored_elements(), 1},
+                make_array_view(this->get_executor(),
+                                coarse_non_local->get_num_stored_elements(),
+                                coarse_non_local->get_values()),
+                1);
+            mapping_local_->apply(pgm_local_vals, coarse_local_vals);
+            // auto [result_non_local_csr, mapping_non_local] =
+            //     generate_coarse(exec, non_local_csr.get(), num_agg_, agg_,
+            //                     non_local_num_agg_, non_local_col_map_);
 
             // setup the generated linop.
             using global_index_type =
                 typename std::decay_t<decltype(*matrix)>::global_index_type;
-            auto coarse = share(
-                experimental::distributed::
-                    Matrix<ValueType, IndexType, global_index_type>::create(
-                        exec, comm, this->get_coarse_op()->get_size(),
-                        coarse_local_matrix, result_non_local_csr,
-                        new_recv_size_, new_recv_offsets_,
-                        new_recv_gather_idxs_));
-            this->set_multigrid_level(this->get_prolong_op(), coarse,
-                                      this->get_restrict_op());
+            // auto coarse = share(
+            //     experimental::distributed::
+            //         Matrix<ValueType, IndexType, global_index_type>::create(
+            //             exec, comm, this->get_coarse_op()->get_size(),
+            //             coarse_local_matrix, result_non_local_csr,
+            //             new_recv_size_, new_recv_offsets_,
+            //             new_recv_gather_idxs_));
+            // this->set_multigrid_level(this->get_prolong_op(), coarse,
+            //                           this->get_restrict_op());
         };
         // the fine op is using csr with the current ValueType
         run<fst_mtx_type, snd_mtx_type>(this->get_fine_op(), distributed_setup);
@@ -601,10 +659,27 @@ void Pgm<ValueType, IndexType>::update_matrix_value(
             // keep the same precision data in fine_op
             this->set_fine_op(pgm_op);
         }
-        auto coarse_matrix =
-            generate_coarse(this->get_executor(), pgm_op.get(), num_agg_, agg_);
-        this->set_multigrid_level(this->get_prolong_op(), coarse_matrix,
-                                  this->get_restrict_op());
+        auto pgm_vals = matrix::Dense<ValueType>::create_const(
+            this->get_executor(), dim<2>{pgm_op->get_num_stored_elements(), 1},
+            make_const_array_view(this->get_executor(),
+                                  pgm_op->get_num_stored_elements(),
+                                  pgm_op->get_const_values()),
+            1);
+        // current composition only return const
+        auto coarse = const_cast<csr_type*>(
+            gko::as<csr_type>(this->get_coarse_op()).get());
+        auto coarse_vals = matrix::Dense<ValueType>::create(
+            this->get_executor(), dim<2>{coarse->get_num_stored_elements(), 1},
+            make_array_view(this->get_executor(),
+                            coarse->get_num_stored_elements(),
+                            coarse->get_values()),
+            1);
+        mapping_local_->apply(pgm_vals, coarse_vals);
+        // auto [coarse_matrix, mapping_matrix] =
+        //     generate_coarse(this->get_executor(), pgm_op.get(), num_agg_,
+        //     agg_);
+        // this->set_multigrid_level(this->get_prolong_op(), coarse_matrix,
+        //                           this->get_restrict_op());
     }
 }
 
