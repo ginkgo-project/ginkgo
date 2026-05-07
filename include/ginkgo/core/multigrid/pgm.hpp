@@ -18,6 +18,7 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 
@@ -227,9 +228,13 @@ private:
     std::shared_ptr<const LinOp> system_matrix_{};
     array<IndexType> agg_;
     IndexType num_agg_;
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_local_;
 #if GINKGO_BUILD_MPI
     IndexType off_diag_num_agg_;
     array<IndexType> off_diag_col_map_;
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_off_diag_;
 #endif
 };
 
