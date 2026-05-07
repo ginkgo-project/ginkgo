@@ -103,7 +103,7 @@ public:
          * (the default), only the selected coarse rows participate,
          * which can produce disconnected coarse graphs.
          */
-        bool GKO_FACTORY_PARAMETER_SCALAR(enforce_connectedness, false);
+        bool GKO_FACTORY_PARAMETER_SCALAR(enforce_connectedness, true);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be
