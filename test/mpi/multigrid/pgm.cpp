@@ -113,3 +113,48 @@ TYPED_TEST(Pgm, CanGenerateFromDistributedMatrix)
         gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
         res_off_diag[rank], r<value_type>::value);
 }
+
+
+TYPED_TEST(Pgm, CanReGenerateFromDistributedMatrix)
+{
+    using pgm = typename TestFixture::pgm;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    auto pgm_factory = pgm::build().on(this->exec);
+    auto result = pgm_factory->generate(this->dist_mat);
+    auto rank = this->comm.rank();
+    gko::matrix_data<value_type, global_index_type> new_mat_input{
+        {8, 8}, {{0, 0, 5},  {0, 1, -3}, {1, 0, -1}, {1, 1, 5},  {2, 2, 5},
+                 {3, 3, 5},  {4, 4, 5},  {4, 6, -2}, {5, 5, 5},  {5, 7, -2},
+                 {6, 4, -2}, {6, 6, 5},  {7, 5, -2}, {7, 7, 5},  {0, 2, -3},
+                 {0, 4, 1},  {0, 5, 2},  {0, 6, 3},  {1, 3, -7}, {1, 5, 4},
+                 {1, 6, 5},  {1, 7, -5}, {2, 0, -3}, {2, 5, -1}, {2, 6, -9},
+                 {3, 1, -4}, {3, 7, -5}, {4, 0, 1},  {5, 0, 2},  {5, 1, -1},
+                 {5, 2, -1}, {6, 0, 3},  {6, 1, 5},  {6, 2, -2}, {7, 1, 6},
+                 {7, 3, -5}}};
+    auto new_dist_mat =
+        gko::share(dist_mtx_type::create(this->exec, this->comm));
+    new_dist_mat->read_distributed(new_mat_input, this->row_part);
+    I<I<value_type>> res_local[] = {{{6}}, {{5, 0}, {0, 5}}, {{6, 0}, {0, 6}}};
+    // the non_local new index should follow the local matrix
+    // For example, we only store the nonzeros part like [* -1 -2 *] in
+    // matrix[2, 4:8], whose * is not in the storage. The 1st and 3rd elements
+    // are aggregated to the first group but the rest are aggregated to the
+    // second group. Although the stored elements are not aggregated to the same
+    // group, we still need to reorder to fit the local matrix ordering. i.e.
+    // [-1 -2] -> [-2 -1] after aggregation.
+    I<I<value_type>> res_non_local[] = {{{-3, -7, 9, 1}},
+                                        {{-3, -9, -1}, {-4, 0, -5}},
+                                        {{9, -2, 0}, {7, -1, -5}}};
+    result->update_matrix_value(new_dist_mat);
+
+
+    auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_local_matrix()),
+                        res_local[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<local_matrix_type>(coarse->get_non_local_matrix()),
+        res_non_local[rank], r<value_type>::value);
+}
