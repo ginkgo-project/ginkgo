@@ -523,7 +523,7 @@ TYPED_TEST(Pgm, GenerateMgLevel)
 }
 
 
-TYPED_TEST(Pgm, ReGenerateMgLevel)
+TYPED_TEST(Pgm, ReGenerateMgLevelOnTheSameMatrix)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -550,6 +550,70 @@ TYPED_TEST(Pgm, ReGenerateMgLevel)
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
                         this->coarse, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
+}
+
+
+TYPED_TEST(Pgm, ReGenerateMgLevelOnTheDifferentMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    using SparsityCsr = typename TestFixture::SparsityCsr;
+    using RowGatherer = typename TestFixture::RowGatherer;
+    auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
+    // 0-2-4, 1-3
+    prolong_op->read(
+        {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
+    auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
+    // give a different matrix which should be different matrix if we do it from
+    // scratch
+    auto new_matrix = gko::share(Mtx::create(this->exec));
+    new_matrix->read({{5, 5},
+                      {{0, 0, 5},
+                       {0, 1, -9},  // make these two strong
+                       {0, 2, -3},
+                       {1, 0, -9},  // make these two strong
+                       {1, 1, 5},
+                       {1, 3, -2},
+                       {1, 4, -1},
+                       {2, 0, -3},
+                       {2, 2, 5},
+                       {2, 4, -1},
+                       {3, 1, -3},
+                       {3, 3, 5},
+                       {4, 1, -2},
+                       {4, 2, -2},
+                       {4, 4, 5}}});
+    auto new_coarse_matrix = Mtx::create(this->exec);
+    // -3 -> -9, so add -6 to (0, 1) and (1, 0)
+    new_coarse_matrix->read(
+        {{2, 2}, {{0, 0, 6}, {0, 1, -11}, {1, 0, -10}, {1, 1, 5}}});
+
+    auto coarse_fine = this->pgm_factory->generate(this->mtx);
+    coarse_fine->update_matrix_value(new_matrix);
+    auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
+    auto row_gather_view = gko::array<index_type>::const_view(
+        this->exec, row_gatherer->get_size()[0],
+        row_gatherer->get_const_row_idxs());
+    auto expected_row_gather =
+        gko::array<index_type>(this->exec, {0, 1, 0, 1, 0});
+    // we also generate on new_matrix from scratch to check it gives different
+    // again.
+    auto new_coarse_fine = this->pgm_factory->generate(new_matrix);
+    auto new_row_gatherer =
+        gko::as<RowGatherer>(new_coarse_fine->get_prolong_op());
+    auto new_row_gather_view = gko::array<index_type>::const_view(
+        this->exec, new_row_gatherer->get_size()[0],
+        new_row_gatherer->get_const_row_idxs());
+    auto new_expected_row_gather =
+        gko::array<index_type>(this->exec, {0, 0, 1, 0, 1});
+
+    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
+                        restrict_op, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
+                        new_coarse_matrix, r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
+    GKO_ASSERT_ARRAY_EQ(new_row_gather_view, new_expected_row_gather);
 }
 
 
@@ -598,6 +662,67 @@ TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
                         restrict_op, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
                         this->coarse, r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
+}
+
+
+TYPED_TEST(Pgm, ReGenerateMgLevelOnDifferentUnsortedMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    using SparsityCsr = typename TestFixture::SparsityCsr;
+    using MgLevel = typename TestFixture::MgLevel;
+    using RowGatherer = typename TestFixture::RowGatherer;
+    auto mglevel_sort = MgLevel::build()
+                            .with_max_iterations(2u)
+                            .with_max_unassigned_ratio(0.1)
+                            .on(this->exec);
+    /* this unsorted matrix is stored as this->fine:
+     *  5 -3 -3  0  0
+     * -3  5  0 -2 -1
+     * -3  0  5  0 -1
+     *  0 -3  0  5  0
+     *  0 -2 -2  0  5
+     */
+    auto matrix = gko::share(Mtx::create(
+        this->exec, gko::dim<2>{5, 5},
+        gko::array<value_type>{
+            this->exec,
+            {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5}},
+        gko::array<index_type>{this->exec,
+                               {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
+        gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
+    auto new_matrix = gko::share(Mtx::create(
+        this->exec, gko::dim<2>{5, 5},
+        gko::array<value_type>{
+            this->exec,
+            {-9, -3, 5, -9, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5}},
+        gko::array<index_type>{this->exec,
+                               {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
+        gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
+    auto new_coarse_matrix = Mtx::create(this->exec);
+    new_coarse_matrix->read(
+        {{2, 2}, {{0, 0, 6}, {0, 1, -11}, {1, 0, -10}, {1, 1, 5}}});
+    auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
+    // 0-2-4, 1-3
+    prolong_op->read(
+        {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
+    auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
+
+    auto coarse_fine = mglevel_sort->generate(matrix);
+    coarse_fine->update_matrix_value(new_matrix);
+    auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
+    auto row_gather_view = gko::array<index_type>::const_view(
+        this->exec, row_gatherer->get_size()[0],
+        row_gatherer->get_const_row_idxs());
+    auto expected_row_gather =
+        gko::array<index_type>(this->exec, {0, 1, 0, 1, 0});
+
+    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
+                        restrict_op, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
+                        new_coarse_matrix, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
 }
 
