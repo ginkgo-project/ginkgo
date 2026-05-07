@@ -328,7 +328,7 @@ TEST_F(Pgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
 }
 
 
-TEST_F(Pgm, ReGenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
+TEST_F(Pgm, ReGenerateMgLevelIsEquivalentToRefOnScaledUnsortedMatrix)
 {
     initialize_data();
     gko::test::unsort_matrix(system_mtx, rand_engine);
@@ -342,21 +342,41 @@ TEST_F(Pgm, ReGenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
 
     auto mg_level = mg_level_factory->generate(system_mtx);
     auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
-    auto original_coarse = gko::clone(gko::as<Csr>(mg_level->get_coarse_op()));
-    auto d_original_coarse =
-        gko::clone(gko::as<Csr>(d_mg_level->get_coarse_op()));
     auto alpha = gko::initialize<Mtx>({gko::one<value_type>() * 2}, exec);
     system_mtx->scale(alpha);
     d_system_mtx->scale(alpha);
     d_mg_level->update_matrix_value(d_system_mtx);
     mg_level->update_matrix_value(system_mtx);
-    original_coarse->scale(alpha);
-    d_original_coarse->scale(alpha);
 
-    GKO_ASSERT_MTX_NEAR(original_coarse,
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
                         gko::as<Csr>(mg_level->get_coarse_op()),
                         r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(d_original_coarse,
-                        gko::as<Csr>(d_mg_level->get_coarse_op()),
+}
+
+
+TEST_F(Pgm, ReGenerateMgLevelIsEquivalentToRefOnDifferentUnsortedMatrix)
+{
+    initialize_data();
+    gko::test::unsort_matrix(system_mtx, rand_engine);
+    d_system_mtx = gko::clone(exec, system_mtx);
+    auto mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
+                                .with_deterministic(true)
+                                .on(ref);
+    auto d_mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
+                                  .with_deterministic(true)
+                                  .on(exec);
+
+    auto mg_level = mg_level_factory->generate(system_mtx);
+    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
+    for (gko::size_type i = 0; i < system_mtx->get_num_stored_elements(); i++) {
+        system_mtx->get_values()[i] = gko::detail::get_rand_value<value_type>(
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+    }
+    d_system_mtx = gko::clone(exec, system_mtx);
+    d_mg_level->update_matrix_value(d_system_mtx);
+    mg_level->update_matrix_value(system_mtx);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
+                        gko::as<Csr>(mg_level->get_coarse_op()),
                         r<value_type>::value);
 }
