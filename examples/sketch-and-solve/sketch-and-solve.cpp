@@ -125,18 +125,23 @@ void sketch_and_solve(std::shared_ptr<const gko::Executor> exec, const vec* A,
             .count() /
         num_reps;
 
-    // Timed solve: form (SA)^T SA, (SA)^T Sb, then CG
+    // Time normal equations formation: (SA)^T SA, (SA)^T Sb
     x->fill(0.0);
     exec->synchronize();
 
     tic = std::chrono::steady_clock::now();
-
     auto SA_t = gko::as<vec>(SA->transpose());
     auto AtA = vec::create(exec, gko::dim<2>{n, n});
     SA_t->apply(SA, AtA);
     auto Atb = vec::create(exec, gko::dim<2>{n, 1});
     SA_t->apply(Sb, Atb);
+    exec->synchronize();
+    toc = std::chrono::steady_clock::now();
+    auto normeq_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(toc - tic)
+            .count();
 
+    // Time GMRES solve
     auto solver =
         gko::solver::Gmres<ValueType>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(
@@ -146,12 +151,18 @@ void sketch_and_solve(std::shared_ptr<const gko::Executor> exec, const vec* A,
             .on(exec)
             ->generate(gko::share(std::move(AtA)));
 
+    auto logger = gko::share(gko::log::Convergence<ValueType>::create());
+    solver->add_logger(logger);
+
+    exec->synchronize();
+    tic = std::chrono::steady_clock::now();
     solver->apply(Atb, x);
     exec->synchronize();
     toc = std::chrono::steady_clock::now();
     auto solve_us =
         std::chrono::duration_cast<std::chrono::microseconds>(toc - tic)
             .count();
+    auto iters = logger->get_num_iterations();
 
     // Compute relative residual ||Ax - b|| / ||b||
     auto host = exec->get_master();
@@ -167,7 +178,8 @@ void sketch_and_solve(std::shared_ptr<const gko::Executor> exec, const vec* A,
 
     std::cout << std::left << std::setw(16) << label << std::right
               << std::setw(10) << setup_us << " us" << std::setw(10)
-              << sketch_us << " us" << std::setw(10) << solve_us << " us"
+              << sketch_us << " us" << std::setw(10) << normeq_us << " us"
+              << std::setw(10) << solve_us << " us" << std::setw(6) << iters
               << std::setw(14) << std::scientific << std::setprecision(4)
               << rel_res << std::endl;
 }
@@ -182,15 +194,20 @@ void direct_solve(std::shared_ptr<const gko::Executor> exec, const vec* A,
     x->fill(0.0);
     exec->synchronize();
 
-    // Time everything: A^T A, A^T b, CG solve
+    // Time normal equations formation: A^T A, A^T b
     auto tic = std::chrono::steady_clock::now();
-
     auto A_t = gko::as<vec>(A->transpose());
     auto AtA = vec::create(exec, gko::dim<2>{n, n});
     A_t->apply(A, AtA);
     auto Atb = vec::create(exec, gko::dim<2>{n, 1});
     A_t->apply(b, Atb);
+    exec->synchronize();
+    auto toc = std::chrono::steady_clock::now();
+    auto normeq_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(toc - tic)
+            .count();
 
+    // Time GMRES solve
     auto solver =
         gko::solver::Gmres<ValueType>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(
@@ -200,12 +217,18 @@ void direct_solve(std::shared_ptr<const gko::Executor> exec, const vec* A,
             .on(exec)
             ->generate(gko::share(std::move(AtA)));
 
+    auto logger = gko::share(gko::log::Convergence<ValueType>::create());
+    solver->add_logger(logger);
+
+    exec->synchronize();
+    tic = std::chrono::steady_clock::now();
     solver->apply(Atb, x);
     exec->synchronize();
-    auto toc = std::chrono::steady_clock::now();
+    toc = std::chrono::steady_clock::now();
     auto solve_us =
         std::chrono::duration_cast<std::chrono::microseconds>(toc - tic)
             .count();
+    auto iters = logger->get_num_iterations();
 
     auto host = exec->get_master();
     auto res_vec = gko::clone(exec, b);
@@ -219,11 +242,11 @@ void direct_solve(std::shared_ptr<const gko::Executor> exec, const vec* A,
     auto rel_res = res_norm->at(0, 0) / b_norm->at(0, 0);
 
     std::cout << std::left << std::setw(16) << "Direct" << std::right
-              << std::setw(10) << "---"
-              << "   " << std::setw(10) << "---"
-              << "   " << std::setw(10) << solve_us << " us" << std::setw(14)
-              << std::scientific << std::setprecision(4) << rel_res
-              << std::endl;
+              << std::setw(10) << "---" << "   " << std::setw(10) << "---"
+              << "   " << std::setw(10) << normeq_us << " us"
+              << std::setw(10) << solve_us << " us" << std::setw(6) << iters
+              << std::setw(14) << std::scientific << std::setprecision(4)
+              << rel_res << std::endl;
 }
 
 
@@ -299,9 +322,10 @@ int main(int argc, char* argv[])
     // system)
     std::cout << std::left << std::setw(16) << "Method" << std::right
               << std::setw(13) << "Setup" << std::setw(13) << "Sketch"
-              << std::setw(13) << "Solve" << std::setw(14) << "||Ax-b||/||b||"
-              << "\n"
-              << std::string(69, '-') << std::endl;
+              << std::setw(13) << "NormEq" << std::setw(13) << "Solve"
+              << std::setw(6) << "Iters" << std::setw(14)
+              << "||Ax-b||/||b||" << "\n"
+              << std::string(88, '-') << std::endl;
 
     if (sketch_type == "all" || sketch_type == "gaussian") {
         exec->synchronize();
