@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -214,12 +214,16 @@ private:
     std::shared_ptr<const LinOp> system_matrix_{};
     array<IndexType> agg_;
     IndexType num_agg_;
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_local_;
 #if GINKGO_BUILD_MPI
     IndexType non_local_num_agg_;
     array<IndexType> non_local_col_map_;
     std::vector<experimental::distributed::comm_index_type> new_recv_size_;
     std::vector<experimental::distributed::comm_index_type> new_recv_offsets_;
     array<IndexType> new_recv_gather_idxs_;
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_non_local_;
 #endif
 };
 

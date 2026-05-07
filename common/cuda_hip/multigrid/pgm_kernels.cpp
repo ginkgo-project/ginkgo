@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <thrust/device_ptr.h>
+#include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
@@ -83,15 +84,15 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
-                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
+                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals,
+                    IndexType* mapping_cols)
 {
-    auto vals_it = as_device_type(vals);
+    auto vals_it = thrust::make_zip_iterator(
+        thrust::make_tuple(as_device_type(vals), mapping_cols));
     auto it = thrust::make_zip_iterator(thrust::make_tuple(row_idxs, col_idxs));
-    // Because reduce_by_key is not deterministic, so we do not need
-    // stable_sort_by_key
-    // TODO: If we have deterministic reduce_by_key, it should be
-    // stable_sort_by_key
-    thrust::sort_by_key(thrust_policy(exec), it, it + nnz, vals_it);
+    // we use stable_sort_by_key to make the mapping is still sorted when the
+    // original is sorted.
+    thrust::stable_sort_by_key(thrust_policy(exec), it, it + nnz, vals_it);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
@@ -101,21 +102,31 @@ template <typename ValueType, typename IndexType>
 void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         size_type fine_nnz, const IndexType* row_idxs,
                         const IndexType* col_idxs, const ValueType* vals,
-                        matrix::Coo<ValueType, IndexType>* coarse_coo)
+                        matrix::Coo<ValueType, IndexType>* coarse_coo,
+                        IndexType* mapping_rows)
 {
-    auto vals_it = as_device_type(vals);
+    auto vals_it = thrust::make_zip_iterator(thrust::make_tuple(
+        as_device_type(vals), thrust::make_constant_iterator<IndexType>(1)));
     // this const_cast is necessary as a workaround for CCCL bug
     // https://github.com/NVIDIA/cccl/issues/1527
     // shipped with CUDA 12.4
     auto key_it = thrust::make_zip_iterator(thrust::make_tuple(
         const_cast<IndexType*>(row_idxs), const_cast<IndexType*>(col_idxs)));
 
-    auto coarse_vals_it = as_device_type(coarse_coo->get_values());
+    auto coarse_vals_it = thrust::make_zip_iterator(thrust::make_tuple(
+        as_device_type(coarse_coo->get_values()), mapping_rows));
     auto coarse_key_it = thrust::make_zip_iterator(thrust::make_tuple(
         coarse_coo->get_row_idxs(), coarse_coo->get_col_idxs()));
 
-    thrust::reduce_by_key(thrust_policy(exec), key_it, key_it + fine_nnz,
-                          vals_it, coarse_key_it, coarse_vals_it);
+    thrust::reduce_by_key(
+        thrust_policy(exec), key_it, key_it + fine_nnz, vals_it, coarse_key_it,
+        coarse_vals_it,
+        [] __device__(const auto& lhs, const auto& rhs) { return lhs == rhs; },
+        [] __device__(const auto& lhs, const auto& rhs) {
+            return thrust::make_tuple(
+                thrust::get<0>(lhs) + thrust::get<0>(rhs),
+                thrust::get<1>(lhs) + thrust::get<1>(rhs));
+        });
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

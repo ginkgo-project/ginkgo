@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -72,7 +72,8 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
-                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals)
+                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals,
+                    IndexType* mapping_cols)
 {
     auto policy = onedpl_policy(exec);
     auto it = oneapi::dpl::make_zip_iterator(row_idxs, col_idxs, vals);
@@ -97,7 +98,8 @@ template <typename ValueType, typename IndexType>
 void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         size_type fine_nnz, const IndexType* row_idxs,
                         const IndexType* col_idxs, const ValueType* vals,
-                        matrix::Coo<ValueType, IndexType>* coarse_coo)
+                        matrix::Coo<ValueType, IndexType>* coarse_coo,
+                        IndexType* mapping_rows)
 {
     // WORKAROUND: reduce_by_segment needs unique policy. Otherwise, dpcpp
     // throws same mangled name error. Related:

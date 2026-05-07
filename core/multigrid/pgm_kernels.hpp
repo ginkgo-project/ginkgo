@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -72,13 +72,15 @@ namespace pgm {
 #define GKO_DECLARE_PGM_SORT_ROW_MAJOR(ValueType, IndexType)         \
     void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, \
                         size_type nnz, IndexType* row_idxs,          \
-                        IndexType* col_idxs, ValueType* vals)
+                        IndexType* col_idxs, ValueType* vals,        \
+                        IndexType* mapping_cols)
 
 #define GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType)              \
     void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,      \
                             size_type fine_nnz, const IndexType* row_idxs,    \
                             const IndexType* col_idxs, const ValueType* vals, \
-                            matrix::Coo<ValueType, IndexType>* coarse_coo)
+                            matrix::Coo<ValueType, IndexType>* coarse_coo,    \
+                            IndexType* mapping_rows)
 
 #define GKO_DECLARE_PGM_GATHER_INDEX(IndexType)                    \
     void gather_index(std::shared_ptr<const DefaultExecutor> exec, \
