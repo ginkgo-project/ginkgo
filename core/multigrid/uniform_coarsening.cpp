@@ -154,9 +154,13 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         gko::dim<2>{static_cast<size_type>(num_agg),
                     static_cast<size_type>(non_local_num_agg)},
         coarse_nnz);
+    // the coarse-to-fine mapping is only used by Pgm to update the coarse
+    // values without regenerating the aggregates, so it is discarded here.
+    gko::array<IndexType> mapping_rows(exec, coarse_nnz + 1);
     exec->run(uniform_coarsening::make_compute_coarse_coo(
         nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
-        vals.get_const_data(), coarse_coo->get_device_view()));
+        vals.get_const_data(), coarse_coo->get_device_view(),
+        mapping_rows.get_data()));
     auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
     coarse_csr->move_from(coarse_coo);
     return std::move(coarse_csr);
