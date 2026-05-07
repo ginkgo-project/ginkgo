@@ -627,7 +627,7 @@ void Pgm<ValueType, IndexType>::update_matrix_value(
                                 coarse_off_diag->get_num_stored_elements(),
                                 coarse_off_diag->get_values()),
                 1);
-            mapping_local_->apply(pgm_local_vals, coarse_diag_vals);
+            mapping_off_diag_->apply(off_diag_vals, coarse_off_diag_vals);
         };
         // the fine op is using csr with the current ValueType
         run<fst_mtx_type, snd_mtx_type>(this->get_fine_op(), distributed_setup);
