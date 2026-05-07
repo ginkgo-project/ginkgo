@@ -628,7 +628,7 @@ void Pgm<ValueType, IndexType>::update_matrix_value(
                                 coarse_non_local->get_num_stored_elements(),
                                 coarse_non_local->get_values()),
                 1);
-            mapping_local_->apply(pgm_local_vals, coarse_local_vals);
+            mapping_non_local_->apply(non_local_vals, coarse_non_local_vals);
             // auto [result_non_local_csr, mapping_non_local] =
             //     generate_coarse(exec, non_local_csr.get(), num_agg_, agg_,
             //                     non_local_num_agg_, non_local_col_map_);
