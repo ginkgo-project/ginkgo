@@ -96,7 +96,9 @@ void rapply(std::shared_ptr<const DefaultExecutor> exec, size_type zeta,
         }
     }
 }
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPARSE_STACK_RAPPLY);
+
 
 }  // namespace sparse_stack
 }  // namespace omp
