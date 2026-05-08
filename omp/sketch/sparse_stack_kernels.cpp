@@ -31,6 +31,7 @@ void generate(std::shared_ptr<const DefaultExecutor> exec,
         sign_data[i] = sign_dist(rng) ? one<ValueType>() : -one<ValueType>();
     }
 }
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPARSE_STACK_GENERATE);
 
 template <typename ValueType, typename IndexType>
