@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -57,6 +57,9 @@
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/preconditioner/sor_kernels.hpp"
 #include "core/reorder/rcm_kernels.hpp"
+#include "core/sketch/count_sketch_kernels.hpp"
+#include "core/sketch/gaussian_sketch_kernels.hpp"
+#include "core/sketch/sparse_stack_kernels.hpp"
 #include "core/solver/batch_bicgstab_kernels.hpp"
 #include "core/solver/batch_cg_kernels.hpp"
 #include "core/solver/bicg_kernels.hpp"
@@ -76,9 +79,6 @@
 #include "core/solver/multigrid_kernels.hpp"
 #include "core/solver/pipe_cg_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
-#include "core/sketch/count_sketch_kernels.hpp"
-#include "core/sketch/gaussian_sketch_kernels.hpp"
-#include "core/sketch/sparse_stack_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
 #include "core/stop/residual_norm_kernels.hpp"
 

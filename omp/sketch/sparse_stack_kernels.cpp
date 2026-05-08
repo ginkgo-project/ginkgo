@@ -5,7 +5,9 @@
 #include "core/sketch/sparse_stack_kernels.hpp"
 
 #include <random>
+
 #include <omp.h>
+
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -32,7 +34,8 @@ void generate(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SPARSE_STACK_GENERATE);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SPARSE_STACK_GENERATE);
 
 template <typename ValueType, typename IndexType>
 void apply(std::shared_ptr<const DefaultExecutor> exec, size_type zeta,
@@ -44,14 +47,14 @@ void apply(std::shared_ptr<const DefaultExecutor> exec, size_type zeta,
     auto num_cols = b.size[1];
     auto hash_data = hash_map.get_const_data();
     auto sign_data = signs.get_const_data();
-    
-    #pragma omp parallel for
+
+#pragma omp parallel for
     for (size_type row = 0; row < x.size[0]; ++row) {
         for (size_type col = 0; col < num_cols; ++col) {
             x(row, col) = zero<ValueType>();
         }
     }
-    
+
     for (size_type i = 0; i < input_size; ++i) {
         for (size_type z = 0; z < zeta; ++z) {
             auto idx = i * zeta + z;
@@ -76,20 +79,20 @@ void rapply(std::shared_ptr<const DefaultExecutor> exec, size_type zeta,
     auto num_rows = b.size[0];
     auto hash_data = hash_map.get_const_data();
     auto sign_data = signs.get_const_data();
-    
-    #pragma omp parallel for
+
+#pragma omp parallel for
     for (size_type row = 0; row < x.size[0]; ++row) {
         for (size_type col = 0; col < x.size[1]; ++col) {
             x(row, col) = zero<ValueType>();
         }
     }
-    
+
     for (size_type i = 0; i < input_size; ++i) {
         for (size_type z = 0; z < zeta; ++z) {
             auto idx = i * zeta + z;
             auto target_col = hash_data[idx];
             auto sign = sign_data[idx];
-            #pragma omp parallel for
+#pragma omp parallel for
             for (size_type row = 0; row < num_rows; ++row) {
                 x(row, target_col) += sign * b(row, i);
             }

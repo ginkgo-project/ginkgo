@@ -6,8 +6,6 @@
 // where A is (m x n) with m >> n. Sketching reduces the system from
 // (m x n) to (k x n) with n < k << m, then solves the smaller problem.
 
-#include <ginkgo/ginkgo.hpp>
-
 #include <chrono>
 #include <iomanip>
 #include <iostream>
@@ -16,6 +14,8 @@
 #include <string>
 
 #include <cxxopts.hpp>
+
+#include <ginkgo/ginkgo.hpp>
 
 
 using ValueType = double;
@@ -58,9 +58,9 @@ struct LeastSquaresProblem {
     std::unique_ptr<vec> x_true;
 };
 
-LeastSquaresProblem generate_problem(
-    std::shared_ptr<const gko::Executor> exec, gko::size_type m,
-    gko::size_type n, unsigned int data_seed)
+LeastSquaresProblem generate_problem(std::shared_ptr<const gko::Executor> exec,
+                                     gko::size_type m, gko::size_type n,
+                                     unsigned int data_seed)
 {
     auto host = exec->get_master();
     std::mt19937 rng(data_seed);
@@ -96,10 +96,9 @@ LeastSquaresProblem generate_problem(
 
 // Solve the sketched least-squares problem: min_x || S*A*x - S*b ||_2
 // via normal equations on the sketched system: (SA)^T SA x = (SA)^T Sb
-void sketch_and_solve(std::shared_ptr<const gko::Executor> exec,
-                      const vec* A, const vec* b, vec* x,
-                      gko::LinOp* sketch_op, const std::string& label,
-                      int num_reps, long setup_us)
+void sketch_and_solve(std::shared_ptr<const gko::Executor> exec, const vec* A,
+                      const vec* b, vec* x, gko::LinOp* sketch_op,
+                      const std::string& label, int num_reps, long setup_us)
 {
     auto m = A->get_size()[0];
     auto n = A->get_size()[1];
@@ -140,11 +139,10 @@ void sketch_and_solve(std::shared_ptr<const gko::Executor> exec,
 
     auto solver =
         gko::solver::Gmres<ValueType>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(
-                    static_cast<gko::uint32>(10 * n)),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(RealValueType{1e-14}))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(
+                               static_cast<gko::uint32>(10 * n)),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_reduction_factor(RealValueType{1e-14}))
             .on(exec)
             ->generate(gko::share(std::move(AtA)));
 
@@ -195,11 +193,10 @@ void direct_solve(std::shared_ptr<const gko::Executor> exec, const vec* A,
 
     auto solver =
         gko::solver::Gmres<ValueType>::build()
-            .with_criteria(
-                gko::stop::Iteration::build().with_max_iters(
-                    static_cast<gko::uint32>(10 * n)),
-                gko::stop::ResidualNorm<ValueType>::build()
-                    .with_reduction_factor(RealValueType{1e-14}))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(
+                               static_cast<gko::uint32>(10 * n)),
+                           gko::stop::ResidualNorm<ValueType>::build()
+                               .with_reduction_factor(RealValueType{1e-14}))
             .on(exec)
             ->generate(gko::share(std::move(AtA)));
 
@@ -222,10 +219,11 @@ void direct_solve(std::shared_ptr<const gko::Executor> exec, const vec* A,
     auto rel_res = res_norm->at(0, 0) / b_norm->at(0, 0);
 
     std::cout << std::left << std::setw(16) << "Direct" << std::right
-              << std::setw(10) << "---" << "   " << std::setw(10) << "---"
-              << "   " << std::setw(10) << solve_us << " us"
-              << std::setw(14) << std::scientific << std::setprecision(4)
-              << rel_res << std::endl;
+              << std::setw(10) << "---"
+              << "   " << std::setw(10) << "---"
+              << "   " << std::setw(10) << solve_us << " us" << std::setw(14)
+              << std::scientific << std::setprecision(4) << rel_res
+              << std::endl;
 }
 
 
@@ -284,8 +282,8 @@ int main(int argc, char* argv[])
 
     std::cout << "Problem: " << m << " x " << n << " (overdetermined"
               << ", ratio " << m / n << ":1)"
-              << "\nSketch size: " << k << " (compression "
-              << std::fixed << std::setprecision(1)
+              << "\nSketch size: " << k << " (compression " << std::fixed
+              << std::setprecision(1)
               << static_cast<double>(m) / static_cast<double>(k) << "x)"
               << "\nExecutor: " << exec_name << "  Seed: " << seed
               << "  Reps: " << num_reps << "\n"
@@ -297,23 +295,24 @@ int main(int argc, char* argv[])
     // Header
     // Setup  = time to create the sketch operator (generate random data)
     // Sketch = time to compute S*A and S*b
-    // Solve  = time to form normal equations + CG solve (on sketched or full system)
+    // Solve  = time to form normal equations + CG solve (on sketched or full
+    // system)
     std::cout << std::left << std::setw(16) << "Method" << std::right
               << std::setw(13) << "Setup" << std::setw(13) << "Sketch"
-              << std::setw(13) << "Solve" << std::setw(14)
-              << "||Ax-b||/||b||" << "\n"
+              << std::setw(13) << "Solve" << std::setw(14) << "||Ax-b||/||b||"
+              << "\n"
               << std::string(69, '-') << std::endl;
 
     if (sketch_type == "all" || sketch_type == "gaussian") {
         exec->synchronize();
         auto t0 = std::chrono::steady_clock::now();
-        auto gaussian = gko::sketch::GaussianSketch<ValueType>::create(
-            exec, k, m, seed);
+        auto gaussian =
+            gko::sketch::GaussianSketch<ValueType>::create(exec, k, m, seed);
         exec->synchronize();
         auto t1 = std::chrono::steady_clock::now();
-        auto setup_us = std::chrono::duration_cast<std::chrono::microseconds>(
-                            t1 - t0)
-                            .count();
+        auto setup_us =
+            std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0)
+                .count();
         auto x = vec::create(exec, gko::dim<2>{n, 1});
         sketch_and_solve(exec, problem.A.get(), problem.b.get(), x.get(),
                          gaussian.get(), "Gaussian", num_reps, setup_us);
@@ -326,9 +325,9 @@ int main(int argc, char* argv[])
             exec, k, m, seed);
         exec->synchronize();
         auto t1 = std::chrono::steady_clock::now();
-        auto setup_us = std::chrono::duration_cast<std::chrono::microseconds>(
-                            t1 - t0)
-                            .count();
+        auto setup_us =
+            std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0)
+                .count();
         auto x = vec::create(exec, gko::dim<2>{n, 1});
         sketch_and_solve(exec, problem.A.get(), problem.b.get(), x.get(),
                          cs.get(), "CountSketch", num_reps, setup_us);
@@ -337,17 +336,17 @@ int main(int argc, char* argv[])
     if (sketch_type == "all" || sketch_type == "sparsestack") {
         exec->synchronize();
         auto t0 = std::chrono::steady_clock::now();
-        
+
         auto ss = gko::sketch::SparseStack<ValueType, IndexType>::create(
             exec, k, m, zeta, seed);
-            
+
         exec->synchronize();
         auto t1 = std::chrono::steady_clock::now();
-        auto setup_us = std::chrono::duration_cast<std::chrono::microseconds>(
-                            t1 - t0)
-                            .count();
+        auto setup_us =
+            std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0)
+                .count();
         auto x = vec::create(exec, gko::dim<2>{n, 1});
-        
+
         sketch_and_solve(exec, problem.A.get(), problem.b.get(), x.get(),
                          ss.get(), "SparseStack", num_reps, setup_us);
     }

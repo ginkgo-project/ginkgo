@@ -31,12 +31,11 @@ namespace sketch {
  * @tparam IndexType  type for hash_map indices
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class SparseStack
-    : public EnableLinOp<SparseStack<ValueType, IndexType>,
-                         SketchOperator<ValueType>> {
+class SparseStack : public EnableLinOp<SparseStack<ValueType, IndexType>,
+                                       SketchOperator<ValueType>> {
     friend class EnableLinOp<SparseStack>;
     friend class EnablePolymorphicObject<SparseStack,
-                                        SketchOperator<ValueType>>;
+                                         SketchOperator<ValueType>>;
 
 public:
     using value_type = ValueType;

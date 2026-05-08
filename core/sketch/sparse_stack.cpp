@@ -2,10 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/sketch/sparse_stack.hpp>
-
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/sketch/sparse_stack.hpp>
 
 #include "core/sketch/sparse_stack_kernels.hpp"
 
@@ -29,22 +28,24 @@ template <typename ValueType, typename IndexType>
 SparseStack<ValueType, IndexType>::SparseStack(
     std::shared_ptr<const Executor> exec, size_type sketch_size,
     size_type input_size, size_type zeta, uint64 seed)
-    : EnableLinOp<SparseStack, SketchOperator<ValueType>>(exec, dim<2>{sketch_size, input_size}),
+    : EnableLinOp<SparseStack, SketchOperator<ValueType>>(
+          exec, dim<2>{sketch_size, input_size}),
       zeta_{zeta},
       hash_map_{exec, input_size * zeta},
       signs_{exec, input_size * zeta},
       seed_{seed}
 {
-    exec->run(sparse_stack::make_generate(sketch_size, input_size, zeta_, 
+    exec->run(sparse_stack::make_generate(sketch_size, input_size, zeta_,
                                           hash_map_, signs_, seed_));
 }
 
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<SparseStack<ValueType, IndexType>>
-SparseStack<ValueType, IndexType>::create(
-    std::shared_ptr<const Executor> exec, size_type sketch_size,
-    size_type input_size, size_type zeta, uint64 seed)
+SparseStack<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
+                                          size_type sketch_size,
+                                          size_type input_size, size_type zeta,
+                                          uint64 seed)
 {
     return std::unique_ptr<SparseStack>{
         new SparseStack(exec, sketch_size, input_size, zeta, seed)};
@@ -56,7 +57,8 @@ void SparseStack<ValueType, IndexType>::apply_sketch_impl(
     const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x) const
 {
     this->get_executor()->run(sparse_stack::make_apply(
-        zeta_, hash_map_, signs_, b->get_const_device_view(), x->get_device_view()));
+        zeta_, hash_map_, signs_, b->get_const_device_view(),
+        x->get_device_view()));
 }
 
 
@@ -65,7 +67,8 @@ void SparseStack<ValueType, IndexType>::rapply_sketch_impl(
     const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x) const
 {
     this->get_executor()->run(sparse_stack::make_rapply(
-        zeta_, hash_map_, signs_, b->get_const_device_view(), x->get_device_view()));
+        zeta_, hash_map_, signs_, b->get_const_device_view(),
+        x->get_device_view()));
 }
 
 
