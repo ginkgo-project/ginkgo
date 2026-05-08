@@ -14,6 +14,7 @@ namespace kernels {
 namespace omp {
 namespace sparse_stack {
 
+
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const DefaultExecutor> exec,
               size_type sketch_size, size_type input_size, size_type zeta,
