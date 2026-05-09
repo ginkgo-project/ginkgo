@@ -22,8 +22,23 @@ namespace multigrid {
 
 
 /**
- * RS stands for Ruge-Stueben. TODO
+ * Rs implements the Ruge–Stueben (classical) Algebraic Multigrid (AMG)
+ * coarsening strategy for M-matrices. Given a sparse system $Ax = b$,
+ * it produces one level of an AMG hierarchy: a C/F splitting, a prolongation
+ * operator $P$, and a coarse-grid operator $A_c = R A P$.
  *
+ * Coarsening proceeds in three steps. First, neighbour $j$ is marked as
+ * *strongly influencing* row $i$ when $-a_{ij} \ge \theta \cdot
+ * \max_{k \neq i}(-a_{ik})$. Second, a greedy pass selects C-points by
+ * repeatedly picking the undecided node with the most strong neighbours,
+ * marking its undecided strong neighbours as F-points, and updating neighbour
+ * counts accordingly. Third, we create the coarse grid and compute the
+ * interpolation via the classical RS direct interpolation formula, accounting
+ * for both strong C- and F-neighbours.
+ *
+ * Ruge, J. W., & Stueben, K. (1987). Algebraic multigrid, Multigrid Methods
+ * (Vol. 3, pp. 73–130). Society for Industrial and Applied Mathematics.
+ * https://doi.org/10.1137/1.9781611971057.ch4
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes

@@ -195,7 +195,7 @@ void fill_coarse_and_compute_prolong_row_ptrs(
     const auto* a_row_ptrs = A->get_const_row_ptrs();
     const auto* a_col_idxs = A->get_const_col_idxs();
 
-    /// 1. Fill COARSE ROW INDEX ARRAY
+    /// 1. FILL COARSE ROW INDEX ARRAY
     IndexType idx = 0;
     for (size_type i = 0; i < cf_marker.get_size(); ++i) {
         if (cf[i] == 1) {

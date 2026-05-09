@@ -39,7 +39,7 @@ protected:
                  {0.0, 0.0, 0.0, -1.0, 2.0}});
 
         // strength mask: all 8 off-diagonals are strong
-        is_strong =
+        is_strong_prefilled =
             gko::array<bool>(exec, {false, true, true, false, true, true, false,
                                     true, true, false, true, true, false});
 
@@ -48,7 +48,7 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> exec;
     std::shared_ptr<csr> A;
-    gko::array<bool> is_strong;
+    gko::array<bool> is_strong_prefilled;
     gko::array<index_type> cf;
 };
 
@@ -62,20 +62,20 @@ TEST_F(Rs, ComputeSocAndRunRs)
              {0.0, 0.0, -1.0, 2.0, -1.0},
              {0.0, 0.0, 0.0, -1.0, 2.0}});
 
-    gko::array<bool> is_strong(exec, 13);
+    gko::array<bool> is_strong_empty(exec, 13);
     gko::array<index_type> lambda(exec, 5);
     gko::array<index_type> cf(exec, 5);
     index_type coarse{};
 
     gko::kernels::reference::rs::compute_soc_and_run_rs(
-        exec, A.get(), 0.5, is_strong, lambda, cf, coarse);
+        exec, A.get(), 0.5, is_strong_empty, lambda, cf, coarse);
 
     // all off-diagonals are strong
     std::vector<bool> expected_soc{false, true, true,  false, true, true, false,
                                    true,  true, false, true,  true, false};
 
     for (int i = 0; i < 13; ++i) {
-        ASSERT_EQ(is_strong.get_const_data()[i], expected_soc[i]);
+        ASSERT_EQ(is_strong_empty.get_const_data()[i], expected_soc[i]);
     }
     // initial lambda: [1, 2, 2, 2, 1]. After greedy RS:
     ASSERT_EQ(cf.get_const_data()[0], -1);
@@ -95,7 +95,7 @@ TEST_F(Rs, FillCoarseAndComputeProlongRowPtrs)
     gko::array<index_type> coarse(exec, 2);
 
     gko::kernels::reference::rs::fill_coarse_and_compute_prolong_row_ptrs(
-        exec, cf, coarse, f2c, A.get(), is_strong, p_row_ptrs);
+        exec, cf, coarse, f2c, A.get(), is_strong_prefilled, p_row_ptrs);
 
     // C-points (1, 3) map to (0, 1)
     ASSERT_EQ(f2c.get_const_data()[0], -1);
@@ -120,8 +120,8 @@ TEST_F(Rs, ComputeInterpolation)
                     P->get_row_ptrs());
 
     gko::kernels::reference::rs::compute_interpolation(
-        exec, A.get(), is_strong.get_const_data(), cf, f2c.get_const_data(),
-        P.get());
+        exec, A.get(), is_strong_prefilled.get_const_data(), cf,
+        f2c.get_const_data(), P.get());
 
     auto p_vals = P->get_const_values();
     auto p_cols = P->get_const_col_idxs();
