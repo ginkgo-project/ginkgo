@@ -34,7 +34,7 @@ void check_m_matrix(std::shared_ptr<const ReferenceExecutor> exec,
     const auto col_idxs = matrix->get_const_col_idxs();
     const auto values = matrix->get_const_values();
 
-    bool is_m_matrix = true;
+    auto is_m_matrix = is_m_matrix_array.get_data();
 
     for (size_type row = 0; row < num_rows; ++row) {
         bool has_diag = false;
@@ -46,27 +46,22 @@ void check_m_matrix(std::shared_ptr<const ReferenceExecutor> exec,
             if (row == col) {
                 has_diag = true;
                 if (val <= 0.0) {
-                    is_m_matrix = false;
-                    break;
+                    *is_m_matrix = false;
+                    return;
                 }
             } else {
                 if (val > 0.0) {
-                    is_m_matrix = false;
-                    break;
+                    *is_m_matrix = false;
+                    return;
                 }
             }
         }
 
         if (!has_diag) {
-            is_m_matrix = false;
-        }
-
-        if (!is_m_matrix) {
-            break;
+            *is_m_matrix = false;
+            return;
         }
     }
-
-    is_m_matrix_array.get_data()[0] = is_m_matrix;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

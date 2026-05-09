@@ -78,6 +78,8 @@ public:
             strength_threshold, 0.25);
 
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        bool GKO_FACTORY_PARAMETER_SCALAR(skip_m_matrix_check, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Rs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

@@ -59,11 +59,14 @@ void Rs<ValueType, IndexType>::generate()
         this->set_fine_op(rs_op_shared_ptr);
     }
     array<bool> is_m_matrix_array(exec, 1);
-    exec->run(rs::make_check_m_matrix(rs_op, is_m_matrix_array));
-    if (!exec->copy_val_to_host(is_m_matrix_array.get_const_data())) {
-        GKO_NOT_SUPPORTED(
-            "RS coarsening requires an M-matrix (strictly positive diagonal, "
-            "non-positive off-diagonals).");
+    if (!parameters_.skip_m_matrix_check) {
+        exec->run(rs::make_check_m_matrix(rs_op, is_m_matrix_array));
+        if (!exec->copy_val_to_host(is_m_matrix_array.get_const_data())) {
+            GKO_NOT_SUPPORTED(
+                "RS coarsening requires an M-matrix (strictly positive "
+                "diagonal, "
+                "non-positive off-diagonals).");
+        }
     }
 
     // define arrays
