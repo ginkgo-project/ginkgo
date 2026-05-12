@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -70,7 +70,7 @@ protected:
     {
         auto exec = this->get_executor();
         auto distributed_op = dynamic_cast<const dist_mtx_type*>(op_.get());
-        auto original_n = distributed_op->get_local_matrix()->get_size()[0];
+        auto original_n = distributed_op->get_diag_matrix()->get_size()[0];
         gko::size_type n = original_n - 1;
 
         auto comm = distributed_op->get_communicator();
@@ -155,7 +155,7 @@ TEST_F(Multigrid, ConstructCorrect)
               gko::dim<2>(first_n));
     ASSERT_EQ(dynamic_cast<const dist_mtx_type*>(
                   mg_level.at(0)->get_coarse_op().get())
-                  ->get_local_matrix()
+                  ->get_diag_matrix()
                   ->get_size(),
               gko::dim<2>(n - 1));
     // next mg_level

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,16 +39,16 @@ protected:
     Matrix()
         : ref(gko::ReferenceExecutor::create()),
           mapping{ref},
-          local_row_idxs{ref},
-          local_col_idxs{ref},
-          local_values{ref},
-          non_local_row_idxs{ref},
-          non_local_col_idxs{ref},
-          non_local_values{ref}
+          diag_row_idxs{ref},
+          diag_col_idxs{ref},
+          diag_values{ref},
+          off_diag_row_idxs{ref},
+          off_diag_col_idxs{ref},
+          off_diag_values{ref}
     {}
 
     /**
-     * apply the `separate_local_nonlocal` kernel and validate the result
+     * apply the `separate_diag_off_diag` kernel and validate the result
      * against provided reference values
      *
      * @param size  the expected global matrix size
@@ -57,16 +57,16 @@ protected:
      * @param input_rows  the row indices passed to the kernel
      * @param input_cols  the column indices passed to the kernel
      * @param input_vals  the values passed to the kernel
-     * @param local_entries  the reference local matrix data. It is provided
+     * @param diag_entries  the reference diag matrix data. It is provided
      *                       as a list of tuples for each part of the row
      *                       partition. Each tuple consists of the size of
-     *                       the local matrix, a list of row indices,
+     *                       the diag matrix, a list of row indices,
      *                       a list of column indices, and a list of values.
      *                       The indices are mapped to local indexing.
-     * @param non_local_entries  the reference non-local matrix data. It is
+     * @param off_diag_entries  the reference off-diag matrix data. It is
      *                           provided as a list of tuples for each part
      *                           of the row partition. Each tuple contains
-     *                           the size of the non-local matrix, a list of
+     *                           the size of the off-diag matrix, a list of
      *                           row indices (mapped to local indexing), a
      *                           list of column indices (NOT mapped to local
      *                           indexing), and a list of values.
@@ -86,30 +86,30 @@ protected:
             std::tuple<gko::dim<2>, std::initializer_list<global_index_type>,
                        std::initializer_list<global_index_type>,
                        std::initializer_list<value_type>>>
-            local_entries,
+            diag_entries,
         std::initializer_list<
             std::tuple<gko::dim<2>, std::initializer_list<global_index_type>,
                        std::initializer_list<global_index_type>,
                        std::initializer_list<value_type>>>
-            non_local_entries)
+            off_diag_entries)
     {
         std::vector<gko::device_matrix_data<value_type, local_index_type>>
-            ref_locals;
+            ref_diags;
         std::vector<
             std::tuple<gko::dim<2>, gko::array<local_index_type>,
                        gko::array<global_index_type>, gko::array<value_type>>>
-            ref_non_locals;
+            ref_off_diags;
 
         auto input = gko::device_matrix_data<value_type, global_index_type>{
             ref, size, gko::array<global_index_type>{ref, input_rows},
             gko::array<global_index_type>{ref, input_cols},
             gko::array<value_type>{ref, input_vals}};
-        for (auto entry : local_entries) {
-            ref_locals.emplace_back(ref, std::get<0>(entry), std::get<1>(entry),
-                                    std::get<2>(entry), std::get<3>(entry));
+        for (auto entry : diag_entries) {
+            ref_diags.emplace_back(ref, std::get<0>(entry), std::get<1>(entry),
+                                   std::get<2>(entry), std::get<3>(entry));
         }
-        for (auto entry : non_local_entries) {
-            ref_non_locals.emplace_back(
+        for (auto entry : off_diag_entries) {
+            ref_off_diags.emplace_back(
                 std::get<0>(entry),
                 gko::array<local_index_type>{ref, std::get<1>(entry)},
                 gko::array<global_index_type>{ref, std::get<2>(entry)},
@@ -118,23 +118,22 @@ protected:
 
         for (comm_index_type part = 0; part < row_partition->get_num_parts();
              ++part) {
-            gko::kernels::reference::distributed_matrix::
-                separate_local_nonlocal(
-                    ref, input, row_partition.get(), col_partition.get(), part,
-                    local_row_idxs, local_col_idxs, local_values,
-                    non_local_row_idxs, non_local_col_idxs, non_local_values);
+            gko::kernels::reference::distributed_matrix::separate_diag_off_diag(
+                ref, input, row_partition.get(), col_partition.get(), part,
+                diag_row_idxs, diag_col_idxs, diag_values, off_diag_row_idxs,
+                off_diag_col_idxs, off_diag_values);
 
 
-            auto local_arrays = ref_locals[part].empty_out();
-            GKO_ASSERT_ARRAY_EQ(local_row_idxs, local_arrays.row_idxs);
-            GKO_ASSERT_ARRAY_EQ(local_col_idxs, local_arrays.col_idxs);
-            GKO_ASSERT_ARRAY_EQ(local_values, local_arrays.values);
-            GKO_ASSERT_ARRAY_EQ(non_local_row_idxs,
-                                std::get<1>(ref_non_locals[part]));
-            GKO_ASSERT_ARRAY_EQ(non_local_col_idxs,
-                                std::get<2>(ref_non_locals[part]));
-            GKO_ASSERT_ARRAY_EQ(non_local_values,
-                                std::get<3>(ref_non_locals[part]));
+            auto diag_arrays = ref_diags[part].empty_out();
+            GKO_ASSERT_ARRAY_EQ(diag_row_idxs, diag_arrays.row_idxs);
+            GKO_ASSERT_ARRAY_EQ(diag_col_idxs, diag_arrays.col_idxs);
+            GKO_ASSERT_ARRAY_EQ(diag_values, diag_arrays.values);
+            GKO_ASSERT_ARRAY_EQ(off_diag_row_idxs,
+                                std::get<1>(ref_off_diags[part]));
+            GKO_ASSERT_ARRAY_EQ(off_diag_col_idxs,
+                                std::get<2>(ref_off_diags[part]));
+            GKO_ASSERT_ARRAY_EQ(off_diag_values,
+                                std::get<3>(ref_off_diags[part]));
         }
     }
 
@@ -174,19 +173,19 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     gko::array<comm_index_type> mapping;
-    gko::array<local_index_type> local_row_idxs;
-    gko::array<local_index_type> local_col_idxs;
-    gko::array<value_type> local_values;
-    gko::array<local_index_type> non_local_row_idxs;
-    gko::array<global_index_type> non_local_col_idxs;
-    gko::array<value_type> non_local_values;
+    gko::array<local_index_type> diag_row_idxs;
+    gko::array<local_index_type> diag_col_idxs;
+    gko::array<value_type> diag_values;
+    gko::array<local_index_type> off_diag_row_idxs;
+    gko::array<global_index_type> off_diag_col_idxs;
+    gko::array<value_type> off_diag_values;
 };
 
 TYPED_TEST_SUITE(Matrix, gko::test::ValueLocalGlobalIndexTypes,
                  TupleTypenameNameGenerator);
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalEmpty)
+TYPED_TEST(Matrix, SeparateDiagOffDiagEmpty)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -208,7 +207,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalEmpty)
 }
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalSmall)
+TYPED_TEST(Matrix, SeparateDiagOffDiagSmall)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -229,7 +228,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalSmall)
 }
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalNoNonLocal)
+TYPED_TEST(Matrix, SeparateDiagOffDiagNoOffDiag)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -255,7 +254,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalNoNonLocal)
 }
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalNoLocal)
+TYPED_TEST(Matrix, SeparateDiagOffDiagNoDiag)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -280,7 +279,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalNoLocal)
 }
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalMixed)
+TYPED_TEST(Matrix, SeparateDiagOffDiagMixed)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -312,7 +311,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalMixed)
 }
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalEmptyWithColPartition)
+TYPED_TEST(Matrix, SeparateDiagOffDiagEmptyWithColPartition)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -339,7 +338,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalEmptyWithColPartition)
 }
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalSmallWithColPartition)
+TYPED_TEST(Matrix, SeparateDiagOffDiagSmallWithColPartition)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -363,7 +362,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalSmallWithColPartition)
          std::make_tuple(gko::dim<2>{1, 1}, I<git>{0}, I<git>{0}, I<vt>{1})});
 }
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalNoNonLocalWithColPartition)
+TYPED_TEST(Matrix, SeparateDiagOffDiagNoOffDiagWithColPartition)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -392,7 +391,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalNoNonLocalWithColPartition)
 }
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalNoLocalWithColPartition)
+TYPED_TEST(Matrix, SeparateDiagOffDiagNoDiagWithColPartition)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -422,7 +421,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalNoLocalWithColPartition)
 }
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalMixedWithColPartition)
+TYPED_TEST(Matrix, SeparateDiagOffDiagMixedWithColPartition)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
@@ -458,7 +457,7 @@ TYPED_TEST(Matrix, SeparateLocalNonLocalMixedWithColPartition)
 }
 
 
-TYPED_TEST(Matrix, SeparateLocalNonLocalNonSquare)
+TYPED_TEST(Matrix, SeparateDiagOffDiagNonSquare)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;

@@ -348,11 +348,11 @@ void MultigridState::generate(const LinOp* system_matrix_in,
                     auto next_comm = distributed_coarse->get_communicator();
                     auto current_local_nrows =
                         ::gko::detail::run_matrix(fine, [](auto* fine_mat) {
-                            return fine_mat->get_local_matrix()->get_size()[0];
+                            return fine_mat->get_diag_matrix()->get_size()[0];
                         });
                     auto next_local_nrows =
                         ::gko::detail::run_matrix(coarse, [](auto* coarse_mat) {
-                            return coarse_mat->get_non_local_matrix()
+                            return coarse_mat->get_off_diag_matrix()
                                 ->get_size()[0];
                         });
                     this->allocate_memory<VectorType>(

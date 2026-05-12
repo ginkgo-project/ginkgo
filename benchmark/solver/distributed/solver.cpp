@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,7 +42,7 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
         return Vec::create(
             exec, comm, gko::dim<2>{system_matrix->get_size()[0], FLAGS_nrhs},
             local_generator.generate_rhs(
-                exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
+                exec, gko::as<Mtx>(system_matrix)->get_diag_matrix().get(),
                 config));
     }
 
@@ -53,7 +53,7 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
         return Vec::create(
             exec, comm, gko::dim<2>{rhs->get_size()[0], FLAGS_nrhs},
             local_generator.generate_initial_guess(
-                exec, gko::as<Mtx>(system_matrix)->get_local_matrix().get(),
+                exec, gko::as<Mtx>(system_matrix)->get_diag_matrix().get(),
                 rhs->get_local_vector()));
     }
 };
@@ -84,8 +84,8 @@ int main(int argc, char* argv[])
   Possible values for "stencil" are:  5pt (2D), 7pt (3D), 9pt (2D), 27pt (3D).
   Optional values for "comm_pattern" are: stencil, optimal.
   Possible values for "optimal[spmv]" follow the pattern
-  "<local_format>-<non_local_format>", where both "local_format" and
-  "non_local_format" can be any of the recognized spmv formats.
+  "<diag_format>-<off_diag_format>", where both "diag_format" and
+  "off_diag_format" can be any of the recognized spmv formats.
 )";
     std::string additional_json = R"(,"optimal":{"spmv":"csr-csr"})";
     initialize_argument_parsing_matrix(&argc, &argv, header, format,

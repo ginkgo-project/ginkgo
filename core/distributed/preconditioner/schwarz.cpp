@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -124,7 +124,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         // Should allocate only in the first apply call if the number of rhs is
         // unchanged.
         auto cs_ncols = dense_x->get_size()[1];
-        auto cs_local_nrows = coarse_op->get_local_matrix()->get_size()[0];
+        auto cs_local_nrows = coarse_op->get_diag_matrix()->get_size()[0];
         auto cs_global_nrows = coarse_op->get_size()[0];
         auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
         auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
@@ -206,41 +206,41 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
     auto dist_mat =
         as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(system_matrix);
-    auto local_matrix = dist_mat->get_local_matrix();
+    auto diag_matrix = dist_mat->get_diag_matrix();
 
     if (parameters_.l1_smoother) {
         auto exec = this->get_executor();
 
         using Csr = matrix::Csr<ValueType, LocalIndexType>;
-        auto local_matrix_copy = share(Csr::create(exec));
-        as<ConvertibleTo<Csr>>(local_matrix)->convert_to(local_matrix_copy);
+        auto diag_matrix_copy = share(Csr::create(exec));
+        as<ConvertibleTo<Csr>>(diag_matrix)->convert_to(diag_matrix_copy);
 
-        auto non_local_matrix = copy_and_convert_to<Csr>(
+        auto off_diag_matrix = copy_and_convert_to<Csr>(
             exec, as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
                       system_matrix)
-                      ->get_non_local_matrix());
+                      ->get_off_diag_matrix());
 
-        array<ValueType> l1_diag_arr{exec, local_matrix->get_size()[0]};
+        array<ValueType> l1_diag_arr{exec, diag_matrix->get_size()[0]};
 
         exec->run(
-            make_row_wise_absolute_sum(non_local_matrix.get(), l1_diag_arr));
+            make_row_wise_absolute_sum(off_diag_matrix.get(), l1_diag_arr));
 
-        // compute local_matrix_copy <- diag(l1) + local_matrix_copy
+        // compute diag_matrix_copy <- diag(l1) + diag_matrix_copy
         auto l1_diag = matrix::Diagonal<ValueType>::create(
-            exec, local_matrix->get_size()[0], std::move(l1_diag_arr));
+            exec, diag_matrix->get_size()[0], std::move(l1_diag_arr));
         auto l1_diag_csr = Csr::create(exec);
         l1_diag->move_to(l1_diag_csr);
         auto id = matrix::Identity<ValueType>::create(
-            exec, local_matrix->get_size()[0]);
+            exec, diag_matrix->get_size()[0]);
         auto one = initialize<matrix::Dense<ValueType>>(
             {::gko::one<ValueType>()}, exec);
-        l1_diag_csr->apply(one, id, one, local_matrix_copy);
+        l1_diag_csr->apply(one, id, one, diag_matrix_copy);
 
         this->set_solver(
-            gko::share(parameters_.local_solver->generate(local_matrix_copy)));
+            gko::share(parameters_.local_solver->generate(diag_matrix_copy)));
     } else {
         this->set_solver(
-            gko::share(parameters_.local_solver->generate(local_matrix)));
+            gko::share(parameters_.local_solver->generate(diag_matrix)));
     }
 
     gko::remove_complex<ValueType> cweight =

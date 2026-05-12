@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,28 +19,28 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL(ValueType, LocalIndexType,         \
-                                            GlobalIndexType)                   \
-    void separate_local_nonlocal(                                              \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const device_matrix_data<ValueType, GlobalIndexType>& input,           \
-        const experimental::distributed::Partition<                            \
-            LocalIndexType, GlobalIndexType>* row_partition,                   \
-        const experimental::distributed::Partition<                            \
-            LocalIndexType, GlobalIndexType>* col_partition,                   \
-        comm_index_type local_part, array<LocalIndexType>& local_row_idxs,     \
-        array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values, \
-        array<LocalIndexType>& non_local_row_idxs,                             \
-        array<GlobalIndexType>& non_local_col_idxs,                            \
-        array<ValueType>& non_local_values)
+#define GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG(ValueType, LocalIndexType,        \
+                                           GlobalIndexType)                  \
+    void separate_diag_off_diag(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        const device_matrix_data<ValueType, GlobalIndexType>& input,         \
+        const experimental::distributed::Partition<                          \
+            LocalIndexType, GlobalIndexType>* row_partition,                 \
+        const experimental::distributed::Partition<                          \
+            LocalIndexType, GlobalIndexType>* col_partition,                 \
+        comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,    \
+        array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values, \
+        array<LocalIndexType>& off_diag_row_idxs,                            \
+        array<GlobalIndexType>& off_diag_col_idxs,                           \
+        array<ValueType>& off_diag_values)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
     using comm_index_type = experimental::distributed::comm_index_type; \
     template <typename ValueType, typename LocalIndexType,              \
               typename GlobalIndexType>                                 \
-    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL(ValueType, LocalIndexType,      \
-                                        GlobalIndexType)
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG(ValueType, LocalIndexType,       \
+                                       GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_matrix,

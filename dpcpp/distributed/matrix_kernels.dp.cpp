@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,21 +14,21 @@ namespace distributed_matrix {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void separate_local_nonlocal(
+void separate_diag_off_diag(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
-    comm_index_type local_part, array<LocalIndexType>& local_row_idxs,
-    array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,
-    array<LocalIndexType>& non_local_row_idxs,
-    array<GlobalIndexType>& non_local_col_idxs,
-    array<ValueType>& non_local_values) GKO_NOT_IMPLEMENTED;
+    comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& off_diag_row_idxs,
+    array<GlobalIndexType>& off_diag_col_idxs,
+    array<ValueType>& off_diag_values) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
 
 
 }  // namespace distributed_matrix

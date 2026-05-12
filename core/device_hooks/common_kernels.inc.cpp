@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -389,7 +389,7 @@ namespace distributed_matrix {
 
 
 GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
-    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
 
 
 }  // namespace distributed_matrix

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -92,24 +92,24 @@ TYPED_TEST(Pgm, CanGenerateFromDistributedMatrix)
     using local_matrix_type = typename TestFixture::local_matrix_type;
     auto pgm_factory = pgm::build().on(this->exec);
     auto rank = this->comm.rank();
-    I<I<value_type>> res_local[] = {{{8}}, {{5, 0}, {0, 5}}, {{6, 0}, {0, 6}}};
-    // the non_local new index should follow the local matrix
+    I<I<value_type>> res_diag[] = {{{8}}, {{5, 0}, {0, 5}}, {{6, 0}, {0, 6}}};
+    // the off_diag new index should follow the diag matrix
     // For example, we only store the nonzeros part like [* -1 -2 *] in
     // matrix[2, 4:8], whose * is not in the storage. The 1st and 3rd elements
     // are aggregated to the first group but the rest are aggregated to the
     // second group. Although the stored elements are not aggregated to the same
-    // group, we still need to reorder to fit the local matrix ordering. i.e.
+    // group, we still need to reorder to fit the diag matrix ordering. i.e.
     // [-1 -2] -> [-2 -1] after aggregation.
-    I<I<value_type>> res_non_local[] = {{{-3, -4, 9, 12}},
-                                        {{-3, -2, -1}, {-4, 0, -5}},
-                                        {{9, -2, 0}, {12, -1, -5}}};
+    I<I<value_type>> res_off_diag[] = {{{-3, -4, 9, 12}},
+                                       {{-3, -2, -1}, {-4, 0, -5}},
+                                       {{9, -2, 0}, {12, -1, -5}}};
 
     auto result = pgm_factory->generate(this->dist_mat);
 
     auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
-    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_local_matrix()),
-                        res_local[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+                        res_diag[rank], r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(
-        gko::as<local_matrix_type>(coarse->get_non_local_matrix()),
-        res_non_local[rank], r<value_type>::value);
+        gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
+        res_off_diag[rank], r<value_type>::value);
 }
