@@ -45,9 +45,9 @@ public:
      * Creates a SparseStack operator.
      *
      * @param exec  executor where the sketch lives
-     * @param sketch_size  sketch dimension k (number of output rows)
-     * @param input_size  input dimension m (number of input rows)
-     * @param zeta number of non-zeros per column
+     * @param sketch_size  sketch dimension (number of output rows)
+     * @param input_size  input dimension (number of input rows)
+     * @param zeta  number of non-zeros per column
      * @param seed  random seed for reproducibility
      */
     static std::unique_ptr<SparseStack> create(
