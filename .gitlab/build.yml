@@ -5,17 +5,12 @@ build/cuda110/nompi/gcc/cuda/release/shared:
     - .quick_test_condition
     - .use_gko_cuda110-mvapich-gnu9-llvm9
   variables:
-    BUILD_OMP: "ON"
+    BUILD_OMP: 'ON'
     BUILD_CUDA: "ON"
     BUILD_MPI: "OFF"
-    BUILD_TYPE: "Release"
+    BUILD_TYPE: Release
     FAST_TESTS: "ON"
-    # disable spurious unused argument warning
-    # this is seemingly broken with CUDA 11
-    # EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-  comments:
-    test 123
-    is comments allowed by gitlab?
+    _COMMENTS: "disabling spurious unused argument warning is seemingly broken with CUDA 11"
 
 build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
   extends:
@@ -32,8 +27,7 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
     FAST_TESTS: "ON"
     CXX_FLAGS: "--diag_suppress=useless_using_declaration,declared_but_not_referenced"
     EXTRA_CMAKE_FLAGS: "-DCMAKE_CUDA_FLAGS=-diag-suppress=177"
-  # `--diag_suppress=useless_using_declaration,declared_but_not_referenced` disables common gflags warning
-  # `-diag-suppress=188` disables spurious unused argument warning in CUDA
+    _COMMENTS: "`--diag_suppress=useless_using_declaration,declared_but_not_referenced` disables common gflags warning. `-diag-suppress=188` disables spurious unused argument warning in CUDA."
 
 build/cuda118/nompi/gcc/cuda/debug/shared:
   extends:
@@ -146,7 +140,7 @@ build/amd/openmpi/gcc/rocm620/debug/shared:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "ON"
-    MODULE_LOAD: "cmake/3.24.4 rocm/6.2.0 gcc/13.3.0 openmpi/5.0.7"
+    MODULE_LOAD: cmake/3.24.4 rocm/6.2.0 gcc/13.3.0 openmpi/5.0.7
 
 build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:
   extends:
@@ -160,7 +154,7 @@ build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:
     BUILD_MPI: "ON"
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.29.6 rocm/6.3.4 gcc/13.3.0 openmpi/5.0.7"
-  # MI50 is officially supported by ROCm < 6.4.0
+    _COMMENTS: MI50 is officially supported by ROCm < 6.4.0
 
 build/amd/nompi/gcc/rocm644/debug/static:
   extends:
@@ -176,7 +170,7 @@ build/amd/nompi/gcc/rocm644/debug/static:
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
     MODULE_LOAD: "cmake/3.29.6 rocm/6.4.4 gcc/14.3.0"
-  # MI50 is not officially supported by ROCm >= 6.4.0
+    _COMMENTS: MI50 is not officially supported by ROCm >= 6.4.0
 
 build/amd/nompi/gcc/rocm710/release/shared:
   extends:
@@ -271,7 +265,7 @@ build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
     BUILD_MPI: "ON"
     CXX_FLAGS: "-Wpedantic -D_GLIBCXX_DEBUG=1"
     BUILD_TYPE: "Release"
-  # We use Release here bacause glibcxx tests are prohibitively slow in Debug
+    _COMMENTS: We use Release here bacause glibcxx tests are prohibitively slow in Debug
 
 build/nocuda/nompi/gcc/omp/release/static:
   extends:
@@ -471,4 +465,4 @@ build/dpcpp/gpu/release/shared:
     DPCPP_SINGLE_MODE: "ON"
     ONEAPI_DEVICE_SELECTOR: "*:gpu"
     BUILD_HWLOC: "OFF"
-  # This gives two available backends of GPU on tests
+    _COMMENTS: This gives two available backends of GPU on tests
