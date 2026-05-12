@@ -51,6 +51,15 @@ CountSketch<ValueType, IndexType>::create(
 
 
 template <typename ValueType, typename IndexType>
+std::unique_ptr<CountSketch<ValueType, IndexType>>
+CountSketch<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<CountSketch>{new CountSketch(exec)};
+}
+
+
+template <typename ValueType, typename IndexType>
 void CountSketch<ValueType, IndexType>::apply_sketch_impl(
     const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x) const
 {

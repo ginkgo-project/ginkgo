@@ -51,6 +51,15 @@ std::unique_ptr<GaussianSketch<ValueType>> GaussianSketch<ValueType>::create(
 }
 
 
+
+template <typename ValueType>
+std::unique_ptr<GaussianSketch<ValueType>> GaussianSketch<ValueType>::create(
+    std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<GaussianSketch>{new GaussianSketch(exec)};
+}
+
+
 template <typename ValueType>
 void GaussianSketch<ValueType>::apply_sketch_impl(
     const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* x) const

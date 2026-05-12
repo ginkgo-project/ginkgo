@@ -53,6 +53,13 @@ public:
     static std::unique_ptr<SparseStack> create(
         std::shared_ptr<const Executor> exec, size_type sketch_size,
         size_type input_size, size_type zeta, uint64 seed);
+    
+    /**
+     * Creates an uninitialized SparseStack operator.
+     *
+     * @param exec  executor where the sketch lives
+     */
+    static std::unique_ptr<SparseStack> create(std::shared_ptr<const Executor> exec);
 
     /** Returns the random seed. */
     uint64 get_seed() const { return seed_; }

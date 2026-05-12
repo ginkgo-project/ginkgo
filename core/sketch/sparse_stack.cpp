@@ -51,6 +51,13 @@ SparseStack<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
         new SparseStack(exec, sketch_size, input_size, zeta, seed)};
 }
 
+template <typename ValueType, typename IndexType>
+std::unique_ptr<SparseStack<ValueType, IndexType>>
+SparseStack<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec)
+{
+    return std::unique_ptr<SparseStack>{new SparseStack(exec)};
+}
+
 
 template <typename ValueType, typename IndexType>
 void SparseStack<ValueType, IndexType>::apply_sketch_impl(
