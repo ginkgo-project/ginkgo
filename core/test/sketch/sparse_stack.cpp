@@ -38,7 +38,8 @@ TYPED_TEST_SUITE(SparseStackCore, gko::test::ValueIndexTypes,
 
 TYPED_TEST(SparseStackCore, ReturnsCorrectSketchSize)
 {
-    auto sketch = TestFixture::Sketch::create(this->exec, 7, 20, 42);
+    // Added zeta = 1
+    auto sketch = TestFixture::Sketch::create(this->exec, 7, 20, 1, 42);
 
     EXPECT_EQ(sketch->get_sketch_size(), 7);
 }
@@ -46,7 +47,8 @@ TYPED_TEST(SparseStackCore, ReturnsCorrectSketchSize)
 
 TYPED_TEST(SparseStackCore, ReturnsCorrectInputSize)
 {
-    auto sketch = TestFixture::Sketch::create(this->exec, 7, 20, 42);
+    // Added zeta = 1
+    auto sketch = TestFixture::Sketch::create(this->exec, 7, 20, 1, 42);
 
     EXPECT_EQ(sketch->get_input_size(), 20);
 }
@@ -54,7 +56,8 @@ TYPED_TEST(SparseStackCore, ReturnsCorrectInputSize)
 
 TYPED_TEST(SparseStackCore, ReturnsCorrectSeed)
 {
-    auto sketch = TestFixture::Sketch::create(this->exec, 7, 20, 123);
+    // Added zeta = 1
+    auto sketch = TestFixture::Sketch::create(this->exec, 7, 20, 1, 123);
 
     EXPECT_EQ(sketch->get_seed(), 123);
 }
@@ -62,6 +65,7 @@ TYPED_TEST(SparseStackCore, ReturnsCorrectSeed)
 
 TYPED_TEST(SparseStackCore, HashMapHasCorrectSize)
 {
+    // zeta = 4
     auto sketch = TestFixture::Sketch::create(this->exec, 7, 20, 4, 42);
 
     EXPECT_EQ(sketch->get_hash_map().get_size(), 80); 
@@ -71,16 +75,18 @@ TYPED_TEST(SparseStackCore, HashMapHasCorrectSize)
 
 TYPED_TEST(SparseStackCore, SignsHasCorrectSize)
 {
-    auto sketch = TestFixture::Sketch::create(this->exec, 7, 20, 42);
+    // Added zeta = 4
+    auto sketch = TestFixture::Sketch::create(this->exec, 7, 20, 4, 42);
 
-    EXPECT_EQ(sketch->get_signs().get_size(), 20);
+    EXPECT_EQ(sketch->get_signs().get_size(), 80);
 }
 
 
 TYPED_TEST(SparseStackCore, ApplyThrowsOnDimensionMismatch)
 {
     using Dense = typename TestFixture::Dense;
-    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 42);
+    // Added zeta = 1
+    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 1, 42);
     // b has wrong number of rows (4 instead of 5)
     auto b = Dense::create(this->exec, gko::dim<2>{4, 3});
     auto x = Dense::create(this->exec, gko::dim<2>{3, 3});
@@ -92,7 +98,8 @@ TYPED_TEST(SparseStackCore, ApplyThrowsOnDimensionMismatch)
 TYPED_TEST(SparseStackCore, ApplyThrowsOnOutputDimensionMismatch)
 {
     using Dense = typename TestFixture::Dense;
-    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 42);
+    // Added zeta = 1
+    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 1, 42);
     auto b = Dense::create(this->exec, gko::dim<2>{5, 3});
     // x has wrong number of rows (4 instead of 3)
     auto x = Dense::create(this->exec, gko::dim<2>{4, 3});
@@ -104,7 +111,8 @@ TYPED_TEST(SparseStackCore, ApplyThrowsOnOutputDimensionMismatch)
 TYPED_TEST(SparseStackCore, ApplyThrowsOnColumnMismatch)
 {
     using Dense = typename TestFixture::Dense;
-    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 42);
+    // Added zeta = 1
+    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 1, 42);
     auto b = Dense::create(this->exec, gko::dim<2>{5, 3});
     // x has wrong number of columns (2 instead of 3)
     auto x = Dense::create(this->exec, gko::dim<2>{3, 2});
@@ -116,7 +124,8 @@ TYPED_TEST(SparseStackCore, ApplyThrowsOnColumnMismatch)
 TYPED_TEST(SparseStackCore, RapplyThrowsOnDimensionMismatch)
 {
     using Dense = typename TestFixture::Dense;
-    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 42);
+    // Added zeta = 1
+    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 1, 42);
     // rapply: b must have cols == 5 (input_size), this has 4
     auto b = Dense::create(this->exec, gko::dim<2>{4, 4});
     auto x = Dense::create(this->exec, gko::dim<2>{4, 3});
@@ -128,7 +137,8 @@ TYPED_TEST(SparseStackCore, RapplyThrowsOnDimensionMismatch)
 TYPED_TEST(SparseStackCore, RapplyThrowsOnOutputColumnMismatch)
 {
     using Dense = typename TestFixture::Dense;
-    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 42);
+    // Added zeta = 1
+    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 1, 42);
     auto b = Dense::create(this->exec, gko::dim<2>{4, 5});
     // x must have cols == 3 (sketch_size), this has 4
     auto x = Dense::create(this->exec, gko::dim<2>{4, 4});
@@ -136,17 +146,18 @@ TYPED_TEST(SparseStackCore, RapplyThrowsOnOutputColumnMismatch)
     ASSERT_THROW(sketch->rapply(b, x), gko::DimensionMismatch);
 }
 
-
 TYPED_TEST(SparseStackCore, RapplyThrowsOnRowMismatch)
 {
     using Dense = typename TestFixture::Dense;
-    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 42);
+    // Added zeta = 1
+    auto sketch = TestFixture::Sketch::create(this->exec, 3, 5, 1, 42);
     auto b = Dense::create(this->exec, gko::dim<2>{4, 5});
-    // x must have rows == b->rows (4), this has 3
-    auto x = Dense::create(this->exec, gko::dim<2>{3, 3});
+    // x must have rows == 3 (sketch_size), this has 4
+    auto x = Dense::create(this->exec, gko::dim<2>{4, 3});
 
     ASSERT_THROW(sketch->rapply(b, x), gko::DimensionMismatch);
 }
 
 
 }  // namespace
+
