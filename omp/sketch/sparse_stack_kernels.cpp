@@ -26,7 +26,7 @@ void generate(std::shared_ptr<const DefaultExecutor> exec,
     auto sign_data = signs.get_data();
     std::mt19937_64 rng(seed);
     std::uniform_int_distribution<IndexType> hash_dist(
-        0, static_cast<IndexType>(std::max(static_cast<IndexType>(sketch_size - 1), static_cast<IndexType>(0))));
+        0, std::max(static_cast<IndexType>(sketch_size), static_cast<IndexType>(1)) - 1);
     std::bernoulli_distribution sign_dist(0.5);
     for (size_type i = 0; i < input_size * zeta; ++i) {
         hash_data[i] = hash_dist(rng);
