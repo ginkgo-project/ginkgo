@@ -68,8 +68,8 @@ DEBUG: end   copy
 DEBUG: end   copy(<typename>)
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin distributed_matrix::separate_local_nonlocal
-DEBUG: end   distributed_matrix::separate_local_nonlocal
+DEBUG: begin distributed_matrix::separate_diag_off_diag
+DEBUG: end   distributed_matrix::separate_diag_off_diag
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array

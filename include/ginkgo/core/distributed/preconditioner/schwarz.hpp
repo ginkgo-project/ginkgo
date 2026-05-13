@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,8 +39,8 @@ namespace preconditioner {
  * generalizes the Block Jacobi preconditioner, incorporating options for
  * different local subdomain solvers and overlaps between the subdomains.
  *
- * A L1 smoother variant is also available, which updates the local matrix with
- * the sums of the non-local matrix row sums.
+ * A L1 smoother variant is also available, which updates the diagonal block
+ * with the sums of the off-diagonal block row sums.
  *
  * See Iterative Methods for Sparse Linear Systems (Y. Saad) for a general
  * treatment and variations of the method.
@@ -108,7 +108,7 @@ public:
          * Enable l1 smoother.
          *
          * This creates a diagonal matrix from the row-wise absolute
-         * sum of the non-local matrix entries. The diagonal matrix
+         * sum of the off-diagonal matrix entries. The diagonal matrix
          * is then added to the system matrix when generating the
          * local solver.
          *

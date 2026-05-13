@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -256,8 +256,8 @@ struct DistributedDefaultSystemGenerator {
                                      format_name};
         }
 
-        auto local_mat = formats::matrix_type_factory.at(formats[0])(exec);
-        auto non_local_mat = formats::matrix_type_factory.at(formats[1])(exec);
+        auto diag_mat = formats::matrix_type_factory.at(formats[0])(exec);
+        auto off_diag_mat = formats::matrix_type_factory.at(formats[1])(exec);
 
         auto storage_logger = std::make_shared<StorageLogger>();
         if (spmv_case) {
@@ -265,7 +265,7 @@ struct DistributedDefaultSystemGenerator {
         }
 
         auto dist_mat = dist_mtx<etype, itype, global_itype>::create(
-            exec, comm, local_mat, non_local_mat);
+            exec, comm, diag_mat, off_diag_mat);
         dist_mat->read_distributed(data, part);
 
         if (spmv_case) {

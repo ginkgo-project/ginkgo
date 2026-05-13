@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -110,17 +110,17 @@ TYPED_TEST(MatrixCreation, ReadsDistributedGlobalData)
 {
     using value_type = typename TestFixture::value_type;
     using csr = typename TestFixture::local_matrix_type;
-    I<I<value_type>> res_local[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
-    I<I<value_type>> res_non_local[] = {
+    I<I<value_type>> res_diag[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
+    I<I<value_type>> res_off_diag[] = {
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = this->dist_mat->get_communicator().rank();
 
     this->dist_mat->read_distributed(this->mat_input, this->row_part);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        res_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        res_off_diag[rank], 0);
 }
 
 
@@ -128,17 +128,17 @@ TYPED_TEST(MatrixCreation, ReadsDistributedLocalData)
 {
     using value_type = typename TestFixture::value_type;
     using csr = typename TestFixture::local_matrix_type;
-    I<I<value_type>> res_local[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
-    I<I<value_type>> res_non_local[] = {
+    I<I<value_type>> res_diag[] = {{{0, 1}, {0, 3}}, {{6, 0}, {0, 8}}, {{10}}};
+    I<I<value_type>> res_off_diag[] = {
         {{0, 2}, {4, 0}}, {{5, 0}, {0, 7}}, {{9}}};
     auto rank = this->dist_mat->get_communicator().rank();
 
     this->dist_mat->read_distributed(this->dist_input[rank], this->row_part);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        res_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        res_off_diag[rank], 0);
 }
 
 
@@ -146,8 +146,8 @@ TYPED_TEST(MatrixCreation, ReadsDistributedLocalDataWithCommunicate)
 {
     using value_type = typename TestFixture::value_type;
     using csr = typename TestFixture::local_matrix_type;
-    I<I<value_type>> res_local[] = {{{1, 1}, {0, 3}}, {{7, 1}, {0, 7}}, {{10}}};
-    I<I<value_type>> res_non_local[] = {
+    I<I<value_type>> res_diag[] = {{{1, 1}, {0, 3}}, {{7, 1}, {0, 7}}, {{10}}};
+    I<I<value_type>> res_off_diag[] = {
         {{0, 2}, {4, 0}}, {{1, 5, 0}, {0, 0, 7}}, {{9}}};
     auto rank = this->dist_mat->get_communicator().rank();
 
@@ -155,10 +155,10 @@ TYPED_TEST(MatrixCreation, ReadsDistributedLocalDataWithCommunicate)
         this->dist_input[rank], this->row_part,
         gko::experimental::distributed::assembly_mode::communicate);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        res_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        res_off_diag[rank], 0);
 }
 
 
@@ -166,18 +166,18 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartition)
 {
     using value_type = typename TestFixture::value_type;
     using csr = typename TestFixture::local_matrix_type;
-    I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
-    I<I<value_type>> res_non_local[] = {
+    I<I<value_type>> res_diag[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_off_diag[] = {
         {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
     auto rank = this->dist_mat->get_communicator().rank();
 
     this->dist_mat->read_distributed(this->mat_input, this->row_part,
                                      this->col_part);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        res_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        res_off_diag[rank], 0);
 }
 
 
@@ -185,8 +185,8 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartitionAndCommunicate)
 {
     using value_type = typename TestFixture::value_type;
     using csr = typename TestFixture::local_matrix_type;
-    I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{1, 5}, {0, 0}}, {{0}}};
-    I<I<value_type>> res_non_local[] = {
+    I<I<value_type>> res_diag[] = {{{2, 0}, {0, 0}}, {{1, 5}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_off_diag[] = {
         {{1, 1, 0}, {0, 3, 4}}, {{1, 0, 7}, {7, 7, 0}}, {{10, 9}}};
     auto rank = this->dist_mat->get_communicator().rank();
 
@@ -194,10 +194,10 @@ TYPED_TEST(MatrixCreation, ReadsDistributedWithColPartitionAndCommunicate)
         this->dist_input[rank], this->row_part, this->col_part,
         gko::experimental::distributed::assembly_mode::communicate);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        res_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        res_off_diag[rank], 0);
 }
 
 
@@ -211,7 +211,7 @@ TYPED_TEST(MatrixCreation, BuildOnlyLocal)
     using matrix_data = gko::matrix_data<value_type, local_index_type>;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
-    I<I<value_type>> res_local[] = {
+    I<I<value_type>> res_diag[] = {
         {{1, 2}, {0, 3}}, {{0, 1}, {-1, 0}}, {{1, 0}, {0, 1}}};
     auto rank = this->comm.rank();
     gko::dim<2> size(2, 2);
@@ -241,7 +241,7 @@ TYPED_TEST(MatrixCreation, BuildOnlyLocal)
         dist_mtx_type::create(this->exec, this->comm, gko::dim<2>{6, 6}, local);
     mat->apply(x, y);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_diag_matrix()), res_diag[rank],
                         0);
     GKO_ASSERT_MTX_NEAR(y->get_local_vector(), result[rank], 0);
 }
@@ -264,29 +264,29 @@ TYPED_TEST(MatrixCreation, BuildFromExistingDataDeprecated)
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using comm_index_type = gko::experimental::distributed::comm_index_type;
     auto rank = this->comm.rank();
-    I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
-    std::array<gko::dim<2>, 3> size_local{{{2, 2}, {2, 2}, {1, 1}}};
-    std::array<matrix_data, 3> dist_input_local{
-        {{size_local[0], I<input_triple>{{0, 0, 2}}},
-         {size_local[1], I<input_triple>{{0, 1, 5}}},
-         {size_local[2]}}};
-    I<I<value_type>> res_non_local[] = {
+    I<I<value_type>> res_diag[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
+    std::array<gko::dim<2>, 3> size_diag{{{2, 2}, {2, 2}, {1, 1}}};
+    std::array<matrix_data, 3> dist_input_diag{
+        {{size_diag[0], I<input_triple>{{0, 0, 2}}},
+         {size_diag[1], I<input_triple>{{0, 1, 5}}},
+         {size_diag[2]}}};
+    I<I<value_type>> res_off_diag[] = {
         {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
-    std::array<gko::dim<2>, 3> size_non_local{{{2, 2}, {2, 3}, {1, 2}}};
-    std::array<matrix_data, 3> dist_input_non_local{
-        {{size_non_local[0], I<input_triple>{{0, 0, 1}, {1, 0, 3}, {1, 1, 4}}},
-         {size_non_local[1], I<input_triple>{{0, 2, 6}, {1, 0, 8}, {1, 1, 7}}},
-         {size_non_local[2], I<input_triple>{{0, 0, 10}, {0, 1, 9}}}}};
+    std::array<gko::dim<2>, 3> size_off_diag{{{2, 2}, {2, 3}, {1, 2}}};
+    std::array<matrix_data, 3> dist_input_off_diag{
+        {{size_off_diag[0], I<input_triple>{{0, 0, 1}, {1, 0, 3}, {1, 1, 4}}},
+         {size_off_diag[1], I<input_triple>{{0, 2, 6}, {1, 0, 8}, {1, 1, 7}}},
+         {size_off_diag[2], I<input_triple>{{0, 0, 10}, {0, 1, 9}}}}};
     std::array<std::vector<comm_index_type>, 3> recv_sizes{
         {{0, 1, 1}, {2, 0, 1}, {1, 1, 0}}};
     std::array<std::vector<comm_index_type>, 3> recv_offsets{
         {{0, 0, 1, 2}, {0, 2, 2, 3}, {0, 1, 2, 2}}};
     std::array<gko::array<local_index_type>, 3> recv_gather_index{
         {{this->exec, {1, 0}}, {this->exec, {0, 1, 0}}, {this->exec, {1, 0}}}};
-    auto local = gko::share(csr::create(this->exec));
-    local->read(dist_input_local[rank]);
-    auto non_local = gko::share(csr::create(this->exec));
-    non_local->read(dist_input_non_local[rank]);
+    auto diag = gko::share(csr::create(this->exec));
+    diag->read(dist_input_diag[rank]);
+    auto off_diag = gko::share(csr::create(this->exec));
+    off_diag->read(dist_input_off_diag[rank]);
     // create vector
     auto vec_md = gko::matrix_data<value_type, global_index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
@@ -305,14 +305,14 @@ TYPED_TEST(MatrixCreation, BuildFromExistingDataDeprecated)
     y->read_distributed(vec_md, row_part);
 
     auto mat = dist_mtx_type::create(
-        this->exec, this->comm, gko::dim<2>{5, 5}, local, non_local,
+        this->exec, this->comm, gko::dim<2>{5, 5}, diag, off_diag,
         recv_sizes[rank], recv_offsets[rank], recv_gather_index[rank]);
     mat->apply(x, y);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_diag_matrix()), res_diag[rank],
                         0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_non_local_matrix()),
-                        res_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_off_diag_matrix()),
+                        res_off_diag[rank], 0);
     GKO_ASSERT_MTX_NEAR(y->get_local_vector(), result[rank], 0);
 }
 
@@ -350,23 +350,23 @@ TYPED_TEST(MatrixCreation, BuildFromExistingData)
         gko::array<global_index_type>{this->exec, {3, 4, 2}},
         gko::array<global_index_type>{this->exec, {4, 0}}};
     index_map_type imap(this->exec, col_part, rank, recv_connections[rank]);
-    std::array<gko::dim<2>, 3> size_local{{{2, 2}, {2, 2}, {1, 1}}};
-    std::array<matrix_data, 3> dist_input_local{
-        {{size_local[0], I<input_triple>{{0, 0, 2}}},
-         {size_local[1], I<input_triple>{{0, 1, 5}}},
-         {size_local[2]}}};
-    std::array<gko::dim<2>, 3> size_non_local{{{2, 2}, {2, 3}, {1, 2}}};
-    std::array<matrix_data, 3> dist_input_non_local{
-        {{size_non_local[0], I<input_triple>{{0, 0, 1}, {1, 0, 3}, {1, 1, 4}}},
-         {size_non_local[1], I<input_triple>{{0, 2, 6}, {1, 0, 8}, {1, 1, 7}}},
-         {size_non_local[2], I<input_triple>{{0, 0, 10}, {0, 1, 9}}}}};
-    I<I<value_type>> res_local[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
-    I<I<value_type>> res_non_local[] = {
+    std::array<gko::dim<2>, 3> size_diag{{{2, 2}, {2, 2}, {1, 1}}};
+    std::array<matrix_data, 3> dist_input_diag{
+        {{size_diag[0], I<input_triple>{{0, 0, 2}}},
+         {size_diag[1], I<input_triple>{{0, 1, 5}}},
+         {size_diag[2]}}};
+    std::array<gko::dim<2>, 3> size_off_diag{{{2, 2}, {2, 3}, {1, 2}}};
+    std::array<matrix_data, 3> dist_input_off_diag{
+        {{size_off_diag[0], I<input_triple>{{0, 0, 1}, {1, 0, 3}, {1, 1, 4}}},
+         {size_off_diag[1], I<input_triple>{{0, 2, 6}, {1, 0, 8}, {1, 1, 7}}},
+         {size_off_diag[2], I<input_triple>{{0, 0, 10}, {0, 1, 9}}}}};
+    I<I<value_type>> res_diag[] = {{{2, 0}, {0, 0}}, {{0, 5}, {0, 0}}, {{0}}};
+    I<I<value_type>> res_off_diag[] = {
         {{1, 0}, {3, 4}}, {{0, 0, 6}, {8, 7, 0}}, {{10, 9}}};
-    auto local = gko::share(csr::create(this->exec));
-    local->read(dist_input_local[rank]);
-    auto non_local = gko::share(csr::create(this->exec));
-    non_local->read(dist_input_non_local[rank]);
+    auto diag = gko::share(csr::create(this->exec));
+    diag->read(dist_input_diag[rank]);
+    auto off_diag = gko::share(csr::create(this->exec));
+    off_diag->read(dist_input_off_diag[rank]);
     // create vector
     auto vec_md = gko::matrix_data<value_type, global_index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
@@ -377,13 +377,13 @@ TYPED_TEST(MatrixCreation, BuildFromExistingData)
     y->read_distributed(vec_md, row_part);
 
     auto mat =
-        dist_mtx_type::create(this->exec, this->comm, imap, local, non_local);
+        dist_mtx_type::create(this->exec, this->comm, imap, diag, off_diag);
     mat->apply(x, y);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_local_matrix()), res_local[rank],
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_diag_matrix()), res_diag[rank],
                         0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_non_local_matrix()),
-                        res_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(mat->get_off_diag_matrix()),
+                        res_off_diag[rank], 0);
     GKO_ASSERT_MTX_NEAR(y->get_local_vector(), result[rank], 0);
 }
 
@@ -603,7 +603,7 @@ TYPED_TEST(Matrix, CanAdvancedApplyToSingleVector)
 }
 
 
-TYPED_TEST(Matrix, CanApplyToSingleVectorByNonLocalApply2)
+TYPED_TEST(Matrix, CanApplyToSingleVectorByOffDiagApply2)
 {
     using value_type = typename TestFixture::value_type;
     using global_index_type = typename TestFixture::global_index_type;
@@ -618,7 +618,7 @@ TYPED_TEST(Matrix, CanApplyToSingleVectorByNonLocalApply2)
     this->x->read_distributed(vec_md, this->col_part);
     this->y->read_distributed(vec_md, this->row_part);
     // default setup with csr should use normal advanced apply, so use coo as
-    // non_local to check apply2
+    // off_diag to check apply2
     auto dist_mat_coo = dist_mtx_type::create(
         this->exec, this->comm, gko::with_matrix_type<gko::matrix::Csr>(),
         gko::with_matrix_type<gko::matrix::Coo>());
@@ -631,7 +631,7 @@ TYPED_TEST(Matrix, CanApplyToSingleVectorByNonLocalApply2)
 }
 
 
-TYPED_TEST(Matrix, CanAdvancedApplyToSingleVectorByNonLocalApply2)
+TYPED_TEST(Matrix, CanAdvancedApplyToSingleVectorByOffDiagApply2)
 {
     using value_type = typename TestFixture::value_type;
     using global_index_type = typename TestFixture::global_index_type;
@@ -649,7 +649,7 @@ TYPED_TEST(Matrix, CanAdvancedApplyToSingleVectorByNonLocalApply2)
     this->x->read_distributed(vec_md, this->col_part);
     this->y->read_distributed(vec_md, this->row_part);
     // default setup with csr should use normal advanced apply, so use coo as
-    // non_local to check apply2
+    // off_diag to check apply2
     auto dist_mat_coo = dist_mtx_type::create(
         this->exec, this->comm, gko::with_matrix_type<gko::matrix::Csr>(),
         gko::with_matrix_type<gko::matrix::Coo>());
@@ -709,9 +709,9 @@ TYPED_TEST(Matrix, CanColScale)
     using dist_vec_type = typename TestFixture::dist_vec_type;
     auto vec_md = gko::matrix_data<value_type, index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
-    I<I<value_type>> res_col_scale_local[] = {
+    I<I<value_type>> res_col_scale_diag[] = {
         {{8, 0}, {0, 0}}, {{0, 10}, {0, 0}}, {{0}}};
-    I<I<value_type>> res_col_scale_non_local[] = {
+    I<I<value_type>> res_col_scale_off_diag[] = {
         {{2, 0}, {6, 12}}, {{0, 0, 18}, {32, 35, 0}}, {{50, 9}}};
     auto rank = this->comm.rank();
     auto col_scaling_factors = dist_vec_type::create(this->exec, this->comm);
@@ -719,10 +719,10 @@ TYPED_TEST(Matrix, CanColScale)
 
     this->dist_mat->col_scale(col_scaling_factors);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_col_scale_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_col_scale_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        res_col_scale_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        res_col_scale_off_diag[rank], 0);
 }
 
 
@@ -734,9 +734,9 @@ TYPED_TEST(Matrix, CanRowScale)
     using dist_vec_type = typename TestFixture::dist_vec_type;
     auto vec_md = gko::matrix_data<value_type, index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
-    I<I<value_type>> res_row_scale_local[] = {
+    I<I<value_type>> res_row_scale_diag[] = {
         {{2, 0}, {0, 0}}, {{0, 15}, {0, 0}}, {{0}}};
-    I<I<value_type>> res_row_scale_non_local[] = {
+    I<I<value_type>> res_row_scale_off_diag[] = {
         {{1, 0}, {6, 8}}, {{0, 0, 18}, {32, 28, 0}}, {{50, 45}}};
     auto rank = this->comm.rank();
     auto row_scaling_factors = dist_vec_type::create(this->exec, this->comm);
@@ -744,10 +744,10 @@ TYPED_TEST(Matrix, CanRowScale)
 
     this->dist_mat->row_scale(row_scaling_factors);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_row_scale_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_row_scale_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        res_row_scale_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        res_row_scale_off_diag[rank], 0);
 }
 
 
@@ -759,9 +759,9 @@ TYPED_TEST(Matrix, CanColScaleWithStride)
     using dist_vec_type = typename TestFixture::dist_vec_type;
     auto vec_md = gko::matrix_data<value_type, index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
-    I<I<value_type>> res_col_scale_local[] = {
+    I<I<value_type>> res_col_scale_diag[] = {
         {{8, 0}, {0, 0}}, {{0, 10}, {0, 0}}, {{0}}};
-    I<I<value_type>> res_col_scale_non_local[] = {
+    I<I<value_type>> res_col_scale_off_diag[] = {
         {{2, 0}, {6, 12}}, {{0, 0, 18}, {32, 35, 0}}, {{50, 9}}};
     gko::dim<2> local_sizes[] = {{2, 1}, {2, 1}, {1, 1}};
     auto rank = this->comm.rank();
@@ -772,10 +772,10 @@ TYPED_TEST(Matrix, CanColScaleWithStride)
     this->dist_mat->col_scale(col_scaling_factors);
 
     ASSERT_EQ(col_scaling_factors->get_stride(), 2);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_col_scale_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_col_scale_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        res_col_scale_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        res_col_scale_off_diag[rank], 0);
 }
 
 
@@ -787,9 +787,9 @@ TYPED_TEST(Matrix, CanRowScaleWithStride)
     using dist_vec_type = typename TestFixture::dist_vec_type;
     auto vec_md = gko::matrix_data<value_type, index_type>{
         I<I<value_type>>{{1}, {2}, {3}, {4}, {5}}};
-    I<I<value_type>> res_row_scale_local[] = {
+    I<I<value_type>> res_row_scale_diag[] = {
         {{2, 0}, {0, 0}}, {{0, 15}, {0, 0}}, {{0}}};
-    I<I<value_type>> res_row_scale_non_local[] = {
+    I<I<value_type>> res_row_scale_off_diag[] = {
         {{1, 0}, {6, 8}}, {{0, 0, 18}, {32, 28, 0}}, {{50, 45}}};
     gko::dim<2> local_sizes[] = {{2, 1}, {2, 1}, {1, 1}};
     auto rank = this->comm.rank();
@@ -800,10 +800,10 @@ TYPED_TEST(Matrix, CanRowScaleWithStride)
     this->dist_mat->row_scale(row_scaling_factors);
 
     ASSERT_EQ(row_scaling_factors->get_stride(), 2);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        res_row_scale_local[rank], 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        res_row_scale_non_local[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        res_row_scale_diag[rank], 0);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        res_row_scale_off_diag[rank], 0);
 }
 
 
@@ -883,10 +883,10 @@ TYPED_TEST(Matrix, CanConvertToNextPrecision)
     this->dist_mat->convert_to(tmp);
     tmp->convert_to(res);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_local_matrix()),
-                        gko::as<csr>(res->get_local_matrix()), residual);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_non_local_matrix()),
-                        gko::as<csr>(res->get_non_local_matrix()), residual);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_diag_matrix()),
+                        gko::as<csr>(res->get_diag_matrix()), residual);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(this->dist_mat->get_off_diag_matrix()),
+                        gko::as<csr>(res->get_off_diag_matrix()), residual);
 }
 
 
@@ -910,10 +910,10 @@ TYPED_TEST(Matrix, CanMoveToNextPrecision)
     this->dist_mat->move_to(tmp);
     tmp->convert_to(res);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_local_matrix()),
-                        gko::as<csr>(res->get_local_matrix()), residual);
-    GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_non_local_matrix()),
-                        gko::as<csr>(res->get_non_local_matrix()), residual);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_diag_matrix()),
+                        gko::as<csr>(res->get_diag_matrix()), residual);
+    GKO_ASSERT_MTX_NEAR(gko::as<csr>(clone_dist_mat->get_off_diag_matrix()),
+                        gko::as<csr>(res->get_off_diag_matrix()), residual);
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -82,7 +82,7 @@ protected:
             exec, gko::array<global_index_type>(
                       exec, I<global_index_type>{0, 2, 4, 8}));
 
-        // the default non-local matrix uses Coo, which does not support half
+        // the default off-diag matrix uses Coo, which does not support half
         // precision on HIP and DPCPP because of atomic
         dist_mat = dist_mtx_type::create(
             exec, comm, csr::create(exec),
@@ -247,7 +247,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithPregenSolver)
         gko::share(local_prec_type::build()
                        .with_max_block_size(1u)
                        .on(this->exec)
-                       ->generate(this->dist_mat->get_local_matrix()));
+                       ->generate(this->dist_mat->get_diag_matrix()));
     auto precond = prec::build()
                        .with_local_solver(this->local_solver_factory)
                        .on(this->exec)

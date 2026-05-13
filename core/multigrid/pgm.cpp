@@ -93,8 +93,8 @@ template <typename ValueType, typename IndexType>
 std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     std::shared_ptr<const Executor> exec,
     const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
-    const gko::array<IndexType>& agg, IndexType non_local_num_agg,
-    const gko::array<IndexType>& non_local_agg)
+    const gko::array<IndexType>& agg, IndexType off_diag_num_agg,
+    const gko::array<IndexType>& off_diag_agg)
 {
     const auto num = fine_csr->get_size()[0];
     const auto nnz = fine_csr->get_num_stored_elements();
@@ -105,7 +105,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
 
     if (nnz == 0) {
         return matrix::Csr<ValueType, IndexType>::create(
-            exec, dim<2>(num_agg, non_local_num_agg));
+            exec, dim<2>(num_agg, off_diag_num_agg));
     }
 
     // map row_ptrs to coarse row index
@@ -113,7 +113,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
                                 agg.get_const_data(), row_idxs.get_data()));
     // map col_idxs to coarse col index
     exec->run(pgm::make_map_col(nnz, fine_csr->get_const_col_idxs(),
-                                non_local_agg.get_const_data(),
+                                off_diag_agg.get_const_data(),
                                 col_idxs.get_data()));
     // sort by row, col
     // Because reduce_by_key is not deterministic, so we do not need
@@ -131,7 +131,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     auto coarse_coo = matrix::Coo<ValueType, IndexType>::create(
         exec,
         gko::dim<2>{static_cast<size_type>(num_agg),
-                    static_cast<size_type>(non_local_num_agg)},
+                    static_cast<size_type>(off_diag_num_agg)},
         coarse_nnz);
     exec->run(pgm::make_compute_coarse_coo(
         nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
@@ -269,7 +269,7 @@ Pgm<ValueType, IndexType>::generate_local(
 
 template <typename ValueType, typename IndexType>
 template <typename GlobalIndexType>
-array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_non_local_agg(
+array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_off_diag_agg(
     std::shared_ptr<const experimental::distributed::Matrix<
         ValueType, IndexType, GlobalIndexType>>
         matrix,
@@ -298,7 +298,7 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_non_local_agg(
         device_segmented_array<const GlobalIndexType>{}, comm.rank(), send_agg,
         experimental::distributed::index_space::local, send_global_agg));
 
-    array<GlobalIndexType> non_local_agg(exec, total_recv_size);
+    array<GlobalIndexType> off_diag_agg(exec, total_recv_size);
 
     auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
     array<GlobalIndexType> host_recv_buffer(exec->get_master());
@@ -313,8 +313,8 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_non_local_agg(
 
     const auto send_ptr = use_host_buffer ? host_send_buffer.get_const_data()
                                           : send_global_agg.get_const_data();
-    auto recv_ptr = use_host_buffer ? host_recv_buffer.get_data()
-                                    : non_local_agg.get_data();
+    auto recv_ptr =
+        use_host_buffer ? host_recv_buffer.get_data() : off_diag_agg.get_data();
     exec->synchronize();
     coll_comm
         ->i_all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
@@ -322,9 +322,9 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_non_local_agg(
         .wait();
     if (use_host_buffer) {
         exec->copy_from(exec->get_master(), total_recv_size, recv_ptr,
-                        non_local_agg.get_data());
+                        off_diag_agg.get_data());
     }
-    return non_local_agg;
+    return off_diag_agg;
 }
 
 
@@ -355,13 +355,13 @@ void Pgm<ValueType, IndexType>::generate()
         };
         auto setup_fine_op = [&](auto matrix) {
             // Only support csr matrix currently.
-            auto local_csr = std::dynamic_pointer_cast<const csr_type>(
-                matrix->get_local_matrix());
-            auto non_local_csr = std::dynamic_pointer_cast<const csr_type>(
-                matrix->get_non_local_matrix());
+            auto diag_csr = std::dynamic_pointer_cast<const csr_type>(
+                matrix->get_diag_matrix());
+            auto off_diag_csr = std::dynamic_pointer_cast<const csr_type>(
+                matrix->get_off_diag_matrix());
             // If system matrix is not csr or need sorting, generate the
             // csr.
-            if (!parameters_.skip_sorting || !local_csr || !non_local_csr) {
+            if (!parameters_.skip_sorting || !diag_csr || !off_diag_csr) {
                 using global_index_type =
                     typename std::decay_t<decltype(*matrix)>::global_index_type;
                 convert_fine_op(
@@ -398,7 +398,7 @@ void Pgm<ValueType, IndexType>::generate()
                 gko::as<experimental::distributed::DistributedBase>(matrix)
                     ->get_communicator();
             auto pgm_local_op =
-                gko::as<const csr_type>(matrix->get_local_matrix());
+                gko::as<const csr_type>(matrix->get_diag_matrix());
             auto result = this->generate_local(pgm_local_op);
 
             // create the coarse partition
@@ -413,43 +413,43 @@ void Pgm<ValueType, IndexType>::generate()
                     IndexType, global_index_type>(exec, comm,
                                                   coarse_local_size));
 
-            // get the non-local aggregates as coarse global indices
-            auto non_local_agg =
-                communicate_non_local_agg(matrix, coarse_partition, agg_);
+            // get the off-diag aggregates as coarse global indices
+            auto off_diag_agg =
+                communicate_off_diag_agg(matrix, coarse_partition, agg_);
 
             // create a coarse index map based on the connection given by
-            // the non-local aggregates
+            // the off-diag aggregates
             auto coarse_imap =
                 experimental::distributed::index_map<IndexType,
                                                      global_index_type>(
-                    exec, coarse_partition, comm.rank(), non_local_agg);
+                    exec, coarse_partition, comm.rank(), off_diag_agg);
 
-            // a mapping from the fine non-local indices to the coarse
-            // non-local indices.
-            // non_local_agg already maps the fine non-local indices to
+            // a mapping from the fine off-diag indices to the coarse
+            // off-diag indices.
+            // off_diag_agg already maps the fine off-diag indices to
             // coarse global indices, so mapping it with the coarse index
-            // map results in the coarse non-local indices.
-            auto non_local_map = coarse_imap.map_to_local(
-                non_local_agg,
+            // map results in the coarse off-diag indices.
+            auto off_diag_map = coarse_imap.map_to_local(
+                off_diag_agg,
                 experimental::distributed::index_space::non_local);
 
             // build csr from row and col map
             // unlike non-distributed version, generate_coarse uses
             // different row and col maps.
-            auto non_local_csr =
-                as<const csr_type>(matrix->get_non_local_matrix());
-            auto result_non_local_csr = generate_coarse(
-                exec, non_local_csr.get(),
+            auto off_diag_csr =
+                as<const csr_type>(matrix->get_off_diag_matrix());
+            auto result_off_diag_csr = generate_coarse(
+                exec, off_diag_csr.get(),
                 static_cast<IndexType>(std::get<1>(result)->get_size()[0]),
                 agg_, static_cast<IndexType>(coarse_imap.get_non_local_size()),
-                non_local_map);
+                off_diag_map);
 
             // setup the generated linop.
             auto coarse = share(
                 experimental::distributed::
                     Matrix<ValueType, IndexType, global_index_type>::create(
                         exec, comm, std::move(coarse_imap), std::get<1>(result),
-                        result_non_local_csr));
+                        result_off_diag_csr));
             auto restrict_op = share(
                 experimental::distributed::
                     Matrix<ValueType, IndexType, global_index_type>::create(

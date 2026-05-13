@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,18 +21,18 @@ namespace distributed_matrix {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void separate_local_nonlocal(
+void separate_diag_off_diag(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         row_partition,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
-    comm_index_type local_part, array<LocalIndexType>& local_row_idxs,
-    array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,
-    array<LocalIndexType>& non_local_row_idxs,
-    array<GlobalIndexType>& non_local_col_idxs,
-    array<ValueType>& non_local_values)
+    comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& off_diag_row_idxs,
+    array<GlobalIndexType>& off_diag_col_idxs,
+    array<ValueType>& off_diag_values)
 {
     using range_index_type = GlobalIndexType;
     using global_nonzero = matrix_data_entry<ValueType, GlobalIndexType>;
@@ -46,24 +46,24 @@ void separate_local_nonlocal(
     size_type row_range_id_hint = 0;
     size_type col_range_id_hint = 0;
 
-    // store non-local entries with global column idxs
-    vector<global_nonzero> non_local_entries(exec);
-    vector<local_nonzero> local_entries(exec);
+    // store off-diag entries with global column idxs
+    vector<global_nonzero> off_diag_entries(exec);
+    vector<local_nonzero> diag_entries(exec);
 
     auto num_threads = static_cast<size_type>(omp_get_max_threads());
     auto num_input = input.get_num_stored_elements();
     auto size_per_thread = (num_input + num_threads - 1) / num_threads;
-    vector<size_type> local_entry_offsets(num_threads, 0, exec);
-    vector<size_type> non_local_entry_offsets(num_threads, 0, exec);
+    vector<size_type> diag_entry_offsets(num_threads, 0, exec);
+    vector<size_type> off_diag_entry_offsets(num_threads, 0, exec);
 
 #pragma omp parallel firstprivate(col_range_id_hint, row_range_id_hint)
     {
-        vector<global_nonzero> thread_non_local_entries(exec);
-        vector<local_nonzero> thread_local_entries(exec);
+        vector<global_nonzero> thread_off_diag_entries(exec);
+        vector<local_nonzero> thread_diag_entries(exec);
         auto thread_id = omp_get_thread_num();
         auto thread_begin = thread_id * size_per_thread;
         auto thread_end = std::min(thread_begin + size_per_thread, num_input);
-        // separate local and non-local entries for our input chunk
+        // separate diag and off-diag entries for our input chunk
         for (auto i = thread_begin; i < thread_end; ++i) {
             const auto global_row = input_row_idxs[i];
             const auto global_col = input_col_idxs[i];
@@ -71,7 +71,7 @@ void separate_local_nonlocal(
             auto row_range_id =
                 find_range(global_row, row_partition, row_range_id_hint);
             row_range_id_hint = row_range_id;
-            // skip non-local rows
+            // skip rows that aren't owned by this rank
             if (row_part_ids[row_range_id] == local_part) {
                 // map to part-local indices
                 auto local_row =
@@ -81,76 +81,76 @@ void separate_local_nonlocal(
                     find_range(global_col, col_partition, col_range_id_hint);
                 col_range_id_hint = col_range_id;
                 if (col_part_ids[col_range_id] == local_part) {
-                    // store local entry
+                    // store diag entry
                     auto local_col =
                         map_to_local(global_col, col_partition, col_range_id);
-                    thread_local_entries.emplace_back(local_row, local_col,
-                                                      value);
+                    thread_diag_entries.emplace_back(local_row, local_col,
+                                                     value);
                 } else {
-                    thread_non_local_entries.emplace_back(local_row, global_col,
-                                                          value);
+                    thread_off_diag_entries.emplace_back(local_row, global_col,
+                                                         value);
                 }
             }
         }
-        local_entry_offsets[thread_id] = thread_local_entries.size();
-        non_local_entry_offsets[thread_id] = thread_non_local_entries.size();
+        diag_entry_offsets[thread_id] = thread_diag_entries.size();
+        off_diag_entry_offsets[thread_id] = thread_off_diag_entries.size();
 
 #pragma omp barrier
 #pragma omp single
         {
             // assign output ranges to the individual threads
-            size_type local{};
-            size_type non_local{};
+            size_type diag{};
+            size_type off_diag{};
             for (size_type thread = 0; thread < num_threads; ++thread) {
-                auto size_local = local_entry_offsets[thread];
-                auto size_non_local = non_local_entry_offsets[thread];
-                local_entry_offsets[thread] = local;
-                non_local_entry_offsets[thread] = non_local;
-                local += size_local;
-                non_local += size_non_local;
+                auto size_diag = diag_entry_offsets[thread];
+                auto size_off_diag = off_diag_entry_offsets[thread];
+                diag_entry_offsets[thread] = diag;
+                off_diag_entry_offsets[thread] = off_diag;
+                diag += size_diag;
+                off_diag += size_off_diag;
             }
-            local_entries.resize(local);
-            non_local_entries.resize(non_local);
+            diag_entries.resize(diag);
+            off_diag_entries.resize(off_diag);
         }
-        // write back the local data to the output ranges
-        auto local = local_entry_offsets[thread_id];
-        auto non_local = non_local_entry_offsets[thread_id];
-        for (const auto& entry : thread_local_entries) {
-            local_entries[local] = entry;
-            local++;
+        // write back the diag data to the output ranges
+        auto diag = diag_entry_offsets[thread_id];
+        auto off_diag = off_diag_entry_offsets[thread_id];
+        for (const auto& entry : thread_diag_entries) {
+            diag_entries[diag] = entry;
+            diag++;
         }
-        for (const auto& entry : thread_non_local_entries) {
-            non_local_entries[non_local] = entry;
-            non_local++;
+        for (const auto& entry : thread_off_diag_entries) {
+            off_diag_entries[off_diag] = entry;
+            off_diag++;
         }
     }
-    // store local data to output
-    local_row_idxs.resize_and_reset(local_entries.size());
-    local_col_idxs.resize_and_reset(local_entries.size());
-    local_values.resize_and_reset(local_entries.size());
+    // store diag data to output
+    diag_row_idxs.resize_and_reset(diag_entries.size());
+    diag_col_idxs.resize_and_reset(diag_entries.size());
+    diag_values.resize_and_reset(diag_entries.size());
 #pragma omp parallel for
-    for (size_type i = 0; i < local_entries.size(); ++i) {
-        const auto& entry = local_entries[i];
-        local_row_idxs.get_data()[i] = entry.row;
-        local_col_idxs.get_data()[i] = entry.column;
-        local_values.get_data()[i] = entry.value;
+    for (size_type i = 0; i < diag_entries.size(); ++i) {
+        const auto& entry = diag_entries[i];
+        diag_row_idxs.get_data()[i] = entry.row;
+        diag_col_idxs.get_data()[i] = entry.column;
+        diag_values.get_data()[i] = entry.value;
     }
-    // map non-local values to local column indices
-    non_local_row_idxs.resize_and_reset(non_local_entries.size());
-    non_local_col_idxs.resize_and_reset(non_local_entries.size());
-    non_local_values.resize_and_reset(non_local_entries.size());
+    // map off-diag values to local column indices
+    off_diag_row_idxs.resize_and_reset(off_diag_entries.size());
+    off_diag_col_idxs.resize_and_reset(off_diag_entries.size());
+    off_diag_values.resize_and_reset(off_diag_entries.size());
 #pragma omp parallel for
-    for (size_type i = 0; i < non_local_entries.size(); i++) {
-        auto global = non_local_entries[i];
-        non_local_row_idxs.get_data()[i] =
+    for (size_type i = 0; i < off_diag_entries.size(); i++) {
+        auto global = off_diag_entries[i];
+        off_diag_row_idxs.get_data()[i] =
             static_cast<LocalIndexType>(global.row);
-        non_local_col_idxs.get_data()[i] = global.column;
-        non_local_values.get_data()[i] = global.value;
+        off_diag_col_idxs.get_data()[i] = global.column;
+        off_diag_values.get_data()[i] = global.value;
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
 
 
 }  // namespace distributed_matrix

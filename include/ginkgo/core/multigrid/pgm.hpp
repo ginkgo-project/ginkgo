@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -196,7 +196,7 @@ protected:
 
 #if GINKGO_BUILD_MPI
     /**
-     * Communicates the non-local aggregates (as global indices)
+     * Communicates the off-diag aggregates (as global indices)
      *
      * @tparam GlobalIndexType  Global index type
      *
@@ -205,11 +205,11 @@ protected:
      *                          indices
      * @param local_agg  the local aggregate indices
      *
-     * @return  the aggregates for non-local columns. The aggregated indices are
+     * @return  the aggregates for off-diag columns. The aggregated indices are
      *          in the new global indexing for the coarse matrix
      */
     template <typename GlobalIndexType>
-    array<GlobalIndexType> communicate_non_local_agg(
+    array<GlobalIndexType> communicate_off_diag_agg(
         std::shared_ptr<const experimental::distributed::Matrix<
             ValueType, IndexType, GlobalIndexType>>
             matrix,

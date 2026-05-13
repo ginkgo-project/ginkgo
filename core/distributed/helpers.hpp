@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -193,7 +193,7 @@ inline const LinOp* get_local(const LinOp* mtx)
 #if GINKGO_BUILD_MPI
     if (is_distributed(mtx)) {
         return run_matrix(mtx, [](auto concrete) {
-            return concrete->get_local_matrix().get();
+            return concrete->get_diag_matrix().get();
         });
     }
 #endif
