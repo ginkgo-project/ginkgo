@@ -54,6 +54,7 @@ target_sources(
         reorder/rcm_kernels.cpp
         sketch/count_sketch_kernels.cpp
         sketch/gaussian_sketch_kernels.cpp
+        sketch/sparse_stack_kernels.cpp
         solver/batch_bicgstab_kernels.cpp
         solver/batch_cg_kernels.cpp
         solver/bicg_kernels.cpp

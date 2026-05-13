@@ -95,8 +95,6 @@ target_sources(
         matrix/scaled_permutation.cpp
         matrix/sellp.cpp
         matrix/sparsity_csr.cpp
-        sketch/count_sketch.cpp
-        sketch/gaussian_sketch.cpp
         multigrid/fixed_coarsening.cpp
         multigrid/pgm.cpp
         preconditioner/batch_jacobi.cpp
@@ -110,6 +108,9 @@ target_sources(
         reorder/mc64.cpp
         reorder/rcm.cpp
         reorder/scaled_reordered.cpp
+        sketch/count_sketch.cpp
+        sketch/gaussian_sketch.cpp
+        sketch/sparse_stack.cpp
         solver/batch_bicgstab.cpp
         solver/batch_cg.cpp
         solver/bicg.cpp

@@ -52,6 +52,14 @@ public:
         std::shared_ptr<const Executor> exec, size_type sketch_size,
         size_type input_size, uint64 seed);
 
+    /**
+     * Creates an uninitialized GaussianSketch operator.
+     *
+     * @param exec  executor where the sketch lives
+     */
+    static std::unique_ptr<GaussianSketch> create(
+        std::shared_ptr<const Executor> exec);
+
     /** Returns the random seed used to generate this sketch. */
     uint64 get_seed() const { return seed_; }
 

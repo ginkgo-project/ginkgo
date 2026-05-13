@@ -53,6 +53,14 @@ public:
         std::shared_ptr<const Executor> exec, size_type sketch_size,
         size_type input_size, uint64 seed);
 
+    /**
+     * Creates an uninitialized CountSketch operator.
+     *
+     * @param exec  executor where the sketch lives
+     */
+    static std::unique_ptr<CountSketch> create(
+        std::shared_ptr<const Executor> exec);
+
     /** Returns the random seed. */
     uint64 get_seed() const { return seed_; }
 
