@@ -87,6 +87,42 @@ struct coo {
 
 
 /**
+ * Non-owning view of a matrix::Csr to be used inside device kernels.
+ * This type is used to provide a simple and stable ABI for passing data between
+ * libraries.
+ *
+ * @tparam ValueType  the value type used to store matrix entries.
+ * @tparam IndexType  the index type used to store row and column indices.
+ */
+template <typename ValueType, typename IndexType>
+struct csr {
+    dim<2> size;
+    size_type num_stored_elements;
+    ValueType* values;
+    IndexType* row_ptrs;
+    IndexType* col_idxs;
+
+    /** Constructs a coo view from size, nnz, values, row pointers, and column
+     * indices. */
+    constexpr csr(dim<2> size, size_type num_stored_elements, ValueType* values,
+                  IndexType* row_ptrs, IndexType* col_idxs)
+        : size{size},
+          num_stored_elements{num_stored_elements},
+          values{values},
+          row_ptrs{row_ptrs},
+          col_idxs{col_idxs}
+    {}
+
+    /** Returns a const view of the same data */
+    constexpr csr<const ValueType, const IndexType> as_const() const
+    {
+        return csr<const ValueType, const IndexType>{
+            size, num_stored_elements, values, row_ptrs, col_idxs};
+    }
+};
+
+
+/**
  * Non-owning view of a matrix::Ell to be used inside device kernels.
  * This type is used to provide a simple and stable ABI for passing data between
  * libraries.

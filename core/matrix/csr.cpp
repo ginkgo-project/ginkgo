@@ -1841,6 +1841,26 @@ csr::spmv_strategy Csr<ValueType, IndexType>::get_actual_strategy()
 }
 
 
+template <typename ValueType, typename IndexType>
+auto Csr<ValueType, IndexType>::get_device_view() -> device_view
+{
+    return device_view{this->get_size(), this->get_num_stored_elements(),
+                       this->get_values(), this->get_row_ptrs(),
+                       this->get_col_idxs()};
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Csr<ValueType, IndexType>::get_const_device_view() const
+    -> const_device_view
+{
+    return const_device_view{this->get_size(), this->get_num_stored_elements(),
+                             this->get_const_values(),
+                             this->get_const_row_ptrs(),
+                             this->get_const_col_idxs()};
+}
+
+
 #define GKO_DECLARE_CSR_MATRIX(ValueType, IndexType) \
     class Csr<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_MATRIX);
