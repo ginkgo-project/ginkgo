@@ -32,8 +32,8 @@ namespace preconditioner {
 
 
 /**
- * The Incomplete LU (ILU) preconditioner solves the equation \f$LUx = b\f$ for a
- * given lower triangular matrix L, an upper triangular matrix U and the right
+ * The Incomplete LU (ILU) preconditioner solves the equation \f$LUx = b\f$ for
+ * a given lower triangular matrix L, an upper triangular matrix U and the right
  * hand side b (can contain multiple right hand sides).
  *
  * It allows to set both the solver for L and the solver for U independently,
@@ -51,8 +51,9 @@ namespace preconditioner {
  * factors in the correct way.
  *
  * @note When providing a gko::Composition, the first matrix must be the lower
- *       matrix (\f$L\f$), and the second matrix must be the upper matrix (\f$U\f$).
- *       If they are swapped, solving might crash or return the wrong result.
+ *       matrix (\f$L\f$), and the second matrix must be the upper matrix
+ * (\f$U\f$). If they are swapped, solving might crash or return the wrong
+ * result.
  *
  * @note Do not use symmetric solvers (like CG) for L or U solvers since both
  *       matrices (L and U) are, by design, not symmetric.

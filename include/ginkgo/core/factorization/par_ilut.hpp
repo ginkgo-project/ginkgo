@@ -29,11 +29,11 @@ namespace factorization {
  * ParILUT is an incomplete threshold-based LU factorization which is computed
  * in parallel.
  *
- * \f$L\f$ is a lower unitriangular, while \f$U\f$ is an upper triangular matrix, which
- * approximate a given matrix \f$A\f$ with \f$A \approx LU\f$. Here, \f$L\f$ and \f$U\f$ have
- * a sparsity pattern that is improved iteratively based on their element-wise
- * magnitude. The initial sparsity pattern is chosen based on the \f$ILU(0)\f$
- * factorization of \f$A\f$.
+ * \f$L\f$ is a lower unitriangular, while \f$U\f$ is an upper triangular
+ * matrix, which approximate a given matrix \f$A\f$ with \f$A \approx LU\f$.
+ * Here, \f$L\f$ and \f$U\f$ have a sparsity pattern that is improved
+ * iteratively based on their element-wise magnitude. The initial sparsity
+ * pattern is chosen based on the \f$ILU(0)\f$ factorization of \f$A\f$.
  *
  * One iteration of the ParILUT algorithm consists of the following steps:
  *

@@ -20,8 +20,8 @@ namespace matrix {
  * It implements forward and inverse DFT.
  *
  * For a power-of-two size n with corresponding root of unity
- * \f$\omega = e^{-2\pi i / n}\f$ for forward DFT and \f$\omega = e^{2 \pi i / n}\f$
- * for inverse DFT it computes
+ * \f$\omega = e^{-2\pi i / n}\f$ for forward DFT and \f$\omega = e^{2 \pi i /
+ * n}\f$ for inverse DFT it computes
  *
  * \f[
  *     x_k = \sum_{j=0}^{n-1} \omega^{jk} b_j

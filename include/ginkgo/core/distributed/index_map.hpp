@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -34,19 +34,19 @@ enum class index_space {
  * disjoint subsets \f$I_k, k = 1, \dots, P\f$, this class defines for each
  * subset an extended global index set \f$\hat{I}_k \supset I_K\f$. The extended
  * index set contains the global indices owned by part \f$k\f$, as well as
- * remote indices \f$R_k = \hat{I}_k \setminus I_k\f$, which are also accessed by
- * part \f$k\f$, but owned by parts \f$l \neq k\f$.
- * At the core, this class provides mappings from the global index space \f$I\f$
- * into different local index spaces. The combined local index space
- * (index_space::combined) is then defined as
+ * remote indices \f$R_k = \hat{I}_k \setminus I_k\f$, which are also accessed
+ * by part \f$k\f$, but owned by parts \f$l \neq k\f$. At the core, this class
+ * provides mappings from the global index space \f$I\f$ into different local
+ * index spaces. The combined local index space (index_space::combined) is then
+ * defined as
  * $[0, \dots, |\hat{I}_k|)$. Additionally, the combined index space can be
  * separated into locally owned (index_space::local) and non-locally owned
  * (index_space::non_local). The locally owned indices are defined as
  * $[0, \dots, |I_k|)$, and the non-locally owned as $[0, \dots, |R_k|)$.
  * With these index sets, the following mappings are defined:
  *
- * - \f$c_k : \hat{I}_k \mapsto [0, \dots, |\hat{I}_k|)\f$ which maps global indices
- *   into the combined/full local index space (denoted as
+ * - \f$c_k : \hat{I}_k \mapsto [0, \dots, |\hat{I}_k|)\f$ which maps global
+ * indices into the combined/full local index space (denoted as
  *   index_space::combined),
  * - \f$l_k: I_k \mapsto [0, \dots, |I_k|)\f$ which maps global indices into the
  *   locally owned index space (denoted as index_space::local),
@@ -57,9 +57,9 @@ enum class index_space {
  * index_space.
  *
  * The index map for \f$I_k\f$ has no knowledge about any other index maps for
- * \f$I_l, l \neq k\f$. In particular, any global index passed to the `map_to_local`
- * map that is not part of the specified index space, will be mapped to an
- * invalid_index.
+ * \f$I_l, l \neq k\f$. In particular, any global index passed to the
+ * `map_to_local` map that is not part of the specified index space, will be
+ * mapped to an invalid_index.
  *
  * \tparam LocalIndexType  type for local indices
  * \tparam GlobalIndexType  type for global indices
@@ -148,12 +148,13 @@ public:
      * The indices are grouped by their owning rank and sorted according to
      * their global index within each group.
      *
-     * The set \f$R_k = \hat{I}_k \setminus I_k\f$ can also be written as the union
-     * of the intersection of \f$\hat{I}_k\f$ with other disjoint sets
+     * The set \f$R_k = \hat{I}_k \setminus I_k\f$ can also be written as the
+     * union of the intersection of \f$\hat{I}_k\f$ with other disjoint sets
      * \f$I_l, l \neq k\f$, i.e.
      * $R_k = \bigcup_{j \neq k} \hat{I}_k \cap I_j = \bigcup_{j \neq k}
-     * R_{k,j}$. The set \f$R_{k,j}\f$ can then be mapped by \f$l_j\f$ to get the local
-     * indices wrt. part \f$j\f$. The indices here are mapped by \f$l_j\f$.
+     * R_{k,j}$. The set \f$R_{k,j}\f$ can then be mapped by \f$l_j\f$ to get
+     * the local indices wrt. part \f$j\f$. The indices here are mapped by
+     * \f$l_j\f$.
      */
     const segmented_array<LocalIndexType>& get_remote_local_idxs() const;
 

@@ -453,14 +453,15 @@ public:
                  ptr_param<Dense> output, permute_mode mode) const;
 
     /**
-     * Creates a non-symmetrically permuted copy \f$A'\f$ of this matrix \f$A\f$ with
-     * the given row and column permutations \f$P\f$ and \f$Q\f$. The operation will
-     * compute \f$A'(i, j) = A(p[i], q[j])\f$, or \f$A' = P A Q^T\f$ if `invert` is
-     * `false`, and \f$A'(p[i], q[j]) = A(i,j)\f$, or \f$A' = P^{-1} A Q^{-T}\f$ if
-     * `invert` is `true`.
+     * Creates a non-symmetrically permuted copy \f$A'\f$ of this matrix \f$A\f$
+     * with the given row and column permutations \f$P\f$ and \f$Q\f$. The
+     * operation will compute \f$A'(i, j) = A(p[i], q[j])\f$, or \f$A' = P A
+     * Q^T\f$ if `invert` is `false`, and \f$A'(p[i], q[j]) = A(i,j)\f$, or
+     * \f$A' = P^{-1} A Q^{-T}\f$ if `invert` is `true`.
      *
      * @param row_permutation  The permutation \f$P\f$ to apply to the rows
-     * @param column_permutation  The permutation \f$Q\f$ to apply to the columns
+     * @param column_permutation  The permutation \f$Q\f$ to apply to the
+     * columns
      * @param invert  If set to `false`, uses the input permutations, otherwise
      *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return  The permuted matrix.

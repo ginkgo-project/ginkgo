@@ -37,7 +37,8 @@ namespace matrix {
  * inverse_rows      | \f$A'(p[i], j) = A(i, j)\f$    | \f$A' = P^{-1} A\f$
  * inverse_columns   | \f$A'(i, p[j]) = A(i, j)\f$    | \f$A' = A P^{-T}\f$
  * symmetric         | \f$A'(i, j) = A(p[i], p[j])\f$ | \f$A' = P A P^T\f$
- * inverse_symmetric | \f$A'(p[i], p[j]) = A(i, j)\f$ | \f$A' = P^{-1} A P^{-T}\f$
+ * inverse_symmetric | \f$A'(p[i], p[j]) = A(i, j)\f$ | \f$A' = P^{-1} A
+ * P^{-T}\f$
  */
 enum class permute_mode : unsigned {
     /** Neither rows nor columns will be permuted. */
@@ -166,8 +167,9 @@ public:
      * The resulting permutation fulfills `result[i] = this[other[i]]`
      * or `result = other * this` from the matrix perspective, which is
      * equivalent to first permuting by `this` and then by `other`:
-     * Combining permutations \f$P_1\f$ and \f$P_2\f$ with `P = P_1.combine(P_2)`
-     * performs the operation permute(A, P) = permute(permute(A, P_1), P_2).
+     * Combining permutations \f$P_1\f$ and \f$P_2\f$ with `P =
+     * P_1.combine(P_2)` performs the operation permute(A, P) =
+     * permute(permute(A, P_1), P_2).
      *
      * @param other  the other permutation
      * @return the combined permutation

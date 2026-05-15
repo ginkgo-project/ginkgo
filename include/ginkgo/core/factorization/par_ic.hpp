@@ -28,9 +28,9 @@ namespace factorization {
 /**
  * ParIC is an incomplete Cholesky factorization which is computed in parallel.
  *
- * \f$L\f$ is a lower triangular matrix, which approximates a given matrix \f$A\f$ with
- * \f$A \approx LL^H\f$. Here, \f$L + L^H\f$ has the same sparsity pattern as \f$A\f$, which
- * is also called IC(0).
+ * \f$L\f$ is a lower triangular matrix, which approximates a given matrix
+ * \f$A\f$ with \f$A \approx LL^H\f$. Here, \f$L + L^H\f$ has the same sparsity
+ * pattern as \f$A\f$, which is also called IC(0).
  *
  * The ParIC algorithm generates the incomplete factors iteratively, using a
  * fixed-point iteration of the form
@@ -46,9 +46,9 @@ namespace factorization {
  * In general, the entries of \f$L\f$ can be iterated in parallel and in
  * asynchronous fashion, the algorithm asymptotically converges to the
  * incomplete factors \f$L\f$ and \f$L^H\f$ fulfilling $\left(R = A - L \cdot
- * L^H\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where \f$\mathcal{S}\f$ is the
- * pre-defined sparsity pattern (in case of IC(0) the sparsity pattern of the
- * system matrix \f$A\f$). The number of ParIC sweeps needed for convergence
+ * L^H\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where \f$\mathcal{S}\f$ is
+ * the pre-defined sparsity pattern (in case of IC(0) the sparsity pattern of
+ * the system matrix \f$A\f$). The number of ParIC sweeps needed for convergence
  * depends on the parallelism level: For sequential execution, a single sweep
  * is sufficient, for fine-grained parallelism, the number of sweeps necessary
  * to get a good approximation of the incomplete factors depends heavily on the
