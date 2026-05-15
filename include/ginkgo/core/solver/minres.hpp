@@ -32,6 +32,19 @@ namespace solver {
  * specialization of the Gmres method for symmetric/hermitian operators, and can
  * be computed using short recurrences, similar to the CG method.
  *
+ * For symmetric \f$ A \f$ the Arnoldi process collapses to a three-term
+ * Lanczos recurrence and the Hessenberg matrix \f$ \bar H_m \f$ becomes
+ * tridiagonal \f$ \bar T_m \f$.  Minres exploits this structure to
+ * minimise the residual norm
+ * \f[
+ *   y_m = \arg\min_{y \in \mathbb{R}^m} \| \beta\, e_1 - \bar T_m\, y \|_2,
+ *   \qquad \beta = \| r_0 \|_2,
+ * \f]
+ * using an incremental QR factorisation of \f$ \bar T_m \f$.  The Givens
+ * rotations and the resulting short recurrence allow each iteration to
+ * run with bounded memory and one matrix-vector product, in contrast to
+ * GMRES's growing Krylov basis.
+ *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of Minres are
  * merged into 2 separate steps.

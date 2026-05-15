@@ -88,13 +88,34 @@ class MultigridState;
  * correct its own result. Multigrid solves the problem by relatively cheap step
  * in each level and refining the result when prolongating back.
  *
- * The main step of each level
- * - Presmooth (solve on the fine level)
- * - Calculate residual
- * - Restrict (reduce the problem dimension)
- * - Solve residual in next level
- * - Prolongate (return to the fine level size)
- * - Postsmooth (correct the answer in fine level)
+ * Each level \f$ \ell \f$ holds a system matrix \f$ A_\ell \f$, a smoother
+ * \f$ S_\ell \f$, a restriction operator
+ * \f$ R_\ell : \mathbb{R}^{n_\ell} \to \mathbb{R}^{n_{\ell+1}} \f$ and a
+ * prolongation operator
+ * \f$ P_\ell : \mathbb{R}^{n_{\ell+1}} \to \mathbb{R}^{n_\ell} \f$.  The
+ * Galerkin coarse operator is
+ * \f$ A_{\ell+1} = R_\ell\, A_\ell\, P_\ell \f$.  One V-cycle step at
+ * level \f$ \ell \f$ on a fine-level system \f$ A_\ell x = b \f$ is:
+ *
+ * \f[
+ *   \begin{aligned}
+ *     x &\leftarrow x + S_\ell^{\mathrm{pre}}(b - A_\ell x)
+ *       && \text{(pre-smooth)}, \\
+ *     r_{\ell+1} &= R_\ell\, (b - A_\ell x)
+ *       && \text{(restrict)}, \\
+ *     e_{\ell+1} &\approx A_{\ell+1}^{-1}\, r_{\ell+1}
+ *       && \text{(recursive coarse solve)}, \\
+ *     x &\leftarrow x + P_\ell\, e_{\ell+1}
+ *       && \text{(prolongate and correct)}, \\
+ *     x &\leftarrow x + S_\ell^{\mathrm{post}}(b - A_\ell x)
+ *       && \text{(post-smooth)}.
+ *   \end{aligned}
+ * \f]
+ *
+ * At the coarsest level the recursive call is replaced by a direct or
+ * iterative coarse solver.  W- and F-cycles differ from V only in how
+ * many recursive coarse-solves are performed per level (see the
+ * `cycle` enum above).
  *
  * Ginkgo uses the index from 0 for finest level (original problem size) ~ N for
  * the coarsest level (the coarsest solver), and its level counts is N (N

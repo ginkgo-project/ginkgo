@@ -37,6 +37,20 @@ namespace solver {
  * exascale machine, while its standard counterpart level off about one order of
  * magnitude earlier, as suggested in the referenced paper (see below).
  *
+ * Mathematically the iterates \f$ x_k \f$ are the same as those produced
+ * by \ref gko::solver::Cg "CG": the algorithm minimises the energy-norm
+ * error over the Krylov subspace
+ * \f$ x_0 + \mathcal{K}_k(A, r_0) \f$ and uses the same Fletcher-Reeves
+ * \f$ \beta_k \f$.  The pipelining rearrangement maintains additional
+ * auxiliary vectors \f$ s_k = A p_k \f$, \f$ w_k = A z_k \f$ and updates
+ * them via short recurrences so that the global reductions for
+ * \f$ \langle r_k, z_k \rangle \f$, \f$ \langle s_k, p_k \rangle \f$ and
+ * \f$ \langle w_k, z_k \rangle \f$ can be merged and overlapped with the
+ * next matrix-vector product and preconditioner apply.  In exact
+ * arithmetic the trajectory is identical to CG; in finite arithmetic the
+ * decoupling of dependencies amplifies round-off and the residuals can
+ * deviate from the classical iterates.
+ *
  * Possible issues:
  * 1. Numerical instability: Due to the rearrangement of the operations, the
  * method is known to be less stable than standard PCG.

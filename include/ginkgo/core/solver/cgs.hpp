@@ -31,6 +31,19 @@ namespace solver {
  * CGS or the conjugate gradient square method is an iterative type Krylov
  * subspace method which is suitable for general systems.
  *
+ * CGS rests on the identity that BiCG produces a residual of the form
+ * \f$ r_k^{\mathrm{BiCG}} = \psi_k(A)\, r_0 \f$, where \f$ \psi_k \f$ is the
+ * residual polynomial.  Squaring this polynomial yields the CGS residual
+ * \f[
+ *   r_k^{\mathrm{CGS}} = \psi_k(A)^2\, r_0,
+ * \f]
+ * so the iteration avoids the explicit \f$ A^H \f$ apply that BiCG
+ * requires.  The trade-off is that residuals lose monotonicity and can
+ * exhibit large oscillations on poorly-conditioned systems — when this
+ * matters in practice, \ref gko::solver::Bicgstab "BiCGSTAB" stabilises
+ * the same idea at the cost of one extra matrix-vector product per
+ * iteration.
+ *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of CGS are merged
  * into 3 separate steps.
