@@ -37,11 +37,11 @@ namespace solver {
  * obtained as the solution to the residual equation `Ae = residual`, since `A e
  * = Ax - A solution = b - A solution = residual`. Then, the real solution is
  * computed as `x = relaxation_factor * solution + e`. Instead of accurately
- * solving the residual equation `Ae = residual`, the solution of the system `e`
- * can be approximated to obtain the approximation `error` using a coarse method
- * `solver`, which is used to update `solution`, and the entire process is
- * repeated with the updated `solution`.  This yields the iterative refinement
- * method:
+ * solving the residual equation \f$ A e = r \f$, the solution of the
+ * system \f$ e \f$ can be approximated to obtain the approximation
+ * `error` using a coarse method `solver`, which is used to update
+ * `solution`, and the entire process is repeated with the updated
+ * `solution`.  This yields the iterative refinement method:
  *
  * ```
  * solution = initial_guess
@@ -56,21 +56,23 @@ namespace solver {
  * solver is a Richardson iteration, with possibility for additional
  * preconditioning.
  *
- * Assuming that `solver` has accuracy `c`, i.e., `| e - error | <= c | e |`,
- * iterative refinement will converge with a convergence rate of `c`. Indeed,
- * from `e - error = x - solution - error = x - solution*` (where `solution*`
- * denotes the value stored in `solution` after the update) and `e = inv(A)
- * residual = inv(A)b - inv(A) A solution = x - solution` it follows that | x -
- * solution* | <= c | x - solution |.
+ * Assuming that `solver` has accuracy \f$ c \f$, i.e.
+ * \f$ \| e - \tilde{e} \| \le c \, \| e \| \f$, iterative refinement will
+ * converge with a convergence rate of \f$ c \f$.  Indeed, from
+ * \f$ e - \tilde{e} = x - x_k - \tilde{e} = x - x_{k+1} \f$ (where
+ * \f$ x_{k+1} \f$ denotes the value stored in `solution` after the update)
+ * and \f$ e = A^{-1} r = A^{-1} b - A^{-1} A x_k = x - x_k \f$ it follows
+ * that \f$ \| x - x_{k+1} \| \le c \, \| x - x_k \| \f$.
  *
  * Unless otherwise specified via the `solver` factory parameter, this
  * implementation uses the identity operator (i.e. the solver that approximates
- * the solution of a system Ax = b by setting x := b) as the default inner
- * solver. Such a setting results in a relaxation method known as the Richardson
- * iteration with parameter 1, which is guaranteed to converge for matrices
- * whose spectrum is strictly contained within the unit disc around 1 (i.e., all
- * its eigenvalues `lambda` have to satisfy the equation `|relaxation_factor *
- * lambda - 1| < 1).
+ * the solution of a system \f$ A x = b \f$ by setting \f$ x := b \f$) as the
+ * default inner solver.  Such a setting results in a relaxation method known
+ * as the Richardson iteration with parameter 1, which is guaranteed to
+ * converge for matrices whose spectrum is strictly contained within the unit
+ * disc around 1 — i.e. all eigenvalues \f$ \lambda \f$ must satisfy
+ * \f$ |\, \alpha \, \lambda - 1 \,| < 1 \f$, where \f$ \alpha \f$ is the
+ * relaxation factor.
  *
  * @tparam ValueType  precision of matrix elements
  *
