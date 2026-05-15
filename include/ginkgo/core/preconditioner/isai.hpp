@@ -40,30 +40,37 @@ enum struct isai_type { lower, upper, general, spd };
  * an approximate inverse matrix for a given square matrix A, lower triangular
  * matrix L, upper triangular matrix U or symmetric positive (spd) matrix B.
  *
- * Using the preconditioner computes \f$aiA * x\f$, \f$aiU * x\f$, \f$aiL * x\f$
- * or $aiC^T * aiC * x$ (depending on the type of the Isai) for a given vector x
- * (may have multiple right hand sides). aiA, aiU and aiL are the approximate
- * inverses for A, U and L respectively. aiC is an approximation to C, the exact
- * Cholesky factor of B (This is commonly referred to as a Factorized Sparse
- * Approximate Inverse, short FSPAI).
+ * Let \f$ M_A \approx A^{-1} \f$ denote the approximate inverse of a
+ * general matrix \f$ A \f$, and similarly \f$ M_L \approx L^{-1} \f$,
+ * \f$ M_U \approx U^{-1} \f$ for lower and upper triangular matrices, and
+ * \f$ M_C \approx C^{-1} \f$ for the Cholesky factor of an SPD matrix
+ * \f$ B = C^T C \f$ (the last case is commonly called a Factorized Sparse
+ * Approximate Inverse, FSPAI).  Applying the preconditioner then computes,
+ * depending on the type of the Isai,
+ * \f[
+ *   M_A\, x, \qquad M_U\, x, \qquad M_L\, x, \qquad
+ *   \text{or} \qquad M_C^{T}\, M_C\, x,
+ * \f]
+ * for a given vector \f$ x \f$ (which may carry multiple right-hand sides).
  *
- * The sparsity pattern used for the approximate inverse of A, L and U is the
- * same as the sparsity pattern of the respective matrix. For B, the sparsity
- * pattern used for the approximate inverse is the same as the sparsity pattern
- * of the lower triangular half of B.
+ * The sparsity pattern used for the approximate inverse of \f$ A \f$,
+ * \f$ L \f$ and \f$ U \f$ is the same as the sparsity pattern of the
+ * respective matrix.  For \f$ B \f$, the sparsity pattern of \f$ M_C \f$
+ * matches the sparsity pattern of the lower triangular half of \f$ B \f$.
  *
- * Note that, except for the spd case, for a matrix A generally
- * ISAI(A)^T != ISAI(A^T).
- *
- * For more details on the algorithm, see the paper
- * <a href="https://doi.org/10.1016/j.parco.2017.10.003">
- * Incomplete Sparse Approximate Inverses for Parallel Preconditioning</a>,
- * which is the basis for this work.
+ * Note that, except for the SPD case, in general
+ * \f$ \mathrm{ISAI}(A)^T \ne \mathrm{ISAI}(A^T) \f$.
  *
  * @note GPU implementations can only handle the vector unit width `width`
  *       (warp size for CUDA) as number of elements per row in the sparse
  *       matrix. If there are more than `width` elements per row, the remaining
  *       elements will be ignored.
+ *
+ * @par References
+ * - Anzt, H., Huckle, T. K., Bräckle, J., Dongarra, J.
+ *   *Incomplete Sparse Approximate Inverses for Parallel Preconditioning.*
+ *   Parallel Computing, 71, 1–22, 2018.
+ *   <https://doi.org/10.1016/j.parco.2017.10.003>
  *
  * @tparam IsaiType  determines if the ISAI is generated for a general square
  *         matrix, a lower triangular matrix, an upper triangular matrix or an
