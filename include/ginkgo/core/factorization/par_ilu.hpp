@@ -36,31 +36,34 @@ namespace factorization {
  * The ParILU algorithm generates the incomplete factors iteratively, using a
  * fixed-point iteration of the form
  *
- * $
- * F(L, U) =
- * \begin{cases}
+ * \f[
+ *   F(L, U)_{ij} = \begin{cases}
  *     \frac{1}{u_{jj}}
- *         \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\
- *     a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j
- * \end{cases}
- * $
+ *       \left( a_{ij} - \sum_{k=1}^{j-1} l_{ik}\, u_{kj} \right),
+ *       & i > j, \\
+ *     a_{ij} - \sum_{k=1}^{i-1} l_{ik}\, u_{kj},
+ *       & i \leq j.
+ *   \end{cases}
+ * \f]
  *
  * In general, the entries of \f$L\f$ and \f$U\f$ can be iterated in parallel
- * and in asynchronous fashion, the algorithm asymptotically converges to the
- * incomplete factors \f$L\f$ and \f$U\f$ fulfilling $\left(R = A - L \cdot
- * U\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where \f$\mathcal{S}\f$ is
- * the pre-defined sparsity pattern (in case of ILU(0) the sparsity pattern of
- * the system matrix \f$A\f$). The number of ParILU sweeps needed for
- * convergence depends on the parallelism level: For sequential execution, a
- * single sweep is sufficient, for fine-grained parallelism, the number of
- * sweeps necessary to get a good approximation of the incomplete factors
- * depends heavily on the problem. On the OpenMP executor, 3 sweeps usually give
- * a decent approximation in our experiments, while GPU executors can take 10 or
- * more iterations.
+ * and in asynchronous fashion; the algorithm asymptotically converges to
+ * incomplete factors \f$L\f$ and \f$U\f$ fulfilling
+ * \f$ (R = A - L U)\vert_\mathcal{S} = 0\vert_\mathcal{S} \f$
+ * where \f$\mathcal{S}\f$ is the pre-defined sparsity pattern (in case of
+ * ILU(0), the sparsity pattern of the system matrix \f$A\f$).  The number of
+ * ParILU sweeps needed for convergence depends on the parallelism level: for
+ * sequential execution, a single sweep is sufficient; for fine-grained
+ * parallelism, the number of sweeps necessary to get a good approximation
+ * of the incomplete factors depends heavily on the problem.  On the OpenMP
+ * executor, 3 sweeps usually give a decent approximation in our experiments,
+ * while GPU executors can take 10 or more iterations.
  *
- * The ParILU algorithm in Ginkgo follows the design of E. Chow and A. Patel,
- * Fine-grained Parallel Incomplete LU Factorization, SIAM Journal on Scientific
- * Computing, 37, C169-C193 (2015).
+ * @par References
+ * - Chow, E., Patel, A.
+ *   *Fine-Grained Parallel Incomplete LU Factorization.*
+ *   SIAM Journal on Scientific Computing, 37 (2), C169–C193, 2015.
+ *   <https://doi.org/10.1137/140968896>
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class

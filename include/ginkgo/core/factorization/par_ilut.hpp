@@ -37,30 +37,37 @@ namespace factorization {
  *
  * One iteration of the ParILUT algorithm consists of the following steps:
  *
- * 1. Calculating the residual \f$R = A - LU\f$
- * 2. Adding new non-zero locations from \f$R\f$ to \f$L\f$ and \f$U\f$.
- *    The new non-zero locations are initialized based on the corresponding
- *    residual value.
- * 3. Executing a fixed-point iteration on \f$L\f$ and \f$U\f$ according to
- * $
- * F(L, U) =
- * \begin{cases}
- *     \frac{1}{u_{jj}}
- *         \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\
- *     a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j
- * \end{cases}
- * $
+ * 1. Calculate the residual \f$R = A - LU\f$.
+ * 2. Add new non-zero locations from \f$R\f$ to \f$L\f$ and \f$U\f$.  The new
+ *    non-zero locations are initialised from the corresponding residual
+ *    entries.
+ * 3. Execute a fixed-point iteration on \f$L\f$ and \f$U\f$ according to
+ *
+ *    \f[
+ *      F(L, U)_{ij} = \begin{cases}
+ *        \frac{1}{u_{jj}}
+ *          \left( a_{ij} - \sum_{k=1}^{j-1} l_{ik}\, u_{kj} \right),
+ *          & i > j, \\
+ *        a_{ij} - \sum_{k=1}^{i-1} l_{ik}\, u_{kj},
+ *          & i \leq j.
+ *      \end{cases}
+ *    \f]
+ *
  *    For a more detailed description of the fixed-point iteration, see
  *    @ref ParIlu.
- * 4. Removing the smallest entries (by magnitude) from \f$L\f$ and \f$U\f$
- * 5. Executing a fixed-point iteration on the (now sparser) \f$L\f$ and \f$U\f$
+ * 4. Remove the smallest entries (by magnitude) from \f$L\f$ and \f$U\f$.
+ * 5. Execute a fixed-point iteration on the (now sparser) \f$L\f$ and
+ *    \f$U\f$.
  *
  * This ParILUT algorithm thus improves the sparsity pattern and the
  * approximation of \f$L\f$ and \f$U\f$ simultaneously.
  *
- * The implementation follows the design of H. Anzt et al.,
- * ParILUT - A Parallel Threshold ILU for GPUs, 2019 IEEE International
- * Parallel and Distributed Processing Symposium (IPDPS), pp. 231–241.
+ * @par References
+ * - Anzt, H., Chow, E., Dongarra, J.
+ *   *ParILUT — A Parallel Threshold ILU for GPUs.*
+ *   2019 IEEE International Parallel and Distributed Processing Symposium
+ *   (IPDPS), pp. 231–241.
+ *   <https://doi.org/10.1109/IPDPS.2019.00033>
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
