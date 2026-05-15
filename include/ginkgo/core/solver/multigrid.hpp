@@ -45,11 +45,13 @@ namespace multigrid {
 /**
  * cycle defines which kind of multigrid cycle can be used.
  * It contains V, W, and F cycle.
- * - V, W cycle uses the algorithm according to Briggs, Henson, and McCormick: A
- *   multigrid tutorial 2nd Edition.
- * - F cycle uses the algorithm according to Trottenberg, Oosterlee, and
- *   Schuller: Multigrid 1st Edition. F cycle first uses the recursive call but
- *   second uses the V-cycle call such that F-cycle is between V and W cycle.
+ * - V, W cycles use the algorithm from Briggs–Henson–McCormick
+ *   (*A Multigrid Tutorial*, 2nd ed., SIAM 2000).
+ * - F cycle uses the algorithm from Trottenberg–Oosterlee–Schüller
+ *   (*Multigrid*, 1st ed., Academic Press 2001); F-cycle first does the
+ *   recursive call then a V-cycle call, sitting between V and W in cost.
+ *
+ * See the @ref Multigrid class for the full reference list with DOIs.
  */
 enum class cycle { v, f, w };
 
@@ -82,11 +84,17 @@ class MultigridState;
 
 
 /**
- * Multigrid methods have a hierarchy of many levels, whose corase level is a
- * subset of the fine level, of the problem. The coarse level solves the system
- * on the residual of fine level and fine level will use the coarse solution to
- * correct its own result. Multigrid solves the problem by relatively cheap step
- * in each level and refining the result when prolongating back.
+ * Multigrid solves a linear system by combining cheap iterative sweeps
+ * (smoothers) on a hierarchy of progressively coarser representations of
+ * the operator with corrections transferred between adjacent levels.  A
+ * smoother on the fine level removes the high-frequency components of the
+ * error quickly; the remaining low-frequency error is well-resolved on a
+ * coarser space, where it is computed by a cheaper solve — or, recursively,
+ * by another multigrid call.  The correction is prolongated back to the
+ * fine level and a second smoothing sweep removes any high-frequency error
+ * introduced by the transfer.  Because each coarser level holds only a
+ * fraction of the unknowns of the next, the total work per cycle stays
+ * close to that of a single fine-level matrix-vector apply.
  *
  * Each level \f$ \ell \f$ holds a system matrix \f$ A_\ell \f$, a smoother
  * \f$ S_\ell \f$, a restriction operator
@@ -120,6 +128,13 @@ class MultigridState;
  * Ginkgo uses the index from 0 for finest level (original problem size) ~ N for
  * the coarsest level (the coarsest solver), and its level counts is N (N
  * multigrid level generation).
+ *
+ * @par References
+ * - Briggs, W. L., Henson, V. E., McCormick, S. F.
+ *   *A %Multigrid Tutorial.* 2nd ed. SIAM, 2000.
+ *   <https://doi.org/10.1137/1.9780898719505>
+ * - Trottenberg, U., Oosterlee, C. W., Schüller, A.
+ *   *%Multigrid.* 1st ed. Academic Press, 2001. ISBN 978-0-12-701070-0.
  *
  * @ingroup Multigrid
  * @ingroup solvers

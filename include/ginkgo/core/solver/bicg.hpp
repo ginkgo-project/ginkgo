@@ -52,8 +52,10 @@ namespace solver {
  * It forms the basis of cheaper variants such as BiCGSTAB and CGS, which
  * avoid the explicit \f$ A^H \f$ apply.
  *
- * Reference: R.Fletcher, Conjugate gradient methods for indefinite systems,
- * doi: 10.1007/BFb0080116
+ * @par References
+ * - Fletcher, R. *Conjugate gradient methods for indefinite systems.*
+ *   Numerical Analysis (Dundee 1975), Lecture Notes in Mathematics 506,
+ *   Springer, 1976. <https://doi.org/10.1007/BFb0080116>
  *
  * @tparam ValueType  precision of matrix elements
  *

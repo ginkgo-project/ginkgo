@@ -49,12 +49,16 @@ namespace solver {
  * use of data locality. The inner operations in one iteration of Minres are
  * merged into 2 separate steps.
  *
- * For more details see Anne Grennbaum's 'Iterative Methods
- * for Solving Linear Systems' (DOI: 10.1137/1.9781611970937), and Sou-Cheng
- * (Terrya) Choi's 'ITERATIVE METHODS FOR SINGULAR LINEAR EQUATIONS AND
- * LEAST-SQUARES PROBLEMS'.
+ * @par References
+ * - Greenbaum, A. *Iterative Methods for Solving Linear Systems.*
+ *   SIAM Frontiers in Applied Mathematics, 17, 1997.
+ *   <https://doi.org/10.1137/1.9781611970937>
+ * - Choi, S.-C. T. *Iterative Methods for Singular Linear Equations and
+ *   Least-Squares Problems.*
+ *   PhD thesis, Stanford University, 2006.
+ *   <https://web.stanford.edu/group/SOL/dissertations/sou-cheng-choi-thesis.pdf>
  *
- * @note: The Minres solver only reports an approximation of the residual norm
+ * @note The Minres solver only reports an approximation of the residual norm
  *        directly to the stopping criteria. Neither the actual residual, nor
  *        the actual residual norm are reported. Thus, to get the minimal
  *        overhead, the gko::stop::ImplicitResidualNorm criteria should be used.

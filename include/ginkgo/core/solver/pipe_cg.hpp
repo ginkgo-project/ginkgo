@@ -62,9 +62,11 @@ namespace solver {
  * 3. As the CG itself, this method performs very well for symmetric positive
  * definite matrices but it is in general not suitable for general matrices.
  *
- * The implementation in Ginkgo is based on the following paper:
- * Pipelined, Flexible Krylov Subspace Methods, P. Sanan et. al, SISC, 2016,
- * doi: 10.1137/15M1049130
+ * @par References
+ * - Sanan, P., Schnepp, S. M., May, D. A.
+ *   *Pipelined, Flexible Krylov Subspace Methods.*
+ *   SIAM Journal on Scientific Computing, 38 (5), 2016.
+ *   <https://doi.org/10.1137/15M1049130>
  *
  * @tparam ValueType  precision of matrix elements
  *

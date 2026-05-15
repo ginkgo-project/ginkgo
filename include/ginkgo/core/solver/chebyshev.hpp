@@ -39,9 +39,6 @@ using coeff_type =
  * matrix. It avoids the computation of inner products, which may be a
  * performance bottleneck for distributed system. Chebyshev iteration is
  * developed based on Chebyshev polynomials of the first kind.
- * This implementation follows the algorithm in "Templates for the
- * Solution of Linear Systems: Building Blocks for Iterative Methods, 2nd
- * Edition".
  *
  * Given a preconditioner \f$ M \approx A^{-1} \f$, the iterate is updated
  * with the three-term recurrence
@@ -61,6 +58,11 @@ using coeff_type =
  * solution_{i-1})
  * ```
  *
+ * @par References
+ * - Barrett, R., Berry, M., Chan, T. F., et al.
+ *   *Templates for the Solution of Linear Systems: Building Blocks for
+ *   Iterative Methods.* 2nd ed. SIAM, 1994.
+ *   <https://doi.org/10.1137/1.9781611971538>
  *
  * @tparam ValueType  precision of matrix elements
  *

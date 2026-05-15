@@ -36,9 +36,8 @@ namespace solver {
 
 /**
  * IDR(s) is an efficient method for solving large nonsymmetric systems of
- * linear equations. The implemented version is the one presented in the
- * paper "Algorithm 913: An elegant IDR(s) variant that efficiently exploits
- * biorthogonality properties" by M. B. Van Gijzen and P. Sonneveld.
+ * linear equations. The implementation follows the elegant variant that
+ * exploits the biorthogonality of the shadow vectors.
  *
  * The method is based on the induced dimension reduction theorem.  Fixing a
  * full-rank shadow space \f$ R = \mathrm{span}(r_1, \ldots, r_s) \f$ — the
@@ -52,6 +51,13 @@ namespace solver {
  * forced into these shrinking spaces and become identically zero after at
  * most \f$ N + N/s \f$ iterations in exact arithmetic — substantially fewer
  * matrix-vector products than the \f$ 2N \f$ BiCG would require.
+ *
+ * @par References
+ * - Van Gijzen, M. B., Sonneveld, P.
+ *   *Algorithm 913: An Elegant IDR(s) Variant that Efficiently Exploits
+ *   Biorthogonality Properties.*
+ *   ACM Transactions on Mathematical Software, 38 (1), Article 5, 2011.
+ *   <https://doi.org/10.1145/2049662.2049667>
  *
  * @tparam ValueType  precision of the elements of the system matrix.
  *
