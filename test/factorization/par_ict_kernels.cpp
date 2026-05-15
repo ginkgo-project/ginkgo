@@ -67,13 +67,15 @@ protected:
             gko::matrix::CsrBuilder<value_type, index_type> l_builder(
                 mtx_l_ani);
             gko::kernels::reference::factorization::initialize_row_ptrs_l(
-                ref, mtx_ani.get(), mtx_l_ani->get_row_ptrs());
+                ref, mtx_ani->get_const_device_view(),
+                mtx_l_ani->get_row_ptrs());
             auto l_nnz =
                 mtx_l_ani->get_const_row_ptrs()[mtx_ani->get_size()[0]];
             l_builder.get_col_idx_array().resize_and_reset(l_nnz);
             l_builder.get_value_array().resize_and_reset(l_nnz);
             gko::kernels::reference::factorization::initialize_l(
-                ref, mtx_ani.get(), mtx_l_ani.get(), true);
+                ref, mtx_ani->get_const_device_view(),
+                mtx_l_ani->get_device_view(), true);
         }
         dmtx_ani->copy_from(mtx_ani);
         dmtx_l_ani->copy_from(mtx_l_ani);
@@ -121,10 +123,14 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
     auto dres_mtx_l = Csr::create(this->exec, this->mtx_size);
 
     gko::kernels::reference::par_ict_factorization::add_candidates(
-        this->ref, mtx_llh.get(), this->mtx.get(), this->mtx_l.get(),
+        this->ref, mtx_llh->get_const_device_view(),
+        this->mtx->get_const_device_view(),
+        this->mtx_l->get_const_device_view(),
         gko::matrix::make_builder_unique_ptr(res_mtx_l).get());
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ict_factorization::add_candidates(
-        this->exec, dmtx_llh.get(), this->dmtx.get(), this->dmtx_l.get(),
+        this->exec, dmtx_llh->get_const_device_view(),
+        this->dmtx->get_const_device_view(),
+        this->dmtx_l->get_const_device_view(),
         gko::matrix::make_builder_unique_ptr(dres_mtx_l).get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, dres_mtx_l);
@@ -149,12 +155,12 @@ TYPED_TEST(ParIct, KernelComputeFactorIsEquivalentToRef)
     dmtx_l_coo->copy_from(mtx_l_coo);
 
     gko::kernels::reference::par_ict_factorization::compute_factor(
-        this->ref, this->mtx_ani.get(), this->mtx_l_ani.get(),
-        mtx_l_coo->get_const_device_view());
+        this->ref, this->mtx_ani->get_const_device_view(),
+        this->mtx_l_ani->get_device_view(), mtx_l_coo->get_const_device_view());
     for (int i = 0; i < 20; ++i) {
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ict_factorization::
-            compute_factor(this->exec, this->dmtx_ani.get(),
-                           this->dmtx_l_ani.get(),
+            compute_factor(this->exec, this->dmtx_ani->get_const_device_view(),
+                           this->dmtx_l_ani->get_device_view(),
                            dmtx_l_coo->get_const_device_view());
     }
 

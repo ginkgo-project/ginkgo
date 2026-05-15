@@ -31,36 +31,36 @@ namespace kernels {
                                                                  IndexType) \
     void initialize_row_ptrs_l_u(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::Csr<ValueType, IndexType>* system_matrix,             \
+        matrix::view::csr<const ValueType, const IndexType> system_matrix,  \
         IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType, IndexType) \
     void initialize_l_u(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                          \
-        const matrix::Csr<ValueType, IndexType>* system_matrix,               \
-        matrix::Csr<ValueType, IndexType>* l_factor,                          \
-        matrix::Csr<ValueType, IndexType>* u_factor)
+        matrix::view::csr<const ValueType, const IndexType> system_matrix,    \
+        matrix::view::csr<ValueType, IndexType> l_factor,                     \
+        matrix::view::csr<ValueType, IndexType> u_factor)
 
-#define GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(ValueType, \
-                                                               IndexType) \
-    void initialize_row_ptrs_l(                                           \
-        std::shared_ptr<const DefaultExecutor> exec,                      \
-        const matrix::Csr<ValueType, IndexType>* system_matrix,           \
+#define GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(ValueType,  \
+                                                               IndexType)  \
+    void initialize_row_ptrs_l(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        matrix::view::csr<const ValueType, const IndexType> system_matrix, \
         IndexType* l_row_ptrs)
 
-#define GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType)   \
-    void initialize_l(std::shared_ptr<const DefaultExecutor> exec,            \
-                      const matrix::Csr<ValueType, IndexType>* system_matrix, \
-                      matrix::Csr<ValueType, IndexType>* l_factor,            \
-                      bool diag_sqrt)
+#define GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType) \
+    void initialize_l(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        matrix::view::csr<const ValueType, const IndexType> system_matrix,  \
+        matrix::view::csr<ValueType, IndexType> l_factor, bool diag_sqrt)
 
-#define GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL(ValueType, \
-                                                           IndexType) \
-    void symbolic_validate(                                           \
-        std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::Csr<ValueType, IndexType>* system_matrix,       \
-        const matrix::Csr<ValueType, IndexType>* factors,             \
-        const matrix::csr::lookup_data<IndexType>& factors_lookup,    \
+#define GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL(ValueType,      \
+                                                           IndexType)      \
+    void symbolic_validate(                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        matrix::view::csr<const ValueType, const IndexType> system_matrix, \
+        matrix::view::csr<const ValueType, const IndexType> factors,       \
+        const matrix::csr::lookup_data<IndexType>& factors_lookup,         \
         bool& valid)
 
 

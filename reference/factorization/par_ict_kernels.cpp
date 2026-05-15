@@ -33,17 +33,17 @@ namespace par_ict_factorization {
 
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    matrix::Csr<ValueType, IndexType>* l,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::csr<ValueType, IndexType> l,
                     matrix::view::coo<const ValueType, const IndexType>)
 {
-    auto num_rows = a->get_size()[0];
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_col_idxs = l->get_const_col_idxs();
-    auto l_vals = l->get_values();
-    auto a_row_ptrs = a->get_const_row_ptrs();
-    auto a_col_idxs = a->get_const_col_idxs();
-    auto a_vals = a->get_const_values();
+    auto num_rows = a.size[0];
+    auto l_row_ptrs = l.row_ptrs;
+    auto l_col_idxs = l.col_idxs;
+    auto l_vals = l.values;
+    auto a_row_ptrs = a.row_ptrs;
+    auto a_col_idxs = a.col_idxs;
+    auto a_vals = a.values;
 
     for (size_type row = 0; row < num_rows; ++row) {
         for (auto l_nz = l_row_ptrs[row]; l_nz < l_row_ptrs[row + 1]; ++l_nz) {
@@ -95,15 +95,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* llh,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    const matrix::Csr<ValueType, IndexType>* l,
+                    matrix::view::csr<const ValueType, const IndexType> llh,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::csr<const ValueType, const IndexType> l,
                     matrix::CsrBuilder<ValueType, IndexType>* l_new_builder)
 {
-    auto num_rows = a->get_size()[0];
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_col_idxs = l->get_const_col_idxs();
-    auto l_vals = l->get_const_values();
+    auto num_rows = a.size[0];
+    auto l_row_ptrs = l.row_ptrs;
+    auto l_col_idxs = l.col_idxs;
+    auto l_vals = l.values;
     auto l_new = l_new_builder->get_matrix();
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();

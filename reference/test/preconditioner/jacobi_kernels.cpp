@@ -1143,8 +1143,8 @@ TYPED_TEST(Jacobi, ScalarL1Diag)
     auto diag = mtx->extract_diagonal();
     auto diag_val = diag->get_const_values();
 
-    gko::kernels::reference::jacobi::scalar_l1(this->exec, mtx.get(),
-                                               diag.get());
+    gko::kernels::reference::jacobi::scalar_l1(
+        this->exec, mtx->get_const_device_view(), diag.get());
 
     EXPECT_EQ(diag_val[0], value_type{2.0});
     EXPECT_EQ(diag_val[1], value_type{4.0});
@@ -1175,7 +1175,7 @@ TYPED_TEST(Jacobi, BlockL1)
     gko::array<index_type> block_ptr(this->exec, {0, 1, 2, 4});
 
     gko::kernels::reference::jacobi::block_l1(this->exec, 3, block_ptr,
-                                              mtx.get());
+                                              mtx->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(mtx,
                         l({{2.0, 1.0, 0.0, 0.0},

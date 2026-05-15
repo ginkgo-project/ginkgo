@@ -27,8 +27,8 @@ template <typename ValueType, typename IndexType>
 void compute_l_u_factors(
     std::shared_ptr<const OmpExecutor> exec, size_type iterations,
     matrix::view::coo<const ValueType, const IndexType> system_matrix,
-    matrix::Csr<ValueType, IndexType>* l_factor,
-    matrix::Csr<ValueType, IndexType>* u_factor)
+    matrix::view::csr<ValueType, IndexType> l_factor,
+    matrix::view::csr<ValueType, IndexType> u_factor)
 {
     // If `iterations` is set to `Auto`, we do 3 fix-point sweeps as
     // experiments indicate this works well for many problems.
@@ -36,12 +36,12 @@ void compute_l_u_factors(
     const auto col_idxs = system_matrix.col_idxs;
     const auto row_idxs = system_matrix.row_idxs;
     const auto vals = system_matrix.values;
-    const auto row_ptrs_l = l_factor->get_const_row_ptrs();
-    const auto row_ptrs_u = u_factor->get_const_row_ptrs();
-    const auto col_idxs_l = l_factor->get_const_col_idxs();
-    const auto col_idxs_u = u_factor->get_const_col_idxs();
-    auto vals_l = l_factor->get_values();
-    auto vals_u = u_factor->get_values();
+    const auto row_ptrs_l = l_factor.row_ptrs;
+    const auto row_ptrs_u = u_factor.row_ptrs;
+    const auto col_idxs_l = l_factor.col_idxs;
+    const auto col_idxs_u = u_factor.col_idxs;
+    auto vals_l = l_factor.values;
+    auto vals_u = u_factor.values;
     for (size_type iter = 0; iter < iterations; ++iter) {
         // all elements in the incomplete factors are updated in parallel
 #pragma omp parallel for

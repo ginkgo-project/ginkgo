@@ -93,11 +93,11 @@ void convert_to_csr(
     std::shared_ptr<const ReferenceExecutor> exec,
     matrix::view::hybrid<const ValueType, const IndexType> source,
     const IndexType*, const IndexType*,
-    matrix::Csr<ValueType, IndexType>* result)
+    matrix::view::csr<ValueType, IndexType> result)
 {
-    auto csr_val = result->get_values();
-    auto csr_col_idxs = result->get_col_idxs();
-    auto csr_row_ptrs = result->get_row_ptrs();
+    auto csr_val = result.values;
+    auto csr_col_idxs = result.col_idxs;
+    auto csr_row_ptrs = result.row_ptrs;
     const auto ell = source.ell_part;
     const auto max_nnz_per_row = ell.num_stored_elements_per_row;
     const auto coo_val = source.coo_part.values;

@@ -148,7 +148,8 @@ TYPED_TEST(ParIct, KernelInitializeRowPtrsL)
     auto row_ptrs = res_mtx_l->get_const_row_ptrs();
 
     gko::kernels::reference::factorization::initialize_row_ptrs_l(
-        this->ref, this->mtx_system.get(), res_mtx_l->get_row_ptrs());
+        this->ref, this->mtx_system->get_const_device_view(),
+        res_mtx_l->get_row_ptrs());
 
     ASSERT_EQ(row_ptrs[0], 0);
     ASSERT_EQ(row_ptrs[1], 1);
@@ -166,9 +167,11 @@ TYPED_TEST(ParIct, KernelInitializeL)
     auto row_ptrs = res_mtx_l->get_const_row_ptrs();
 
     gko::kernels::reference::factorization::initialize_row_ptrs_l(
-        this->ref, this->mtx_init.get(), res_mtx_l->get_row_ptrs());
+        this->ref, this->mtx_init->get_const_device_view(),
+        res_mtx_l->get_row_ptrs());
     gko::kernels::reference::factorization::initialize_l(
-        this->ref, this->mtx_init.get(), res_mtx_l.get(), true);
+        this->ref, this->mtx_init->get_const_device_view(),
+        res_mtx_l->get_device_view(), true);
 
     GKO_ASSERT_MTX_NEAR(res_mtx_l, this->mtx_l_init_expect, this->tol);
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, this->mtx_l_init_expect);
@@ -183,8 +186,9 @@ TYPED_TEST(ParIct, KernelAddCandidates)
     auto res_mtx_l = Csr::create(this->exec, this->mtx_system->get_size());
 
     gko::kernels::reference::par_ict_factorization::add_candidates(
-        this->ref, this->mtx_llh.get(), this->mtx_system.get(),
-        this->mtx_l.get(),
+        this->ref, this->mtx_llh->get_const_device_view(),
+        this->mtx_system->get_const_device_view(),
+        this->mtx_l->get_const_device_view(),
         gko::matrix::make_builder_unique_ptr(res_mtx_l).get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, this->mtx_l_add_expect);
@@ -201,7 +205,8 @@ TYPED_TEST(ParIct, KernelComputeLU)
     this->mtx_l_system->convert_to(mtx_l_coo);
 
     gko::kernels::reference::par_ict_factorization::compute_factor(
-        this->ref, this->mtx_system.get(), this->mtx_l_system.get(),
+        this->ref, this->mtx_system->get_const_device_view(),
+        this->mtx_l_system->get_device_view(),
         mtx_l_coo->get_const_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_it_expect, this->tol);

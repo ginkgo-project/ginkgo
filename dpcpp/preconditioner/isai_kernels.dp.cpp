@@ -608,13 +608,13 @@ void copy_excess_solution(dim3 grid, dim3 block,
 
 
 template <typename ValueType, typename IndexType>
-void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType>* input,
-                          matrix::Csr<ValueType, IndexType>* inverse,
-                          IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs,
-                          bool lower)
+void generate_tri_inverse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> input,
+    matrix::view::csr<ValueType, IndexType> inverse, IndexType* excess_rhs_ptrs,
+    IndexType* excess_nz_ptrs, bool lower)
 {
-    const auto num_rows = input->get_size()[0];
+    const auto num_rows = input.size[0];
 
     const auto block = default_block_size;
     const auto grid = ceildiv(num_rows, block / subwarp_size);
@@ -622,21 +622,17 @@ void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
         if (lower) {
             kernel::generate_l_inverse<subwarp_size, subwarps_per_block>(
                 grid, block, 0, exec->get_queue(),
-                static_cast<IndexType>(num_rows), input->get_const_row_ptrs(),
-                input->get_const_col_idxs(),
-                as_device_type(input->get_const_values()),
-                inverse->get_row_ptrs(), inverse->get_col_idxs(),
-                as_device_type(inverse->get_values()), excess_rhs_ptrs,
-                excess_nz_ptrs);
+                static_cast<IndexType>(num_rows), input.row_ptrs,
+                input.col_idxs, as_device_type(input.values), inverse.row_ptrs,
+                inverse.col_idxs, as_device_type(inverse.values),
+                excess_rhs_ptrs, excess_nz_ptrs);
         } else {
             kernel::generate_u_inverse<subwarp_size, subwarps_per_block>(
                 grid, block, 0, exec->get_queue(),
-                static_cast<IndexType>(num_rows), input->get_const_row_ptrs(),
-                input->get_const_col_idxs(),
-                as_device_type(input->get_const_values()),
-                inverse->get_row_ptrs(), inverse->get_col_idxs(),
-                as_device_type(inverse->get_values()), excess_rhs_ptrs,
-                excess_nz_ptrs);
+                static_cast<IndexType>(num_rows), input.row_ptrs,
+                input.col_idxs, as_device_type(input.values), inverse.row_ptrs,
+                inverse.col_idxs, as_device_type(inverse.values),
+                excess_rhs_ptrs, excess_nz_ptrs);
         }
     }
     components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
@@ -648,22 +644,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                              const matrix::Csr<ValueType, IndexType>* input,
-                              matrix::Csr<ValueType, IndexType>* inverse,
-                              IndexType* excess_rhs_ptrs,
-                              IndexType* excess_nz_ptrs, bool spd)
+void generate_general_inverse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> input,
+    matrix::view::csr<ValueType, IndexType> inverse, IndexType* excess_rhs_ptrs,
+    IndexType* excess_nz_ptrs, bool spd)
 {
-    const auto num_rows = input->get_size()[0];
+    const auto num_rows = input.size[0];
 
     const auto block = default_block_size;
     const auto grid = ceildiv(num_rows, block / subwarp_size);
     if (grid > 0) {
         kernel::generate_general_inverse<subwarp_size, subwarps_per_block>(
             grid, block, 0, exec->get_queue(), static_cast<IndexType>(num_rows),
-            input->get_const_row_ptrs(), input->get_const_col_idxs(),
-            as_device_type(input->get_const_values()), inverse->get_row_ptrs(),
-            inverse->get_col_idxs(), as_device_type(inverse->get_values()),
+            input.row_ptrs, input.col_idxs, as_device_type(input.values),
+            inverse.row_ptrs, inverse.col_idxs, as_device_type(inverse.values),
             excess_rhs_ptrs, excess_nz_ptrs, spd);
     }
     components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
@@ -675,28 +670,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_excess_system(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Csr<ValueType, IndexType>* input,
-                            const matrix::Csr<ValueType, IndexType>* inverse,
-                            const IndexType* excess_rhs_ptrs,
-                            const IndexType* excess_nz_ptrs,
-                            matrix::Csr<ValueType, IndexType>* excess_system,
-                            matrix::view::dense<ValueType> excess_rhs,
-                            size_type e_start, size_type e_end)
+void generate_excess_system(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> input,
+    matrix::view::csr<const ValueType, const IndexType> inverse,
+    const IndexType* excess_rhs_ptrs, const IndexType* excess_nz_ptrs,
+    matrix::view::csr<ValueType, IndexType> excess_system,
+    matrix::view::dense<ValueType> excess_rhs, size_type e_start,
+    size_type e_end)
 {
-    const auto num_rows = input->get_size()[0];
+    const auto num_rows = input.size[0];
 
     const auto block = default_block_size;
     const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
     if (grid > 0) {
         kernel::generate_excess_system<subwarp_size>(
             grid, block, 0, exec->get_queue(), static_cast<IndexType>(num_rows),
-            input->get_const_row_ptrs(), input->get_const_col_idxs(),
-            as_device_type(input->get_const_values()),
-            inverse->get_const_row_ptrs(), inverse->get_const_col_idxs(),
-            excess_rhs_ptrs, excess_nz_ptrs, excess_system->get_row_ptrs(),
-            excess_system->get_col_idxs(),
-            as_device_type(excess_system->get_values()),
+            input.row_ptrs, input.col_idxs, as_device_type(input.values),
+            inverse.row_ptrs, inverse.col_idxs, excess_rhs_ptrs, excess_nz_ptrs,
+            excess_system.row_ptrs, excess_system.col_idxs,
+            as_device_type(excess_system.values),
             as_device_type(excess_rhs.values), e_start, e_end);
     }
 }
@@ -729,19 +722,19 @@ void scatter_excess_solution(
     std::shared_ptr<const DefaultExecutor> exec,
     const IndexType* excess_rhs_ptrs,
     matrix::view::dense<const ValueType> excess_solution,
-    matrix::Csr<ValueType, IndexType>* inverse, size_type e_start,
+    matrix::view::csr<ValueType, IndexType> inverse, size_type e_start,
     size_type e_end)
 {
-    const auto num_rows = inverse->get_size()[0];
+    const auto num_rows = inverse.size[0];
 
     const auto block = default_block_size;
     const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
     if (grid > 0) {
         kernel::copy_excess_solution<subwarp_size>(
             grid, block, 0, exec->get_queue(), static_cast<IndexType>(num_rows),
-            inverse->get_const_row_ptrs(), excess_rhs_ptrs,
+            inverse.row_ptrs, excess_rhs_ptrs,
             as_device_type(excess_solution.values),
-            as_device_type(inverse->get_values()), e_start, e_end);
+            as_device_type(inverse.values), e_start, e_end);
     }
 }
 

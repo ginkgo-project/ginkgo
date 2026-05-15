@@ -98,7 +98,7 @@ void convert_to_csr(
     std::shared_ptr<const DefaultExecutor> exec,
     matrix::view::hybrid<const ValueType, const IndexType> source,
     const IndexType* ell_row_ptrs, const IndexType* coo_row_ptrs,
-    matrix::Csr<ValueType, IndexType>* result)
+    matrix::view::csr<ValueType, IndexType> result)
 {
     const auto ell = source.ell_part;
     const auto coo = source.coo_part;
@@ -119,14 +119,14 @@ void convert_to_csr(
         },
         dim<2>{ell.num_stored_elements_per_row, ell.size[0]},
         static_cast<int64>(ell.stride), ell.col_idxs, ell.values, ell_row_ptrs,
-        coo_row_ptrs, result->get_col_idxs(), result->get_values());
+        coo_row_ptrs, result.col_idxs, result.values);
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto ell_row_ptrs, auto coo_row_ptrs,
                       auto out_row_ptrs) {
             out_row_ptrs[idx] = ell_row_ptrs[idx] + coo_row_ptrs[idx];
         },
-        source.size[0] + 1, ell_row_ptrs, coo_row_ptrs, result->get_row_ptrs());
+        source.size[0] + 1, ell_row_ptrs, coo_row_ptrs, result.row_ptrs);
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto in_rows, auto in_cols, auto in_vals,
@@ -144,8 +144,7 @@ void convert_to_csr(
             out_vals[out_idx] = val;
         },
         coo.num_stored_elements, coo.row_idxs, coo.col_idxs, coo.values,
-        ell_row_ptrs, coo_row_ptrs, result->get_col_idxs(),
-        result->get_values());
+        ell_row_ptrs, coo_row_ptrs, result.col_idxs, result.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

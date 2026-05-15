@@ -125,9 +125,9 @@ void LowerTrs<ValueType, IndexType>::generate()
 {
     if (this->get_system_matrix()) {
         this->get_executor()->run(lower_trs::make_generate(
-            this->get_system_matrix().get(), this->solve_struct_,
-            this->get_parameters().unit_diagonal, parameters_.algorithm,
-            parameters_.num_rhs));
+            this->get_system_matrix()->get_const_device_view(),
+            this->solve_struct_, this->get_parameters().unit_diagonal,
+            parameters_.algorithm, parameters_.num_rhs));
     }
 }
 
@@ -169,8 +169,9 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                     ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
             exec->run(lower_trs::make_solve(
-                this->get_system_matrix().get(), this->solve_struct_.get(),
-                this->get_parameters().unit_diagonal, parameters_.algorithm,
+                this->get_system_matrix()->get_const_device_view(),
+                this->solve_struct_.get(), this->get_parameters().unit_diagonal,
+                parameters_.algorithm,
                 trans_b ? optional_view{trans_b->get_device_view()}
                         : optional_view{},
                 trans_x ? optional_view{trans_x->get_device_view()}

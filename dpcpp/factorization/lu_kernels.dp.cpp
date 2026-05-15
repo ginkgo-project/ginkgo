@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,12 +25,12 @@ namespace lu_factorization {
 
 
 template <typename ValueType, typename IndexType>
-void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType>* mtx,
-                const IndexType* factor_lookup_offsets,
-                const int64* factor_lookup_descs,
-                const int32* factor_lookup_storage, IndexType* diag_idxs,
-                matrix::Csr<ValueType, IndexType>* factors) GKO_NOT_IMPLEMENTED;
+void initialize(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> mtx,
+    const IndexType* factor_lookup_offsets, const int64* factor_lookup_descs,
+    const int32* factor_lookup_storage, IndexType* diag_idxs,
+    matrix::view::csr<ValueType, IndexType> factors) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_INITIALIZE);
 
@@ -39,8 +39,8 @@ template <typename ValueType, typename IndexType>
 void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
-               matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
-               array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
+               matrix::view::csr<ValueType, IndexType> factors,
+               bool full_fillin, array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LU_FACTORIZE);
 
@@ -52,7 +52,7 @@ void symbolic_factorize_simple(std::shared_ptr<const DefaultExecutor> exec,
                                const IndexType* lookup_offsets,
                                const int64* lookup_descs,
                                const int32* lookup_storage,
-                               matrix::Csr<float, IndexType>* factors,
+                               matrix::view::csr<float, IndexType> factors,
                                IndexType* out_row_nnz) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE);
@@ -61,7 +61,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE);
 template <typename IndexType>
 void symbolic_factorize_simple_finalize(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<float, IndexType>* factors,
+    matrix::view::csr<const float, const IndexType> factors,
     IndexType* out_col_idxs) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(

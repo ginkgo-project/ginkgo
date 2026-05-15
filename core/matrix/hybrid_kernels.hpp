@@ -37,7 +37,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                   \
         matrix::view::hybrid<const ValueType, const IndexType> source, \
         const IndexType* ell_row_ptrs, const IndexType* coo_row_ptrs,  \
-        matrix::Csr<ValueType, IndexType>* result)
+        matrix::view::csr<ValueType, IndexType> result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                     \

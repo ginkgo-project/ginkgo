@@ -125,12 +125,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Diagonal<ValueType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
     const auto size = source->get_size()[0];
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto csr_values = result->get_values();
+    auto row_ptrs = result.row_ptrs;
+    auto col_idxs = result.col_idxs;
+    auto csr_values = result.values;
     const auto diag_values = source->get_const_values();
 
     for (size_type i = 0; i < size; i++) {

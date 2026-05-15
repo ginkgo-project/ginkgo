@@ -56,7 +56,7 @@ namespace kernels {
     void convert_to_csr(                                              \
         std::shared_ptr<const DefaultExecutor> exec,                  \
         matrix::view::sellp<const ValueType, const IndexType> source, \
-        matrix::Csr<ValueType, IndexType>* result)
+        matrix::view::csr<ValueType, IndexType> result)
 
 #define GKO_DECLARE_SELLP_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType) \
     void count_nonzeros_per_row(                                              \

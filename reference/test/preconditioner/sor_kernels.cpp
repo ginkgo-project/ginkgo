@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -66,7 +66,8 @@ TYPED_TEST(Sor, CanInitializeLFactor)
         gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
 
     gko::kernels::reference::sor::initialize_weighted_l(
-        this->exec, this->mtx.get(), 1.0, result.get());
+        this->exec, this->mtx->get_const_device_view(), 1.0,
+        result->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(result, this->expected_l, 0.0);
 }
@@ -88,7 +89,8 @@ TYPED_TEST(Sor, CanInitializeLFactorWithWeight)
                                   this->exec);
 
     gko::kernels::reference::sor::initialize_weighted_l(
-        this->exec, this->mtx.get(), 0.5f, result.get());
+        this->exec, this->mtx->get_const_device_view(), 0.5f,
+        result->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(result, expected_l, r<value_type>::value);
 }
@@ -105,7 +107,8 @@ TYPED_TEST(Sor, CanInitializeLAndUFactor)
         gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
 
     gko::kernels::reference::sor::initialize_weighted_l_u(
-        this->exec, this->mtx.get(), 1.0, result_l.get(), result_u.get());
+        this->exec, this->mtx->get_const_device_view(), 1.0,
+        result_l->get_device_view(), result_u->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(result_l, this->expected_l, 0.0);
     GKO_ASSERT_MTX_NEAR(result_u, this->expected_u, 0.0);
@@ -143,7 +146,8 @@ TYPED_TEST(Sor, CanInitializeLAndUFactorWithWeight)
         this->exec);
 
     gko::kernels::reference::sor::initialize_weighted_l_u(
-        this->exec, this->mtx.get(), factor, result_l.get(), result_u.get());
+        this->exec, this->mtx->get_const_device_view(), factor,
+        result_l->get_device_view(), result_u->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(result_l, expected_l, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(result_u, expected_u, r<value_type>::value);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -45,9 +45,9 @@ TEST_F(Factorization, InitializeRowPtrsLSameAsRef)
     gko::array<index_type> dl_ptrs{exec, mtx->get_size()[0] + 1};
 
     gko::kernels::reference::factorization::initialize_row_ptrs_l(
-        ref, mtx.get(), l_ptrs.get_data());
+        ref, mtx->get_const_device_view(), l_ptrs.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::initialize_row_ptrs_l(
-        exec, dmtx.get(), dl_ptrs.get_data());
+        exec, dmtx->get_const_device_view(), dl_ptrs.get_data());
 
     GKO_ASSERT_ARRAY_EQ(l_ptrs, dl_ptrs);
 }
@@ -57,7 +57,7 @@ TEST_F(Factorization, InitializeLSameAsRef)
 {
     gko::array<index_type> l_ptrs{ref, mtx->get_size()[0] + 1};
     gko::kernels::reference::factorization::initialize_row_ptrs_l(
-        ref, mtx.get(), l_ptrs.get_data());
+        ref, mtx->get_const_device_view(), l_ptrs.get_data());
     auto nnz =
         static_cast<gko::size_type>(l_ptrs.get_data()[mtx->get_size()[0]]);
     auto l_mtx =
@@ -69,9 +69,11 @@ TEST_F(Factorization, InitializeLSameAsRef)
         SCOPED_TRACE("diag_sqrt: " + std::to_string(diag_sqrt));
 
         gko::kernels::reference::factorization::initialize_l(
-            ref, mtx.get(), l_mtx.get(), diag_sqrt);
+            ref, mtx->get_const_device_view(), l_mtx->get_device_view(),
+            diag_sqrt);
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::initialize_l(
-            exec, dmtx.get(), dl_mtx.get(), diag_sqrt);
+            exec, dmtx->get_const_device_view(), dl_mtx->get_device_view(),
+            diag_sqrt);
 
         GKO_ASSERT_MTX_NEAR(l_mtx, dl_mtx,
                             diag_sqrt ? r<value_type>::value : 0.0);

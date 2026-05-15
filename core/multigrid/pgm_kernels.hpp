@@ -59,14 +59,14 @@ namespace pgm {
 #define GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType)   \
     void find_strongest_neighbor(                                       \
         std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Csr<ValueType, IndexType>* weight_mtx,            \
+        matrix::view::csr<const ValueType, const IndexType> weight_mtx, \
         const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg, \
         array<IndexType>& strongest_neighbor)
 
 #define GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType)       \
     void assign_to_exist_agg(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Csr<ValueType, IndexType>* weight_mtx,            \
+        matrix::view::csr<const ValueType, const IndexType> weight_mtx, \
         const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg, \
         array<IndexType>& intermediate_agg)
 

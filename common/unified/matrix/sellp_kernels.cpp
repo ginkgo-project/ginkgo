@@ -156,7 +156,7 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(
     std::shared_ptr<const DefaultExecutor> exec,
     matrix::view::sellp<const ValueType, const IndexType> source,
-    matrix::Csr<ValueType, IndexType>* result)
+    matrix::view::csr<ValueType, IndexType> result)
 {
     run_kernel(
         exec,
@@ -178,8 +178,7 @@ void convert_to_csr(
             }
         },
         source.size[0], source.slice_size, source.slice_sets, source.col_idxs,
-        source.values, result->get_row_ptrs(), result->get_col_idxs(),
-        result->get_values());
+        source.values, result.row_ptrs, result.col_idxs, result.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

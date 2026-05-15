@@ -124,7 +124,8 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
         forest =
             std::make_unique<gko::factorization::elimination_forest<IndexType>>(
                 exec, num_rows);
-        exec->run(ic_factorization::make_from_factor(factors.get(), *forest));
+        exec->run(ic_factorization::make_from_factor(
+            factors->get_const_device_view(), *forest));
 
         // setup lookup structure on factors
         const auto lookup = matrix::csr::build_lookup(factors.get());
@@ -136,20 +137,22 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
             factors->get_values(), factors->get_num_stored_elements(),
             zero<ValueType>()));
         exec->run(ic_factorization::make_initialize(
-            local_system_matrix.get(), lookup.storage_offsets.get_const_data(),
+            local_system_matrix->get_const_device_view(),
+            lookup.storage_offsets.get_const_data(),
             lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-            diag_idxs.get_data(), transpose_idxs.get_data(), factors.get()));
+            diag_idxs.get_data(), transpose_idxs.get_data(),
+            factors->get_device_view()));
         // run numerical factorization
         array<int> tmp{exec};
         exec->run(ic_factorization::make_factorize(
             lookup.storage_offsets.get_const_data(),
             lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
             diag_idxs.get_const_data(), transpose_idxs.get_const_data(),
-            *forest, factors.get(), false, tmp));
+            *forest, factors->get_device_view(), false, tmp));
         ic = factors;
     } else {
-        exec->run(
-            ic_factorization::make_sparselib_ic(local_system_matrix.get()));
+        exec->run(ic_factorization::make_sparselib_ic(
+            local_system_matrix->get_device_view()));
         ic = local_system_matrix;
     }
 
@@ -158,7 +161,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     const auto num_rows = matrix_size[0];
     array<IndexType> l_row_ptrs{exec, num_rows + 1};
     exec->run(ic_factorization::make_initialize_row_ptrs_l(
-        ic.get(), l_row_ptrs.get_data()));
+        ic->get_const_device_view(), l_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, num_rows));
@@ -171,8 +174,8 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
         std::move(l_row_ptrs), parameters_.l_strategy);
 
     // Extract lower factor: columns and values
-    exec->run(
-        ic_factorization::make_initialize_l(ic.get(), l_factor.get(), false));
+    exec->run(ic_factorization::make_initialize_l(
+        ic->get_const_device_view(), l_factor->get_device_view(), false));
 
     if (both_factors) {
         auto lh_factor = l_factor->conj_transpose();

@@ -83,8 +83,8 @@ template <typename ValueType, typename IndexType>
 void compute_l_u_factors(
     std::shared_ptr<const DefaultExecutor> exec, size_type iterations,
     matrix::view::coo<const ValueType, const IndexType> system_matrix,
-    matrix::Csr<ValueType, IndexType>* l_factor,
-    matrix::Csr<ValueType, IndexType>* u_factor)
+    matrix::view::csr<ValueType, IndexType> l_factor,
+    matrix::view::csr<ValueType, IndexType> u_factor)
 {
     iterations = (iterations == 0) ? 10 : iterations;
     const auto num_elements = system_matrix.num_stored_elements;
@@ -104,13 +104,10 @@ void compute_l_u_factors(
                                               exec->get_stream()>>>(
                     num_elements, system_matrix.row_idxs,
                     system_matrix.col_idxs,
-                    as_device_type(system_matrix.values),
-                    l_factor->get_const_row_ptrs(),
-                    l_factor->get_const_col_idxs(),
-                    as_device_type(l_factor->get_values()),
-                    u_factor->get_const_row_ptrs(),
-                    u_factor->get_const_col_idxs(),
-                    as_device_type(u_factor->get_values()));
+                    as_device_type(system_matrix.values), l_factor.row_ptrs,
+                    l_factor.col_idxs, as_device_type(l_factor.values),
+                    u_factor.row_ptrs, u_factor.col_idxs,
+                    as_device_type(u_factor.values));
             }
         }
     }

@@ -74,12 +74,12 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
-    const gko::matrix::Csr<ValueType, IndexType>* first_sys_csr,
+    matrix::view::csr<const ValueType, const IndexType> first_sys_csr,
     const size_type num_blocks, const IndexType* cumulative_block_storage,
     const IndexType* block_pointers, const IndexType* map_block_row,
     IndexType* blocks_pattern)
 {
-    const auto nrows = first_sys_csr->get_size()[0];
+    const auto nrows = first_sys_csr.size[0];
     constexpr int subgroup_size = config::warp_size;
     auto device = exec->get_queue()->get_device();
     auto group_size =
@@ -88,8 +88,8 @@ void extract_common_blocks_pattern(
     const dim3 block(group_size);
     const dim3 grid(ceildiv(nrows * subgroup_size, group_size));
 
-    const auto row_ptrs = first_sys_csr->get_const_row_ptrs();
-    const auto col_idxs = first_sys_csr->get_const_col_idxs();
+    const auto row_ptrs = first_sys_csr.row_ptrs;
+    const auto col_idxs = first_sys_csr.col_idxs;
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(

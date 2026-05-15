@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -74,10 +74,11 @@ protected:
 
 TEST_F(Sor, InitializeWeightedLFactorIsSameAsReference)
 {
-    gko::kernels::reference::sor::initialize_weighted_l(ref, mtx.get(), 1.24,
-                                                        result_l.get());
+    gko::kernels::reference::sor::initialize_weighted_l(
+        ref, mtx->get_const_device_view(), 1.24, result_l->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::sor::initialize_weighted_l(
-        exec, d_mtx.get(), 1.24, d_result_l.get());
+        exec, d_mtx->get_const_device_view(), 1.24,
+        d_result_l->get_device_view());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result_l, d_result_l);
     GKO_ASSERT_MTX_NEAR(result_l, d_result_l, r<value_type>::value);
@@ -87,9 +88,11 @@ TEST_F(Sor, InitializeWeightedLFactorIsSameAsReference)
 TEST_F(Sor, InitializeWeightedLAndUFactorIsSameAsReference)
 {
     gko::kernels::reference::sor::initialize_weighted_l_u(
-        ref, mtx.get(), 1.24, result_l.get(), result_u.get());
+        ref, mtx->get_const_device_view(), 1.24, result_l->get_device_view(),
+        result_u->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::sor::initialize_weighted_l_u(
-        exec, d_mtx.get(), 1.24, d_result_l.get(), d_result_u.get());
+        exec, d_mtx->get_const_device_view(), 1.24,
+        d_result_l->get_device_view(), d_result_u->get_device_view());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result_l, d_result_l);
     GKO_ASSERT_MTX_EQ_SPARSITY(result_u, d_result_u);

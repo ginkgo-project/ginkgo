@@ -360,8 +360,8 @@ TYPED_TEST(Isai, KernelGenerateA)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
-        this->exec, this->a_csr.get(), result.get(), a1.get_data(),
-        a2.get_data(), false);
+        this->exec, this->a_csr->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->a_csr_inv, r<value_type>::value);
@@ -386,8 +386,8 @@ TYPED_TEST(Isai, KernelGenerateA2)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
-        this->exec, a_transpose.get(), result.get(), a1.get_data(),
-        a2.get_data(), false);
+        this->exec, a_transpose->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), false);
 
     const auto expected = this->transpose(this->a_csr_inv);
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
@@ -412,8 +412,8 @@ TYPED_TEST(Isai, KernelGenerateAsparse)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
-        this->exec, this->a_sparse.get(), result.get(), a1.get_data(),
-        a2.get_data(), false);
+        this->exec, this->a_sparse->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->a_sparse_inv, r<value_type>::value);
@@ -444,8 +444,8 @@ TYPED_TEST(Isai, KernelGenerateALongrow)
     std::fill_n(a2_expect.get_data() + 36, 65, 509);
 
     gko::kernels::reference::isai::generate_general_inverse(
-        this->exec, this->a_csr_longrow.get(), result.get(), a1.get_data(),
-        a2.get_data(), false);
+        this->exec, this->a_csr_longrow->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_csr_longrow_inv_partial);
     GKO_ASSERT_MTX_NEAR(result, this->a_csr_longrow_inv_partial,
@@ -475,8 +475,9 @@ TYPED_TEST(Isai, KernelGenerateExcessALongrow)
     auto result_rhs = Dense::create(this->exec, gko::dim<2>(122, 1));
 
     gko::kernels::reference::isai::generate_excess_system(
-        this->exec, this->a_csr_longrow.get(), this->a_csr_longrow.get(),
-        a1.get_const_data(), a2.get_const_data(), result.get(),
+        this->exec, this->a_csr_longrow->get_const_device_view(),
+        this->a_csr_longrow->get_const_device_view(), a1.get_const_data(),
+        a2.get_const_data(), result->get_device_view(),
         result_rhs->get_device_view(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->a_csr_longrow_e);
@@ -499,8 +500,8 @@ TYPED_TEST(Isai, KernelGenerateL1)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, this->l_csr.get(), result.get(), a1.get_data(),
-        a2.get_data(), true);
+        this->exec, this->l_csr->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_csr_inv, r<value_type>::value);
@@ -525,8 +526,8 @@ TYPED_TEST(Isai, KernelGenerateL2)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, l_mtx.get(), result.get(), a1.get_data(), a2.get_data(),
-        true);
+        this->exec, l_mtx->get_const_device_view(), result->get_device_view(),
+        a1.get_data(), a2.get_data(), true);
 
     const auto expected = this->transpose(this->u_csr_inv);
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
@@ -551,8 +552,8 @@ TYPED_TEST(Isai, KernelGenerateLsparse1)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, this->l_sparse.get(), result.get(), a1.get_data(),
-        a2.get_data(), true);
+        this->exec, this->l_sparse->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_sparse_inv, r<value_type>::value);
@@ -576,8 +577,8 @@ TYPED_TEST(Isai, KernelGenerateLsparse2)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, this->l_sparse2.get(), result.get(), a1.get_data(),
-        a2.get_data(), true);
+        this->exec, this->l_sparse2->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_sparse2_inv);
     GKO_ASSERT_MTX_NEAR(result, this->l_sparse2_inv, r<value_type>::value);
@@ -602,8 +603,8 @@ TYPED_TEST(Isai, KernelGenerateLsparse3)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, l_mtx.get(), result.get(), a1.get_data(), a2.get_data(),
-        true);
+        this->exec, l_mtx->get_const_device_view(), result->get_device_view(),
+        a1.get_data(), a2.get_data(), true);
 
     // Results in a slightly different version than u_sparse_inv->transpose()
     // because a different row-sparsity pattern is used in u_sparse vs. l_mtx
@@ -645,8 +646,8 @@ TYPED_TEST(Isai, KernelGenerateLLongrow)
     a2_expect.get_data()[35] = 248;
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, this->l_csr_longrow.get(), result.get(), a1.get_data(),
-        a2.get_data(), true);
+        this->exec, this->l_csr_longrow->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_longrow_inv_partial);
     GKO_ASSERT_MTX_NEAR(result, this->l_csr_longrow_inv_partial,
@@ -678,8 +679,9 @@ TYPED_TEST(Isai, KernelGenerateExcessLLongrow)
     auto result_rhs = Dense::create(this->exec, gko::dim<2>(66, 1));
 
     gko::kernels::reference::isai::generate_excess_system(
-        this->exec, this->l_csr_longrow.get(), this->l_csr_longrow.get(),
-        a1.get_const_data(), a2.get_const_data(), result.get(),
+        this->exec, this->l_csr_longrow->get_const_device_view(),
+        this->l_csr_longrow->get_const_device_view(), a1.get_const_data(),
+        a2.get_const_data(), result->get_device_view(),
         result_rhs->get_device_view(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->l_csr_longrow_e);
@@ -703,8 +705,8 @@ TYPED_TEST(Isai, KernelGenerateU1)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, u_mtx.get(), result.get(), a1.get_data(), a2.get_data(),
-        false);
+        this->exec, u_mtx->get_const_device_view(), result->get_device_view(),
+        a1.get_data(), a2.get_data(), false);
 
     auto expected = this->transpose(this->l_csr_inv);
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
@@ -729,8 +731,8 @@ TYPED_TEST(Isai, KernelGenerateU2)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, this->u_csr.get(), result.get(), a1.get_data(),
-        a2.get_data(), false);
+        this->exec, this->u_csr->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->u_csr_inv, r<value_type>::value);
@@ -755,8 +757,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse1)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, u_mtx.get(), result.get(), a1.get_data(), a2.get_data(),
-        false);
+        this->exec, u_mtx->get_const_device_view(), result->get_device_view(),
+        a1.get_data(), a2.get_data(), false);
 
     const auto expected = this->transpose(this->l_sparse_inv);
     GKO_ASSERT_MTX_EQ_SPARSITY(result, expected);
@@ -782,8 +784,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse2)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, u_mtx.get(), result.get(), a1.get_data(), a2.get_data(),
-        false);
+        this->exec, u_mtx->get_const_device_view(), result->get_device_view(),
+        a1.get_data(), a2.get_data(), false);
 
     // Results in a slightly different version than l_sparse2_inv->transpose()
     // because a different row-sparsity pattern is used in l_sparse2 vs. u_mtx
@@ -816,8 +818,8 @@ TYPED_TEST(Isai, KernelGenerateUsparse3)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, this->u_sparse.get(), result.get(), a1.get_data(),
-        a2.get_data(), false);
+        this->exec, this->u_sparse->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->u_sparse_inv, r<value_type>::value);
@@ -846,8 +848,8 @@ TYPED_TEST(Isai, KernelGenerateULongrow)
     std::fill_n(a2_expect.get_data() + 3, 33, 153);
 
     gko::kernels::reference::isai::generate_tri_inverse(
-        this->exec, this->u_csr_longrow.get(), result.get(), a1.get_data(),
-        a2.get_data(), false);
+        this->exec, this->u_csr_longrow->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), false);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_longrow_inv_partial);
     GKO_ASSERT_MTX_NEAR(result, this->u_csr_longrow_inv_partial,
@@ -875,8 +877,9 @@ TYPED_TEST(Isai, KernelGenerateExcessULongrow)
     auto result_rhs = Dense::create(this->exec, gko::dim<2>(33, 1));
 
     gko::kernels::reference::isai::generate_excess_system(
-        this->exec, this->u_csr_longrow.get(), this->u_csr_longrow.get(),
-        a1.get_const_data(), a2.get_const_data(), result.get(),
+        this->exec, this->u_csr_longrow->get_const_device_view(),
+        this->u_csr_longrow->get_const_device_view(), a1.get_const_data(),
+        a2.get_const_data(), result->get_device_view(),
         result_rhs->get_device_view(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->u_csr_longrow_e);
@@ -899,8 +902,8 @@ TYPED_TEST(Isai, KernelGenerateSpd)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
-        this->exec, this->spd_csr.get(), result.get(), a1.get_data(),
-        a2.get_data(), true);
+        this->exec, this->spd_csr->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_csr_inv);
     GKO_ASSERT_MTX_NEAR(result, this->spd_csr_inv, r<value_type>::value);
@@ -924,8 +927,8 @@ TYPED_TEST(Isai, KernelGenerateSpdsparse)
     std::fill_n(zeros.get_data(), num_rows + 1, 0);
 
     gko::kernels::reference::isai::generate_general_inverse(
-        this->exec, this->spd_sparse.get(), result.get(), a1.get_data(),
-        a2.get_data(), true);
+        this->exec, this->spd_sparse->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_sparse_inv);
     GKO_ASSERT_MTX_NEAR(result, this->spd_sparse_inv, r<value_type>::value);
@@ -954,8 +957,8 @@ TYPED_TEST(Isai, KernelGenerateSpdLongrow)
     std::fill_n(a2_expect.get_data() + 36, 65, 338);
 
     gko::kernels::reference::isai::generate_general_inverse(
-        this->exec, this->spd_csr_longrow.get(), result.get(), a1.get_data(),
-        a2.get_data(), true);
+        this->exec, this->spd_csr_longrow->get_const_device_view(),
+        result->get_device_view(), a1.get_data(), a2.get_data(), true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_csr_longrow_inv_partial);
     GKO_ASSERT_MTX_NEAR(result, this->spd_csr_longrow_inv_partial,
@@ -983,10 +986,10 @@ TYPED_TEST(Isai, KernelGenerateExcessSpdLongrow)
     auto result_rhs = Dense::create(this->exec, gko::dim<2>(36, 1));
 
     gko::kernels::reference::isai::generate_excess_system(
-        this->exec, this->spd_csr_longrow.get(),
-        this->spd_csr_longrow_inv_partial.get(), a1.get_const_data(),
-        a2.get_const_data(), result.get(), result_rhs->get_device_view(), 0,
-        num_rows);
+        this->exec, this->spd_csr_longrow->get_const_device_view(),
+        this->spd_csr_longrow_inv_partial->get_const_device_view(),
+        a1.get_const_data(), a2.get_const_data(), result->get_device_view(),
+        result_rhs->get_device_view(), 0, num_rows);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(result, this->spd_csr_longrow_e);
     GKO_ASSERT_MTX_NEAR(result, this->spd_csr_longrow_e, 0);
@@ -1019,7 +1022,7 @@ TYPED_TEST(Isai, KernelScatterExcessSolution)
 
     gko::kernels::reference::isai::scatter_excess_solution(
         this->exec, ptrs.get_const_data(), sol->get_const_device_view(),
-        mtx.get(), 0, 6);
+        mtx->get_device_view(), 0, 6);
 
     GKO_ASSERT_MTX_NEAR(mtx, expect, 0);
 }

@@ -51,7 +51,7 @@ namespace kernels {
 #define GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType) \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
                         const matrix::Diagonal<ValueType>* source,       \
-                        matrix::Csr<ValueType, IndexType>* result)
+                        matrix::view::csr<ValueType, IndexType> result)
 
 #define GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType)        \
     void conj_transpose(std::shared_ptr<const DefaultExecutor> exec, \

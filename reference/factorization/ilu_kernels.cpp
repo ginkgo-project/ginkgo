@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,14 +24,13 @@ namespace ilu_factorization {
 
 template <typename ValueType, typename IndexType>
 void sparselib_ilu(std::shared_ptr<const DefaultExecutor> exec,
-                   matrix::Csr<ValueType, IndexType>* m)
+                   matrix::view::csr<ValueType, IndexType> m)
 {
-    vector<IndexType> diagonals{m->get_size()[0], -1, exec};
-    const auto row_ptrs = m->get_const_row_ptrs();
-    const auto col_idxs = m->get_const_col_idxs();
-    const auto values = m->get_values();
-    for (IndexType row = 0; row < static_cast<IndexType>(m->get_size()[0]);
-         row++) {
+    vector<IndexType> diagonals{m.size[0], -1, exec};
+    const auto row_ptrs = m.row_ptrs;
+    const auto col_idxs = m.col_idxs;
+    const auto values = m.values;
+    for (IndexType row = 0; row < static_cast<IndexType>(m.size[0]); row++) {
         const auto begin = row_ptrs[row];
         const auto end = row_ptrs[row + 1];
         for (auto nz = begin; nz < end; nz++) {

@@ -123,7 +123,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_COPY_KERNEL);
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::ell<const ValueType, const IndexType> source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
     // ELL is stored in column-major, so we swap row and column parameters
     run_kernel(
@@ -141,7 +141,7 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
         },
         dim<2>{source.num_stored_elements_per_row, source.size[0]},
         static_cast<int64>(source.stride), source.col_idxs, source.values,
-        result->get_row_ptrs(), result->get_col_idxs(), result->get_values());
+        result.row_ptrs, result.col_idxs, result.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

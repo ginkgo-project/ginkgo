@@ -214,7 +214,7 @@ void Diagonal<ValueType>::convert_to(Csr<ValueType, int32>* result) const
         tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
         tmp->values_.resize_and_reset(this->get_size()[0]);
         tmp->set_size(this->get_size());
-        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+        exec->run(diagonal::make_convert_to_csr(this, tmp->get_device_view()));
     }
     result->make_srow();
 }
@@ -237,7 +237,7 @@ void Diagonal<ValueType>::convert_to(Csr<ValueType, int64>* result) const
         tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
         tmp->values_.resize_and_reset(this->get_size()[0]);
         tmp->set_size(this->get_size());
-        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+        exec->run(diagonal::make_convert_to_csr(this, tmp->get_device_view()));
     }
     result->make_srow();
 }

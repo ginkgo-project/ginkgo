@@ -301,16 +301,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::dense<const ValueType> source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
+    const auto num_rows = result.size[0];
+    const auto num_cols = result.size[1];
     const auto in_vals = as_device_type(source.values);
     const auto stride = source.stride;
 
-    const auto row_ptrs = result->get_const_row_ptrs();
-    auto cols = result->get_col_idxs();
-    auto vals = as_device_type(result->get_values());
+    const auto row_ptrs = result.row_ptrs;
+    auto cols = result.col_idxs;
+    auto vals = as_device_type(result.values);
 
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(num_rows, [=](sycl::item<1> item) {

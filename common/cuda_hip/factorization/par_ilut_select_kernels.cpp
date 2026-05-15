@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,13 +55,13 @@ void sampleselect_filter(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* m,
+                      matrix::view::csr<const ValueType, const IndexType> m,
                       IndexType rank, array<ValueType>& tmp1,
                       array<remove_complex<ValueType>>& tmp2,
                       remove_complex<ValueType>& threshold)
 {
-    auto values = m->get_const_values();
-    IndexType size = m->get_num_stored_elements();
+    auto values = m.values;
+    IndexType size = m.num_stored_elements;
     using AbsType = remove_complex<ValueType>;
     constexpr auto bucket_count = kernel::searchtree_width;
     auto max_num_threads = ceildiv(size, items_per_thread);

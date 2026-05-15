@@ -16,27 +16,27 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType)    \
-    void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,    \
-                              const matrix::Csr<ValueType, IndexType>* input, \
-                              matrix::Csr<ValueType, IndexType>* inverse,     \
-                              IndexType* excess_rhs_ptrs,                     \
-                              IndexType* excess_nz_ptrs, bool lower)
+#define GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType) \
+    void generate_tri_inverse(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        matrix::view::csr<const ValueType, const IndexType> input,         \
+        matrix::view::csr<ValueType, IndexType> inverse,                   \
+        IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs, bool lower)
 
 #define GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL(ValueType, IndexType) \
     void generate_general_inverse(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Csr<ValueType, IndexType>* input,                        \
-        matrix::Csr<ValueType, IndexType>* inverse,                            \
+        matrix::view::csr<const ValueType, const IndexType> input,             \
+        matrix::view::csr<ValueType, IndexType> inverse,                       \
         IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs, bool spd)
 
 #define GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType) \
     void generate_excess_system(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                         \
-        const matrix::Csr<ValueType, IndexType>* input,                      \
-        const matrix::Csr<ValueType, IndexType>* inverse,                    \
+        matrix::view::csr<const ValueType, const IndexType> input,           \
+        matrix::view::csr<const ValueType, const IndexType> inverse,         \
         const IndexType* excess_rhs_ptrs, const IndexType* excess_nz_ptrs,   \
-        matrix::Csr<ValueType, IndexType>* excess_system,                    \
+        matrix::view::csr<ValueType, IndexType> excess_system,               \
         matrix::view::dense<ValueType> excess_rhs, size_type e_start,        \
         size_type e_end)
 
@@ -51,7 +51,7 @@ namespace kernels {
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const IndexType* excess_rhs_ptrs,                                     \
         matrix::view::dense<const ValueType> excess_solution,                 \
-        matrix::Csr<ValueType, IndexType>* inverse, size_type e_start,        \
+        matrix::view::csr<ValueType, IndexType> inverse, size_type e_start,   \
         size_type e_end)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \

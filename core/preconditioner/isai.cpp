@@ -144,7 +144,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
         // Extract lower triangular part: compute non-zeros
         array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
         exec->run(isai::make_initialize_row_ptrs_l(
-            to_invert.get(), inverted_row_ptrs.get_data()));
+            to_invert->get_const_device_view(), inverted_row_ptrs.get_data()));
 
         // Get nnz from device memory
         auto inverted_nnz =
@@ -158,7 +158,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             std::move(inverted_col_idxs), std::move(inverted_row_ptrs)));
 
         // Extract lower factor: columns and values
-        exec->run(isai::make_initialize_l(to_invert.get(), inverted_base.get(),
+        exec->run(isai::make_initialize_l(to_invert->get_const_device_view(),
+                                          inverted_base->get_device_view(),
                                           false));
 
         inverted = power == 1
@@ -175,12 +176,14 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
     if (is_general || is_spd) {
         exec->run(isai::make_generate_general_inverse(
-            to_invert.get(), inverted.get(), excess_block_ptrs.get_data(),
-            excess_row_ptrs_full.get_data(), is_spd));
+            to_invert->get_const_device_view(), inverted->get_device_view(),
+            excess_block_ptrs.get_data(), excess_row_ptrs_full.get_data(),
+            is_spd));
     } else {
         exec->run(isai::make_generate_tri_inverse(
-            to_invert.get(), inverted.get(), excess_block_ptrs.get_data(),
-            excess_row_ptrs_full.get_data(), is_lower));
+            to_invert->get_const_device_view(), inverted->get_device_view(),
+            excess_block_ptrs.get_data(), excess_row_ptrs_full.get_data(),
+            is_lower));
     }
 
     auto host_excess_block_ptrs_array =
@@ -217,10 +220,12 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
             auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
             exec->run(isai::make_generate_excess_system(
-                to_invert.get(), inverted.get(),
+                to_invert->get_const_device_view(),
+                inverted->get_const_device_view(),
                 excess_block_ptrs.get_const_data(),
-                excess_row_ptrs_full.get_const_data(), excess_system.get(),
-                excess_rhs->get_device_view(), excess_start, block));
+                excess_row_ptrs_full.get_const_data(),
+                excess_system->get_device_view(), excess_rhs->get_device_view(),
+                excess_start, block));
             // solve it after transposing
             auto system_copy = gko::clone(exec->get_master(), excess_system);
             auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
@@ -258,8 +263,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             // and copy the results back to the original ISAI
             exec->run(isai::make_scatter_excess_solution(
                 excess_block_ptrs.get_const_data(),
-                excess_solution->get_const_device_view(), inverted.get(),
-                excess_start, block));
+                excess_solution->get_const_device_view(),
+                inverted->get_device_view(), excess_start, block));
         }
     }
 

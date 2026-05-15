@@ -160,13 +160,13 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* weight_mtx,
+    matrix::view::csr<const ValueType, const IndexType> weight_mtx,
     const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
     array<IndexType>& strongest_neighbor)
 {
-    const auto row_ptrs = weight_mtx->get_const_row_ptrs();
-    const auto col_idxs = weight_mtx->get_const_col_idxs();
-    const auto vals = weight_mtx->get_const_values();
+    const auto row_ptrs = weight_mtx.row_ptrs;
+    const auto col_idxs = weight_mtx.col_idxs;
+    const auto vals = weight_mtx.values;
     const auto diag_vals = diag->get_const_values();
     for (size_type row = 0; row < agg.get_size(); row++) {
         auto max_weight_unagg = zero<ValueType>();
@@ -213,15 +213,15 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType>* weight_mtx,
-                         const matrix::Diagonal<ValueType>* diag,
-                         array<IndexType>& agg,
-                         array<IndexType>& intermediate_agg)
+void assign_to_exist_agg(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> weight_mtx,
+    const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
+    array<IndexType>& intermediate_agg)
 {
-    const auto row_ptrs = weight_mtx->get_const_row_ptrs();
-    const auto col_idxs = weight_mtx->get_const_col_idxs();
-    const auto vals = weight_mtx->get_const_values();
+    const auto row_ptrs = weight_mtx.row_ptrs;
+    const auto col_idxs = weight_mtx.col_idxs;
+    const auto vals = weight_mtx.values;
     const auto agg_const_val = agg.get_const_data();
     auto agg_val = (intermediate_agg.get_size() > 0)
                        ? intermediate_agg.get_data()

@@ -119,19 +119,21 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         const auto lookup = matrix::csr::build_lookup(factors.get());
         array<IndexType> diag_idxs{exec, num_rows};
         exec->run(ilu_factorization::make_initialize(
-            local_system_matrix.get(), lookup.storage_offsets.get_const_data(),
+            local_system_matrix->get_const_device_view(),
+            lookup.storage_offsets.get_const_data(),
             lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-            diag_idxs.get_data(), factors.get()));
+            diag_idxs.get_data(), factors->get_device_view()));
         // run numerical factorization
         array<int> tmp{exec};
         exec->run(ilu_factorization::make_factorize(
             lookup.storage_offsets.get_const_data(),
             lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-            diag_idxs.get_const_data(), factors.get(), false, tmp));
+            diag_idxs.get_const_data(), factors->get_device_view(), false,
+            tmp));
         ilu = factors;
     } else {
-        exec->run(
-            ilu_factorization::make_sparselib_ilu(local_system_matrix.get()));
+        exec->run(ilu_factorization::make_sparselib_ilu(
+            local_system_matrix->get_device_view()));
         ilu = local_system_matrix;
     }
     // Separate L and U factors: nnz
@@ -140,7 +142,8 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     array<IndexType> l_row_ptrs{exec, num_rows + 1};
     array<IndexType> u_row_ptrs{exec, num_rows + 1};
     exec->run(ilu_factorization::make_initialize_row_ptrs_l_u(
-        ilu.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
+        ilu->get_const_device_view(), l_row_ptrs.get_data(),
+        u_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, num_rows));
@@ -159,8 +162,9 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         std::move(u_row_ptrs), parameters_.u_strategy);
 
     // Separate L and U: columns and values
-    exec->run(ilu_factorization::make_initialize_l_u(ilu.get(), l_factor.get(),
-                                                     u_factor.get()));
+    exec->run(ilu_factorization::make_initialize_l_u(
+        ilu->get_const_device_view(), l_factor->get_device_view(),
+        u_factor->get_device_view()));
 
     return Composition<ValueType>::create(std::move(l_factor),
                                           std::move(u_factor));

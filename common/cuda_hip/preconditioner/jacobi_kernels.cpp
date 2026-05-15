@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -224,27 +224,26 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_transpose_jacobi(
 
 
 template <typename ValueType, typename IndexType>
-size_type find_natural_blocks(std::shared_ptr<const DefaultExecutor> exec,
-                              const matrix::Csr<ValueType, IndexType>* mtx,
-                              int32 max_block_size,
-                              IndexType* __restrict__ block_ptrs)
+size_type find_natural_blocks(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> mtx,
+    int32 max_block_size, IndexType* __restrict__ block_ptrs)
 {
     array<size_type> nums(exec, 1);
 
     // FIXME: num_rows == 0 bug
-    array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
+    array<bool> matching_next_row(exec, mtx.size[0] - 1);
 
     const auto block_size = config::warp_size;
-    const auto grid_size =
-        ceildiv(mtx->get_size()[0] * config::warp_size, block_size);
+    const auto grid_size = ceildiv(mtx.size[0] * config::warp_size, block_size);
 
     if (grid_size > 0) {
         compare_adjacent_rows<<<grid_size, block_size, 0, exec->get_stream()>>>(
-            mtx->get_size()[0], max_block_size, mtx->get_const_row_ptrs(),
-            mtx->get_const_col_idxs(), matching_next_row.get_data());
+            mtx.size[0], max_block_size, mtx.row_ptrs, mtx.col_idxs,
+            matching_next_row.get_data());
     }
     generate_natural_block_pointer<<<1, 1, 0, exec->get_stream()>>>(
-        mtx->get_size()[0], max_block_size, matching_next_row.get_const_data(),
+        mtx.size[0], max_block_size, matching_next_row.get_const_data(),
         block_ptrs, nums.get_data());
     nums.set_executor(exec->get_master());
     return nums.get_const_data()[0];
@@ -286,10 +285,11 @@ void initialize_precisions(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::Csr<ValueType, IndexType>* system_matrix,
-                 uint32 max_block_size, size_type& num_blocks,
-                 array<IndexType>& block_pointers)
+void find_blocks(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    uint32 max_block_size, size_type& num_blocks,
+    array<IndexType>& block_pointers)
 {
     auto num_natural_blocks = find_natural_blocks(
         exec, system_matrix, max_block_size, block_pointers.get_data());

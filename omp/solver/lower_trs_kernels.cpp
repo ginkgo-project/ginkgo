@@ -38,7 +38,7 @@ void should_perform_transpose(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const OmpExecutor> exec,
-              const matrix::Csr<ValueType, IndexType>* matrix,
+              matrix::view::csr<const ValueType, const IndexType> matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
               bool unit_diag, const solver::trisolve_algorithm algorithm,
               const size_type num_rhs)
@@ -58,7 +58,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const OmpExecutor> exec,
-           const matrix::Csr<ValueType, IndexType>* matrix,
+           matrix::view::csr<const ValueType, const IndexType> matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
            std::optional<matrix::view::dense<ValueType>> trans_b,
@@ -66,13 +66,13 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
            matrix::view::dense<const ValueType> b,
            matrix::view::dense<ValueType> x)
 {
-    auto row_ptrs = matrix->get_const_row_ptrs();
-    auto col_idxs = matrix->get_const_col_idxs();
-    auto vals = matrix->get_const_values();
+    auto row_ptrs = matrix.row_ptrs;
+    auto col_idxs = matrix.col_idxs;
+    auto vals = matrix.values;
 
 #pragma omp parallel for
     for (size_type j = 0; j < b.size[1]; ++j) {
-        for (size_type row = 0; row < matrix->get_size()[0]; ++row) {
+        for (size_type row = 0; row < matrix.size[0]; ++row) {
             auto diag = one<ValueType>();
             x(row, j) = b(row, j);
             for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {

@@ -83,9 +83,10 @@ protected:
                              index_type* dl_row_ptrs, index_type* du_row_ptrs)
     {
         gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-            ref, mtx.get(), l_row_ptrs, u_row_ptrs);
+            ref, mtx->get_const_device_view(), l_row_ptrs, u_row_ptrs);
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::
-            initialize_row_ptrs_l_u(exec, dmtx.get(), dl_row_ptrs, du_row_ptrs);
+            initialize_row_ptrs_l_u(exec, dmtx->get_const_device_view(),
+                                    dl_row_ptrs, du_row_ptrs);
     }
 
     void initialize_lu(std::unique_ptr<Csr>& l, std::unique_ptr<Csr>& u,
@@ -115,9 +116,11 @@ protected:
         exec->copy(num_row_ptrs, du_row_ptrs.get_data(), du->get_row_ptrs());
 
         gko::kernels::reference::factorization::initialize_l_u(
-            ref, mtx.get(), l.get(), u.get());
+            ref, mtx->get_const_device_view(), l->get_device_view(),
+            u->get_device_view());
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::initialize_l_u(
-            exec, dmtx.get(), dl.get(), du.get());
+            exec, dmtx->get_const_device_view(), dl->get_device_view(),
+            du->get_device_view());
     }
 
     void compute_lu(std::unique_ptr<Csr>& l, std::unique_ptr<Csr>& u,
@@ -133,11 +136,12 @@ protected:
         auto u_transpose_dmtx = gko::as<Csr>(du->transpose());
 
         gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-            ref, iterations, coo->get_const_device_view(), l.get(),
-            u_transpose_mtx.get());
+            ref, iterations, coo->get_const_device_view(), l->get_device_view(),
+            u_transpose_mtx->get_device_view());
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilu_factorization::
             compute_l_u_factors(exec, iterations, dcoo->get_const_device_view(),
-                                dl.get(), u_transpose_dmtx.get());
+                                dl->get_device_view(),
+                                u_transpose_dmtx->get_device_view());
         auto u_lin_op = u_transpose_mtx->transpose();
         u = gko::as<Csr>(std::move(u_lin_op));
         auto du_lin_op = u_transpose_dmtx->transpose();

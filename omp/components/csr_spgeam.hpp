@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,18 +29,18 @@ namespace omp {
  */
 template <typename ValueType, typename IndexType, typename BeginCallback,
           typename EntryCallback, typename EndCallback>
-void abstract_spgeam(const matrix::Csr<ValueType, IndexType>* a,
-                     const matrix::Csr<ValueType, IndexType>* b,
+void abstract_spgeam(matrix::view::csr<const ValueType, const IndexType> a,
+                     matrix::view::csr<const ValueType, const IndexType> b,
                      BeginCallback begin_cb, EntryCallback entry_cb,
                      EndCallback end_cb)
 {
-    auto num_rows = a->get_size()[0];
-    auto a_row_ptrs = a->get_const_row_ptrs();
-    auto a_col_idxs = a->get_const_col_idxs();
-    auto a_vals = a->get_const_values();
-    auto b_row_ptrs = b->get_const_row_ptrs();
-    auto b_col_idxs = b->get_const_col_idxs();
-    auto b_vals = b->get_const_values();
+    auto num_rows = a.size[0];
+    auto a_row_ptrs = a.row_ptrs;
+    auto a_col_idxs = a.col_idxs;
+    auto a_vals = a.values;
+    auto b_row_ptrs = b.row_ptrs;
+    auto b_col_idxs = b.col_idxs;
+    auto b_vals = b.values;
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {

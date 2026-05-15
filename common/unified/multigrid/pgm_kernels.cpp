@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -146,7 +146,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* weight_mtx,
+    matrix::view::csr<const ValueType, const IndexType> weight_mtx,
     const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
     array<IndexType>& strongest_neighbor)
 {
@@ -196,9 +196,8 @@ void find_strongest_neighbor(
                 strongest_neighbor[row] = row;
             }
         },
-        agg.get_size(), weight_mtx->get_const_row_ptrs(),
-        weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
-        diag->get_const_values(), agg.get_data(),
+        agg.get_size(), weight_mtx.row_ptrs, weight_mtx.col_idxs,
+        weight_mtx.values, diag->get_const_values(), agg.get_data(),
         strongest_neighbor.get_data());
 }
 
@@ -206,11 +205,11 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR);
 
 template <typename ValueType, typename IndexType>
-void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType>* weight_mtx,
-                         const matrix::Diagonal<ValueType>* diag,
-                         array<IndexType>& agg,
-                         array<IndexType>& intermediate_agg)
+void assign_to_exist_agg(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> weight_mtx,
+    const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
+    array<IndexType>& intermediate_agg)
 {
     const auto num = agg.get_size();
     if (intermediate_agg.get_size() > 0) {
@@ -246,8 +245,7 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                     agg_val[row] = row;
                 }
             },
-            num, weight_mtx->get_const_row_ptrs(),
-            weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
+            num, weight_mtx.row_ptrs, weight_mtx.col_idxs, weight_mtx.values,
             diag->get_const_values(), agg.get_const_data(),
             intermediate_agg.get_data());
         // Copy the intermediate_agg to agg
@@ -284,8 +282,7 @@ void assign_to_exist_agg(std::shared_ptr<const DefaultExecutor> exec,
                     agg_val[row] = row;
                 }
             },
-            num, weight_mtx->get_const_row_ptrs(),
-            weight_mtx->get_const_col_idxs(), weight_mtx->get_const_values(),
+            num, weight_mtx.row_ptrs, weight_mtx.col_idxs, weight_mtx.values,
             diag->get_const_values(), agg.get_data());
     }
 }
