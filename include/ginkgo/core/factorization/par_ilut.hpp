@@ -29,19 +29,19 @@ namespace factorization {
  * ParILUT is an incomplete threshold-based LU factorization which is computed
  * in parallel.
  *
- * $L$ is a lower unitriangular, while $U$ is an upper triangular matrix, which
- * approximate a given matrix $A$ with $A \approx LU$. Here, $L$ and $U$ have
+ * \f$L\f$ is a lower unitriangular, while \f$U\f$ is an upper triangular matrix, which
+ * approximate a given matrix \f$A\f$ with \f$A \approx LU\f$. Here, \f$L\f$ and \f$U\f$ have
  * a sparsity pattern that is improved iteratively based on their element-wise
- * magnitude. The initial sparsity pattern is chosen based on the $ILU(0)$
- * factorization of $A$.
+ * magnitude. The initial sparsity pattern is chosen based on the \f$ILU(0)\f$
+ * factorization of \f$A\f$.
  *
  * One iteration of the ParILUT algorithm consists of the following steps:
  *
- * 1. Calculating the residual $R = A - LU$
- * 2. Adding new non-zero locations from $R$ to $L$ and $U$.
+ * 1. Calculating the residual \f$R = A - LU\f$
+ * 2. Adding new non-zero locations from \f$R\f$ to \f$L\f$ and \f$U\f$.
  *    The new non-zero locations are initialized based on the corresponding
  *    residual value.
- * 3. Executing a fixed-point iteration on $L$ and $U$ according to
+ * 3. Executing a fixed-point iteration on \f$L\f$ and \f$U\f$ according to
  * $
  * F(L, U) =
  * \begin{cases}
@@ -52,11 +52,11 @@ namespace factorization {
  * $
  *    For a more detailed description of the fixed-point iteration, see
  *    @ref ParIlu.
- * 4. Removing the smallest entries (by magnitude) from $L$ and $U$
- * 5. Executing a fixed-point iteration on the (now sparser) $L$ and $U$
+ * 4. Removing the smallest entries (by magnitude) from \f$L\f$ and \f$U\f$
+ * 5. Executing a fixed-point iteration on the (now sparser) \f$L\f$ and \f$U\f$
  *
  * This ParILUT algorithm thus improves the sparsity pattern and the
- * approximation of $L$ and $U$ simultaneously.
+ * approximation of \f$L\f$ and \f$U\f$ simultaneously.
  *
  * The implementation follows the design of H. Anzt et al.,
  * ParILUT - A Parallel Threshold ILU for GPUs, 2019 IEEE International

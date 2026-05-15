@@ -29,18 +29,18 @@ namespace factorization {
  * ParICT is an incomplete threshold-based Cholesky factorization which is
  * computed in parallel.
  *
- * $L$ is a lower triangular matrix which approximates a given symmetric
- * positive definite matrix $A$ with $A \approx LL^T$. Here, $L$ has a sparsity
+ * \f$L\f$ is a lower triangular matrix which approximates a given symmetric
+ * positive definite matrix \f$A\f$ with \f$A \approx LL^T\f$. Here, \f$L\f$ has a sparsity
  * pattern that is improved iteratively based on its element-wise magnitude.
- * The initial sparsity pattern is chosen based on the lower triangle of $A$.
+ * The initial sparsity pattern is chosen based on the lower triangle of \f$A\f$.
  *
  * One iteration of the ParICT algorithm consists of the following steps:
  *
- * 1. Calculating the residual $R = A - LL^T$
- * 2. Adding new non-zero locations from $R$ to $L$.
+ * 1. Calculating the residual \f$R = A - LL^T\f$
+ * 2. Adding new non-zero locations from \f$R\f$ to \f$L\f$.
  *    The new non-zero locations are initialized based on the corresponding
  *    residual value.
- * 3. Executing a fixed-point iteration on $L$ according to
+ * 3. Executing a fixed-point iteration on \f$L\f$ according to
  * $
  * F(L) =
  * \begin{cases}
@@ -49,11 +49,11 @@ namespace factorization {
  *     \sqrt{a_{ij}-\sum_{k=1}^{j-1}l_{ik}l_{jk}}, \quad & i = j \\
  * \end{cases}
  * $
- * 4. Removing the smallest entries (by magnitude) from $L$
- * 5. Executing a fixed-point iteration on the (now sparser) $L$
+ * 4. Removing the smallest entries (by magnitude) from \f$L\f$
+ * 5. Executing a fixed-point iteration on the (now sparser) \f$L\f$
  *
  * This ParICT algorithm thus improves the sparsity pattern and the
- * approximation of $L$ simultaneously.
+ * approximation of \f$L\f$ simultaneously.
  *
  * The implementation follows the design of H. Anzt et al.,
  * ParILUT - A Parallel Threshold ILU for GPUs, 2019 IEEE International

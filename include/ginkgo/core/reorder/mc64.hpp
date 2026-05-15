@@ -56,15 +56,15 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  * weights supported:
  *  - Maximizing the product of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *    $c(i, j) = \log_2(a_i) - \log_2(|a(i, j)|)$ if $a(i, j) \neq 0 $ and
- *    $c(i, j) = \infty$ otherwise. Here, a_i is the maximum absolute value in
+ *    \f$c(i, j) = \log_2(a_i) - \log_2(|a(i, j)|)\f$ if \f$a(i, j) \neq 0 \f$ and
+ *    \f$c(i, j) = \infty\f$ otherwise. Here, a_i is the maximum absolute value in
  *    row i of the matrix A. In this case, the implementation computes a row
  *    permutation P and row and column scaling coefficients L and R such that
  *    the matrix P*L*A*R has values with unity absolute value on the diagonal
  *    and smaller or equal entries everywhere else.
  *  - Maximizing the sum of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *    $c(i, j) = a_i - |a(i, j)|$ if $a(i, j) \neq 0$ and $c(i, j) =
+ *    \f$c(i, j) = a_i - |a(i, j)|\f$ if \f$a(i, j) \neq 0\f$ and $c(i, j) =
  *    \infty$ otherwise. In this case, no scaling coefficients are computed.
  *
  * This class creates a Combination of two ScaledPermutations representing the

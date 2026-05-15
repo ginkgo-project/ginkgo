@@ -40,11 +40,18 @@ namespace solver {
  * paper "Algorithm 913: An elegant IDR(s) variant that efficiently exploits
  * biorthogonality properties" by M. B. Van Gijzen and P. Sonneveld.
  *
- * The method is based on the induced dimension reduction theorem which
- * provides a way to construct subsequent residuals that lie in a sequence
- * of shrinking subspaces. These subspaces are spanned by s vectors which are
- * first generated randomly and then orthonormalized. They are stored in
- * a dense matrix.
+ * The method is based on the induced dimension reduction theorem.  Fixing a
+ * full-rank shadow space \f$ R = \mathrm{span}(r_1, \ldots, r_s) \f$ — the
+ * \f$ s \f$ random orthonormal vectors stored in a dense matrix — the
+ * theorem guarantees the existence of a sequence of nested subspaces
+ * \f[
+ *   \mathcal{G}_{j+1} = (I - \omega_j A)\, (\mathcal{G}_j \cap R^{\perp}),
+ *   \qquad \mathcal{G}_0 = \mathbb{R}^N,
+ * \f]
+ * each strictly contained in its predecessor.  Successive residuals are
+ * forced into these shrinking spaces and become identically zero after at
+ * most \f$ N + N/s \f$ iterations in exact arithmetic — substantially fewer
+ * matrix-vector products than the \f$ 2N \f$ BiCG would require.
  *
  * @tparam ValueType  precision of the elements of the system matrix.
  *

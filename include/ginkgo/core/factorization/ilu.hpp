@@ -29,10 +29,10 @@ namespace factorization {
 /**
  * Represents an incomplete LU factorization -- ILU(0) -- of a sparse matrix.
  *
- * More specifically, it consists of a lower unitriangular factor $L$ and
- * an upper triangular factor $U$ with sparsity pattern
- * $\mathcal S(L + U)$ = $\mathcal S(A)$
- * fulfilling $LU = A$ at every non-zero location of $A$.
+ * More specifically, it consists of a lower unitriangular factor \f$L\f$ and
+ * an upper triangular factor \f$U\f$ with sparsity pattern
+ * \f$\mathcal S(L + U)\f$ = \f$\mathcal S(A)\f$
+ * fulfilling \f$LU = A\f$ at every non-zero location of \f$A\f$.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class

@@ -20,7 +20,7 @@ namespace matrix {
  * It implements forward and inverse DFT.
  *
  * For a power-of-two size n with corresponding root of unity
- * $\omega = e^{-2\pi i / n}$ for forward DFT and $\omega = e^{2 \pi i / n}$
+ * \f$\omega = e^{-2\pi i / n}\f$ for forward DFT and \f$\omega = e^{2 \pi i / n}\f$
  * for inverse DFT it computes
  *
  * \f[
@@ -117,9 +117,9 @@ private:
  *
  * It implements complex-to-complex forward and inverse FFT.
  *
- * For a power-of-two sizes $n_1, n_2$ with corresponding root of unity
- * $\omega = e^{-2\pi i / (n_1 n_2)}$ for forward DFT and
- * $\omega = e^{2 \pi i / (n_1 n_2)}$ for inverse DFT it computes
+ * For a power-of-two sizes \f$n_1, n_2\f$ with corresponding root of unity
+ * \f$\omega = e^{-2\pi i / (n_1 n_2)}\f$ for forward DFT and
+ * \f$\omega = e^{2 \pi i / (n_1 n_2)}\f$ for inverse DFT it computes
  *
  * \f[
  *     x_{k_1 n_2 + k_2} = \sum_{i_1=0}^{n_1-1} \sum_{i_2=0}^{n_2-1}
@@ -228,9 +228,9 @@ private:
  *
  * It implements complex-to-complex forward and inverse FFT.
  *
- * For a power-of-two sizes $n_1, n_2, n_3$ with corresponding root of unity
- * $\omega = e^{-2\pi i / (n_1 n_2 n_3)}$ for forward DFT and
- * $\omega = e^{2 \pi i / (n_1 n_2 n_3)}$ for inverse DFT it computes
+ * For a power-of-two sizes \f$n_1, n_2, n_3\f$ with corresponding root of unity
+ * \f$\omega = e^{-2\pi i / (n_1 n_2 n_3)}\f$ for forward DFT and
+ * \f$\omega = e^{2 \pi i / (n_1 n_2 n_3)}\f$ for inverse DFT it computes
  *
  * \f[
  *     x_{k_1 n_2 n_3 + k_2 n_3 + k_3} = \sum_{i_1=0}^{n_1-1}

@@ -32,7 +32,7 @@ namespace preconditioner {
 
 
 /**
- * The Incomplete Cholesky (IC) preconditioner solves the equation $LL^H*x = b$
+ * The Incomplete Cholesky (IC) preconditioner solves the equation \f$LL^H*x = b\f$
  * for a given lower triangular matrix L and the right hand side b (can contain
  * multiple right hand sides).
  *
@@ -53,8 +53,8 @@ namespace preconditioner {
  * orders the factors in the correct way.
  *
  * @note When providing a gko::Composition, the first matrix must be the lower
- *       matrix ($L$), and the second matrix must be its conjugate-transpose
- * ($L^H$). If they are swapped, solving might crash or return the wrong result.
+ *       matrix (\f$L\f$), and the second matrix must be its conjugate-transpose
+ * (\f$L^H\f$). If they are swapped, solving might crash or return the wrong result.
  *
  * @note Do not use symmetric solvers (like CG) for the L solver since both
  *       matrices (L and L^H) are, by design, not symmetric.

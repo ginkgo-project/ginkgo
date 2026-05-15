@@ -40,7 +40,7 @@ enum struct isai_type { lower, upper, general, spd };
  * an approximate inverse matrix for a given square matrix A, lower triangular
  * matrix L, upper triangular matrix U or symmetric positive (spd) matrix B.
  *
- * Using the preconditioner computes $aiA * x$, $aiU * x$, $aiL * x$ or $aiC^T *
+ * Using the preconditioner computes \f$aiA * x\f$, \f$aiU * x\f$, \f$aiL * x\f$ or $aiC^T *
  * aiC * x$ (depending on the type of the Isai) for a given vector x (may have
  * multiple right hand sides). aiA, aiU and aiL are the approximate inverses for
  * A, U and L respectively. aiC is an approximation to C, the exact Cholesky

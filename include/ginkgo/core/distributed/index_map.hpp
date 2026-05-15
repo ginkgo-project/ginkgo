@@ -30,13 +30,13 @@ enum class index_space {
 /**
  * \brief This class defines mappings between global and local indices.
  *
- * Given an index space $I = [0, \dots, N)$ that is partitioned into $P$
- * disjoint subsets $I_k, k = 1, \dots, P$, this class defines for each
- * subset an extended global index set $\hat{I}_k \supset I_K$. The extended
- * index set contains the global indices owned by part $k$, as well as
- * remote indices $R_k = \hat{I}_k \setminus I_k$, which are also accessed by
- * part $k$, but owned by parts $l \neq k$.
- * At the core, this class provides mappings from the global index space $I$
+ * Given an index space \f$I = [0, \dots, N)\f$ that is partitioned into \f$P\f$
+ * disjoint subsets \f$I_k, k = 1, \dots, P\f$, this class defines for each
+ * subset an extended global index set \f$\hat{I}_k \supset I_K\f$. The extended
+ * index set contains the global indices owned by part \f$k\f$, as well as
+ * remote indices \f$R_k = \hat{I}_k \setminus I_k\f$, which are also accessed by
+ * part \f$k\f$, but owned by parts \f$l \neq k\f$.
+ * At the core, this class provides mappings from the global index space \f$I\f$
  * into different local index spaces. The combined local index space
  * (index_space::combined) is then defined as
  * $[0, \dots, |\hat{I}_k|)$. Additionally, the combined index space can be
@@ -45,19 +45,19 @@ enum class index_space {
  * $[0, \dots, |I_k|)$, and the non-locally owned as $[0, \dots, |R_k|)$.
  * With these index sets, the following mappings are defined:
  *
- * - $c_k : \hat{I}_k \mapsto [0, \dots, |\hat{I}_k|)$ which maps global indices
+ * - \f$c_k : \hat{I}_k \mapsto [0, \dots, |\hat{I}_k|)\f$ which maps global indices
  *   into the combined/full local index space (denoted as
  *   index_space::combined),
- * - $l_k: I_k \mapsto [0, \dots, |I_k|)$ which maps global indices into the
+ * - \f$l_k: I_k \mapsto [0, \dots, |I_k|)\f$ which maps global indices into the
  *   locally owned index space (denoted as index_space::local),
- * - $r_k: R_k \mapsto [0, \dots, |R_k|)$ which maps global indices into the
+ * - \f$r_k: R_k \mapsto [0, \dots, |R_k|)\f$ which maps global indices into the
  *   non-locally owned index space (denoted as index_space::non_local).
  *
  * The required map can be selected by passing the appropriate type of an
  * index_space.
  *
- * The index map for $I_k$ has no knowledge about any other index maps for
- * $I_l, l \neq k$. In particular, any global index passed to the `map_to_local`
+ * The index map for \f$I_k\f$ has no knowledge about any other index maps for
+ * \f$I_l, l \neq k\f$. In particular, any global index passed to the `map_to_local`
  * map that is not part of the specified index space, will be mapped to an
  * invalid_index.
  *
@@ -135,25 +135,25 @@ public:
     index_map(std::shared_ptr<const Executor> exec);
 
     /**
-     * \brief get the index set $R_k$ for this rank.
+     * \brief get the index set \f$R_k\f$ for this rank.
      *
      * The indices are ordered by their owning rank and global index.
      */
     const segmented_array<GlobalIndexType>& get_remote_global_idxs() const;
 
     /**
-     * \brief get the index set $R_k$, but mapped to their respective local
+     * \brief get the index set \f$R_k\f$, but mapped to their respective local
      *        index space.
      *
      * The indices are grouped by their owning rank and sorted according to
      * their global index within each group.
      *
-     * The set $R_k = \hat{I}_k \setminus I_k$ can also be written as the union
-     * of the intersection of $\hat{I}_k$ with other disjoint sets
-     * $I_l, l \neq k$, i.e.
+     * The set \f$R_k = \hat{I}_k \setminus I_k\f$ can also be written as the union
+     * of the intersection of \f$\hat{I}_k\f$ with other disjoint sets
+     * \f$I_l, l \neq k\f$, i.e.
      * $R_k = \bigcup_{j \neq k} \hat{I}_k \cap I_j = \bigcup_{j \neq k}
-     * R_{k,j}$. The set $R_{k,j}$ can then be mapped by $l_j$ to get the local
-     * indices wrt. part $j$. The indices here are mapped by $l_j$.
+     * R_{k,j}$. The set \f$R_{k,j}\f$ can then be mapped by \f$l_j\f$ to get the local
+     * indices wrt. part \f$j\f$. The indices here are mapped by \f$l_j\f$.
      */
     const segmented_array<LocalIndexType>& get_remote_local_idxs() const;
 

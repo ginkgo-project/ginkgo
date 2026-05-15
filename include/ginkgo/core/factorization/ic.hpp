@@ -29,10 +29,10 @@ namespace factorization {
 /**
  * Represents an incomplete Cholesky factorization (IC(0)) of a sparse matrix.
  *
- * More specifically, it consists of a lower triangular factor $L$ and
- * its conjugate transpose $L^H$ with sparsity pattern
- * $\mathcal S(L + L^H)$ = $\mathcal S(A)$
- * fulfilling $LL^H = A$ at every non-zero location of $A$.
+ * More specifically, it consists of a lower triangular factor \f$L\f$ and
+ * its conjugate transpose \f$L^H\f$ with sparsity pattern
+ * \f$\mathcal S(L + L^H)\f$ = \f$\mathcal S(A)\f$
+ * fulfilling \f$LL^H = A\f$ at every non-zero location of \f$A\f$.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
