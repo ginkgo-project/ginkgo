@@ -40,8 +40,8 @@ class Partition;
  * Vector is a format which explicitly stores (multiple) distributed column
  * vectors in a dense storage format.
  *
- * The (multi-)vector is distributed by row, which is described by a @see
- * Partition. The local vectors are stored using the @see Dense format. The
+ * The (multi-)vector is distributed by row, which is described by a
+ * Partition. The local vectors are stored using the Dense format. The
  * vector should be filled using the read_distributed method, e.g.
  * ```
  * auto part = Partition<...>::build_from_mapping(...);
@@ -162,7 +162,7 @@ public:
      * Reads a vector from the matrix_data structure and a global row
      * partition.
      *
-     * See @read_distributed
+     * See read_distributed().
      *
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.

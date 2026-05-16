@@ -375,8 +375,8 @@ public:
  * changing any of its elements representing the operation, \f$B = A^{T}\f$.
  *
  * The conjugate transpose returns the conjugate of each of the elements and
- * additionally transposes the linear operator representing the operation, $B
- * = A^{H}$.
+ * additionally transposes the linear operator representing the operation, \f$B
+ * = A^{H}\f$.
  *
  * Example: Transposing a Csr matrix:
  * ------------------------------------
@@ -450,8 +450,8 @@ public:
      * In the resulting LinOp, the entry at location `(i,j)` contains the input
      * value `(perm[i],perm[j])`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation \f$P A P^T\f$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P A P^T\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -471,8 +471,8 @@ public:
      * In the resulting LinOp, the entry at location `(perm[i],perm[j])`
      * contains the input value `(i,j)`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation \f$P^{-1} A P^{-T}\f$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P^{-1} A P^{-T}\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -491,8 +491,8 @@ public:
      * object.
      * In the resulting LinOp, the row `i` contains the input row `perm[i]`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation \f$P A\f$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P A\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -508,8 +508,8 @@ public:
      * In the resulting LinOp, the column `i` contains the input column
      * `perm[i]`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation \f$A P^T\f$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$A P^T\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.
@@ -524,8 +524,8 @@ public:
      * object.
      * In the resulting LinOp, the row `perm[i]` contains the input row `i`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation \f$P^{-1} A\f$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P^{-1} A\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.
@@ -541,8 +541,8 @@ public:
      * In the resulting LinOp, the column `perm[i]` contains the input column
      * `i`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation \f$A P^{-T}\f$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$A P^{-T}\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.

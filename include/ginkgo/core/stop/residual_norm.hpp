@@ -24,13 +24,13 @@ namespace stop {
  * The mode for the residual norm criterion.
  *
  * - absolute:        Check for tolerance against residual norm.
- *                    $ || r || \leq \tau $
+ *                    \f$ || r || \leq \tau \f$
  *
  * - initial_resnorm: Check for tolerance relative to the initial residual norm.
- *                    $ || r || \leq \tau \times || r_0|| $
+ *                    \f$ || r || \leq \tau \times || r_0|| \f$
  *
  * - rhs_norm:        Check for tolerance relative to the rhs norm.
- *                    $ || r || \leq \tau \times || b || $
+ *                    \f$ || r || \leq \tau \times || b || \f$
  *
  * @ingroup stop
  */
@@ -265,7 +265,7 @@ protected:
  * amount.
  *
  * Full usage example: Stop after 100 iterations or when the absolute residual
- * norm is below $10^{-10}$, whichever happens first.
+ * norm is below \f$10^{-10}\f$, whichever happens first.
  * ```cpp
  * auto factory = gko::solver::Cg<double>::build()
  *                    .with_criteria(
@@ -276,13 +276,13 @@ protected:
  *
  * @param tolerance  the value the residual norm needs to be below.
  *     With residual \f$r\f$, initial guess \f$x_0\f$, right-hand side \f$b\f$,
- * matrix \f$A\f$, `absolute` means the exact value of the norm $||r||$,
- *     `relative` means the norm relative to the right-hand side $||r||/||b||$,
- *     `initial` means the norm relative to the initial residual
- *     $||r||/||b - A x_0||$.
+ * matrix \f$A\f$, `absolute` means the exact value of the norm \f$||r||\f$,
+ *     `relative` means the norm relative to the right-hand side
+ * \f$||r||/||b||\f$, `initial` means the norm relative to the initial residual
+ *     \f$||r||/||b - A x_0||\f$.
  *     An implicit stopping criterion is only available with some solvers, and
- *     refers to either the energy norm $||r||_A$ in short-recurrence solvers
- *     like Cg or the euclidian norm $||r||$ in solvers like GMRES.
+ *     refers to either the energy norm \f$||r||_A\f$ in short-recurrence
+ * solvers like Cg or the euclidian norm \f$||r||\f$ in solvers like GMRES.
  *     Implicit residual norms are cheaper to compute, but may be less precise
  *     due to accumulating rounding errors.
  * @return a deferred_factory_parameter that can be passed to the

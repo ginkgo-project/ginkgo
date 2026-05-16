@@ -27,18 +27,26 @@ namespace batch {
 
 /**
  * MultiVector stores multiple vectors in a batched fashion and is useful
- * for batched operations. For example, if you want to store two batch items
- * with multi-vectors of size (3 x 2) given below:
+ * for batched operations. For example, two batch items, each a 3 x 2
+ * multi-vector, would be laid out as:
  *
- * [1 2 ; 3 4
- *  1 2 ; 3 4
- *  1 2 ; 3 4]
+ * ```
+ * batch item 0      batch item 1
+ *   1 2               3 4
+ *   1 2               3 4
+ *   1 2               3 4
+ * ```
  *
- * In memory, they would be stored as a single array:
- * [1 2 1 2 1 2 3 4 3 4 3 4].
+ * In memory, both items are stored consecutively as a single
+ * row-major array:
  *
- * Access functions @at can help access individual
- * item if necessary.
+ * ```
+ * [ 1 2  1 2  1 2 | 3 4  3 4  3 4 ]
+ *   item 0          item 1
+ * ```
+ *
+ * The accessor `at()` can be used to reach an individual entry of a
+ * specific batch item.
  *
  * The values of the different batch items are stored consecutively and in each
  * batch item, the multi-vectors are stored in a row-major fashion.

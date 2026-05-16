@@ -180,7 +180,7 @@ public:
          * Threshold to determine if Av_n and v_n are too close to being
          * perpendicular.
          * This is considered to be the case if
-         * $|(Av_n)^H * v_n / (norm(Av_n) * norm(v_n))| < kappa$
+         * \f$|(Av_n)^H * v_n / (norm(Av_n) * norm(v_n))| < kappa\f$
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(kappa, 0.7);
 

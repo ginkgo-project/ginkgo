@@ -64,8 +64,8 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  *    and smaller or equal entries everywhere else.
  *  - Maximizing the sum of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *    \f$c(i, j) = a_i - |a(i, j)|\f$ if \f$a(i, j) \neq 0\f$ and $c(i, j) =
- *    \infty$ otherwise. In this case, no scaling coefficients are computed.
+ *    \f$c(i, j) = a_i - |a(i, j)|\f$ if \f$a(i, j) \neq 0\f$ and \f$c(i, j) =
+ *    \infty\f$ otherwise. In this case, no scaling coefficients are computed.
  *
  * This class creates a Combination of two ScaledPermutations representing the
  * row and column permutation and scaling factors computed by this algorithm.

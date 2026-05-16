@@ -39,11 +39,11 @@ enum class index_space {
  * provides mappings from the global index space \f$I\f$ into different local
  * index spaces. The combined local index space (index_space::combined) is then
  * defined as
- * $[0, \dots, |\hat{I}_k|)$. Additionally, the combined index space can be
+ * \f$[0, \dots, |\hat{I}_k|)\f$. Additionally, the combined index space can be
  * separated into locally owned (index_space::local) and non-locally owned
  * (index_space::non_local). The locally owned indices are defined as
- * $[0, \dots, |I_k|)$, and the non-locally owned as $[0, \dots, |R_k|)$.
- * With these index sets, the following mappings are defined:
+ * \f$[0, \dots, |I_k|)\f$, and the non-locally owned as \f$[0, \dots,
+ * |R_k|)\f$. With these index sets, the following mappings are defined:
  *
  * - \f$c_k : \hat{I}_k \mapsto [0, \dots, |\hat{I}_k|)\f$ which maps global
  * indices into the combined/full local index space (denoted as
@@ -151,8 +151,8 @@ public:
      * The set \f$R_k = \hat{I}_k \setminus I_k\f$ can also be written as the
      * union of the intersection of \f$\hat{I}_k\f$ with other disjoint sets
      * \f$I_l, l \neq k\f$, i.e.
-     * $R_k = \bigcup_{j \neq k} \hat{I}_k \cap I_j = \bigcup_{j \neq k}
-     * R_{k,j}$. The set \f$R_{k,j}\f$ can then be mapped by \f$l_j\f$ to get
+     * \f$R_k = \bigcup_{j \neq k} \hat{I}_k \cap I_j = \bigcup_{j \neq k}
+     * R_{k,j}\f$. The set \f$R_{k,j}\f$ can then be mapped by \f$l_j\f$ to get
      * the local indices wrt. part \f$j\f$. The indices here are mapped by
      * \f$l_j\f$.
      */

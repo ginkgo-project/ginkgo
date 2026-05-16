@@ -84,7 +84,7 @@ public:
 
     /**
      * Returns the inverse of this operator as a scaled permutation.
-     * It is computed via $(P S)^-1 = P^{-1} (P S P^{-1})$.
+     * It is computed via \f$(P S)^-1 = P^{-1} (P S P^{-1})\f$.
      *
      * @return a newly created ScaledPermutation object storing the inverse
      *         of the permutation and scaling factors of this
