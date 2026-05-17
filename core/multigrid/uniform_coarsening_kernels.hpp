@@ -20,6 +20,7 @@ namespace gko {
 namespace kernels {
 namespace uniform_coarsening {
 
+
 #define GKO_DECLARE_UNIFORM_COARSENING_FILL_RESTRICT_OP(ValueType, IndexType) \
     void fill_restrict_op(std::shared_ptr<const DefaultExecutor> exec,        \
                           const array<IndexType>* coarse_rows,                \

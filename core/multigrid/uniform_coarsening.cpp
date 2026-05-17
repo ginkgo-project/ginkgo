@@ -57,6 +57,8 @@ GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 
 }  // anonymous namespace
 }  // namespace uniform_coarsening
+
+
 namespace index_map {
 namespace {
 
@@ -66,6 +68,7 @@ GKO_REGISTER_OPERATION(map_to_global, index_map::map_to_global);
 
 }
 }  // namespace index_map
+
 
 namespace {
 
@@ -151,7 +154,7 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         coarse_nnz);
     exec->run(uniform_coarsening::make_compute_coarse_coo(
         nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
-        vals.get_const_data(), coarse_coo.get()));
+        vals.get_const_data(), coarse_coo->get_device_view()));
     auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
     coarse_csr->move_from(coarse_coo);
     return std::move(coarse_csr);
@@ -181,16 +184,11 @@ UniformCoarsening<ValueType, IndexType>::parse(
     if (auto& obj = config.get("coarse_skip")) {
         params.with_coarse_skip(gko::config::get_value<int>(obj));
     }
-    if (auto& obj = config.get("enforce_connectedness")) {
-        params.with_enforce_connectedness(gko::config::get_value<bool>(obj));
+    if (auto& obj = config.get("aggregation")) {
+        params.with_aggregation(gko::config::get_value<bool>(obj));
     }
     if (auto& obj = config.get("skip_sorting")) {
         params.with_skip_sorting(gko::config::get_value<bool>(obj));
-    }
-    if (auto& obj = config.get("prolongation_smoother")) {
-        params.with_prolongation_smoother(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
     }
 
     return params;
@@ -204,9 +202,6 @@ UniformCoarsening<ValueType, IndexType>::generate_local(
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix)
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
-    using sparsity_type = matrix::SparsityCsr<ValueType, IndexType>;
-    using real_type = remove_complex<ValueType>;
-    using weight_csr_type = remove_complex<csr_type>;
     auto exec = this->get_executor();
     const auto num_rows = local_matrix->get_size()[0];
 
@@ -230,7 +225,7 @@ UniformCoarsening<ValueType, IndexType>::generate_local(
     std::shared_ptr<csr_type> restrict_op;
     std::shared_ptr<csr_type> coarse_matrix;
 
-    if (parameters_.enforce_connectedness) {
+    if (parameters_.aggregation) {
         // Aggregate-style: map every fine row to floor(i/skip).
         // This preserves connectivity in the Galerkin coarse matrix.
         {
@@ -304,28 +299,6 @@ UniformCoarsening<ValueType, IndexType>::generate_local(
         tmp->set_strategy(uniform_coarsening_op->get_strategy());
         uniform_coarsening_op->apply(prolong_op, tmp);
         restrict_op->apply(tmp, coarse_matrix);
-    }
-
-    // Apply prolongation smoother if configured
-    // Returns smoothed P/R with aggregation-based coarse matrix.
-    // The Galerkin triple product is computed by the caller when the full
-    // matrix is available (non-distributed path).
-    if (parameters_.prolongation_smoother) {
-        // Generate smoother S from system matrix
-        auto smoother =
-            parameters_.prolongation_smoother->generate(local_matrix);
-
-        // P = S * P0 via SpGEMM
-        auto p_csr =
-            share(csr_type::create(exec, dim<2>{fine_dim, coarse_dim}));
-        smoother->apply(prolong_op, p_csr);
-
-        // R = P^T
-        auto r_csr = share(gko::as<csr_type>(p_csr->transpose()));
-
-        return std::make_tuple(std::static_pointer_cast<LinOp>(p_csr),
-                               std::shared_ptr<LinOp>(coarse_matrix),
-                               std::static_pointer_cast<LinOp>(r_csr));
     }
 
     return std::make_tuple(std::shared_ptr<LinOp>(prolong_op),
@@ -546,32 +519,8 @@ void UniformCoarsening<ValueType, IndexType>::generate()
             this->set_fine_op(unif_op);
         }
         auto result = this->generate_local(unif_op);
-
-        // For non-distributed: recompute coarse matrix via Galerkin triple
-        // product when prolongation smoother is set
-        if (parameters_.prolongation_smoother) {
-            auto p_csr = as<csr_type>(std::get<0>(result));
-            auto r_csr = as<csr_type>(std::get<2>(result));
-            auto fine_dim = unif_op->get_size()[0];
-            auto coarse_dim = p_csr->get_size()[1];
-
-            auto temp = csr_type::create(exec, dim<2>{fine_dim, coarse_dim});
-            unif_op->apply(p_csr, temp);
-            auto ac_csr =
-                csr_type::create(exec, dim<2>{coarse_dim, coarse_dim});
-            r_csr->apply(temp, ac_csr);
-
-            auto ac_t = gko::as<csr_type>(ac_csr->transpose());
-            auto half =
-                initialize<matrix::Dense<ValueType>>({ValueType{0.5}}, exec);
-            auto ac_sym = share(ac_csr->scale_add(half, half, ac_t));
-
-            this->set_multigrid_level(std::get<0>(result), ac_sym,
-                                      std::get<2>(result));
-        } else {
-            this->set_multigrid_level(std::get<0>(result), std::get<1>(result),
-                                      std::get<2>(result));
-        }
+        this->set_multigrid_level(std::get<0>(result), std::get<1>(result),
+                                  std::get<2>(result));
     }
 }
 

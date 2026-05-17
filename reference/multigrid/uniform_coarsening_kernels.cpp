@@ -52,8 +52,10 @@ void fill_incremental_indices(std::shared_ptr<const DefaultExecutor> exec,
                               size_type coarse_skip,
                               array<IndexType>* coarse_rows)
 {
-    for (IndexType i = 0; i < coarse_rows->get_size(); i += coarse_skip) {
-        coarse_rows->get_data()[i] = i / coarse_skip;
+    for (IndexType i = 0; i < coarse_rows->get_size(); ++i) {
+        if (i % coarse_skip == 0) {
+            coarse_rows->get_data()[i] = i / coarse_skip;
+        }
     }
 }
 

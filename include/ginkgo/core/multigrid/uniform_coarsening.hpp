@@ -33,6 +33,8 @@ class Partition;
 
 }  // namespace distributed
 }  // namespace experimental
+
+
 namespace multigrid {
 
 
@@ -97,13 +99,13 @@ public:
         int GKO_FACTORY_PARAMETER_SCALAR(coarse_skip, 2);
 
         /**
-         * When set to `true`, every fine row is mapped to its nearest
-         * coarse row (aggregate-style), so that the Galerkin coarse
-         * matrix R·A·P preserves graph connectivity.  When `false`
-         * (the default), only the selected coarse rows participate,
+         * When set to `true` (the default), every fine row is mapped to
+         * its nearest coarse row (aggregation-style), so that the Galerkin
+         * coarse matrix R·A·P preserves graph connectivity. When `false`,
+         * only the selected coarse rows participate (injection-style),
          * which can produce disconnected coarse graphs.
          */
-        bool GKO_FACTORY_PARAMETER_SCALAR(enforce_connectedness, true);
+        bool GKO_FACTORY_PARAMETER_SCALAR(aggregation, true);
 
         /**
          * The `system_matrix`, which will be given to this factory, must be
@@ -116,17 +118,6 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
-
-        /**
-         * Optional factory for smoothing the tentative prolongation.
-         * When set, the tentative P0 is smoothed:
-         *   P = S * P0  where S = smoother->generate(system_matrix)
-         * and the coarse operator is recomputed as Ac = R * A * P.
-         *
-         * If not set (nullptr), the default unsmoothed behavior is used.
-         */
-        std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
-            prolongation_smoother);
     };
     GKO_ENABLE_LIN_OP_FACTORY(UniformCoarsening, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

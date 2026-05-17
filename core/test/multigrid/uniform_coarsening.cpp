@@ -12,9 +12,6 @@
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 template <typename ValueIndexType>
 class UniformCoarseningFactory : public ::testing::Test {
 protected:
@@ -25,15 +22,16 @@ protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
     using MgLevel = gko::multigrid::UniformCoarsening<value_type, index_type>;
+
     UniformCoarseningFactory()
         : exec(gko::ReferenceExecutor::create()),
-          uniform_coarsening1_factory(
+          uniform_coarsening_factory(
               MgLevel::build().with_coarse_skip(4).with_skip_sorting(true).on(
                   exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<typename MgLevel::Factory> uniform_coarsening1_factory;
+    std::unique_ptr<typename MgLevel::Factory> uniform_coarsening_factory;
 };
 
 TYPED_TEST_SUITE(UniformCoarseningFactory, gko::test::ValueIndexTypes,
@@ -42,7 +40,7 @@ TYPED_TEST_SUITE(UniformCoarseningFactory, gko::test::ValueIndexTypes,
 
 TYPED_TEST(UniformCoarseningFactory, FactoryKnowsItsExecutor)
 {
-    ASSERT_EQ(this->uniform_coarsening1_factory->get_executor(), this->exec);
+    ASSERT_EQ(this->uniform_coarsening_factory->get_executor(), this->exec);
 }
 
 
@@ -58,16 +56,13 @@ TYPED_TEST(UniformCoarseningFactory, DefaultSetting)
 
 TYPED_TEST(UniformCoarseningFactory, SetNumJumps)
 {
-    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().coarse_skip,
+    ASSERT_EQ(this->uniform_coarsening_factory->get_parameters().coarse_skip,
               4);
 }
 
 
 TYPED_TEST(UniformCoarseningFactory, SetSkipSorting)
 {
-    ASSERT_EQ(this->uniform_coarsening1_factory->get_parameters().skip_sorting,
+    ASSERT_EQ(this->uniform_coarsening_factory->get_parameters().skip_sorting,
               true);
 }
-
-
-}  // namespace

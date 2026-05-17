@@ -50,9 +50,10 @@ protected:
         gko::multigrid::UniformCoarsening<value_type, local_index_type>;
 
     // 8x8 symmetric matrix with partition [0,2), [2,4), [4,8).
-    // coarse_skip=2 selects rows 0,2,4,6 as coarse points.
-    // Non-local connections are only between coarse rows to avoid
-    // -1 aggregate communication issues.
+    // coarse_skip=2 either selects rows 0,2,4,6 (injection mode) or
+    // aggregates {0,1},{2,3},{4,5},{6,7} (aggregation mode). Non-local
+    // entries live only in the "leader" row of each aggregate (0,2,4,6),
+    // so the off-block coarse matrices are identical in both modes.
     UniformCoarsening()
         : size{8, 8},
           mat_input{
@@ -114,10 +115,11 @@ TYPED_TEST(UniformCoarsening, CanGenerateFromDistributedMatrix)
     using value_type = typename TestFixture::value_type;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
-    auto uc_factory = uc::build().with_coarse_skip(2).on(this->exec);
+    auto uc_factory =
+        uc::build().with_coarse_skip(2).with_aggregation(false).on(this->exec);
     auto rank = this->comm.rank();
 
-    // Expected coarse local matrices per rank:
+    // Injection mode. Expected coarse local matrices per rank:
     // Rank 0: coarse rows={0}, local A[0,0]=5 -> [[5]]
     // Rank 1: coarse rows={0}, local A[2,2]=5 -> [[5]]
     // Rank 2: coarse rows={0,2}, local submatrix at {4,6}:
@@ -133,6 +135,39 @@ TYPED_TEST(UniformCoarsening, CanGenerateFromDistributedMatrix)
     //         Coarse row 0(fine 4): A[4,0]=-1, A[4,2]=0
     //         Coarse row 1(fine 6): A[6,0]=0,  A[6,2]=-1
     //         -> [[-1, 0], [0, -1]]
+    I<I<value_type>> res_non_local[] = {
+        {{-1, -1}}, {{-1, -1}}, {{-1, 0}, {0, -1}}};
+
+    auto result = uc_factory->generate(this->dist_mat);
+
+    auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_local_matrix()),
+                        res_local[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<local_matrix_type>(coarse->get_non_local_matrix()),
+        res_non_local[rank], r<value_type>::value);
+}
+
+
+TYPED_TEST(UniformCoarsening, CanGenerateAggregationFromDistributedMatrix)
+{
+    using uc = typename TestFixture::uniform_coarsening;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    auto uc_factory =
+        uc::build().with_coarse_skip(2).with_aggregation(true).on(this->exec);
+    auto rank = this->comm.rank();
+
+    // Aggregation mode. R aggregates rows pairwise per rank, P = R^T,
+    // local Ac = R*A_local*P.
+    // Rank 0: agg of rows {0,1}; A_local=[[5,-1],[-1,5]] -> Ac=[[8]]
+    // Rank 1: agg of rows {2,3}; A_local=[[5,-2],[-2,5]] -> Ac=[[6]]
+    // Rank 2: aggs {4,5},{6,7}; A_local 4x4 -> Ac=[[8,-2],[-2,8]]
+    I<I<value_type>> res_local[] = {{{8}}, {{6}}, {{8, -2}, {-2, 8}}};
+
+    // Off-block entries only exist in aggregate leader rows (0,2,4,6),
+    // so the non-local sums per aggregate equal the injection-mode values.
     I<I<value_type>> res_non_local[] = {
         {{-1, -1}}, {{-1, -1}}, {{-1, 0}, {0, -1}}};
 

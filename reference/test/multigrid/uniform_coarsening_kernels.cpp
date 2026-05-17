@@ -44,9 +44,11 @@ protected:
     using real_type = gko::remove_complex<value_type>;
     UniformCoarsening()
         : exec(gko::ReferenceExecutor::create()),
-          uniform_coarsening_factory(
-              MgLevel::build().with_coarse_skip(2).with_skip_sorting(true).on(
-                  exec)),
+          uniform_coarsening_factory(MgLevel::build()
+                                         .with_coarse_skip(2)
+                                         .with_skip_sorting(true)
+                                         .with_aggregation(false)
+                                         .on(exec)),
           fine_b(gko::initialize<Vec>(
               {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
                I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
@@ -388,7 +390,9 @@ TYPED_TEST(UniformCoarsening, GenerateMgLevelOnUnsortedMatrix)
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
     using MgLevel = typename TestFixture::MgLevel;
-    auto mglevel_sort = MgLevel::build().with_coarse_skip(2).on(this->exec);
+    auto mglevel_sort =
+        MgLevel::build().with_coarse_skip(2).with_aggregation(false).on(
+            this->exec);
     /* this unsorted matrix is stored as this->fine:
      *  5 -3 -3  0  0
      * -3  5  0 -2 -1
@@ -414,6 +418,162 @@ TYPED_TEST(UniformCoarsening, GenerateMgLevelOnUnsortedMatrix)
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_prolong_op()), prolong_op,
                         r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
+                        this->coarse, r<value_type>::value);
+}
+
+
+template <typename ValueIndexType>
+class UniformCoarseningAgg : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+    using MgLevel = gko::multigrid::UniformCoarsening<value_type, index_type>;
+    using VT = value_type;
+    UniformCoarseningAgg()
+        : exec(gko::ReferenceExecutor::create()),
+          uniform_coarsening_factory(MgLevel::build()
+                                         .with_coarse_skip(2)
+                                         .with_skip_sorting(true)
+                                         .with_aggregation(true)
+                                         .on(exec)),
+          fine_b(gko::initialize<Vec>(
+              {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
+               I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
+              exec)),
+          coarse_b(gko::initialize<Vec>(
+              {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
+              exec)),
+          // R = [[1,1,0,0,0],[0,0,1,1,0],[0,0,0,0,1]], R*fine_b
+          restrict_ans(gko::initialize<Vec>(
+              {I<VT>({1.0, 1.0}), I<VT>({3.0, -3.0}), I<VT>({-2.0, 1.0})},
+              exec)),
+          // P*coarse_b (P = R^T duplicates entries within each aggregate)
+          prolong_applyans(gko::initialize<Vec>(
+              {I<VT>({2.0, -1.0}), I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}),
+               I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
+              exec)),
+          mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
+                          std::make_shared<typename Mtx::classical>())),
+          coarse(Mtx::create(exec, gko::dim<2>(3, 3), 9,
+                             std::make_shared<typename Mtx::classical>())),
+          coarse_rows(exec, 5)
+    {
+        // Expected aggregates for coarse_skip=2, num_rows=5: every fine row
+        // maps to floor(i/2).
+        auto cr = coarse_rows.get_data();
+        cr[0] = 0;
+        cr[1] = 0;
+        cr[2] = 1;
+        cr[3] = 1;
+        cr[4] = 2;
+
+        /* fine matrix (same as injection fixture):
+         *  5 -3 -3  0  0
+         * -3  5  0 -2 -1
+         * -3  0  5  0 -1
+         *  0 -3  0  5  0
+         *  0 -2 -2  0  5
+         */
+        mtx->read({{5, 5},
+                   {{0, 0, 5},
+                    {0, 1, -3},
+                    {0, 2, -3},
+                    {1, 0, -3},
+                    {1, 1, 5},
+                    {1, 3, -2},
+                    {1, 4, -1},
+                    {2, 0, -3},
+                    {2, 2, 5},
+                    {2, 4, -1},
+                    {3, 1, -3},
+                    {3, 3, 5},
+                    {4, 1, -2},
+                    {4, 2, -2},
+                    {4, 4, 5}}});
+
+        /* Galerkin coarse Ac = R * A * P (computed by hand):
+         *   4 -5 -1
+         *  -6 10 -1
+         *  -2 -2  5
+         */
+        coarse->read({{3, 3},
+                      {{0, 0, 4},
+                       {0, 1, -5},
+                       {0, 2, -1},
+                       {1, 0, -6},
+                       {1, 1, 10},
+                       {1, 2, -1},
+                       {2, 0, -2},
+                       {2, 1, -2},
+                       {2, 2, 5}}});
+
+        mg_level = uniform_coarsening_factory->generate(mtx);
+    }
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
+    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> coarse;
+    gko::array<index_type> coarse_rows;
+    std::shared_ptr<Vec> fine_b;
+    std::shared_ptr<Vec> coarse_b;
+    std::shared_ptr<Vec> restrict_ans;
+    std::shared_ptr<Vec> prolong_applyans;
+    std::unique_ptr<typename MgLevel::Factory> uniform_coarsening_factory;
+    std::unique_ptr<MgLevel> mg_level;
+};
+
+TYPED_TEST_SUITE(UniformCoarseningAgg, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
+
+
+TYPED_TEST(UniformCoarseningAgg, GenerateMapsEveryRowToAggregate)
+{
+    auto coarse_fine = this->uniform_coarsening_factory->generate(this->mtx);
+
+    auto sel = coarse_fine->get_const_coarse_rows();
+
+    ASSERT_EQ(sel[0], 0);
+    ASSERT_EQ(sel[1], 0);
+    ASSERT_EQ(sel[2], 1);
+    ASSERT_EQ(sel[3], 1);
+    ASSERT_EQ(sel[4], 2);
+}
+
+
+TYPED_TEST(UniformCoarseningAgg, RestrictAppliesAggregation)
+{
+    using value_type = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create_with_config_of(this->coarse_b);
+
+    this->mg_level->get_restrict_op()->apply(this->fine_b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, this->restrict_ans, r<value_type>::value);
+}
+
+
+TYPED_TEST(UniformCoarseningAgg, ProlongInjectsByAggregate)
+{
+    using value_type = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    auto x = Vec::create(this->exec, gko::dim<2>{5, 2});
+
+    this->mg_level->get_prolong_op()->apply(this->coarse_b.get(), x.get());
+
+    GKO_ASSERT_MTX_NEAR(x, this->prolong_applyans, r<value_type>::value);
+}
+
+
+TYPED_TEST(UniformCoarseningAgg, CoarseIsGalerkinTripleProduct)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(this->mg_level->get_coarse_op()),
                         this->coarse, r<value_type>::value);
 }
 
