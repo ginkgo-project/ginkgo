@@ -292,13 +292,10 @@ UniformCoarsening<ValueType, IndexType>::generate_local(
 
         prolong_op = gko::as<csr_type>(share(restrict_op->transpose()));
 
-        coarse_matrix =
-            share(csr_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
+        coarse_matrix = share(
+            generate_coarse(exec, uniform_coarsening_op,
+                            static_cast<IndexType>(coarse_dim), coarse_rows_));
         coarse_matrix->set_strategy(uniform_coarsening_op->get_strategy());
-        auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
-        tmp->set_strategy(uniform_coarsening_op->get_strategy());
-        uniform_coarsening_op->apply(prolong_op, tmp);
-        restrict_op->apply(tmp, coarse_matrix);
     }
 
     return std::make_tuple(std::shared_ptr<LinOp>(prolong_op),
