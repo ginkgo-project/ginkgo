@@ -180,3 +180,121 @@ TYPED_TEST(UniformCoarsening, CanGenerateAggregationFromDistributedMatrix)
         gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
         res_non_local[rank], r<value_type>::value);
 }
+
+
+template <typename ValueLocalGlobalIndexType>
+class UniformCoarseningOffDiagAgg : public CommonMpiTestFixture {
+protected:
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
+    using dist_mtx_type =
+        gko::experimental::distributed::Matrix<value_type, local_index_type,
+                                               global_index_type>;
+    using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
+    using Partition =
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
+    using uniform_coarsening =
+        gko::multigrid::UniformCoarsening<value_type, local_index_type>;
+
+    UniformCoarseningOffDiagAgg()
+        : size{8, 8},
+          mat_input{size,
+                    {// diagonal
+                     {0, 0, 5},
+                     {1, 1, 5},
+                     {2, 2, 5},
+                     {3, 3, 5},
+                     {4, 4, 5},
+                     {5, 5, 5},
+                     {6, 6, 5},
+                     {7, 7, 5},
+                     // local
+                     {0, 1, -1},
+                     {1, 0, -1},
+                     {2, 3, -2},
+                     {3, 2, -2},
+                     {4, 5, -1},
+                     {5, 4, -1},
+                     {6, 7, -1},
+                     {7, 6, -1},
+                     {4, 6, -2},
+                     {6, 4, -2},
+                     // rank0 <-> rank1, both rows of each agg (row-sum +
+                     // column-collapse: cols 2 and 3 are both in rank1 agg 0)
+                     {0, 2, -1},
+                     {2, 0, -1},
+                     {1, 3, -1},
+                     {3, 1, -1},
+                     // rank0 <-> rank2 agg 0 (rows 4,5)
+                     {0, 4, -1},
+                     {4, 0, -1},
+                     {1, 5, -1},
+                     {5, 1, -1},
+                     // rank1 <-> rank2 agg 1 (rows 6,7)
+                     {2, 6, -1},
+                     {6, 2, -1},
+                     {3, 7, -1},
+                     {7, 3, -1}}}
+    {
+        row_part = Partition::build_from_contiguous(
+            exec, gko::array<global_index_type>(
+                      exec, I<global_index_type>{0, 2, 4, 8}));
+
+        mat_input.sort_row_major();
+        dist_mat = dist_mtx_type::create(exec, comm);
+        dist_mat->read_distributed(mat_input, row_part);
+    }
+
+    void SetUp() override { ASSERT_EQ(comm.size(), 3); }
+
+    gko::dim<2> size;
+    std::shared_ptr<Partition> row_part;
+    gko::matrix_data<value_type, global_index_type> mat_input;
+    std::shared_ptr<dist_mtx_type> dist_mat;
+};
+
+TYPED_TEST_SUITE(UniformCoarseningOffDiagAgg,
+                 gko::test::ValueLocalGlobalIndexTypes,
+                 TupleTypenameNameGenerator);
+
+
+TYPED_TEST(UniformCoarseningOffDiagAgg, AggregatesOffDiagonalEntries)
+{
+    using uc = typename TestFixture::uniform_coarsening;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    auto uc_factory =
+        uc::build().with_coarse_skip(2).with_aggregation(true).on(this->exec);
+    auto rank = this->comm.rank();
+
+    // Local Ac is unchanged by the extra non-local entries (matches
+    // UniformCoarsening.CanGenerateAggregationFromDistributedMatrix).
+    I<I<value_type>> res_local[] = {{{8}}, {{6}}, {{8, -2}, {-2, 8}}};
+
+    // Off-diagonal aggregation:
+    // - Rank 0 coarse row 0 sums over both local rows. Cols collapse:
+    //   rank1 rows {2,3} -> one coarse col; rank2 rows {4,5} -> one coarse
+    //   col. Sums: A[0,2]+A[1,3]=-2 and A[0,4]+A[1,5]=-2.
+    // - Rank 1 symmetric.
+    // - Rank 2 has 2 coarse rows: coarse row 0 (rows 4,5) only touches
+    //   rank 0 (sum -2); coarse row 1 (rows 6,7) only touches rank 1
+    //   (sum -2). Off-diagonal sees 2 coarse non-local cols (rank0 agg 0,
+    //   rank1 agg 0).
+    I<I<value_type>> res_non_local[] = {
+        {{-2, -2}}, {{-2, -2}}, {{-2, 0}, {0, -2}}};
+
+    auto result = uc_factory->generate(this->dist_mat);
+
+    auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+                        res_local[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
+        res_non_local[rank], r<value_type>::value);
+}
