@@ -71,14 +71,15 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
-        /**
-         * Strength-of-connection threshold, theta
-         */
+        // Strength-of-connection threshold, theta
         remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
             strength_threshold, 0.25);
 
+        // Skips Csr sorting if set to true
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
 
+        // RS-coarsening only works for M-matrices. If this is true, skips this
+        // (potentially heavy) check
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_m_matrix_check, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Rs, parameters, Factory);
