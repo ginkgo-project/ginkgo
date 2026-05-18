@@ -141,10 +141,10 @@ TYPED_TEST(UniformCoarsening, CanGenerateFromDistributedMatrix)
     auto result = uc_factory->generate(this->dist_mat);
 
     auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
-    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_local_matrix()),
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
                         res_local[rank], r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(
-        gko::as<local_matrix_type>(coarse->get_non_local_matrix()),
+        gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
         res_non_local[rank], r<value_type>::value);
 }
 
@@ -174,9 +174,9 @@ TYPED_TEST(UniformCoarsening, CanGenerateAggregationFromDistributedMatrix)
     auto result = uc_factory->generate(this->dist_mat);
 
     auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
-    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_local_matrix()),
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
                         res_local[rank], r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(
-        gko::as<local_matrix_type>(coarse->get_non_local_matrix()),
+        gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
         res_non_local[rank], r<value_type>::value);
 }

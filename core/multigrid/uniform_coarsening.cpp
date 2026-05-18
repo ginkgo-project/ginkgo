@@ -396,9 +396,9 @@ void UniformCoarsening<ValueType, IndexType>::generate()
         auto setup_fine_op = [&](auto matrix) {
             // Only support csr matrix currently.
             auto local_csr = std::dynamic_pointer_cast<const csr_type>(
-                matrix->get_local_matrix());
+                matrix->get_diag_matrix());
             auto non_local_csr = std::dynamic_pointer_cast<const csr_type>(
-                matrix->get_non_local_matrix());
+                matrix->get_off_diag_matrix());
             // If system matrix is not csr or need sorting, generate the
             // csr.
             if (!parameters_.skip_sorting || !local_csr || !non_local_csr) {
@@ -437,8 +437,7 @@ void UniformCoarsening<ValueType, IndexType>::generate()
             auto comm =
                 gko::as<experimental::distributed::DistributedBase>(matrix)
                     ->get_communicator();
-            auto local_csr =
-                gko::as<const csr_type>(matrix->get_local_matrix());
+            auto local_csr = gko::as<const csr_type>(matrix->get_diag_matrix());
             auto result = this->generate_local(local_csr);
 
             // Create the coarse partition from local coarse size
@@ -466,7 +465,7 @@ void UniformCoarsening<ValueType, IndexType>::generate()
 
             // Build coarse non-local matrix using generate_coarse
             auto non_local_csr =
-                gko::as<const csr_type>(matrix->get_non_local_matrix());
+                gko::as<const csr_type>(matrix->get_off_diag_matrix());
             auto result_non_local_csr = generate_coarse(
                 exec, non_local_csr.get(),
                 static_cast<IndexType>(std::get<1>(result)->get_size()[0]),

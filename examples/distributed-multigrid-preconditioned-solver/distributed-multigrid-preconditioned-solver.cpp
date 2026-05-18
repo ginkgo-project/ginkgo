@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -62,6 +62,7 @@ int main(int argc, char* argv[])
     // same type as the non-distributed case.
     using mg = gko::solver::Multigrid;
     using pgm = gko::multigrid::Pgm<ValueType, LocalIndexType>;
+    using uc = gko::multigrid::UniformCoarsening<ValueType, LocalIndexType>;
 
     // Create an MPI communicator get the rank of the calling process.
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
@@ -75,8 +76,8 @@ int main(int argc, char* argv[])
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
             std::cerr << "Usage: " << argv[0]
-                      << " [executor] [num_grid_points] [num_iterations] "
-                      << std::endl;
+                      << " [executor] [num_grid_points] [num_iterations]"
+                      << " [mg_type=pgm|uc-agg|uc-inj]" << std::endl;
         }
         std::exit(-1);
     }
@@ -88,6 +89,7 @@ int main(int argc, char* argv[])
         static_cast<gko::size_type>(argc >= 3 ? std::atoi(argv[2]) : 100);
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
+    const std::string mg_type = argc >= 5 ? argv[4] : "pgm";
 
     const std::map<std::string,
                    std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
@@ -208,14 +210,30 @@ int main(int argc, char* argv[])
             .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(exec));
     // The multigrid preconditioner uses the Schwarz Jacobi as smoother and Cg
-    // as coarse solver
-    auto mg_factory = gko::share(
-        mg::build()
-            .with_mg_level(pgm::build().with_deterministic(true))
-            .with_pre_smoother(smoother_factory)
-            .with_coarsest_solver(coarsest_factory)
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
-            .on(exec));
+    // as coarse solver. The mg_level can be PGM or UniformCoarsening
+    // (aggregation- or injection-style), selected by the CLI argument.
+    auto make_mg_factory = [&]() {
+        auto base = mg::build()
+                        .with_pre_smoother(smoother_factory)
+                        .with_coarsest_solver(coarsest_factory)
+                        .with_criteria(
+                            gko::stop::Iteration::build().with_max_iters(1u));
+        if (mg_type == "uc-agg") {
+            return base
+                .with_mg_level(
+                    uc::build().with_aggregation(true).with_coarse_skip(2))
+                .on(exec);
+        } else if (mg_type == "uc-inj") {
+            return base
+                .with_mg_level(
+                    uc::build().with_aggregation(false).with_coarse_skip(2))
+                .on(exec);
+        } else {
+            return base.with_mg_level(pgm::build().with_deterministic(true))
+                .on(exec);
+        }
+    };
+    auto mg_factory = gko::share(make_mg_factory());
 
     // Setup the stopping criterion and logger
     const gko::remove_complex<ValueType> reduction_factor{1e-8};
