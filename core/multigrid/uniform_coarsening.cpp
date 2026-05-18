@@ -452,13 +452,35 @@ void UniformCoarsening<ValueType, IndexType>::generate()
             auto non_local_agg = communicate_non_local_agg(
                 matrix, coarse_partition, coarse_rows_);
 
-            // Create coarse index map from non-local aggregates
+            array<global_index_type> filtered_non_local_agg(exec);
+            {
+                auto host = exec->get_master();
+                array<global_index_type> h_full{host, non_local_agg};
+                const auto inv = invalid_index<global_index_type>();
+                std::vector<global_index_type> kept;
+                kept.reserve(h_full.get_size());
+                for (size_type i = 0; i < h_full.get_size(); ++i) {
+                    if (h_full.get_const_data()[i] != inv) {
+                        kept.push_back(h_full.get_const_data()[i]);
+                    }
+                }
+                filtered_non_local_agg =
+                    array<global_index_type>(exec, kept.size());
+                if (kept.size() > 0) {
+                    exec->copy_from(host, kept.size(), kept.data(),
+                                    filtered_non_local_agg.get_data());
+                }
+            }
+
+            // Create coarse index map from valid non-local aggregates only
             auto coarse_imap =
                 experimental::distributed::index_map<IndexType,
                                                      global_index_type>(
-                    exec, coarse_partition, comm.rank(), non_local_agg);
+                    exec, coarse_partition, comm.rank(),
+                    filtered_non_local_agg);
 
-            // Map fine non-local indices to coarse non-local indices
+            // Map fine non-local indices to coarse non-local indices.
+            // Invalid entries in non_local_agg map to invalid_index here.
             auto non_local_map = coarse_imap.map_to_local(
                 non_local_agg,
                 experimental::distributed::index_space::non_local);

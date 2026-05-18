@@ -76,8 +76,9 @@ int main(int argc, char* argv[])
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
             std::cerr << "Usage: " << argv[0]
-                      << " [executor] [num_grid_points] [num_iterations]"
-                      << " [mg_type=pgm|uc-agg|uc-inj]" << std::endl;
+                      << " [executor] [grid_side] [num_iterations]"
+                      << " [mg_type=pgm|uc-agg|uc-inj] [stencil=1d|2d]"
+                      << std::endl;
         }
         std::exit(-1);
     }
@@ -90,6 +91,7 @@ int main(int argc, char* argv[])
     const auto num_iters =
         static_cast<gko::size_type>(argc >= 4 ? std::atoi(argv[3]) : 1000);
     const std::string mg_type = argc >= 5 ? argv[4] : "pgm";
+    const std::string stencil = argc >= 6 ? argv[5] : "1d";
 
     const std::map<std::string,
                    std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
@@ -136,16 +138,16 @@ int main(int argc, char* argv[])
     // has (nearly) the same number of rows, so we can use the following
     // specialized constructor. See @ref gko::distributed::Partition for other
     // modes of creating a partition.
-    const auto num_rows = grid_dim;
+    const bool is_2d = (stencil == "2d");
+    const auto num_rows = is_2d ? grid_dim * grid_dim : grid_dim;
     auto partition = gko::share(part_type::build_from_global_size_uniform(
         exec->get_master(), comm.size(),
         static_cast<GlobalIndexType>(num_rows)));
 
-    // Assemble the matrix using a 3-pt stencil and fill the right-hand-side
-    // with a sine value. The distributed matrix supports only constructing an
-    // empty matrix of zero size and filling in the values with
-    // gko::experimental::distributed::Matrix::read_distributed. Only the data
-    // that belongs to the rows by this rank will be assembled.
+    // Assemble the matrix using either a 3-pt 1D Laplacian stencil or a
+    // 5-pt 2D Laplacian stencil on a grid_dim x grid_dim grid (row-major).
+    // Rows are partitioned across ranks; in 2D, rows near a rank boundary
+    // carry cross-rank non-local entries via the i ± grid_dim neighbours.
     gko::matrix_data<ValueType, GlobalIndexType> A_data;
     gko::matrix_data<ValueType, GlobalIndexType> b_data;
     gko::matrix_data<ValueType, GlobalIndexType> x_data;
@@ -154,16 +156,31 @@ int main(int argc, char* argv[])
     x_data.size = {num_rows, 1};
     const auto range_start = partition->get_range_bounds()[rank];
     const auto range_end = partition->get_range_bounds()[rank + 1];
-    for (int i = range_start; i < range_end; i++) {
-        if (i > 0) {
-            A_data.nonzeros.emplace_back(i, i - 1, -1);
+    if (is_2d) {
+        const auto N = static_cast<GlobalIndexType>(grid_dim);
+        for (GlobalIndexType i = range_start; i < range_end; i++) {
+            const auto r = i / N;
+            const auto c = i % N;
+            A_data.nonzeros.emplace_back(i, i, 4);
+            if (c > 0) A_data.nonzeros.emplace_back(i, i - 1, -1);
+            if (c < N - 1) A_data.nonzeros.emplace_back(i, i + 1, -1);
+            if (r > 0) A_data.nonzeros.emplace_back(i, i - N, -1);
+            if (r < N - 1) A_data.nonzeros.emplace_back(i, i + N, -1);
+            b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
+            x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
         }
-        A_data.nonzeros.emplace_back(i, i, 2);
-        if (i < grid_dim - 1) {
-            A_data.nonzeros.emplace_back(i, i + 1, -1);
+    } else {
+        for (GlobalIndexType i = range_start; i < range_end; i++) {
+            if (i > 0) {
+                A_data.nonzeros.emplace_back(i, i - 1, -1);
+            }
+            A_data.nonzeros.emplace_back(i, i, 2);
+            if (i < static_cast<GlobalIndexType>(grid_dim) - 1) {
+                A_data.nonzeros.emplace_back(i, i + 1, -1);
+            }
+            b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
+            x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
         }
-        b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
-        x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
     }
 
     // Take timings.

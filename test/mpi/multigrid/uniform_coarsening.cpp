@@ -298,3 +298,34 @@ TYPED_TEST(UniformCoarseningOffDiagAgg, AggregatesOffDiagonalEntries)
         gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
         res_non_local[rank], r<value_type>::value);
 }
+
+
+TYPED_TEST(UniformCoarseningOffDiagAgg, InjectionDropsNonLeaderEntries)
+{
+    using uc = typename TestFixture::uniform_coarsening;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    auto uc_factory =
+        uc::build().with_coarse_skip(2).with_aggregation(false).on(this->exec);
+    auto rank = this->comm.rank();
+
+    // Injection keeps only leader rows (0,2,4,6). Local Ac is the
+    // row-selection submatrix; entries from non-leader rows vanish.
+    I<I<value_type>> res_local[] = {{{5}}, {{5}}, {{5, -2}, {-2, 5}}};
+
+    // Off-diagonals: only entries from leader rows that also point to
+    // leader rows on the remote side survive. The fixture's non-leader-row
+    // non-local entries must be dropped.
+    I<I<value_type>> res_non_local[] = {
+        {{-1, -1}}, {{-1, -1}}, {{-1, 0}, {0, -1}}};
+
+    auto result = uc_factory->generate(this->dist_mat);
+
+    auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+                        res_local[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
+        res_non_local[rank], r<value_type>::value);
+}
