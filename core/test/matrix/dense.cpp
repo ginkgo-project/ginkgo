@@ -487,27 +487,25 @@ public:
         return *this;
     }
 
-    ClonableObject* copy_from_impl(const ClonableObject* other) override
+    Clonable* copy_from_impl(const Clonable* other) override
     {
         gko::as<gko::ConvertibleTo<CustomDense>>(other)->convert_to(this);
         return this;
     }
 
-    ClonableObject* copy_from_impl(
-        std::unique_ptr<ClonableObject> other) override
+    Clonable* copy_from_impl(std::unique_ptr<Clonable> other) override
     {
         gko::as<gko::ConvertibleTo<CustomDense>>(other.get())->move_to(this);
         return this;
     }
 
-    ClonableObject* move_from_impl(ClonableObject* other) override
+    Clonable* move_from_impl(Clonable* other) override
     {
         gko::as<ConvertibleTo<CustomDense>>(other)->move_to(this);
         return this;
     }
 
-    ClonableObject* move_from_impl(
-        std::unique_ptr<ClonableObject> other) override
+    Clonable* move_from_impl(std::unique_ptr<Clonable> other) override
     {
         gko::as<ConvertibleTo<CustomDense>>(other.get())->move_to(this);
         return this;

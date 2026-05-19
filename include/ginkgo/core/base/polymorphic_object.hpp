@@ -298,59 +298,56 @@ std::shared_ptr<const R> copy_and_convert_to(
 }
 
 
-class ClonableObject {
+class Clonable {
 public:
-    virtual ~ClonableObject() = default;
-    std::unique_ptr<ClonableObject> clone(
-        std::shared_ptr<const Executor> exec) const
+    virtual ~Clonable() = default;
+    std::unique_ptr<Clonable> clone(std::shared_ptr<const Executor> exec) const
     {
         return this->clone_impl(std::move(exec));
     }
 
-    std::unique_ptr<ClonableObject> clone() const { return this->clone_impl(); }
+    std::unique_ptr<Clonable> clone() const { return this->clone_impl(); }
 
-    ClonableObject* copy_from(ptr_param<const ClonableObject> other)
+    Clonable* copy_from(ptr_param<const Clonable> other)
     {
         auto copied = this->copy_from_impl(other.get());
         return copied;
     }
 
-    ClonableObject* move_from(ptr_param<ClonableObject> other)
+    Clonable* move_from(ptr_param<Clonable> other)
     {
         auto moved = this->move_from_impl(other.get());
         return moved;
     }
 
-    std::unique_ptr<ClonableObject> create_default(
+    std::unique_ptr<Clonable> create_default(
         std::shared_ptr<const Executor> exec) const
     {
         auto created = this->create_default_impl(std::move(exec));
         return created;
     }
 
-    std::unique_ptr<ClonableObject> create_default() const
+    std::unique_ptr<Clonable> create_default() const
     {
         return this->create_default(
             dynamic_cast<const ExecutorHolder*>(this)->get_executor());
     }
 
 protected:
-    virtual ClonableObject* copy_from_impl(const ClonableObject* other) = 0;
+    virtual Clonable* copy_from_impl(const Clonable* other) = 0;
 
-    virtual ClonableObject* copy_from_impl(
-        std::unique_ptr<ClonableObject> other) = 0;
+    virtual Clonable* copy_from_impl(std::unique_ptr<Clonable> other) = 0;
 
-    virtual ClonableObject* move_from_impl(ClonableObject* other) = 0;
+    virtual Clonable* move_from_impl(Clonable* other) = 0;
 
-    virtual ClonableObject* move_from_impl(
-        std::unique_ptr<ClonableObject> other) = 0;
+    virtual Clonable* move_from_impl(std::unique_ptr<Clonable> other) = 0;
 
-    virtual std::unique_ptr<ClonableObject> clone_impl(
+    virtual std::unique_ptr<Clonable> clone_impl(
         std::shared_ptr<const Executor> exec) const = 0;
 
-    virtual std::unique_ptr<ClonableObject> clone_impl() const = 0;
+    virtual std::unique_ptr<Clonable> clone_impl() const = 0;
 
-    virtual std::unique_ptr<ClonableObject> create_default_impl(
+    virtual std::unique_ptr<Clonable> create_default_impl(
         std::shared_ptr<const Executor> exec) const = 0;
 };
 
@@ -368,8 +365,7 @@ protected:
  * @tparam ResultType  the type to which copy_from is being enabled
  */
 template <typename ConcreteType>
-class EnableClonable : public ConvertibleTo<ConcreteType>,
-                       public ClonableObject {
+class EnableClonable : public ConvertibleTo<ConcreteType>, public Clonable {
 public:
     using result_type = ConcreteType;
     using ConvertibleTo<result_type>::convert_to;
@@ -425,7 +421,7 @@ public:
     }
 
 protected:
-    ClonableObject* copy_from_impl(const ClonableObject* other) override
+    Clonable* copy_from_impl(const Clonable* other) override
     {
         self()->template log<log::Logger::polymorphic_object_copy_started>(
             self()->get_executor().get(),
@@ -439,8 +435,7 @@ protected:
         return this;
     }
 
-    ClonableObject* copy_from_impl(
-        std::unique_ptr<ClonableObject> other) override
+    Clonable* copy_from_impl(std::unique_ptr<Clonable> other) override
     {
         self()->template log<log::Logger::polymorphic_object_copy_started>(
             self()->get_executor().get(),
@@ -454,7 +449,7 @@ protected:
         return this;
     }
 
-    ClonableObject* move_from_impl(ClonableObject* other) override
+    Clonable* move_from_impl(Clonable* other) override
     {
         self()->template log<log::Logger::polymorphic_object_move_started>(
             self()->get_executor().get(),
@@ -468,8 +463,7 @@ protected:
         return this;
     }
 
-    ClonableObject* move_from_impl(
-        std::unique_ptr<ClonableObject> other) override
+    Clonable* move_from_impl(std::unique_ptr<Clonable> other) override
     {
         self()->template log<log::Logger::polymorphic_object_move_started>(
             self()->get_executor().get(),
@@ -483,7 +477,7 @@ protected:
         return this;
     }
 
-    std::unique_ptr<ClonableObject> clone_impl(
+    std::unique_ptr<Clonable> clone_impl(
         std::shared_ptr<const Executor> exec) const override
     {
         auto new_op = self()->create_default(exec);
@@ -491,15 +485,15 @@ protected:
         return new_op;
     }
 
-    std::unique_ptr<ClonableObject> clone_impl() const override
+    std::unique_ptr<Clonable> clone_impl() const override
     {
         return this->clone_impl(self()->get_executor());
     }
 
-    std::unique_ptr<ClonableObject> create_default_impl(
+    std::unique_ptr<Clonable> create_default_impl(
         std::shared_ptr<const Executor> exec) const override
     {
-        return std::unique_ptr<ClonableObject>(
+        return std::unique_ptr<Clonable>(
             create_default(std::move(exec)).release());
     }
 

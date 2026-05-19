@@ -53,7 +53,7 @@ public:
      */
     void operator()(pointer ptr) const
     {
-        as<ClonableObject>(original_)->copy_from(as<ClonableObject>(ptr));
+        as<Clonable>(original_)->copy_from(as<Clonable>(ptr));
         delete ptr;
     }
 

@@ -68,17 +68,16 @@ void Convergence<ValueType>::on_iteration_complete(
         this->num_iterations_ = num_iterations;
         if (residual != nullptr) {
             this->residual_.reset(
-                as<LinOp>(as<ClonableObject>(residual)->clone()).release());
+                as<LinOp>(as<Clonable>(residual)->clone()).release());
         }
         if (implicit_resnorm_sq != nullptr) {
             this->implicit_sq_resnorm_.reset(
-                as<LinOp>(as<ClonableObject>(implicit_resnorm_sq)->clone())
+                as<LinOp>(as<Clonable>(implicit_resnorm_sq)->clone())
                     .release());
         }
         if (residual_norm != nullptr) {
             this->residual_norm_.reset(
-                as<LinOp>(as<ClonableObject>(residual_norm)->clone())
-                    .release());
+                as<LinOp>(as<Clonable>(residual_norm)->clone()).release());
         } else if (residual != nullptr) {
             using NormVector = matrix::Dense<remove_complex<ValueType>>;
             detail::vector_dispatch<ValueType>(

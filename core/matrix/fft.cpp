@@ -171,13 +171,13 @@ void Fft::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                      LinOp* x) const
 {
     if (auto float_x = dynamic_cast<Dense<std::complex<float>>*>(x)) {
-        auto clone_x = as<LinOp>(as<ClonableObject>(x)->clone());
+        auto clone_x = as<LinOp>(as<Clonable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         float_x->scale(beta);
         float_x->add_scaled(alpha, clone_x);
     } else {
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        auto clone_x = as<LinOp>(as<ClonableObject>(x)->clone());
+        auto clone_x = as<LinOp>(as<Clonable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
         dense_x->add_scaled(alpha, clone_x);
@@ -268,13 +268,13 @@ void Fft2::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                       LinOp* x) const
 {
     if (auto float_x = dynamic_cast<Dense<std::complex<float>>*>(x)) {
-        auto clone_x = as<LinOp>(as<ClonableObject>(x)->clone());
+        auto clone_x = as<LinOp>(as<Clonable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         float_x->scale(beta);
         float_x->add_scaled(alpha, clone_x);
     } else {
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        auto clone_x = as<LinOp>(as<ClonableObject>(x)->clone());
+        auto clone_x = as<LinOp>(as<Clonable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
         dense_x->add_scaled(alpha, clone_x);
@@ -381,13 +381,13 @@ void Fft3::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                       LinOp* x) const
 {
     if (auto float_x = dynamic_cast<Dense<std::complex<float>>*>(x)) {
-        auto clone_x = as<LinOp>(as<ClonableObject>(x)->clone());
+        auto clone_x = as<LinOp>(as<Clonable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         float_x->scale(beta);
         float_x->add_scaled(alpha, clone_x);
     } else {
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        auto clone_x = as<LinOp>(as<ClonableObject>(x)->clone());
+        auto clone_x = as<LinOp>(as<Clonable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
         dense_x->add_scaled(alpha, clone_x);
