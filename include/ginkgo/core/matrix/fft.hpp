@@ -42,15 +42,16 @@ namespace matrix {
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft : public EnableClonableLinOp<Fft>,
+class Fft : public LinOp,
+            public EnableClonable<Fft>,
             public WritableToMatrixData<std::complex<float>, int32>,
             public WritableToMatrixData<std::complex<float>, int64>,
             public WritableToMatrixData<std::complex<double>, int32>,
             public WritableToMatrixData<std::complex<double>, int64>,
             public Transposable {
 public:
-    using EnableClonableLinOp<Fft>::convert_to;
-    using EnableClonableLinOp<Fft>::move_to;
+    using EnableClonable<Fft>::convert_to;
+    using EnableClonable<Fft>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
@@ -138,15 +139,16 @@ private:
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft2 : public EnableClonableLinOp<Fft2>,
+class Fft2 : public LinOp,
+             public EnableClonable<Fft2>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
 public:
-    using EnableClonableLinOp<Fft2>::convert_to;
-    using EnableClonableLinOp<Fft2>::move_to;
+    using EnableClonable<Fft2>::convert_to;
+    using EnableClonable<Fft2>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
@@ -248,15 +250,16 @@ private:
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft3 : public EnableClonableLinOp<Fft3>,
+class Fft3 : public LinOp,
+             public EnableClonable<Fft3>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
 public:
-    using EnableClonableLinOp<Fft3>::convert_to;
-    using EnableClonableLinOp<Fft3>::move_to;
+    using EnableClonable<Fft3>::convert_to;
+    using EnableClonable<Fft3>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;

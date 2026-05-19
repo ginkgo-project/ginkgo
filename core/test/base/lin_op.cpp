@@ -70,12 +70,13 @@ struct DummyLogger : gko::log::Logger {
 };
 
 
-class DummyLinOp : public gko::EnableClonableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
+                   public gko::EnableClonable<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableClonableLinOp<DummyLinOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
     void access() const { last_access = this->get_executor(); }

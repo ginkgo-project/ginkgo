@@ -78,7 +78,8 @@ TEST(ProfilerHook, LogsAllocateCopyOperation)
 }
 
 
-class DummyLinOp : public gko::EnableClonableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
+                   public gko::EnableClonable<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
@@ -86,7 +87,7 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     DummyLinOp(const Factory* factory, std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableClonableLinOp<DummyLinOp>(factory->get_executor()),
+        : gko::LinOp(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
         this->get_executor()->run(DummyOperation{});
@@ -94,7 +95,7 @@ public:
 
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableClonableLinOp<DummyLinOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
 protected:

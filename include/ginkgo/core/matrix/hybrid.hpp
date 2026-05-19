@@ -40,7 +40,8 @@ class Csr;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Hybrid
-    : public EnableClonableLinOp<Hybrid<ValueType, IndexType>>,
+    : public LinOp,
+      public EnableClonable<Hybrid<ValueType, IndexType>>,
       public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Hybrid<next_precision<ValueType, 2>, IndexType>>,
@@ -61,8 +62,8 @@ class Hybrid
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableClonableLinOp<Hybrid>::convert_to;
-    using EnableClonableLinOp<Hybrid>::move_to;
+    using EnableClonable<Hybrid>::convert_to;
+    using EnableClonable<Hybrid>::move_to;
     using ConvertibleTo<
         Hybrid<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>::move_to;

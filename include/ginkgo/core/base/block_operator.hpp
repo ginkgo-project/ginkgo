@@ -73,7 +73,7 @@ struct value_span {
  * BlockOperator, which will requires copying any block that is associated with
  * a different executor.
  */
-class BlockOperator final : public EnableClonableLinOp<BlockOperator> {
+class BlockOperator final : public LinOp, public EnableClonable<BlockOperator> {
 public:
     /**
      * Get the block dimension of this, i.e. the number of blocks per row and

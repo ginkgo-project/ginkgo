@@ -36,7 +36,8 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Composition : public EnableClonableLinOp<Composition<ValueType>>,
+class Composition : public LinOp,
+                    public EnableClonable<Composition<ValueType>>,
                     public EnableCreateMethod<Composition<ValueType>>,
                     public Transposable {
     friend class EnableCreateMethod<Composition>;
@@ -113,7 +114,7 @@ protected:
      * @param exec  Executor associated to the composition
      */
     explicit Composition(std::shared_ptr<const Executor> exec)
-        : EnableClonableLinOp<Composition>(exec), storage_{exec}
+        : LinOp(exec), storage_{exec}
     {}
 
     /**
@@ -129,7 +130,7 @@ protected:
               typename = std::void_t<
                   typename std::iterator_traits<Iterator>::iterator_category>>
     explicit Composition(Iterator begin, Iterator end)
-        : EnableClonableLinOp<Composition>([&] {
+        : LinOp([&] {
               if (begin == end) {
                   throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
               }

@@ -59,7 +59,7 @@ Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     const Hybrid& other)
 {
     if (&other != this) {
-        EnableClonableLinOp<Hybrid>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         *coo_ = *other.coo_;
         *ell_ = *other.ell_;
@@ -74,7 +74,7 @@ Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     Hybrid&& other)
 {
     if (&other != this) {
-        EnableClonableLinOp<Hybrid>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         auto exec = this->get_executor();
         *coo_ = std::move(*other.coo_);
         *ell_ = std::move(*other.ell_);
@@ -106,7 +106,7 @@ Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
                                      size_type num_stored_elements_per_row,
                                      size_type stride, size_type num_nonzeros,
                                      std::shared_ptr<strategy_type> strategy)
-    : EnableClonableLinOp<Hybrid>(exec, size),
+    : LinOp(exec, size),
       ell_(ell_type::create(exec, size, num_stored_elements_per_row, stride)),
       coo_(coo_type::create(exec, size, num_nonzeros)),
       strategy_(strategy ? std::move(strategy) : std::make_shared<automatic>())

@@ -97,7 +97,8 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Fbcsr
-    : public EnableClonableLinOp<Fbcsr<ValueType, IndexType>>,
+    : public LinOp,
+      public EnableClonable<Fbcsr<ValueType, IndexType>>,
       public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Fbcsr<next_precision<ValueType, 2>, IndexType>>,
@@ -134,13 +135,13 @@ public:
      *  implementation provided by EnableClonableLinOp via the
      *  EnableClonableAssignment mixin.
      */
-    using EnableClonableLinOp<Fbcsr<ValueType, IndexType>>::move_to;
+    using EnableClonable<Fbcsr<ValueType, IndexType>>::move_to;
 
     /**
      * For converting (copying) to another Fbcsr of the same type,
      * use the default implementation provided by EnableClonableLinOp.
      */
-    using EnableClonableLinOp<Fbcsr<ValueType, IndexType>>::convert_to;
+    using EnableClonable<Fbcsr<ValueType, IndexType>>::convert_to;
 
     using ConvertibleTo<
         Fbcsr<next_precision<ValueType>, IndexType>>::convert_to;

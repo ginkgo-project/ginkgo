@@ -14,10 +14,11 @@
 namespace {
 
 
-struct DummyOperator : public gko::EnableClonableLinOp<DummyOperator> {
+struct DummyOperator : public gko::LinOp,
+                       public gko::EnableClonable<DummyOperator> {
     DummyOperator(std::shared_ptr<const gko::Executor> exec,
                   gko::dim<2> size = {})
-        : gko::EnableClonableLinOp<DummyOperator>(exec, size)
+        : gko::LinOp(exec, size)
     {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override {}

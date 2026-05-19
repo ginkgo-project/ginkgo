@@ -37,8 +37,8 @@ template <typename ValueType, typename IndexType>
 ScaledPermutation<ValueType, IndexType>::ScaledPermutation(
     std::shared_ptr<const Executor> exec, array<value_type> scaling_factors,
     array<index_type> permutation_indices)
-    : EnableClonableLinOp<ScaledPermutation>(
-          exec, dim<2>{scaling_factors.get_size(), scaling_factors.get_size()}),
+    : LinOp(exec,
+            dim<2>{scaling_factors.get_size(), scaling_factors.get_size()}),
       scale_{exec, std::move(scaling_factors)},
       permutation_{exec, std::move(permutation_indices)}
 {

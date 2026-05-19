@@ -65,7 +65,8 @@ class Partition;
  */
 template <typename ValueType = double>
 class Vector
-    : public EnableClonableLinOp<Vector<ValueType>>,
+    : public LinOp,
+      public EnableClonable<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
@@ -82,8 +83,8 @@ class Vector
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableClonableLinOp<Vector>::convert_to;
-    using EnableClonableLinOp<Vector>::move_to;
+    using EnableClonable<Vector>::convert_to;
+    using EnableClonable<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
