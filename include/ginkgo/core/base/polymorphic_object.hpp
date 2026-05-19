@@ -78,9 +78,6 @@ private:
  *
  * @see EnablePolymorphicObject if you wish to implement a concrete polymorphic
  *      object and have sensible defaults generated automatically.
- *      EnableAbstractPolymorphicObject if you wish to implement a new abstract
- *      polymorphic object, and have the return types of the methods updated to
- *      your type (instead of having them return PolymorphicObject).
  */
 class PolymorphicObject : public log::EnableLogging<PolymorphicObject>,
                           public ExecutorHolder {
@@ -97,31 +94,6 @@ protected:
     // std::unique_ptr to it. Defining the constructor as protected keeps these
     // access rights when inheriting the constructor.
     using ExecutorHolder::ExecutorHolder;
-};
-
-
-/**
- * This mixin inherits from (a subclass of) PolymorphicObject and provides a
- * base implementation of a new abstract object.
- *
- * It uses method hiding to update the parameter and return types from
- * `PolymorphicObject to `AbstractObject` wherever it makes sense.
- * As opposed to EnablePolymorphicObject, it does not implement
- * PolymorphicObject's virtual methods.
- *
- * @tparam AbstractObject  the abstract class which is being implemented
- *                         [CRTP parameter]
- * @tparam PolymorphicBase  parent of AbstractObject in the polymorphic
- *                          hierarchy, has to be a subclass of polymorphic
- *                          object
- *
- * @see EnablePolymorphicObject for creating a concrete subclass of
- *      PolymorphicObject.
- */
-template <typename AbstractObject, typename PolymorphicBase = PolymorphicObject>
-class EnableAbstractPolymorphicObject : public PolymorphicBase {
-public:
-    using PolymorphicBase::PolymorphicBase;
 };
 
 
@@ -361,11 +333,9 @@ std::shared_ptr<const R> copy_and_convert_to(
  *                          object
  */
 template <typename ConcreteObject, typename PolymorphicBase = PolymorphicObject>
-class EnablePolymorphicObject
-    : public EnableAbstractPolymorphicObject<ConcreteObject, PolymorphicBase> {
+class EnablePolymorphicObject : public PolymorphicBase {
 protected:
-    using EnableAbstractPolymorphicObject<
-        ConcreteObject, PolymorphicBase>::EnableAbstractPolymorphicObject;
+    using PolymorphicBase::PolymorphicBase;
 
 private:
     GKO_ENABLE_SELF(ConcreteObject);

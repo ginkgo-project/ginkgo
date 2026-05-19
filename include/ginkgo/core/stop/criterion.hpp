@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,7 +33,7 @@ namespace stop {
  * Note that depending on the criterion, convergence may not have happened after
  * stopping.
  */
-class Criterion : public EnableAbstractPolymorphicObject<Criterion> {
+class Criterion : public PolymorphicObject {
 public:
     /**
      * The Updater class serves for convenient argument passing to the
@@ -187,7 +187,7 @@ protected:
                           array<stopping_status>* stop_status);
 
     explicit Criterion(std::shared_ptr<const gko::Executor> exec)
-        : EnableAbstractPolymorphicObject<Criterion>(exec)
+        : PolymorphicObject(exec)
     {}
 };
 

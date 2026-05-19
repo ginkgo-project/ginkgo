@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,8 +31,7 @@ namespace reorder {
  * specific reordering to decide what to do with the data that is passed to it.
  */
 template <typename IndexType = int32>
-class ReorderingBase
-    : public EnableAbstractPolymorphicObject<ReorderingBase<IndexType>> {
+class ReorderingBase : public PolymorphicObject {
 public:
     using index_type = IndexType;
 
@@ -43,8 +42,7 @@ public:
 
 protected:
     explicit ReorderingBase(std::shared_ptr<const gko::Executor> exec)
-        : EnableAbstractPolymorphicObject<ReorderingBase>(exec),
-          permutation_array_{exec}
+        : PolymorphicObject(exec), permutation_array_{exec}
     {}
 
     void set_permutation_array(array<index_type>& permutation_array)
