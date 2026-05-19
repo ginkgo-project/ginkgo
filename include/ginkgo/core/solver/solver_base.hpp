@@ -541,7 +541,10 @@ protected:
     }
 
     /**
-     * Returns the workspace node for this solver.
+     * Returns the workspace node for this solver. Never null: a workspace
+     * is constructed eagerly by every SolverBaseLinOp ctor and adopt_workspace
+     * preserves that invariant (it either keeps the eager workspace, swaps in
+     * an owned one, or repoints to a non-owning view).
      */
     Workspace* get_workspace_node() const { return node_; }
 

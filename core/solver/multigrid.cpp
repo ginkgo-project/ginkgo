@@ -96,8 +96,7 @@ void handle_list(
     size_type index, std::shared_ptr<const LinOp>& matrix,
     std::vector<std::shared_ptr<const LinOpFactory>>& smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& smoother, size_type iteration,
-    std::complex<double> relaxation_factor,
-    solver::Workspace* ws_node = nullptr)
+    std::complex<double> relaxation_factor, solver::Workspace* ws_node)
 {
     auto list_size = smoother_list.size();
     auto gen_default_smoother = [&]() -> std::shared_ptr<const LinOp> {
@@ -121,10 +120,7 @@ void handle_list(
                                     .with_max_block_size(1u))
                             .on(exec),
                         iteration, casting<ValueType>(relaxation_factor));
-                    if (ws_node) {
-                        return factory->generate(matrix, ws_node);
-                    }
-                    return factory->generate(matrix);
+                    return factory->generate(matrix, ws_node);
                 });
         }
 #endif
@@ -133,10 +129,7 @@ void handle_list(
                                .with_max_block_size(1u)
                                .on(exec),
                            iteration, casting<ValueType>(relaxation_factor));
-        if (ws_node) {
-            return factory->generate(matrix, ws_node);
-        }
-        return factory->generate(matrix);
+        return factory->generate(matrix, ws_node);
     };
     if (list_size != 0) {
         auto temp_index = list_size == 1 ? 0 : index;
@@ -144,12 +137,8 @@ void handle_list(
         auto item = smoother_list.at(temp_index);
         if (item == nullptr) {
             smoother.emplace_back(nullptr);
-        } else if (ws_node) {
-            auto solver = item->generate(matrix, ws_node);
-            smoother.emplace_back(give(solver));
         } else {
-            auto solver = item->generate(matrix);
-            smoother.emplace_back(give(solver));
+            smoother.emplace_back(give(item->generate(matrix, ws_node)));
         }
     } else {
         smoother.emplace_back(gen_default_smoother());
@@ -928,12 +917,8 @@ void Multigrid::generate()
             break;
         }
 
-        // Create per-level workspace child node for smoother propagation
-        solver::Workspace* level_node = nullptr;
-        if (mg_ws_node) {
-            level_node = mg_ws_node->get_or_create_child("level_" +
-                                                         std::to_string(level));
-        }
+        auto* level_node =
+            mg_ws_node->get_or_create_child("level_" + std::to_string(level));
 
         run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
@@ -947,38 +932,24 @@ void Multigrid::generate()
             [this, level_node](auto mg_level, auto index, auto matrix) {
                 using value_type =
                     typename std::decay_t<decltype(*mg_level)>::value_type;
-                // Create smoother child nodes from the level node
-                solver::Workspace* pre_node = nullptr;
-                solver::Workspace* mid_node = nullptr;
-                solver::Workspace* post_node = nullptr;
-                if (level_node) {
-                    pre_node = level_node->get_or_create_child("pre_smoother");
-                    if (parameters_.mid_case ==
-                        multigrid::mid_smooth_type::standalone) {
-                        mid_node =
-                            level_node->get_or_create_child("mid_smoother");
-                    }
-                    if (!parameters_.post_uses_pre) {
-                        post_node =
-                            level_node->get_or_create_child("post_smoother");
-                    }
-                }
-                handle_list<value_type>(index, matrix, parameters_.pre_smoother,
-                                        pre_smoother_list_,
-                                        parameters_.smoother_iters,
-                                        parameters_.smoother_relax, pre_node);
+                handle_list<value_type>(
+                    index, matrix, parameters_.pre_smoother, pre_smoother_list_,
+                    parameters_.smoother_iters, parameters_.smoother_relax,
+                    level_node->get_or_create_child("pre_smoother"));
                 if (parameters_.mid_case ==
                     multigrid::mid_smooth_type::standalone) {
                     handle_list<value_type>(
                         index, matrix, parameters_.mid_smoother,
                         mid_smoother_list_, parameters_.smoother_iters,
-                        parameters_.smoother_relax, mid_node);
+                        parameters_.smoother_relax,
+                        level_node->get_or_create_child("mid_smoother"));
                 }
                 if (!parameters_.post_uses_pre) {
                     handle_list<value_type>(
                         index, matrix, parameters_.post_smoother,
                         post_smoother_list_, parameters_.smoother_iters,
-                        parameters_.smoother_relax, post_node);
+                        parameters_.smoother_relax,
+                        level_node->get_or_create_child("post_smoother"));
                 }
             },
             index, mg_level->get_fine_op());
@@ -1002,11 +973,7 @@ void Multigrid::generate()
                            this->get_workspace_node());
 
     // generate coarsest solver
-    // Create workspace child node for coarse solver propagation
-    solver::Workspace* coarse_ws_node = nullptr;
-    if (mg_ws_node) {
-        coarse_ws_node = mg_ws_node->get_or_create_child("coarse_solver");
-    }
+    auto* coarse_ws_node = mg_ws_node->get_or_create_child("coarse_solver");
     run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
         float16, std::complex<float16>,
@@ -1060,11 +1027,7 @@ void Multigrid::generate()
                                                         .with_max_block_size(
                                                             1u)))
                                     .on(exec);
-                            if (coarse_ws_node) {
-                                return factory->generate(matrix,
-                                                         coarse_ws_node);
-                            }
-                            return factory->generate(matrix);
+                            return factory->generate(matrix, coarse_ws_node);
                         });
                 }
 #endif
@@ -1087,10 +1050,7 @@ void Multigrid::generate()
                                 preconditioner::Jacobi<value_type>::build()
                                     .with_max_block_size(1u))
                             .on(exec);
-                    if (coarse_ws_node) {
-                        return factory->generate(matrix, coarse_ws_node);
-                    }
-                    return factory->generate(matrix);
+                    return factory->generate(matrix, coarse_ws_node);
                 } else {
                     auto factory =
                         experimental::solver::Direct<value_type, int32>::build()
@@ -1098,10 +1058,7 @@ void Multigrid::generate()
                                 experimental::factorization::Lu<value_type,
                                                                 int32>::build())
                             .on(exec);
-                    if (coarse_ws_node) {
-                        return factory->generate(matrix, coarse_ws_node);
-                    }
-                    return factory->generate(matrix);
+                    return factory->generate(matrix, coarse_ws_node);
                 }
             };
             if (parameters_.coarsest_solver.size() == 0) {
@@ -1113,10 +1070,8 @@ void Multigrid::generate()
                 auto solver = parameters_.coarsest_solver.at(temp_index);
                 if (solver == nullptr) {
                     coarsest_solver_ = gen_default_solver();
-                } else if (coarse_ws_node) {
-                    coarsest_solver_ = solver->generate(matrix, coarse_ws_node);
                 } else {
-                    coarsest_solver_ = solver->generate(matrix);
+                    coarsest_solver_ = solver->generate(matrix, coarse_ws_node);
                 }
             }
         },
