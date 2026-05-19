@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,14 +12,14 @@
 #include "core/test/utils.hpp"
 
 
-struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
+struct DummyOperator : public gko::LinOp {
     explicit DummyOperator(std::shared_ptr<const gko::Executor> exec)
         : DummyOperator(std::move(exec), {3, 3})
     {}
 
     explicit DummyOperator(std::shared_ptr<const gko::Executor> exec,
                            gko::dim<2> size)
-        : gko::EnableLinOp<DummyOperator>(std::move(exec), size)
+        : gko::LinOp(std::move(exec), size)
     {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override {}

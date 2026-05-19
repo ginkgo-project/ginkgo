@@ -66,9 +66,8 @@ namespace preconditioner {
  */
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Schwarz
-    : public EnableLinOp<Schwarz<ValueType, LocalIndexType, GlobalIndexType>> {
-    friend class EnableLinOp<Schwarz>;
+class Schwarz : public LinOp {
+    friend class LinOp;
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:
@@ -170,7 +169,7 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Schwarz(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Schwarz>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     /**
@@ -182,8 +181,8 @@ protected:
      */
     explicit Schwarz(const Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Schwarz>(factory->get_executor(),
-                               gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix}
     {

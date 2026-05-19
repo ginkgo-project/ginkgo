@@ -944,11 +944,10 @@ TEST(MtxReader, WritesComplexBinary)
 
 template <typename ValueType, typename IndexType>
 class DummyLinOp
-    : public gko::EnableLinOp<DummyLinOp<ValueType, IndexType>>,
+    : public gko::LinOp,
       public gko::EnableCreateMethod<DummyLinOp<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType>,
       public gko::WritableToMatrixData<ValueType, IndexType> {
-    friend class gko::LinOp;
     friend class gko::EnableCreateMethod<DummyLinOp>;
 
 public:
@@ -968,7 +967,7 @@ protected:
     {}
 
     explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOp>(exec)
+        : gko::LinOp(exec)
     {}
 
 public:

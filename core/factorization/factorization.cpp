@@ -43,8 +43,7 @@ Factorization<ValueType, IndexType>::unpack() const
         // bring the original clone function here
         auto clone = std::unique_ptr<Factorization>{
             new Factorization{this->get_executor()}};
-        clone->EnableLinOp<Factorization<ValueType, IndexType>>::operator=(
-            *this);
+        clone->LinOp::operator=(*this);
         clone->storage_type_ = storage_type_;
         // composition clone only copy the pointer when they are on the same
         // executor
@@ -213,7 +212,7 @@ Factorization<ValueType, IndexType>&
 Factorization<ValueType, IndexType>::operator=(const Factorization& fact)
 {
     if (this != &fact) {
-        EnableLinOp<Factorization<ValueType, IndexType>>::operator=(fact);
+        LinOp::operator=(fact);
         storage_type_ = fact.storage_type_;
         *factors_ = *fact.factors_;
     }
@@ -226,8 +225,7 @@ Factorization<ValueType, IndexType>&
 Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
 {
     if (this != &fact) {
-        EnableLinOp<Factorization<ValueType, IndexType>>::operator=(
-            std::move(fact));
+        LinOp::operator=(std::move(fact));
         storage_type_ = std::exchange(fact.storage_type_, storage_type::empty);
         factors_ =
             std::exchange(fact.factors_, fact.factors_->create_default());
@@ -242,7 +240,7 @@ Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{exec},
+    : LinOp{exec},
       storage_type_{storage_type::empty},
       factors_{Composition<ValueType>::create(exec)}
 {}
@@ -251,8 +249,7 @@ Factorization<ValueType, IndexType>::Factorization(
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::unique_ptr<Composition<ValueType>> factors, storage_type type)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{factors->get_executor(),
-                                                       factors->get_size()},
+    : LinOp{factors->get_executor(), factors->get_size()},
       storage_type_{type},
       factors_{std::move(factors)}
 {}

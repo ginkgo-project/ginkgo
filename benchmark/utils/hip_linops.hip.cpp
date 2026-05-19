@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -81,12 +81,10 @@ private:
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
 class HipsparseCsr
-    : public gko::EnableLinOp<HipsparseCsr<ValueType, IndexType>,
-                              HipsparseBase>,
+    : public HipsparseBase,
       public gko::EnableCreateMethod<HipsparseCsr<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<HipsparseCsr>;
-    friend class gko::EnablePolymorphicObject<HipsparseCsr, HipsparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -138,7 +136,7 @@ protected:
 
     HipsparseCsr(std::shared_ptr<const gko::Executor> exec,
                  const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<HipsparseCsr, HipsparseBase>(exec, size),
+        : HipsparseBase(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
@@ -156,12 +154,10 @@ private:
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
 class HipsparseCsrmm
-    : public gko::EnableLinOp<HipsparseCsrmm<ValueType, IndexType>,
-                              HipsparseBase>,
+    : public HipsparseBase,
       public gko::EnableCreateMethod<HipsparseCsrmm<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<HipsparseCsrmm>;
-    friend class gko::EnablePolymorphicObject<HipsparseCsrmm, HipsparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -214,7 +210,7 @@ protected:
 
     HipsparseCsrmm(std::shared_ptr<const gko::Executor> exec,
                    const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<HipsparseCsrmm, HipsparseBase>(exec, size),
+        : HipsparseBase(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
@@ -234,14 +230,11 @@ template <typename ValueType = gko::default_precision,
           hipsparseHybPartition_t Partition = HIPSPARSE_HYB_PARTITION_AUTO,
           int Threshold = 0>
 class HipsparseHybrid
-    : public gko::EnableLinOp<
-          HipsparseHybrid<ValueType, IndexType, Partition, Threshold>,
-          HipsparseBase>,
+    : public HipsparseBase,
       public gko::EnableCreateMethod<
           HipsparseHybrid<ValueType, IndexType, Partition, Threshold>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<HipsparseHybrid>;
-    friend class gko::EnablePolymorphicObject<HipsparseHybrid, HipsparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -309,8 +302,7 @@ protected:
 
     HipsparseHybrid(std::shared_ptr<const gko::Executor> exec,
                     const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<HipsparseHybrid, HipsparseBase>(exec, size),
-          trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
+        : HipsparseBase(exec, size), trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {
         auto guard = this->get_gpu_exec()->get_scoped_device_id_guard();
         GKO_ASSERT_NO_HIPSPARSE_ERRORS(hipsparseCreateHybMat(&hyb_));

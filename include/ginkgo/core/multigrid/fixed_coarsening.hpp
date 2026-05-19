@@ -39,10 +39,8 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class FixedCoarsening
-    : public EnableLinOp<FixedCoarsening<ValueType, IndexType>>,
-      public EnableMultigridLevel<ValueType> {
-    friend class EnableLinOp<FixedCoarsening>;
+class FixedCoarsening : public LinOp, public EnableMultigridLevel<ValueType> {
+    friend class LinOp;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -96,13 +94,12 @@ protected:
     }
 
     explicit FixedCoarsening(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<FixedCoarsening>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     explicit FixedCoarsening(const Factory* factory,
                              std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<FixedCoarsening>(factory->get_executor(),
-                                       system_matrix->get_size()),
+        : LinOp(factory->get_executor(), system_matrix->get_size()),
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix}

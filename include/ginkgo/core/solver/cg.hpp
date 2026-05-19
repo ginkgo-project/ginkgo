@@ -45,10 +45,9 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Cg : public EnableLinOp<Cg<ValueType>>,
+class Cg : public LinOp,
            public EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>,
            public Transposable {
-    friend class EnableLinOp<Cg>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -102,14 +101,13 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Cg(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Cg>(std::move(exec))
+    explicit Cg(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Cg(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Cg>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

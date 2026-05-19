@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,12 +10,12 @@
 namespace {
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyLinOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
     void access() const { last_access = this->get_executor(); }

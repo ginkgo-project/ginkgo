@@ -21,12 +21,12 @@
 namespace {
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyLinOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
 protected:
@@ -40,14 +40,13 @@ protected:
 
 template <typename ValueType, bool uses_initial_guess = true>
 class DummyLinOpWithFactory
-    : public gko::EnableLinOp<
-          DummyLinOpWithFactory<ValueType, uses_initial_guess>>,
+    : public gko::LinOp,
       public gko::multigrid::EnableMultigridLevel<ValueType> {
 public:
     using Mtx = gko::matrix::Dense<ValueType>;
 
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
+        : gko::LinOp(exec)
     {}
 
     bool apply_uses_initial_guess() const override
@@ -64,8 +63,7 @@ public:
 
     DummyLinOpWithFactory(const Factory* factory,
                           std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor(),
-                                                  op->get_size()),
+        : gko::LinOp(factory->get_executor(), op->get_size()),
           gko::multigrid::EnableMultigridLevel<ValueType>(op),
           parameters_{factory->get_parameters()},
           op_{op},

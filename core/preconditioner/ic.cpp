@@ -78,7 +78,7 @@ template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>& Ic<ValueType, IndexType>::operator=(const Ic& other)
 {
     if (&other != this) {
-        EnableLinOp<Ic>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         l_solver_ = other.l_solver_;
         lh_solver_ = other.lh_solver_;
@@ -96,7 +96,7 @@ template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>& Ic<ValueType, IndexType>::operator=(Ic&& other)
 {
     if (&other != this) {
-        EnableLinOp<Ic>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         l_solver_ = std::move(other.l_solver_);
         lh_solver_ = std::move(other.lh_solver_);
@@ -135,7 +135,7 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             l_solver_->apply(dense_b, cache_.intermediate);
             if (lh_solver_->apply_uses_initial_guess()) {
                 dense_x->copy_from(
-                        as<ClonableObject>(cache_.intermediate.get()));
+                    as<ClonableObject>(cache_.intermediate.get()));
             }
             lh_solver_->apply(cache_.intermediate, dense_x);
         },
@@ -161,16 +161,14 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>::Ic(std::shared_ptr<const Executor> exec)
-
-    : EnableLinOp<Ic>(std::move(exec))
+    : LinOp(std::move(exec))
 {}
 
 
 template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>::Ic(const Factory* factory,
                              std::shared_ptr<const LinOp> lin_op)
-
-    : EnableLinOp<Ic>(factory->get_executor(), lin_op->get_size()),
+    : LinOp(factory->get_executor(), lin_op->get_size()),
       parameters_{factory->get_parameters()}
 {
     auto comp =
@@ -203,7 +201,7 @@ Ic<ValueType, IndexType>::Ic(const Factory* factory,
 
     // If no factories are provided, generate default ones
     if (!parameters_.l_solver_factory) {
-        // when l_solver_type is LinOp, use LowerTrs as the default one
+        // when not providing l_solver_factory, use LowerTrs as the default one
         l_solver_ = solver::LowerTrs<value_type, index_type>::build()
                         .on(exec)
                         ->generate(l_factor);
@@ -233,7 +231,7 @@ void Ic<ValueType, IndexType>::set_cache_to(const LinOp* b) const
     }
     // Use b as the initial guess for the first triangular solve
     as<ClonableObject>(cache_.intermediate.get())
-            ->copy_from(as<ClonableObject>(b));
+        ->copy_from(as<ClonableObject>(b));
 }
 
 
