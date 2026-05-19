@@ -120,7 +120,8 @@ void handle_list(
                                     .with_max_block_size(1u))
                             .on(exec),
                         iteration, casting<ValueType>(relaxation_factor));
-                    return factory->generate(matrix, ws_node);
+                    return LinOpFactory::generate_with_view(factory.get(),
+                                                            matrix, ws_node);
                 });
         }
 #endif
@@ -129,7 +130,7 @@ void handle_list(
                                .with_max_block_size(1u)
                                .on(exec),
                            iteration, casting<ValueType>(relaxation_factor));
-        return factory->generate(matrix, ws_node);
+        return LinOpFactory::generate_with_view(factory.get(), matrix, ws_node);
     };
     if (list_size != 0) {
         auto temp_index = list_size == 1 ? 0 : index;
@@ -138,7 +139,8 @@ void handle_list(
         if (item == nullptr) {
             smoother.emplace_back(nullptr);
         } else {
-            smoother.emplace_back(give(item->generate(matrix, ws_node)));
+            smoother.emplace_back(give(
+                LinOpFactory::generate_with_view(item.get(), matrix, ws_node)));
         }
     } else {
         smoother.emplace_back(gen_default_smoother());
@@ -1027,7 +1029,8 @@ void Multigrid::generate()
                                                         .with_max_block_size(
                                                             1u)))
                                     .on(exec);
-                            return factory->generate(matrix, coarse_ws_node);
+                            return LinOpFactory::generate_with_view(
+                                factory.get(), matrix, coarse_ws_node);
                         });
                 }
 #endif
@@ -1050,7 +1053,8 @@ void Multigrid::generate()
                                 preconditioner::Jacobi<value_type>::build()
                                     .with_max_block_size(1u))
                             .on(exec);
-                    return factory->generate(matrix, coarse_ws_node);
+                    return LinOpFactory::generate_with_view(
+                        factory.get(), matrix, coarse_ws_node);
                 } else {
                     auto factory =
                         experimental::solver::Direct<value_type, int32>::build()
@@ -1058,7 +1062,8 @@ void Multigrid::generate()
                                 experimental::factorization::Lu<value_type,
                                                                 int32>::build())
                             .on(exec);
-                    return factory->generate(matrix, coarse_ws_node);
+                    return LinOpFactory::generate_with_view(
+                        factory.get(), matrix, coarse_ws_node);
                 }
             };
             if (parameters_.coarsest_solver.size() == 0) {
@@ -1071,7 +1076,8 @@ void Multigrid::generate()
                 if (solver == nullptr) {
                     coarsest_solver_ = gen_default_solver();
                 } else {
-                    coarsest_solver_ = solver->generate(matrix, coarse_ws_node);
+                    coarsest_solver_ = LinOpFactory::generate_with_view(
+                        solver.get(), matrix, coarse_ws_node);
                 }
             }
         },

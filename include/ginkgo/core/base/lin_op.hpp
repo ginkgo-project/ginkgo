@@ -401,12 +401,35 @@ public:
 
     std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const;
 
+    /**
+     * Generate a solver that owns the given workspace. After this call returns,
+     * the workspace lives inside the returned solver — any raw Workspace*
+     * obtained before the move is dangling once the solver is destroyed. Use
+     * solver::invalidate_and_extract_workspace() to recover it safely.
+     */
     std::unique_ptr<LinOp> generate(
         std::shared_ptr<const LinOp> input,
         std::unique_ptr<solver::Workspace> ws) const;
 
-    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input,
-                                    solver::Workspace* workspace_view) const;
+    // Deleted: external code must transfer ownership of the workspace via the
+    // unique_ptr overload above. The non-owning view path is reserved for
+    // internal solver composition (see generate_with_view below). Without this
+    // delete, `factory->generate(matrix, ws.get())` would silently bind to the
+    // AbstractFactory variadic template fallback and produce a solver holding
+    // a dangling Workspace* once the caller's unique_ptr drops.
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp>,
+                                    solver::Workspace*) const = delete;
+
+    /**
+     * Internal: generate a solver that borrows a non-owning Workspace view.
+     * Called by composite solvers (multigrid, IR, preconditioned Krylov) to
+     * wire inner solvers into a child node of the outer solver's workspace.
+     * External callers should not use this — the borrowed view's lifetime is
+     * the responsibility of the outer solver, not the caller.
+     */
+    static std::unique_ptr<LinOp> generate_with_view(
+        const LinOpFactory* factory, std::shared_ptr<const LinOp> input,
+        solver::Workspace* view);
 };
 
 

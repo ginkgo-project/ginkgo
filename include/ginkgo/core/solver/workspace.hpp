@@ -159,8 +159,18 @@ public:
 
     std::shared_ptr<const Executor> get_executor() const { return exec_; }
 
+    /**
+     * Rebinds the workspace to a different executor. Rejected when slots are
+     * already allocated on a different executor — swapping the pointer would
+     * leave the existing operator/array data stranded on the previous device.
+     */
     void set_executor(std::shared_ptr<const Executor> exec)
     {
+        GKO_THROW_IF_INVALID(
+            exec_ == exec || this->empty(),
+            "workspace::set_executor rejected: workspace already holds "
+            "allocations on a different executor. Clear() the workspace or "
+            "construct a fresh one for the new executor.");
         exec_ = std::move(exec);
     }
 
@@ -168,6 +178,21 @@ public:
     {
         operators_.resize(num_operators);
         arrays_.resize(num_arrays);
+    }
+
+    bool empty() const
+    {
+        for (const auto& op : operators_) {
+            if (op) {
+                return false;
+            }
+        }
+        for (const auto& arr : arrays_) {
+            if (!arr.empty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     void clear()
