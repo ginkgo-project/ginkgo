@@ -264,7 +264,7 @@ TEST_F(WorkspaceIntegration, MultipleExtractRegenerateCycles)
 }
 
 
-TEST_F(WorkspaceIntegration, WorkspacePropagesToJacobiPreconditioner)
+TEST_F(WorkspaceIntegration, WorkspacePropagatesToJacobiPreconditioner)
 {
     auto ws = Workspace::create(exec);
     auto factory =
