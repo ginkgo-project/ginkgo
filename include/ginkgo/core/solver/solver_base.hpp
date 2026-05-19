@@ -911,7 +911,7 @@ protected:
         } else if (params.preconditioner) {
             auto* child = this->get_workspace_node()->get_or_create_child(
                 "preconditioner");
-            this->set_preconditioner(LinOpFactory::generate_with_view(
+            this->set_preconditioner(detail::generate_with_view(
                 params.preconditioner.get(), this->get_system_matrix(), child));
         } else {
             this->set_preconditioner(matrix::Identity<ValueType>::create(
