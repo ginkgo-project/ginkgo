@@ -28,7 +28,8 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Combination : public EnableClonableLinOp<Combination<ValueType>>,
+class Combination : public LinOp,
+                    public EnableClonable<Combination<ValueType>>,
                     public EnableCreateMethod<Combination<ValueType>>,
                     public Transposable {
     friend class EnableCreateMethod<Combination>;
@@ -117,9 +118,7 @@ protected:
      *
      * @param exec  Executor associated to the linear combination
      */
-    explicit Combination(std::shared_ptr<const Executor> exec)
-        : EnableClonableLinOp<Combination>(exec)
-    {}
+    explicit Combination(std::shared_ptr<const Executor> exec) : LinOp(exec) {}
 
     /**
      * Creates a linear combination of operators using the specified list of
@@ -145,7 +144,7 @@ protected:
                          CoefficientIterator coefficient_end,
                          OperatorIterator operator_begin,
                          OperatorIterator operator_end)
-        : EnableClonableLinOp<Combination>([&] {
+        : LinOp([&] {
               if (operator_begin == operator_end) {
                   throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
               }

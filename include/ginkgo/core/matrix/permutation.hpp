@@ -108,7 +108,8 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  * @ingroup LinOp
  */
 template <typename IndexType = int32>
-class Permutation : public EnableClonableLinOp<Permutation<IndexType>>,
+class Permutation : public LinOp,
+                    public EnableClonable<Permutation<IndexType>>,
                     public WritableToMatrixData<default_precision, IndexType> {
 public:
     // value_type is only available to enable the usage of gko::write

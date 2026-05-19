@@ -60,7 +60,7 @@ Fbcsr<ValueType, IndexType>& Fbcsr<ValueType, IndexType>::operator=(
     const Fbcsr& other)
 {
     if (&other != this) {
-        EnableClonableLinOp<Fbcsr>::operator=(other);
+        LinOp::operator=(other);
         // block size is immutable except for assignment
         bs_ = other.bs_;
         values_ = other.values_;
@@ -76,7 +76,7 @@ Fbcsr<ValueType, IndexType>& Fbcsr<ValueType, IndexType>::operator=(
     Fbcsr&& other)
 {
     if (&other != this) {
-        EnableClonableLinOp<Fbcsr>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         // block size is immutable except for assignment
         bs_ = other.bs_;
         values_ = std::move(other.values_);
@@ -493,7 +493,7 @@ template <typename ValueType, typename IndexType>
 Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
                                    const dim<2>& size, size_type num_nonzeros,
                                    int block_size)
-    : EnableClonableLinOp<Fbcsr>(exec, size),
+    : LinOp(exec, size),
       bs_{block_size},
       values_(exec, num_nonzeros),
       col_idxs_(exec,
@@ -511,7 +511,7 @@ Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
                                    array<value_type> values,
                                    array<index_type> col_idxs,
                                    array<index_type> row_ptrs)
-    : EnableClonableLinOp<Fbcsr>(exec, size),
+    : LinOp(exec, size),
       bs_{block_size},
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)},

@@ -49,7 +49,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const RowGatherer<LocalIndexType>> row_gather_template,
     ptr_param<const LinOp> diag_matrix_template,
     ptr_param<const LinOp> off_diag_matrix_template)
-    : EnableClonableLinOp<Matrix>{exec},
+    : LinOp{exec},
       DistributedBase{row_gather_template->get_communicator()},
       row_gatherer_{clone(exec, row_gather_template)},
       imap_{exec},
@@ -69,7 +69,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
     std::shared_ptr<LinOp> diag_linop)
-    : EnableClonableLinOp<Matrix>{exec},
+    : LinOp{exec},
       DistributedBase{comm},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           exec, mpi::detail::create_default_collective_communicator(comm))},
@@ -87,7 +87,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     index_map<LocalIndexType, GlobalIndexType> imap,
     std::shared_ptr<LinOp> diag_linop, std::shared_ptr<LinOp> off_diag_linop)
-    : EnableClonableLinOp<Matrix>{exec},
+    : LinOp{exec},
       DistributedBase{comm},
       row_gatherer_(RowGatherer<LocalIndexType>::create(
           exec,
@@ -684,8 +684,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
-    : EnableClonableLinOp<Matrix<value_type, local_index_type,
-                                 global_index_type>>{other.get_executor()},
+    : LinOp{other.get_executor()},
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
@@ -699,8 +698,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
-    : EnableClonableLinOp<Matrix<value_type, local_index_type,
-                                 global_index_type>>{other.get_executor()},
+    : LinOp{other.get_executor()},
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},

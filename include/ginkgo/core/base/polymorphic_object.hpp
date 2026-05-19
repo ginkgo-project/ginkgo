@@ -506,6 +506,9 @@ protected:
 };
 
 
+template <typename T>
+using EnableClonable = EnableClonableAssignment<T>;
+
 /**
  * This mixin implements a static `create()` method on `ConcreteType` that
  * dynamically allocates the memory, uses the passed-in arguments to construct

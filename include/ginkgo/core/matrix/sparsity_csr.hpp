@@ -48,21 +48,21 @@ class Fbcsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class SparsityCsr
-    : public EnableClonableLinOp<SparsityCsr<ValueType, IndexType>>,
-      public ConvertibleTo<Csr<ValueType, IndexType>>,
-      public ConvertibleTo<Dense<ValueType>>,
-      public ReadableFromMatrixData<ValueType, IndexType>,
-      public WritableToMatrixData<ValueType, IndexType>,
-      public Transposable {
+class SparsityCsr : public LinOp,
+                    public EnableClonable<SparsityCsr<ValueType, IndexType>>,
+                    public ConvertibleTo<Csr<ValueType, IndexType>>,
+                    public ConvertibleTo<Dense<ValueType>>,
+                    public ReadableFromMatrixData<ValueType, IndexType>,
+                    public WritableToMatrixData<ValueType, IndexType>,
+                    public Transposable {
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Fbcsr<ValueType, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableClonableLinOp<SparsityCsr>::convert_to;
-    using EnableClonableLinOp<SparsityCsr>::move_to;
+    using EnableClonable<SparsityCsr>::convert_to;
+    using EnableClonable<SparsityCsr>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;

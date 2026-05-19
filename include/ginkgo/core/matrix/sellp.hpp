@@ -42,7 +42,8 @@ class Csr;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp
-    : public EnableClonableLinOp<Sellp<ValueType, IndexType>>,
+    : public LinOp,
+      public EnableClonable<Sellp<ValueType, IndexType>>,
       public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Sellp<next_precision<ValueType, 2>, IndexType>>,
@@ -63,8 +64,8 @@ class Sellp
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableClonableLinOp<Sellp>::convert_to;
-    using EnableClonableLinOp<Sellp>::move_to;
+    using EnableClonable<Sellp>::convert_to;
+    using EnableClonable<Sellp>::move_to;
     using ConvertibleTo<
         Sellp<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>::move_to;

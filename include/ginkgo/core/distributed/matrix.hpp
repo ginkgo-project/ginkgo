@@ -260,8 +260,8 @@ class Vector;
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Matrix
-    : public EnableClonableLinOp<
-          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+    : public LinOp,
+      public EnableClonable<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
@@ -287,8 +287,8 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableClonableLinOp<Matrix>::convert_to;
-    using EnableClonableLinOp<Matrix>::move_to;
+    using EnableClonable<Matrix>::convert_to;
+    using EnableClonable<Matrix>::move_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,

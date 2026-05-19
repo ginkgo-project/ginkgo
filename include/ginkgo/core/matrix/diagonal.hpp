@@ -38,7 +38,8 @@ class Dense;
  */
 template <typename ValueType = default_precision>
 class Diagonal
-    : public EnableClonableLinOp<Diagonal<ValueType>>,
+    : public LinOp,
+      public EnableClonable<Diagonal<ValueType>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
@@ -60,8 +61,8 @@ class Diagonal
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableClonableLinOp<Diagonal>::convert_to;
-    using EnableClonableLinOp<Diagonal>::move_to;
+    using EnableClonable<Diagonal>::convert_to;
+    using EnableClonable<Diagonal>::move_to;
     using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
     using ConvertibleTo<Csr<ValueType, int32>>::move_to;
     using ConvertibleTo<Csr<ValueType, int64>>::convert_to;

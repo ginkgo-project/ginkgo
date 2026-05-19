@@ -63,7 +63,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
-    : EnableClonableLinOp<Vector>{exec, global_size},
+    : LinOp{exec, global_size},
       DistributedBase{comm},
       local_{exec, local_size, stride}
 {
@@ -74,9 +74,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           std::unique_ptr<local_vector_type> local_vector)
-    : EnableClonableLinOp<Vector>{exec, global_size},
-      DistributedBase{comm},
-      local_{exec}
+    : LinOp{exec, global_size}, DistributedBase{comm}, local_{exec}
 {
     local_vector->move_to(&local_);
 }
@@ -86,7 +84,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm,
                           std::unique_ptr<local_vector_type> local_vector)
-    : EnableClonableLinOp<Vector>{exec, {}}, DistributedBase{comm}, local_{exec}
+    : LinOp{exec, {}}, DistributedBase{comm}, local_{exec}
 {
     this->set_size(compute_global_size(exec, comm, local_vector->get_size()));
     local_vector->move_to(&local_);
