@@ -52,30 +52,6 @@ TEST_F(WorkspaceTest, GetChildReturnsNullForMissing)
 }
 
 
-TEST_F(WorkspaceTest, NumRhsDefaultsToZero)
-{
-    gko::solver::Workspace node{exec};
-    ASSERT_EQ(node.get_num_rhs(), gko::size_type{0});
-}
-
-
-TEST_F(WorkspaceTest, SetNumRhsOnNode)
-{
-    gko::solver::Workspace node{exec};
-    node.set_num_rhs(4);
-    ASSERT_EQ(node.get_num_rhs(), gko::size_type{4});
-}
-
-
-TEST_F(WorkspaceTest, NewChildInheritsNumRhs)
-{
-    gko::solver::Workspace node{exec};
-    node.set_num_rhs(4);
-    auto child = node.get_or_create_child("child");
-    ASSERT_EQ(child->get_num_rhs(), gko::size_type{4});
-}
-
-
 TEST_F(WorkspaceTest, NewChildInheritsExecutor)
 {
     gko::solver::Workspace node{exec};
@@ -105,18 +81,11 @@ TEST_F(WorkspaceTest, DescribeOutputContainsTag)
 }
 
 
-TEST_F(WorkspaceTest, CreateReturnsOwningWithDefaultNumRhs)
+TEST_F(WorkspaceTest, CreateReturnsOwning)
 {
     auto ws = gko::solver::Workspace::create(exec);
     ASSERT_NE(ws, nullptr);
-    ASSERT_EQ(ws->get_num_rhs(), gko::size_type{1});
-}
-
-
-TEST_F(WorkspaceTest, CreateWithCustomNumRhs)
-{
-    auto ws = gko::solver::Workspace::create(exec, 4);
-    ASSERT_EQ(ws->get_num_rhs(), gko::size_type{4});
+    ASSERT_EQ(ws->get_local_storage().get_executor(), exec);
 }
 
 

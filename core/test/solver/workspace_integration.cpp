@@ -264,21 +264,6 @@ TEST_F(WorkspaceIntegration, MultipleExtractRegenerateCycles)
 }
 
 
-TEST_F(WorkspaceIntegration, WorkspaceWithCustomNumRhs)
-{
-    auto ws = Workspace::create(exec, 4);
-    ASSERT_EQ(ws->get_num_rhs(), gko::size_type{4});
-
-    auto factory =
-        Cg::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
-            .on(exec);
-    auto solver = factory->generate(matrix, std::move(ws));
-
-    ASSERT_NE(solver, nullptr);
-}
-
-
 TEST_F(WorkspaceIntegration, WorkspacePropagesToJacobiPreconditioner)
 {
     auto ws = Workspace::create(exec);
