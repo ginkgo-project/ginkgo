@@ -70,21 +70,19 @@ std::unique_ptr<LinOp> LinOpFactory::generate(
     return generated;
 }
 
-std::unique_ptr<LinOp> LinOpFactory::generate(
-    std::shared_ptr<const LinOp> input, solver::Workspace* workspace_view) const
+std::unique_ptr<LinOp> LinOpFactory::generate_with_view(
+    const LinOpFactory* factory, std::shared_ptr<const LinOp> input,
+    solver::Workspace* view)
 {
-    this->log<log::Logger::linop_factory_generate_started>(this, input.get());
-    const auto exec = this->get_executor();
-    std::unique_ptr<LinOp> generated;
-    if (input->get_executor() == exec) {
-        generated = this->AbstractFactory::generate(
-            LinOpGenerateComponents{input, workspace_view});
-    } else {
-        generated = this->AbstractFactory::generate(
-            LinOpGenerateComponents{gko::clone(exec, input), workspace_view});
-    }
-    this->log<log::Logger::linop_factory_generate_completed>(this, input.get(),
-                                                             generated.get());
+    factory->log<log::Logger::linop_factory_generate_started>(factory,
+                                                              input.get());
+    const auto exec = factory->get_executor();
+    auto on_exec =
+        (input->get_executor() == exec) ? input : gko::clone(exec, input);
+    auto generated = factory->AbstractFactory::generate(
+        LinOpGenerateComponents{std::move(on_exec), view});
+    factory->log<log::Logger::linop_factory_generate_completed>(
+        factory, input.get(), generated.get());
     return generated;
 }
 
