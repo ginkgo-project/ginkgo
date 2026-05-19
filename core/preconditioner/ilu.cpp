@@ -165,14 +165,14 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* b,
                 l_solver_->apply(dense_b, cache_.intermediate);
                 if (u_solver_->apply_uses_initial_guess()) {
                     dense_x->copy_from(
-                        as<ClonableObject>(cache_.intermediate.get()));
+                        as<Clonable>(cache_.intermediate.get()));
                 }
                 u_solver_->apply(cache_.intermediate, dense_x);
             } else {
                 u_solver_->apply(dense_b, cache_.intermediate);
                 if (l_solver_->apply_uses_initial_guess()) {
                     dense_x->copy_from(
-                        as<ClonableObject>(cache_.intermediate.get()));
+                        as<Clonable>(cache_.intermediate.get()));
                 }
                 l_solver_->apply(cache_.intermediate, dense_x);
             }
@@ -273,8 +273,8 @@ void Ilu<ValueType, ReverseApply, IndexType>::set_cache_to(const LinOp* b) const
             matrix::Dense<value_type>::create(this->get_executor());
     }
     // Use b as the initial guess for the first triangular solve
-    as<ClonableObject>(cache_.intermediate.get())
-        ->copy_from(as<ClonableObject>(b));
+    as<Clonable>(cache_.intermediate.get())
+        ->copy_from(as<Clonable>(b));
 }
 
 

@@ -2324,7 +2324,7 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_permute(
         // compute A * P^T = (P * A^T)^T
         auto tmp = gko::share(result->transpose());
         auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(
-            gko::as<gko::ClonableObject>(tmp)->clone());
+            gko::as<gko::Clonable>(tmp)->clone());
         permutation_dense->apply(tmp, tmp2);
         tmp2->transpose(result);
     }
@@ -2358,7 +2358,7 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_permute(
     row_permutation_dense->apply(input, result);
     auto tmp = gko::share(result->transpose());
     auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(
-        gko::as<gko::ClonableObject>(tmp)->clone());
+        gko::as<gko::Clonable>(tmp)->clone());
     col_permutation_dense->apply(tmp, tmp2);
     tmp2->transpose(result);
     return result;
@@ -3292,7 +3292,7 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_scaled_permute(
         // compute A * P^T = (P * A^T)^T
         auto tmp = share(result->transpose());
         auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(
-            gko::as<gko::ClonableObject>(tmp)->clone());
+            gko::as<gko::Clonable>(tmp)->clone());
         permutation_dense->apply(tmp, tmp2);
         tmp2->transpose(result);
     }
@@ -3327,7 +3327,7 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_scaled_permute(
     row_permutation_dense->apply(input, result);
     auto tmp = gko::share(result->transpose());
     auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(
-        gko::as<gko::ClonableObject>(tmp)->clone());
+        gko::as<gko::Clonable>(tmp)->clone());
     col_permutation_dense->apply(tmp, tmp2);
     tmp2->transpose(result);
     return result;

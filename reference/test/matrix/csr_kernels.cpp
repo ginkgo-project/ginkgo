@@ -1701,8 +1701,7 @@ std::unique_ptr<gko::matrix::Csr<ValueType, IndexType>> ref_permute(
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         // compute A * P^T = (P * A^T)^T
         auto tmp = result->transpose();
-        auto tmp2 =
-            gko::as<Csr>(gko::as<gko::ClonableObject>(tmp.get())->clone());
+        auto tmp2 = gko::as<Csr>(gko::as<gko::Clonable>(tmp.get())->clone());
         permutation_csr->apply(tmp, tmp2);
         result = gko::as<Csr>(tmp2->transpose());
     }
@@ -1724,7 +1723,7 @@ std::unique_ptr<gko::matrix::Csr<ValueType, IndexType>> ref_permute(
         csr_from_permutation<ValueType>(col_permutation, invert);
     row_permutation_csr->apply(input, result);
     auto tmp = result->transpose();
-    auto tmp2 = gko::as<Csr>(gko::as<gko::ClonableObject>(tmp.get())->clone());
+    auto tmp2 = gko::as<Csr>(gko::as<gko::Clonable>(tmp.get())->clone());
     col_permutation_csr->apply(tmp, tmp2);
     return gko::as<Csr>(tmp2->transpose());
 }

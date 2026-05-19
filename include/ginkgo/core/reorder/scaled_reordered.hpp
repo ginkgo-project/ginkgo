@@ -176,9 +176,9 @@ protected:
             cache_.intermediate =
                 matrix::Dense<value_type>::create(this->get_executor(), size);
         }
-        cache_.inner_b->copy_from(as<ClonableObject>(b));
+        cache_.inner_b->copy_from(as<Clonable>(b));
         if (inner_operator_->apply_uses_initial_guess()) {
-            cache_.inner_x->copy_from(as<ClonableObject>(x));
+            cache_.inner_x->copy_from(as<Clonable>(x));
         }
     }
 

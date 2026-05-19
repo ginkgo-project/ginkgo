@@ -17,7 +17,7 @@ namespace matrix {
 template <typename ValueType>
 void Identity<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    as<ClonableObject>(x)->copy_from(as<ClonableObject>(b));
+    as<Clonable>(x)->copy_from(as<Clonable>(b));
 }
 
 

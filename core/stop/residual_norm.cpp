@@ -112,8 +112,7 @@ ResidualNormBase<ValueType>::ResidualNormBase(
             } else {
                 this->starting_tau_ =
                     NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-                auto b_clone =
-                    share(as<LinOp>(as<ClonableObject>(args.b)->clone()));
+                auto b_clone = share(as<LinOp>(as<Clonable>(args.b)->clone()));
                 args.system_matrix->apply(neg_one_, args.x, one_, b_clone);
                 norm_dispatch<ValueType>(
                     [&](auto dense_r) {

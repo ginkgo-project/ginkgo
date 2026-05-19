@@ -497,10 +497,9 @@ struct test_pair {
 
     // use template here such that we can use SFINAE here
     // it only allows the constructor calling clone on ClonableObject
-    template <
-        typename T = ObjectType,
-        std::enable_if_t<std::is_base_of_v<gko::ClonableObject, ObjectType> &&
-                         std::is_same_v<T, ObjectType>>* = nullptr>
+    template <typename T = ObjectType,
+              std::enable_if_t<std::is_base_of_v<gko::Clonable, ObjectType> &&
+                               std::is_same_v<T, ObjectType>>* = nullptr>
     test_pair(std::unique_ptr<T> ref_obj,
               std::shared_ptr<const gko::Executor> exec)
         : ref{std::move(ref_obj)}, dev{gko::clone(exec, ref)}
