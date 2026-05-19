@@ -132,7 +132,7 @@ target_sources(
         solver/nullspace.cpp
         solver/pipe_cg.cpp
         solver/upper_trs.cpp
-        solver/workspace_tree.cpp
+        solver/workspace.cpp
         stop/combined.cpp
         stop/criterion.cpp
         stop/iteration.cpp

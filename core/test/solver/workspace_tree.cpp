@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/solver/workspace_tree.hpp>
+#include <ginkgo/core/solver/workspace.hpp>
 
 
 namespace {
@@ -56,7 +56,7 @@ TEST_F(WorkspaceTest, NewChildInheritsExecutor)
 {
     gko::solver::Workspace node{exec};
     auto child = node.get_or_create_child("child");
-    ASSERT_EQ(child->get_local_storage().get_executor(), exec);
+    ASSERT_EQ(child->get_executor(), exec);
 }
 
 
@@ -85,7 +85,7 @@ TEST_F(WorkspaceTest, CreateReturnsOwning)
 {
     auto ws = gko::solver::Workspace::create(exec);
     ASSERT_NE(ws, nullptr);
-    ASSERT_EQ(ws->get_local_storage().get_executor(), exec);
+    ASSERT_EQ(ws->get_executor(), exec);
 }
 
 

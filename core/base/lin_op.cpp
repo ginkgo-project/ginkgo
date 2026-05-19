@@ -7,7 +7,7 @@
 #include <memory>
 #include <utility>
 
-#include <ginkgo/core/solver/workspace_tree.hpp>
+#include <ginkgo/core/solver/workspace.hpp>
 
 
 namespace gko {
