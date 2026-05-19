@@ -403,10 +403,8 @@ struct LinOpGenerateComponents {
     bool has_owned_workspace() const { return owned_workspace_ != nullptr; }
     bool has_view_workspace() const { return view_workspace_ != nullptr; }
 
-    std::unique_ptr<solver::Workspace> take_owned_workspace()
-    {
-        return std::move(owned_workspace_);
-    }
+    std::unique_ptr<solver::Workspace> take_owned_workspace();
+
     solver::Workspace* get_view_workspace() const { return view_workspace_; }
 
 private:
