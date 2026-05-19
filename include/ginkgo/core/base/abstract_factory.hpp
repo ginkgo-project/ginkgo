@@ -120,7 +120,7 @@ protected:
 template <typename ConcreteFactory, typename ProductType,
           typename ParametersType, typename PolymorphicBase>
 class EnableDefaultFactory : public PolymorphicBase,
-                             public EnableClonableAssignment<ConcreteFactory> {
+                             public EnableClonable<ConcreteFactory> {
 public:
     using product_type = ProductType;
     using parameters_type = ParametersType;

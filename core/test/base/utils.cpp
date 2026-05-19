@@ -381,7 +381,7 @@ TEST(As, CanCrossCastConstSharedPtr)
 
 
 struct DummyObject : gko::PolymorphicObject,
-                     gko::EnableClonableAssignment<DummyObject>,
+                     gko::EnableClonable<DummyObject>,
                      gko::EnableCreateMethod<DummyObject> {
     DummyObject(std::shared_ptr<const gko::Executor> exec, int value = {})
         : PolymorphicObject(exec), data{value}

@@ -88,10 +88,9 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
  * @tparam LocalIndexType  the index type for the stored indices
  */
 template <typename LocalIndexType = int32>
-class RowGatherer final
-    : public PolymorphicObject,
-      public EnableClonableAssignment<RowGatherer<LocalIndexType>>,
-      public DistributedBase {
+class RowGatherer final : public PolymorphicObject,
+                          public EnableClonable<RowGatherer<LocalIndexType>>,
+                          public DistributedBase {
     template <typename ValueT, typename LocalIndexT, typename GlobalIndexT>
     friend class Matrix;
     // for test purpose

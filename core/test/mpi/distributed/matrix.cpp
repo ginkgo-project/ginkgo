@@ -28,7 +28,7 @@ using comm_index_type = gko::experimental::distributed::comm_index_type;
 template <typename ValueType, typename IndexType>
 class CustomLinOp
     : public gko::LinOp,
-      public gko::EnableClonableAssignment<CustomLinOp<ValueType, IndexType>>,
+      public gko::EnableClonable<CustomLinOp<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType>,
       public gko::EnableCreateMethod<CustomLinOp<ValueType, IndexType>> {
 public:

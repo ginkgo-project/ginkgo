@@ -51,7 +51,7 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell final
     : public EnableBatchLinOp<Ell<ValueType, IndexType>>,
-      public EnableClonableAssignment<Ell<ValueType, IndexType>>,
+      public EnableClonable<Ell<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Ell<next_precision<ValueType, 2>, IndexType>>,
 #endif
@@ -66,8 +66,8 @@ class Ell final
                   "IndexType must be a 32 bit integer");
 
 public:
-    using EnableClonableAssignment<Ell>::convert_to;
-    using EnableClonableAssignment<Ell>::move_to;
+    using EnableClonable<Ell>::convert_to;
+    using EnableClonable<Ell>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
