@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -123,7 +123,7 @@ template <typename ConcreteFactory, typename ProductType,
           typename ParametersType, typename PolymorphicBase>
 class EnableDefaultFactory
     : public EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteFactory> {
+      public EnableClonableAssignment<ConcreteFactory> {
 public:
     friend class EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>;
 

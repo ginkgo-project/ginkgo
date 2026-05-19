@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -47,8 +47,7 @@ template <typename ValueType, typename IndexType>
 class NestedDissection
     : public EnablePolymorphicObject<NestedDissection<ValueType, IndexType>,
                                      LinOpFactory>,
-      public EnablePolymorphicAssignment<
-          NestedDissection<ValueType, IndexType>> {
+      public EnableClonableAssignment<NestedDissection<ValueType, IndexType>> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

@@ -254,7 +254,7 @@ struct residual_norm_factory_parameters
 
 class ResidualNormFactory
     : public EnablePolymorphicObject<ResidualNormFactory, CriterionFactory>,
-      public EnablePolymorphicAssignment<ResidualNormFactory> {
+      public EnableClonableAssignment<ResidualNormFactory> {
     friend class EnablePolymorphicObject<ResidualNormFactory, CriterionFactory>;
     friend class enable_parameters_type<residual_norm_factory_parameters,
                                         ResidualNormFactory>;

@@ -133,7 +133,7 @@ public:
     /**
      * For moving to another Fbcsr of the same type, use the default
      *  implementation provided by EnableClonableLinOp via the
-     *  EnablePolymorphicAssignment mixin.
+     *  EnableClonableAssignment mixin.
      */
     using EnableClonableLinOp<Fbcsr<ValueType, IndexType>>::move_to;
 
