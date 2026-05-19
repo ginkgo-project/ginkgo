@@ -226,8 +226,9 @@ UniformCoarsening<ValueType, IndexType>::generate_local(
     std::shared_ptr<csr_type> coarse_matrix;
 
     if (parameters_.aggregation) {
-        // Aggregate-style: map every fine row to floor(i/skip).
-        // This preserves connectivity in the Galerkin coarse matrix.
+        // TODO: move host-side agg/R construction to per-backend kernels (share
+        // with PGM). Aggregate-style: map every fine row to floor(i/skip). This
+        // preserves connectivity in the Galerkin coarse matrix.
         {
             auto host = exec->get_master();
             array<IndexType> h_rows(host, num_rows);
@@ -309,6 +310,7 @@ UniformCoarsening<ValueType, IndexType>::generate_local(
 
 template <typename ValueType, typename IndexType>
 template <typename GlobalIndexType>
+// TODO: dedup with Pgm::communicate_off_diag_agg into a shared free function.
 array<GlobalIndexType>
 UniformCoarsening<ValueType, IndexType>::communicate_non_local_agg(
     std::shared_ptr<const experimental::distributed::Matrix<
@@ -374,6 +376,7 @@ UniformCoarsening<ValueType, IndexType>::communicate_non_local_agg(
 template <typename ValueType, typename IndexType>
 void UniformCoarsening<ValueType, IndexType>::generate()
 {
+    // TODO: dedup the distributed generate() scaffolding with Pgm.
     using csr_type = matrix::Csr<ValueType, IndexType>;
 #if GINKGO_BUILD_MPI
     if (std::dynamic_pointer_cast<
