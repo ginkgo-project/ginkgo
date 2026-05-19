@@ -299,7 +299,9 @@ private:
  * Only works on top-level solvers that own their workspace.
  *
  * @param solver  the solver to extract from (will be set to nullptr)
+ *
  * @return the extracted workspace
+ *
  * @throws InvalidStateError if the solver is not workspace-aware or has no
  *         owned workspace (e.g., it is an inner solver)
  */
