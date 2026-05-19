@@ -238,15 +238,10 @@ protected:
         if (parameters_.generated_solver) {
             this->set_solver(parameters_.generated_solver);
         } else if (parameters_.solver) {
-            auto* node = this->get_workspace_node();
-            if (node) {
-                auto child = node->get_or_create_child("solver");
-                this->set_solver(parameters_.solver->generate(
-                    this->get_system_matrix(), child));
-            } else {
-                this->set_solver(
-                    parameters_.solver->generate(this->get_system_matrix()));
-            }
+            auto* child =
+                this->get_workspace_node()->get_or_create_child("solver");
+            this->set_solver(LinOpFactory::generate_with_view(
+                parameters_.solver.get(), this->get_system_matrix(), child));
         } else {
             this->set_solver(matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]));

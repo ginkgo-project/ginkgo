@@ -364,6 +364,12 @@ class SolverBaseLinOp {
 public:
     SolverBaseLinOp(std::shared_ptr<const Executor> exec);
 
+    /**
+     * Copy-constructed solvers get a fresh, empty owned workspace on the
+     * source's executor — workspace state (slots and child tree) is not
+     * aliased between copies, since concurrent solvers must not share scratch
+     * storage. The copy starts cold and reallocates on first apply().
+     */
     SolverBaseLinOp(const SolverBaseLinOp& other);
     SolverBaseLinOp(SolverBaseLinOp&& other) noexcept;
     SolverBaseLinOp& operator=(const SolverBaseLinOp& other);
@@ -888,15 +894,10 @@ protected:
         if (params.generated_preconditioner) {
             this->set_preconditioner(params.generated_preconditioner);
         } else if (params.preconditioner) {
-            auto* node = this->get_workspace_node();
-            if (node) {
-                auto child = node->get_or_create_child("preconditioner");
-                this->set_preconditioner(params.preconditioner->generate(
-                    this->get_system_matrix(), child));
-            } else {
-                this->set_preconditioner(
-                    params.preconditioner->generate(this->get_system_matrix()));
-            }
+            auto* child = this->get_workspace_node()->get_or_create_child(
+                "preconditioner");
+            this->set_preconditioner(LinOpFactory::generate_with_view(
+                params.preconditioner.get(), this->get_system_matrix(), child));
         } else {
             this->set_preconditioner(matrix::Identity<ValueType>::create(
                 this->get_system_matrix()->get_executor(),
