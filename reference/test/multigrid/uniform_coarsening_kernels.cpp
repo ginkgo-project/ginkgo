@@ -25,9 +25,6 @@
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 template <typename ValueIndexType>
 class UniformCoarsening : public ::testing::Test {
 protected:
@@ -42,6 +39,7 @@ protected:
     using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using VT = value_type;
     using real_type = gko::remove_complex<value_type>;
+
     UniformCoarsening()
         : exec(gko::ReferenceExecutor::create()),
           uniform_coarsening_factory(MgLevel::build()
@@ -255,8 +253,8 @@ TYPED_TEST(UniformCoarsening, FillIncrementalIndicesWorks)
     auto c5_rows = gko::array<index_type>(
         this->exec, {0, -1, -1, -1, -1, 1, -1, -1, -1, -1});
     auto c_rows = gko::array<index_type>(this->exec, 10);
-    c_rows.fill(-gko::one<index_type>());
 
+    c_rows.fill(-gko::one<index_type>());
     gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
         this->exec, 2, &c_rows);
     GKO_ASSERT_ARRAY_EQ(c_rows, c2_rows);
@@ -433,6 +431,7 @@ protected:
     using Vec = gko::matrix::Dense<value_type>;
     using MgLevel = gko::multigrid::UniformCoarsening<value_type, index_type>;
     using VT = value_type;
+
     UniformCoarseningAgg()
         : exec(gko::ReferenceExecutor::create()),
           uniform_coarsening_factory(MgLevel::build()
@@ -576,6 +575,3 @@ TYPED_TEST(UniformCoarseningAgg, CoarseIsGalerkinTripleProduct)
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(this->mg_level->get_coarse_op()),
                         this->coarse, r<value_type>::value);
 }
-
-
-}  // namespace

@@ -95,15 +95,18 @@ protected:
 TEST_F(UniformCoarsening, FillIncrementalIndicesIsEquivalentToRef)
 {
     auto c_rows = gko::array<index_type>(ref, m);
-    c_rows.fill(-gko::one<index_type>());
-    auto d_c_rows = gko::array<index_type>(exec, c_rows);
+    auto d_c_rows = gko::array<index_type>(exec, m);
 
     for (int coarse_skip : {2, 3, 47}) {
         SCOPED_TRACE("Using coarse skip:" + std::to_string(coarse_skip));
+        c_rows.fill(-gko::one<index_type>());
+        d_c_rows.fill(-gko::one<index_type>());
+
         gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
             ref, coarse_skip, &c_rows);
         gko::kernels::GKO_DEVICE_NAMESPACE::uniform_coarsening::
             fill_incremental_indices(exec, coarse_skip, &d_c_rows);
+
         GKO_ASSERT_ARRAY_EQ(c_rows, d_c_rows);
     }
 }

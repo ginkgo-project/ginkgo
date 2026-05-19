@@ -329,3 +329,156 @@ TYPED_TEST(UniformCoarseningOffDiagAgg, InjectionDropsNonLeaderEntries)
         gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
         res_non_local[rank], r<value_type>::value);
 }
+
+
+// 10-row tri-diagonal matrix (plus extra cross-rank edges 0<->3) with
+// partition {0,3,7,10}. With coarse_skip=3, rank 1 has 4 local rows which
+// is not divisible by 3, producing 2 coarse rows on rank 1 (0..2 -> 0,
+// 3 -> 1). Ranks 0 and 2 have 3 local rows each (one coarse row).
+template <typename ValueLocalGlobalIndexType>
+class UniformCoarseningNonDivisible : public CommonMpiTestFixture {
+protected:
+    using value_type = typename std::tuple_element<
+        0, decltype(ValueLocalGlobalIndexType())>::type;
+    using local_index_type = typename std::tuple_element<
+        1, decltype(ValueLocalGlobalIndexType())>::type;
+    using global_index_type = typename std::tuple_element<
+        2, decltype(ValueLocalGlobalIndexType())>::type;
+    using dist_mtx_type =
+        gko::experimental::distributed::Matrix<value_type, local_index_type,
+                                               global_index_type>;
+    using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
+    using Partition =
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
+    using uniform_coarsening =
+        gko::multigrid::UniformCoarsening<value_type, local_index_type>;
+
+    UniformCoarseningNonDivisible()
+        : size{10, 10},
+          mat_input{size,
+                    {// diagonal
+                     {0, 0, 5},
+                     {1, 1, 5},
+                     {2, 2, 5},
+                     {3, 3, 5},
+                     {4, 4, 5},
+                     {5, 5, 5},
+                     {6, 6, 5},
+                     {7, 7, 5},
+                     {8, 8, 5},
+                     {9, 9, 5},
+                     // tri-diag couplings (-1 on each off-diagonal)
+                     {0, 1, -1},
+                     {1, 0, -1},
+                     {1, 2, -1},
+                     {2, 1, -1},
+                     {2, 3, -1},
+                     {3, 2, -1},
+                     {3, 4, -1},
+                     {4, 3, -1},
+                     {4, 5, -1},
+                     {5, 4, -1},
+                     {5, 6, -1},
+                     {6, 5, -1},
+                     {6, 7, -1},
+                     {7, 6, -1},
+                     {7, 8, -1},
+                     {8, 7, -1},
+                     {8, 9, -1},
+                     {9, 8, -1},
+                     // extra cross-rank edge: rank 0 <-> rank 1 leader pair
+                     {0, 3, -1},
+                     {3, 0, -1}}}
+    {
+        row_part = Partition::build_from_contiguous(
+            exec, gko::array<global_index_type>(
+                      exec, I<global_index_type>{0, 3, 7, 10}));
+
+        mat_input.sort_row_major();
+        dist_mat = dist_mtx_type::create(exec, comm);
+        dist_mat->read_distributed(mat_input, row_part);
+    }
+
+    void SetUp() override { ASSERT_EQ(comm.size(), 3); }
+
+    gko::dim<2> size;
+    std::shared_ptr<Partition> row_part;
+    gko::matrix_data<value_type, global_index_type> mat_input;
+    std::shared_ptr<dist_mtx_type> dist_mat;
+};
+
+TYPED_TEST_SUITE(UniformCoarseningNonDivisible,
+                 gko::test::ValueLocalGlobalIndexTypes,
+                 TupleTypenameNameGenerator);
+
+
+TYPED_TEST(UniformCoarseningNonDivisible, AggregationWithCoarseSkipThree)
+{
+    using uc = typename TestFixture::uniform_coarsening;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    auto uc_factory =
+        uc::build().with_coarse_skip(3).with_aggregation(true).on(this->exec);
+    auto rank = this->comm.rank();
+
+    // Aggregation, coarse_skip=3:
+    // Rank 0 (3 rows): all -> coarse 0. R*A*R^T on tri-diag(3x3) = [[11]].
+    // Rank 1 (4 rows): rows 0..2 -> coarse 0, row 3 -> coarse 1.
+    //   Ac = [[11,-1],[-1,5]].
+    // Rank 2 (3 rows): all -> coarse 0. Ac = [[11]].
+    I<I<value_type>> res_local[] = {{{11}}, {{11, -1}, {-1, 5}}, {{11}}};
+
+    // Off-diagonals (aggregated):
+    // Rank 0 coarse 0 -> rank 1 coarse 0: edges (0,3) + (2,3) = -2.
+    // Rank 1 coarse 0 -> rank 0 coarse 0: edges (3,0) + (3,2) = -2.
+    // Rank 1 coarse 1 -> rank 2 coarse 0: edge (6,7) = -1.
+    // Rank 2 coarse 0 -> rank 1 coarse 1: edge (7,6) = -1.
+    I<I<value_type>> res_non_local[] = {{{-2}}, {{-2, 0}, {0, -1}}, {{-1}}};
+
+    auto result = uc_factory->generate(this->dist_mat);
+
+    auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+                        res_local[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
+        res_non_local[rank], r<value_type>::value);
+}
+
+
+TYPED_TEST(UniformCoarseningNonDivisible, InjectionWithCoarseSkipThree)
+{
+    using uc = typename TestFixture::uniform_coarsening;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    auto uc_factory =
+        uc::build().with_coarse_skip(3).with_aggregation(false).on(this->exec);
+    auto rank = this->comm.rank();
+
+    // Injection, coarse_skip=3:
+    // Rank 0 leaders {local 0 = global 0}. Ac = [[5]].
+    // Rank 1 leaders {local 0 = global 3, local 3 = global 6}. Diagonal
+    //   submatrix has no leader-leader local edges, so Ac = [[5,0],[0,5]].
+    // Rank 2 leaders {local 0 = global 7}. Ac = [[5]].
+    I<I<value_type>> res_local[] = {{{5}}, {{5, 0}, {0, 5}}, {{5}}};
+
+    // Off-diagonals: only leader-leader cross-rank edges survive.
+    // Rank 0 leader 0 -> rank 1 leader 0 via edge (0,3) -> -1.
+    // Rank 1 leader 0 -> rank 0 leader 0 via edge (3,0) -> -1.
+    //   (edge (3,2) drops: col 2 is not a leader.)
+    // Rank 1 leader 1 -> rank 2 leader 0 via edge (6,7) -> -1.
+    // Rank 2 leader 0 -> rank 1 leader 1 via edge (7,6) -> -1.
+    I<I<value_type>> res_non_local[] = {{{-1}}, {{-1, 0}, {0, -1}}, {{-1}}};
+
+    auto result = uc_factory->generate(this->dist_mat);
+
+    auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+                        res_local[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
+        res_non_local[rank], r<value_type>::value);
+}

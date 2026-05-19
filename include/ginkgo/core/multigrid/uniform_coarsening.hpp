@@ -39,9 +39,13 @@ namespace multigrid {
 
 
 /**
- * UniformCoarsening is a simple coarse grid generation algorithm. It
- * selects the coarse matrix from the fine matrix by constant jumps that can be
- * specified by the user.
+ * UniformCoarsening is a simple algebraic coarse grid generation algorithm.
+ * It selects the coarse rows by a constant stride `coarse_skip` over the
+ * fine-row index space (no geometry of the underlying mesh is used) and
+ * builds the coarse system from them. Fine row `i` either contributes only
+ * when it is itself a selected coarse row (injection-style), or is mapped
+ * to its nearest coarse row `floor(i / coarse_skip)` (aggregation-style),
+ * depending on the `aggregation` parameter.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
@@ -99,11 +103,12 @@ public:
         int GKO_FACTORY_PARAMETER_SCALAR(coarse_skip, 2);
 
         /**
-         * When set to `true` (the default), every fine row is mapped to
-         * its nearest coarse row (aggregation-style), so that the Galerkin
-         * coarse matrix R·A·P preserves graph connectivity. When `false`,
-         * only the selected coarse rows participate (injection-style),
-         * which can produce disconnected coarse graphs.
+         * When set to `true` (the default), every fine row `i` is mapped to
+         * its nearest coarse row `floor(i / coarse_skip)` (aggregation-style),
+         * so that the Galerkin coarse matrix R·A·P preserves graph
+         * connectivity. When `false`, only the selected coarse rows
+         * (`i % coarse_skip == 0`) participate (injection-style), which can
+         * produce disconnected coarse graphs.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(aggregation, true);
 
