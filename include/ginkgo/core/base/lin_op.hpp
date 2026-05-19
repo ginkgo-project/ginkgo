@@ -26,8 +26,28 @@
 namespace gko {
 
 
+class LinOp;
+class LinOpFactory;
+
+
 namespace solver {
 class Workspace;
+namespace detail {
+
+
+/**
+ * Internal: generate a solver that borrows a non-owning Workspace view.
+ * Called by composite solvers (multigrid, IR, preconditioned Krylov) to
+ * wire inner solvers into a child node of the outer solver's workspace.
+ * External callers should not use this — the borrowed view's lifetime is
+ * the responsibility of the outer solver, not the caller.
+ */
+std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
+                                          std::shared_ptr<const LinOp> input,
+                                          Workspace* view);
+
+
+}  // namespace detail
 }  // namespace solver
 
 
@@ -413,23 +433,15 @@ public:
 
     // Deleted: external code must transfer ownership of the workspace via the
     // unique_ptr overload above. The non-owning view path is reserved for
-    // internal solver composition (see generate_with_view below). Without this
-    // delete, `factory->generate(matrix, ws.get())` would silently bind to the
-    // AbstractFactory variadic template fallback and produce a solver holding
-    // a dangling Workspace* once the caller's unique_ptr drops.
+    // internal solver composition (see solver::detail::generate_with_view).
+    // Without this delete, `factory->generate(matrix, ws.get())` would silently
+    // bind to the AbstractFactory variadic template fallback and produce a
+    // solver holding a dangling Workspace* once the caller's unique_ptr drops.
     std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp>,
                                     solver::Workspace*) const = delete;
 
-    /**
-     * Internal: generate a solver that borrows a non-owning Workspace view.
-     * Called by composite solvers (multigrid, IR, preconditioned Krylov) to
-     * wire inner solvers into a child node of the outer solver's workspace.
-     * External callers should not use this — the borrowed view's lifetime is
-     * the responsibility of the outer solver, not the caller.
-     */
-    static std::unique_ptr<LinOp> generate_with_view(
-        const LinOpFactory* factory, std::shared_ptr<const LinOp> input,
-        solver::Workspace* view);
+    friend std::unique_ptr<LinOp> solver::detail::generate_with_view(
+        const LinOpFactory*, std::shared_ptr<const LinOp>, solver::Workspace*);
 };
 
 

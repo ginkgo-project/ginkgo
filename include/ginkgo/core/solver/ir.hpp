@@ -240,7 +240,7 @@ protected:
         } else if (parameters_.solver) {
             auto* child =
                 this->get_workspace_node()->get_or_create_child("solver");
-            this->set_solver(LinOpFactory::generate_with_view(
+            this->set_solver(detail::generate_with_view(
                 parameters_.solver.get(), this->get_system_matrix(), child));
         } else {
             this->set_solver(matrix::Identity<ValueType>::create(
