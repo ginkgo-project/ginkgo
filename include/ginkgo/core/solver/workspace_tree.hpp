@@ -41,9 +41,19 @@ class SolverBaseLinOp;
  * executor at construction; children inherit their parent's executor.
  *
  * Top-level workspaces are constructed via Workspace::create and passed into
- * LinOpFactory::generate(matrix, unique_ptr<Workspace>). Inner solvers
- * receive a non-owning Workspace* (a child created via get_or_create_child on
- * the parent) and are wired in via LinOpFactory::generate(matrix, Workspace*).
+ * LinOpFactory::generate(matrix, unique_ptr<Workspace>). The outer solver
+ * builds the child tree as it generates inner solvers; external users only
+ * ever construct and hand off a root workspace.
+ *
+ * One workspace per factory shape. Slot count and type are tied to a
+ * particular solver class; reusing the same workspace across a Cg and then a
+ * Gmres factory works but defeats the point — the second generate() truncates
+ * or extends the slot vector, reallocates mismatched slots, and leaves the
+ * old child subtree as dead weight. Hold one workspace per factory you want
+ * to amortize allocations for.
+ *
+ * Not thread-safe. A workspace (or any of its descendants) must not be
+ * touched by two solvers concurrently.
  */
 class Workspace {
 public:
@@ -84,6 +94,11 @@ public:
         return children_.find(tag) != children_.end();
     }
 
+    /**
+     * Dumps the workspace tree shape to `os`. The child tree is populated as
+     * solvers generate into the workspace, so describing a freshly-created
+     * (unused) workspace shows only the root.
+     */
     void describe(std::ostream& os, int indent = 0) const;
 
     detail::workspace& get_local_storage() { return local_storage_; }

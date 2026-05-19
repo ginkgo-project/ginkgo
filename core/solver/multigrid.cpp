@@ -101,7 +101,8 @@ std::unique_ptr<LinOp> generate_component(
         if (!ws_node) {
             return factory->generate(std::move(matrix));
         }
-        return factory->generate(std::move(matrix), ws_node);
+        return LinOpFactory::generate_with_view(factory, std::move(matrix),
+                                                ws_node);
     }
     if (!*reuse_data) {
         *reuse_data = factory->create_empty_reuse_data();
