@@ -394,8 +394,8 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
     auto* lnode = level_nodes[level];
     GKO_ASSERT(lnode);
 
-    lnode->bind_executor(exec);
     auto& storage = lnode->get_local_storage();
+    storage.set_executor(exec);
     storage.set_size(6, 0);  // 6 operator slots, 0 arrays
 
     // Slot 0: r (current level dimensions)
@@ -461,8 +461,8 @@ void MultigridState::allocate_memory(
     auto* lnode = level_nodes[level];
     GKO_ASSERT(lnode);
 
-    lnode->bind_executor(exec);
     auto& storage = lnode->get_local_storage();
+    storage.set_executor(exec);
     storage.set_size(6, 0);  // 6 operator slots, 0 arrays
 
     // Slot 0: r (current level dimensions, distributed)

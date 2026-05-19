@@ -515,16 +515,6 @@ protected:
     }
 
     /**
-     * Sets an external workspace on this solver (top-level ownership).
-     */
-    void set_workspace(std::unique_ptr<solver::Workspace> ws);
-
-    /**
-     * Sets a workspace node on this solver (non-owning, for inner solvers).
-     */
-    void set_workspace_node(Workspace* node);
-
-    /**
      * Returns the workspace node for this solver.
      */
     Workspace* get_workspace_node() const { return node_; }
@@ -532,7 +522,7 @@ protected:
     /**
      * Adopts either the owned workspace or the non-owning view from
      * LinOpGenerateComponents, depending on which was provided, and binds
-     * the owned case to `exec`.
+     * the owned case to `exec`. No-op if components carries neither.
      */
     void adopt_workspace(LinOpGenerateComponents& components,
                          std::shared_ptr<const Executor> exec);

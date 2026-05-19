@@ -49,18 +49,6 @@ SolverBaseLinOp& SolverBaseLinOp::operator=(SolverBaseLinOp&& other) noexcept
     return *this;
 }
 
-void SolverBaseLinOp::set_workspace(std::unique_ptr<Workspace> ws)
-{
-    owned_workspace_ = std::move(ws);
-    node_ = owned_workspace_.get();
-}
-
-void SolverBaseLinOp::set_workspace_node(Workspace* node)
-{
-    owned_workspace_ = nullptr;
-    node_ = node;
-}
-
 std::unique_ptr<Workspace> SolverBaseLinOp::extract_workspace()
 {
     node_ = nullptr;
@@ -70,11 +58,13 @@ std::unique_ptr<Workspace> SolverBaseLinOp::extract_workspace()
 void SolverBaseLinOp::adopt_workspace(LinOpGenerateComponents& components,
                                       std::shared_ptr<const Executor> exec)
 {
-    if (components.workspace) {
-        set_workspace(std::move(components.workspace));
-        node_->bind_executor(std::move(exec));
-    } else if (components.workspace_view) {
-        set_workspace_node(components.workspace_view);
+    if (components.has_owned_workspace()) {
+        owned_workspace_ = components.take_owned_workspace();
+        node_ = owned_workspace_.get();
+        owned_workspace_->get_local_storage().set_executor(std::move(exec));
+    } else if (components.has_view_workspace()) {
+        owned_workspace_ = nullptr;
+        node_ = components.get_view_workspace();
     }
 }
 

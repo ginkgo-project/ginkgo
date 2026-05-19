@@ -52,15 +52,6 @@ TEST_F(WorkspaceTest, GetChildReturnsNullForMissing)
 }
 
 
-TEST_F(WorkspaceTest, BindExecutorSetsOnLocalStorage)
-{
-    auto other = gko::ReferenceExecutor::create();
-    gko::solver::Workspace node{exec};
-    node.bind_executor(other);
-    ASSERT_EQ(node.get_local_storage().get_executor(), other);
-}
-
-
 TEST_F(WorkspaceTest, NumRhsDefaultsToZero)
 {
     gko::solver::Workspace node{exec};
