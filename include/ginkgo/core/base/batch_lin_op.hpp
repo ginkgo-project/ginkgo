@@ -247,11 +247,9 @@ public:
  * @ingroup BatchLinOp
  */
 template <typename ConcreteBatchLinOp, typename PolymorphicBase = BatchLinOp>
-class EnableBatchLinOp
-    : public EnablePolymorphicObject<ConcreteBatchLinOp, PolymorphicBase> {
+class EnableBatchLinOp : public PolymorphicBase {
 public:
-    using EnablePolymorphicObject<ConcreteBatchLinOp,
-                                  PolymorphicBase>::EnablePolymorphicObject;
+    using PolymorphicBase::PolymorphicBase;
 };
 
 
@@ -365,8 +363,7 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::batch::EnableDefaultBatchLinOpFactory<               \
               _factory_name, _batch_lin_op, _parameters_name##_type> {       \
-        friend class ::gko::EnablePolymorphicObject<                         \
-            _factory_name, ::gko::batch::BatchLinOpFactory>;                 \
+        friend class ::gko::batch::BatchLinOpFactory;                        \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \

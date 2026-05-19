@@ -81,7 +81,6 @@ template <typename ValueType = default_precision, bool ReverseApply = false,
 class Ilu : public EnableLinOp<Ilu<ValueType, ReverseApply, IndexType>>,
             public Transposable {
     friend class EnableLinOp<Ilu>;
-    friend class EnablePolymorphicObject<Ilu, LinOp>;
 
 public:
     using value_type = ValueType;

@@ -283,8 +283,6 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::stop::EnableDefaultCriterionFactory<                 \
               _factory_name, _criterion, _parameters_name##_type> {          \
-        friend class ::gko::EnablePolymorphicObject<                         \
-            _factory_name, ::gko::stop::CriterionFactory>;                   \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \

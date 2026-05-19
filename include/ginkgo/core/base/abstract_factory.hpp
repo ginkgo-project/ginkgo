@@ -119,12 +119,9 @@ protected:
  */
 template <typename ConcreteFactory, typename ProductType,
           typename ParametersType, typename PolymorphicBase>
-class EnableDefaultFactory
-    : public EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>,
-      public EnableClonableAssignment<ConcreteFactory> {
+class EnableDefaultFactory : public PolymorphicBase,
+                             public EnableClonableAssignment<ConcreteFactory> {
 public:
-    friend class EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>;
-
     using product_type = ProductType;
     using parameters_type = ParametersType;
     using polymorphic_base = PolymorphicBase;
@@ -174,9 +171,7 @@ protected:
      */
     explicit EnableDefaultFactory(std::shared_ptr<const Executor> exec,
                                   const parameters_type& parameters = {})
-        : EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>(
-              std::move(exec)),
-          parameters_{parameters}
+        : PolymorphicBase(std::move(exec)), parameters_{parameters}
     {}
 
     std::unique_ptr<abstract_product_type> generate_impl(

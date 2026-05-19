@@ -54,7 +54,6 @@ class Csr final
       public ConvertibleTo<Csr<next_precision<ValueType, 3>, IndexType>>,
 #endif
       public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>> {
-    friend class EnablePolymorphicObject<Csr, BatchLinOp>;
     friend class Csr<to_complex<ValueType>, IndexType>;
     friend class Csr<previous_precision<ValueType>, IndexType>;
     static_assert(std::is_same<IndexType, int32>::value,

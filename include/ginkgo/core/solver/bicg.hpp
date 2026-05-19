@@ -51,10 +51,9 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Bicg
-    : public EnablePolymorphicObject<Bicg<ValueType>, LinOp>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Bicg<ValueType>>,
       public Transposable {
-    friend class EnablePolymorphicObject<Bicg, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -108,15 +107,13 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Bicg(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Bicg, LinOp>(std::move(exec))
+    explicit Bicg(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Bicg(const Factory* factory,
                   std::shared_ptr<const LinOp> system_matrix)
-        : EnablePolymorphicObject<Bicg, LinOp>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Bicg<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

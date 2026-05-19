@@ -68,10 +68,8 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * @ingroup reorder
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Rcm : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
-                                           ReorderingBase<IndexType>>,
+class Rcm : public ReorderingBase<IndexType>,
             public EnableClonableAssignment<Rcm<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -172,11 +170,10 @@ using rcm_starting_strategy = gko::reorder::starting_strategy;
  * @ingroup reorder
  */
 template <typename IndexType = int32>
-class Rcm : public EnablePolymorphicObject<Rcm<IndexType>, LinOpFactory>,
+class Rcm : public LinOpFactory,
             public EnableClonableAssignment<Rcm<IndexType>> {
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<Rcm<IndexType>, LinOpFactory>;
     friend class enable_parameters_type<parameters_type, Rcm<IndexType>>;
 
     using index_type = IndexType;

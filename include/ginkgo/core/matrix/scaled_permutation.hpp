@@ -36,7 +36,6 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class ScaledPermutation final
     : public EnableClonableLinOp<ScaledPermutation<ValueType, IndexType>>,
       public WritableToMatrixData<ValueType, IndexType> {
-    friend class EnablePolymorphicObject<ScaledPermutation, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

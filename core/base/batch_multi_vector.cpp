@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -90,7 +90,7 @@ MultiVector<ValueType>::create_const_view_for_item(size_type item_id) const
 template <typename ValueType>
 MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
                                     const batch_dim<2>& size)
-    : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
+    : PolymorphicObject(exec),
       batch_size_(size),
       values_(exec, compute_num_elems(size))
 {}
@@ -100,7 +100,7 @@ template <typename ValueType>
 MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
                                     const batch_dim<2>& size,
                                     array<value_type> values)
-    : EnablePolymorphicObject<MultiVector<ValueType>>(exec),
+    : PolymorphicObject(exec),
       batch_size_(size),
       values_{exec, std::move(values)}
 {

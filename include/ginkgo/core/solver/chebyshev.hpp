@@ -60,12 +60,11 @@ using coeff_type =
  */
 template <typename ValueType = default_precision>
 class Chebyshev final
-    : public EnablePolymorphicObject<Chebyshev<ValueType>, LinOp>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType,
                                                  Chebyshev<ValueType>>,
       public EnableApplyWithInitialGuess<Chebyshev<ValueType>>,
       public Transposable {
-    friend class EnablePolymorphicObject<Chebyshev, LinOp>;
     friend class EnableApplyWithInitialGuess<Chebyshev>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 

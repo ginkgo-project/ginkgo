@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,7 +26,7 @@ using base = gko::AbstractFactory<MyInt, int>;
 struct IntFactory
     : gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type, base> {
     friend class gko::enable_parameters_type<parameters_type, IntFactory>;
-    friend class gko::EnablePolymorphicObject<IntFactory, base>;
+    friend base;
     using gko::EnableDefaultFactory<IntFactory, MyInt, parameters_type,
                                     base>::EnableDefaultFactory;
 };

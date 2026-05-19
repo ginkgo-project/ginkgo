@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -79,7 +79,6 @@ template <isai_type IsaiType, typename ValueType, typename IndexType>
 class Isai : public EnableLinOp<Isai<IsaiType, ValueType, IndexType>>,
              public Transposable {
     friend class EnableLinOp<Isai>;
-    friend class EnablePolymorphicObject<Isai, LinOp>;
     friend class Isai<isai_type::general, ValueType, IndexType>;
     friend class Isai<isai_type::lower, ValueType, IndexType>;
     friend class Isai<isai_type::upper, ValueType, IndexType>;

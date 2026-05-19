@@ -55,10 +55,9 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Minres
-    : public EnablePolymorphicObject<Minres<ValueType>, LinOp>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Minres<ValueType>>,
       public Transposable {
-    friend class EnablePolymorphicObject<Minres, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

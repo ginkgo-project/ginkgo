@@ -18,7 +18,6 @@ namespace {
 template <typename ValueType>
 class DummyLinOp : public gko::EnableLinOp<DummyLinOp<ValueType>>,
                    public gko::EnableCreateMethod<DummyLinOp<ValueType>> {
-    friend class gko::EnablePolymorphicObject<DummyLinOp, gko::LinOp>;
     friend class gko::EnableCreateMethod<DummyLinOp>;
 
 public:

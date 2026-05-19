@@ -10,11 +10,11 @@
 namespace {
 
 
-struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
+struct DummyObject : gko::PolymorphicObject,
                      gko::EnableCreateMethod<DummyObject>,
                      gko::EnableClonableAssignment<DummyObject> {
     explicit DummyObject(std::shared_ptr<const gko::Executor> exec, int v = {})
-        : gko::EnablePolymorphicObject<DummyObject>(std::move(exec)), x{v}
+        : gko::PolymorphicObject(std::move(exec)), x{v}
     {}
 
     DummyObject(const DummyObject& other) : DummyObject(other.get_executor())
@@ -265,15 +265,13 @@ TEST(EnableCreateMethod, CreatesObject)
 
 
 struct ConvertibleToDummyObject
-    : gko::EnablePolymorphicObject<ConvertibleToDummyObject>,
+    : gko::PolymorphicObject,
       gko::EnableCreateMethod<ConvertibleToDummyObject>,
       gko::EnableClonableAssignment<ConvertibleToDummyObject>,
       gko::ConvertibleTo<DummyObject> {
     explicit ConvertibleToDummyObject(std::shared_ptr<const gko::Executor> exec,
                                       int v = {})
-        : gko::EnablePolymorphicObject<ConvertibleToDummyObject>(
-              std::move(exec)),
-          x{v}
+        : gko::PolymorphicObject(std::move(exec)), x{v}
     {}
 
     void convert_to(DummyObject* obj) const override { obj->x = x; }

@@ -52,7 +52,7 @@ std::unique_ptr<LinOp> Direct<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Direct& other)
-    : EnablePolymorphicObject<Direct, LinOp>{other.get_executor()}
+    : LinOp{other.get_executor()}
 {
     *this = other;
 }
@@ -60,7 +60,7 @@ Direct<ValueType, IndexType>::Direct(const Direct& other)
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(Direct&& other)
-    : EnablePolymorphicObject<Direct, LinOp>{other.get_executor()}
+    : LinOp{other.get_executor()}
 {
     *this = std::move(other);
 }
@@ -71,7 +71,7 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
     const Direct& other)
 {
     if (this != &other) {
-        EnablePolymorphicObject<Direct, LinOp>::operator=(other);
+        LinOp::operator=(other);
         gko::solver::EnableSolverBase<Direct, factorization_type>::operator=(
             other);
         const auto exec = this->get_executor();
@@ -87,7 +87,7 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
     Direct&& other)
 {
     if (this != &other) {
-        EnablePolymorphicObject<Direct, LinOp>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         gko::solver::EnableSolverBase<Direct, factorization_type>::operator=(
             std::move(other));
         const auto exec = this->get_executor();
@@ -100,7 +100,7 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(std::shared_ptr<const Executor> exec)
-    : EnablePolymorphicObject<Direct, LinOp>{exec}
+    : LinOp{exec}
 {}
 
 
@@ -124,8 +124,7 @@ generate_factorization(
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Factory* factory,
                                      std::shared_ptr<const LinOp> system_matrix)
-    : EnablePolymorphicObject<Direct, LinOp>{factory->get_executor(),
-                                             system_matrix->get_size()},
+    : LinOp{factory->get_executor(), system_matrix->get_size()},
       gko::solver::EnableSolverBase<
           Direct, factorization::Factorization<ValueType, IndexType>>{
           generate_factorization<ValueType, IndexType>(

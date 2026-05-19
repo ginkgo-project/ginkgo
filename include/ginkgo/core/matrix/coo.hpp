@@ -64,7 +64,6 @@ class Coo : public EnableClonableLinOp<Coo<ValueType, IndexType>>,
             public Transposable,
             public EnableAbsoluteComputation<
                 remove_complex<Coo<ValueType, IndexType>>> {
-    friend class EnablePolymorphicObject<Coo, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;

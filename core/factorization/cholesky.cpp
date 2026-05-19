@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -57,8 +57,7 @@ Cholesky<ValueType, IndexType>::parse(
 template <typename ValueType, typename IndexType>
 Cholesky<ValueType, IndexType>::Cholesky(std::shared_ptr<const Executor> exec,
                                          const parameters_type& params)
-    : EnablePolymorphicObject<Cholesky, LinOpFactory>(std::move(exec)),
-      parameters_(params)
+    : LinOpFactory(std::move(exec)), parameters_(params)
 {}
 
 

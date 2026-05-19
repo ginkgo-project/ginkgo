@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,9 +21,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Time : public EnablePolymorphicObject<Time, Criterion> {
-    friend class EnablePolymorphicObject<Time, Criterion>;
-
+class Time : public Criterion {
 public:
     using clock = std::chrono::steady_clock;
 
@@ -44,13 +42,11 @@ protected:
                     const Updater&) override;
 
     explicit Time(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<Time, Criterion>(std::move(exec)),
-          time_limit_{},
-          start_{}
+        : Criterion(std::move(exec)), time_limit_{}, start_{}
     {}
 
     explicit Time(const Factory* factory, const CriterionArgs args)
-        : EnablePolymorphicObject<Time, Criterion>(factory->get_executor()),
+        : Criterion(factory->get_executor()),
           parameters_{factory->get_parameters()},
           time_limit_{std::chrono::duration<double>(
               factory->get_parameters().time_limit)},

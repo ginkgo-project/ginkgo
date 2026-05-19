@@ -32,7 +32,7 @@ template <typename LocalIndexType, typename GlobalIndexType>
 Partition<LocalIndexType, GlobalIndexType>::Partition(
     std::shared_ptr<const Executor> exec, comm_index_type num_parts,
     size_type num_ranges)
-    : EnablePolymorphicObject<Partition>{exec},
+    : PolymorphicObject{exec},
       num_parts_{num_parts},
       num_empty_parts_{0},
       size_{0},

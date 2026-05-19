@@ -59,10 +59,9 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class PipeCg
-    : public EnablePolymorphicObject<PipeCg<ValueType>, LinOp>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, PipeCg<ValueType>>,
       public Transposable {
-    friend class EnablePolymorphicObject<PipeCg, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -117,14 +116,13 @@ protected:
                     LinOp* x) const override;
 
     explicit PipeCg(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<PipeCg, LinOp>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     explicit PipeCg(const Factory* factory,
                     std::shared_ptr<const LinOp> system_matrix)
-        : EnablePolymorphicObject<PipeCg, LinOp>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, PipeCg<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

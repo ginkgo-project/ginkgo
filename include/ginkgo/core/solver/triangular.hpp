@@ -62,12 +62,10 @@ class UpperTrs;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class LowerTrs
-    : public EnablePolymorphicObject<LowerTrs<ValueType, IndexType>, LinOp>,
-      public EnableSolverBase<LowerTrs<ValueType, IndexType>,
-                              matrix::Csr<ValueType, IndexType>>,
-      public Transposable {
-    friend class EnablePolymorphicObject<LowerTrs, LinOp>;
+class LowerTrs : public LinOp,
+                 public EnableSolverBase<LowerTrs<ValueType, IndexType>,
+                                         matrix::Csr<ValueType, IndexType>>,
+                 public Transposable {
     friend class UpperTrs<ValueType, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
@@ -170,14 +168,13 @@ protected:
     void generate();
 
     explicit LowerTrs(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<LowerTrs, LinOp>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     explicit LowerTrs(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
-        : EnablePolymorphicObject<LowerTrs, LinOp>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
                                              system_matrix)},
@@ -232,12 +229,10 @@ struct workspace_traits<LowerTrs<ValueType, IndexType>> {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class UpperTrs
-    : public EnablePolymorphicObject<UpperTrs<ValueType, IndexType>, LinOp>,
-      public EnableSolverBase<UpperTrs<ValueType, IndexType>,
-                              matrix::Csr<ValueType, IndexType>>,
-      public Transposable {
-    friend class EnablePolymorphicObject<UpperTrs, LinOp>;
+class UpperTrs : public LinOp,
+                 public EnableSolverBase<UpperTrs<ValueType, IndexType>,
+                                         matrix::Csr<ValueType, IndexType>>,
+                 public Transposable {
     friend class LowerTrs<ValueType, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
@@ -340,14 +335,13 @@ protected:
     void generate();
 
     explicit UpperTrs(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<UpperTrs, LinOp>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     explicit UpperTrs(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
-        : EnablePolymorphicObject<UpperTrs, LinOp>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
                                              system_matrix)},

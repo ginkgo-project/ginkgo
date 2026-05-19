@@ -51,14 +51,12 @@ enum class symbolic_type {
  *                    system matrix
  */
 template <typename ValueType, typename IndexType>
-class Lu
-    : public EnablePolymorphicObject<Lu<ValueType, IndexType>, LinOpFactory>,
-      public EnableClonableAssignment<Lu<ValueType, IndexType>> {
+class Lu : public LinOpFactory,
+           public EnableClonableAssignment<Lu<ValueType, IndexType>> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<Lu, LinOpFactory>;
     friend class enable_parameters_type<parameters_type, Lu>;
 
     using value_type = ValueType;

@@ -14,9 +14,8 @@ namespace gko {
 namespace stop {
 
 
-class MinIterationWrapper
-    : public EnablePolymorphicObject<MinIterationWrapper, Criterion> {
-    friend class EnablePolymorphicObject<MinIterationWrapper, Criterion>;
+class MinIterationWrapper : public Criterion {
+    friend class Criterion;
 
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -52,14 +51,12 @@ protected:
     }
 
     explicit MinIterationWrapper(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<MinIterationWrapper, Criterion>(
-              std::move(exec))
+        : Criterion(std::move(exec))
     {}
 
     explicit MinIterationWrapper(const Factory* factory,
                                  const CriterionArgs& args)
-        : EnablePolymorphicObject<MinIterationWrapper, Criterion>(
-              factory->get_executor()),
+        : Criterion(factory->get_executor()),
           parameters_{factory->get_parameters()},
           inner_criterion_{
               factory->get_parameters().inner_criterion->generate(args)}

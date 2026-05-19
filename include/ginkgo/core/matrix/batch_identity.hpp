@@ -31,7 +31,6 @@ namespace matrix {
 template <typename ValueType = default_precision>
 class Identity final : public EnableBatchLinOp<Identity<ValueType>>,
                        public EnableClonableAssignment<Identity<ValueType>> {
-    friend class EnablePolymorphicObject<Identity, BatchLinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

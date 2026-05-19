@@ -31,7 +31,6 @@ template <typename ValueType = default_precision>
 class Combination : public EnableClonableLinOp<Combination<ValueType>>,
                     public EnableCreateMethod<Combination<ValueType>>,
                     public Transposable {
-    friend class EnablePolymorphicObject<Combination, LinOp>;
     friend class EnableCreateMethod<Combination>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
