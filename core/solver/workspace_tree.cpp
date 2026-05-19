@@ -21,8 +21,7 @@ SolverBaseLinOp::SolverBaseLinOp(const SolverBaseLinOp& other)
 {
     if (other.node_) {
         owned_workspace_ =
-            Workspace::create(other.node_->get_local_storage().get_executor(),
-                              other.node_->get_num_rhs());
+            Workspace::create(other.node_->get_local_storage().get_executor());
         node_ = owned_workspace_.get();
     }
 }
@@ -79,8 +78,7 @@ void Workspace::describe(std::ostream& os, int indent) const
     if (!tag_.empty()) {
         os << " [" << tag_ << "]";
     }
-    os << " (num_rhs=" << num_rhs_ << ", children=" << children_.size()
-       << ")\n";
+    os << " (children=" << children_.size() << ")\n";
     for (const auto& pair : children_) {
         pair.second->describe(os, indent + 2);
     }
@@ -102,11 +100,9 @@ std::unique_ptr<Workspace> invalidate_and_extract_workspace(
 
 
 std::unique_ptr<Workspace> Workspace::create(
-    std::shared_ptr<const Executor> exec, size_type num_rhs)
+    std::shared_ptr<const Executor> exec)
 {
-    auto ws = std::unique_ptr<Workspace>(new Workspace(std::move(exec)));
-    ws->set_num_rhs(num_rhs);
-    return ws;
+    return std::unique_ptr<Workspace>(new Workspace(std::move(exec)));
 }
 
 
