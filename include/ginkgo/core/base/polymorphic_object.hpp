@@ -91,76 +91,12 @@ public:
             this->get_executor().get(), this);
     }
 
-    /**
-     * Creates a new "default" object of the same dynamic type as this object.
-     *
-     * This is the polymorphic equivalent of the _executor default constructor_
-     * `decltype(*this)(exec);`.
-     *
-     * @param exec  the executor where the object will be created
-     *
-     * @return a polymorphic object of the same type as this
-     */
-    std::unique_ptr<PolymorphicObject> create_default(
-        std::shared_ptr<const Executor> exec) const
-    {
-        this->template log<log::Logger::polymorphic_object_create_started>(
-            this->get_executor().get(), this);
-        auto created = this->create_default_impl(std::move(exec));
-        this->template log<log::Logger::polymorphic_object_create_completed>(
-            this->get_executor().get(), this, created.get());
-        return created;
-    }
-
-    /**
-     * Creates a new "default" object of the same dynamic type as this object.
-     *
-     * This is a shorthand for create_default(std::shared_ptr<const Executor>)
-     * that uses the executor of this object to construct the new object.
-     *
-     * @return a polymorphic object of the same type as this
-     */
-    std::unique_ptr<PolymorphicObject> create_default() const
-    {
-        return this->create_default(this->get_executor());
-    }
-
-    /**
-     * Transforms the object into its default state.
-     *
-     * Equivalent to `this->copy_from(this->create_default())`.
-     *
-     * @see clear_impl() when implementing this method
-     *
-     * @return this
-     */
-    PolymorphicObject* clear() { return this->clear_impl(); }
-
 protected:
     // This method is defined as protected since a polymorphic object should not
     // be created using their constructor directly, but by creating an
     // std::unique_ptr to it. Defining the constructor as protected keeps these
     // access rights when inheriting the constructor.
     using ExecutorHolder::ExecutorHolder;
-
-    /**
-     * Implementers of PolymorphicObject should override this function instead
-     * of create_default().
-     *
-     * @param exec  the executor where the object will be created
-     *
-     * @return a polymorphic object of the same type as this
-     */
-    virtual std::unique_ptr<PolymorphicObject> create_default_impl(
-        std::shared_ptr<const Executor> exec) const = 0;
-
-    /**
-     * Implementers of PolymorphicObject should implement this function instead
-     * of clear().
-     *
-     * @return this
-     */
-    virtual PolymorphicObject* clear_impl() = 0;
 };
 
 
@@ -186,24 +122,6 @@ template <typename AbstractObject, typename PolymorphicBase = PolymorphicObject>
 class EnableAbstractPolymorphicObject : public PolymorphicBase {
 public:
     using PolymorphicBase::PolymorphicBase;
-
-    std::unique_ptr<AbstractObject> create_default(
-        std::shared_ptr<const Executor> exec) const
-    {
-        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
-            this->PolymorphicBase::create_default(std::move(exec)).release())};
-    }
-
-    std::unique_ptr<AbstractObject> create_default() const
-    {
-        return std::unique_ptr<AbstractObject>{static_cast<AbstractObject*>(
-            this->PolymorphicBase::create_default().release())};
-    }
-
-    AbstractObject* clear()
-    {
-        return static_cast<AbstractObject*>(this->PolymorphicBase::clear());
-    }
 };
 
 
@@ -449,32 +367,6 @@ protected:
     using EnableAbstractPolymorphicObject<
         ConcreteObject, PolymorphicBase>::EnableAbstractPolymorphicObject;
 
-    std::unique_ptr<PolymorphicObject> create_default_impl(
-        std::shared_ptr<const Executor> exec) const override
-    {
-        if constexpr (std::is_base_of_v<
-                          experimental::distributed::DistributedBase,
-                          ConcreteObject>) {
-            return std::unique_ptr<ConcreteObject>{
-                new ConcreteObject(exec, self()->get_communicator())};
-        } else {
-            return std::unique_ptr<ConcreteObject>{new ConcreteObject(exec)};
-        }
-    }
-
-    PolymorphicObject* clear_impl() override
-    {
-        if constexpr (std::is_base_of_v<
-                          experimental::distributed::DistributedBase,
-                          ConcreteObject>) {
-            *self() = ConcreteObject{this->get_executor(),
-                                     self()->get_communicator()};
-        } else {
-            *self() = ConcreteObject{this->get_executor()};
-        }
-        return this;
-    }
-
 private:
     GKO_ENABLE_SELF(ConcreteObject);
 };
@@ -531,6 +423,19 @@ public:
         return moved;
     }
 
+    std::unique_ptr<ClonableObject> create_default(
+        std::shared_ptr<const Executor> exec) const
+    {
+        auto created = this->create_default_impl(std::move(exec));
+        return created;
+    }
+
+    std::unique_ptr<ClonableObject> create_default() const
+    {
+        return this->create_default(
+            dynamic_cast<const ExecutorHolder*>(this)->get_executor());
+    }
+
 protected:
     virtual ClonableObject* copy_from_impl(const ClonableObject* other) = 0;
 
@@ -546,6 +451,9 @@ protected:
         std::shared_ptr<const Executor> exec) const = 0;
 
     virtual std::unique_ptr<ClonableObject> clone_impl() const = 0;
+
+    virtual std::unique_ptr<ClonableObject> create_default_impl(
+        std::shared_ptr<const Executor> exec) const = 0;
 };
 
 /**
@@ -602,6 +510,20 @@ public:
     void convert_to(result_type* result) const override { *result = *self(); }
 
     void move_to(result_type* result) override { *result = std::move(*self()); }
+
+
+    std::unique_ptr<ConcreteType> create_default() const
+    {
+        return create_default(
+            dynamic_cast<const ExecutorHolder*>(self())->get_executor());
+    }
+
+    std::unique_ptr<ConcreteType> create_default(
+        std::shared_ptr<const Executor> exec) const
+    {
+        // @todo: replace this to a virtual call
+        return nullptr;
+    }
 
 protected:
     ClonableObject* copy_from_impl(const ClonableObject* other) override
@@ -674,6 +596,14 @@ protected:
     {
         return this->clone_impl(self()->get_executor());
     }
+
+    std::unique_ptr<ClonableObject> create_default_impl(
+        std::shared_ptr<const Executor> exec) const override
+    {
+        return std::unique_ptr<ClonableObject>(
+            create_default(std::move(exec)).release());
+    }
+
     GKO_ENABLE_SELF(ConcreteType);
 };
 
