@@ -12,7 +12,7 @@ namespace {
 
 struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
                      gko::EnableCreateMethod<DummyObject>,
-                     gko::EnablePolymorphicAssignment<DummyObject> {
+                     gko::EnableClonableAssignment<DummyObject> {
     explicit DummyObject(std::shared_ptr<const gko::Executor> exec, int v = {})
         : gko::EnablePolymorphicObject<DummyObject>(std::move(exec)), x{v}
     {}
@@ -267,7 +267,7 @@ TEST(EnableCreateMethod, CreatesObject)
 struct ConvertibleToDummyObject
     : gko::EnablePolymorphicObject<ConvertibleToDummyObject>,
       gko::EnableCreateMethod<ConvertibleToDummyObject>,
-      gko::EnablePolymorphicAssignment<ConvertibleToDummyObject>,
+      gko::EnableClonableAssignment<ConvertibleToDummyObject>,
       gko::ConvertibleTo<DummyObject> {
     explicit ConvertibleToDummyObject(std::shared_ptr<const gko::Executor> exec,
                                       int v = {})

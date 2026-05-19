@@ -351,7 +351,7 @@ std::shared_ptr<const R> copy_and_convert_to(
  * @note  This mixin does not enable copying the polymorphic object to the
  *        object of the same type (i.e. it does not implement the
  *        ConvertibleTo<ConcreteObject> interface). To enable a default
- *        implementation of this interface see the EnablePolymorphicAssignment
+ *        implementation of this interface see the EnableClonableAssignment
  *        mixin.
  *
  * @tparam ConcreteObject  the concrete type which is being implemented
@@ -369,34 +369,6 @@ protected:
 
 private:
     GKO_ENABLE_SELF(ConcreteObject);
-};
-
-
-/**
- * This mixin is used to enable a default PolymorphicObject::copy_from()
- * implementation for objects that have implemented conversions between them.
- *
- * The requirement is that there is either a conversion constructor from
- * `ConcreteType` in `ResultType`, or a conversion operator to `ResultType` in
- * `ConcreteType`.
- *
- * @tparam ConcreteType  the concrete type from which the copy_from is being
- *                       enabled [CRTP parameter]
- * @tparam ResultType  the type to which copy_from is being enabled
- */
-template <typename ConcreteType, typename ResultType = ConcreteType>
-class EnablePolymorphicAssignment : public ConvertibleTo<ResultType> {
-public:
-    using result_type = ResultType;
-    using ConvertibleTo<result_type>::convert_to;
-    using ConvertibleTo<result_type>::move_to;
-
-    void convert_to(result_type* result) const override { *result = *self(); }
-
-    void move_to(result_type* result) override { *result = std::move(*self()); }
-
-private:
-    GKO_ENABLE_SELF(ConcreteType);
 };
 
 

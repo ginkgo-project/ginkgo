@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,7 +33,7 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class GaussSeidel
     : public EnablePolymorphicObject<GaussSeidel<ValueType, IndexType>,
                                      LinOpFactory>,
-      public EnablePolymorphicAssignment<GaussSeidel<ValueType, IndexType>> {
+      public EnableClonableAssignment<GaussSeidel<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<GaussSeidel, LinOpFactory>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
