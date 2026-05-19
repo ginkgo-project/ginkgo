@@ -24,7 +24,7 @@
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
-#include <ginkgo/core/solver/workspace_tree.hpp>
+#include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -385,7 +385,7 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
     auto* lnode = level_nodes[level];
     GKO_ASSERT(lnode);
 
-    auto& storage = lnode->get_local_storage();
+    auto& storage = *lnode;
     storage.set_executor(exec);
     const bool scale_correction =
         multigrid->get_parameters().scale_correction;
@@ -481,7 +481,7 @@ void MultigridState::allocate_memory(
     auto* lnode = level_nodes[level];
     GKO_ASSERT(lnode);
 
-    auto& storage = lnode->get_local_storage();
+    auto& storage = *lnode;
     storage.set_executor(exec);
     const bool scale_correction =
         multigrid->get_parameters().scale_correction;
@@ -614,7 +614,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     using value_type = typename VectorType::value_type;
     auto total_level = multigrid->get_mg_level_list().size();
 
-    auto& level_storage = level_nodes[level]->get_local_storage();
+    auto& level_storage = *level_nodes[level];
     auto* r = level_storage.get_mutable_op(0);
     auto* g = level_storage.get_mutable_op(1);
     auto* e = level_storage.get_mutable_op(2);
