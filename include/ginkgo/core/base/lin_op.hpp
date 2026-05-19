@@ -114,7 +114,7 @@ class Diagonal;
  *
  * @ref LinOp
  */
-class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
+class LinOp : public PolymorphicObject {
 public:
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
@@ -188,7 +188,7 @@ public:
     LinOp& operator=(LinOp&& other)
     {
         if (this != &other) {
-            EnableAbstractPolymorphicObject<LinOp>::operator=(std::move(other));
+            PolymorphicObject::operator=(std::move(other));
             this->set_size(other.get_size());
             other.set_size({});
         }
@@ -203,7 +203,7 @@ public:
      * which will have size 0x0 and unchanged executor afterwards.
      */
     LinOp(LinOp&& other)
-        : EnableAbstractPolymorphicObject<LinOp>(std::move(other)),
+        : PolymorphicObject(std::move(other)),
           size_{std::exchange(other.size_, dim<2>{})}
     {}
 
@@ -216,7 +216,7 @@ protected:
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
                    const dim<2>& size = dim<2>{})
-        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
+        : PolymorphicObject(exec), size_{size}
     {}
 
     /**

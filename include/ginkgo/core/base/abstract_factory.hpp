@@ -42,9 +42,7 @@ namespace gko {
  *                         the product
  */
 template <typename AbstractProductType, typename ComponentsType>
-class AbstractFactory
-    : public EnableAbstractPolymorphicObject<
-          AbstractFactory<AbstractProductType, ComponentsType>> {
+class AbstractFactory : public PolymorphicObject {
 public:
     using abstract_product_type = AbstractProductType;
     using components_type = ComponentsType;
@@ -81,7 +79,7 @@ protected:
      * @param exec  the executor where the factory should be constructed
      */
     AbstractFactory(std::shared_ptr<const Executor> exec)
-        : EnableAbstractPolymorphicObject<AbstractFactory>(std::move(exec))
+        : PolymorphicObject(std::move(exec))
     {}
 
     /**

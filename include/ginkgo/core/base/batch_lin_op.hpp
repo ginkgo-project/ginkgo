@@ -56,7 +56,7 @@ namespace batch {
  *
  * @ref BatchLinOp
  */
-class BatchLinOp : public EnableAbstractPolymorphicObject<BatchLinOp> {
+class BatchLinOp : public PolymorphicObject {
 public:
     /**
      * Returns the number of items in the batch operator.
@@ -137,7 +137,7 @@ protected:
      */
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
                         const batch_dim<2>& batch_size)
-        : EnableAbstractPolymorphicObject<BatchLinOp>(exec), size_{batch_size}
+        : PolymorphicObject(exec), size_{batch_size}
     {}
 
     /**
