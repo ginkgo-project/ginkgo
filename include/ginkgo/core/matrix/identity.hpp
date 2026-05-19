@@ -34,7 +34,6 @@ namespace matrix {
 template <typename ValueType = default_precision>
 class Identity : public EnableClonableLinOp<Identity<ValueType>>,
                  public Transposable {
-    friend class EnablePolymorphicObject<Identity, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -88,10 +87,7 @@ protected:
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class IdentityFactory
-    : public EnablePolymorphicObject<IdentityFactory<ValueType>, LinOpFactory> {
-    friend class EnablePolymorphicObject<IdentityFactory, LinOpFactory>;
-
+class IdentityFactory : public LinOpFactory {
 public:
     using value_type = ValueType;
 
@@ -113,8 +109,7 @@ protected:
     std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> base) const override;
 
-    IdentityFactory(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<IdentityFactory, LinOpFactory>(exec)
+    IdentityFactory(std::shared_ptr<const Executor> exec) : LinOpFactory(exec)
     {}
 };
 

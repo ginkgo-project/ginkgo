@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -71,7 +71,6 @@ template <typename ValueType = default_precision>
 class Overhead : public EnableLinOp<Overhead<ValueType>>,
                  public Preconditionable {
     friend class EnableLinOp<Overhead>;
-    friend class EnablePolymorphicObject<Overhead, LinOp>;
 
 public:
     class Factory;

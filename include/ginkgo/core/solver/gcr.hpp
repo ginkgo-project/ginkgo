@@ -46,10 +46,9 @@ constexpr size_type gcr_default_krylov_dim = 100u;
  */
 template <typename ValueType = default_precision>
 class Gcr
-    : public EnablePolymorphicObject<Gcr<ValueType>, LinOp>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>,
       public Transposable {
-    friend class EnablePolymorphicObject<Gcr, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -119,15 +118,13 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Gcr(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Gcr, LinOp>(std::move(exec))
+    explicit Gcr(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Gcr(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
-        : EnablePolymorphicObject<Gcr, LinOp>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

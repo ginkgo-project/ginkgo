@@ -50,7 +50,7 @@ namespace batch {
  */
 template <typename ValueType = default_precision>
 class MultiVector
-    : public EnablePolymorphicObject<MultiVector<ValueType>>,
+    : public PolymorphicObject,
       public EnableClonableAssignment<MultiVector<ValueType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>,
@@ -59,7 +59,6 @@ class MultiVector
       public ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>,
 #endif
       public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
-    friend class EnablePolymorphicObject<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<previous_precision<ValueType>>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;

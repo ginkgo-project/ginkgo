@@ -124,7 +124,6 @@ class Csr : public EnableClonableLinOp<Csr<ValueType, IndexType>>,
             public EnableAbsoluteComputation<
                 remove_complex<Csr<ValueType, IndexType>>>,
             public ScaledIdentityAddable {
-    friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Diagonal<ValueType>;

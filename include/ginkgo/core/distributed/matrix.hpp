@@ -273,7 +273,6 @@ class Matrix
                                   GlobalIndexType>>,
 #endif
       public DistributedBase {
-    friend class EnablePolymorphicObject<Matrix, LinOp>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
     friend class multigrid::Pgm<ValueType, LocalIndexType>;

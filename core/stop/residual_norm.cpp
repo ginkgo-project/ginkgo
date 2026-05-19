@@ -93,7 +93,7 @@ template <typename ValueType>
 ResidualNormBase<ValueType>::ResidualNormBase(
     std::shared_ptr<const gko::Executor> exec, const CriterionArgs& args,
     remove_complex<ValueType> reduction_factor, mode baseline)
-    : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
+    : Criterion(exec),
       reduction_factor_{reduction_factor},
       device_storage_{exec, 2},
       baseline_{baseline},
@@ -253,9 +253,9 @@ struct residual_norm_factory_parameters
 
 
 class ResidualNormFactory
-    : public EnablePolymorphicObject<ResidualNormFactory, CriterionFactory>,
+    : public CriterionFactory,
       public EnableClonableAssignment<ResidualNormFactory> {
-    friend class EnablePolymorphicObject<ResidualNormFactory, CriterionFactory>;
+    friend CriterionFactory;
     friend class enable_parameters_type<residual_norm_factory_parameters,
                                         ResidualNormFactory>;
     friend EnableDefaultCriterionFactory<ResidualNormFactory, Criterion,
@@ -264,9 +264,7 @@ class ResidualNormFactory
     explicit ResidualNormFactory(
         std::shared_ptr<const Executor> exec,
         const residual_norm_factory_parameters& parameters = {})
-        : EnablePolymorphicObject<ResidualNormFactory, CriterionFactory>(
-              std::move(exec)),
-          parameters_{parameters}
+        : CriterionFactory(std::move(exec)), parameters_{parameters}
     {}
 
     std::unique_ptr<Criterion> generate_impl(CriterionArgs args) const override

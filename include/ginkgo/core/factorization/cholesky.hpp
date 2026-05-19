@@ -33,14 +33,12 @@ namespace factorization {
  */
 template <typename ValueType, typename IndexType>
 class Cholesky
-    : public EnablePolymorphicObject<Cholesky<ValueType, IndexType>,
-                                     LinOpFactory>,
+    : public LinOpFactory,
       public EnableClonableAssignment<Cholesky<ValueType, IndexType>> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<Cholesky, LinOpFactory>;
     friend class enable_parameters_type<parameters_type, Cholesky>;
 
     using value_type = ValueType;

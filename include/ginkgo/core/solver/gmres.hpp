@@ -70,10 +70,9 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho);
  */
 template <typename ValueType = default_precision>
 class Gmres
-    : public EnablePolymorphicObject<Gmres<ValueType>, LinOp>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>,
       public Transposable {
-    friend class EnablePolymorphicObject<Gmres, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -152,14 +151,13 @@ protected:
                     LinOp* x) const override;
 
     explicit Gmres(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Gmres, LinOp>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     explicit Gmres(const Factory* factory,
                    std::shared_ptr<const LinOp> system_matrix)
-        : EnablePolymorphicObject<Gmres, LinOp>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

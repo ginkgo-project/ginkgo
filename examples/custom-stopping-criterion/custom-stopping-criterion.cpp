@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,10 +16,8 @@
  * the iteration process. Using this criterion is slightly more complex than the
  * other ones, because it is asynchronous therefore requires the use of threads.
  */
-class ByInteraction
-    : public gko::EnablePolymorphicObject<ByInteraction, gko::stop::Criterion> {
-    friend class gko::EnablePolymorphicObject<ByInteraction,
-                                              gko::stop::Criterion>;
+class ByInteraction : public gko::stop::Criterion {
+    friend class gko::stop::Criterion;
     using Criterion = gko::stop::Criterion;
 
 public:

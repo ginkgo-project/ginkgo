@@ -109,7 +109,6 @@ template <typename LSolverTypeOrValueType = solver::LowerTrs<>,
 class Ic : public EnableLinOp<Ic<LSolverTypeOrValueType, IndexType>>,
            public Transposable {
     friend class EnableLinOp<Ic>;
-    friend class EnablePolymorphicObject<Ic, LinOp>;
 
 public:
     using l_solver_type =

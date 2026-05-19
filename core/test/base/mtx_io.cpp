@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -948,7 +948,7 @@ class DummyLinOp
       public gko::EnableCreateMethod<DummyLinOp<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType>,
       public gko::WritableToMatrixData<ValueType, IndexType> {
-    friend class gko::EnablePolymorphicObject<DummyLinOp, gko::LinOp>;
+    friend class gko::LinOp;
     friend class gko::EnableCreateMethod<DummyLinOp>;
 
 public:

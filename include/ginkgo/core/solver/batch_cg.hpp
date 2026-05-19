@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,7 +49,6 @@ namespace solver {
 template <typename ValueType = default_precision>
 class Cg final : public EnableBatchSolver<Cg<ValueType>, ValueType> {
     friend class EnableBatchLinOp<Cg>;
-    friend class EnablePolymorphicObject<Cg, BatchLinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

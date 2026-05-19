@@ -54,10 +54,9 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Idr
-    : public EnablePolymorphicObject<Idr<ValueType>, LinOp>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>,
       public Transposable {
-    friend class EnablePolymorphicObject<Idr, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -222,15 +221,13 @@ protected:
     template <typename VectorType>
     void iterate(const VectorType* dense_b, VectorType* dense_x) const;
 
-    explicit Idr(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Idr, LinOp>(std::move(exec))
+    explicit Idr(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Idr(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
-        : EnablePolymorphicObject<Idr, LinOp>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

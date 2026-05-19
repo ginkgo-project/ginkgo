@@ -39,7 +39,6 @@ template <typename ValueType = default_precision>
 class Composition : public EnableClonableLinOp<Composition<ValueType>>,
                     public EnableCreateMethod<Composition<ValueType>>,
                     public Transposable {
-    friend class EnablePolymorphicObject<Composition, LinOp>;
     friend class EnableCreateMethod<Composition>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 

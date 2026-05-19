@@ -59,7 +59,6 @@ class Ell final
       public ConvertibleTo<Ell<next_precision<ValueType, 3>, IndexType>>,
 #endif
       public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>> {
-    friend class EnablePolymorphicObject<Ell, BatchLinOp>;
     friend class Ell<to_complex<ValueType>, IndexType>;
     friend class Ell<previous_precision<ValueType>, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;

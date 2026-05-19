@@ -78,12 +78,11 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Ir : public EnablePolymorphicObject<Ir<ValueType>, LinOp>,
+class Ir : public LinOp,
            public EnableSolverBase<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
            public EnableApplyWithInitialGuess<Ir<ValueType>>,
            public Transposable {
-    friend class EnablePolymorphicObject<Ir, LinOp>;
     friend class EnableApplyWithInitialGuess<Ir>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -221,15 +220,13 @@ protected:
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
 
-    explicit Ir(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<Ir, LinOp>(std::move(exec))
+    explicit Ir(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Ir(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
-        : EnablePolymorphicObject<Ir, LinOp>(
-              factory->get_executor(),
-              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnableSolverBase<Ir>{std::move(system_matrix)},
           EnableIterativeBase<Ir>{
               stop::combine(factory->get_parameters().criteria)},

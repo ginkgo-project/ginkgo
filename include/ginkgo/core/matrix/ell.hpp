@@ -65,7 +65,6 @@ class Ell : public EnableClonableLinOp<Ell<ValueType, IndexType>>,
             public WritableToMatrixData<ValueType, IndexType>,
             public EnableAbsoluteComputation<
                 remove_complex<Ell<ValueType, IndexType>>> {
-    friend class EnablePolymorphicObject<Ell, LinOp>;
     friend class Dense<ValueType>;
     friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -498,8 +498,7 @@ std::unique_ptr<Composition<ValueType>> Mc64<ValueType, IndexType>::generate(
 template <typename ValueType, typename IndexType>
 Mc64<ValueType, IndexType>::Mc64(std::shared_ptr<const Executor> exec,
                                  const parameters_type& params)
-    : EnablePolymorphicObject<Mc64, LinOpFactory>(std::move(exec)),
-      parameters_{params}
+    : LinOpFactory(std::move(exec)), parameters_{params}
 {}
 
 

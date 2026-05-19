@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,7 +18,6 @@ namespace {
 template <typename ValueType>
 class DummyLinOp : public gko::EnableLinOp<DummyLinOp<ValueType>>,
                    public gko::EnableCreateMethod<DummyLinOp<ValueType>> {
-    friend class gko::EnablePolymorphicObject<DummyLinOp, gko::LinOp>;
     friend class gko::EnableCreateMethod<DummyLinOp>;
 
 public:

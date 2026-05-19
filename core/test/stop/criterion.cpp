@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,16 +41,12 @@ struct DummyLogger : public gko::log::Logger {
 };
 
 
-class DummyCriterion
-    : public gko::EnablePolymorphicObject<DummyCriterion,
-                                          gko::stop::Criterion> {
-    friend class gko::EnablePolymorphicObject<DummyCriterion,
-                                              gko::stop::Criterion>;
+class DummyCriterion : public gko::stop::Criterion {
+    friend class gko::stop::Criterion;
 
 public:
     explicit DummyCriterion(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnablePolymorphicObject<DummyCriterion, gko::stop::Criterion>(
-              std::move(exec))
+        : gko::stop::Criterion(std::move(exec))
     {}
 
 protected:

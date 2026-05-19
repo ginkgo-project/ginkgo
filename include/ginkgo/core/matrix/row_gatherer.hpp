@@ -41,8 +41,6 @@ namespace matrix {
  */
 template <typename IndexType = int32>
 class RowGatherer : public EnableClonableLinOp<RowGatherer<IndexType>> {
-    friend class EnablePolymorphicObject<RowGatherer, LinOp>;
-
 public:
     using index_type = IndexType;
 

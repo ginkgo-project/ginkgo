@@ -343,7 +343,7 @@ private:
 class LinOpFactory
     : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
 public:
-    using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
+    using AbstractFactory::AbstractFactory;
 
     std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
     {
@@ -798,12 +798,10 @@ private:
 };
 
 template <typename ConcreteObject, typename PolymorphicBase>
-class EnableClonableObject
-    : public EnablePolymorphicObject<ConcreteObject, PolymorphicBase>,
-      public EnableClonableAssignment<ConcreteObject> {
+class EnableClonableObject : public PolymorphicBase,
+                             public EnableClonableAssignment<ConcreteObject> {
 public:
-    using EnablePolymorphicObject<ConcreteObject,
-                                  PolymorphicBase>::EnablePolymorphicObject;
+    using PolymorphicBase::PolymorphicBase;
 };
 
 /**
@@ -850,12 +848,10 @@ public:
 };
 
 template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
-class EnableLinOp
-    : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase> {
+class EnableLinOp : public PolymorphicBase {
 public:
-    using EnablePolymorphicObject<ConcreteLinOp,
-                                  PolymorphicBase>::EnablePolymorphicObject;
     using PolymorphicBase::apply;
+    using PolymorphicBase::PolymorphicBase;
 };
 
 
@@ -968,8 +964,7 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,    \
                                                   _parameters_name##_type> { \
-        friend class ::gko::EnablePolymorphicObject<_factory_name,           \
-                                                    ::gko::LinOpFactory>;    \
+        friend class ::gko::LinOpFactory;                                    \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \

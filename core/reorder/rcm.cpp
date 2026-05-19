@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -48,15 +48,14 @@ void rcm_reorder(const matrix::SparsityCsr<ValueType, IndexType>* mtx,
 
 template <typename ValueType, typename IndexType>
 Rcm<ValueType, IndexType>::Rcm(std::shared_ptr<const Executor> exec)
-    : EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>(std::move(exec))
+    : ReorderingBase<IndexType>(std::move(exec))
 {}
 
 
 template <typename ValueType, typename IndexType>
 Rcm<ValueType, IndexType>::Rcm(const Factory* factory,
                                const ReorderingBaseArgs& args)
-    : EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>(
-          factory->get_executor()),
+    : ReorderingBase<IndexType>(factory->get_executor()),
       parameters_{factory->get_parameters()}
 {
     // The reordering is not supported on DPC++, use the host instead
@@ -127,8 +126,7 @@ namespace reorder {
 template <typename IndexType>
 Rcm<IndexType>::Rcm(std::shared_ptr<const Executor> exec,
                     const parameters_type& params)
-    : EnablePolymorphicObject<Rcm, LinOpFactory>(std::move(exec)),
-      parameters_{params}
+    : LinOpFactory(std::move(exec)), parameters_{params}
 {}
 
 

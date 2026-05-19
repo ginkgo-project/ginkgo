@@ -77,11 +77,9 @@ namespace distributed {
  * @ingroup distributed
  */
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Partition : public EnablePolymorphicObject<
-                      Partition<LocalIndexType, GlobalIndexType>>,
+class Partition : public PolymorphicObject,
                   public EnableClonableAssignment<
                       Partition<LocalIndexType, GlobalIndexType>> {
-    friend class EnablePolymorphicObject<Partition>;
     static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
                   "GlobalIndexType must be at least as large as "
                   "LocalIndexType");

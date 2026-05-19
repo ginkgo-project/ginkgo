@@ -33,11 +33,10 @@ namespace reorder {
  *                    system matrix
  */
 template <typename IndexType = int32>
-class Amd : public EnablePolymorphicObject<Amd<IndexType>, LinOpFactory>,
+class Amd : public LinOpFactory,
             public EnableClonableAssignment<Amd<IndexType>> {
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<Amd<IndexType>, LinOpFactory>;
     friend class enable_parameters_type<parameters_type, Amd<IndexType>>;
 
     using index_type = IndexType;

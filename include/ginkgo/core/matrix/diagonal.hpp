@@ -54,7 +54,6 @@ class Diagonal
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>> {
-    friend class EnablePolymorphicObject<Diagonal, LinOp>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
     friend class Diagonal<to_complex<ValueType>>;

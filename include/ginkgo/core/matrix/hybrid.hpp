@@ -55,7 +55,6 @@ class Hybrid
       public WritableToMatrixData<ValueType, IndexType>,
       public EnableAbsoluteComputation<
           remove_complex<Hybrid<ValueType, IndexType>>> {
-    friend class EnablePolymorphicObject<Hybrid, LinOp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
     friend class Hybrid<to_complex<ValueType>, IndexType>;

@@ -114,7 +114,6 @@ class Fbcsr
       public Transposable,
       public EnableAbsoluteComputation<
           remove_complex<Fbcsr<ValueType, IndexType>>> {
-    friend class EnablePolymorphicObject<Fbcsr, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class SparsityCsr<ValueType, IndexType>;

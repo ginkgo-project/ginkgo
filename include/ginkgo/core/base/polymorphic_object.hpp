@@ -298,50 +298,6 @@ std::shared_ptr<const R> copy_and_convert_to(
 }
 
 
-/**
- * This mixin inherits from (a subclass of) PolymorphicObject and provides a
- * base implementation of a new concrete polymorphic object.
- *
- * The mixin changes parameter and return types of appropriate public methods of
- * PolymorphicObject in the same way EnableAbstractPolymorphicObject does.
- * In addition, it also provides default implementations of PolymorphicObject's
- * virtual methods by using the _executor default constructor_ and the
- * assignment operator of ConcreteObject. Consequently, the following is a
- * minimal example of PolymorphicObject:
- *
- * ```c++
- * struct MyObject : EnablePolymorphicObject<MyObject> {
- *     MyObject(std::shared_ptr<const Executor> exec)
- *         : EnablePolymorphicObject<MyObject>(std::move(exec))
- *     {}
- * };
- * ```
- *
- * In a way, this mixin can be viewed as an extension of default
- * constructor/destructor/assignment operators.
- *
- * @note  This mixin does not enable copying the polymorphic object to the
- *        object of the same type (i.e. it does not implement the
- *        ConvertibleTo<ConcreteObject> interface). To enable a default
- *        implementation of this interface see the EnableClonableAssignment
- *        mixin.
- *
- * @tparam ConcreteObject  the concrete type which is being implemented
- *                         [CRTP parameter]
- * @tparam PolymorphicBase  parent of ConcreteObject in the polymorphic
- *                          hierarchy, has to be a subclass of polymorphic
- *                          object
- */
-template <typename ConcreteObject, typename PolymorphicBase = PolymorphicObject>
-class EnablePolymorphicObject : public PolymorphicBase {
-protected:
-    using PolymorphicBase::PolymorphicBase;
-
-private:
-    GKO_ENABLE_SELF(ConcreteObject);
-};
-
-
 class ClonableObject {
 public:
     virtual ~ClonableObject() = default;

@@ -116,7 +116,6 @@ class Ilu
                              ReverseApply, IndexType>>,
       public Transposable {
     friend class EnableLinOp<Ilu>;
-    friend class EnablePolymorphicObject<Ilu, LinOp>;
 
 public:
     static_assert(

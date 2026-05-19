@@ -55,7 +55,6 @@ class SparsityCsr
       public ReadableFromMatrixData<ValueType, IndexType>,
       public WritableToMatrixData<ValueType, IndexType>,
       public Transposable {
-    friend class EnablePolymorphicObject<SparsityCsr, LinOp>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Fbcsr<ValueType, IndexType>;

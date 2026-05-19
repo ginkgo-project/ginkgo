@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -51,7 +51,6 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class Pgm : public EnableLinOp<Pgm<ValueType, IndexType>>,
             public EnableMultigridLevel<ValueType> {
     friend class EnableLinOp<Pgm>;
-    friend class EnablePolymorphicObject<Pgm, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

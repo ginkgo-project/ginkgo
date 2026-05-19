@@ -48,8 +48,6 @@ class Fft : public EnableClonableLinOp<Fft>,
             public WritableToMatrixData<std::complex<double>, int32>,
             public WritableToMatrixData<std::complex<double>, int64>,
             public Transposable {
-    friend class EnablePolymorphicObject<Fft, LinOp>;
-
 public:
     using EnableClonableLinOp<Fft>::convert_to;
     using EnableClonableLinOp<Fft>::move_to;
@@ -146,8 +144,6 @@ class Fft2 : public EnableClonableLinOp<Fft2>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnablePolymorphicObject<Fft2, LinOp>;
-
 public:
     using EnableClonableLinOp<Fft2>::convert_to;
     using EnableClonableLinOp<Fft2>::move_to;
@@ -258,8 +254,6 @@ class Fft3 : public EnableClonableLinOp<Fft3>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnablePolymorphicObject<Fft3, LinOp>;
-
 public:
     using EnableClonableLinOp<Fft3>::convert_to;
     using EnableClonableLinOp<Fft3>::move_to;

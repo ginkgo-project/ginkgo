@@ -451,11 +451,9 @@ TYPED_TEST(Dense, CanMakeConstView)
 
 
 // but the clone will not work properly?
-class CustomDense
-    : public gko::EnablePolymorphicObject<CustomDense, gko::matrix::Dense<>>,
-      public gko::ConvertibleTo<CustomDense> {
-    friend class gko::EnablePolymorphicObject<CustomDense,
-                                              gko::matrix::Dense<>>;
+class CustomDense : public gko::matrix::Dense<>,
+                    public gko::ConvertibleTo<CustomDense> {
+    friend class gko::matrix::Dense<>;
 
 public:
     static std::unique_ptr<CustomDense> create(
@@ -474,8 +472,7 @@ public:
     CustomDense& operator=(const CustomDense& other)
     {
         if (&other != this) {
-            gko::EnablePolymorphicObject<
-                CustomDense, gko::matrix::Dense<>>::operator=(other);
+            gko::matrix::Dense<>::operator=(other);
             data_ = other.data_;
         }
         return *this;
@@ -484,8 +481,7 @@ public:
     CustomDense& operator=(CustomDense&& other)
     {
         if (&other != this) {
-            gko::EnablePolymorphicObject<
-                CustomDense, gko::matrix::Dense<>>::operator=(std::move(other));
+            gko::matrix::Dense<>::operator=(std::move(other));
             data_ = std::exchange(other.data_, 0);
         }
         return *this;
@@ -521,9 +517,7 @@ public:
 private:
     explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
                          gko::dim<2> size = {}, int data = 0)
-        : gko::EnablePolymorphicObject<CustomDense, gko::matrix::Dense<>>(
-              std::move(exec), size),
-          data_(data)
+        : gko::matrix::Dense<>(std::move(exec), size), data_(data)
     {}
 
     std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override

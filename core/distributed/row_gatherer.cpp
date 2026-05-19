@@ -278,7 +278,7 @@ RowGatherer<LocalIndexType>::RowGatherer(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm,
     const index_map<LocalIndexType, GlobalIndexType>& imap)
-    : EnablePolymorphicObject<RowGatherer>(exec),
+    : PolymorphicObject(exec),
       DistributedBase(coll_comm->get_base_communicator()),
       size_(dim<2>{global_add(exec, coll_comm->get_base_communicator(),
                               imap.get_non_local_size()),
@@ -362,7 +362,7 @@ template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template)
-    : EnablePolymorphicObject<RowGatherer>(exec),
+    : PolymorphicObject(exec),
       DistributedBase(coll_comm_template->get_base_communicator()),
       coll_comm_(std::move(coll_comm_template)),
       send_idxs_(exec),
@@ -372,7 +372,7 @@ RowGatherer<LocalIndexType>::RowGatherer(
 
 template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(RowGatherer&& o) noexcept
-    : EnablePolymorphicObject<RowGatherer>(o.get_executor()),
+    : PolymorphicObject(o.get_executor()),
       DistributedBase(o.get_communicator()),
       send_idxs_(o.get_executor()),
       send_workspace_(o.get_executor())
@@ -412,7 +412,7 @@ RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
 
 template <typename LocalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(const RowGatherer& o)
-    : EnablePolymorphicObject<RowGatherer>(o.get_executor()),
+    : PolymorphicObject(o.get_executor()),
       DistributedBase(o.get_communicator()),
       send_idxs_(o.get_executor())
 {
