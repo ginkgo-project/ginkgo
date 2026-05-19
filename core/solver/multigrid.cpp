@@ -394,8 +394,8 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
     auto* lnode = level_nodes[level];
     GKO_ASSERT(lnode);
 
-    lnode->bind_executor(exec);
     auto& storage = lnode->get_local_storage();
+    storage.set_executor(exec);
     const bool scale_correction =
         multigrid->get_parameters().scale_correction;
     storage.set_size(scale_correction ? 10 : 6, 0);
@@ -490,8 +490,8 @@ void MultigridState::allocate_memory(
     auto* lnode = level_nodes[level];
     GKO_ASSERT(lnode);
 
-    lnode->bind_executor(exec);
     auto& storage = lnode->get_local_storage();
+    storage.set_executor(exec);
     const bool scale_correction =
         multigrid->get_parameters().scale_correction;
     storage.set_size(scale_correction ? 10 : 6, 0);
