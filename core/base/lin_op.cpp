@@ -70,9 +70,13 @@ std::unique_ptr<LinOp> LinOpFactory::generate(
     return generated;
 }
 
-std::unique_ptr<LinOp> LinOpFactory::generate_with_view(
-    const LinOpFactory* factory, std::shared_ptr<const LinOp> input,
-    solver::Workspace* view)
+namespace solver {
+namespace detail {
+
+
+std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
+                                          std::shared_ptr<const LinOp> input,
+                                          Workspace* view)
 {
     factory->log<log::Logger::linop_factory_generate_started>(factory,
                                                               input.get());
@@ -87,4 +91,6 @@ std::unique_ptr<LinOp> LinOpFactory::generate_with_view(
 }
 
 
+}  // namespace detail
+}  // namespace solver
 }  // namespace gko
