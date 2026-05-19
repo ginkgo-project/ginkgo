@@ -26,6 +26,12 @@ LinOpGenerateComponents::LinOpGenerateComponents(
 
 LinOpGenerateComponents::~LinOpGenerateComponents() = default;
 
+std::unique_ptr<solver::Workspace>
+LinOpGenerateComponents::take_owned_workspace()
+{
+    return std::move(owned_workspace_);
+}
+
 LinOpGenerateComponents::LinOpGenerateComponents(
     LinOpGenerateComponents&&) noexcept = default;
 
