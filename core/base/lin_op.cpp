@@ -74,23 +74,6 @@ std::unique_ptr<LinOp> LinOpFactory::generate(
     return generated;
 }
 
-std::unique_ptr<LinOp> LinOpFactory::generate_with_view(
-    const LinOpFactory* factory, std::shared_ptr<const LinOp> input,
-    solver::Workspace* view)
-{
-    factory->log<log::Logger::linop_factory_generate_started>(factory,
-                                                              input.get());
-    const auto exec = factory->get_executor();
-    auto on_exec =
-        (input->get_executor() == exec) ? input : gko::clone(exec, input);
-    auto generated = factory->AbstractFactory::generate(
-        LinOpGenerateComponents{std::move(on_exec), view});
-    factory->log<log::Logger::linop_factory_generate_completed>(
-        factory, input.get(), generated.get());
-    return generated;
-}
-
-
 LinOpFactory::ReuseData::ReuseData() = default;
 
 
@@ -139,4 +122,27 @@ std::unique_ptr<LinOp> LinOpFactory::generate_reuse_impl(
 }
 
 
+namespace solver {
+namespace detail {
+
+
+std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
+                                          std::shared_ptr<const LinOp> input,
+                                          Workspace* view)
+{
+    factory->log<log::Logger::linop_factory_generate_started>(factory,
+                                                              input.get());
+    const auto exec = factory->get_executor();
+    auto on_exec =
+        (input->get_executor() == exec) ? input : gko::clone(exec, input);
+    auto generated = factory->AbstractFactory::generate(
+        LinOpGenerateComponents{std::move(on_exec), view});
+    factory->log<log::Logger::linop_factory_generate_completed>(
+        factory, input.get(), generated.get());
+    return generated;
+}
+
+
+}  // namespace detail
+}  // namespace solver
 }  // namespace gko
