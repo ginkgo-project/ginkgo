@@ -262,8 +262,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->move_from(this->diag_mtx_.get());
-    result->off_diag_mtx_->move_from(this->off_diag_mtx_.get());
+    as<ClonableObject>(result->diag_mtx_)
+        ->move_from(as<ClonableObject>(this->diag_mtx_.get()));
+    as<ClonableObject>(result->off_diag_mtx_)
+        ->move_from(as<ClonableObject>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
@@ -280,8 +282,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->copy_from(this->diag_mtx_.get());
-    result->off_diag_mtx_->copy_from(this->off_diag_mtx_.get());
+    as<ClonableObject>(result->diag_mtx_)
+        ->copy_from(as<ClonableObject>(this->diag_mtx_.get()));
+    as<ClonableObject>(result->off_diag_mtx_)
+        ->copy_from(as<ClonableObject>(this->off_diag_mtx_.get()));
     result->row_gatherer_->copy_from(this->row_gatherer_);
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
@@ -295,8 +299,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->move_from(this->diag_mtx_.get());
-    result->off_diag_mtx_->move_from(this->off_diag_mtx_.get());
+    as<ClonableObject>(result->diag_mtx_)
+        ->move_from(as<ClonableObject>(this->diag_mtx_.get()));
+    as<ClonableObject>(result->off_diag_mtx_)
+        ->move_from(as<ClonableObject>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
