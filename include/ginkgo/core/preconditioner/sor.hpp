@@ -49,7 +49,7 @@ namespace preconditioner {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sor : public LinOpFactory,
-            public EnableClonableAssignment<Sor<ValueType, IndexType>> {
+            public EnableClonable<Sor<ValueType, IndexType>> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

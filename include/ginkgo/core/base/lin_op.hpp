@@ -797,13 +797,6 @@ private:
     virtual void add_scaled_identity_impl(const LinOp* a, const LinOp* b) = 0;
 };
 
-template <typename ConcreteObject, typename PolymorphicBase>
-class EnableClonableObject : public PolymorphicBase,
-                             public EnableClonableAssignment<ConcreteObject> {
-public:
-    using PolymorphicBase::PolymorphicBase;
-};
-
 
 /**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the

@@ -354,6 +354,7 @@ protected:
         std::shared_ptr<const Executor> exec) const = 0;
 };
 
+
 /**
  * This mixin is used to enable a default PolymorphicObject::copy_from()
  * implementation for objects that have implemented conversions between them.
@@ -367,8 +368,8 @@ protected:
  * @tparam ResultType  the type to which copy_from is being enabled
  */
 template <typename ConcreteType>
-class EnableClonableAssignment : public ConvertibleTo<ConcreteType>,
-                                 public ClonableObject {
+class EnableClonable : public ConvertibleTo<ConcreteType>,
+                       public ClonableObject {
 public:
     using result_type = ConcreteType;
     using ConvertibleTo<result_type>::convert_to;
@@ -505,9 +506,6 @@ protected:
     GKO_ENABLE_SELF(ConcreteType);
 };
 
-
-template <typename T>
-using EnableClonable = EnableClonableAssignment<T>;
 
 /**
  * This mixin implements a static `create()` method on `ConcreteType` that
