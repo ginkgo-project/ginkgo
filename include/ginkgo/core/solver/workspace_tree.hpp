@@ -54,7 +54,7 @@ public:
     }
 
     static std::unique_ptr<Workspace> create(
-        std::shared_ptr<const Executor> exec, size_type num_rhs = 1);
+        std::shared_ptr<const Executor> exec);
 
     Workspace* get_or_create_child(const std::string& tag)
     {
@@ -65,7 +65,6 @@ public:
         auto child = std::unique_ptr<Workspace>(
             new Workspace(local_storage_.get_executor()));
         child->tag_ = tag;
-        child->num_rhs_ = num_rhs_;
         auto* ptr = child.get();
         children_.emplace(tag, std::move(child));
         return ptr;
@@ -85,10 +84,6 @@ public:
         return children_.find(tag) != children_.end();
     }
 
-    size_type get_num_rhs() const { return num_rhs_; }
-
-    void set_num_rhs(size_type num_rhs) { num_rhs_ = num_rhs; }
-
     void describe(std::ostream& os, int indent = 0) const;
 
     detail::workspace& get_local_storage() { return local_storage_; }
@@ -102,7 +97,6 @@ private:
     detail::workspace local_storage_;
     std::map<std::string, std::unique_ptr<Workspace>> children_;
     std::string tag_;
-    size_type num_rhs_ = 0;
 };
 
 
