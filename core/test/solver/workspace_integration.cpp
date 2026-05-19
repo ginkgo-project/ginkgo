@@ -12,7 +12,7 @@
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
-#include <ginkgo/core/solver/workspace_tree.hpp>
+#include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
