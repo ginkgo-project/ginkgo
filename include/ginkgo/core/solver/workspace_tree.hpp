@@ -89,11 +89,6 @@ public:
 
     void set_num_rhs(size_type num_rhs) { num_rhs_ = num_rhs; }
 
-    void bind_executor(std::shared_ptr<const Executor> exec)
-    {
-        local_storage_.set_executor(std::move(exec));
-    }
-
     void describe(std::ostream& os, int indent = 0) const;
 
     detail::workspace& get_local_storage() { return local_storage_; }

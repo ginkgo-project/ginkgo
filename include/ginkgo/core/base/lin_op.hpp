@@ -353,17 +353,19 @@ private:
  * Components needed to generate a LinOp product from a factory.
  * Carries the system matrix and an optional workspace for temporary storage.
  *
+ * Each instance is constructed in exactly one of three states:
+ *   - no workspace,
+ *   - owning workspace (transferred to the factory),
+ *   - non-owning workspace view (borrowed by an inner solver).
+ * The state is fixed at construction; the workspace storage is private so
+ * the two cases cannot coexist or be set after the fact.
+ *
  * Destructor, move constructor, and move assignment are out-of-line
  * (in core/base/lin_op.cpp) because unique_ptr<Workspace> requires
  * a complete type for these operations.
  */
 struct LinOpGenerateComponents {
     std::shared_ptr<const LinOp> system_matrix;
-    // Set when the caller transfers ownership of a workspace to the factory.
-    std::unique_ptr<solver::Workspace> workspace;
-    // Set when the caller lends a non-owning workspace node (inner solver).
-    // At most one of workspace / workspace_view is non-null.
-    solver::Workspace* workspace_view = nullptr;
 
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix);
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
@@ -377,6 +379,19 @@ struct LinOpGenerateComponents {
     // Non-copyable (unique_ptr member)
     LinOpGenerateComponents(const LinOpGenerateComponents&) = delete;
     LinOpGenerateComponents& operator=(const LinOpGenerateComponents&) = delete;
+
+    bool has_owned_workspace() const { return owned_workspace_ != nullptr; }
+    bool has_view_workspace() const { return view_workspace_ != nullptr; }
+
+    std::unique_ptr<solver::Workspace> take_owned_workspace()
+    {
+        return std::move(owned_workspace_);
+    }
+    solver::Workspace* get_view_workspace() const { return view_workspace_; }
+
+private:
+    std::unique_ptr<solver::Workspace> owned_workspace_;
+    solver::Workspace* view_workspace_ = nullptr;
 };
 
 

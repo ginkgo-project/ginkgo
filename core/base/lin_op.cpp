@@ -11,17 +11,17 @@ namespace gko {
 
 LinOpGenerateComponents::LinOpGenerateComponents(
     std::shared_ptr<const LinOp> matrix)
-    : system_matrix{std::move(matrix)}, workspace{}
+    : system_matrix{std::move(matrix)}
 {}
 
 LinOpGenerateComponents::LinOpGenerateComponents(
     std::shared_ptr<const LinOp> matrix, std::unique_ptr<solver::Workspace> ws)
-    : system_matrix{std::move(matrix)}, workspace{std::move(ws)}
+    : system_matrix{std::move(matrix)}, owned_workspace_{std::move(ws)}
 {}
 
 LinOpGenerateComponents::LinOpGenerateComponents(
     std::shared_ptr<const LinOp> matrix, solver::Workspace* view)
-    : system_matrix{std::move(matrix)}, workspace{}, workspace_view{view}
+    : system_matrix{std::move(matrix)}, view_workspace_{view}
 {}
 
 LinOpGenerateComponents::~LinOpGenerateComponents() = default;
