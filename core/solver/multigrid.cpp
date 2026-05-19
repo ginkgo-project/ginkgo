@@ -89,7 +89,8 @@ casting(const T& x)
 /**
  * Generates a component of the hierarchy, through generate_reuse() if reuse
  * data is kept for it. Otherwise, the component is generated into the given
- * workspace node, if any.
+ * workspace node, if any. The levels of the hierarchy are generated without
+ * one.
  */
 std::unique_ptr<LinOp> generate_component(
     const LinOpFactory* factory, std::shared_ptr<const LinOp> matrix,
@@ -97,10 +98,10 @@ std::unique_ptr<LinOp> generate_component(
     solver::Workspace* ws_node = nullptr)
 {
     if (!reuse_data) {
-        if (ws_node) {
-            return factory->generate(std::move(matrix), ws_node);
+        if (!ws_node) {
+            return factory->generate(std::move(matrix));
         }
-        return factory->generate(std::move(matrix));
+        return factory->generate(std::move(matrix), ws_node);
     }
     if (!*reuse_data) {
         *reuse_data = factory->create_empty_reuse_data();
@@ -121,7 +122,7 @@ void handle_list(
     std::vector<std::shared_ptr<const LinOp>>& smoother, size_type iteration,
     std::complex<double> relaxation_factor,
     std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
-    solver::Workspace* ws_node = nullptr)
+    solver::Workspace* ws_node)
 {
     auto list_size = smoother_list.size();
     auto gen_default_smoother = [&]() -> std::shared_ptr<const LinOp> {
@@ -794,32 +795,18 @@ void Multigrid::generate_smoothers(
          level_reuse, level_node](auto mg_level, auto index, auto matrix) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
-            // Create smoother child nodes from the level node
-            solver::Workspace* pre_node = nullptr;
-            solver::Workspace* mid_node = nullptr;
-            solver::Workspace* post_node = nullptr;
-            if (level_node) {
-                pre_node = level_node->get_or_create_child("pre_smoother");
-                if (parameters_.mid_case ==
-                    multigrid::mid_smooth_type::standalone) {
-                    mid_node = level_node->get_or_create_child("mid_smoother");
-                }
-                if (!parameters_.post_uses_pre) {
-                    post_node =
-                        level_node->get_or_create_child("post_smoother");
-                }
-            }
             handle_list<value_type>(
                 index, matrix, parameters_.pre_smoother, pre_smoother_list,
                 parameters_.smoother_iters, parameters_.smoother_relax,
-                level_reuse ? &level_reuse->pre_smoother : nullptr, pre_node);
+                level_reuse ? &level_reuse->pre_smoother : nullptr,
+                level_node->get_or_create_child("pre_smoother"));
             if (parameters_.mid_case ==
                 multigrid::mid_smooth_type::standalone) {
                 handle_list<value_type>(
                     index, matrix, parameters_.mid_smoother, mid_smoother_list,
                     parameters_.smoother_iters, parameters_.smoother_relax,
                     level_reuse ? &level_reuse->mid_smoother : nullptr,
-                    mid_node);
+                    level_node->get_or_create_child("mid_smoother"));
             }
             if (!parameters_.post_uses_pre) {
                 handle_list<value_type>(
@@ -827,7 +814,7 @@ void Multigrid::generate_smoothers(
                     post_smoother_list, parameters_.smoother_iters,
                     parameters_.smoother_relax,
                     level_reuse ? &level_reuse->post_smoother : nullptr,
-                    post_node);
+                    level_node->get_or_create_child("post_smoother"));
             }
         },
         index, mg_level->get_fine_op());
@@ -1011,12 +998,8 @@ void Multigrid::generate(reuse_data_type* reuse_data)
             entry->coarse_size = coarse_size;
         }
 
-        // Create per-level workspace child node for smoother propagation
-        solver::Workspace* level_node = nullptr;
-        if (mg_ws_node) {
-            level_node = mg_ws_node->get_or_create_child("level_" +
-                                                         std::to_string(level));
-        }
+        auto* level_node =
+            mg_ws_node->get_or_create_child("level_" + std::to_string(level));
 
         this->generate_smoothers(mg_level, index, pre_smoother_list_,
                                  mid_smoother_list_, post_smoother_list_, entry,
@@ -1052,11 +1035,7 @@ void Multigrid::generate(reuse_data_type* reuse_data)
             recorded_coarsest_index = &reuse_data->coarsest_index_;
         }
     }
-    // Create workspace child node for coarse solver propagation
-    solver::Workspace* coarse_ws_node = nullptr;
-    if (mg_ws_node) {
-        coarse_ws_node = mg_ws_node->get_or_create_child("coarse_solver");
-    }
+    auto* coarse_ws_node = mg_ws_node->get_or_create_child("coarse_solver");
     coarsest_solver_ = this->generate_coarsest_solver(
         last_mg_level, level, matrix, coarsest_reuse, recorded_coarsest_index,
         &coarsest_index, coarse_ws_node);

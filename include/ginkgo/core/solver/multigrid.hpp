@@ -508,7 +508,7 @@ protected:
      *                            unless the post smoother reuses the pre one
      * @param level_reuse  the reuse data of the level, or nullptr
      * @param level_node  the workspace node of the level, under which the
-     *                    smoothers get their workspace nodes, or nullptr
+     *                    smoothers get their workspace nodes
      */
     void generate_smoothers(
         std::shared_ptr<const gko::multigrid::MultigridLevel> mg_level,
@@ -530,8 +530,7 @@ protected:
      * @param recorded_index  if given, the coarsest solver index to use
      *                        instead of asking the solver selector
      * @param selected_index  receives the coarsest solver index used
-     * @param coarse_ws_node  the workspace node of the coarsest solver, or
-     *                        nullptr
+     * @param coarse_ws_node  the workspace node of the coarsest solver
      *
      * @return the coarsest solver
      */
