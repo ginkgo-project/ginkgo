@@ -847,13 +847,6 @@ public:
     using PolymorphicBase::apply;
 };
 
-template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
-class EnableLinOp : public PolymorphicBase {
-public:
-    using PolymorphicBase::apply;
-    using PolymorphicBase::PolymorphicBase;
-};
-
 
 /**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
@@ -896,7 +889,7 @@ using EnableDefaultLinOpFactory =
  * A minimal example of a linear operator is the following:
  *
  * ```c++
- * struct MyLinOp : public EnableLinOp<MyLinOp> {
+ * struct MyLinOp : public LinOp {
  *     GKO_ENABLE_LIN_OP_FACTORY(MyLinOp, my_parameters, Factory) {
  *         // a factory parameter named "my_value", of type int and default
  *         // value of 5
@@ -907,11 +900,11 @@ using EnableDefaultLinOpFactory =
  *     };
  *     // constructor needed by EnableLinOp
  *     explicit MyLinOp(std::shared_ptr<const Executor> exec) {
- *         : EnableLinOp<MyLinOp>(exec) {}
+ *         : LinOp(exec) {}
  *     // constructor needed by the factory
  *     explicit MyLinOp(const Factory *factory,
  *                      std::shared_ptr<const LinOp> matrix)
- *         : EnableLinOp<MyLinOp>(factory->get_executor()), matrix->get_size()),
+ *         : LinOp(factory->get_executor()), matrix->get_size()),
  *           // store factory's parameters locally
  *           my_parameters_{factory->get_parameters()},
  *     {

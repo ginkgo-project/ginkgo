@@ -184,11 +184,10 @@ struct block_interleaved_storage_scheme {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
+class Jacobi : public LinOp,
                public ConvertibleTo<matrix::Dense<ValueType>>,
                public WritableToMatrixData<ValueType, IndexType>,
                public Transposable {
-    friend class EnableLinOp<Jacobi>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -540,10 +539,7 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Jacobi(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Jacobi>(exec),
-          num_blocks_{},
-          blocks_(exec),
-          conditioning_(exec)
+        : LinOp(exec), num_blocks_{}, blocks_(exec), conditioning_(exec)
     {
         parameters_.block_pointers.set_executor(exec);
         parameters_.storage_optimization.block_wise.set_executor(exec);
@@ -558,8 +554,8 @@ protected:
      */
     explicit Jacobi(const Factory* factory,
                     std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Jacobi>(factory->get_executor(),
-                              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           storage_scheme_{this->compute_storage_scheme(
               parameters_.max_block_size, parameters_.max_block_stride)},

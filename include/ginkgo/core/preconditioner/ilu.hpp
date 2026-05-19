@@ -111,11 +111,8 @@ template <typename LSolverTypeOrValueType = solver::LowerTrs<>,
           typename USolverTypeOrValueType =
               gko::detail::transposed_type<LSolverTypeOrValueType>,
           bool ReverseApply = false, typename IndexType = int32>
-class Ilu
-    : public EnableLinOp<Ilu<LSolverTypeOrValueType, USolverTypeOrValueType,
-                             ReverseApply, IndexType>>,
-      public Transposable {
-    friend class EnableLinOp<Ilu>;
+class Ilu : public LinOp, public Transposable {
+    friend class LinOp;
 
 public:
     static_assert(
@@ -337,7 +334,7 @@ public:
     Ilu& operator=(const Ilu& other)
     {
         if (&other != this) {
-            EnableLinOp<Ilu>::operator=(other);
+            LinOp::operator=(other);
             auto exec = this->get_executor();
             l_solver_ = other.l_solver_;
             u_solver_ = other.u_solver_;
@@ -359,7 +356,7 @@ public:
     Ilu& operator=(Ilu&& other)
     {
         if (&other != this) {
-            EnableLinOp<Ilu>::operator=(other);
+            LinOp::operator=(other);
             auto exec = this->get_executor();
             l_solver_ = std::move(other.l_solver_);
             u_solver_ = std::move(other.u_solver_);
@@ -430,12 +427,11 @@ protected:
             alpha, b, beta, x);
     }
 
-    explicit Ilu(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ilu>(std::move(exec))
+    explicit Ilu(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Ilu(const Factory* factory, std::shared_ptr<const LinOp> lin_op)
-        : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
+        : LinOp(factory->get_executor(), lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
         auto comp =

@@ -292,11 +292,10 @@ TEST_F(EnableLinOp, AdvancedApplyIsLogged)
 
 
 template <typename T = int>
-class DummyLinOpWithFactory
-    : public gko::EnableLinOp<DummyLinOpWithFactory<T>> {
+class DummyLinOpWithFactory : public gko::LinOp {
 public:
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
+        : gko::LinOp(exec)
     {}
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -308,7 +307,7 @@ public:
 
     DummyLinOpWithFactory(const Factory* factory,
                           std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor()),
+        : gko::LinOp(factory->get_executor()),
           parameters_{factory->get_parameters()},
           op_{op}
     {}
@@ -418,19 +417,19 @@ TEST_F(EnableLinOpFactory, CopiesLinOpToOtherExecutor)
 
 template <typename Type>
 class DummyLinOpWithType
-    : public gko::EnableLinOp<DummyLinOpWithType<Type>>,
+    : public gko::LinOp,
       public gko::EnableCreateMethod<DummyLinOpWithType<Type>>,
       public gko::EnableAbsoluteComputation<
           gko::remove_complex<DummyLinOpWithType<Type>>> {
 public:
     using absolute_type = gko::remove_complex<DummyLinOpWithType>;
     DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOpWithType>(exec)
+        : gko::LinOp(exec)
     {}
 
     DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec,
                        gko::dim<2> size, Type value)
-        : gko::EnableLinOp<DummyLinOpWithType>(exec, size), value_(value)
+        : gko::LinOp(exec, size), value_(value)
     {}
 
     void compute_absolute_inplace() override { value_ = gko::abs(value_); }

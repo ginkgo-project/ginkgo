@@ -16,7 +16,7 @@ namespace {
 
 
 template <typename ValueType>
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp<ValueType>>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp<ValueType>> {
     friend class gko::EnableCreateMethod<DummyLinOp>;
 
@@ -33,12 +33,12 @@ protected:
     {}
 
     explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOp>(exec)
+        : gko::LinOp(exec)
     {}
 
     explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                         gko::dim<2> size)
-        : gko::EnableLinOp<DummyLinOp>(exec, size)
+        : gko::LinOp(exec, size)
     {}
 };
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,9 +14,9 @@
 namespace {
 
 
-struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
+struct DummyOperator : public gko::LinOp {
     DummyOperator(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyOperator>(exec, gko::dim<2>{1, 1})
+        : gko::LinOp(exec, gko::dim<2>{1, 1})
     {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override {}

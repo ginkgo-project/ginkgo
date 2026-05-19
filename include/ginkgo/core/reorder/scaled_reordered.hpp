@@ -41,9 +41,7 @@ namespace reorder {
  * @tparam IndexType  Type of the indices of all matrices used in this class
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class ScaledReordered
-    : public EnableLinOp<ScaledReordered<ValueType, IndexType>> {
-    friend class EnableLinOp<ScaledReordered, LinOp>;
+class ScaledReordered : public LinOp {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -100,14 +98,12 @@ protected:
      * Creates an empty scaled reordered operator (0x0 operator).
      */
     explicit ScaledReordered(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<ScaledReordered>(std::move(exec)),
-          permutation_array_{exec}
+        : LinOp(std::move(exec)), permutation_array_{exec}
     {}
 
     explicit ScaledReordered(const Factory* factory,
                              std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<ScaledReordered>(factory->get_executor(),
-                                       system_matrix->get_size()),
+        : LinOp(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()},
           permutation_array_{factory->get_executor()}
     {

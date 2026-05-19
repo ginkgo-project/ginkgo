@@ -27,7 +27,7 @@ using comm_index_type = gko::experimental::distributed::comm_index_type;
 
 template <typename ValueType, typename IndexType>
 class CustomLinOp
-    : public gko::EnableLinOp<CustomLinOp<ValueType, IndexType>>,
+    : public gko::LinOp,
       public gko::EnableClonableAssignment<CustomLinOp<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType>,
       public gko::EnableCreateMethod<CustomLinOp<ValueType, IndexType>> {
@@ -35,12 +35,12 @@ public:
     void read(const gko::matrix_data<ValueType, IndexType>& data) override {}
 
     explicit CustomLinOp(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<CustomLinOp>(exec)
+        : gko::LinOp(exec)
     {}
 
     explicit CustomLinOp(std::shared_ptr<const gko::Executor> exec,
                          gko::dim<2> size)
-        : gko::EnableLinOp<CustomLinOp>(exec, size)
+        : gko::LinOp(exec, size)
     {}
 
 protected:

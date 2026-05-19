@@ -106,10 +106,7 @@ typename Ic::parameters_type ic_parse(
  */
 template <typename LSolverTypeOrValueType = solver::LowerTrs<>,
           typename IndexType = int32>
-class Ic : public EnableLinOp<Ic<LSolverTypeOrValueType, IndexType>>,
-           public Transposable {
-    friend class EnableLinOp<Ic>;
-
+class Ic : public LinOp, public Transposable {
 public:
     using l_solver_type =
         std::conditional_t<gko::detail::is_ginkgo_linop<LSolverTypeOrValueType>,
@@ -285,7 +282,7 @@ public:
     Ic& operator=(const Ic& other)
     {
         if (&other != this) {
-            EnableLinOp<Ic>::operator=(other);
+            LinOp::operator=(other);
             auto exec = this->get_executor();
             l_solver_ = other.l_solver_;
             lh_solver_ = other.lh_solver_;
@@ -307,7 +304,7 @@ public:
     Ic& operator=(Ic&& other)
     {
         if (&other != this) {
-            EnableLinOp<Ic>::operator=(other);
+            LinOp::operator=(other);
             auto exec = this->get_executor();
             l_solver_ = std::move(other.l_solver_);
             lh_solver_ = std::move(other.lh_solver_);
@@ -363,12 +360,11 @@ protected:
             alpha, b, beta, x);
     }
 
-    explicit Ic(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ic>(std::move(exec))
+    explicit Ic(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Ic(const Factory* factory, std::shared_ptr<const LinOp> lin_op)
-        : EnableLinOp<Ic>(factory->get_executor(), lin_op->get_size()),
+        : LinOp(factory->get_executor(), lin_op->get_size()),
           parameters_{factory->get_parameters()}
     {
         auto comp =
