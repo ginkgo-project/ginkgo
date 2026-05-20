@@ -37,6 +37,7 @@ class ScaledPermutation final
     : public LinOp,
       public EnableClonable<ScaledPermutation<ValueType, IndexType>>,
       public WritableToMatrixData<ValueType, IndexType> {
+    friend class EnableClonable<ScaledPermutation>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

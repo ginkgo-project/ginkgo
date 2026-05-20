@@ -285,6 +285,7 @@ public:                                                                      \
               _factory_name, _criterion, _parameters_name##_type> {          \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
+        friend class ::gko::EnableClonable<_factory_name>;                   \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \
             : ::gko::stop::EnableDefaultCriterionFactory<                    \
                   _factory_name, _criterion, _parameters_name##_type>(       \

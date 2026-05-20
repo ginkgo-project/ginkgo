@@ -49,6 +49,8 @@ class Fft : public LinOp,
             public WritableToMatrixData<std::complex<double>, int32>,
             public WritableToMatrixData<std::complex<double>, int64>,
             public Transposable {
+    friend class EnableClonable<Fft>;
+
 public:
     using EnableClonable<Fft>::convert_to;
     using EnableClonable<Fft>::move_to;
@@ -146,6 +148,8 @@ class Fft2 : public LinOp,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
+    friend class EnableClonable<Fft2>;
+
 public:
     using EnableClonable<Fft2>::convert_to;
     using EnableClonable<Fft2>::move_to;
@@ -257,6 +261,8 @@ class Fft3 : public LinOp,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
+    friend class EnableClonable<Fft3>;
+
 public:
     using EnableClonable<Fft3>::convert_to;
     using EnableClonable<Fft3>::move_to;

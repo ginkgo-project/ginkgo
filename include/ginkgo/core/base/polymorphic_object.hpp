@@ -298,15 +298,25 @@ std::shared_ptr<const R> copy_and_convert_to(
 }
 
 
+/**
+ * Interface for objects that can be cloned.
+ *
+ * @note The derived types must also derive from ExecutorHolder.
+ */
 class Clonable {
 public:
     virtual ~Clonable() = default;
-    std::unique_ptr<Clonable> clone(std::shared_ptr<const Executor> exec) const
+
+    [[nodiscard]] std::unique_ptr<Clonable> clone(
+        std::shared_ptr<const Executor> exec) const
     {
         return this->clone_impl(std::move(exec));
     }
 
-    std::unique_ptr<Clonable> clone() const { return this->clone_impl(); }
+    [[nodiscard]] std::unique_ptr<Clonable> clone() const
+    {
+        return this->clone_impl();
+    }
 
     Clonable* copy_from(ptr_param<const Clonable> other)
     {
@@ -320,14 +330,13 @@ public:
         return moved;
     }
 
-    std::unique_ptr<Clonable> create_default(
+    [[nodiscard]] std::unique_ptr<Clonable> create_default(
         std::shared_ptr<const Executor> exec) const
     {
-        auto created = this->create_default_impl(std::move(exec));
-        return created;
+        return this->create_default_impl(std::move(exec));
     }
 
-    std::unique_ptr<Clonable> create_default() const
+    [[nodiscard]] std::unique_ptr<Clonable> create_default() const
     {
         return this->create_default(
             dynamic_cast<const ExecutorHolder*>(this)->get_executor());
@@ -342,27 +351,25 @@ protected:
 
     virtual Clonable* move_from_impl(std::unique_ptr<Clonable> other) = 0;
 
-    virtual std::unique_ptr<Clonable> clone_impl(
+    [[nodiscard]] virtual std::unique_ptr<Clonable> clone_impl(
         std::shared_ptr<const Executor> exec) const = 0;
 
-    virtual std::unique_ptr<Clonable> clone_impl() const = 0;
+    [[nodiscard]] virtual std::unique_ptr<Clonable> clone_impl() const = 0;
 
-    virtual std::unique_ptr<Clonable> create_default_impl(
+    [[nodiscard]] virtual std::unique_ptr<Clonable> create_default_impl(
         std::shared_ptr<const Executor> exec) const = 0;
 };
 
 
 /**
- * This mixin is used to enable a default PolymorphicObject::copy_from()
- * implementation for objects that have implemented conversions between them.
+ * This mixin is used to enable a default Cloneable::clone() implementation and
+ * similar for objects that have implemented copy and move constructors.
  *
- * The requirement is that there is either a conversion constructor from
- * `ConcreteType` in `ResultType`, or a conversion operator to `ResultType` in
- * `ConcreteType`.
+ * @note The ConcreteType must have public constructors, or this class as a
+ *       friend class.
  *
  * @tparam ConcreteType  the concrete type from which the copy_from is being
  *                       enabled [CRTP parameter]
- * @tparam ResultType  the type to which copy_from is being enabled
  */
 template <typename ConcreteType>
 class EnableClonable : public ConvertibleTo<ConcreteType>, public Clonable {
@@ -381,7 +388,7 @@ public:
      *
      * @return A clone of the LinOp.
      */
-    std::unique_ptr<ConcreteType> clone(
+    [[nodiscard]] std::unique_ptr<ConcreteType> clone(
         std::shared_ptr<const Executor> exec) const
     {
         auto new_op = self()->create_default(exec);
@@ -397,7 +404,7 @@ public:
      *
      * @return A clone of the LinOp.
      */
-    std::unique_ptr<ConcreteType> clone() const
+    [[nodiscard]] std::unique_ptr<ConcreteType> clone() const
     {
         return this->clone(self()->get_executor());
     }
@@ -407,17 +414,24 @@ public:
     void move_to(result_type* result) override { *result = std::move(*self()); }
 
 
-    std::unique_ptr<ConcreteType> create_default() const
+    [[nodiscard]] std::unique_ptr<ConcreteType> create_default() const
     {
         return create_default(
             dynamic_cast<const ExecutorHolder*>(self())->get_executor());
     }
 
-    std::unique_ptr<ConcreteType> create_default(
+    [[nodiscard]] std::unique_ptr<ConcreteType> create_default(
         std::shared_ptr<const Executor> exec) const
     {
-        // @todo: replace this to a virtual call
-        return nullptr;
+        if constexpr (std::is_base_of_v<
+                          experimental::distributed::DistributedBase,
+                          ConcreteType>) {
+            return std::unique_ptr<ConcreteType>(
+                new ConcreteType(std::move(exec), self()->get_communicator()));
+        } else {
+            return std::unique_ptr<ConcreteType>(
+                new ConcreteType(std::move(exec)));
+        }
     }
 
 protected:
@@ -477,7 +491,7 @@ protected:
         return this;
     }
 
-    std::unique_ptr<Clonable> clone_impl(
+    [[nodiscard]] std::unique_ptr<Clonable> clone_impl(
         std::shared_ptr<const Executor> exec) const override
     {
         auto new_op = self()->create_default(exec);
@@ -485,18 +499,17 @@ protected:
         return new_op;
     }
 
-    std::unique_ptr<Clonable> clone_impl() const override
+    [[nodiscard]] std::unique_ptr<Clonable> clone_impl() const override
     {
         return this->clone_impl(self()->get_executor());
     }
 
-    std::unique_ptr<Clonable> create_default_impl(
+    [[nodiscard]] std::unique_ptr<Clonable> create_default_impl(
         std::shared_ptr<const Executor> exec) const override
     {
         return std::unique_ptr<Clonable>(
             create_default(std::move(exec)).release());
     }
-
     GKO_ENABLE_SELF(ConcreteType);
 };
 

@@ -273,8 +273,10 @@ class Matrix
                                   GlobalIndexType>>,
 #endif
       public DistributedBase {
+    friend class EnableClonable<Matrix>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
+
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 

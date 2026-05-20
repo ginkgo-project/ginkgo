@@ -115,6 +115,7 @@ class Fbcsr
       public Transposable,
       public EnableAbsoluteComputation<
           remove_complex<Fbcsr<ValueType, IndexType>>> {
+    friend class EnableClonable<Fbcsr>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class SparsityCsr<ValueType, IndexType>;

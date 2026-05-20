@@ -70,6 +70,7 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Rcm : public ReorderingBase<IndexType>,
             public EnableClonable<Rcm<ValueType, IndexType>> {
+    friend class EnableClonable<Rcm>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -171,6 +172,8 @@ using rcm_starting_strategy = gko::reorder::starting_strategy;
  */
 template <typename IndexType = int32>
 class Rcm : public LinOpFactory, public EnableClonable<Rcm<IndexType>> {
+    friend class EnableClonable<Rcm>;
+
 public:
     struct parameters_type;
     friend class enable_parameters_type<parameters_type, Rcm<IndexType>>;

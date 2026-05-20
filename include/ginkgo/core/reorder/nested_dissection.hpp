@@ -45,9 +45,9 @@ namespace reorder {
  */
 template <typename ValueType, typename IndexType>
 class NestedDissection
-    : public EnablePolymorphicObject<NestedDissection<ValueType, IndexType>,
-                                     LinOpFactory>,
-      public EnableClonableAssignment<NestedDissection<ValueType, IndexType>> {
+    : public LinOpFactory,
+      public EnableClonable<NestedDissection<ValueType, IndexType>> {
+    friend class EnableClonable<NestedDissection>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

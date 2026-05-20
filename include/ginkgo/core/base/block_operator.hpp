@@ -74,6 +74,8 @@ struct value_span {
  * a different executor.
  */
 class BlockOperator final : public LinOp, public EnableClonable<BlockOperator> {
+    friend class EnableClonable<BlockOperator>;
+
 public:
     /**
      * Get the block dimension of this, i.e. the number of blocks per row and

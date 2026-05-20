@@ -76,9 +76,7 @@ namespace preconditioner {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Ic : public EnableLinOp<Ic<ValueType, IndexType>>, public Transposable {
-    friend class EnableLinOp<Ic>;
-
+class Ic : public LinOp, public Transposable {
 public:
     using value_type = ValueType;
     using index_type = IndexType;
