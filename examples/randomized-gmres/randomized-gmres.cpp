@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -74,6 +75,29 @@ Problem generate_dense_random(std::shared_ptr<const gko::Executor> exec,
     }
     return {gko::share(gko::clone(exec, host_A)),
             gko::clone(exec, host_b)};
+}
+
+
+// SuiteSparse loader: read an .mtx (Matrix Market) file as CSR. The
+// right-hand side is constructed as b = A * ones so the exact solution
+// is the all-ones vector.
+Problem load_mtx(std::shared_ptr<const gko::Executor> exec,
+                 const std::string& path)
+{
+    std::ifstream in{path};
+    if (!in.is_open()) {
+        throw std::runtime_error{"failed to open --mtx-file: " + path};
+    }
+    auto A = gko::share(gko::read<csr>(in, exec));
+    const auto n = A->get_size()[0];
+    if (A->get_size()[0] != A->get_size()[1]) {
+        throw std::runtime_error{"--mtx-file matrix is not square"};
+    }
+    auto ones = vec::create(exec, gko::dim<2>{n, 1});
+    ones->fill(ValueType{1});
+    auto b = vec::create(exec, gko::dim<2>{n, 1});
+    A->apply(ones, b);
+    return {A, std::move(b)};
 }
 
 
@@ -228,8 +252,11 @@ int main(int argc, char* argv[])
          "Diagonal bump added to A (large -> easy, small -> stiff)",
          cxxopts::value<ValueType>()->default_value("0"))
         ("matrix-kind",
-         "Matrix kind (dense_random|sparse_band)",
+         "Matrix kind (dense_random|sparse_band|mtx)",
          cxxopts::value<std::string>()->default_value("dense_random"))
+        ("mtx-file",
+         "Path to a Matrix Market (.mtx) file (used when matrix-kind=mtx)",
+         cxxopts::value<std::string>()->default_value(""))
         ("bandwidth", "Bandwidth for sparse_band (entries per side of diagonal)",
          cxxopts::value<gko::size_type>()->default_value("20"))
         ("slack",
@@ -258,6 +285,7 @@ int main(int argc, char* argv[])
     auto sketch_kind = result["sketch-kind"].as<std::string>();
     auto zeta = result["zeta"].as<gko::size_type>();
     auto matrix_kind = result["matrix-kind"].as<std::string>();
+    auto mtx_file = result["mtx-file"].as<std::string>();
     auto bandwidth = result["bandwidth"].as<gko::size_type>();
     auto slack = result["slack"].as<ValueType>();
     auto diag_bump = result["diag-bump"].as<ValueType>();
@@ -268,11 +296,33 @@ int main(int argc, char* argv[])
             2.0 * std::sqrt(static_cast<double>(n)));
     }
 
+    Problem problem;
+    if (matrix_kind == "dense_random") {
+        problem = generate_dense_random(exec, n, diag_bump, seed);
+    } else if (matrix_kind == "sparse_band") {
+        problem = generate_sparse_band(exec, n, bandwidth, slack, seed);
+    } else if (matrix_kind == "mtx") {
+        if (mtx_file.empty()) {
+            std::cerr << "matrix-kind=mtx requires --mtx-file=<path>"
+                      << std::endl;
+            return 1;
+        }
+        problem = load_mtx(exec, mtx_file);
+        // Overwrite n from the loaded matrix so output reflects reality.
+        n = problem.A->get_size()[0];
+    } else {
+        std::cerr << "Unknown --matrix-kind: " << matrix_kind
+                  << " (expected dense_random|sparse_band|mtx)" << std::endl;
+        return 1;
+    }
+
     std::cout << "Problem: n=" << n << "  matrix=" << matrix_kind;
     if (matrix_kind == "sparse_band") {
         std::cout << "(bw=" << bandwidth << ",slack=" << slack << ")";
-    } else {
+    } else if (matrix_kind == "dense_random") {
         std::cout << "(diag_bump=" << diag_bump << ")";
+    } else if (matrix_kind == "mtx") {
+        std::cout << "(" << mtx_file << ")";
     }
     std::cout << "  krylov_dim=" << krylov_dim
               << "  max_iters=" << max_iters << "  tol=" << tol
@@ -282,17 +332,6 @@ int main(int argc, char* argv[])
     }
     std::cout << "  seed=" << seed << "  repeats=" << repeats
               << "  (+ 1 warm-up)" << std::endl;
-
-    Problem problem;
-    if (matrix_kind == "dense_random") {
-        problem = generate_dense_random(exec, n, diag_bump, seed);
-    } else if (matrix_kind == "sparse_band") {
-        problem = generate_sparse_band(exec, n, bandwidth, slack, seed);
-    } else {
-        std::cerr << "Unknown --matrix-kind: " << matrix_kind
-                  << " (expected dense_random|sparse_band)" << std::endl;
-        return 1;
-    }
     std::shared_ptr<const gko::sketch::SketchOperator<ValueType>> sketch;
     const auto seed64 = static_cast<gko::uint64>(seed);
     if (sketch_kind == "gaussian") {
