@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/sketch/gaussian_sketch.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -369,4 +370,53 @@ TEST_F(Gmres, GmresApplyMultipleRHSIsEquivalentToRef)
         GKO_ASSERT_MTX_NEAR(d_b, b, 0);
         GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
     }
+}
+
+
+TEST_F(Gmres, RgsApplyMatchesReference)
+{
+    if (gko::is_complex_s<value_type>::value) {
+        GTEST_SKIP() << "ortho_method::rgs currently supports real types only";
+    }
+    auto n = mtx->get_size()[0];
+    auto ref_sketch =
+        gko::sketch::GaussianSketch<value_type>::create(
+            ref, /*sketch_size=*/16, /*input_size=*/n, /*seed=*/7);
+    auto d_sketch =
+        gko::sketch::GaussianSketch<value_type>::create(
+            exec, /*sketch_size=*/16, /*input_size=*/n, /*seed=*/7);
+
+    auto ref_factory =
+        Solver::build()
+            .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
+            .with_sketch_operator(gko::share(std::move(ref_sketch)))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(value_type{1e-10}))
+            .on(ref);
+    auto d_factory =
+        Solver::build()
+            .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
+            .with_sketch_operator(gko::share(std::move(d_sketch)))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(50u),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(value_type{1e-10}))
+            .on(exec);
+
+    auto ref_solver = ref_factory->generate(mtx);
+    auto d_solver = d_factory->generate(d_mtx);
+
+    auto b = gen_mtx(n, 1);
+    auto d_b = gko::clone(exec, b);
+    auto x = Mtx::create(ref, gko::dim<2>{n, 1});
+    auto d_x = Mtx::create(exec, gko::dim<2>{n, 1});
+    x->fill(gko::zero<value_type>());
+    d_x->fill(gko::zero<value_type>());
+
+    ref_solver->apply(b.get(), x.get());
+    d_solver->apply(d_b.get(), d_x.get());
+
+    GKO_ASSERT_MTX_NEAR(gko::clone(ref, d_x), x, value_type{1e-6});
 }
