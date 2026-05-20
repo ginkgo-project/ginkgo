@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/sketch/gaussian_sketch.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -315,6 +316,35 @@ TYPED_TEST(Gmres, PassExplicitFactory)
 
     ASSERT_EQ(factory->get_parameters().criteria.front(), stop_factory);
     ASSERT_EQ(factory->get_parameters().preconditioner, precond_factory);
+}
+
+
+TYPED_TEST(Gmres, RgsTransposePreservesSketchOperator)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    SKIP_IF_HALF(value_type);
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        GTEST_SKIP() << "ortho_method::rgs currently supports real types only";
+    }
+    auto sketch = gko::share(
+        gko::sketch::GaussianSketch<value_type>::create(
+            this->exec, /*sketch_size=*/4,
+            /*input_size=*/this->mtx->get_size()[0], /*seed=*/0));
+    auto factory =
+        Solver::build()
+            .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
+            .with_sketch_operator(sketch)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(3u))
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+    auto transposed = static_cast<Solver*>(solver.get())->transpose();
+    auto transposed_solver = static_cast<Solver*>(transposed.get());
+
+    ASSERT_EQ(transposed_solver->get_parameters().sketch_operator, sketch);
+    ASSERT_EQ(transposed_solver->get_parameters().ortho_method,
+              gko::solver::gmres::ortho_method::rgs);
 }
 
 

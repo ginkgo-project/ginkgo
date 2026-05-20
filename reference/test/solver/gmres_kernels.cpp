@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/sketch/gaussian_sketch.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -847,6 +848,116 @@ TYPED_TEST(Gmres, SolvesConjTransposedBigDenseSystem)
     solver->conj_transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({52.7, 85.4, 134.2, -250.0, -16.8, 35.3}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(Gmres, RgsThrowsWhenSketchOperatorMissing)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    SKIP_IF_HALF(value_type);
+    auto factory = Solver::build()
+                       .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
+                       .with_criteria(
+                           gko::stop::Iteration::build().with_max_iters(10u))
+                       .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::InvalidStateError);
+}
+
+
+TYPED_TEST(Gmres, RgsThrowsOnSketchInputSizeMismatch)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    SKIP_IF_HALF(value_type);
+    auto sketch =
+        gko::sketch::GaussianSketch<value_type>::create(
+            this->exec, /*sketch_size=*/4,
+            /*input_size=*/this->mtx->get_size()[0] + 1, /*seed=*/0);
+    auto factory = Solver::build()
+                       .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
+                       .with_sketch_operator(gko::share(std::move(sketch)))
+                       .with_criteria(
+                           gko::stop::Iteration::build().with_max_iters(10u))
+                       .on(this->exec);
+
+    ASSERT_THROW(factory->generate(this->mtx), gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Gmres, SolvesBigDenseSystemWithRgs)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        GTEST_SKIP() << "ortho_method::rgs currently supports real types only";
+    }
+
+    const auto n = this->mtx_big->get_size()[0];
+    auto sketch =
+        gko::sketch::GaussianSketch<value_type>::create(
+            this->exec, /*sketch_size=*/16, /*input_size=*/n, /*seed=*/42);
+    auto rgs_factory =
+        Solver::build()
+            .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
+            .with_sketch_operator(gko::share(std::move(sketch)))
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value))
+            .on(this->exec);
+    auto solver = rgs_factory->generate(this->mtx_big);
+
+    auto b = gko::initialize<Mtx>(
+        {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
+                        r<value_type>::value * 1e3);
+}
+
+
+TYPED_TEST(Gmres, SolvesBigDenseSystemWithRgsAndFlexible)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        GTEST_SKIP() << "ortho_method::rgs currently supports real types only";
+    }
+
+    const auto n = this->mtx_big->get_size()[0];
+    auto sketch =
+        gko::sketch::GaussianSketch<value_type>::create(
+            this->exec, /*sketch_size=*/16, /*input_size=*/n, /*seed=*/42);
+    auto rgs_factory =
+        Solver::build()
+            .with_ortho_method(gko::solver::gmres::ortho_method::rgs)
+            .with_sketch_operator(gko::share(std::move(sketch)))
+            .with_flexible(true)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(100u),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(r<value_type>::value))
+            .on(this->exec);
+    auto solver = rgs_factory->generate(this->mtx_big);
+
+    auto b = gko::initialize<Mtx>(
+        {175352.10, 313410.50, 131114.10, -134116.30, 179529.30, -43564.90},
+        this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({33.0, -56.0, 81.0, -30.0, 21.0, 40.0}),
                         r<value_type>::value * 1e3);
 }
 
