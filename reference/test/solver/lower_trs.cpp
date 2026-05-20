@@ -59,15 +59,4 @@ TYPED_TEST(LowerTrs, LowerTrsFactoryCreatesCorrectSolver)
 }
 
 
-TYPED_TEST(LowerTrs, CanBeCleared)
-{
-    this->solver->clear();
-
-    auto solver_mtx = this->solver->get_system_matrix();
-
-    ASSERT_EQ(solver_mtx, nullptr);
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-}
-
-
 }  // namespace

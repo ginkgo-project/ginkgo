@@ -110,7 +110,7 @@ struct DummyLogger : gko::log::Logger {
 };
 
 
-class EnablePolymorphicObject : public testing::Test {
+class PolymorphicObject : public testing::Test {
 protected:
     std::shared_ptr<gko::ReferenceExecutor> ref{
         gko::ReferenceExecutor::create()};
@@ -134,13 +134,13 @@ protected:
 };
 
 
-TEST_F(EnablePolymorphicObject, CreatesConcreteClass)
+TEST_F(PolymorphicObject, CreatesConcreteClass)
 {
     // this test passes as soon as an instance of `DummyObject` can be created
 }
 
 
-TEST_F(EnablePolymorphicObject, CreatesDefaultObject)
+TEST_F(PolymorphicObject, CreatesDefaultObject)
 {
     auto def = obj->create_default();
 
@@ -150,7 +150,7 @@ TEST_F(EnablePolymorphicObject, CreatesDefaultObject)
 }
 
 
-TEST_F(EnablePolymorphicObject, CreatesDefaultObjectOnAnotherExecutor)
+TEST_F(PolymorphicObject, CreatesDefaultObjectOnAnotherExecutor)
 {
     auto def = obj->create_default(omp);
 
@@ -160,7 +160,7 @@ TEST_F(EnablePolymorphicObject, CreatesDefaultObjectOnAnotherExecutor)
 }
 
 
-TEST_F(EnablePolymorphicObject, CreatesDefaultObjectIsLogged)
+TEST_F(PolymorphicObject, CreatesDefaultObjectIsLogged)
 {
     auto before_logger = *this->logger;
 
@@ -168,89 +168,6 @@ TEST_F(EnablePolymorphicObject, CreatesDefaultObjectIsLogged)
 
     ASSERT_EQ(logger->create_started, before_logger.create_started + 1);
     ASSERT_EQ(logger->create_completed, before_logger.create_completed + 1);
-}
-
-
-// TEST_F(EnablePolymorphicObject, ClonesObject)
-// {
-//     auto clone = obj->clone();
-
-//     ASSERT_NE(clone, obj);
-//     ASSERT_EQ(clone->get_executor(), ref);
-//     ASSERT_EQ(clone->x, 5);
-// }
-
-
-// TEST_F(EnablePolymorphicObject, ClonesObjectToAnotherExecutor)
-// {
-//     auto clone = obj->clone(omp);
-
-//     ASSERT_NE(clone, obj);
-//     ASSERT_EQ(clone->get_executor(), omp);
-//     ASSERT_EQ(clone->x, 5);
-// }
-
-
-// TEST_F(EnablePolymorphicObject, CopiesObject)
-// {
-//     auto copy = DummyObject::create(omp, 7);
-
-//     copy->copy_from(obj);
-
-//     ASSERT_NE(copy, obj);
-//     ASSERT_EQ(copy->get_executor(), omp);
-//     ASSERT_EQ(copy->x, 5);
-//     ASSERT_EQ(obj->get_executor(), ref);
-//     ASSERT_EQ(obj->x, 5);
-// }
-
-
-// TEST_F(EnablePolymorphicObject, CopiesObjectIsLogged)
-// {
-//     auto before_logger = *logger;
-//     auto copy = DummyObject::create(omp, 7);
-//     copy->add_logger(logger);
-
-//     copy->copy_from(obj);
-
-//     ASSERT_EQ(logger->copy_started, before_logger.copy_started + 1);
-//     ASSERT_EQ(logger->copy_completed, before_logger.copy_completed + 1);
-// }
-
-
-// TEST_F(EnablePolymorphicObject, MovesObject)
-// {
-//     auto copy = DummyObject::create(ref, 7);
-
-//     copy->move_from(obj);
-
-//     ASSERT_NE(copy, obj);
-//     ASSERT_EQ(copy->get_executor(), ref);
-//     ASSERT_EQ(copy->x, 5);
-//     ASSERT_EQ(obj->get_executor(), ref);
-//     ASSERT_EQ(obj->x, 0);
-// }
-
-
-// TEST_F(EnablePolymorphicObject, MovesObjectIsLogged)
-// {
-//     auto before_logger = *this->logger;
-//     auto copy = DummyObject::create(ref, 7);
-//     copy->add_logger(logger);
-
-//     copy->move_from(obj);
-
-//     ASSERT_EQ(logger->move_started, before_logger.move_started + 1);
-//     ASSERT_EQ(logger->move_completed, before_logger.move_completed + 1);
-// }
-
-
-TEST_F(EnablePolymorphicObject, ClearsObject)
-{
-    obj->clear();
-
-    ASSERT_EQ(obj->get_executor(), ref);
-    ASSERT_EQ(obj->x, 0);
 }
 
 

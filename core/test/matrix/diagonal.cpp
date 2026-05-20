@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -140,14 +140,6 @@ TYPED_TEST(Diagonal, CanBeCloned)
     this->assert_equal_to_original_mtx(this->diag);
     this->diag->get_values()[1] = 5.0;
     this->assert_equal_to_original_mtx(dynamic_cast<Diag*>(clone.get()));
-}
-
-
-TYPED_TEST(Diagonal, CanBeCleared)
-{
-    this->diag->clear();
-
-    this->assert_empty(this->diag.get());
 }
 
 

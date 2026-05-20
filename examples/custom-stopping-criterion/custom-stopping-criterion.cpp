@@ -46,14 +46,13 @@ protected:
     }
 
     explicit ByInteraction(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<ByInteraction, Criterion>(std::move(exec))
+        : Criterion(std::move(exec))
     {}
 
     explicit ByInteraction(const Factory* factory,
                            const gko::stop::CriterionArgs& args)
 
-        : EnablePolymorphicObject<ByInteraction, Criterion>(
-              factory->get_executor()),
+        : Criterion(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {}
 };

@@ -63,18 +63,6 @@ TYPED_TEST(Fcg, FcgFactoryCreatesCorrectSolver)
 }
 
 
-TYPED_TEST(Fcg, CanBeCleared)
-{
-    using Solver = typename TestFixture::Solver;
-    this->solver->clear();
-
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx =
-        static_cast<Solver*>(this->solver.get())->get_system_matrix();
-    ASSERT_EQ(solver_mtx, nullptr);
-}
-
-
 TYPED_TEST(Fcg, ApplyUsesInitialGuessReturnsTrue)
 {
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());

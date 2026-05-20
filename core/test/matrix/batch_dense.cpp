@@ -138,14 +138,6 @@ TYPED_TEST(Dense, CanBeCloned)
 }
 
 
-TYPED_TEST(Dense, CanBeCleared)
-{
-    this->mtx->clear();
-
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(Dense, CanBeConstructedWithSize)
 {
     using size_type = gko::size_type;

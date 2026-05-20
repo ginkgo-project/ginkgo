@@ -95,14 +95,6 @@ TYPED_TEST(Identity, CanBeCloned)
 }
 
 
-TYPED_TEST(Identity, CanBeCleared)
-{
-    this->mtx->clear();
-
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(Identity, CanBeConstructedWithSize)
 {
     auto m = gko::batch::matrix::Identity<TypeParam>::create(

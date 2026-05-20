@@ -190,21 +190,6 @@ protected:
 TYPED_TEST_SUITE(Pgm, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
-TYPED_TEST(Pgm, CanBeCleared)
-{
-    using MgLevel = typename TestFixture::MgLevel;
-
-    this->mg_level->clear();
-    auto mtx = this->mg_level->get_system_matrix();
-    auto coarse = this->mg_level->get_coarse_op();
-    auto agg = this->mg_level->get_agg();
-
-    ASSERT_EQ(mtx, nullptr);
-    ASSERT_EQ(coarse, nullptr);
-    ASSERT_EQ(agg, nullptr);
-}
-
-
 TYPED_TEST(Pgm, MatchEdge)
 {
     using index_type = typename TestFixture::index_type;

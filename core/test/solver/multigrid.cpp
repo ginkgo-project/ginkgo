@@ -182,22 +182,6 @@ TYPED_TEST(Multigrid, MultigridFactoryCreatesCorrectSolver)
 }
 
 
-TYPED_TEST(Multigrid, CanBeCleared)
-{
-    using Solver = typename TestFixture::Solver;
-
-    this->solver->clear();
-
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx =
-        static_cast<Solver*>(this->solver.get())->get_system_matrix();
-    ASSERT_EQ(solver_mtx, nullptr);
-    auto mg_level =
-        static_cast<Solver*>(this->solver.get())->get_mg_level_list();
-    ASSERT_EQ(mg_level.size(), 0);
-}
-
-
 TYPED_TEST(Multigrid, ApplyUsesInitialGuessReturnsTrue)
 {
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());

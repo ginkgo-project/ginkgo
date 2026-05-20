@@ -66,18 +66,6 @@ TYPED_TEST(Bicg, BicgFactoryCreatesCorrectSolver)
 }
 
 
-TYPED_TEST(Bicg, CanBeCleared)
-{
-    using Solver = typename TestFixture::Solver;
-    this->solver->clear();
-
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx =
-        static_cast<Solver*>(this->solver.get())->get_system_matrix();
-    ASSERT_EQ(solver_mtx, nullptr);
-}
-
-
 TYPED_TEST(Bicg, ApplyUsesInitialGuessReturnsTrue)
 {
     using Solver = typename TestFixture::Solver;

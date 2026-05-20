@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -60,10 +60,11 @@ get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
  *
  * @return seconds
  */
+template <typename ValueTypeIn, typename ValueTypeOut>
 double timing(std::shared_ptr<const gko::Executor> exec,
               std::shared_ptr<const gko::LinOp> A,
-              std::shared_ptr<const gko::LinOp> b,
-              std::shared_ptr<gko::LinOp> x)
+              std::shared_ptr<gko::matrix::Dense<ValueTypeIn>> b,
+              std::shared_ptr<gko::matrix::Dense<ValueTypeOut>> x)
 {
     int warmup = 2;
     int rep = 10;

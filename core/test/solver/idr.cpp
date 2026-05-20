@@ -64,18 +64,6 @@ TYPED_TEST(Idr, IdrFactoryCreatesCorrectSolver)
 }
 
 
-TYPED_TEST(Idr, CanBeCleared)
-{
-    using Solver = typename TestFixture::Solver;
-
-    this->solver->clear();
-
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx = gko::as<Solver>(this->solver.get())->get_system_matrix();
-    ASSERT_EQ(solver_mtx, nullptr);
-}
-
-
 TYPED_TEST(Idr, ApplyUsesInitialGuessReturnsTrue)
 {
     ASSERT_TRUE(this->solver->apply_uses_initial_guess());

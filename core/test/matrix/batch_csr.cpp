@@ -196,14 +196,6 @@ TYPED_TEST(Csr, CanBeCloned)
 }
 
 
-TYPED_TEST(Csr, CanBeCleared)
-{
-    this->mtx->clear();
-
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(Csr, CanBeConstructedWithSize)
 {
     using BatchCsrMtx = typename TestFixture::BatchCsrMtx;

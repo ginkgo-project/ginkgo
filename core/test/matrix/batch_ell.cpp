@@ -174,14 +174,6 @@ TYPED_TEST(Ell, CanBeCloned)
 }
 
 
-TYPED_TEST(Ell, CanBeCleared)
-{
-    this->mtx->clear();
-
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(Ell, CanBeConstructedWithSize)
 {
     using BatchEllMtx = typename TestFixture::BatchEllMtx;
