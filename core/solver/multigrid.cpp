@@ -545,7 +545,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // additional residual computation
     // TODO: if already computes the residual outside, the first level may not
     // need this residual computation when no presmoother in the first level.
-    as<Clonable>(r)->copy_from(as<Clonable>(b));  // n * b
+    as<Cloneable>(r)->copy_from(as<Cloneable>(b));  // n * b
     matrix->apply(neg_one, x, one, r);
 
     // first cycle

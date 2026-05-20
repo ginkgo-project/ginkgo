@@ -25,7 +25,7 @@ namespace gko {
 
 class Executor;
 
-class Clonable;
+class Cloneable;
 
 
 /**
@@ -430,7 +430,7 @@ inline detail::cloned_type<Pointer> clone(const Pointer& p)
 }
 
 /**
- * when the class does not have clone, try ClonableObject
+ * when the class does not have clone, try CloneableObject
  */
 template <typename Pointer,
           std::enable_if_t<!detail::is_cloneable<detail::pointee<Pointer>>()>* =
@@ -440,7 +440,7 @@ inline detail::cloned_type<Pointer> clone(const Pointer& p)
     using type = typename std::remove_cv<detail::pointee<Pointer>>::type;
     // wrap it into ptr_param to accept different type of pointer
     return detail::cloned_type<Pointer>(dynamic_cast<type*>(
-        as<Clonable>(ptr_param<const type>(p).get())->clone().release()));
+        as<Cloneable>(ptr_param<const type>(p).get())->clone().release()));
 }
 
 
@@ -470,7 +470,7 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
 }
 
 /**
- * when the class does not have clone, try ClonableObject
+ * when the class does not have clone, try CloneableObject
  */
 template <typename Pointer,
           std::enable_if_t<!detail::is_cloneable<detail::pointee<Pointer>>()>* =
@@ -481,7 +481,7 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
     using type = typename std::remove_cv<detail::pointee<Pointer>>::type;
     // wrap it into ptr_param to accept different type of pointer
     return detail::cloned_type<Pointer>(
-        dynamic_cast<type*>(as<Clonable>(ptr_param<const type>(p).get())
+        dynamic_cast<type*>(as<Cloneable>(ptr_param<const type>(p).get())
                                 ->clone(std::move(exec))
                                 .release()));
 }

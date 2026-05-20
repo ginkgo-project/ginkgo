@@ -112,7 +112,7 @@ ResidualNormBase<ValueType>::ResidualNormBase(
             } else {
                 this->starting_tau_ =
                     NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
-                auto b_clone = share(as<LinOp>(as<Clonable>(args.b)->clone()));
+                auto b_clone = share(as<LinOp>(as<Cloneable>(args.b)->clone()));
                 args.system_matrix->apply(neg_one_, args.x, one_, b_clone);
                 norm_dispatch<ValueType>(
                     [&](auto dense_r) {
@@ -252,8 +252,8 @@ struct residual_norm_factory_parameters
 
 
 class ResidualNormFactory : public CriterionFactory,
-                            public EnableClonable<ResidualNormFactory> {
-    friend class EnableClonable<ResidualNormFactory>;
+                            public EnableCloneable<ResidualNormFactory> {
+    friend class EnableCloneable<ResidualNormFactory>;
     friend CriterionFactory;
     friend class enable_parameters_type<residual_norm_factory_parameters,
                                         ResidualNormFactory>;

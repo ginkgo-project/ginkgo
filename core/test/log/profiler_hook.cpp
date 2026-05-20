@@ -105,7 +105,7 @@ TEST(ProfilerHook, LogsAllocateCopyOperation)
 
 
 class DummyLinOp : public gko::LinOp,
-                   public gko::EnableClonable<DummyLinOp>,
+                   public gko::EnableCloneable<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};

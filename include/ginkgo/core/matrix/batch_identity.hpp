@@ -30,8 +30,8 @@ namespace matrix {
  */
 template <typename ValueType = default_precision>
 class Identity final : public EnableBatchLinOp<Identity<ValueType>>,
-                       public EnableClonable<Identity<ValueType>> {
-    friend class EnableClonable<Identity>;
+                       public EnableCloneable<Identity<ValueType>> {
+    friend class EnableCloneable<Identity>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

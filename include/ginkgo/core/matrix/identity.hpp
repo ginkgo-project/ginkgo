@@ -33,14 +33,14 @@ namespace matrix {
  */
 template <typename ValueType = default_precision>
 class Identity : public LinOp,
-                 public EnableClonable<Identity<ValueType>>,
+                 public EnableCloneable<Identity<ValueType>>,
                  public Transposable {
-    friend class EnableClonable<Identity>;
+    friend class EnableCloneable<Identity>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableClonable<Identity>::convert_to;
-    using EnableClonable<Identity>::move_to;
+    using EnableCloneable<Identity>::convert_to;
+    using EnableCloneable<Identity>::move_to;
 
     using value_type = ValueType;
     using transposed_type = Identity<ValueType>;

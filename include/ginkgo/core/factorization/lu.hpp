@@ -52,8 +52,8 @@ enum class symbolic_type {
  */
 template <typename ValueType, typename IndexType>
 class Lu : public LinOpFactory,
-           public EnableClonable<Lu<ValueType, IndexType>> {
-    friend class EnableClonable<Lu>;
+           public EnableCloneable<Lu<ValueType, IndexType>> {
+    friend class EnableCloneable<Lu>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

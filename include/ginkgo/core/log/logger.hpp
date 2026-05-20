@@ -28,7 +28,7 @@ class PolymorphicObject;
 class Operation;
 class stopping_status;
 template <typename T>
-class EnableClonable;
+class EnableCloneable;
 
 
 namespace batch {
@@ -787,7 +787,7 @@ public:
 template <typename ConcreteLoggable, typename PolymorphicBase = Loggable>
 class EnableLogging : public PolymorphicBase {
     template <typename T>
-    friend class gko::EnableClonable;
+    friend class gko::EnableCloneable;
 
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override

@@ -79,15 +79,15 @@ namespace distributed {
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Partition
     : public PolymorphicObject,
-      public EnableClonable<Partition<LocalIndexType, GlobalIndexType>> {
-    friend class EnableClonable<Partition>;
+      public EnableCloneable<Partition<LocalIndexType, GlobalIndexType>> {
+    friend class EnableCloneable<Partition>;
     static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
                   "GlobalIndexType must be at least as large as "
                   "LocalIndexType");
 
 public:
-    using EnableClonable<Partition>::convert_to;
-    using EnableClonable<Partition>::move_to;
+    using EnableCloneable<Partition>::convert_to;
+    using EnableCloneable<Partition>::move_to;
 
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;

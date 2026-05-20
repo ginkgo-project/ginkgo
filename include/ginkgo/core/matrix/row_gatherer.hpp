@@ -41,8 +41,8 @@ namespace matrix {
  */
 template <typename IndexType = int32>
 class RowGatherer : public LinOp,
-                    public EnableClonable<RowGatherer<IndexType>> {
-    friend class EnableClonable<RowGatherer>;
+                    public EnableCloneable<RowGatherer<IndexType>> {
+    friend class EnableCloneable<RowGatherer>;
 
 public:
     using index_type = IndexType;

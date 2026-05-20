@@ -35,9 +35,9 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ScaledPermutation final
     : public LinOp,
-      public EnableClonable<ScaledPermutation<ValueType, IndexType>>,
+      public EnableCloneable<ScaledPermutation<ValueType, IndexType>>,
       public WritableToMatrixData<ValueType, IndexType> {
-    friend class EnableClonable<ScaledPermutation>;
+    friend class EnableCloneable<ScaledPermutation>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

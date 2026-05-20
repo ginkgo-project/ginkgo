@@ -36,9 +36,9 @@ namespace gko {
  */
 template <typename ValueType = default_precision>
 class Perturbation : public LinOp,
-                     public EnableClonable<Perturbation<ValueType>>,
+                     public EnableCloneable<Perturbation<ValueType>>,
                      public EnableCreateMethod<Perturbation<ValueType>> {
-    friend class EnableClonable<Perturbation>;
+    friend class EnableCloneable<Perturbation>;
     friend class EnableCreateMethod<Perturbation>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 

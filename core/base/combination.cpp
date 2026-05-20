@@ -100,7 +100,7 @@ std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
     // copy coefficients
     for (auto& coef : get_coefficients()) {
         transposed->coefficients_.push_back(
-            share(as<LinOp>(as<Clonable>(coef)->clone())));
+            share(as<LinOp>(as<Cloneable>(coef)->clone())));
     }
     // transpose operators
     for (auto& op : get_operators()) {

@@ -98,7 +98,7 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Fbcsr
     : public LinOp,
-      public EnableClonable<Fbcsr<ValueType, IndexType>>,
+      public EnableCloneable<Fbcsr<ValueType, IndexType>>,
       public ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Fbcsr<next_precision<ValueType, 2>, IndexType>>,
@@ -115,7 +115,7 @@ class Fbcsr
       public Transposable,
       public EnableAbsoluteComputation<
           remove_complex<Fbcsr<ValueType, IndexType>>> {
-    friend class EnableClonable<Fbcsr>;
+    friend class EnableCloneable<Fbcsr>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class SparsityCsr<ValueType, IndexType>;
@@ -133,16 +133,16 @@ public:
 
     /**
      * For moving to another Fbcsr of the same type, use the default
-     *  implementation provided by EnableClonableLinOp via the
-     *  EnableClonableAssignment mixin.
+     *  implementation provided by EnableCloneableLinOp via the
+     *  EnableCloneableAssignment mixin.
      */
-    using EnableClonable<Fbcsr<ValueType, IndexType>>::move_to;
+    using EnableCloneable<Fbcsr<ValueType, IndexType>>::move_to;
 
     /**
      * For converting (copying) to another Fbcsr of the same type,
-     * use the default implementation provided by EnableClonableLinOp.
+     * use the default implementation provided by EnableCloneableLinOp.
      */
-    using EnableClonable<Fbcsr<ValueType, IndexType>>::convert_to;
+    using EnableCloneable<Fbcsr<ValueType, IndexType>>::convert_to;
 
     using ConvertibleTo<
         Fbcsr<next_precision<ValueType>, IndexType>>::convert_to;

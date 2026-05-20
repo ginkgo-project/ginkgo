@@ -206,12 +206,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    as<Clonable>(result->diag_mtx_)
-        ->copy_from(as<Clonable>(this->diag_mtx_));
-    as<Clonable>(result->off_diag_mtx_)
-        ->copy_from(as<Clonable>(this->off_diag_mtx_));
-    as<Clonable>(result->row_gatherer_)
-        ->copy_from(as<Clonable>(this->row_gatherer_));
+    as<Cloneable>(result->diag_mtx_)
+        ->copy_from(as<Cloneable>(this->diag_mtx_));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->copy_from(as<Cloneable>(this->off_diag_mtx_));
+    as<Cloneable>(result->row_gatherer_)
+        ->copy_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -224,12 +224,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    as<Clonable>(result->diag_mtx_)
-        ->move_from(as<Clonable>(this->diag_mtx_));
-    as<Clonable>(result->off_diag_mtx_)
-        ->move_from(as<Clonable>(this->off_diag_mtx_));
-    as<Clonable>(result->row_gatherer_)
-        ->move_from(as<Clonable>(this->row_gatherer_));
+    as<Cloneable>(result->diag_mtx_)
+        ->move_from(as<Cloneable>(this->diag_mtx_));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->move_from(as<Cloneable>(this->off_diag_mtx_));
+    as<Cloneable>(result->row_gatherer_)
+        ->move_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
     this->set_size({});
@@ -244,12 +244,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    as<Clonable>(result->diag_mtx_)
-        ->copy_from(as<Clonable>(this->diag_mtx_.get()));
-    as<Clonable>(result->off_diag_mtx_)
-        ->copy_from(as<Clonable>(this->off_diag_mtx_.get()));
-    as<Clonable>(result->row_gatherer_)
-        ->copy_from(as<Clonable>(this->row_gatherer_));
+    as<Cloneable>(result->diag_mtx_)
+        ->copy_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->copy_from(as<Cloneable>(this->off_diag_mtx_.get()));
+    as<Cloneable>(result->row_gatherer_)
+        ->copy_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -262,10 +262,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    as<Clonable>(result->diag_mtx_)
-        ->move_from(as<Clonable>(this->diag_mtx_.get()));
-    as<Clonable>(result->off_diag_mtx_)
-        ->move_from(as<Clonable>(this->off_diag_mtx_.get()));
+    as<Cloneable>(result->diag_mtx_)
+        ->move_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->move_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
@@ -282,10 +282,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    as<Clonable>(result->diag_mtx_)
-        ->copy_from(as<Clonable>(this->diag_mtx_.get()));
-    as<Clonable>(result->off_diag_mtx_)
-        ->copy_from(as<Clonable>(this->off_diag_mtx_.get()));
+    as<Cloneable>(result->diag_mtx_)
+        ->copy_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->copy_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->copy_from(this->row_gatherer_);
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
@@ -299,10 +299,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    as<Clonable>(result->diag_mtx_)
-        ->move_from(as<Clonable>(this->diag_mtx_.get()));
-    as<Clonable>(result->off_diag_mtx_)
-        ->move_from(as<Clonable>(this->off_diag_mtx_.get()));
+    as<Cloneable>(result->diag_mtx_)
+        ->move_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->move_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
@@ -718,12 +718,12 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         GKO_ASSERT_EQ(other.get_communicator().size(),
                       this->get_communicator().size());
         this->set_size(other.get_size());
-        as<Clonable>(diag_mtx_)
-            ->copy_from(as<Clonable>(other.diag_mtx_));
-        as<Clonable>(off_diag_mtx_)
-            ->copy_from(as<Clonable>(other.off_diag_mtx_));
-        as<Clonable>(row_gatherer_)
-            ->copy_from(as<Clonable>(other.row_gatherer_));
+        as<Cloneable>(diag_mtx_)
+            ->copy_from(as<Cloneable>(other.diag_mtx_));
+        as<Cloneable>(off_diag_mtx_)
+            ->copy_from(as<Cloneable>(other.off_diag_mtx_));
+        as<Cloneable>(row_gatherer_)
+            ->copy_from(as<Cloneable>(other.row_gatherer_));
         imap_ = other.imap_;
     }
     return *this;
@@ -739,12 +739,12 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
                       this->get_communicator().size());
         this->set_size(other.get_size());
         other.set_size({});
-        as<Clonable>(diag_mtx_)
-            ->move_from(as<Clonable>(other.diag_mtx_));
-        as<Clonable>(off_diag_mtx_)
-            ->move_from(as<Clonable>(other.off_diag_mtx_));
-        as<Clonable>(row_gatherer_)
-            ->move_from(as<Clonable>(other.row_gatherer_));
+        as<Cloneable>(diag_mtx_)
+            ->move_from(as<Cloneable>(other.diag_mtx_));
+        as<Cloneable>(off_diag_mtx_)
+            ->move_from(as<Cloneable>(other.off_diag_mtx_));
+        as<Cloneable>(row_gatherer_)
+            ->move_from(as<Cloneable>(other.row_gatherer_));
         imap_ = std::move(other.imap_);
     }
     return *this;

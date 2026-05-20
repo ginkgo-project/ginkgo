@@ -88,7 +88,7 @@ class SparsityCsr;
 template <typename ValueType = default_precision>
 class Dense
     : public LinOp,
-      public EnableClonable<Dense<ValueType>>,
+      public EnableCloneable<Dense<ValueType>>,
       public ConvertibleTo<Dense<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
@@ -120,7 +120,7 @@ class Dense
       public Permutable<int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
       public ScaledIdentityAddable {
-    friend class EnableClonable<Dense>;
+    friend class EnableCloneable<Dense>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
@@ -142,8 +142,8 @@ class Dense
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableClonable<Dense>::convert_to;
-    using EnableClonable<Dense>::move_to;
+    using EnableCloneable<Dense>::convert_to;
+    using EnableCloneable<Dense>::move_to;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Coo<ValueType, int32>>::convert_to;

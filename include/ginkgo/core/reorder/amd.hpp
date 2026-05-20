@@ -33,8 +33,8 @@ namespace reorder {
  *                    system matrix
  */
 template <typename IndexType = int32>
-class Amd : public LinOpFactory, public EnableClonable<Amd<IndexType>> {
-    friend class EnableClonable<Amd>;
+class Amd : public LinOpFactory, public EnableCloneable<Amd<IndexType>> {
+    friend class EnableCloneable<Amd>;
 
 public:
     struct parameters_type;
