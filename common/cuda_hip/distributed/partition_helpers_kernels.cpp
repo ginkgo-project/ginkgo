@@ -8,6 +8,7 @@
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/sort.h>
+#include <thrust/tuple.h>
 
 #include "common/cuda_hip/base/thrust.hpp"
 

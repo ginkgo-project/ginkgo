@@ -15,6 +15,7 @@
 #include <thrust/sequence.h>
 #include <thrust/sort.h>
 #include <thrust/transform_reduce.h>
+#include <thrust/tuple.h>
 #include <thrust/unique.h>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
