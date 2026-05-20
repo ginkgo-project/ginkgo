@@ -35,6 +35,7 @@ template <typename ValueType = default_precision>
 class Identity : public LinOp,
                  public EnableClonable<Identity<ValueType>>,
                  public Transposable {
+    friend class EnableClonable<Identity>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

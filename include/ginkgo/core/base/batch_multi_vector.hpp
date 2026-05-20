@@ -59,6 +59,7 @@ class MultiVector
       public ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>,
 #endif
       public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
+    friend class EnableClonable<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<previous_precision<ValueType>>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;

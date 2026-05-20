@@ -80,6 +80,7 @@ template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Partition
     : public PolymorphicObject,
       public EnableClonable<Partition<LocalIndexType, GlobalIndexType>> {
+    friend class EnableClonable<Partition>;
     static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
                   "GlobalIndexType must be at least as large as "
                   "LocalIndexType");

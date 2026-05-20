@@ -91,6 +91,7 @@ template <typename LocalIndexType = int32>
 class RowGatherer final : public PolymorphicObject,
                           public EnableClonable<RowGatherer<LocalIndexType>>,
                           public DistributedBase {
+    friend class EnableClonable<RowGatherer>;
     template <typename ValueT, typename LocalIndexT, typename GlobalIndexT>
     friend class Matrix;
     // for test purpose

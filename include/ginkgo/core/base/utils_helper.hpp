@@ -416,7 +416,7 @@ inline std::shared_ptr<const std::decay_t<T>> as(std::shared_ptr<const U> obj)
  * @param p  a pointer to the object
  *
  * @note The difference between this function and directly calling
- *       LinOp::clone() is that this one preserves the static type of the
+ *       Cloneable::clone() is that this one preserves the static type of the
  *       object.
  */
 template <typename Pointer,

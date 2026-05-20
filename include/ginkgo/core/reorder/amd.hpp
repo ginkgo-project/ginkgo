@@ -34,6 +34,8 @@ namespace reorder {
  */
 template <typename IndexType = int32>
 class Amd : public LinOpFactory, public EnableClonable<Amd<IndexType>> {
+    friend class EnableClonable<Amd>;
+
 public:
     struct parameters_type;
     friend class enable_parameters_type<parameters_type, Amd<IndexType>>;

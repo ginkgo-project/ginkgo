@@ -125,6 +125,7 @@ class Csr : public LinOp,
             public EnableAbsoluteComputation<
                 remove_complex<Csr<ValueType, IndexType>>>,
             public ScaledIdentityAddable {
+    friend class EnableClonable<Csr>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Diagonal<ValueType>;

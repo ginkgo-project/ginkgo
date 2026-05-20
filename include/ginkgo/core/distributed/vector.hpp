@@ -76,6 +76,7 @@ class Vector
 #endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
+    friend class EnableClonable<Vector>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;

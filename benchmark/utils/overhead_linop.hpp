@@ -69,8 +69,6 @@ GKO_REGISTER_OPERATION(operation4, overhead::operation4);
 
 template <typename ValueType = default_precision>
 class Overhead : public LinOp, public Preconditionable {
-    friend class LinOp;
-
 public:
     class Factory;
 

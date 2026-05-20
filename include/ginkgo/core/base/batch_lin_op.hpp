@@ -363,6 +363,7 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::batch::EnableDefaultBatchLinOpFactory<               \
               _factory_name, _batch_lin_op, _parameters_name##_type> {       \
+        friend class ::gko::EnableClonable<_factory_name>;                   \
         friend class ::gko::batch::BatchLinOpFactory;                        \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \

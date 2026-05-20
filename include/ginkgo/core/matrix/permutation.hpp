@@ -111,6 +111,8 @@ template <typename IndexType = int32>
 class Permutation : public LinOp,
                     public EnableClonable<Permutation<IndexType>>,
                     public WritableToMatrixData<default_precision, IndexType> {
+    friend class EnableClonable<Permutation<IndexType>>;
+
 public:
     // value_type is only available to enable the usage of gko::write
     using value_type = default_precision;

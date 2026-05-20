@@ -55,6 +55,7 @@ class SparsityCsr : public LinOp,
                     public ReadableFromMatrixData<ValueType, IndexType>,
                     public WritableToMatrixData<ValueType, IndexType>,
                     public Transposable {
+    friend class EnableClonable<SparsityCsr>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Fbcsr<ValueType, IndexType>;

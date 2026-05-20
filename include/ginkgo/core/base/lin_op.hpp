@@ -907,6 +907,7 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,    \
                                                   _parameters_name##_type> { \
+        friend class ::gko::EnableClonable<_factory_name>;                   \
         friend class ::gko::LinOpFactory;                                    \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \

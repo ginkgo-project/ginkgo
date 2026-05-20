@@ -120,6 +120,7 @@ class Dense
       public Permutable<int64>,
       public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
       public ScaledIdentityAddable {
+    friend class EnableClonable<Dense>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;

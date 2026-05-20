@@ -40,6 +40,7 @@ class Composition : public LinOp,
                     public EnableClonable<Composition<ValueType>>,
                     public EnableCreateMethod<Composition<ValueType>>,
                     public Transposable {
+    friend class EnableClonable<Composition>;
     friend class EnableCreateMethod<Composition>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 

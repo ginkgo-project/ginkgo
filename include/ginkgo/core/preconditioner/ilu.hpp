@@ -112,8 +112,6 @@ template <typename LSolverTypeOrValueType = solver::LowerTrs<>,
               gko::detail::transposed_type<LSolverTypeOrValueType>,
           bool ReverseApply = false, typename IndexType = int32>
 class Ilu : public LinOp, public Transposable {
-    friend class LinOp;
-
 public:
     static_assert(
         std::is_same_v<gko::detail::get_value_type<LSolverTypeOrValueType>,

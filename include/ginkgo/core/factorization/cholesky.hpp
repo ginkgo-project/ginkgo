@@ -34,6 +34,7 @@ namespace factorization {
 template <typename ValueType, typename IndexType>
 class Cholesky : public LinOpFactory,
                  public EnableClonable<Cholesky<ValueType, IndexType>> {
+    friend class EnableClonable<Cholesky>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
