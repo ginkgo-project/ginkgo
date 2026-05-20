@@ -43,17 +43,17 @@ namespace matrix {
  * @ingroup LinOp
  */
 class Fft : public LinOp,
-            public EnableClonable<Fft>,
+            public EnableCloneable<Fft>,
             public WritableToMatrixData<std::complex<float>, int32>,
             public WritableToMatrixData<std::complex<float>, int64>,
             public WritableToMatrixData<std::complex<double>, int32>,
             public WritableToMatrixData<std::complex<double>, int64>,
             public Transposable {
-    friend class EnableClonable<Fft>;
+    friend class EnableCloneable<Fft>;
 
 public:
-    using EnableClonable<Fft>::convert_to;
-    using EnableClonable<Fft>::move_to;
+    using EnableCloneable<Fft>::convert_to;
+    using EnableCloneable<Fft>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
@@ -142,17 +142,17 @@ private:
  * @ingroup LinOp
  */
 class Fft2 : public LinOp,
-             public EnableClonable<Fft2>,
+             public EnableCloneable<Fft2>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnableClonable<Fft2>;
+    friend class EnableCloneable<Fft2>;
 
 public:
-    using EnableClonable<Fft2>::convert_to;
-    using EnableClonable<Fft2>::move_to;
+    using EnableCloneable<Fft2>::convert_to;
+    using EnableCloneable<Fft2>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
@@ -255,17 +255,17 @@ private:
  * @ingroup LinOp
  */
 class Fft3 : public LinOp,
-             public EnableClonable<Fft3>,
+             public EnableCloneable<Fft3>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnableClonable<Fft3>;
+    friend class EnableCloneable<Fft3>;
 
 public:
-    using EnableClonable<Fft3>::convert_to;
-    using EnableClonable<Fft3>::move_to;
+    using EnableCloneable<Fft3>::convert_to;
+    using EnableCloneable<Fft3>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;

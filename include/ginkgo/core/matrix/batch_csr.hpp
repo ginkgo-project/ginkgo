@@ -46,7 +46,7 @@ namespace matrix {
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr final
     : public EnableBatchLinOp<Csr<ValueType, IndexType>>,
-      public EnableClonable<Csr<ValueType, IndexType>>,
+      public EnableCloneable<Csr<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>,
 #endif
@@ -54,7 +54,7 @@ class Csr final
       public ConvertibleTo<Csr<next_precision<ValueType, 3>, IndexType>>,
 #endif
       public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>> {
-    friend class EnableClonable<Csr>;
+    friend class EnableCloneable<Csr>;
     friend class Csr<to_complex<ValueType>, IndexType>;
     friend class Csr<previous_precision<ValueType>, IndexType>;
     static_assert(std::is_same<IndexType, int32>::value,
@@ -62,8 +62,8 @@ class Csr final
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableClonable<Csr>::convert_to;
-    using EnableClonable<Csr>::move_to;
+    using EnableCloneable<Csr>::convert_to;
+    using EnableCloneable<Csr>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;

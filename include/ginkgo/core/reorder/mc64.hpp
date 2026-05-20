@@ -75,8 +75,8 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Mc64 final : public LinOpFactory,
-                   public EnableClonable<Mc64<ValueType, IndexType>> {
-    friend class EnableClonable<Mc64>;
+                   public EnableCloneable<Mc64<ValueType, IndexType>> {
+    friend class EnableCloneable<Mc64>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

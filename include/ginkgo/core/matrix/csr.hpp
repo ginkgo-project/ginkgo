@@ -102,7 +102,7 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr : public LinOp,
-            public EnableClonable<Csr<ValueType, IndexType>>,
+            public EnableCloneable<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>,
@@ -125,7 +125,7 @@ class Csr : public LinOp,
             public EnableAbsoluteComputation<
                 remove_complex<Csr<ValueType, IndexType>>>,
             public ScaledIdentityAddable {
-    friend class EnableClonable<Csr>;
+    friend class EnableCloneable<Csr>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Diagonal<ValueType>;
@@ -139,8 +139,8 @@ class Csr : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableClonable<Csr>::convert_to;
-    using EnableClonable<Csr>::move_to;
+    using EnableCloneable<Csr>::convert_to;
+    using EnableCloneable<Csr>::move_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;

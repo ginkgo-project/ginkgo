@@ -39,7 +39,7 @@ class Dense;
 template <typename ValueType = default_precision>
 class Diagonal
     : public LinOp,
-      public EnableClonable<Diagonal<ValueType>>,
+      public EnableCloneable<Diagonal<ValueType>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
@@ -55,15 +55,15 @@ class Diagonal
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>> {
-    friend class EnableClonable<Diagonal>;
+    friend class EnableCloneable<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
     friend class Diagonal<to_complex<ValueType>>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableClonable<Diagonal>::convert_to;
-    using EnableClonable<Diagonal>::move_to;
+    using EnableCloneable<Diagonal>::convert_to;
+    using EnableCloneable<Diagonal>::move_to;
     using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
     using ConvertibleTo<Csr<ValueType, int32>>::move_to;
     using ConvertibleTo<Csr<ValueType, int64>>::convert_to;

@@ -51,7 +51,7 @@ class Hybrid;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell : public LinOp,
-            public EnableClonable<Ell<ValueType, IndexType>>,
+            public EnableCloneable<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Ell<next_precision<ValueType, 2>, IndexType>>,
@@ -66,7 +66,7 @@ class Ell : public LinOp,
             public WritableToMatrixData<ValueType, IndexType>,
             public EnableAbsoluteComputation<
                 remove_complex<Ell<ValueType, IndexType>>> {
-    friend class EnableClonable<Ell>;
+    friend class EnableCloneable<Ell>;
     friend class Dense<ValueType>;
     friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;
@@ -76,8 +76,8 @@ class Ell : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableClonable<Ell>::convert_to;
-    using EnableClonable<Ell>::move_to;
+    using EnableCloneable<Ell>::convert_to;
+    using EnableCloneable<Ell>::move_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;

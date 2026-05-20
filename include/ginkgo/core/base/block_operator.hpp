@@ -73,8 +73,9 @@ struct value_span {
  * BlockOperator, which will requires copying any block that is associated with
  * a different executor.
  */
-class BlockOperator final : public LinOp, public EnableClonable<BlockOperator> {
-    friend class EnableClonable<BlockOperator>;
+class BlockOperator final : public LinOp,
+                            public EnableCloneable<BlockOperator> {
+    friend class EnableCloneable<BlockOperator>;
 
 public:
     /**

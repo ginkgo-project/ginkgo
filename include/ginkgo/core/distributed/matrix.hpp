@@ -261,7 +261,8 @@ template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Matrix
     : public LinOp,
-      public EnableClonable<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+      public EnableCloneable<
+          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
@@ -273,7 +274,7 @@ class Matrix
                                   GlobalIndexType>>,
 #endif
       public DistributedBase {
-    friend class EnableClonable<Matrix>;
+    friend class EnableCloneable<Matrix>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
 
@@ -289,8 +290,8 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableClonable<Matrix>::convert_to;
-    using EnableClonable<Matrix>::move_to;
+    using EnableCloneable<Matrix>::convert_to;
+    using EnableCloneable<Matrix>::move_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,

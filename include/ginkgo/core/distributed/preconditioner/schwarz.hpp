@@ -67,7 +67,7 @@ namespace preconditioner {
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Schwarz : public LinOp {
-    friend class EnableClonable<Schwarz>;
+    friend class EnableCloneable<Schwarz>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:

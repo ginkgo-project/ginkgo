@@ -71,7 +71,7 @@ struct DummyLogger : gko::log::Logger {
 
 
 class DummyLinOp : public gko::LinOp,
-                   public gko::EnableClonable<DummyLinOp>,
+                   public gko::EnableCloneable<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,

@@ -29,10 +29,10 @@ namespace gko {
  */
 template <typename ValueType = default_precision>
 class Combination : public LinOp,
-                    public EnableClonable<Combination<ValueType>>,
+                    public EnableCloneable<Combination<ValueType>>,
                     public EnableCreateMethod<Combination<ValueType>>,
                     public Transposable {
-    friend class EnableClonable<Combination>;
+    friend class EnableCloneable<Combination>;
     friend class EnableCreateMethod<Combination>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 

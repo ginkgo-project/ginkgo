@@ -29,7 +29,7 @@ template <typename T>
 std::unique_ptr<T> clone_or_nullptr(T* input)
 {
     // whether throw exception if input is not clonable?
-    if (auto tmp = dynamic_cast<const Clonable*>(input)) {
+    if (auto tmp = dynamic_cast<const Cloneable*>(input)) {
         return as<T>(tmp->clone());
     }
     return nullptr;

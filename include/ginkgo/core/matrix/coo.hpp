@@ -49,7 +49,7 @@ class Hybrid;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public LinOp,
-            public EnableClonable<Coo<ValueType, IndexType>>,
+            public EnableCloneable<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Coo<next_precision<ValueType, 2>, IndexType>>,
@@ -65,7 +65,7 @@ class Coo : public LinOp,
             public Transposable,
             public EnableAbsoluteComputation<
                 remove_complex<Coo<ValueType, IndexType>>> {
-    friend class EnableClonable<Coo>;
+    friend class EnableCloneable<Coo>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
@@ -74,8 +74,8 @@ class Coo : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableClonable<Coo>::convert_to;
-    using EnableClonable<Coo>::move_to;
+    using EnableCloneable<Coo>::convert_to;
+    using EnableCloneable<Coo>::move_to;
     using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;

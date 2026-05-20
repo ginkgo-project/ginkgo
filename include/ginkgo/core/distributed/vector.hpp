@@ -66,7 +66,7 @@ class Partition;
 template <typename ValueType = double>
 class Vector
     : public LinOp,
-      public EnableClonable<Vector<ValueType>>,
+      public EnableCloneable<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
@@ -76,7 +76,7 @@ class Vector
 #endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
-    friend class EnableClonable<Vector>;
+    friend class EnableCloneable<Vector>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;
@@ -84,8 +84,8 @@ class Vector
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableClonable<Vector>::convert_to;
-    using EnableClonable<Vector>::move_to;
+    using EnableCloneable<Vector>::convert_to;
+    using EnableCloneable<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 

@@ -15,7 +15,7 @@ namespace {
 
 
 struct DummyOperator : public gko::LinOp,
-                       public gko::EnableClonable<DummyOperator> {
+                       public gko::EnableCloneable<DummyOperator> {
     DummyOperator(std::shared_ptr<const gko::Executor> exec,
                   gko::dim<2> size = {})
         : gko::LinOp(exec, size)
