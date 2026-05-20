@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,8 +28,6 @@ constexpr Logger::mask_type Logger::copy_completed_mask;
 constexpr Logger::mask_type Logger::operation_launched_mask;
 constexpr Logger::mask_type Logger::operation_completed_mask;
 
-constexpr Logger::mask_type Logger::polymorphic_object_create_started_mask;
-constexpr Logger::mask_type Logger::polymorphic_object_create_completed_mask;
 constexpr Logger::mask_type Logger::polymorphic_object_copy_started_mask;
 constexpr Logger::mask_type Logger::polymorphic_object_copy_completed_mask;
 constexpr Logger::mask_type Logger::polymorphic_object_move_started_mask;

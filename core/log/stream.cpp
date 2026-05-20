@@ -177,21 +177,11 @@ void Stream<ValueType>::on_operation_completed(const Executor* exec,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_polymorphic_object_create_started(
+void Stream<ValueType>::on_polymorphic_object_created(
     const Executor* exec, const PolymorphicObject* po) const
 {
     *os_ << prefix_ << "PolymorphicObject create started from "
          << demangle_name(po) << " on " << demangle_name(exec) << std::endl;
-}
-
-
-template <typename ValueType>
-void Stream<ValueType>::on_polymorphic_object_create_completed(
-    const Executor* exec, const PolymorphicObject* input,
-    const PolymorphicObject* output) const
-{
-    *os_ << prefix_ << demangle_name(output) << " create completed from "
-         << demangle_name(input) << " on " << demangle_name(exec) << std::endl;
 }
 
 

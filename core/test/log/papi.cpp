@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -240,33 +240,13 @@ TYPED_TEST(Papi, CatchesOperationCompleted)
 
 TYPED_TEST(Papi, CatchesPolymorphicObjectCreateStarted)
 {
-    auto str =
-        this->init(gko::log::Logger::polymorphic_object_create_started_mask,
-                   "polymorphic_object_create_started", this->exec.get());
+    auto str = this->init(gko::log::Logger::polymorphic_object_created_mask,
+                          "polymorphic_object_created", this->exec.get());
     this->add_event(str);
 
     this->start();
-    this->logger
-        ->template on<gko::log::Logger::polymorphic_object_create_started>(
-            this->exec.get(), nullptr);
-    long long int value = 0;
-    this->stop(&value);
-
-    ASSERT_EQ(value, 1);
-}
-
-
-TYPED_TEST(Papi, CatchesPolymorphicObjectCreateCompleted)
-{
-    auto str =
-        this->init(gko::log::Logger::polymorphic_object_create_completed_mask,
-                   "polymorphic_object_create_completed", this->exec.get());
-    this->add_event(str);
-
-    this->start();
-    this->logger
-        ->template on<gko::log::Logger::polymorphic_object_create_completed>(
-            this->exec.get(), nullptr, nullptr);
+    this->logger->template on<gko::log::Logger::polymorphic_object_created>(
+        this->exec.get(), nullptr);
     long long int value = 0;
     this->stop(&value);
 

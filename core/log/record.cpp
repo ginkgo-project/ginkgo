@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -94,22 +94,12 @@ void Record::on_operation_completed(const Executor* exec,
 }
 
 
-void Record::on_polymorphic_object_create_started(
-    const Executor* exec, const PolymorphicObject* po) const
+void Record::on_polymorphic_object_created(const Executor* exec,
+                                           const PolymorphicObject* po) const
 {
-    append_deque(data_.polymorphic_object_create_started,
+    append_deque(data_.polymorphic_object_created,
                  (std::unique_ptr<polymorphic_object_data>(
                      new polymorphic_object_data{exec, po})));
-}
-
-
-void Record::on_polymorphic_object_create_completed(
-    const Executor* exec, const PolymorphicObject* input,
-    const PolymorphicObject* output) const
-{
-    append_deque(data_.polymorphic_object_create_completed,
-                 (std::unique_ptr<polymorphic_object_data>(
-                     new polymorphic_object_data{exec, input, output})));
 }
 
 

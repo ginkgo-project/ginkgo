@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -92,12 +92,8 @@ public:
                                 const Operation* operation) const override;
 
     /* PolymorphicObject events */
-    void on_polymorphic_object_create_started(
+    void on_polymorphic_object_created(
         const Executor*, const PolymorphicObject* po) const override;
-
-    void on_polymorphic_object_create_completed(
-        const Executor* exec, const PolymorphicObject* input,
-        const PolymorphicObject* output) const override;
 
     void on_polymorphic_object_copy_started(
         const Executor* exec, const PolymorphicObject* from,
@@ -300,10 +296,8 @@ private:
     mutable papi_queue<Executor> operation_completed{&papi_handle,
                                                      "operation_completed"};
 
-    mutable papi_queue<Executor> polymorphic_object_create_started{
-        &papi_handle, "polymorphic_object_create_started"};
-    mutable papi_queue<Executor> polymorphic_object_create_completed{
-        &papi_handle, "polymorphic_object_create_completed"};
+    mutable papi_queue<Executor> polymorphic_object_created{
+        &papi_handle, "polymorphic_object_created"};
     mutable papi_queue<Executor> polymorphic_object_copy_started{
         &papi_handle, "polymorphic_object_copy_started"};
     mutable papi_queue<Executor> polymorphic_object_copy_completed{

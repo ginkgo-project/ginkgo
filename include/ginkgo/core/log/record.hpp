@@ -245,9 +245,7 @@ public:
         std::deque<std::unique_ptr<operation_data>> operation_completed;
 
         std::deque<std::unique_ptr<polymorphic_object_data>>
-            polymorphic_object_create_started;
-        std::deque<std::unique_ptr<polymorphic_object_data>>
-            polymorphic_object_create_completed;
+            polymorphic_object_created;
         std::deque<std::unique_ptr<polymorphic_object_data>>
             polymorphic_object_copy_started;
         std::deque<std::unique_ptr<polymorphic_object_data>>
@@ -307,12 +305,8 @@ public:
                                 const Operation* operation) const override;
 
     /* PolymorphicObject events */
-    void on_polymorphic_object_create_started(
+    void on_polymorphic_object_created(
         const Executor* exec, const PolymorphicObject* po) const override;
-
-    void on_polymorphic_object_create_completed(
-        const Executor* exec, const PolymorphicObject* input,
-        const PolymorphicObject* output) const override;
 
     void on_polymorphic_object_copy_started(
         const Executor* exec, const PolymorphicObject* from,

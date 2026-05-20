@@ -53,17 +53,10 @@ struct DummyLogger : gko::log::Logger {
         : gko::log::Logger(gko::log::Logger::polymorphic_object_events_mask)
     {}
 
-    void on_polymorphic_object_create_started(
+    void on_polymorphic_object_created(
         const gko::Executor*, const gko::PolymorphicObject*) const override
     {
         create_started++;
-    }
-
-    void on_polymorphic_object_create_completed(
-        const gko::Executor*, const gko::PolymorphicObject*,
-        const gko::PolymorphicObject*) const override
-    {
-        create_completed++;
     }
 
     void on_polymorphic_object_copy_started(

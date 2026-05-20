@@ -213,14 +213,33 @@ public:                                                              \
                               const Operation* op)
 
     /**
-     * PolymorphicObject's create started event.
+     * PolymorphicObject's create event.
      *
      * @param exec  the executor used
      * @param po  the PolymorphicObject to be created
      */
-    GKO_LOGGER_REGISTER_EVENT(8, polymorphic_object_create_started,
+    GKO_LOGGER_REGISTER_EVENT(8, polymorphic_object_created,
                               const Executor* exec, const PolymorphicObject* po)
 
+protected:
+    [[deprecated("Use on_polymorphic_object_created instead")]] virtual void
+    on_polymorphic_object_create_started(const Executor* exec,
+                                         const PolymorphicObject* po) const
+    {
+        this->on_polymorphic_object_created(exec, po);
+    }
+
+public:
+    [[deprecated(
+        "Use polymorphic_object_created instead")]] static constexpr size_type
+        polymorphic_object_create_started = polymorphic_object_created;
+    [[deprecated(
+        "Use polymorphic_object_created_mask "
+        "instead")]] static constexpr mask_type
+        polymorphic_object_create_started_mask =
+            polymorphic_object_created_mask;
+
+protected:
     /**
      * PolymorphicObject's create completed event.
      *
@@ -228,10 +247,17 @@ public:                                                              \
      * @param input  the PolymorphicObject used as model for the creation
      * @param output  the PolymorphicObject which was created
      */
-    GKO_LOGGER_REGISTER_EVENT(9, polymorphic_object_create_completed,
-                              const Executor* exec,
-                              const PolymorphicObject* input,
-                              const PolymorphicObject* output)
+    [[deprecated("This event is no longer in use.")]] virtual void
+    on_polymorphic_object_create_completed(
+        const Executor* exec, const PolymorphicObject* input,
+        const PolymorphicObject* output) const
+    {}
+
+public:
+    [[deprecated("This event is no longer in use.")]] static constexpr size_type
+        polymorphic_object_create_completed{9};
+    [[deprecated("This event is no longer in use.")]] static constexpr mask_type
+        polymorphic_object_create_completed_mask{mask_type{1} << 9};
 
     /**
      * PolymorphicObject's copy started event.
@@ -640,9 +666,7 @@ public:
      * Bitset Mask which activates all polymorphic object events
      */
     static constexpr mask_type polymorphic_object_events_mask =
-        polymorphic_object_create_started_mask |
-        polymorphic_object_create_completed_mask |
-        polymorphic_object_copy_started_mask |
+        polymorphic_object_created | polymorphic_object_copy_started_mask |
         polymorphic_object_copy_completed_mask |
         polymorphic_object_move_started_mask |
         polymorphic_object_move_completed_mask |

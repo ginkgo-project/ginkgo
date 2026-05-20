@@ -179,36 +179,17 @@ TEST(Record, CatchesPolymorphicObjectCreateStarted)
     using Dense = gko::matrix::Dense<>;
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::Record::create(
-        gko::log::Logger::polymorphic_object_create_started_mask);
+        gko::log::Logger::polymorphic_object_created_mask);
     auto po = gko::matrix::Dense<>::create(exec);
 
-    logger->on<gko::log::Logger::polymorphic_object_create_started>(exec.get(),
-                                                                    po.get());
+    logger->on<gko::log::Logger::polymorphic_object_created>(exec.get(),
+                                                             po.get());
 
 
-    auto& data = logger->get().polymorphic_object_create_started.back();
+    auto& data = logger->get().polymorphic_object_created.back();
     ASSERT_EQ(data->exec, exec.get());
     GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po, 0);
     ASSERT_EQ(data->output.get(), nullptr);
-}
-
-
-TEST(Record, CatchesPolymorphicObjectCreateCompleted)
-{
-    using Dense = gko::matrix::Dense<>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        gko::log::Logger::polymorphic_object_create_completed_mask);
-    auto po = gko::matrix::Dense<>::create(exec);
-    auto output = gko::matrix::Dense<>::create(exec);
-
-    logger->on<gko::log::Logger::polymorphic_object_create_completed>(
-        exec.get(), po.get(), output.get());
-
-    auto& data = logger->get().polymorphic_object_create_completed.back();
-    ASSERT_EQ(data->exec, exec.get());
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->input.get()), po, 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->output.get()), output, 0);
 }
 
 

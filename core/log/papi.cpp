@@ -87,19 +87,10 @@ void Papi<ValueType>::on_operation_completed(const Executor* exec,
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_polymorphic_object_create_started(
+void Papi<ValueType>::on_polymorphic_object_created(
     const Executor* exec, const PolymorphicObject* po) const
 {
-    polymorphic_object_create_started.get_counter(exec) += 1;
-}
-
-
-template <typename ValueType>
-void Papi<ValueType>::on_polymorphic_object_create_completed(
-    const Executor* exec, const PolymorphicObject* input,
-    const PolymorphicObject* output) const
-{
-    polymorphic_object_create_completed.get_counter(exec) += 1;
+    polymorphic_object_created.get_counter(exec) += 1;
 }
 
 

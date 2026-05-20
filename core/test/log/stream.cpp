@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -192,45 +192,22 @@ TYPED_TEST(Stream, CatchesOperationCompleted)
 }
 
 
-TYPED_TEST(Stream, CatchesPolymorphicObjectCreateStarted)
+TYPED_TEST(Stream, CatchesPolymorphicObjectCreated)
 {
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
-        gko::log::Logger::polymorphic_object_create_started_mask, out);
+        gko::log::Logger::polymorphic_object_created_mask, out);
     auto po = gko::matrix::Dense<TypeParam>::create(exec);
     std::stringstream ptrstream;
     ptrstream << po.get();
 
-    logger->template on<gko::log::Logger::polymorphic_object_create_started>(
+    logger->template on<gko::log::Logger::polymorphic_object_created>(
         exec.get(), po.get());
 
     auto os = out.str();
     GKO_ASSERT_STR_CONTAINS(os, ptrstream.str());
     GKO_ASSERT_STR_CONTAINS(os, "create started from");
-}
-
-
-TYPED_TEST(Stream, CatchesPolymorphicObjectCreateCompleted)
-{
-    auto exec = gko::ReferenceExecutor::create();
-    std::stringstream out;
-    auto logger = gko::log::Stream<TypeParam>::create(
-        gko::log::Logger::polymorphic_object_create_completed_mask, out);
-    auto po = gko::matrix::Dense<TypeParam>::create(exec);
-    auto output = gko::matrix::Dense<TypeParam>::create(exec);
-    std::stringstream ptrstream_in;
-    ptrstream_in << po.get();
-    std::stringstream ptrstream_out;
-    ptrstream_out << output.get();
-
-    logger->template on<gko::log::Logger::polymorphic_object_create_completed>(
-        exec.get(), po.get(), output.get());
-
-    auto os = out.str();
-    GKO_ASSERT_STR_CONTAINS(os, ptrstream_in.str());
-    GKO_ASSERT_STR_CONTAINS(os, "create completed from");
-    GKO_ASSERT_STR_CONTAINS(os, ptrstream_out.str());
 }
 
 
