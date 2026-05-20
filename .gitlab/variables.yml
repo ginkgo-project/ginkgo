@@ -26,3 +26,5 @@
     MDOULE_LOAD: ""
     SPACK_LOAD: ""
     ONEAPI_DEVICE_SELECTOR: ""
+    _JOBNAME_SUFFIX: ""
+    _COMMENTS: ""
