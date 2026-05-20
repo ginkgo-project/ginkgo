@@ -36,6 +36,7 @@ set(EXAMPLES_LIST
     par-ilu-convergence
     performance-debugging
     preconditioner-export
+    randomized-gmres
     reordered-preconditioned-solver
     simple-solver-logging
     sketch-and-solve
