@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -22,6 +23,7 @@
 using ValueType = double;
 using IndexType = int;
 using vec = gko::matrix::Dense<ValueType>;
+using csr = gko::matrix::Csr<ValueType, IndexType>;
 
 
 std::shared_ptr<gko::Executor> create_executor(const std::string& name)
@@ -43,15 +45,18 @@ std::shared_ptr<gko::Executor> create_executor(const std::string& name)
 }
 
 
-// Generate a random non-singular square system.
+// Generate a random non-singular square system. A is held as LinOp so we
+// can dispatch dense vs sparse from the same code path.
 struct Problem {
-    std::shared_ptr<vec> A;
+    std::shared_ptr<gko::LinOp> A;
     std::unique_ptr<vec> b;
 };
 
 
-Problem generate_problem(std::shared_ptr<const gko::Executor> exec,
-                         gko::size_type n, unsigned int seed)
+// Dense generator: A = randn(n, n) + diag_bump * I, dense storage.
+Problem generate_dense_random(std::shared_ptr<const gko::Executor> exec,
+                              gko::size_type n, ValueType diag_bump,
+                              unsigned int seed)
 {
     auto host = exec->get_master();
     std::mt19937 rng(seed);
@@ -61,9 +66,59 @@ Problem generate_problem(std::shared_ptr<const gko::Executor> exec,
         for (gko::size_type j = 0; j < n; ++j) {
             host_A->at(i, j) = normal(rng);
         }
-        // diagonal bump for non-singularity
-        host_A->at(i, i) += static_cast<ValueType>(n);
+        host_A->at(i, i) += diag_bump;
     }
+    auto host_b = vec::create(host, gko::dim<2>{n, 1});
+    for (gko::size_type i = 0; i < n; ++i) {
+        host_b->at(i, 0) = normal(rng);
+    }
+    return {gko::share(gko::clone(exec, host_A)),
+            gko::clone(exec, host_b)};
+}
+
+
+// Sparse banded generator: A is non-zero only within +-bandwidth of the
+// diagonal. Off-diagonals are uniform[-1, 1]; the diagonal is set so each
+// row is strictly diagonally dominant with a margin `slack`:
+//     A[i,i] = (1 + slack) * sum_{j != i} |A[i,j]|
+// Stored as CSR so SpMV is O(n * bandwidth). Small slack -> condition
+// number ~2/slack, many GMRES iterations, ortho dominates -> regime where
+// RGS shows its win over CGS/CGS2.
+Problem generate_sparse_band(std::shared_ptr<const gko::Executor> exec,
+                             gko::size_type n, gko::size_type bandwidth,
+                             ValueType slack, unsigned int seed)
+{
+    auto host = exec->get_master();
+    std::mt19937 rng(seed);
+    std::uniform_real_distribution<ValueType> uniform(-1.0, 1.0);
+    std::normal_distribution<ValueType> normal(0.0, 1.0);
+    gko::matrix_data<ValueType, IndexType> data(gko::dim<2>{n, n});
+    for (gko::size_type i = 0; i < n; ++i) {
+        const gko::size_type j_lo =
+            i >= bandwidth ? i - bandwidth : gko::size_type{0};
+        const gko::size_type j_hi = std::min(i + bandwidth + 1, n);
+        // Off-diagonals
+        ValueType row_abs_sum = ValueType{0};
+        std::vector<std::pair<gko::size_type, ValueType>> row;
+        row.reserve(j_hi - j_lo);
+        for (gko::size_type j = j_lo; j < j_hi; ++j) {
+            if (j == i) continue;
+            ValueType v = uniform(rng);
+            row.emplace_back(j, v);
+            row_abs_sum += std::abs(v);
+        }
+        // Diagonal: enforce strict diagonal dominance with margin `slack`.
+        data.nonzeros.emplace_back(
+            static_cast<IndexType>(i), static_cast<IndexType>(i),
+            (ValueType{1} + slack) * row_abs_sum);
+        for (const auto& kv : row) {
+            data.nonzeros.emplace_back(static_cast<IndexType>(i),
+                                       static_cast<IndexType>(kv.first),
+                                       kv.second);
+        }
+    }
+    auto host_A = csr::create(host);
+    host_A->read(data);
     auto host_b = vec::create(host, gko::dim<2>{n, 1});
     for (gko::size_type i = 0; i < n; ++i) {
         host_b->at(i, 0) = normal(rng);
@@ -75,7 +130,7 @@ Problem generate_problem(std::shared_ptr<const gko::Executor> exec,
 
 void solve_and_report(const std::string& label,
                       std::shared_ptr<const gko::Executor> exec,
-                      std::shared_ptr<vec> A, const vec* b,
+                      std::shared_ptr<const gko::LinOp> A, const vec* b,
                       gko::solver::gmres::ortho_method ortho,
                       gko::size_type krylov_dim, gko::size_type max_iters,
                       ValueType tol, int repeats,
@@ -98,6 +153,9 @@ void solve_and_report(const std::string& label,
     }
     auto factory = builder.on(exec);
     auto solver = factory->generate(A);
+    std::shared_ptr<const gko::log::Convergence<ValueType>> logger =
+        gko::log::Convergence<ValueType>::create();
+    solver->add_logger(logger);
     auto x = vec::create(exec, gko::dim<2>{A->get_size()[0], 1});
 
     auto run_once = [&] {
@@ -131,11 +189,12 @@ void solve_and_report(const std::string& label,
     residual->compute_norm2(rnorm);
     auto host_rnorm = gko::clone(exec->get_master(), rnorm);
 
-    std::cout << std::setw(6) << label << "  min=" << std::fixed
-              << std::setprecision(3) << std::setw(9) << min_ms
-              << "ms  med=" << std::setw(9) << med_ms
-              << "ms  ||r||=" << std::scientific << std::setprecision(3)
-              << host_rnorm->at(0, 0) << std::endl;
+    std::cout << std::setw(6) << label
+              << "  iters=" << std::setw(5) << logger->get_num_iterations()
+              << "  min=" << std::fixed << std::setprecision(3)
+              << std::setw(9) << min_ms << "ms  med=" << std::setw(9)
+              << med_ms << "ms  ||r||=" << std::scientific
+              << std::setprecision(3) << host_rnorm->at(0, 0) << std::endl;
 }
 
 
@@ -165,6 +224,17 @@ int main(int argc, char* argv[])
          cxxopts::value<std::string>()->default_value("gaussian"))
         ("zeta", "Non-zeros per column for sparse_stack",
          cxxopts::value<gko::size_type>()->default_value("4"))
+        ("diag-bump",
+         "Diagonal bump added to A (large -> easy, small -> stiff)",
+         cxxopts::value<ValueType>()->default_value("0"))
+        ("matrix-kind",
+         "Matrix kind (dense_random|sparse_band)",
+         cxxopts::value<std::string>()->default_value("dense_random"))
+        ("bandwidth", "Bandwidth for sparse_band (entries per side of diagonal)",
+         cxxopts::value<gko::size_type>()->default_value("20"))
+        ("slack",
+         "Diagonal-dominance margin for sparse_band (small -> ill-conditioned)",
+         cxxopts::value<ValueType>()->default_value("0.01"))
         ("h,help", "Show help");
     // clang-format on
 
@@ -187,8 +257,24 @@ int main(int argc, char* argv[])
     }
     auto sketch_kind = result["sketch-kind"].as<std::string>();
     auto zeta = result["zeta"].as<gko::size_type>();
+    auto matrix_kind = result["matrix-kind"].as<std::string>();
+    auto bandwidth = result["bandwidth"].as<gko::size_type>();
+    auto slack = result["slack"].as<ValueType>();
+    auto diag_bump = result["diag-bump"].as<ValueType>();
+    // dense_random uses --diag-bump (default 2*sqrt(n) for diagonal dominance).
+    // sparse_band uses --slack instead (DD by construction).
+    if (diag_bump == ValueType{0}) {
+        diag_bump = static_cast<ValueType>(
+            2.0 * std::sqrt(static_cast<double>(n)));
+    }
 
-    std::cout << "Problem: n=" << n << "  krylov_dim=" << krylov_dim
+    std::cout << "Problem: n=" << n << "  matrix=" << matrix_kind;
+    if (matrix_kind == "sparse_band") {
+        std::cout << "(bw=" << bandwidth << ",slack=" << slack << ")";
+    } else {
+        std::cout << "(diag_bump=" << diag_bump << ")";
+    }
+    std::cout << "  krylov_dim=" << krylov_dim
               << "  max_iters=" << max_iters << "  tol=" << tol
               << "  sketch_kind=" << sketch_kind << "  sketch_k=" << k;
     if (sketch_kind == "sparse_stack") {
@@ -197,7 +283,16 @@ int main(int argc, char* argv[])
     std::cout << "  seed=" << seed << "  repeats=" << repeats
               << "  (+ 1 warm-up)" << std::endl;
 
-    auto problem = generate_problem(exec, n, seed);
+    Problem problem;
+    if (matrix_kind == "dense_random") {
+        problem = generate_dense_random(exec, n, diag_bump, seed);
+    } else if (matrix_kind == "sparse_band") {
+        problem = generate_sparse_band(exec, n, bandwidth, slack, seed);
+    } else {
+        std::cerr << "Unknown --matrix-kind: " << matrix_kind
+                  << " (expected dense_random|sparse_band)" << std::endl;
+        return 1;
+    }
     std::shared_ptr<const gko::sketch::SketchOperator<ValueType>> sketch;
     const auto seed64 = static_cast<gko::uint64>(seed);
     if (sketch_kind == "gaussian") {
