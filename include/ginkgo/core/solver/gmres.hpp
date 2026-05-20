@@ -23,6 +23,18 @@
 #include <ginkgo/core/stop/criterion.hpp>
 
 
+// Forward declaration to avoid pulling in MPI headers from sketch_operator.hpp
+// via precision_dispatch.hpp -> distributed/vector.hpp -> mpi.hpp.
+// Users who access the sketch_operator parameter must include
+// <ginkgo/core/sketch/sketch_operator.hpp> themselves.
+namespace gko {
+namespace sketch {
+template <typename ValueType>
+class SketchOperator;
+}  // namespace sketch
+}  // namespace gko
+
+
 namespace gko {
 namespace solver {
 
@@ -36,18 +48,17 @@ namespace gmres {
  * Set the orthogonalization method for the Krylov subspace.
  */
 enum class ortho_method {
-    /**
-     * Modified Gram-Schmidt (default)
-     */
+    /** Modified Gram-Schmidt (default) */
     mgs,
-    /**
-     * Classical Gram-Schmidt
-     */
+    /** Classical Gram-Schmidt */
     cgs,
+    /** Classical Gram-Schmidt with re-orthogonalization */
+    cgs2,
     /**
-     * Classical Gram-Schmidt with re-orthogonalization
+     * Randomized Gram-Schmidt (Balabanov & Grigori, 2022).
+     * Requires a SketchOperator to be set via `with_sketch_operator(...)`.
      */
-    cgs2
+    rgs
 };
 
 /** Prints an orthogonalization method. */
@@ -121,6 +132,18 @@ public:
         /** Orthogonalization method */
         gmres::ortho_method GKO_FACTORY_PARAMETER_SCALAR(
             ortho_method, gmres::ortho_method::mgs);
+
+        /**
+         * Sketch operator used by `ortho_method::rgs` (ignored otherwise).
+         *
+         * Must satisfy `sketch_operator->get_input_size() == n`, where
+         * n is the number of rows of the system matrix.
+         *
+         * For good numerical behavior with RGS, choose
+         * `sketch_size >= 2 * krylov_dim` (see Balabanov & Grigori 2022, §2.1).
+         */
+        std::shared_ptr<const sketch::SketchOperator<ValueType>>
+            GKO_FACTORY_PARAMETER_SCALAR(sketch_operator, nullptr);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -157,17 +180,7 @@ protected:
     {}
 
     explicit Gmres(const Factory* factory,
-                   std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Gmres>(factory->get_executor(),
-                             gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()}
-    {
-        if (!parameters_.krylov_dim) {
-            parameters_.krylov_dim = gmres_default_krylov_dim;
-        }
-    }
+                   std::shared_ptr<const LinOp> system_matrix);
 };
 
 
@@ -219,6 +232,10 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int next_krylov_norm_tmp = 14;
     // preconditioned krylov basis multivector
     constexpr static int preconditioned_krylov_bases = 15;
+    // sketched krylov basis multivector (RGS only): (k*(d+1)) x num_rhs
+    constexpr static int sketched_krylov_bases = 16;
+    // scratch sketch buffer (RGS only): k x num_rhs, reused for p and s'
+    constexpr static int sketch_buffer = 17;
 
     // stopping status array
     constexpr static int stop = 0;

@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/sketch/sketch_operator.hpp>
 
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
@@ -52,6 +53,8 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho)
         return stream << "cgs";
     case ortho_method::cgs2:
         return stream << "cgs2";
+    case ortho_method::rgs:
+        return stream << "rgs";
     }
     return stream;
 }
@@ -84,10 +87,24 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
             ortho = gmres::ortho_method::cgs;
         } else if (str == "cgs2") {
             ortho = gmres::ortho_method::cgs2;
+        } else if (str == "rgs") {
+            ortho = gmres::ortho_method::rgs;
         } else {
             GKO_INVALID_CONFIG_VALUE("ortho_method", str);
         }
         params.with_ortho_method(ortho);
+    }
+    if (auto& obj = config_check.get("sketch_operator")) {
+        auto stored = gko::config::get_stored_obj<const LinOp>(obj, context);
+        auto sketch =
+            std::dynamic_pointer_cast<const sketch::SketchOperator<ValueType>>(
+                stored);
+        if (!sketch) {
+            GKO_INVALID_CONFIG_VALUE(
+                "sketch_operator",
+                "registered object is not a SketchOperator<ValueType>");
+        }
+        params.with_sketch_operator(sketch);
     }
 
     return params;
@@ -103,6 +120,8 @@ std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
         .with_criteria(this->get_stop_criterion_factory())
         .with_krylov_dim(this->get_krylov_dim())
         .with_flexible(this->get_parameters().flexible)
+        .with_ortho_method(this->get_parameters().ortho_method)
+        .with_sketch_operator(this->get_parameters().sketch_operator)
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -118,9 +137,43 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
         .with_criteria(this->get_stop_criterion_factory())
         .with_krylov_dim(this->get_krylov_dim())
         .with_flexible(this->get_parameters().flexible)
+        .with_ortho_method(this->get_parameters().ortho_method)
+        .with_sketch_operator(this->get_parameters().sketch_operator)
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
+}
+
+
+template <typename ValueType>
+Gmres<ValueType>::Gmres(const Factory* factory,
+                        std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Gmres>(factory->get_executor(),
+                         gko::transpose(system_matrix->get_size())),
+      EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{
+    if (!parameters_.krylov_dim) {
+        parameters_.krylov_dim = gmres_default_krylov_dim;
+    }
+    if (parameters_.ortho_method == gmres::ortho_method::rgs) {
+        if (parameters_.sketch_operator == nullptr) {
+            throw gko::InvalidStateError(
+                __FILE__, __LINE__, __func__,
+                "ortho_method::rgs requires a sketch_operator; "
+                "set it via with_sketch_operator(...)");
+        }
+        const auto n = this->get_system_matrix()->get_size()[0];
+        const auto sketch_n = parameters_.sketch_operator->get_input_size();
+        if (sketch_n != n) {
+            throw gko::DimensionMismatch(
+                __FILE__, __LINE__, __func__, "sketch_operator", sketch_n, 1u,
+                "system_matrix rows", n, 1u,
+                "sketch_operator->get_input_size() must equal "
+                "system_matrix->get_size()[0]");
+        }
+    }
 }
 
 
@@ -306,6 +359,68 @@ void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
 }
 
 
+// Randomized Gram-Schmidt orthogonalization (Balabanov & Grigori, 2022).
+// Replaces the n-dim inner products of CGS with k-dim ones via a sketch.
+//
+// Single-node only: callers must guarantee the operating VectorType
+// is matrix::Dense<ValueType>.
+template <typename ValueType>
+void orthogonalize_rgs(
+    matrix::Dense<ValueType>* hessenberg_iter,
+    matrix::Dense<ValueType>* krylov_bases,
+    matrix::Dense<ValueType>* next_krylov,
+    matrix::Dense<ValueType>* sketched_krylov_bases,
+    matrix::Dense<ValueType>* sketch_buffer,
+    const sketch::SketchOperator<ValueType>* sketch_op,
+    size_type restart_iter, size_type num_rows, size_type num_rhs,
+    size_type local_num_rows, array<char>& reduction_tmp)
+{
+    static_assert(!is_complex_s<ValueType>::value,
+                  "orthogonalize_rgs currently supports real value types only");
+    auto exec = hessenberg_iter->get_executor();
+    const auto k = sketch_op->get_sketch_size();
+
+    // p = Theta * next_krylov
+    sketch_op->apply(next_krylov, sketch_buffer);
+
+    // h = S_{0..i}^T * p  (single Richardson on the small LS)
+    auto S_small = sketched_krylov_bases->create_submatrix(
+        span{0, k * (restart_iter + 1)}, span{0, num_rhs});
+    exec->run(gmres::make_multi_dot(
+        S_small->get_const_device_view(),
+        sketch_buffer->get_const_device_view(),
+        hessenberg_iter->get_device_view()));
+
+    // next_krylov -= sum_j h[j] * krylov_bases[:, j]
+    for (size_type j = 0; j <= restart_iter; ++j) {
+        auto h_entry = hessenberg_iter->create_submatrix(
+            span{j, j + 1}, span{0, num_rhs});
+        auto Q_col = krylov_bases->create_submatrix(
+            local_span{local_num_rows * j, local_num_rows * (j + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+        next_krylov->sub_scaled(h_entry, Q_col);
+    }
+
+    // s' = Theta * next_krylov  (fresh re-sketch into the same buffer)
+    sketch_op->apply(next_krylov, sketch_buffer);
+
+    // r_ii = ||s'||  -> hessenberg(restart_iter+1, :)
+    auto r_ii = hessenberg_iter->create_submatrix(
+        span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
+    sketch_buffer->compute_norm2(r_ii, reduction_tmp);
+
+    // next_krylov /= r_ii  (sketched normalization)
+    next_krylov->inv_scale(r_ii);
+
+    // S[:, i+1] = s' / r_ii
+    auto S_next = sketched_krylov_bases->create_submatrix(
+        span{k * (restart_iter + 1), k * (restart_iter + 2)},
+        span{0, num_rhs});
+    S_next->copy_from(sketch_buffer);
+    S_next->inv_scale(r_ii);
+}
+
+
 template <typename ValueType>
 struct help_compute_norm<ValueType,
                          std::enable_if_t<is_complex_s<ValueType>::value>> {
@@ -354,6 +469,18 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             ws::preconditioned_krylov_bases, dense_b,
             dim<2>{num_rows * (krylov_dim + 1), num_rhs},
             dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
+    }
+    matrix::Dense<ValueType>* sketched_krylov_bases = nullptr;
+    matrix::Dense<ValueType>* sketch_buffer = nullptr;
+    if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+        const auto sketch_k =
+            this->parameters_.sketch_operator->get_sketch_size();
+        sketched_krylov_bases =
+            this->template create_workspace_op<LocalVector>(
+                ws::sketched_krylov_bases,
+                dim<2>{sketch_k * (krylov_dim + 1), num_rhs});
+        sketch_buffer = this->template create_workspace_op<LocalVector>(
+            ws::sketch_buffer, dim<2>{sketch_k, num_rhs});
     }
     // The Hessenberg matrix formed by the Arnoldi process is of shape
     // (krylov_dim + 1) x (krylov_dim) for a single RHS. The (i,j)th
@@ -416,6 +543,18 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     // residual_norm = norm(residual)
     residual->compute_norm2(residual_norm, reduction_tmp);
+    // For RGS, replace residual_norm with ||Theta * residual|| so that the
+    // basis vectors and residual_norm_collection are normalized consistently
+    // with the sketched inner products used in orthogonalize_rgs
+    // (Balabanov & Grigori 2022, Alg. 2 step 5 and §4.2).
+    if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+        if constexpr (!std::is_same_v<VectorType, matrix::Dense<ValueType>>) {
+            GKO_NOT_IMPLEMENTED;
+        } else {
+            this->parameters_.sketch_operator->apply(residual, sketch_buffer);
+            sketch_buffer->compute_norm2(residual_norm, reduction_tmp);
+        }
+    }
     // residual_norm_collection = {residual_norm, unchanged}
     // krylov_bases(:, 1) = residual / residual_norm
     // final_iter_nums = {0, ..., 0}
@@ -425,6 +564,20 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         residual_norm_collection->get_device_view(),
         gko::detail::get_local(krylov_bases)->get_device_view(),
         final_iter_nums.get_data()));
+    if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+        if constexpr (!std::is_same_v<VectorType, matrix::Dense<ValueType>>) {
+            GKO_NOT_IMPLEMENTED;
+        } else {
+            const auto sketch_k =
+                this->parameters_.sketch_operator->get_sketch_size();
+            auto Q0 = krylov_bases->create_submatrix(
+                local_span{0, local_num_rows}, local_span{0, num_rhs},
+                dim<2>{num_rows, num_rhs});
+            auto S0 = sketched_krylov_bases->create_submatrix(
+                span{0, sketch_k}, span{0, num_rhs});
+            this->parameters_.sketch_operator->apply(Q0.get(), S0.get());
+        }
+    }
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -496,6 +649,17 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                              residual);
             // residual_norm = norm(residual)
             residual->compute_norm2(residual_norm, reduction_tmp);
+            // For RGS: see note above on the initial restart site.
+            if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+                if constexpr (!std::is_same_v<VectorType,
+                                              matrix::Dense<ValueType>>) {
+                    GKO_NOT_IMPLEMENTED;
+                } else {
+                    this->parameters_.sketch_operator->apply(residual,
+                                                             sketch_buffer);
+                    sketch_buffer->compute_norm2(residual_norm, reduction_tmp);
+                }
+            }
             // residual_norm_collection = {residual_norm, unchanged}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
@@ -505,6 +669,21 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 residual_norm_collection->get_device_view(),
                 gko::detail::get_local(krylov_bases)->get_device_view(),
                 final_iter_nums.get_data()));
+            if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+                if constexpr (!std::is_same_v<VectorType,
+                                              matrix::Dense<ValueType>>) {
+                    GKO_NOT_IMPLEMENTED;
+                } else {
+                    const auto sketch_k =
+                        this->parameters_.sketch_operator->get_sketch_size();
+                    auto Q0 = krylov_bases->create_submatrix(
+                        local_span{0, local_num_rows}, local_span{0, num_rhs},
+                        dim<2>{num_rows, num_rhs});
+                    auto S0 = sketched_krylov_bases->create_submatrix(
+                        span{0, sketch_k}, span{0, num_rhs});
+                    this->parameters_.sketch_operator->apply(Q0.get(), S0.get());
+                }
+            }
             restart_iter = 0;
         }
         auto this_krylov = krylov_bases->create_submatrix(
@@ -558,17 +737,35 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             orthogonalize_cgs2(hessenberg_iter.get(), krylov_bases,
                                next_krylov.get(), hessenberg_aux, one_op,
                                restart_iter, num_rows, num_rhs, local_num_rows);
+        } else if (this->parameters_.ortho_method == gmres::ortho_method::rgs) {
+            if constexpr (!std::is_same_v<VectorType, matrix::Dense<ValueType>>) {
+                GKO_NOT_IMPLEMENTED;
+            } else if constexpr (is_complex_s<ValueType>::value) {
+                GKO_NOT_IMPLEMENTED;
+            } else {
+                orthogonalize_rgs(
+                    hessenberg_iter.get(), krylov_bases, next_krylov.get(),
+                    sketched_krylov_bases, sketch_buffer,
+                    this->parameters_.sketch_operator.get(),
+                    restart_iter, num_rows, num_rhs, local_num_rows,
+                    reduction_tmp);
+            }
         }
-        // normalize next_krylov:
-        // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)
-        // (stored in hessenberg(restart_iter, (restart_iter + 1) * num_rhs))
-        // next_krylov /= hessenberg(restart_iter+1, restart_iter)
-        auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
-            span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
-        help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
-            next_krylov.get(), hessenberg_norm_entry.get(),
-            next_krylov_norm_tmp, reduction_tmp);
-        next_krylov->inv_scale(hessenberg_norm_entry);
+        // RGS computes the (sketched) norm and normalizes inside its helper;
+        // only mgs/cgs/cgs2 need the standard norm + inv_scale here.
+        if (this->parameters_.ortho_method != gmres::ortho_method::rgs) {
+            // normalize next_krylov:
+            // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)
+            // (stored in hessenberg(restart_iter, (restart_iter + 1) * num_rhs))
+            // next_krylov /= hessenberg(restart_iter+1, restart_iter)
+            auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
+                span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
+            help_compute_norm<ValueType>::
+                compute_next_krylov_norm_into_hessenberg(
+                    next_krylov.get(), hessenberg_norm_entry.get(),
+                    next_krylov_norm_tmp, reduction_tmp);
+            next_krylov->inv_scale(hessenberg_norm_entry);
+        }
         // End of Arnoldi
 
         // update QR factorization and Krylov RHS for last column:
@@ -675,7 +872,7 @@ int workspace_traits<Gmres<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Gmres<ValueType>>::num_vectors(const Solver&)
 {
-    return 16;
+    return 18;
 }
 
 
@@ -698,7 +895,9 @@ std::vector<std::string> workspace_traits<Gmres<ValueType>>::op_names(
             "one",
             "minus_one",
             "next_krylov_norm_tmp",
-            "preconditioned_krylov_bases"};
+            "preconditioned_krylov_bases",
+            "sketched_krylov_bases",
+            "sketch_buffer"};
 }
 
 
@@ -727,7 +926,9 @@ std::vector<int> workspace_traits<Gmres<ValueType>>::vectors(const Solver&)
             krylov_bases,
             before_preconditioner,
             after_preconditioner,
-            preconditioned_krylov_bases};
+            preconditioned_krylov_bases,
+            sketched_krylov_bases,
+            sketch_buffer};
 }
 
 
