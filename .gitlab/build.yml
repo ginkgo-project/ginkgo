@@ -27,7 +27,7 @@ build/nvhpc227/cuda117/nompi/nvcpp/debug/shared:
     FAST_TESTS: 'ON'
     CXX_FLAGS: --diag_suppress=useless_using_declaration,declared_but_not_referenced
     EXTRA_CMAKE_FLAGS: -DCMAKE_CUDA_FLAGS=-diag-suppress=177
-    _COMMENTS: `--diag_suppress=useless_using_declaration,declared_but_not_referenced` disables common gflags warning. `-diag-suppress=188` disables spurious unused argument warning in CUDA.
+    _COMMENTS: '`--diag_suppress=useless_using_declaration,declared_but_not_referenced` disables common gflags warning. `-diag-suppress=188` disables spurious unused argument warning in CUDA.'
 
 build/cuda118/nompi/gcc/cuda/debug/shared:
   extends:
@@ -464,6 +464,6 @@ build/dpcpp/gpu/release/shared:
     BUILD_TYPE: Release
     BUILD_SHARED_LIBS: 'ON'
     DPCPP_SINGLE_MODE: 'ON'
-    ONEAPI_DEVICE_SELECTOR: *:gpu
+    ONEAPI_DEVICE_SELECTOR: '*:gpu'
     BUILD_HWLOC: 'OFF'
     _COMMENTS: This gives two available backends of GPU on tests
