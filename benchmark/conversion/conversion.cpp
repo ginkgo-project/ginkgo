@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,17 +41,18 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
         auto formats = split(FLAGS_formats);
         for (const auto& from_format : formats) {
             operations.push_back(from_format + "-read");
-            auto from_mtx =
-                formats::matrix_type_factory.at(from_format)(ref_exec);
+            auto from_mtx = gko::share(
+                formats::matrix_type_factory.at(from_format)(ref_exec));
             // all pairs of conversions that are supported by Ginkgo
             for (const auto& to_format : formats) {
                 if (from_format == to_format) {
                     continue;
                 }
-                auto to_mtx =
-                    formats::matrix_type_factory.at(to_format)(ref_exec);
+                auto to_mtx = gko::share(
+                    formats::matrix_type_factory.at(to_format)(ref_exec));
                 try {
-                    to_mtx->copy_from(from_mtx);
+                    gko::as<gko::Cloneable>(to_mtx)->copy_from(
+                        gko::as<gko::Cloneable>(from_mtx));
                     operations.push_back(from_format + "-" + to_format);
                 } catch (const std::exception& e) {
                 }
@@ -109,9 +110,10 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
             std::find(operation_name.begin(), operation_name.end(), '-');
         std::string from_name{operation_name.begin(), split_it};
         std::string to_name{split_it + 1, operation_name.end()};
-        auto mtx_from = formats::matrix_type_factory.at(from_name)(exec);
+        auto mtx_from =
+            gko::share(formats::matrix_type_factory.at(from_name)(exec));
         auto readable =
-            gko::as<gko::ReadableFromMatrixData<etype, itype>>(mtx_from.get());
+            gko::as<gko::ReadableFromMatrixData<etype, itype>>(mtx_from);
         IterationControl ic{timer};
         if (to_name == "read") {
             // warm run
@@ -130,21 +132,24 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
             }
         } else {
             readable->read(data);
-            auto mtx_to = formats::matrix_type_factory.at(to_name)(exec);
+            auto mtx_to =
+                gko::share(formats::matrix_type_factory.at(to_name)(exec));
 
             // warm run
             {
                 auto range = annotate("warmup", FLAGS_warmup > 0);
                 for (auto _ : ic.warmup_run()) {
                     exec->synchronize();
-                    mtx_to->copy_from(mtx_from);
+                    gko::as<gko::Cloneable>(mtx_to)->copy_from(
+                        gko::as<gko::Cloneable>(mtx_from));
                     exec->synchronize();
                 }
             }
             // timed run
             for (auto _ : ic.run()) {
                 auto range = annotate("repetition");
-                mtx_to->copy_from(mtx_from);
+                gko::as<gko::Cloneable>(mtx_to)->copy_from(
+                    gko::as<gko::Cloneable>(mtx_from));
             }
         }
         operation_case["time"] = ic.compute_time(FLAGS_timer_method);

@@ -57,16 +57,6 @@ protected:
 TYPED_TEST_SUITE(Rcm, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
-TYPED_TEST(Rcm, CanBeCleared)
-{
-    this->reorder_op->clear();
-
-    auto reorder_op_perm = this->reorder_op->get_permutation();
-
-    ASSERT_EQ(reorder_op_perm, nullptr);
-}
-
-
 TYPED_TEST(Rcm, HasSensibleDefaults)
 {
     using reorder_type = typename TestFixture::reorder_type;

@@ -115,19 +115,6 @@ TYPED_TEST(SchwarzFactory, CanSetCoarseWeight)
 }
 
 
-TYPED_TEST(SchwarzFactory, CanBeCleared)
-{
-    using value_type = typename TestFixture::value_type;
-    this->schwarz->clear();
-
-    ASSERT_EQ(this->schwarz->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(this->schwarz->get_parameters().local_solver, nullptr);
-    ASSERT_EQ(this->schwarz->get_parameters().coarse_level, nullptr);
-    ASSERT_EQ(this->schwarz->get_parameters().coarse_solver, nullptr);
-    ASSERT_EQ(this->schwarz->get_parameters().coarse_weight, value_type{-1});
-}
-
-
 TYPED_TEST(SchwarzFactory, PassExplicitFactory)
 {
     using Jacobi = typename TestFixture::Jacobi;

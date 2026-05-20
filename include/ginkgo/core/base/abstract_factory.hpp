@@ -121,6 +121,8 @@ template <typename ConcreteFactory, typename ProductType,
           typename ParametersType, typename PolymorphicBase>
 class EnableDefaultFactory : public PolymorphicBase,
                              public EnableCloneable<ConcreteFactory> {
+    friend class EnableCloneable<ConcreteFactory>;
+
 public:
     using product_type = ProductType;
     using parameters_type = ParametersType;

@@ -92,68 +92,6 @@ TYPED_TEST(BatchBicgstab, FactoryCreatesCorrectSolver)
 }
 
 
-// TYPED_TEST(BatchBicgstab, CanBeCopied)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using Solver = typename TestFixture::Solver;
-//     auto copy = this->solver_factory->generate(Mtx::create(this->exec));
-
-//     copy->copy_from(this->solver.get());
-
-//     ASSERT_EQ(copy->get_common_size(),
-//               gko::dim<2>(this->num_rows, this->num_rows));
-//     ASSERT_EQ(copy->get_num_batch_items(), this->num_batch_items);
-//     auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
-//     const auto copy_batch_mtx = gko::as<const Mtx>(copy_mtx.get());
-//     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
-// }
-
-
-// TYPED_TEST(BatchBicgstab, CanBeMoved)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using Solver = typename TestFixture::Solver;
-//     auto copy = this->solver_factory->generate(Mtx::create(this->exec));
-
-//     copy->move_from(this->solver);
-
-//     ASSERT_EQ(copy->get_common_size(),
-//               gko::dim<2>(this->num_rows, this->num_rows));
-//     ASSERT_EQ(copy->get_num_batch_items(), this->num_batch_items);
-//     auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
-//     const auto copy_batch_mtx = gko::as<const Mtx>(copy_mtx.get());
-//     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
-// }
-
-
-// TYPED_TEST(BatchBicgstab, CanBeCloned)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using Solver = typename TestFixture::Solver;
-
-//     auto clone = this->solver->clone();
-
-//     ASSERT_EQ(clone->get_common_size(),
-//               gko::dim<2>(this->num_rows, this->num_rows));
-//     ASSERT_EQ(clone->get_num_batch_items(), this->num_batch_items);
-//     auto clone_mtx = gko::as<Solver>(clone.get())->get_system_matrix();
-//     const auto clone_batch_mtx = gko::as<const Mtx>(clone_mtx.get());
-//     GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), clone_batch_mtx, 0.0);
-// }
-
-
-TYPED_TEST(BatchBicgstab, CanBeCleared)
-{
-    using Solver = typename TestFixture::Solver;
-
-    this->solver->clear();
-
-    ASSERT_EQ(this->solver->get_num_batch_items(), 0);
-    auto solver_mtx = gko::as<Solver>(this->solver.get())->get_system_matrix();
-    ASSERT_EQ(solver_mtx, nullptr);
-}
-
-
 TYPED_TEST(BatchBicgstab, CanSetCriteriaInFactory)
 {
     using Solver = typename TestFixture::Solver;

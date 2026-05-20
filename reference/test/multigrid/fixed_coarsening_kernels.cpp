@@ -153,19 +153,6 @@ TYPED_TEST(FixedCoarsening, Generate)
 }
 
 
-TYPED_TEST(FixedCoarsening, CanBeCleared)
-{
-    using MgLevel = typename TestFixture::MgLevel;
-
-    this->mg_level->clear();
-    auto mtx = this->mg_level->get_system_matrix();
-    auto coarse = this->mg_level->get_coarse_op();
-
-    ASSERT_EQ(mtx, nullptr);
-    ASSERT_EQ(coarse, nullptr);
-}
-
-
 TYPED_TEST(FixedCoarsening, CoarseFineRestrictApply)
 {
     auto fixed_coarsening = this->fixed_coarsening_factory->generate(this->mtx);

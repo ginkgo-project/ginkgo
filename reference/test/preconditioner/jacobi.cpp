@@ -157,36 +157,6 @@ TYPED_TEST(Jacobi, GeneratesCorrectStorageScheme)
 }
 
 
-TYPED_TEST(Jacobi, CanBeCleared)
-{
-    this->bj->clear();
-
-    ASSERT_EQ(this->bj->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(this->bj->get_num_stored_elements(), 0);
-    ASSERT_EQ(this->bj->get_parameters().max_block_size, 32);
-    ASSERT_EQ(this->bj->get_parameters().block_pointers.get_const_data(),
-              nullptr);
-    ASSERT_EQ(this->bj->get_blocks(), nullptr);
-}
-
-
-TYPED_TEST(Jacobi, CanBeClearedWithAdaptivePrecision)
-{
-    this->adaptive_bj->clear();
-
-    ASSERT_EQ(this->adaptive_bj->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(this->adaptive_bj->get_num_stored_elements(), 0);
-    ASSERT_EQ(this->adaptive_bj->get_parameters().max_block_size, 32);
-    ASSERT_EQ(
-        this->adaptive_bj->get_parameters().block_pointers.get_const_data(),
-        nullptr);
-    ASSERT_EQ(this->adaptive_bj->get_parameters()
-                  .storage_optimization.block_wise.get_const_data(),
-              nullptr);
-    ASSERT_EQ(this->adaptive_bj->get_blocks(), nullptr);
-}
-
-
 TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
 {
     using value_type = typename TestFixture::value_type;

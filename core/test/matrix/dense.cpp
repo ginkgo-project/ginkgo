@@ -232,13 +232,6 @@ TYPED_TEST(Dense, CanBeCloned)
 }
 
 
-TYPED_TEST(Dense, CanBeCleared)
-{
-    this->mtx->clear();
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(Dense, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;

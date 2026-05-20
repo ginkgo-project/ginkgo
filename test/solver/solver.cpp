@@ -496,9 +496,9 @@ struct test_pair {
     std::shared_ptr<ObjectType> dev;
 
     // use template here such that we can use SFINAE here
-    // it only allows the constructor calling clone on ClonableObject
+    // it only allows the constructor calling clone on CloneableObject
     template <typename T = ObjectType,
-              std::enable_if_t<std::is_base_of_v<gko::Clonable, ObjectType> &&
+              std::enable_if_t<std::is_base_of_v<gko::Cloneable, ObjectType> &&
                                std::is_same_v<T, ObjectType>>* = nullptr>
     test_pair(std::unique_ptr<T> ref_obj,
               std::shared_ptr<const gko::Executor> exec)
@@ -684,30 +684,6 @@ protected:
                 FAIL() << e.what();
             }
         };
-        {
-            SCOPED_TRACE("Defaulted solver");
-            guarded_fn(
-                test_pair<SolverType>{Config::build(ref, 0, check_residual)
-                                          .on(ref)
-                                          ->generate(mtx.ref)
-                                          ->create_default(),
-                                      Config::build(exec, 0, check_residual)
-                                          .on(exec)
-                                          ->generate(mtx.dev)
-                                          ->create_default()});
-        }
-        {
-            SCOPED_TRACE("Cleared solver");
-            test_pair<SolverType> pair{Config::build(ref, 0, check_residual)
-                                           .on(ref)
-                                           ->generate(mtx.ref),
-                                       Config::build(exec, 0, check_residual)
-                                           .on(exec)
-                                           ->generate(mtx.dev)};
-            pair.ref->clear();
-            pair.dev->clear();
-            guarded_fn(std::move(pair));
-        }
         /* Disable the test with clone, since cloning is not correctly supported
          * for types that contain factories as members.
          * TODO: reenable when cloning of factories is figured out
@@ -1099,32 +1075,6 @@ TYPED_TEST(Solver, MoveAssignSameExecutor)
             ASSERT_EQ(Config::get_preconditioner(solver2), precond);
             // moved-from object
             this->assert_empty_state(solver.dev, this->exec);
-        });
-    });
-}
-
-
-TYPED_TEST(Solver, ClearIsEmpty)
-{
-    using Config = typename TestFixture::Config;
-    this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            solver.dev->clear();
-
-            this->assert_empty_state(solver.dev, this->exec);
-        });
-    });
-}
-
-
-TYPED_TEST(Solver, CreateDefaultIsEmpty)
-{
-    using Config = typename TestFixture::Config;
-    this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            auto default_solver = solver.dev->create_default();
-
-            this->assert_empty_state(default_solver, this->exec);
         });
     });
 }

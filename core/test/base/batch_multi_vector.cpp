@@ -130,14 +130,6 @@ TYPED_TEST(MultiVector, CanBeCloned)
 }
 
 
-TYPED_TEST(MultiVector, CanBeCleared)
-{
-    this->mtx->clear();
-
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(MultiVector, CanBeConstructedWithSize)
 {
     using size_type = gko::size_type;
