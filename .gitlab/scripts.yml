@@ -54,7 +54,7 @@
         -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
         -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
-        -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
+        -DGINKGO_BUILD_PAPI_SDE=OFF
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
         -DGINKGO_TEST_NONDEFAULT_STREAM=${NONDEFAULT_STREAM}
@@ -78,8 +78,6 @@
     - if [ -n "${CUDA_ARCH}" ]; then
       export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       fi
-    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
-    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
     - if [ -n "${ONEAPI_DEVICE_SELECTOR}" ]; then export ONEAPI_DEVICE_SELECTOR; fi
     - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
       export OMPI_ALLOW_RUN_AS_ROOT=1;
@@ -99,13 +97,13 @@
         -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
         -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
-        -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
+        -DGINKGO_BUILD_PAPI_SDE=OFF
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
         -DGINKGO_ENABLE_HALF=${ENABLE_HALF}
         -DGINKGO_ENABLE_BFLOAT16=${ENABLE_BFLOAT16}
         -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
-        -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
+        -DGINKGO_CONFIG_LOG_DETAILED=ON
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
@@ -117,8 +115,6 @@
     - pushd test/test_install
     - ninja install
     - popd
-    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
-    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
     - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
       PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH ninja test_pkgconfig;
       fi
@@ -139,8 +135,6 @@
     - if [ -n "${CUDA_ARCH}" ]; then
       export CUDA_ARCH_STR=-DGINKGO_CUDA_ARCHITECTURES=${CUDA_ARCH};
       fi
-    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then export SYCL_DEVICE_TYPE; fi
-    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then export SYCL_DEVICE_FILTER; fi
     - if [ -n "${ONEAPI_DEVICE_SELECTOR}" ]; then export ONEAPI_DEVICE_SELECTOR; fi
     - if [[ "${MPI_AS_ROOT}" == "ON" ]];then
       export OMPI_ALLOW_RUN_AS_ROOT=1;
@@ -180,7 +174,7 @@
         -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
         -DGINKGO_BUILD_MPI=${BUILD_MPI} ${MPI_STR}
         -DGINKGO_BUILD_HWLOC=${BUILD_HWLOC}
-        -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
+        -DGINKGO_BUILD_PAPI_SDE=OFF
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
         -DGINKGO_ENABLE_HALF=${ENABLE_HALF}
@@ -207,102 +201,7 @@
     - pushd test/test_install
     - ninja install
     - popd
-    - if [ -n "${SYCL_DEVICE_TYPE}" ]; then unset SYCL_DEVICE_TYPE; fi
-    - if [ -n "${SYCL_DEVICE_FILTER}" ]; then unset SYCL_DEVICE_FILTER; fi
     - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
       PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib64/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib64:$LD_LIBRARY_PATH ninja test_pkgconfig;
       fi
   dependencies: []
-
-
-.horeka_test_template:
-  stage: test
-  before_script:
-    # Sanity checks
-    - if [ -z "${USE_NAME}" ]; then exit 111; fi
-    - if [ -z "${SLURM_PARTITION}" ]; then exit 222; fi
-    - if [[ ! "${SLURM_GRES}" =~ "^gpu*"  ]]; then export NVIDIA_VISIBLE_DEVICES=void; fi
-  variables:
-    GIT_CLEAN_FLAGS: none
-  script:
-    # We should be reusing the previous image and build directory.
-    # Speedup the tests by limiting the number of OMP threads to CI parallelism.
-    - export OMP_NUM_THREADS=${CI_PARALLELISM}
-    # The test job should have the name as the image job, only changing
-    # build to test
-    - cd ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
-    - cd ${CI_JOB_NAME/test/build}
-    - export INSTALL_PREFIX=`pwd`/install_prefix
-    - |
-        (( $(ctest -N | tail -1 | sed 's/Total Tests: //') != 0 )) || exit 1
-    - ctest --output-on-failure --timeout 6000 ${CTEST_EXTRA_ARGS}
-    - ninja test_exportbuild
-    - ninja test_install
-    - pushd test/test_install
-    - ninja install
-    - popd
-    - if [[ "${BUILD_SHARED_LIBS}" == "ON" || "${BUILD_HIP}" != "ON" ]]; then
-      PKG_CONFIG_PATH=${INSTALL_PREFIX}/lib/pkgconfig:$PKG_CONFIG_PATH LD_LIBRARY_PATH=${INSTALL_PREFIX}/lib:$LD_LIBRARY_PATH ninja test_pkgconfig;
-      fi
-  cache: []
-
-
-.horeka_benchmark_before_script_template:
-  before_script:
-    # Sanity checks
-    - if [ -z "${USE_NAME}" ]; then exit 111; fi
-    - if [ -z "${SLURM_PARTITION}" ]; then exit 222; fi
-    - if [[ ! "${SLURM_GRES}" =~ "^gpu*"  ]]; then export NVIDIA_VISIBLE_DEVICES=void; fi
-    - if [[ -z "${EXECUTOR}" ]]; then exit 233; fi
-    - if [[ -z "${SYSTEM_NAME}" ]]; then exit 233; fi
-    - if [[ -z "${BENCHMARK}" ]]; then exit 233; fi
-    # Set environment variables
-    - eval $(ssh-agent -s)
-    - echo "${BOT_KEY}" | tr -d '\r' | ssh-add - >/dev/null
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-    - chmod 644 ~/.ssh/known_hosts
-    - echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config
-    - unset OMP_NUM_THREADS
-    - git config --global user.name "${BOT_USER}"
-    - git config --global user.email "${BOT_EMAIL}"
-
-
-.benchmark_template:
-  extends:
-    - .horeka_benchmark_before_script_template
-  variables:
-    GIT_CLEAN_FLAGS: none
-  script:
-    # Install rsync
-    - pushd /
-    - git clone https://github.com/WayneD/rsync -b v3.2.4
-    - pushd rsync
-    - ./configure --disable-lz4 --disable-openssl --disable-doc --disable-xxhash --disable-md2man
-    - make -j10 install
-    - popd
-    - popd
-    # Setup ssget
-    - git clone https://github.com/ginkgo-project/ssget
-    - sed -i 's:ARCHIVE_LOCATION="${HOME}/.config/ssget":ARCHIVE_LOCATION="/ssget":' ssget/ssget
-    - export PATH=$PWD/ssget:$PATH
-    # Setup the benchmark
-    - cd ${CI_PROJECT_DIR}${CI_PROJECT_DIR_SUFFIX}
-    - cd ${CI_JOB_NAME}-build
-    - chmod +x benchmark/run_all_benchmarks.sh
-    - cd benchmark
-    - git clone ${BENCHMARK_REPO} data-repo
-    # Use the representative matrix list and launch benchmark
-    - export MATRIX_LIST_FILE=$PWD/data-repo/data/represent.list
-    - ./run_all_benchmarks.sh
-    # Publish the results
-    - rsync -av results/ data-repo/data/
-    - cd data-repo/data/
-    - ./build-list . > list.json
-    - ./agregate < list.json > agregate.json
-    - chmod +x represent
-    - ./represent $PWD > represent.json
-    - git add -A
-    - git diff --quiet HEAD || (git commit -m "Benchmark ${BENCHMARK} on ${EXECUTOR} with ${SYSTEM_NAME} of ginkgo-project/ginkgo@${CI_COMMIT_SHORT_SHA}" && git push)
-  cache: []

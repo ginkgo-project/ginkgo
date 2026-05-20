@@ -443,7 +443,7 @@ endif()
 
 # Try to find the third party packages before using our subdirectories
 if(GINKGO_BUILD_TESTS)
-    find_package(GTest 1.10.0) # No need for QUIET as CMake ships FindGTest
+    find_package(GTest 1.12.0) # No need for QUIET as CMake ships FindGTest
 endif()
 if(GINKGO_BUILD_BENCHMARKS)
     find_package(gflags 2.2.2 QUIET)
