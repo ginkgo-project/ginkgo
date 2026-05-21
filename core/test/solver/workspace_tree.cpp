@@ -102,14 +102,14 @@ TEST_F(WorkspaceTest, CreateReturnsOwning)
 }
 
 
-TEST_F(WorkspaceTest, DescribeDoesNotCrash)
+TEST_F(WorkspaceTest, DescribeOnEmptyRootShowsZeroChildren)
 {
     auto ws = gko::solver::Workspace::create(exec);
     std::ostringstream oss;
 
     ws->describe(oss);
 
-    ASSERT_FALSE(oss.str().empty());
+    ASSERT_EQ(oss.str(), "Workspace (children=0)\n");
 }
 
 

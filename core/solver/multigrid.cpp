@@ -387,7 +387,7 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
     GKO_ASSERT(lnode);
 
     auto& storage = *lnode;
-    storage.set_executor(exec);
+    storage.reset(exec);
     const bool scale_correction =
         multigrid->get_parameters().scale_correction;
     storage.set_size(scale_correction ? 10 : 6, 0);
@@ -483,7 +483,7 @@ void MultigridState::allocate_memory(
     GKO_ASSERT(lnode);
 
     auto& storage = *lnode;
-    storage.set_executor(exec);
+    storage.reset(exec);
     const bool scale_correction =
         multigrid->get_parameters().scale_correction;
     storage.set_size(scale_correction ? 10 : 6, 0);
@@ -619,9 +619,9 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     auto* r = level_storage.get_mutable_op(0);
     auto* g = level_storage.get_mutable_op(1);
     auto* e = level_storage.get_mutable_op(2);
-    auto* one = level_storage.get_op(3);
-    auto* neg_one = level_storage.get_op(4);
-    auto* next_one = level_storage.get_op(5);
+    auto* one = level_storage.get_const_op(3);
+    auto* neg_one = level_storage.get_const_op(4);
+    auto* next_one = level_storage.get_const_op(5);
     auto mg_level = multigrid->get_mg_level_list().at(level);
     auto pre_smoother = multigrid->get_pre_smoother_list().at(level);
     std::shared_ptr<const LinOp> mid_smoother{nullptr};
