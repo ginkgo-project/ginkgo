@@ -92,8 +92,9 @@ public:
      * If the number of colors is n_c, the size if n_c + 1.
      * The first entry is always 0, since the first color always starts at 0.
      * The last entry stores the total number of rows.
+     * The underlying storage is always on the master (host) executor.
      */
-    std::vector<index_type> get_color_pointers() const { return color_ptrs_; }
+    gko::array<index_type> get_color_pointers() const { return color_ptrs_; }
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -114,7 +115,7 @@ protected:
 private:
     std::shared_ptr<PermutationMatrix> permutation_;
     std::shared_ptr<PermutationMatrix> inv_permutation_;
-    std::vector<index_type> color_ptrs_;
+    gko::array<index_type> color_ptrs_;
 };
 
 

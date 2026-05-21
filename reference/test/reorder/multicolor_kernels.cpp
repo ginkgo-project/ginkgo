@@ -64,17 +64,18 @@ TEST_F(Multicolor, CreatesCorrectColorPtrs2d5p)
     const auto nrows = static_cast<i_type>(dims2[0] * dims2[1]);
     std::vector<i_type> perm(nrows);
     std::vector<i_type> invperm(nrows);
-    std::vector<i_type> color_ptrs;
+    gko::array<i_type> color_ptrs{exec};
 
     gko::kernels::reference::multicolor::compute_permutation_csr(
         exec, nrows, laplace2d5->get_const_row_ptrs(),
         laplace2d5->get_const_col_idxs(), color_ptrs, perm.data(),
         invperm.data());
 
-    ASSERT_EQ(color_ptrs.size(), 3);
-    EXPECT_EQ(color_ptrs[0], 0);
-    EXPECT_EQ(color_ptrs[1], nrows / 2);
-    EXPECT_EQ(color_ptrs[2], nrows);
+    const auto* const cp = color_ptrs.get_const_data();
+    ASSERT_EQ(color_ptrs.get_size(), 3);
+    EXPECT_EQ(cp[0], 0);
+    EXPECT_EQ(cp[1], nrows / 2);
+    EXPECT_EQ(cp[2], nrows);
 }
 
 
@@ -83,7 +84,7 @@ TEST_F(Multicolor, CreatesCorrectPermutations2d5p)
     const auto nrows = static_cast<i_type>(dims2[0] * dims2[1]);
     std::vector<i_type> perm(nrows);
     std::vector<i_type> invperm(nrows);
-    std::vector<i_type> color_ptrs;
+    gko::array<i_type> color_ptrs{exec};
     auto expected_ordering =
         gko::test::compute_multicolor_ordering_regular_star<i_type>(dims2);
 
@@ -101,16 +102,17 @@ TEST_F(Multicolor, CreatesCorrectColorPtrs3d27p)
     const auto nrows = static_cast<i_type>(dims3[0] * dims3[1] * dims3[2]);
     std::vector<i_type> perm(nrows);
     std::vector<i_type> invperm(nrows);
-    std::vector<i_type> color_ptrs;
+    gko::array<i_type> color_ptrs{exec};
 
     gko::kernels::reference::multicolor::compute_permutation_csr(
         exec, nrows, laplace3d27->get_const_row_ptrs(),
         laplace3d27->get_const_col_idxs(), color_ptrs, perm.data(),
         invperm.data());
 
-    ASSERT_EQ(color_ptrs.size(), 9);
+    const auto* const cp = color_ptrs.get_const_data();
+    ASSERT_EQ(color_ptrs.get_size(), 9);
     for (int color = 0; color < 9; color++) {
-        EXPECT_EQ(color_ptrs[color], color * nrows / 8);
+        EXPECT_EQ(cp[color], color * nrows / 8);
     }
 }
 
@@ -120,7 +122,7 @@ TEST_F(Multicolor, CreatesCorrectPermutations3d27p)
     const auto nrows = static_cast<i_type>(dims3[0] * dims3[1] * dims3[2]);
     std::vector<i_type> perm(nrows);
     std::vector<i_type> invperm(nrows);
-    std::vector<i_type> color_ptrs;
+    gko::array<i_type> color_ptrs{exec};
     auto expected_ordering =
         gko::test::compute_multicolor_ordering_regular_box<i_type>(dims3);
 

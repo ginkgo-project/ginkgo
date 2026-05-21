@@ -35,7 +35,7 @@ void compute_permutation_csr(std::shared_ptr<const ReferenceExecutor> exec,
                              const IndexType num_vertices,
                              const IndexType* const row_ptrs,
                              const IndexType* const col_idxs,
-                             std::vector<IndexType>& color_ptrs,
+                             gko::array<IndexType>& color_ptrs,
                              IndexType* const permutation,
                              IndexType* const inv_permutation)
 {
@@ -44,14 +44,12 @@ void compute_permutation_csr(std::shared_ptr<const ReferenceExecutor> exec,
     std::vector<int> color(local_nrows, -1);
 
     for (int i = 0; i < local_nrows; i++) {
-        // const IndexType nonzerosinrow = row_ptrs[i + 1] - row_ptrs[i];
         int mycolor = -1;
         bool overlap = true;
         while (overlap) {
             mycolor++;
             overlap = false;
             for (int jz = row_ptrs[i]; jz < row_ptrs[i + 1]; jz++) {
-                // for (int jz = 0; jz < nonzerosinrow; jz++) {
                 const auto j = col_idxs[jz];
                 if (i != j && mycolor == color[j]) {
                     overlap = true;
@@ -65,23 +63,22 @@ void compute_permutation_csr(std::shared_ptr<const ReferenceExecutor> exec,
 
     // color_points stores old indices of points in each color group.
     for (IndexType i = 0; i < local_nrows; i++) {
-        // add point to the corresponding color group.
         assert(color[i] >= 0 && color[i] < row_ptrs[i + 1] - row_ptrs[i]);
         color_points[color[i]].push_back(i);
     }
     const auto num_colors = static_cast<int>(color_points.size());
-    color_ptrs.resize(num_colors + 1);
-    // A.nblocks = num_colors;
-    color_ptrs[0] = 0;
+    color_ptrs.resize_and_reset(num_colors + 1);
+    auto* const cp = color_ptrs.get_data();
+    cp[0] = 0;
 
     for (int ic = 0; ic < num_colors; ic++) {
         // map is sorted, so this should be stable.
         const auto color_size = static_cast<int>(color_points[ic].size());
         for (int i = 0; i < color_size; i++) {
-            permutation[color_points[ic][i]] = color_ptrs[ic] + i;
-            inv_permutation[color_ptrs[ic] + i] = color_points[ic][i];
+            permutation[color_points[ic][i]] = cp[ic] + i;
+            inv_permutation[cp[ic] + i] = color_points[ic][i];
         }
-        color_ptrs[ic + 1] = color_ptrs[ic] + color_size;
+        cp[ic + 1] = cp[ic] + color_size;
     }
 }
 

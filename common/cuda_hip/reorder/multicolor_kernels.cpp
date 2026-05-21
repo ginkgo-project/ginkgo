@@ -34,7 +34,7 @@ void compute_permutation_csr(std::shared_ptr<const DefaultExecutor> exec,
                              const IndexType num_vertices,
                              const IndexType* const row_ptrs,
                              const IndexType* const col_idxs,
-                             std::vector<IndexType>& color_ptrs,
+                             gko::array<IndexType>& color_ptrs,
                              IndexType* const permutation,
                              IndexType* const inv_permutation)
 {

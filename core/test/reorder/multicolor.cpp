@@ -54,11 +54,14 @@ TYPED_TEST(Multicolor, GeneratesCorrectOrderingWithCsrInput)
 
     auto mc = this->mc_factory->generate(mat);
 
-    auto color_ptrs = mc->get_color_pointers();
+    auto color_ptrs_arr = mc->get_color_pointers();
     auto perm = mc->get_permutation()->get_const_permutation();
     auto iperm = mc->get_inverse_permutation()->get_const_permutation();
-    auto permv = std::vector<i_type>(perm, perm + size);
-    auto ipermv = std::vector<i_type>(iperm, iperm + size);
+    const auto permv = std::vector<i_type>(perm, perm + size);
+    const auto ipermv = std::vector<i_type>(iperm, iperm + size);
+    const auto color_ptrs = std::vector<i_type>(
+        color_ptrs_arr.get_const_data(),
+        color_ptrs_arr.get_const_data() + color_ptrs_arr.get_size());
     EXPECT_EQ(color_ptrs, expected.color_ptrs);
     EXPECT_EQ(permv, expected.old_to_new);
     EXPECT_EQ(ipermv, expected.new_to_old);
@@ -83,11 +86,14 @@ TYPED_TEST(Multicolor, GeneratesCorrectOrderingWithSparsityCsrInput)
 
     auto mc = this->mc_factory->generate(smat);
 
-    auto color_ptrs = mc->get_color_pointers();
+    auto color_ptrs_arr = mc->get_color_pointers();
     auto perm = mc->get_permutation()->get_const_permutation();
     auto iperm = mc->get_inverse_permutation()->get_const_permutation();
     const auto permv = std::vector<i_type>(perm, perm + size);
     const auto ipermv = std::vector<i_type>(iperm, iperm + size);
+    const auto color_ptrs = std::vector<i_type>(
+        color_ptrs_arr.get_const_data(),
+        color_ptrs_arr.get_const_data() + color_ptrs_arr.get_size());
     EXPECT_EQ(color_ptrs, expected.color_ptrs);
     EXPECT_EQ(permv, expected.old_to_new);
     EXPECT_EQ(ipermv, expected.new_to_old);

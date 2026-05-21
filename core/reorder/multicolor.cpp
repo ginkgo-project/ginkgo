@@ -35,7 +35,7 @@ GKO_REGISTER_OPERATION(compute_permutation_csr,
 template <template <typename, typename> class MatrixTempl, typename ValueType,
           typename IndexType>
 void multicolor_reorder(const MatrixTempl<ValueType, IndexType>* const mtx,
-                        std::vector<IndexType>& color_ptrs,
+                        gko::array<IndexType>& color_ptrs,
                         IndexType* const permutation,
                         IndexType* const inv_permutation)
 {
@@ -51,7 +51,8 @@ template <typename ValueType, typename IndexType>
 Multicolor<ValueType, IndexType>::Multicolor(
     std::shared_ptr<const Executor> exec)
     : EnablePolymorphicObject<Multicolor, ReorderingBase<IndexType>>(
-          std::move(exec))
+          std::move(exec)),
+      color_ptrs_{this->get_executor()->get_master()}
 {}
 
 
@@ -60,7 +61,8 @@ Multicolor<ValueType, IndexType>::Multicolor(const Factory* factory,
                                              const ReorderingBaseArgs& args)
     : EnablePolymorphicObject<Multicolor, ReorderingBase<IndexType>>(
           factory->get_executor()),
-      parameters_{factory->get_parameters()}
+      parameters_{factory->get_parameters()},
+      color_ptrs_{factory->get_executor()->get_master()}
 {
     using CsrType = matrix::Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
@@ -89,14 +91,7 @@ Multicolor<ValueType, IndexType>::Multicolor(const Factory* factory,
     GKO_ASSERT_IS_SQUARE_MATRIX(sysmat);
 
     permutation_ = PermutationMatrix::create(exec, size);
-
-    // To make it explicit.
-    inv_permutation_ = nullptr;
-    if (parameters_.construct_inverse_permutation) {
-        inv_permutation_ = PermutationMatrix::create(exec, size);
-    } else {
-        GKO_NOT_IMPLEMENTED;
-    }
+    inv_permutation_ = PermutationMatrix::create(exec, size);
 
     multicolor_reorder(
         matrix.get(), color_ptrs_, permutation_->get_permutation(),

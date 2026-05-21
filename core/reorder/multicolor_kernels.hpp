@@ -7,8 +7,8 @@
 
 
 #include <memory>
-#include <vector>
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -27,7 +27,7 @@ namespace kernels {
     void compute_permutation_csr(                                            \
         std::shared_ptr<const DefaultExecutor> exec, IndexType num_vertices, \
         const IndexType* row_ptrs, const IndexType* col_idxs,                \
-        std::vector<IndexType>& color_ptrs, IndexType* permutation,          \
+        gko::array<IndexType>& color_ptrs, IndexType* permutation,           \
         IndexType* inv_permutation)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES \

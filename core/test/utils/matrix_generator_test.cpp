@@ -306,7 +306,7 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
 TEST(MatrixGenerator, GeneratesLaplace2d5pointMatrixData)
 {
     using T = std::complex<float>;
-    using itype = long;
+    using itype = gko::int64;
     using Dense = gko::matrix::Dense<T>;
     auto exec = gko::ReferenceExecutor::create();
     const gko::dim<2> dims{4, 4};
