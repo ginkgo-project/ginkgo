@@ -379,10 +379,6 @@ private:
  *   - non-owning workspace view (borrowed by an inner solver).
  * The state is fixed at construction; the workspace storage is private so
  * the two cases cannot coexist or be set after the fact.
- *
- * Destructor, move constructor, and move assignment are out-of-line
- * (in core/base/lin_op.cpp) because unique_ptr<Workspace> requires
- * a complete type for these operations.
  */
 struct LinOpGenerateComponents {
     std::shared_ptr<const LinOp> system_matrix;
@@ -931,8 +927,9 @@ using EnableDefaultLinOpFactory =
  *         : LinOp(exec) {}
  *     // constructor needed by the factory
  *     explicit MyLinOp(const Factory *factory,
- *                      LinOpGenerateComponents matrix)
- *         : LinOp(factory->get_executor()), matrix->get_size()),
+ *                      LinOpGenerateComponents components)
+ *         : LinOp(factory->get_executor(),
+ *                 components.system_matrix->get_size()),
  *           // store factory's parameters locally
  *           my_parameters_{factory->get_parameters()},
  *     {
