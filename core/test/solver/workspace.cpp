@@ -213,8 +213,8 @@ TEST_F(Workspace, CanCreateOperators)
     ASSERT_EQ(op2->get_stride(), stride2);
     GKO_ASSERT_DYNAMIC_TYPE(op1, DummyLinOp);
     GKO_ASSERT_DYNAMIC_TYPE(op2, DummyLinOp2);
-    ASSERT_EQ(op1, ws.get_op(1));
-    ASSERT_EQ(op2, ws.get_op(0));
+    ASSERT_EQ(op1, ws.get_const_op(1));
+    ASSERT_EQ(op2, ws.get_const_op(0));
 }
 
 
@@ -287,7 +287,7 @@ TEST_F(Workspace, ClearResetsOperators)
 
     ws.clear();
 
-    ASSERT_EQ(ws.get_op(0), nullptr);
+    ASSERT_EQ(ws.get_const_op(0), nullptr);
 }
 
 
@@ -300,17 +300,47 @@ TEST_F(Workspace, MoveTransfersOperatorsToDestination)
 
     gko::solver::Workspace ws2{std::move(ws)};
 
-    ASSERT_EQ(ws2.get_op(0), op1);
+    ASSERT_EQ(ws2.get_const_op(0), op1);
 }
 
 
-TEST_F(Workspace, SetExecutorUpdatesExecutor)
+TEST_F(Workspace, ResetUpdatesExecutor)
 {
     auto exec1 = gko::ReferenceExecutor::create();
     auto exec2 = gko::ReferenceExecutor::create();
     gko::solver::Workspace ws{exec1};
 
-    ws.set_executor(exec2);
+    ws.reset(exec2);
 
     ASSERT_EQ(ws.get_executor(), exec2);
+}
+
+
+TEST_F(Workspace, ResetClearsSlotsWhenExecutorChanges)
+{
+    auto exec1 = gko::ReferenceExecutor::create();
+    auto exec2 = gko::ReferenceExecutor::create();
+    gko::solver::Workspace ws{exec1};
+    ws.set_size(1, 0);
+    ws.template create_or_get_op<DummyLinOp>(
+        0, [&] { return DummyLinOp::create(exec1); }, typeid(DummyLinOp), {},
+        0);
+
+    ws.reset(exec2);
+
+    ASSERT_EQ(ws.get_executor(), exec2);
+    ASSERT_EQ(ws.get_const_op(0), nullptr);
+}
+
+
+TEST_F(Workspace, ResetPreservesSlotsWhenExecutorUnchanged)
+{
+    gko::solver::Workspace ws{exec};
+    ws.set_size(1, 0);
+    auto op1 = ws.template create_or_get_op<DummyLinOp>(
+        0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
+
+    ws.reset(exec);
+
+    ASSERT_EQ(ws.get_const_op(0), op1);
 }

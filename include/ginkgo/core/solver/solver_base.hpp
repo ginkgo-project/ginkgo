@@ -388,7 +388,7 @@ public:
 
     const LinOp* get_workspace_op(int vector_id) const
     {
-        return node_->get_op(vector_id);
+        return node_->get_const_op(vector_id);
     }
 
     virtual int get_num_workspace_ops() const { return 0; }
@@ -533,7 +533,7 @@ protected:
 
 private:
     friend std::unique_ptr<solver::Workspace>
-    solver::invalidate_and_extract_workspace(std::unique_ptr<LinOp>& solver);
+    solver::invalidate_and_extract_workspace(std::unique_ptr<LinOp>&& solver);
 
     mutable std::unique_ptr<solver::Workspace> owned_workspace_;
     mutable Workspace* node_ = nullptr;
@@ -820,12 +820,18 @@ private:
 };
 
 
+}  // namespace solver
+
+
 /**
  * Tag type for deferring preconditioner generation to the constructor
  * body, allowing workspace wiring before preconditioner creation.
  */
 struct deferred_preconditioner_t {};
 inline constexpr deferred_preconditioner_t deferred_preconditioner{};
+
+
+namespace solver {
 
 
 /**
@@ -845,24 +851,6 @@ class EnablePreconditionedIterativeSolver
       public EnablePreconditionable<DerivedType> {
 public:
     EnablePreconditionedIterativeSolver() = default;
-
-    EnablePreconditionedIterativeSolver(
-        std::shared_ptr<const LinOp> system_matrix,
-        std::shared_ptr<const stop::CriterionFactory> stop_factory,
-        std::shared_ptr<const LinOp> preconditioner)
-        : EnableSolverBase<DerivedType>(std::move(system_matrix)),
-          EnableIterativeBase<DerivedType>{std::move(stop_factory)},
-          EnablePreconditionable<DerivedType>{std::move(preconditioner)}
-    {}
-
-    template <typename FactoryParameters>
-    EnablePreconditionedIterativeSolver(
-        std::shared_ptr<const LinOp> system_matrix,
-        const FactoryParameters& params)
-        : EnablePreconditionedIterativeSolver{
-              system_matrix, stop::combine(params.criteria),
-              generate_preconditioner_static(system_matrix, params)}
-    {}
 
     template <typename FactoryParameters>
     EnablePreconditionedIterativeSolver(
@@ -891,22 +879,6 @@ protected:
             this->set_preconditioner(matrix::Identity<ValueType>::create(
                 this->get_system_matrix()->get_executor(),
                 this->get_system_matrix()->get_size()));
-        }
-    }
-
-private:
-    template <typename FactoryParameters>
-    static std::shared_ptr<const LinOp> generate_preconditioner_static(
-        std::shared_ptr<const LinOp> system_matrix,
-        const FactoryParameters& params)
-    {
-        if (params.generated_preconditioner) {
-            return params.generated_preconditioner;
-        } else if (params.preconditioner) {
-            return params.preconditioner->generate(system_matrix);
-        } else {
-            return matrix::Identity<ValueType>::create(
-                system_matrix->get_executor(), system_matrix->get_size());
         }
     }
 };

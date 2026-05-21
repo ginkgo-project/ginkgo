@@ -387,7 +387,7 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
     GKO_ASSERT(lnode);
 
     auto& storage = *lnode;
-    storage.set_executor(exec);
+    storage.reset(exec);
     storage.set_size(6, 0);  // 6 operator slots, 0 arrays
 
     // Slot 0: r (current level dimensions)
@@ -454,7 +454,7 @@ void MultigridState::allocate_memory(
     GKO_ASSERT(lnode);
 
     auto& storage = *lnode;
-    storage.set_executor(exec);
+    storage.reset(exec);
     storage.set_size(6, 0);  // 6 operator slots, 0 arrays
 
     // Slot 0: r (current level dimensions, distributed)
@@ -553,9 +553,9 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     auto* r = level_storage.get_mutable_op(0);
     auto* g = level_storage.get_mutable_op(1);
     auto* e = level_storage.get_mutable_op(2);
-    auto* one = level_storage.get_op(3);
-    auto* neg_one = level_storage.get_op(4);
-    auto* next_one = level_storage.get_op(5);
+    auto* one = level_storage.get_const_op(3);
+    auto* neg_one = level_storage.get_const_op(4);
+    auto* next_one = level_storage.get_const_op(5);
     // get mg_level
     auto mg_level = multigrid->get_mg_level_list().at(level);
     // get the pre_smoother
