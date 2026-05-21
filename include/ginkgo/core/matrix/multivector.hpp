@@ -10,6 +10,9 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
+
+#include "ginkgo/core/base/type_traits.hpp"
 
 
 namespace gko {
@@ -39,6 +42,22 @@ using any_dense_type =
     syn::variant_from_tuple<syn::apply_to_list<ptr_param, dense_types>>;
 
 using any_value_t = syn::variant_from_tuple<supported_value_types>;
+
+
+template <typename ConcreteType>
+struct vector_traits;
+
+template <template <typename...> typename ConcreteType, typename ValueType,
+          typename... Args>
+struct vector_traits<ConcreteType<ValueType, Args...>> {
+    using value_type = ValueType;
+    using absolute_value_type = remove_complex<value_type>;
+    using absolute_type = ConcreteType<absolute_value_type, Args...>;
+    using real_type = absolute_type;
+    using complex_value_type = to_complex<value_type>;
+    using complex_type = ConcreteType<complex_value_type, Args...>;
+};
+
 
 class MultiVector : public EnableAbstractPolymorphicObject<MultiVector, LinOp> {
 public:
@@ -232,9 +251,12 @@ class EnableMultiVector
     : public EnablePolymorphicObject<ConcreteType, MultiVector>,
       public EnablePolymorphicAssignment<ConcreteType> {
 public:
-    using absolute_type = remove_complex<ConcreteType>;
-    using real_type = absolute_type;
-    using complex_type = to_complex<ConcreteType>;
+    using traits = vector_traits<ConcreteType>;
+    using value_type = typename traits::value_type;
+    using absolute_value_type = typename traits::absolute_value_type;
+    using absolute_type = typename traits::absolute_type;
+    using real_type = typename traits::real_type;
+    using complex_type = typename traits::complex_type;
 
     [[nodiscard]] static std::unique_ptr<ConcreteType> create_with_config_of(
         ptr_param<const ConcreteType> other);
