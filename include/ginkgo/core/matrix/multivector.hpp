@@ -7,6 +7,10 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
+
+#include "ginkgo/core/base/type_traits.hpp"
+
 
 
 namespace gko {
@@ -230,6 +234,7 @@ class EnableMultiVector
     : public EnablePolymorphicObject<ConcreteType, MultiVector>,
       public EnablePolymorphicAssignment<ConcreteType> {
 public:
+    using value_type = get_value_type_t<ConcreteType>;
     using absolute_type = remove_complex<ConcreteType>;
     using real_type = absolute_type;
     using complex_type = to_complex<ConcreteType>;
