@@ -9,12 +9,9 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -601,23 +598,23 @@ template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
                        matrix::view::dense<const ValueType> source,
                        const int64*,
-                       matrix::Hybrid<ValueType, IndexType>* result)
+                       matrix::view::hybrid<ValueType, IndexType> result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto strategy = result->get_strategy();
-    auto ell_lim = strategy->get_ell_num_stored_elements_per_row();
-    auto coo_lim = strategy->get_coo_nnz();
-    auto coo_val = result->get_coo_values();
-    auto coo_col = result->get_coo_col_idxs();
-    auto coo_row = result->get_coo_row_idxs();
-    for (size_type i = 0; i < result->get_ell_num_stored_elements_per_row();
-         i++) {
-        for (size_type j = 0; j < result->get_ell_stride(); j++) {
-            result->ell_val_at(j, i) = zero<ValueType>();
-            result->ell_col_at(j, i) = invalid_index<IndexType>();
-        }
-    }
+    auto num_rows = result.size[0];
+    auto num_cols = result.size[1];
+    auto ell_lim = result.ell_part.num_stored_elements_per_row;
+    auto coo_lim = result.coo_part.num_stored_elements;
+    auto coo_val = result.coo_part.values;
+    auto coo_col = result.coo_part.col_idxs;
+    auto coo_row = result.coo_part.row_idxs;
+    std::fill_n(
+        result.ell_part.values,
+        result.ell_part.stride * result.ell_part.num_stored_elements_per_row,
+        zero<ValueType>());
+    std::fill_n(
+        result.ell_part.col_idxs,
+        result.ell_part.stride * result.ell_part.num_stored_elements_per_row,
+        invalid_index<IndexType>());
 
     size_type coo_idx = 0;
     for (size_type row = 0; row < num_rows; row++) {
@@ -626,8 +623,8 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
              col++) {
             auto val = source(row, col);
             if (is_nonzero(val)) {
-                result->ell_val_at(row, col_idx) = val;
-                result->ell_col_at(row, col_idx) = col;
+                result.ell_part.val_at(row, col_idx) = val;
+                result.ell_part.col_at(row, col_idx) = col;
                 col_idx++;
             }
         }

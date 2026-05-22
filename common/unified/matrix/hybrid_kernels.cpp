@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -51,7 +51,7 @@ template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          const device_matrix_data<ValueType, IndexType>& data,
                          const int64* row_ptrs, const int64* coo_row_ptrs,
-                         matrix::Hybrid<ValueType, IndexType>* result)
+                         matrix::view::hybrid<ValueType, IndexType> result)
 {
     using device_value_type = device_type<ValueType>;
     run_kernel(
@@ -83,10 +83,10 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
         },
         data.get_size()[0], row_ptrs, data.get_const_values(),
         data.get_const_row_idxs(), data.get_const_col_idxs(),
-        result->get_ell_stride(), result->get_ell_num_stored_elements_per_row(),
-        result->get_ell_col_idxs(), result->get_ell_values(), coo_row_ptrs,
-        result->get_coo_row_idxs(), result->get_coo_col_idxs(),
-        result->get_coo_values());
+        result.ell_part.stride, result.ell_part.num_stored_elements_per_row,
+        result.ell_part.col_idxs, result.ell_part.values, coo_row_ptrs,
+        result.coo_part.row_idxs, result.coo_part.col_idxs,
+        result.coo_part.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -94,14 +94,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Hybrid<ValueType, IndexType>* source,
-                    const IndexType* ell_row_ptrs,
-                    const IndexType* coo_row_ptrs,
-                    matrix::Csr<ValueType, IndexType>* result)
+void convert_to_csr(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::hybrid<const ValueType, const IndexType> source,
+    const IndexType* ell_row_ptrs, const IndexType* coo_row_ptrs,
+    matrix::Csr<ValueType, IndexType>* result)
 {
-    const auto ell = source->get_ell();
-    const auto coo = source->get_coo();
+    const auto ell = source.ell_part;
+    const auto coo = source.coo_part;
     // ELL is stored in column-major, so we swap row and column parameters
     run_kernel(
         exec,
@@ -117,18 +117,16 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                 out_vals[out_idx] = in_vals[ell_idx];
             }
         },
-        dim<2>{ell->get_num_stored_elements_per_row(), ell->get_size()[0]},
-        static_cast<int64>(ell->get_stride()), ell->get_const_col_idxs(),
-        ell->get_const_values(), ell_row_ptrs, coo_row_ptrs,
-        result->get_col_idxs(), result->get_values());
+        dim<2>{ell.num_stored_elements_per_row, ell.size[0]},
+        static_cast<int64>(ell.stride), ell.col_idxs, ell.values, ell_row_ptrs,
+        coo_row_ptrs, result->get_col_idxs(), result->get_values());
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto ell_row_ptrs, auto coo_row_ptrs,
                       auto out_row_ptrs) {
             out_row_ptrs[idx] = ell_row_ptrs[idx] + coo_row_ptrs[idx];
         },
-        source->get_size()[0] + 1, ell_row_ptrs, coo_row_ptrs,
-        result->get_row_ptrs());
+        source.size[0] + 1, ell_row_ptrs, coo_row_ptrs, result->get_row_ptrs());
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto in_rows, auto in_cols, auto in_vals,
@@ -145,9 +143,9 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
             out_cols[out_idx] = col;
             out_vals[out_idx] = val;
         },
-        coo->get_num_stored_elements(), coo->get_const_row_idxs(),
-        coo->get_const_col_idxs(), coo->get_const_values(), ell_row_ptrs,
-        coo_row_ptrs, result->get_col_idxs(), result->get_values());
+        coo.num_stored_elements, coo.row_idxs, coo.col_idxs, coo.values,
+        ell_row_ptrs, coo_row_ptrs, result->get_col_idxs(),
+        result->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

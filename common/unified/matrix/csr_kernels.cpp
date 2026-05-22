@@ -188,7 +188,7 @@ template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
                        const matrix::Csr<ValueType, IndexType>* source,
                        const int64* coo_row_ptrs,
-                       matrix::Hybrid<ValueType, IndexType>* result)
+                       matrix::view::hybrid<ValueType, IndexType> result)
 {
     run_kernel(
         exec,
@@ -218,10 +218,10 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
         },
         source->get_size()[0], source->get_const_row_ptrs(),
         source->get_const_col_idxs(), source->get_const_values(),
-        result->get_ell_stride(), result->get_ell_num_stored_elements_per_row(),
-        result->get_ell_col_idxs(), result->get_ell_values(), coo_row_ptrs,
-        result->get_coo_row_idxs(), result->get_coo_col_idxs(),
-        result->get_coo_values());
+        result.ell_part.stride, result.ell_part.num_stored_elements_per_row,
+        result.ell_part.col_idxs, result.ell_part.values, coo_row_ptrs,
+        result.coo_part.row_idxs, result.coo_part.col_idxs,
+        result.coo_part.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

@@ -170,7 +170,7 @@ namespace kernels {
     void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,  \
                            matrix::view::dense<const ValueType> source,  \
                            const int64* coo_row_ptrs,                    \
-                           matrix::Hybrid<ValueType, IndexType>* other)
+                           matrix::view::hybrid<ValueType, IndexType> other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType) \
     void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,  \

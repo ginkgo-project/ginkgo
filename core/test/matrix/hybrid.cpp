@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -456,4 +456,60 @@ TYPED_TEST(Hybrid, GetCorrectAutomatic)
     auto mtx_stra = gko::as<strategy>(mtx->get_strategy());
 
     ASSERT_NO_THROW(gko::as<strategy2>(mtx->template get_strategy<Mtx2>()));
+}
+
+
+TYPED_TEST(Hybrid, CanCreateDeviceView)
+{
+    auto view = this->mtx->get_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.ell_part.num_stored_elements_per_row,
+              this->mtx->get_ell_num_stored_elements_per_row());
+    EXPECT_EQ(view.ell_part.stride, this->mtx->get_ell_stride());
+    EXPECT_EQ(view.ell_part.values, this->mtx->get_ell_values());
+    EXPECT_EQ(view.ell_part.col_idxs, this->mtx->get_ell_col_idxs());
+    EXPECT_EQ(view.coo_part.num_stored_elements,
+              this->mtx->get_coo_num_stored_elements());
+    EXPECT_EQ(view.coo_part.row_idxs, this->mtx->get_coo_row_idxs());
+    EXPECT_EQ(view.coo_part.col_idxs, this->mtx->get_coo_col_idxs());
+    EXPECT_EQ(view.coo_part.values, this->mtx->get_coo_values());
+}
+
+
+TYPED_TEST(Hybrid, CanCreateConstDeviceView)
+{
+    auto view = this->mtx->get_const_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.ell_part.num_stored_elements_per_row,
+              this->mtx->get_ell_num_stored_elements_per_row());
+    EXPECT_EQ(view.ell_part.stride, this->mtx->get_ell_stride());
+    EXPECT_EQ(view.ell_part.values, this->mtx->get_ell_values());
+    EXPECT_EQ(view.ell_part.col_idxs, this->mtx->get_ell_col_idxs());
+    EXPECT_EQ(view.coo_part.num_stored_elements,
+              this->mtx->get_coo_num_stored_elements());
+    EXPECT_EQ(view.coo_part.row_idxs, this->mtx->get_coo_row_idxs());
+    EXPECT_EQ(view.coo_part.col_idxs, this->mtx->get_coo_col_idxs());
+    EXPECT_EQ(view.coo_part.values, this->mtx->get_coo_values());
+}
+
+
+TEST(HybridView, CreateFailsWithNonMatchingSizes)
+{
+#ifdef NDEBUG
+    GTEST_SKIP() << "Assertion is only enabled in debug mode";
+#endif
+
+    using value_type = double;
+    using index_type = int;
+    auto exec = gko::ReferenceExecutor::create();
+    auto coo = gko::matrix::Coo<value_type, index_type>::create(
+        exec, gko::dim<2>(1, 2));
+    auto ell = gko::matrix::Ell<value_type, index_type>::create(
+        exec, gko::dim<2>(2, 1));
+
+    using view_t = gko::matrix::view::hybrid<value_type, index_type>;
+    EXPECT_EXIT(view_t(ell->get_device_view(), coo->get_device_view()),
+                check_assertion_exit_code, "");
 }

@@ -11,12 +11,9 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -290,14 +287,14 @@ template <typename ValueType, typename IndexType>
 void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
                        matrix::view::dense<const ValueType> source,
                        const int64* coo_row_ptrs,
-                       matrix::Hybrid<ValueType, IndexType>* result)
+                       matrix::view::hybrid<ValueType, IndexType> result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto ell_lim = result->get_ell_num_stored_elements_per_row();
-    auto coo_val = result->get_coo_values();
-    auto coo_col = result->get_coo_col_idxs();
-    auto coo_row = result->get_coo_row_idxs();
+    auto num_rows = result.size[0];
+    auto num_cols = result.size[1];
+    auto ell_lim = result.ell_part.num_stored_elements_per_row;
+    auto coo_val = result.coo_part.values;
+    auto coo_col = result.coo_part.col_idxs;
+    auto coo_row = result.coo_part.row_idxs;
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; row++) {
@@ -306,14 +303,14 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
         for (; col < num_cols && ell_count < ell_lim; col++) {
             auto val = source(row, col);
             if (is_nonzero(val)) {
-                result->ell_val_at(row, ell_count) = val;
-                result->ell_col_at(row, ell_count) = col;
+                result.ell_part.val_at(row, ell_count) = val;
+                result.ell_part.col_at(row, ell_count) = col;
                 ell_count++;
             }
         }
         for (; ell_count < ell_lim; ell_count++) {
-            result->ell_val_at(row, ell_count) = zero<ValueType>();
-            result->ell_col_at(row, ell_count) = invalid_index<IndexType>();
+            result.ell_part.val_at(row, ell_count) = zero<ValueType>();
+            result.ell_part.col_at(row, ell_count) = invalid_index<IndexType>();
         }
         auto coo_idx = coo_row_ptrs[row];
         for (; col < num_cols; col++) {

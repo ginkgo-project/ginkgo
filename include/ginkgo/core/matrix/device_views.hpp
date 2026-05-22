@@ -217,6 +217,38 @@ private:
 };
 
 
+/**
+ * Non-owning view of a matrix::Hybrid to be used inside device kernels.
+ * This type is used to provide a simple and stable ABI for passing data between
+ * libraries.
+ *
+ * @tparam ValueType  the value type used to store matrix values.
+ * @tparam IndexType  the index type used to store matrix columns.
+ */
+template <typename ValueType, typename IndexType>
+struct hybrid {
+    static_assert(std::is_const_v<ValueType> == std::is_const_v<IndexType>,
+                  "ValueType and IndexType must share the same constness");
+    dim<2> size;
+    ell<ValueType, IndexType> ell_part;
+    coo<ValueType, IndexType> coo_part;
+
+    /** Constructs a hybrid view */
+    constexpr hybrid(ell<ValueType, IndexType> ell_,
+                     coo<ValueType, IndexType> coo_)
+        : size(ell_.size), ell_part(ell_), coo_part(coo_)
+    {
+        assert(ell_part.size == coo_part.size);
+    }
+
+    /** Returns a const view of the same values */
+    constexpr hybrid<const ValueType, const IndexType> as_const() const
+    {
+        return {ell_part.as_const(), coo_part.as_const()};
+    }
+};
+
+
 }  // namespace view
 }  // namespace matrix
 }  // namespace gko

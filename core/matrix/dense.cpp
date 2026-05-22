@@ -912,7 +912,7 @@ void Dense<ValueType>::convert_impl(Hybrid<ValueType, IndexType>* result) const
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
     exec->run(dense::make_convert_to_hybrid(this->get_const_device_view(),
                                             coo_row_ptrs.get_const_data(),
-                                            tmp.get()));
+                                            tmp->get_device_view()));
 }
 
 
