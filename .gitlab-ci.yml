@@ -290,7 +290,7 @@ build/amd/nompi/gcc/rocm720/release/shared:
     - .build_and_test_tum_template
     - .default_variables
     - .full_test_condition
-    - .use_tum-amd
+    - .use_tum-amd-mi210
   variables:
     BUILD_HIP: "ON"
     BUILD_OMP: "OFF"
@@ -481,7 +481,7 @@ build/nogpu/mpi/gcc13/noomp/release/shared:
     BUILD_TYPE: "Release"
     BUILD_HWLOC: "OFF"
     BUILD_MPI: "ON"
-    MODULE_LOAD: "cmake/3.18.6 gcc/13.3.0 openmpi"
+    MODULE_LOAD: "cmake/3.18.6 gcc/13.3.0 openmpi/5.0.7"
 
 # spack oneapi 2023.1
 build/icpx20231/gpu/release/shared:
