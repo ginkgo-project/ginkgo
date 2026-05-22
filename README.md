@@ -61,7 +61,7 @@ The Ginkgo HIP module has the following __additional__ requirements:
 
 The Ginkgo DPC++(SYCL) module has the following __additional__ requirements:
 
-* _oneAPI 2023.1+_
+* _oneAPI 2024.1+_
 * Set `dpcpp` or `icpx` as the `CMAKE_CXX_COMPILER`
 * The following oneAPI packages should be available:
     * oneMKL

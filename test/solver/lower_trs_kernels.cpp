@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,7 +21,7 @@
 class LowerTrs : public CommonTestFixture {
 protected:
     using mtx_type = gko::matrix::Csr<value_type, index_type>;
-    using vec_type = gko::matrix::Dense<>;
+    using vec_type = gko::matrix::Dense<value_type>;
     using solver_type = gko::solver::LowerTrs<value_type, index_type>;
 
     LowerTrs() : rand_engine(30) {}
@@ -87,8 +87,7 @@ TEST_F(LowerTrs, ApplyFullDenseMtxIsEquivalentToRef)
 
     solver->apply(b, x);
     d_solver->apply(db, dx);
-
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -105,7 +104,7 @@ TEST_F(LowerTrs, ApplyFullDenseMtxUnitDiagIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -120,7 +119,7 @@ TEST_F(LowerTrs, ApplyFullSparseMtxIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -137,7 +136,7 @@ TEST_F(LowerTrs, ApplyFullSparseMtxUnitDiagIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -152,7 +151,7 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-13);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e3);
 }
 
 
@@ -169,7 +168,7 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -184,7 +183,7 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -201,7 +200,7 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -216,7 +215,7 @@ TEST_F(LowerTrs, ApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -233,7 +232,7 @@ TEST_F(LowerTrs, ApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -248,7 +247,7 @@ TEST_F(LowerTrs, ApplyFullSparseMtxMultipleRhsIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -265,7 +264,7 @@ TEST_F(LowerTrs, ApplyFullSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -280,7 +279,7 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -297,7 +296,7 @@ TEST_F(LowerTrs, ApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -312,7 +311,7 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxMultipleRhsIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
@@ -330,7 +329,7 @@ TEST_F(LowerTrs, ApplyTriangularSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
     solver->apply(b, x);
     d_solver->apply(db, dx);
 
-    GKO_ASSERT_MTX_NEAR(dx, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx, x, r<value_type>::value * 1e2);
 }
 
 
