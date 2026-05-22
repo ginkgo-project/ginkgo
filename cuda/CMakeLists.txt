@@ -17,7 +17,7 @@ add_instantiation_files(
     BATCH_BICGSTAB_INSTANTIATE1
 )
 add_instantiation_files(
-    .
+    ${PROJECT_SOURCE_DIR}/cuda
     solver/batch_bicgstab_launch.instantiate.cu
     BATCH_BICGSTAB_INSTANTIATE2
 )
@@ -27,7 +27,7 @@ add_instantiation_files(
     BATCH_CG_INSTANTIATE1
 )
 add_instantiation_files(
-    .
+    ${PROJECT_SOURCE_DIR}/cuda
     solver/batch_cg_launch.instantiate.cu
     BATCH_CG_INSTANTIATE2
 )
