@@ -42,7 +42,7 @@ struct OneMklSolveStruct : gko::solver::SolveStruct {
     OneMklSolveStruct(std::shared_ptr<const gko::DpcppExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* matrix,
                       size_type num_rhs, bool is_upper, bool unit_diag)
-        : exec{exec}, num_rhs{num_rhs}
+        : exec{exec}, mat_handle{nullptr}, num_rhs{num_rhs}
     {
         if (num_rhs == 0) {
             return;
