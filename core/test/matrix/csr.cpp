@@ -26,13 +26,11 @@ protected:
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Csr<value_type, index_type>::create(
-              exec, gko::dim<2>{2, 3}, 4,
-              std::make_shared<typename Mtx::load_balance>(2)))
+              exec, gko::dim<2>{2, 3}, 4))
     {
         value_type* v = mtx->get_values();
         index_type* c = mtx->get_col_idxs();
         index_type* r = mtx->get_row_ptrs();
-        index_type* s = mtx->get_srow();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -44,7 +42,9 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
-        s[0] = 0;
+        // need set strategy after filling the data, but the automatical
+        // strategy has nothing on reference.
+        mtx->set_strategy(mtx->get_strategy());
     }
 
     std::shared_ptr<const gko::Executor> exec;
@@ -69,7 +69,7 @@ protected:
         EXPECT_EQ(v[1], value_type{3.0});
         EXPECT_EQ(v[2], value_type{2.0});
         EXPECT_EQ(v[3], value_type{5.0});
-        EXPECT_EQ(s[0], 0);
+        ASSERT_EQ(s, nullptr);
     }
 
     void assert_empty(gko::ptr_param<const Mtx> m)
@@ -122,13 +122,13 @@ TYPED_TEST(Csr, CanBeCreatedFromExistingData)
         gko::make_array_view(this->exec, 4, values),
         gko::make_array_view(this->exec, 4, col_idxs),
         gko::make_array_view(this->exec, 4, row_ptrs),
-        std::make_shared<typename Mtx::load_balance>(2));
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
 
-    ASSERT_EQ(mtx->get_num_srow_elements(), 1);
+    ASSERT_EQ(mtx->get_num_srow_elements(), 0);
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
-    ASSERT_EQ(mtx->get_const_srow()[0], 0);
+    ASSERT_EQ(mtx->get_const_srow(), nullptr);
 }
 
 
@@ -146,13 +146,12 @@ TYPED_TEST(Csr, CanBeCreatedFromExistingConstData)
         gko::array<value_type>::const_view(this->exec, 4, values),
         gko::array<index_type>::const_view(this->exec, 4, col_idxs),
         gko::array<index_type>::const_view(this->exec, 4, row_ptrs),
-        std::make_shared<typename Mtx::load_balance>(2));
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
 
-    ASSERT_EQ(mtx->get_num_srow_elements(), 1);
+    ASSERT_EQ(mtx->get_num_srow_elements(), 0);
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
-    ASSERT_EQ(mtx->get_const_srow()[0], 0);
 }
 
 
@@ -194,8 +193,9 @@ TYPED_TEST(Csr, CanBeCloned)
 TYPED_TEST(Csr, CanBeReadFromMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto m = Mtx::create(this->exec,
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m = Mtx::create(
+        this->exec,
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
 
     m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
@@ -211,9 +211,10 @@ TYPED_TEST(Csr, CanBeReadFromMatrixDataIntoViews)
     auto row_ptrs = gko::array<index_type>(this->exec, 3);
     auto col_idxs = gko::array<index_type>(this->exec, 4);
     auto values = gko::array<value_type>(this->exec, 4);
-    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
-                         col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m = Mtx::create(
+        this->exec, gko::dim<2>{2, 3}, values.as_view(), col_idxs.as_view(),
+        row_ptrs.as_view(),
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
 
     m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
@@ -232,9 +233,10 @@ TYPED_TEST(Csr, ThrowsOnIncompatibleReadFromMatrixDataIntoViews)
     auto row_ptrs = gko::array<index_type>(this->exec, 3);
     auto col_idxs = gko::array<index_type>(this->exec, 1);
     auto values = gko::array<value_type>(this->exec, 1);
-    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
-                         col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m = Mtx::create(
+        this->exec, gko::dim<2>{2, 3}, values.as_view(), col_idxs.as_view(),
+        row_ptrs.as_view(),
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
 
     ASSERT_THROW(m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}}}),
                  gko::NotSupported);
@@ -246,8 +248,9 @@ TYPED_TEST(Csr, CanBeReadFromMatrixAssemblyData)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto m = Mtx::create(this->exec,
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m = Mtx::create(
+        this->exec,
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -265,8 +268,9 @@ TYPED_TEST(Csr, CanBeReadFromDeviceMatrixData)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto m = Mtx::create(this->exec,
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m = Mtx::create(
+        this->exec,
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -293,9 +297,10 @@ TYPED_TEST(Csr, CanBeReadFromDeviceMatrixDataIntoViews)
     auto row_ptrs = gko::array<index_type>(this->exec, 3);
     auto col_idxs = gko::array<index_type>(this->exec, 4);
     auto values = gko::array<value_type>(this->exec, 4);
-    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
-                         col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m = Mtx::create(
+        this->exec, gko::dim<2>{2, 3}, values.as_view(), col_idxs.as_view(),
+        row_ptrs.as_view(),
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
     gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -322,9 +327,10 @@ TYPED_TEST(Csr, ThrowsOnIncompatibleReadFromDeviceMatrixDataIntoViews)
     auto row_ptrs = gko::array<index_type>(this->exec, 3);
     auto col_idxs = gko::array<index_type>(this->exec, 1);
     auto values = gko::array<value_type>(this->exec, 1);
-    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
-                         col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m = Mtx::create(
+        this->exec, gko::dim<2>{2, 3}, values.as_view(), col_idxs.as_view(),
+        row_ptrs.as_view(),
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
     gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -341,8 +347,9 @@ TYPED_TEST(Csr, CanBeReadFromMovedDeviceMatrixData)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto m = Mtx::create(this->exec,
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m = Mtx::create(
+        this->exec,
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -371,9 +378,10 @@ TYPED_TEST(Csr, CanBeReadFromMovedDeviceMatrixDataIntoViews)
     row_ptrs.fill(0);
     col_idxs.fill(0);
     values.fill(gko::zero<value_type>());
-    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
-                         col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m = Mtx::create(
+        this->exec, gko::dim<2>{2, 3}, values.as_view(), col_idxs.as_view(),
+        row_ptrs.as_view(),
+        gko::matrix::csr::spmv_strategy::load_balance /*load_balance(2)*/);
     gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);

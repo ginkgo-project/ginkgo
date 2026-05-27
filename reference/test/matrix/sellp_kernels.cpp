@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -279,8 +279,8 @@ TYPED_TEST(Sellp, MovesToDense)
 TYPED_TEST(Sellp, ConvertsToCsr)
 {
     using Csr = typename TestFixture::Csr;
-    auto csr_s_classical = std::make_shared<typename Csr::classical>();
-    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_s_classical = gko::matrix::csr::spmv_strategy::classical;
+    auto csr_s_merge = gko::matrix::csr::spmv_strategy::merge_path;
     auto csr_mtx_c = Csr::create(this->mtx1->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx1->get_executor(), csr_s_merge);
 
@@ -293,16 +293,18 @@ TYPED_TEST(Sellp, ConvertsToCsr)
                            {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
     GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
-    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
-    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(csr_mtx_c->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
 }
 
 
 TYPED_TEST(Sellp, MovesToCsr)
 {
     using Csr = typename TestFixture::Csr;
-    auto csr_s_classical = std::make_shared<typename Csr::classical>();
-    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_s_classical = gko::matrix::csr::spmv_strategy::classical;
+    auto csr_s_merge = gko::matrix::csr::spmv_strategy::merge_path;
     auto csr_mtx_c = Csr::create(this->mtx1->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx1->get_executor(), csr_s_merge);
     auto mtx_clone = this->mtx1->clone();
@@ -316,8 +318,10 @@ TYPED_TEST(Sellp, MovesToCsr)
                            {0.0, 5.0, 0.0}}), 0.0);
     // clang-format on
     GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
-    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
-    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(csr_mtx_c->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
+    ASSERT_EQ(csr_mtx_m->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
 }
 
 

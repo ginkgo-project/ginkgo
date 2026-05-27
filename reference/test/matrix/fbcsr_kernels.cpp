@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -133,7 +133,7 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
     auto yref = Vec::create(this->exec, gko::dim<2>{(gko::size_type)nrows, 1});
     using Csr = typename TestFixture::Csr;
     auto csr_mtx = Csr::create(this->mtx->get_executor(),
-                               std::make_shared<typename Csr::classical>());
+                               gko::matrix::csr::spmv_strategy::classical);
     this->mtx2->convert_to(csr_mtx);
 
     this->mtx2->apply(x, y);
@@ -342,12 +342,12 @@ TYPED_TEST(Fbcsr, ConvertsToCsr)
 {
     using Csr = typename TestFixture::Csr;
     auto csr_mtx = Csr::create(this->mtx->get_executor(),
-                               std::make_shared<typename Csr::classical>());
+                               gko::matrix::csr::spmv_strategy::classical);
     this->mtx->convert_to(csr_mtx);
     this->assert_equal_to_mtx(csr_mtx.get());
 
     auto csr_mtx_2 = Csr::create(this->mtx->get_executor(),
-                                 std::make_shared<typename Csr::classical>());
+                                 gko::matrix::csr::spmv_strategy::classical);
     this->ref2mtx->convert_to(csr_mtx_2);
     GKO_ASSERT_MTX_NEAR(csr_mtx_2, this->ref2csrmtx, 0.0);
 }
@@ -357,7 +357,7 @@ TYPED_TEST(Fbcsr, MovesToCsr)
 {
     using Csr = typename TestFixture::Csr;
     auto csr_mtx = Csr::create(this->mtx->get_executor(),
-                               std::make_shared<typename Csr::classical>());
+                               gko::matrix::csr::spmv_strategy::classical);
 
     this->mtx->move_to(csr_mtx);
 
@@ -493,7 +493,7 @@ TYPED_TEST(Fbcsr, SquareMtxIsTransposable)
     using Fbcsr = typename TestFixture::Mtx;
     using Csr = typename TestFixture::Csr;
     auto csrmtxsq =
-        Csr::create(this->exec, std::make_shared<typename Csr::classical>());
+        Csr::create(this->exec, gko::matrix::csr::spmv_strategy::classical);
     this->mtxsq->convert_to(csrmtxsq);
 
     std::unique_ptr<const gko::LinOp> reftmtx = csrmtxsq->transpose();
@@ -510,7 +510,7 @@ TYPED_TEST(Fbcsr, NonSquareMtxIsTransposable)
     using Fbcsr = typename TestFixture::Mtx;
     using Csr = typename TestFixture::Csr;
     auto csrmtx =
-        Csr::create(this->exec, std::make_shared<typename Csr::classical>());
+        Csr::create(this->exec, gko::matrix::csr::spmv_strategy::classical);
     this->mtx2->convert_to(csrmtx);
 
     std::unique_ptr<gko::LinOp> reftmtx = csrmtx->transpose();
@@ -633,7 +633,7 @@ TYPED_TEST(FbcsrComplex, ConvertsComplexToCsr)
     gko::testing::FbcsrSampleComplex<T, index_type> csample(exec);
     std::unique_ptr<const Fbcsr> mtx = csample.generate_fbcsr();
     auto csr_mtx =
-        Csr::create(exec, std::make_shared<typename Csr::classical>());
+        Csr::create(exec, gko::matrix::csr::spmv_strategy::classical);
 
     mtx->convert_to(csr_mtx);
 

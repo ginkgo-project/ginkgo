@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,7 +21,6 @@ public:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using ic_factory_type = gko::factorization::ParIc<value_type, index_type>;
-    using strategy_type = typename ic_factory_type::matrix_type::classical;
 
 protected:
     ParIc() : ref(gko::ReferenceExecutor::create()) {}
@@ -53,7 +52,7 @@ TYPED_TEST(ParIc, SetSkip)
 
 TYPED_TEST(ParIc, SetLStrategy)
 {
-    auto strategy = std::make_shared<typename TestFixture::strategy_type>();
+    auto strategy = gko::matrix::csr::spmv_strategy::classical;
 
     auto factory =
         TestFixture::ic_factory_type::build().with_l_strategy(strategy).on(
@@ -79,14 +78,15 @@ TYPED_TEST(ParIc, SetDefaults)
 
     ASSERT_EQ(factory->get_parameters().iterations, 0u);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
-    ASSERT_EQ(factory->get_parameters().l_strategy, nullptr);
+    ASSERT_EQ(factory->get_parameters().l_strategy,
+              gko::matrix::csr::spmv_strategy::classical);
     ASSERT_TRUE(factory->get_parameters().both_factors);
 }
 
 
 TYPED_TEST(ParIc, SetEverything)
 {
-    auto strategy = std::make_shared<typename TestFixture::strategy_type>();
+    auto strategy = gko::matrix::csr::spmv_strategy::classical;
 
     auto factory = TestFixture::ic_factory_type::build()
                        .with_iterations(7u)

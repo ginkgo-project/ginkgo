@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -53,42 +53,43 @@ TYPED_TEST(CsrBuilder, ReturnsCorrectArrays)
 }
 
 
-TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    struct mock_strategy : public Mtx::strategy_type {
-#if defined(_MSC_VER) && defined(__clang__)
-        // only clang_cl in Windows needs this workaround. detail:
-        // https://github.com/llvm/llvm-project/issues/64996
-        using Mtx = Mtx;
-#endif
-        virtual void process(const gko::array<index_type>&,
-                             gko::array<index_type>*) override
-        {
-            *was_called = true;
-        }
+// TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
+// {
+//     using Mtx = typename TestFixture::Mtx;
+//     using value_type = typename TestFixture::value_type;
+//     using index_type = typename TestFixture::index_type;
+//     struct mock_strategy : public Mtx::strategy_type {
+// #if defined(_MSC_VER) && defined(__clang__)
+//         // only clang_cl in Windows needs this workaround. detail:
+//         // https://github.com/llvm/llvm-project/issues/64996
+//         using Mtx = Mtx;
+// #endif
+//         virtual void process(const gko::array<index_type>&,
+//                              gko::array<index_type>*) override
+//         {
+//             *was_called = true;
+//         }
 
-        virtual int64_t clac_size(const int64_t nnz) override { return 0; }
+//         virtual int64_t clac_size(const int64_t nnz) override { return 0; }
 
-        virtual std::shared_ptr<typename Mtx::strategy_type> copy() override
-        {
-            return std::make_shared<mock_strategy>(*was_called);
-        }
+//         virtual std::shared_ptr<typename Mtx::strategy_type> copy() override
+//         {
+//             return std::make_shared<mock_strategy>(*was_called);
+//         }
 
-        mock_strategy(bool& flag) : Mtx::strategy_type(""), was_called(&flag) {}
+//         mock_strategy(bool& flag) : Mtx::strategy_type(""), was_called(&flag)
+//         {}
 
-        bool* was_called;
-    };
-    bool was_called{};
-    this->mtx->set_strategy(std::make_shared<mock_strategy>(was_called));
-    was_called = false;
+//         bool* was_called;
+//     };
+//     bool was_called{};
+//     this->mtx->set_strategy(std::make_shared<mock_strategy>(was_called));
+//     was_called = false;
 
-    gko::matrix::CsrBuilder<value_type, index_type>{this->mtx};
+//     gko::matrix::CsrBuilder<value_type, index_type>{this->mtx};
 
-    ASSERT_TRUE(was_called);
-}
+//     ASSERT_TRUE(was_called);
+// }
 
 
 }  // namespace

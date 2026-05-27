@@ -2375,7 +2375,7 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    } else if (a->get_strategy() == matrix::csr::spmv_strategy::merge_path) {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -2389,23 +2389,23 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "load_balance") {
+        if (a->get_strategy() == matrix::csr::spmv_strategy::load_balance) {
             use_classical = !host_kernel::load_balance_spmv(exec, a, b, c);
-        } else if (a->get_strategy()->get_name() == "sparselib" ||
-                   a->get_strategy()->get_name() == "cusparse") {
+        } else if (a->get_strategy() == matrix::csr::spmv_strategy::sparselib) {
             use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
         }
         if (use_classical) {
             IndexType max_length_per_row = 0;
             using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
-            if (auto strategy =
-                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                        a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else if (auto strategy = std::dynamic_pointer_cast<
-                           const typename Tcsr::automatical>(
-                           a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
+            if (a->get_strategy() == matrix::csr::spmv_strategy::classical) {
+                // max_length_per_row = strategy->get_max_length_per_row();
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
+            } else if (a->get_strategy() ==
+                       matrix::csr::spmv_strategy::automatical) {
+                // max_length_per_row = strategy->get_max_length_per_row();
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
             } else {
                 // as a fall-back: use average row length, at least 1
                 max_length_per_row = a->get_num_stored_elements() /
@@ -2434,7 +2434,7 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
 {
     if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    } else if (a->get_strategy() == matrix::csr::spmv_strategy::merge_path) {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -2449,25 +2449,25 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
             beta);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "load_balance") {
+        if (a->get_strategy() == matrix::csr::spmv_strategy::load_balance) {
             use_classical =
                 !host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
-        } else if (a->get_strategy()->get_name() == "sparselib" ||
-                   a->get_strategy()->get_name() == "cusparse") {
+        } else if (a->get_strategy() == matrix::csr::spmv_strategy::sparselib) {
             use_classical =
                 !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
         }
         if (use_classical) {
             IndexType max_length_per_row = 0;
             using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
-            if (auto strategy =
-                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                        a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else if (auto strategy = std::dynamic_pointer_cast<
-                           const typename Tcsr::automatical>(
-                           a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
+            if (a->get_strategy() == matrix::csr::spmv_strategy::classical) {
+                // max_length_per_row = strategy->get_max_length_per_row();
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
+            } else if (a->get_strategy() ==
+                       matrix::csr::spmv_strategy::automatical) {
+                // max_length_per_row = strategy->get_max_length_per_row();
+                max_length_per_row = a->get_num_stored_elements() /
+                                     std::max<size_type>(a->get_size()[0], 1);
             } else {
                 // as a fall-back: use average row length, at least 1
                 max_length_per_row = a->get_num_stored_elements() /

@@ -512,8 +512,8 @@ TYPED_TEST(ParIlut, SetStrategies)
 {
     using Csr = typename TestFixture::Csr;
     using factorization_type = typename TestFixture::factorization_type;
-    auto l_strategy = std::make_shared<typename Csr::merge_path>();
-    auto u_strategy = std::make_shared<typename Csr::classical>();
+    auto l_strategy = gko::matrix::csr::spmv_strategy::merge_path;
+    auto u_strategy = gko::matrix::csr::spmv_strategy::classical;
 
     auto factory = factorization_type::build()
                        .with_l_strategy(l_strategy)
@@ -522,11 +522,9 @@ TYPED_TEST(ParIlut, SetStrategies)
     auto fact = factory->generate(this->mtx_system);
 
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
-    ASSERT_EQ(fact->get_l_factor()->get_strategy()->get_name(),
-              l_strategy->get_name());
+    ASSERT_EQ(fact->get_l_factor()->get_strategy(), l_strategy);
     ASSERT_EQ(factory->get_parameters().u_strategy, u_strategy);
-    ASSERT_EQ(fact->get_u_factor()->get_strategy()->get_name(),
-              u_strategy->get_name());
+    ASSERT_EQ(fact->get_u_factor()->get_strategy(), u_strategy);
 }
 
 

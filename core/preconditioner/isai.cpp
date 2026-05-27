@@ -213,7 +213,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             auto excess_system =
                 Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
             excess_system->set_strategy(
-                std::make_shared<typename Csr::classical>());
+                gko::matrix::csr::spmv_strategy::classical);
             auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
             auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
             exec->run(isai::make_generate_excess_system(

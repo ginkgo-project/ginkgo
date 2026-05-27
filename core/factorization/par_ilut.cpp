@@ -110,17 +110,17 @@ struct ParIlutState {
     // temporary array for threshold selection
     array<remove_complex<ValueType>> selection_tmp2;
     // strategy to be used by the lower factor
-    std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy;
+    matrix::csr::spmv_strategy l_strategy;
     // strategy to be used by the upper factor
-    std::shared_ptr<typename CsrMatrix::strategy_type> u_strategy;
+    matrix::csr::spmv_strategy u_strategy;
 
     ParIlutState(std::shared_ptr<const Executor> exec_in,
                  const CsrMatrix* system_matrix_in,
                  std::unique_ptr<CsrMatrix> l_in,
                  std::unique_ptr<CsrMatrix> u_in, IndexType l_nnz_limit,
                  IndexType u_nnz_limit, bool use_approx_select,
-                 std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy_,
-                 std::shared_ptr<typename CsrMatrix::strategy_type> u_strategy_)
+                 matrix::csr::spmv_strategy l_strategy_,
+                 matrix::csr::spmv_strategy u_strategy_)
         : exec{std::move(exec_in)},
           l_nnz_limit{l_nnz_limit},
           u_nnz_limit{u_nnz_limit},
@@ -130,8 +130,8 @@ struct ParIlutState {
           u{std::move(u_in)},
           selection_tmp{exec},
           selection_tmp2{exec},
-          l_strategy{std::move(l_strategy_)},
-          u_strategy{std::move(u_strategy_)}
+          l_strategy{l_strategy_},
+          u_strategy{u_strategy_}
     {
         auto mtx_size = system_matrix->get_size();
         auto u_nnz = u->get_num_stored_elements();

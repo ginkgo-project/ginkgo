@@ -123,15 +123,15 @@ public:
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
+        matrix::csr::spmv_strategy GKO_FACTORY_PARAMETER_SCALAR(
+            l_strategy, matrix::csr::spmv_strategy::classical);
 
         /**
          * Strategy which will be used by the U matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
+        matrix::csr::spmv_strategy GKO_FACTORY_PARAMETER_SCALAR(
+            u_strategy, matrix::csr::spmv_strategy::classical);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlu, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -160,14 +160,6 @@ protected:
         : Composition<ValueType>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        if (parameters_.l_strategy == nullptr) {
-            parameters_.l_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        if (parameters_.u_strategy == nullptr) {
-            parameters_.u_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
         auto comp =
             generate_l_u(system_matrix, parameters_.skip_sorting,
                          parameters_.l_strategy, parameters_.u_strategy);
@@ -195,8 +187,8 @@ protected:
      */
     std::unique_ptr<Composition<ValueType>> generate_l_u(
         const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
-        std::shared_ptr<typename matrix_type::strategy_type> l_strategy,
-        std::shared_ptr<typename matrix_type::strategy_type> u_strategy) const;
+        matrix::csr::spmv_strategy l_strategy,
+        matrix::csr::spmv_strategy u_strategy) const;
 };
 
 

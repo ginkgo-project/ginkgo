@@ -140,7 +140,7 @@ protected:
               const gko::dim<2>& size = gko::dim<2>{})
         : OnemklBase(exec, size),
           csr_(std::move(
-              Csr::create(exec, std::make_shared<typename Csr::classical>()))),
+              Csr::create(exec, gko::matrix::csr::spmv_strategy::classical))),
           trans_(oneapi::mkl::transpose::nontrans)
     {}
 

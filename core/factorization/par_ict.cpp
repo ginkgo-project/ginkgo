@@ -101,16 +101,15 @@ struct ParIctState {
     // temporary array for threshold selection
     array<remove_complex<ValueType>> selection_tmp2;
     // strategy to be used by the lower factor
-    std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy;
+    matrix::csr::spmv_strategy l_strategy;
     // strategy to be used by the upper factor
-    std::shared_ptr<typename CsrMatrix::strategy_type> lh_strategy;
+    matrix::csr::spmv_strategy lh_strategy;
 
     ParIctState(std::shared_ptr<const Executor> exec_in,
                 const CsrMatrix* system_matrix_in,
                 std::unique_ptr<CsrMatrix> l_in, IndexType l_nnz_limit,
-                bool use_approx_select,
-                std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy_,
-                std::shared_ptr<typename CsrMatrix::strategy_type> lh_strategy_)
+                bool use_approx_select, matrix::csr::spmv_strategy l_strategy_,
+                matrix::csr::spmv_strategy lh_strategy_)
         : exec{std::move(exec_in)},
           l_nnz_limit{l_nnz_limit},
           use_approx_select{use_approx_select},
@@ -118,8 +117,8 @@ struct ParIctState {
           l{std::move(l_in)},
           selection_tmp{exec},
           selection_tmp2{exec},
-          l_strategy{std::move(l_strategy_)},
-          lh_strategy{std::move(lh_strategy_)}
+          l_strategy{l_strategy_},
+          lh_strategy{lh_strategy_}
     {
         auto mtx_size = system_matrix->get_size();
         auto l_nnz = l->get_num_stored_elements();

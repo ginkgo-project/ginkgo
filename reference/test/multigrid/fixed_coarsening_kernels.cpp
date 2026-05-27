@@ -44,9 +44,9 @@ protected:
     FixedCoarsening()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
-                          std::make_shared<typename Mtx::classical>())),
+                          gko::matrix::csr::spmv_strategy::classical)),
           coarse(Mtx::create(exec, gko::dim<2>(3, 3), 5,
-                             std::make_shared<typename Mtx::classical>())),
+                             gko::matrix::csr::spmv_strategy::classical)),
           coarse_rows(exec, {0, 2, 3}),
           gen_coarse_rows(exec, 5),
           fixed_coarsening_factory(MgLevel::build()

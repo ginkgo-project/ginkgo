@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,15 +31,10 @@ using namespace gko::config;
 using Sparsity = gko::matrix::SparsityCsr<float, int>;
 
 
-template <typename StrategyType>
-inline void check_strategy(std::shared_ptr<StrategyType>& res,
-                           std::shared_ptr<StrategyType>& ans)
+inline void check_strategy(gko::matrix::csr::spmv_strategy res,
+                           gko::matrix::csr::spmv_strategy ans)
 {
-    if (ans && res) {
-        ASSERT_EQ(res->get_name(), ans->get_name());
-    } else {
-        ASSERT_EQ(res, ans);
-    }
+    ASSERT_EQ(res, ans);
 }
 
 
@@ -68,9 +63,7 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
                     std::shared_ptr<const gko::Executor> exec)
     {
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["both_factors"] = pnode{false};
@@ -106,13 +99,9 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, int>,
                     std::shared_ptr<const gko::Executor> exec)
     {
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["u_strategy"] = pnode{"sparselib"};
-        param.with_u_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_u_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["algorithm"] = pnode{"syncfree"};
@@ -218,9 +207,7 @@ struct ParIc : FactorizationConfigTest<gko::factorization::ParIc<float, int>,
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["both_factors"] = pnode{false};
         param.with_both_factors(false);
     }
@@ -256,13 +243,9 @@ struct ParIlu
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["u_strategy"] = pnode{"sparselib"};
-        param.with_u_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_u_strategy(gko::matrix::csr::spmv_strategy::sparselib);
     }
 
     template <typename AnswerType>
@@ -296,9 +279,7 @@ struct ParIct
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["approximate_select"] = pnode{false};
         param.with_approximate_select(false);
         config_map["deterministic_sample"] = pnode{true};
@@ -306,9 +287,7 @@ struct ParIct
         config_map["fill_in_limit"] = pnode{2.5};
         param.with_fill_in_limit(2.5);
         config_map["lt_strategy"] = pnode{"sparselib"};
-        param.with_lt_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_lt_strategy(gko::matrix::csr::spmv_strategy::sparselib);
     }
 
     template <typename AnswerType>
@@ -346,9 +325,7 @@ struct ParIlut
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["approximate_select"] = pnode{false};
         param.with_approximate_select(false);
         config_map["deterministic_sample"] = pnode{true};
@@ -356,9 +333,7 @@ struct ParIlut
         config_map["fill_in_limit"] = pnode{2.5};
         param.with_fill_in_limit(2.5);
         config_map["u_strategy"] = pnode{"sparselib"};
-        param.with_u_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_u_strategy(gko::matrix::csr::spmv_strategy::sparselib);
     }
 
     template <typename AnswerType>

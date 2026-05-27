@@ -212,7 +212,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         highest_precision<MatrixValueType, InputValueType, OutputValueType>;
     if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    } else if (a->get_strategy() == matrix::csr::spmv_strategy::merge_path) {
         merge_spmv(
             exec, a, b, c, [](auto val) { return val; },
             [](auto) { return zero<arithmetic_type>(); });
@@ -240,7 +240,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto vbeta = static_cast<arithmetic_type>(beta(0, 0));
     if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy()->get_name() == "merge_path") {
+    } else if (a->get_strategy() == matrix::csr::spmv_strategy::merge_path) {
         merge_spmv(
             exec, a, b, c, [valpha](auto val) { return valpha * val; },
             [vbeta](auto val) {

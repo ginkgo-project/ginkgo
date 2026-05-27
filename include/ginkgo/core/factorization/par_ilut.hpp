@@ -180,15 +180,15 @@ public:
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
+        matrix::csr::spmv_strategy GKO_FACTORY_PARAMETER_SCALAR(
+            l_strategy, matrix::csr::spmv_strategy::classical);
 
         /**
          * Strategy which will be used by the U matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
+        matrix::csr::spmv_strategy GKO_FACTORY_PARAMETER_SCALAR(
+            u_strategy, matrix::csr::spmv_strategy::classical);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlut, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -217,14 +217,6 @@ protected:
         : Composition<ValueType>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        if (parameters_.l_strategy == nullptr) {
-            parameters_.l_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        if (parameters_.u_strategy == nullptr) {
-            parameters_.u_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
         auto comp = generate_l_u(std::move(system_matrix));
         for (auto& op : comp->get_operators()) {
             this->add_operators(op);

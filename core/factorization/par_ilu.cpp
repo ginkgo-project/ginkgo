@@ -71,8 +71,8 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlu<ValueType, IndexType>::generate_l_u(
     const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
-    std::shared_ptr<typename l_matrix_type::strategy_type> l_strategy,
-    std::shared_ptr<typename u_matrix_type::strategy_type> u_strategy) const
+    matrix::csr::spmv_strategy l_strategy,
+    matrix::csr::spmv_strategy u_strategy) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;

@@ -97,8 +97,8 @@ protected:
               [](gko::ptr_param<const gko::LinOp> local_mat) {
                   auto local_csr = gko::as<ConcreteCsr>(local_mat);
 
-                  ASSERT_NO_THROW(gko::as<typename ConcreteCsr::classical>(
-                      local_csr->get_strategy()));
+                  ASSERT_EQ(local_csr->get_strategy(),
+                            matrix::csr::spmv_strategy::classical);
               });
         }
         {
