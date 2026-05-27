@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,7 +44,9 @@ public:
     /**
      * Updates the internal matrix data structures at destruction.
      */
-    ~CsrBuilder() { matrix_->make_srow(); }
+    ~CsrBuilder()
+    { /*matrix_->make_srow();*/
+    }
 
     // make this type non-movable
     CsrBuilder(const CsrBuilder&) = delete;

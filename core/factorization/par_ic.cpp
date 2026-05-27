@@ -94,7 +94,7 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
     // Add explicit diagonal zero elements if they are missing
     exec->run(par_ic_factorization::make_add_diagonal_elements(
         csr_system_matrix.get(), true));
-
+    csr_system_matrix->set_strategy(csr_system_matrix->get_strategy());
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
     array<IndexType> l_row_ptrs{exec, number_rows + 1};

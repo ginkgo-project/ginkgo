@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -101,7 +101,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     // Add explicit diagonal zero elements if they are missing
     exec->run(ic_factorization::make_add_diagonal_elements(
         local_system_matrix.get(), false));
-
+    local_system_matrix->set_strategy(local_system_matrix->get_strategy());
     std::shared_ptr<const matrix_type> ic;
     // Compute IC factorization
     if (parameters_.algorithm == incomplete_algorithm::syncfree ||

@@ -259,6 +259,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
+        x_csr->set_strategy(x_csr->get_strategy());
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
@@ -381,6 +382,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             as<Dense<ValueType>>(alpha)->get_const_device_view(), this, b_csr,
             as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
             x_csr));
+        x_csr->set_strategy(x_csr->get_strategy());
     } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
         auto x_csr = as<TCsr>(x);
@@ -389,6 +391,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             as<Dense<ValueType>>(alpha)->get_const_device_view(), this,
             as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
             x_csr));
+        x_csr->set_strategy(x_csr->get_strategy());
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this, alpha, beta](auto dense_b, auto dense_x) {
