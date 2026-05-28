@@ -280,12 +280,18 @@ void Csr<ValueType, IndexType>::make_srow()
     int64_t nwarps = 0;
     max_nnz_per_row_ = 0;
     auto exec = this->get_executor();
-    row_ptrs_.set_executor(exec->get_master());
+    array<IndexType> row_ptrs_host(exec->get_master());
+    const IndexType* row_ptrs{nullptr};
+    if (exec == exec->get_master()) {
+        row_ptrs = row_ptrs_.get_const_data();
+    } else {
+        row_ptrs_host = row_ptrs_;
+        row_ptrs = row_ptrs_host.get_const_data();
+    }
     // calculate the max_nnz_per_row in host
     for (int i = 0; i < this->get_size()[0]; i++) {
         max_nnz_per_row_ =
-            std::max(max_nnz_per_row_, row_ptrs_.get_const_data()[i + 1] -
-                                           row_ptrs_.get_const_data()[i]);
+            std::max(max_nnz_per_row_, row_ptrs[i + 1] - row_ptrs[i]);
     }
 
     if (auto dexec = std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
@@ -350,8 +356,7 @@ void Csr<ValueType, IndexType>::make_srow()
             num_elems > 0 ? ceildiv(num_elems, warp_size) : 1;
         for (size_type i = 0; i < num_rows; i++) {
             auto bucket =
-                ceildiv((ceildiv(row_ptrs_.get_const_data()[i + 1], warp_size) *
-                         srow_size),
+                ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * srow_size),
                         bucket_divider);
             if (bucket < srow_size) {
                 srow_.get_data()[bucket]++;
