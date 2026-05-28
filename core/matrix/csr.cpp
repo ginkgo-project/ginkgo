@@ -263,9 +263,10 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
-                this->get_executor()->run(
-                    csr::make_spmv(this, dense_b->get_const_device_view(),
-                                   dense_x->get_device_view()));
+                this->get_executor()->run(csr::make_spmv(
+                    this->get_actual_strategy(), max_nnz_per_row_, this,
+                    dense_b->get_const_device_view(),
+                    dense_x->get_device_view()));
             },
             b, x);
     }
@@ -405,6 +406,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                     typename std::decay_t<decltype(*dense_x)>::value_type>(
                     beta);
                 this->get_executor()->run(csr::make_advanced_spmv(
+                    this->get_actual_strategy(), max_nnz_per_row_,
                     dense_alpha->get_const_device_view(), this,
                     dense_b->get_const_device_view(),
                     dense_beta->get_const_device_view(),
@@ -1698,6 +1700,63 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
         make_temporary_conversion<ValueType>(a)->get_const_device_view(),
         make_temporary_conversion<ValueType>(b)->get_const_device_view(),
         this));
+}
+
+template <typename ValueType, typename IndexType>
+csr::spmv_strategy Csr<ValueType, IndexType>::get_strategy() const noexcept
+{
+    return strategy_;
+}
+
+template <typename ValueType, typename IndexType>
+csr::spmv_strategy Csr<ValueType, IndexType>::get_actual_strategy()
+    const noexcept
+{
+    auto strategy = this->get_strategy();
+    if (strategy != csr::spmv_strategy::automatical) {
+        return strategy;
+    }
+    auto exec = this->get_executor();
+    // If the number of stored elements is larger than <nnz_limit> or the
+    // maximum
+    // number of stored elements per row is larger than <row_len_limit>, use
+    // load_balance otherwise use classical
+    /* Use imbalance strategy when the maximum number of nonzero per row
+     * is more than 1024 on NVIDIA hardware */
+    const int64_t nvidia_row_len_limit = 1024;
+    /* Use imbalance strategy when the matrix has more more than 1e6 on
+     * NVIDIA hardware */
+    const int64_t nvidia_nnz_limit{static_cast<int64_t>(1e6)};
+    /* Use imbalance strategy when the maximum number of nonzero per row
+     * is more than 768 on AMD hardware */
+    const int64_t amd_row_len_limit = 768;
+    /* Use imbalance strategy when the matrix has more more than 1e8 on
+     * AMD hardware */
+    const int64_t amd_nnz_limit{static_cast<int64_t>(1e8)};
+    /* Use imbalance strategy when the maximum number of nonzero per row
+     * is more than 25600 on Intel hardware */
+    const int64_t intel_row_len_limit = 25600;
+    /* Use imbalance strategy when the matrix has more more than 3e8 on
+     * Intel hardware */
+    const int64_t intel_nnz_limit{static_cast<int64_t>(3e8)};
+    auto nnz_limit = nvidia_nnz_limit;
+    auto row_len_limit = nvidia_row_len_limit;
+    if (std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
+        nnz_limit = intel_nnz_limit;
+        row_len_limit = intel_row_len_limit;
+    } else if (std::dynamic_pointer_cast<const HipExecutor>(exec)) {
+        nnz_limit = amd_nnz_limit;
+        row_len_limit = amd_row_len_limit;
+    } else if (!std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
+        // we do not have load balance on reference and omp executor.
+        return csr::spmv_strategy::classical;
+    }
+    if (this->get_num_stored_elements() > nnz_limit ||
+        max_nnz_per_row_ > row_len_limit) {
+        return csr::spmv_strategy::load_balance;
+    } else {
+        return csr::spmv_strategy::classical;
+    }
 }
 
 

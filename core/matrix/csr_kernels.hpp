@@ -26,6 +26,8 @@ namespace kernels {
 #define GKO_DECLARE_CSR_SPMV_KERNEL(MatrixValueType, InputValueType, \
                                     OutputValueType, IndexType)      \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,           \
+              const matrix::csr::spmv_strategy strategy,             \
+              const IndexType max_nnz_per_row,                       \
               const matrix::Csr<MatrixValueType, IndexType>* a,      \
               matrix::view::dense<const InputValueType> b,           \
               matrix::view::dense<OutputValueType> c)
@@ -33,6 +35,8 @@ namespace kernels {
 #define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(MatrixValueType, InputValueType, \
                                              OutputValueType, IndexType)      \
     void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,           \
+                       const matrix::csr::spmv_strategy strategy,             \
+                       const IndexType max_nnz_per_row,                       \
                        matrix::view::dense<const MatrixValueType> alpha,      \
                        const matrix::Csr<MatrixValueType, IndexType>* a,      \
                        matrix::view::dense<const InputValueType> b,           \

@@ -204,6 +204,7 @@ void classical_spmv(std::shared_ptr<const OmpExecutor> exec,
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::csr::spmv_strategy strategy, const IndexType,
           const matrix::Csr<MatrixValueType, IndexType>* a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
@@ -212,7 +213,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         highest_precision<MatrixValueType, InputValueType, OutputValueType>;
     if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy() == matrix::csr::spmv_strategy::merge_path) {
+    } else if (strategy == matrix::csr::spmv_strategy::merge_path) {
         merge_spmv(
             exec, a, b, c, [](auto val) { return val; },
             [](auto) { return zero<arithmetic_type>(); });
@@ -228,6 +229,7 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
+                   const matrix::csr::spmv_strategy strategy, const IndexType,
                    matrix::view::dense<const MatrixValueType> alpha,
                    const matrix::Csr<MatrixValueType, IndexType>* a,
                    matrix::view::dense<const InputValueType> b,
@@ -240,7 +242,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto vbeta = static_cast<arithmetic_type>(beta(0, 0));
     if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
-    } else if (a->get_strategy() == matrix::csr::spmv_strategy::merge_path) {
+    } else if (strategy == matrix::csr::spmv_strategy::merge_path) {
         merge_spmv(
             exec, a, b, c, [valpha](auto val) { return valpha * val; },
             [vbeta](auto val) {

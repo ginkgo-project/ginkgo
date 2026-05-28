@@ -66,50 +66,6 @@ enum class spmv_strategy {
 
 }
 
-// after store the max_nnz_per_row in the csr. this should be able to
-// calculate in runtime if the number of stored elements is larger than
-// <nnz_limit> or the maximum number of stored elements per row is larger
-// than <row_len_limit>, use load_balance otherwise use classical
-inline auto auto_select(std::shared_ptr<const Executor> exec,
-                        int64_t max_nnz_per_row)
-{
-    /* Use imbalance strategy when the maximum number of nonzero per row
-     * is more than 1024 on NVIDIA hardware */
-    const int64_t nvidia_row_len_limit = 1024;
-    /* Use imbalance strategy when the matrix has more more than 1e6 on
-     * NVIDIA hardware */
-    const int64_t nvidia_nnz_limit{static_cast<int64_t>(1e6)};
-    /* Use imbalance strategy when the maximum number of nonzero per row
-     * is more than 768 on AMD hardware */
-    const int64_t amd_row_len_limit = 768;
-    /* Use imbalance strategy when the matrix has more more than 1e8 on
-     * AMD hardware */
-    const int64_t amd_nnz_limit{static_cast<int64_t>(1e8)};
-    /* Use imbalance strategy when the maximum number of nonzero per row
-     * is more than 25600 on Intel hardware */
-    const int64_t intel_row_len_limit = 25600;
-    /* Use imbalance strategy when the matrix has more more than 3e8 on
-     * Intel hardware */
-    const int64_t intel_nnz_limit{static_cast<int64_t>(3e8)};
-    auto nnz_limit = nvidia_nnz_limit;
-    auto row_len_limit = nvidia_row_len_limit;
-    if (std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
-        nnz_limit = intel_nnz_limit;
-        row_len_limit = intel_row_len_limit;
-    } else if (std::dynamic_pointer_cast<const HipExecutor>(exec)) {
-        nnz_limit = amd_nnz_limit;
-        row_len_limit = amd_row_len_limit;
-    }
-    nnz_limit += row_len_limit;
-    return csr::spmv_strategy::load_balance;
-    // if (this->get_num_stored_elements() > nnz_limit ||
-    //     max_nnz_per_row > row_len_limit) {
-    //     return csr::spmv_strategy::load_balance;
-    // } else {
-    //     return csr::spmv_strategy::classical;
-    // }
-}
-
 
 /**
  * CSR is a matrix format which stores only the nonzero coefficients by
@@ -832,11 +788,21 @@ public:
         return values_.get_size();
     }
 
-    /** Returns the strategy
+    /**
+     * Returns the strategy
      *
      * @return the strategy
      */
-    csr::spmv_strategy get_strategy() const noexcept { return strategy_; }
+    csr::spmv_strategy get_strategy() const noexcept;
+
+    /**
+     * Returns the actual strategy. When the strategy is automatical, this
+     * returns the actual underlying strategy. This returns the same strategy as
+     * `get_strategy` when the strategy is not automatical.
+     *
+     * @return the acutal strategy
+     */
+    csr::spmv_strategy get_actual_strategy() const noexcept;
 
     /**
      * Set the strategy
