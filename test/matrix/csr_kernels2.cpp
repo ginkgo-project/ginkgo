@@ -171,16 +171,52 @@ TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
     ASSERT_EQ(mtx->get_strategy(), dmtx->get_strategy());
 }
 
-// Reference and Omp does not have srow
-// TEST_F(Csr, SrowIsCorrectFromLoadBalance)
-// {
-//     set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>();
 
-//     if (std::dynamic_pointer_cast<const OmpExecutor>(exec)) {
-//         GTEST_SKIP();
-//     }
+TEST_F(Csr, SrowIsCorrectFromLoadBalance)
+{
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>();
 
-// }
+    if (std::dynamic_pointer_cast<const gko::OmpExecutor>(exec)) {
+        GTEST_SKIP() << "Csr does not have load balance on OmpExecutor";
+    }
+    int warp_size = 0;
+    if (auto dexec = std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
+        warp_size = dexec->get_warp_size();
+    } else if (auto dexec =
+                   std::dynamic_pointer_cast<const gko::HipExecutor>(exec)) {
+        warp_size = dexec->get_warp_size();
+    } else if (auto dexec =
+                   std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
+        warp_size = 32;
+    }
+    const auto srow_size = dmtx->get_num_srow_elements();
+    // group `warp_size` as a unit, num_lines means how many units we need to
+    // handle
+    const auto num_lines =
+        gko::ceildiv(dmtx->get_num_stored_elements(), warp_size);
+    ASSERT_GT(srow_size, 0);
+    // srow (starting rows) should try to distribute these unit
+    // first num_lines % srow_size has one more than avg
+    const auto avg = num_lines / srow_size;
+    index_type current = 0;
+    ASSERT_EQ(exec->copy_val_to_host(dmtx->get_const_srow()), 0);
+    for (int i = 1; i < srow_size; i++) {
+        current += (avg + (i < (num_lines % srow_size))) * warp_size;
+        auto srow_val = exec->copy_val_to_host(dmtx->get_const_srow() + i);
+        if (srow_val > 0) {
+            // the number of elements before this row should be less than the
+            // assgined number
+            ASSERT_LE(exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
+                                             srow_val - 1),
+                      current);
+        }
+        // the starting point should be in this row not the next row.
+        ASSERT_GE(current, exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
+                                                  srow_val));
+        ASSERT_LT(current, exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
+                                                  srow_val + 1));
+    }
+}
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 {
