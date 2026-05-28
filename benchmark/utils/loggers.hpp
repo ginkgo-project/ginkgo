@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -139,15 +139,31 @@ template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
     using rc_vtype = gko::remove_complex<ValueType>;
 
-    void on_iteration_complete(const gko::LinOp*,
-                               const gko::LinOp* right_hand_side,
-                               const gko::LinOp* solution,
-                               const gko::size_type&,
-                               const gko::LinOp* residual,
-                               const gko::LinOp* residual_norm,
-                               const gko::LinOp* implicit_sq_residual_norm,
-                               const gko::array<gko::stopping_status>* status,
-                               bool all_stopped) const override
+    ResidualLogger(gko::ptr_param<const gko::LinOp> matrix,
+                   gko::ptr_param<const gko::MultiVector> b,
+                   json& rec_res_norms, json& true_res_norms,
+                   json& implicit_res_norms, json& timestamps)
+        : gko::log::Logger(gko::log::Logger::iteration_complete_mask),
+          matrix{matrix.get()},
+          b{b.get()},
+          start{std::chrono::steady_clock::now()},
+          rec_res_norms{&rec_res_norms},
+          true_res_norms{&true_res_norms},
+          has_implicit_res_norm{},
+          implicit_res_norms{&implicit_res_norms},
+          timestamps{&timestamps}
+    {}
+
+    bool has_implicit_res_norms() const { return has_implicit_res_norm; }
+
+protected:
+    void on_iteration_complete(
+        const gko::LinOp*, const gko::MultiVector* right_hand_side,
+        const gko::MultiVector* solution, const gko::size_type&,
+        const gko::MultiVector* residual, const gko::MultiVector* residual_norm,
+        const gko::MultiVector* implicit_sq_residual_norm,
+        const gko::array<gko::stopping_status>* status,
+        bool all_stopped) const override
     {
         timestamps->push_back(std::chrono::duration<double>(
                                   std::chrono::steady_clock::now() - start)
@@ -156,19 +172,11 @@ struct ResidualLogger : gko::log::Logger {
             rec_res_norms->push_back(
                 get_norm(gko::as<vec<rc_vtype>>(residual_norm)));
         } else {
-            gko::detail::vector_dispatch<ValueType>(
-                residual, [&](const auto v_residual) {
-                    rec_res_norms->push_back(compute_norm2(v_residual));
-                });
+            rec_res_norms->push_back(compute_norm2<ValueType>(residual));
         }
         if (solution) {
-            gko::detail::vector_dispatch<
-                ValueType>(solution, [&](auto v_solution) {
-                using concrete_type =
-                    std::remove_pointer_t<std::decay_t<decltype(v_solution)>>;
-                true_res_norms->push_back(compute_residual_norm(
-                    matrix, gko::as<concrete_type>(b), v_solution));
-            });
+            true_res_norms->push_back(
+                compute_residual_norm(matrix, b, solution));
         } else {
             true_res_norms->push_back(-1.0);
         }
@@ -183,26 +191,9 @@ struct ResidualLogger : gko::log::Logger {
         }
     }
 
-    ResidualLogger(gko::ptr_param<const gko::LinOp> matrix,
-                   gko::ptr_param<const gko::LinOp> b, json& rec_res_norms,
-                   json& true_res_norms, json& implicit_res_norms,
-                   json& timestamps)
-        : gko::log::Logger(gko::log::Logger::iteration_complete_mask),
-          matrix{matrix.get()},
-          b{b.get()},
-          start{std::chrono::steady_clock::now()},
-          rec_res_norms{&rec_res_norms},
-          true_res_norms{&true_res_norms},
-          has_implicit_res_norm{},
-          implicit_res_norms{&implicit_res_norms},
-          timestamps{&timestamps}
-    {}
-
-    bool has_implicit_res_norms() const { return has_implicit_res_norm; }
-
 private:
     const gko::LinOp* matrix;
-    const gko::LinOp* b;
+    const gko::MultiVector* b;
     std::chrono::steady_clock::time_point start;
     json* rec_res_norms;
     json* true_res_norms;
@@ -214,22 +205,23 @@ private:
 
 // Logs the number of iteration executed
 struct IterationLogger : gko::log::Logger {
-    void on_iteration_complete(const gko::LinOp*, const gko::LinOp*,
-                               const gko::LinOp*,
-                               const gko::size_type& num_iterations,
-                               const gko::LinOp*, const gko::LinOp*,
-                               const gko::LinOp*,
-                               const gko::array<gko::stopping_status>*,
-                               bool) const override
-    {
-        this->num_iters = num_iterations;
-    }
-
     IterationLogger()
         : gko::log::Logger(gko::log::Logger::iteration_complete_mask)
     {}
 
     void write_data(json& output) { output["iterations"] = this->num_iters; }
+
+protected:
+    void on_iteration_complete(const gko::LinOp*, const gko::MultiVector*,
+                               const gko::MultiVector*,
+                               const gko::size_type& num_iterations,
+                               const gko::MultiVector*, const gko::MultiVector*,
+                               const gko::MultiVector*,
+                               const gko::array<gko::stopping_status>*,
+                               bool) const override
+    {
+        this->num_iters = num_iterations;
+    }
 
 private:
     mutable gko::size_type num_iters{0};

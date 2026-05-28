@@ -123,7 +123,8 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::MultiVector* b,
+                    gko::MultiVector* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);

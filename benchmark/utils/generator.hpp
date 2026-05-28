@@ -116,6 +116,13 @@ struct DefaultSystemGenerator {
                                            local_size);
     }
 
+    static std::shared_ptr<gko::LinOp> generate_overhead_operator(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::matrix::Csr<etype>::create(std::move(exec),
+                                               gko::dim<2>{1, 1});
+    }
+
     static gko::dim<2> create_default_local_size(gko::dim<2> global_size)
     {
         return global_size;
@@ -283,6 +290,17 @@ struct DistributedDefaultSystemGenerator {
     {
         return generate_matrix_with_format(std::move(exec), "coo-coo", data,
                                            local_size);
+    }
+
+    std::shared_ptr<gko::LinOp> generate_overhead_operator(
+        std::shared_ptr<gko::Executor> exec) const
+    {
+        auto global_size = static_cast<gko::size_type>(comm.size());
+        return generate_matrix_with_default_format(
+            std::move(exec),
+            gko::matrix_data<value_type, global_itype>{
+                gko::dim<2>{global_size, global_size}},
+            gko::dim<2>{1, 1});
     }
 
     gko::dim<2> create_default_local_size(gko::dim<2> global_size) const

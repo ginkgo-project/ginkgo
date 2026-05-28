@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -92,8 +92,8 @@ public:
     }
 
 private:
-    std::unique_ptr<gko::LinOp> in_;
-    std::unique_ptr<gko::LinOp> out_;
+    std::unique_ptr<gko::MultiVector> in_;
+    std::unique_ptr<gko::MultiVector> out_;
 };
 
 

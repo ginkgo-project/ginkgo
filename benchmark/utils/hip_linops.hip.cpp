@@ -113,7 +113,8 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::MultiVector* b,
+                    gko::MultiVector* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -130,9 +131,9 @@ protected:
             &scalars.get_const_data()[1], dx);
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta,
-                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+    void apply_impl(const gko::MultiVector* alpha, const gko::MultiVector* b,
+                    const gko::MultiVector* beta,
+                    gko::MultiVector* x) const override GKO_NOT_IMPLEMENTED;
 
     HipsparseCsr(std::shared_ptr<const gko::Executor> exec,
                  const gko::dim<2>& size = gko::dim<2>{})
@@ -186,7 +187,8 @@ public:
     }
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::MultiVector* b,
+                    gko::MultiVector* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -204,9 +206,9 @@ protected:
             dense_x->get_size()[0]);
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta,
-                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+    void apply_impl(const gko::MultiVector* alpha, const gko::MultiVector* b,
+                    const gko::MultiVector* beta,
+                    gko::MultiVector* x) const override GKO_NOT_IMPLEMENTED;
 
     HipsparseCsrmm(std::shared_ptr<const gko::Executor> exec,
                    const gko::dim<2>& size = gko::dim<2>{})
@@ -282,7 +284,8 @@ public:
     HipsparseHybrid& operator=(const HipsparseHybrid& other) = default;
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::MultiVector* b,
+                    gko::MultiVector* x) const override
     {
         auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
@@ -296,9 +299,9 @@ protected:
             &scalars.get_const_data()[1], dx);
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta,
-                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+    void apply_impl(const gko::MultiVector* alpha, const gko::MultiVector* b,
+                    const gko::MultiVector* beta,
+                    gko::MultiVector* x) const override GKO_NOT_IMPLEMENTED;
 
     HipsparseHybrid(std::shared_ptr<const gko::Executor> exec,
                     const gko::dim<2>& size = gko::dim<2>{})
