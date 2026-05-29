@@ -33,14 +33,14 @@ auto dispatch_dense(Fn&& fn, LinOp* v)
 
 template <typename LinOpType>
 auto create_vector_blocks(LinOpType* vector,
-                          const std::vector<detail::value_span>& spans)
+                          const std::vector<local_span>& spans)
 {
     return [=](size_type i) {
         return dispatch_dense(
             [&](auto* dense) -> std::unique_ptr<LinOpType> {
                 GKO_ENSURE_IN_BOUNDS(i, spans.size());
-                return dense->create_submatrix(spans[i],
-                                               {0, dense->get_size()[1]});
+                return dense->create_subview(spans[i],
+                                             {0, dense->get_size()[1]});
             },
             const_cast<LinOp*>(vector));
     };
@@ -97,13 +97,13 @@ void validate_blocks(
 
 
 template <typename Fn>
-std::vector<detail::value_span> compute_local_spans(
+std::vector<local_span> compute_local_spans(
     size_type num_blocks,
     const std::vector<std::vector<std::shared_ptr<const LinOp>>>& blocks,
     Fn&& get_size)
 {
     validate_blocks(blocks);
-    std::vector<detail::value_span> local_spans;
+    std::vector<local_span> local_spans;
     size_type offset = 0;
     for (size_type i = 0; i < num_blocks; ++i) {
         auto local_size = get_size(i);
