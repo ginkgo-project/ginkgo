@@ -93,9 +93,9 @@ Multicolor<ValueType, IndexType>::Multicolor(const Factory* factory,
     permutation_ = PermutationMatrix::create(exec, size);
     inv_permutation_ = PermutationMatrix::create(exec, size);
 
-    multicolor_reorder(
-        matrix.get(), color_ptrs_, permutation_->get_permutation(),
-        inv_permutation_ ? inv_permutation_->get_permutation() : nullptr);
+    multicolor_reorder(matrix.get(), color_ptrs_,
+                       permutation_->get_permutation(),
+                       inv_permutation_->get_permutation());
 }
 
 

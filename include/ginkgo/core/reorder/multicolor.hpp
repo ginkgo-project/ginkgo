@@ -96,14 +96,7 @@ public:
      */
     gko::array<index_type> get_color_pointers() const { return color_ptrs_; }
 
-    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
-    {
-        /**
-         * If this parameter is set then an inverse permutation matrix is also
-         * constructed along with the normal permutation matrix.
-         */
-        bool GKO_FACTORY_PARAMETER_SCALAR(construct_inverse_permutation, true);
-    };
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
     GKO_ENABLE_REORDERING_BASE_FACTORY(Multicolor, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
