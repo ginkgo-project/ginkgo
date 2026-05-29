@@ -149,7 +149,8 @@ public:
 
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
-                         const dim<2>& size = dim<2>{});
+                         const dim<2>& size = dim<2>{},
+                         precision p = precision::none);
 
     [[nodiscard]] virtual std::unique_ptr<MultiVector>
     create_generic_with_same_config_impl() const = 0;
@@ -242,7 +243,6 @@ protected:
     [[nodiscard]] virtual std::unique_ptr<const MultiVector>
     create_subview_generic_impl(local_span rows, local_span columns,
                                 dim<2> global_size) const = 0;
-
 };
 
 
@@ -308,7 +308,8 @@ public:
 
 protected:
     EnableMultiVector(std::shared_ptr<const Executor> exec, dim<2> size = {})
-        : EnablePolymorphicObject<ConcreteType, MultiVector>(exec, size)
+        : EnablePolymorphicObject<ConcreteType, MultiVector>(
+              exec, size, type_to_precision<value_type>)
     {}
 
     // Concretized function calls
@@ -806,7 +807,8 @@ void EnableMultiVector<ConcreteType>::scale_impl(any_const_dense_t alpha)
     std::visit(
         [this](auto alpha_v) {
             using alpha_type = std::decay_t<decltype(alpha_v)>;
-            if constexpr (std::is_same_v<alpha_type, matrix::Dense<value_type>>) {
+            if constexpr (std::is_same_v<alpha_type,
+                                         matrix::Dense<value_type>>) {
                 this->scale_impl(alpha_v);
             } else {
                 GKO_NOT_IMPLEMENTED;
@@ -822,7 +824,8 @@ void EnableMultiVector<ConcreteType>::inv_scale_impl(any_const_dense_t alpha)
     std::visit(
         [this](auto alpha_v) {
             using alpha_type = std::decay_t<decltype(alpha_v)>;
-            if constexpr (std::is_same_v<alpha_type, matrix::Dense<value_type>>) {
+            if constexpr (std::is_same_v<alpha_type,
+                                         matrix::Dense<value_type>>) {
                 this->inv_scale_impl(alpha_v);
             } else {
                 GKO_NOT_IMPLEMENTED;
