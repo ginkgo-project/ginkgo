@@ -32,21 +32,6 @@ GKO_REGISTER_OPERATION(compute_permutation_csr,
 }  // namespace multicolor
 
 
-template <template <typename, typename> class MatrixTempl, typename ValueType,
-          typename IndexType>
-void multicolor_reorder(const MatrixTempl<ValueType, IndexType>* const mtx,
-                        gko::array<IndexType>& color_ptrs,
-                        IndexType* const permutation,
-                        IndexType* const inv_permutation)
-{
-    const auto exec = mtx->get_executor();
-    const IndexType num_rows = mtx->get_size()[0];
-    exec->run(multicolor::make_compute_permutation_csr(
-        num_rows, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-        color_ptrs, permutation, inv_permutation));
-}
-
-
 template <typename ValueType, typename IndexType>
 Multicolor<ValueType, IndexType>::Multicolor(
     std::shared_ptr<const Executor> exec)
@@ -67,25 +52,7 @@ Multicolor<ValueType, IndexType>::Multicolor(const Factory* factory,
     using CsrType = matrix::Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
     auto sysmat = args.system_matrix;
-    auto const size = sysmat->get_size()[0];
-
-    std::shared_ptr<const SparsityMatrix> matrix;
-
-    if (auto csrmat = std::dynamic_pointer_cast<const CsrType>(sysmat)) {
-        const auto n = csrmat->get_size()[0];
-        const auto nnz = csrmat->get_num_stored_elements();
-        matrix = SparsityMatrix::create_const(
-            exec, sysmat->get_size(),
-            make_const_array_view<IndexType>(exec, nnz,
-                                             csrmat->get_const_col_idxs()),
-            make_const_array_view<IndexType>(exec, size + 1,
-                                             csrmat->get_const_row_ptrs()));
-    } else if (auto smat =
-                   std::dynamic_pointer_cast<const SparsityMatrix>(sysmat)) {
-        matrix = smat;
-    } else {
-        GKO_NOT_SUPPORTED(sysmat);
-    }
+    auto const size = static_cast<IndexType>(sysmat->get_size()[0]);
 
     // The adjacency matrix has to be square.
     GKO_ASSERT_IS_SQUARE_MATRIX(sysmat);
@@ -93,9 +60,28 @@ Multicolor<ValueType, IndexType>::Multicolor(const Factory* factory,
     permutation_ = PermutationMatrix::create(exec, size);
     inv_permutation_ = PermutationMatrix::create(exec, size);
 
-    multicolor_reorder(matrix.get(), color_ptrs_,
-                       permutation_->get_permutation(),
-                       inv_permutation_->get_permutation());
+    if (auto csrmat = std::dynamic_pointer_cast<const CsrType>(sysmat)) {
+        const auto n = csrmat->get_size()[0];
+        const auto nnz = csrmat->get_num_stored_elements();
+        auto mtx = SparsityMatrix::create_const(
+            exec, sysmat->get_size(),
+            make_const_array_view<IndexType>(exec, nnz,
+                                             csrmat->get_const_col_idxs()),
+            make_const_array_view<IndexType>(exec, size + 1,
+                                             csrmat->get_const_row_ptrs()));
+        exec->run(multicolor::make_compute_permutation_csr(
+            size, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            color_ptrs_, permutation_->get_permutation(),
+            inv_permutation_->get_permutation()));
+    } else if (auto mtx =
+                   std::dynamic_pointer_cast<const SparsityMatrix>(sysmat)) {
+        exec->run(multicolor::make_compute_permutation_csr(
+            size, mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
+            color_ptrs_, permutation_->get_permutation(),
+            inv_permutation_->get_permutation()));
+    } else {
+        GKO_NOT_SUPPORTED(sysmat);
+    }
 }
 
 
