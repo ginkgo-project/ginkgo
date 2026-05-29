@@ -91,6 +91,38 @@ void Ir<ValueType>::set_relaxation_factor(
 
 
 template <typename ValueType>
+Ir<ValueType>::Ir(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Ir>(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType>
+Ir<ValueType>::Ir(const Factory* factory,
+                  std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Ir>(factory->get_executor(),
+                      gko::transpose(system_matrix->get_size()),
+                      type_to_precision<ValueType>),
+      EnableSolverBase<Ir>{std::move(system_matrix)},
+      EnableIterativeBase<Ir>{
+          stop::combine(factory->get_parameters().criteria)},
+      parameters_{factory->get_parameters()}
+{
+    if (parameters_.generated_solver) {
+        this->set_solver(parameters_.generated_solver);
+    } else if (parameters_.solver) {
+        this->set_solver(
+            parameters_.solver->generate(this->get_system_matrix()));
+    } else {
+        this->set_solver(matrix::Identity<ValueType>::create(
+            this->get_executor(), this->get_size()[0]));
+    }
+    this->set_default_initial_guess(parameters_.default_initial_guess);
+    relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
+        {parameters_.relaxation_factor}, this->get_executor());
+}
+
+
+template <typename ValueType>
 Ir<ValueType>& Ir<ValueType>::operator=(const Ir& other)
 {
     if (&other != this) {

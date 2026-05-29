@@ -17,7 +17,8 @@ namespace matrix {
 template <typename IndexType>
 RowGatherer<IndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size)
-    : EnableLinOp<RowGatherer>(exec, size), row_idxs_(exec, size[0])
+    : EnableLinOp<RowGatherer>(exec, size, precision::any),
+      row_idxs_(exec, size[0])
 {}
 
 
@@ -25,7 +26,8 @@ template <typename IndexType>
 RowGatherer<IndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size,
                                     array<index_type> row_idxs)
-    : EnableLinOp<RowGatherer>(exec, size), row_idxs_{exec, std::move(row_idxs)}
+    : EnableLinOp<RowGatherer>(exec, size, precision::any),
+      row_idxs_{exec, std::move(row_idxs)}
 {
     GKO_ASSERT_EQ(size[0], row_idxs_.get_size());
 }

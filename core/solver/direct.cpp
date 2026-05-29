@@ -52,7 +52,8 @@ std::unique_ptr<LinOp> Direct<ValueType, IndexType>::conj_transpose() const
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Direct& other)
-    : EnableLinOp<Direct>{other.get_executor()}
+    : EnableLinOp<Direct>{other.get_executor(), dim<2>{},
+                          type_to_precision<ValueType>}
 {
     *this = other;
 }
@@ -60,7 +61,8 @@ Direct<ValueType, IndexType>::Direct(const Direct& other)
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(Direct&& other)
-    : EnableLinOp<Direct>{other.get_executor()}
+    : EnableLinOp<Direct>{other.get_executor(), dim<2>{},
+                          type_to_precision<ValueType>}
 {
     *this = std::move(other);
 }
@@ -100,7 +102,7 @@ Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Direct>{exec}
+    : EnableLinOp<Direct>{exec, dim<2>{}, type_to_precision<ValueType>}
 {}
 
 
@@ -124,7 +126,8 @@ generate_factorization(
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Factory* factory,
                                      std::shared_ptr<const LinOp> system_matrix)
-    : EnableLinOp<Direct>{factory->get_executor(), system_matrix->get_size()},
+    : EnableLinOp<Direct>{factory->get_executor(), system_matrix->get_size(),
+                          type_to_precision<ValueType>},
       gko::solver::EnableSolverBase<
           Direct, factorization::Factorization<ValueType, IndexType>>{
           generate_factorization<ValueType, IndexType>(

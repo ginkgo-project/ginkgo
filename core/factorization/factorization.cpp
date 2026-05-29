@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -231,7 +231,7 @@ Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{exec},
+    : EnableLinOp<Factorization>{exec, dim<2>{}, type_to_precision<ValueType>},
       storage_type_{storage_type::empty},
       factors_{Composition<ValueType>::create(exec)}
 {}
@@ -240,8 +240,8 @@ Factorization<ValueType, IndexType>::Factorization(
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::unique_ptr<Composition<ValueType>> factors, storage_type type)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{factors->get_executor(),
-                                                       factors->get_size()},
+    : EnableLinOp<Factorization>{factors->get_executor(), factors->get_size(),
+                                 type_to_precision<ValueType>},
       storage_type_{type},
       factors_{std::move(factors)}
 {}

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -119,7 +119,7 @@ protected:
      * @param exec  Executor associated to the linear combination
      */
     explicit Combination(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Combination>(exec)
+        : EnableLinOp<Combination>(exec, dim<2>{}, type_to_precision<ValueType>)
     {}
 
     /**
@@ -146,7 +146,7 @@ protected:
                          CoefficientIterator coefficient_end,
                          OperatorIterator operator_begin,
                          OperatorIterator operator_end)
-        : EnableLinOp<Combination>([&] {
+        : Combination([&] {
               if (operator_begin == operator_end) {
                   throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
               }

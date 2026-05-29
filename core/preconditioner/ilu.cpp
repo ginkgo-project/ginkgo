@@ -206,8 +206,7 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* alpha,
 template <typename ValueType, bool ReverseApply, typename IndexType>
 Ilu<ValueType, ReverseApply, IndexType>::Ilu(
     std::shared_ptr<const Executor> exec)
-
-    : EnableLinOp<Ilu>(std::move(exec))
+    : EnableLinOp<Ilu>(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
 {}
 
 
@@ -215,7 +214,8 @@ template <typename ValueType, bool ReverseApply, typename IndexType>
 Ilu<ValueType, ReverseApply, IndexType>::Ilu(
     const Factory* factory, std::shared_ptr<const LinOp> lin_op)
 
-    : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
+    : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size(),
+                       type_to_precision<ValueType>),
       parameters_{factory->get_parameters()}
 {
     auto comp =

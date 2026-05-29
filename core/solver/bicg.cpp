@@ -243,6 +243,24 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
 
 
 template <typename ValueType>
+Bicg<ValueType>::Bicg(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Bicg>(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType>
+Bicg<ValueType>::Bicg(const Factory* factory,
+                      std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Bicg>(factory->get_executor(),
+                        gko::transpose(system_matrix->get_size()),
+                        type_to_precision<ValueType>),
+      EnablePreconditionedIterativeSolver<ValueType, Bicg<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 void Bicg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                  const LinOp* beta, LinOp* x) const
 {

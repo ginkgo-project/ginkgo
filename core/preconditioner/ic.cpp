@@ -161,8 +161,7 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>::Ic(std::shared_ptr<const Executor> exec)
-
-    : EnableLinOp<Ic>(std::move(exec))
+    : EnableLinOp<Ic>(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
 {}
 
 
@@ -170,7 +169,8 @@ template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>::Ic(const Factory* factory,
                              std::shared_ptr<const LinOp> lin_op)
 
-    : EnableLinOp<Ic>(factory->get_executor(), lin_op->get_size()),
+    : EnableLinOp<Ic>(factory->get_executor(), lin_op->get_size(),
+                      type_to_precision<ValueType>),
       parameters_{factory->get_parameters()}
 {
     auto comp =

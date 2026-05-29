@@ -219,6 +219,24 @@ int workspace_traits<Fcg<ValueType>>::num_arrays(const Solver&)
 
 
 template <typename ValueType>
+Fcg<ValueType>::Fcg(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Fcg>(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType>
+Fcg<ValueType>::Fcg(const Factory* factory,
+                    std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Fcg>(factory->get_executor(),
+                       gko::transpose(system_matrix->get_size()),
+                       type_to_precision<ValueType>),
+      EnablePreconditionedIterativeSolver<ValueType, Fcg<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 int workspace_traits<Fcg<ValueType>>::num_vectors(const Solver&)
 {
     return 11;

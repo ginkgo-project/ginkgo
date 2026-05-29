@@ -324,7 +324,8 @@ void Minres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType>
 Minres<ValueType>::Minres(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Minres>(std::move(exec))
+    : EnableLinOp<Minres>(std::move(exec), dim<2>{},
+                          type_to_precision<ValueType>)
 {}
 
 
@@ -332,7 +333,8 @@ template <typename ValueType>
 Minres<ValueType>::Minres(const Factory* factory,
                           std::shared_ptr<const LinOp> system_matrix)
     : EnableLinOp<Minres>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
+                          gko::transpose(system_matrix->get_size()),
+                          type_to_precision<ValueType>),
       EnablePreconditionedIterativeSolver<ValueType, Minres>{
           std::move(system_matrix), factory->get_parameters()},
       parameters_{factory->get_parameters()}

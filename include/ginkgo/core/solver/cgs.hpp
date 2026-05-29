@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,18 +100,10 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Cgs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Cgs>(std::move(exec))
-    {}
+    explicit Cgs(std::shared_ptr<const Executor> exec);
 
     explicit Cgs(const Factory* factory,
-                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Cgs>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Cgs<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()}
-    {}
+                 std::shared_ptr<const LinOp> system_matrix);
 };
 
 

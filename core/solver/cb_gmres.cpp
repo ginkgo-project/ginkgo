@@ -195,6 +195,25 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
 
 
 template <typename ValueType>
+CbGmres<ValueType>::CbGmres(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<CbGmres>(std::move(exec), dim<2>{},
+                           type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType>
+CbGmres<ValueType>::CbGmres(const Factory* factory,
+                            std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<CbGmres>(factory->get_executor(),
+                           transpose(system_matrix->get_size()),
+                           type_to_precision<ValueType>),
+      EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 void CbGmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (!this->get_system_matrix()) {

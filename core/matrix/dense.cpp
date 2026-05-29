@@ -2147,7 +2147,7 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
 template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, size_type stride)
-    : EnableLinOp<Dense>(exec, size),
+    : EnableLinOp<Dense>(exec, size, type_to_precision<ValueType>),
       stride_(stride == 0 ? size[1] : stride),
       values_(exec, size[0] * stride_)
 {}
@@ -2157,12 +2157,12 @@ template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const dim<2>& size, array<value_type> values,
                         size_type stride)
-    : EnableLinOp<Dense>(exec, size),
-      stride_{stride},
-      values_{exec, std::move(values)}
+    : EnableLinOp<Dense>(exec, size, type_to_precision<ValueType>),
+      stride_(stride == 0 ? size[1] : stride),
+      values_(exec, std::move(values))
 {
     if (size[0] > 0 && size[1] > 0) {
-        GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
+        GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride_ + size[1] - 1,
                              values_.get_size());
     }
 }

@@ -270,6 +270,25 @@ void Bicgstab<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
+Bicgstab<ValueType>::Bicgstab(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Bicgstab>(std::move(exec), dim<2>{},
+                            type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType>
+Bicgstab<ValueType>::Bicgstab(const Factory* factory,
+                              std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Bicgstab>(factory->get_executor(),
+                            gko::transpose(system_matrix->get_size()),
+                            type_to_precision<ValueType>),
+      EnablePreconditionedIterativeSolver<ValueType, Bicgstab<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 int workspace_traits<Bicgstab<ValueType>>::num_arrays(const Solver&)
 {
     return 2;

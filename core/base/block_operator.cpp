@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -153,14 +153,14 @@ std::unique_ptr<BlockOperator> BlockOperator::create(
 
 
 BlockOperator::BlockOperator(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<BlockOperator>(std::move(exec))
+    : EnableLinOp(std::move(exec), dim<2>{}, precision::any)
 {}
 
 
 BlockOperator::BlockOperator(
     std::shared_ptr<const Executor> exec,
     std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks)
-    : EnableLinOp<BlockOperator>(exec, compute_global_size(blocks)),
+    : EnableLinOp(exec, compute_global_size(blocks), precision::any),
       block_size_(blocks.empty()
                       ? dim<2>{}
                       : dim<2>(blocks.size(), blocks.front().size())),
@@ -246,14 +246,14 @@ void BlockOperator::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 BlockOperator::BlockOperator(const BlockOperator& other)
-    : EnableLinOp<BlockOperator>(other.get_executor())
+    : EnableLinOp<BlockOperator>(other.get_executor(), dim<2>{}, precision::any)
 {
     *this = other;
 }
 
 
 BlockOperator::BlockOperator(BlockOperator&& other) noexcept
-    : EnableLinOp<BlockOperator>(other.get_executor())
+    : EnableLinOp<BlockOperator>(other.get_executor(), dim<2>{}, precision::any)
 {
     *this = std::move(other);
 }

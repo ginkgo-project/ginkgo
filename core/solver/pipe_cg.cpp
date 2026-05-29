@@ -329,6 +329,25 @@ int workspace_traits<PipeCg<ValueType>>::num_arrays(const Solver&)
 
 
 template <typename ValueType>
+PipeCg<ValueType>::PipeCg(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<PipeCg>(std::move(exec), dim<2>{},
+                          type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType>
+PipeCg<ValueType>::PipeCg(const Factory* factory,
+                          std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<PipeCg>(factory->get_executor(),
+                          gko::transpose(system_matrix->get_size()),
+                          type_to_precision<ValueType>),
+      EnablePreconditionedIterativeSolver<ValueType, PipeCg<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 int workspace_traits<PipeCg<ValueType>>::num_vectors(const Solver&)
 {
     return 13;

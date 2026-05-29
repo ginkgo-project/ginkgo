@@ -299,6 +299,28 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
 
 template <typename ValueType>
+Gcr<ValueType>::Gcr(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<Gcr>(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType>
+Gcr<ValueType>::Gcr(const Factory* factory,
+                    std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<Gcr>(factory->get_executor(),
+                       gko::transpose(system_matrix->get_size()),
+                       type_to_precision<ValueType>),
+      EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{
+    if (!parameters_.krylov_dim) {
+        parameters_.krylov_dim = gcr_default_krylov_dim;
+    }
+}
+
+
+template <typename ValueType>
 void Gcr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                 const LinOp* beta, LinOp* x) const
 {

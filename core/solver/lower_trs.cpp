@@ -52,7 +52,8 @@ LowerTrs<ValueType, IndexType>::parse(
 
 template <typename ValueType, typename IndexType>
 LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
-    : EnableLinOp<LowerTrs>(other.get_executor())
+    : EnableLinOp<LowerTrs>(other.get_executor(), dim<2>{},
+                            type_to_precision<ValueType>)
 {
     *this = other;
 }
@@ -60,7 +61,8 @@ LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
 
 template <typename ValueType, typename IndexType>
 LowerTrs<ValueType, IndexType>::LowerTrs(LowerTrs&& other)
-    : EnableLinOp<LowerTrs>(other.get_executor())
+    : EnableLinOp<LowerTrs>(other.get_executor(), dim<2>{},
+                            type_to_precision<ValueType>)
 {
     *this = std::move(other);
 }
@@ -129,6 +131,28 @@ void LowerTrs<ValueType, IndexType>::generate()
             this->get_parameters().unit_diagonal, parameters_.algorithm,
             parameters_.num_rhs));
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>::LowerTrs(std::shared_ptr<const Executor> exec)
+    : EnableLinOp<LowerTrs>(std::move(exec), dim<2>{},
+                            type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType, typename IndexType>
+LowerTrs<ValueType, IndexType>::LowerTrs(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : EnableLinOp<LowerTrs>(factory->get_executor(),
+                            gko::transpose(system_matrix->get_size()),
+                            type_to_precision<ValueType>),
+      EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
+          copy_and_convert_to<CsrMatrix>(factory->get_executor(),
+                                         system_matrix)},
+      parameters_{factory->get_parameters()}
+{
+    this->generate();
 }
 
 

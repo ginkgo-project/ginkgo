@@ -94,13 +94,13 @@ struct Cudss<ValueType, IndexType>::state {
 
 template <typename ValueType, typename IndexType>
 Cudss<ValueType, IndexType>::Cudss(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Cudss>{exec}
+    : EnableLinOp<Cudss>{exec, dim<2>{}, type_to_precision<ValueType>}
 {}
 
 
 template <typename ValueType, typename IndexType>
 Cudss<ValueType, IndexType>::Cudss(const Cudss& other)
-    : EnableLinOp<Cudss>{other.get_executor()}
+    : Cudss{other.get_executor()}
 {
     *this = other;
 }
@@ -108,7 +108,7 @@ Cudss<ValueType, IndexType>::Cudss(const Cudss& other)
 
 template <typename ValueType, typename IndexType>
 Cudss<ValueType, IndexType>::Cudss(Cudss&& other) noexcept
-    : EnableLinOp<Cudss>{other.get_executor()}
+    : Cudss{other.get_executor()}
 {
     *this = std::move(other);
 }
@@ -143,7 +143,8 @@ Cudss<ValueType, IndexType>& Cudss<ValueType, IndexType>::operator=(
 template <typename ValueType, typename IndexType>
 Cudss<ValueType, IndexType>::Cudss(const Factory* factory,
                                    std::shared_ptr<const LinOp> system_matrix)
-    : EnableLinOp<Cudss>{factory->get_executor(), system_matrix->get_size()}
+    : EnableLinOp<Cudss>{factory->get_executor(), system_matrix->get_size(),
+                         type_to_precision<ValueType>}
 {
     const auto exec = this->get_executor();
     auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);

@@ -132,7 +132,7 @@ template <typename ValueType, typename IndexType>
 SparsityCsr<ValueType, IndexType>::SparsityCsr(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     size_type num_nonzeros)
-    : EnableLinOp<SparsityCsr>(exec, size),
+    : EnableLinOp<SparsityCsr>(exec, size, type_to_precision<ValueType>),
       col_idxs_(exec, num_nonzeros),
       row_ptrs_(exec, size[0] + 1),
       value_(exec, {one<ValueType>()})
@@ -145,7 +145,7 @@ template <typename ValueType, typename IndexType>
 SparsityCsr<ValueType, IndexType>::SparsityCsr(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     array<index_type> col_idxs, array<index_type> row_ptrs, value_type value)
-    : EnableLinOp<SparsityCsr>(exec, size),
+    : EnableLinOp<SparsityCsr>(exec, size, type_to_precision<ValueType>),
       col_idxs_{exec, std::move(col_idxs)},
       row_ptrs_{exec, std::move(row_ptrs)},
       value_{exec, {value}}
@@ -157,7 +157,8 @@ SparsityCsr<ValueType, IndexType>::SparsityCsr(
 template <typename ValueType, typename IndexType>
 SparsityCsr<ValueType, IndexType>::SparsityCsr(
     std::shared_ptr<const Executor> exec, std::shared_ptr<const LinOp> matrix)
-    : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
+    : EnableLinOp<SparsityCsr>(exec, matrix->get_size(),
+                               type_to_precision<ValueType>)
 {
     auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
     this->copy_from(tmp_);

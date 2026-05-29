@@ -162,7 +162,7 @@ template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, size_type num_nonzeros,
                                std::shared_ptr<strategy_type> strategy)
-    : EnableLinOp<Csr>(exec, size),
+    : EnableLinOp<Csr>(exec, size, type_to_precision<ValueType>),
       strategy_(strategy ? strategy->copy() : Csr::make_default_strategy(exec)),
       values_(exec, num_nonzeros),
       col_idxs_(exec, num_nonzeros),
@@ -180,7 +180,7 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                array<index_type> col_idxs,
                                array<index_type> row_ptrs,
                                std::shared_ptr<strategy_type> strategy)
-    : EnableLinOp<Csr>(exec, size),
+    : EnableLinOp<Csr>(exec, size, type_to_precision<ValueType>),
       strategy_(strategy ? strategy->copy() : Csr::make_default_strategy(exec)),
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)},

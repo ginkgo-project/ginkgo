@@ -184,14 +184,16 @@ Permutation<IndexType>::create_const(
 template <typename IndexType>
 Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
                                     size_type size)
-    : EnableLinOp<Permutation>(exec, dim<2>{size}), permutation_{exec, size}
+    : EnableLinOp<Permutation>(exec, dim<2>{size}, precision::any),
+      permutation_{exec, size}
 {}
 
 
 template <typename IndexType>
 Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
                                     array<index_type> permutation_indices)
-    : EnableLinOp<Permutation>(exec, dim<2>{permutation_indices.get_size()}),
+    : EnableLinOp<Permutation>(exec, dim<2>{permutation_indices.get_size()},
+                               precision::any),
       permutation_{exec, std::move(permutation_indices)}
 {}
 
