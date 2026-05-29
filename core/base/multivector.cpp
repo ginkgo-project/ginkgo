@@ -386,5 +386,39 @@ std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
     return this->create_subview_generic_impl(rows, columns, global_size);
 }
 
+template <typename ValueType>
+MultiVector::device_view<ValueType> MultiVector::get_local_device_view()
+{
+    if (this->get_precision() != type_to_precision<ValueType>) {
+        GKO_INVALID_STATE("Multivector doesn't have the requested precision");
+    }
+    using return_type = device_view<ValueType>;
+    auto variant = this->get_local_device_view_generic_impl();
+    return std::move(std::get<return_type>(variant));
+}
+
+#define GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW(ValueType) \
+    MultiVector::device_view<ValueType> MultiVector::get_local_device_view()
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW);
+
+
+template <typename ValueType>
+MultiVector::device_view<const ValueType>
+MultiVector::get_const_local_device_view() const
+{
+    if (this->get_precision() != type_to_precision<ValueType>) {
+        GKO_INVALID_STATE("Multivector doesn't have the requested precision");
+    }
+    using return_type = device_view<const ValueType>;
+    auto variant = this->get_const_local_device_view_generic_impl();
+    return std::move(std::get<return_type>(variant));
+}
+
+#define GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW_CONST(ValueType) \
+    MultiVector::device_view<const ValueType>                      \
+    MultiVector::get_const_local_device_view() const
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW_CONST);
+
 
 }  // namespace gko
