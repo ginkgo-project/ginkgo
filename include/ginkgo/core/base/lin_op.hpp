@@ -22,6 +22,8 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
+#include "precision.hpp"
+
 
 namespace gko {
 namespace matrix {
@@ -177,6 +179,8 @@ public:
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
+    [[nodiscard]] precision get_precision() const noexcept;
+
     /** Copy-assigns a LinOp. Preserves the executor and copies the size. */
     LinOp& operator=(const LinOp&) = default;
 
@@ -202,10 +206,7 @@ public:
      * Move-constructs a LinOp. Inherits executor and size from the input,
      * which will have size 0x0 and unchanged executor afterwards.
      */
-    LinOp(LinOp&& other)
-        : EnableAbstractPolymorphicObject<LinOp>(std::move(other)),
-          size_{std::exchange(other.size_, dim<2>{})}
-    {}
+    LinOp(LinOp&& other);
 
 protected:
     /**
@@ -215,9 +216,8 @@ protected:
      * @param size  the size of the operator
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dim<2>& size = dim<2>{})
-        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
-    {}
+                   const dim<2>& size = dim<2>{},
+                   precision p = precision::none);
 
     /**
      * Sets the size of the operator.
@@ -225,6 +225,8 @@ protected:
      * @param value  the new size of the operator
      */
     void set_size(const dim<2>& value) noexcept { size_ = value; }
+
+    void set_precision(precision p) noexcept;
 
     /**
      * Implementers of LinOp should override this function instead
@@ -283,6 +285,7 @@ protected:
 
 private:
     dim<2> size_{};
+    precision value_t_{precision::none};
 };
 
 
