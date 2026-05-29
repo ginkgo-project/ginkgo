@@ -118,11 +118,11 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->template create_workspace_op_with_type_of<VectorType>(
             GKO_SOLVER_TRAITS::rw, dense_b, global_conjoined_size,
             local_conjoined_size);
-    auto r_unique = rw->create_submatrix(local_span{0, local_original_size[0]},
-                                         local_span{0, local_original_size[1]},
-                                         global_original_size);
+    auto r_unique = rw->create_subview(local_span{0, local_original_size[0]},
+                                       local_span{0, local_original_size[1]},
+                                       global_original_size);
     auto* r = r_unique.get();
-    auto w_unique = rw->create_submatrix(
+    auto w_unique = rw->create_subview(
         local_span{0, local_original_size[0]},
         local_span{b_stride, b_stride + local_original_size[1]},
         global_original_size);
@@ -131,11 +131,11 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // z now consists of two identical repeating parts: z1 and z2, again, for
     // the same reason
     GKO_SOLVER_VECTOR(z, rw);
-    auto z1_unique = z->create_submatrix(local_span{0, local_original_size[0]},
-                                         local_span{0, local_original_size[1]},
-                                         global_original_size);
+    auto z1_unique = z->create_subview(local_span{0, local_original_size[0]},
+                                       local_span{0, local_original_size[1]},
+                                       global_original_size);
     auto* z1 = z1_unique.get();
-    auto z2_unique = z->create_submatrix(
+    auto z2_unique = z->create_subview(
         local_span{0, local_original_size[0]},
         local_span{b_stride, b_stride + local_original_size[1]},
         global_original_size);
@@ -150,11 +150,11 @@ void PipeCg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     // rho and delta become combined as well
     GKO_SOLVER_SCALAR(rhodelta, rw);
-    auto rho_unique = rhodelta->create_submatrix(
+    auto rho_unique = rhodelta->create_subview(
         local_span{0, 1}, local_span{0, local_original_size[1]},
         dim<2>{1, global_original_size[1]});
     auto* rho = rho_unique.get();
-    auto delta_unique = rhodelta->create_submatrix(
+    auto delta_unique = rhodelta->create_subview(
         local_span{0, 1},
         local_span{b_stride, b_stride + local_original_size[1]},
         dim<2>{1, global_original_size[1]});
