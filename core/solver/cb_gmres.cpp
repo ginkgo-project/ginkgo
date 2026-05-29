@@ -419,8 +419,9 @@ void CbGmres<ValueType>::apply_dense_impl(
                 perform_reset = false;
                 // Restart
                 // use a view in case this is called earlier
-                auto hessenberg_view = hessenberg->create_submatrix(
-                    span{0, restart_iter}, span{0, num_rhs * (restart_iter)});
+                auto hessenberg_view = hessenberg->create_subview(
+                    local_span{0, restart_iter},
+                    local_span{0, num_rhs * (restart_iter)});
 
                 exec->run(cb_gmres::make_solve_krylov(
                     residual_norm_collection->get_const_device_view(),
@@ -462,11 +463,12 @@ void CbGmres<ValueType>::apply_dense_impl(
             // next_krylov_basis
 
             // Do Arnoldi and givens rotation
-            auto hessenberg_iter = hessenberg->create_submatrix(
-                span{0, restart_iter + 2},
-                span{num_rhs * restart_iter, num_rhs * (restart_iter + 1)});
-            auto buffer_iter = buffer->create_submatrix(
-                span{0, restart_iter + 2}, span{0, num_rhs});
+            auto hessenberg_iter = hessenberg->create_subview(
+                local_span{0, restart_iter + 2},
+                local_span{num_rhs * restart_iter,
+                           num_rhs * (restart_iter + 1)});
+            auto buffer_iter = buffer->create_subview(
+                local_span{0, restart_iter + 2}, local_span{0, num_rhs});
 
             // Start of arnoldi
             this->get_system_matrix()->apply(preconditioned_vector,
@@ -508,8 +510,8 @@ void CbGmres<ValueType>::apply_dense_impl(
         }  // closes while(true)
         // Solve x
 
-        auto hessenberg_small = hessenberg->create_submatrix(
-            span{0, restart_iter}, span{0, num_rhs * restart_iter});
+        auto hessenberg_small = hessenberg->create_subview(
+            local_span{0, restart_iter}, local_span{0, num_rhs * restart_iter});
 
         exec->run(cb_gmres::make_solve_krylov(
             residual_norm_collection->get_const_device_view(),
