@@ -102,12 +102,13 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* llh,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Csr<ValueType, IndexType>* l,
-                    matrix::Csr<ValueType, IndexType>* l_new)
+                    matrix::CsrBuilder<ValueType, IndexType>* l_new_builder)
 {
     auto num_rows = a->get_size()[0];
     auto l_row_ptrs = l->get_const_row_ptrs();
     auto l_col_idxs = l->get_const_col_idxs();
     auto l_vals = l->get_const_values();
+    auto l_new = l_new_builder->get_matrix();
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     // count nnz
@@ -122,9 +123,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
 
     // resize arrays
     auto l_nnz = l_new_row_ptrs[num_rows];
-    matrix::CsrBuilder<ValueType, IndexType> l_builder{l_new};
-    l_builder.get_col_idx_array().resize_and_reset(l_nnz);
-    l_builder.get_value_array().resize_and_reset(l_nnz);
+    l_new_builder->get_col_idx_array().resize_and_reset(l_nnz);
+    l_new_builder->get_value_array().resize_and_reset(l_nnz);
     auto l_new_col_idxs = l_new->get_col_idxs();
     auto l_new_vals = l_new->get_values();
 

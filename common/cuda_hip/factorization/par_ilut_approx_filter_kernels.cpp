@@ -48,13 +48,13 @@ using compiled_kernels =
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void threshold_filter_approx(syn::value_list<int, subwarp_size>,
-                             std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType>* m,
-                             IndexType rank, array<ValueType>* tmp,
-                             remove_complex<ValueType>* threshold,
-                             matrix::Csr<ValueType, IndexType>* m_out,
-                             matrix::Coo<ValueType, IndexType>* m_out_coo)
+void threshold_filter_approx(
+    syn::value_list<int, subwarp_size>,
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* m, IndexType rank,
+    array<ValueType>* tmp, remove_complex<ValueType>* threshold,
+    matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
+    matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
     auto values = m->get_const_values();
     IndexType size = m->get_num_stored_elements();
@@ -105,6 +105,7 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
     auto num_rows = static_cast<IndexType>(m->get_size()[0]);
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(num_rows, block_size);
+    auto m_out = m_out_builder->get_matrix();
     auto new_row_ptrs = m_out->get_row_ptrs();
     if (num_blocks > 0) {
         kernel::bucket_filter_nnz<subwarp_size>
@@ -118,9 +119,8 @@ void threshold_filter_approx(syn::value_list<int, subwarp_size>,
     // build matrix
     auto new_nnz = exec->copy_val_to_host(new_row_ptrs + num_rows);
     // resize arrays and update aliases
-    matrix::CsrBuilder<ValueType, IndexType> builder{m_out};
-    builder.get_col_idx_array().resize_and_reset(new_nnz);
-    builder.get_value_array().resize_and_reset(new_nnz);
+    m_out_builder->get_col_idx_array().resize_and_reset(new_nnz);
+    m_out_builder->get_value_array().resize_and_reset(new_nnz);
     auto new_col_idxs = m_out->get_col_idxs();
     auto new_vals = m_out->get_values();
     IndexType* new_row_idxs{};
@@ -148,12 +148,12 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_threshold_filter_approx,
 
 
 template <typename ValueType, typename IndexType>
-void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType>* m,
-                             IndexType rank, array<ValueType>& tmp,
-                             remove_complex<ValueType>& threshold,
-                             matrix::Csr<ValueType, IndexType>* m_out,
-                             matrix::Coo<ValueType, IndexType>* m_out_coo)
+void threshold_filter_approx(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* m, IndexType rank,
+    array<ValueType>& tmp, remove_complex<ValueType>& threshold,
+    matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
+    matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
     auto num_rows = m->get_size()[0];
     auto total_nnz = m->get_num_stored_elements();
@@ -165,7 +165,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
                    compiled_subwarp_size == config::warp_size;
         },
         syn::value_list<int>(), syn::type_list<>(), exec, m, rank, &tmp,
-        &threshold, m_out, m_out_coo);
+        &threshold, m_out_builder, m_out_coo);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

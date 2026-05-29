@@ -53,7 +53,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename Predicate, typename ValueType, typename IndexType>
 void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* m,
-                     matrix::Csr<ValueType, IndexType>* m_out,
+                     matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
                      matrix::Coo<ValueType, IndexType>* m_out_coo,
                      Predicate pred) GKO_NOT_IMPLEMENTED;
 
@@ -62,7 +62,7 @@ template <typename ValueType, typename IndexType>
 void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* m,
                       remove_complex<ValueType> threshold,
-                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
                       matrix::Coo<ValueType, IndexType>* m_out_coo,
                       bool) GKO_NOT_IMPLEMENTED;
 
@@ -106,8 +106,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Csr<ValueType, IndexType>* l,
                     const matrix::Csr<ValueType, IndexType>* u,
-                    matrix::Csr<ValueType, IndexType>* l_new,
-                    matrix::Csr<ValueType, IndexType>* u_new)
+                    matrix::CsrBuilder<ValueType, IndexType>* l_new_builder,
+                    matrix::CsrBuilder<ValueType, IndexType>* u_new_builder)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

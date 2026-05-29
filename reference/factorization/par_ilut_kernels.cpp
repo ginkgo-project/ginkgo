@@ -71,7 +71,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename Predicate, typename ValueType, typename IndexType>
 void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* m,
-                     matrix::Csr<ValueType, IndexType>* m_out,
+                     matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
                      matrix::Coo<ValueType, IndexType>* m_out_coo,
                      Predicate pred)
 {
@@ -80,6 +80,7 @@ void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
     auto col_idxs = m->get_const_col_idxs();
     auto vals = m->get_const_values();
 
+    auto m_out = m_out_builder->get_matrix();
     // first sweep: count nnz for each row
     auto new_row_ptrs = m_out->get_row_ptrs();
     for (size_type row = 0; row < num_rows; ++row) {
@@ -96,9 +97,8 @@ void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
     // second sweep: accumulate non-zeros
     auto new_nnz = new_row_ptrs[num_rows];
     // resize arrays and update aliases
-    matrix::CsrBuilder<ValueType, IndexType> builder{m_out};
-    builder.get_col_idx_array().resize_and_reset(new_nnz);
-    builder.get_value_array().resize_and_reset(new_nnz);
+    m_out_builder->get_col_idx_array().resize_and_reset(new_nnz);
+    m_out_builder->get_value_array().resize_and_reset(new_nnz);
     auto new_col_idxs = m_out->get_col_idxs();
     auto new_vals = m_out->get_values();
     IndexType* new_row_idxs{};
@@ -139,13 +139,13 @@ template <typename ValueType, typename IndexType>
 void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* m,
                       remove_complex<ValueType> threshold,
-                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
                       matrix::Coo<ValueType, IndexType>* m_out_coo, bool)
 {
     auto col_idxs = m->get_const_col_idxs();
     auto vals = m->get_const_values();
     abstract_filter(
-        exec, m, m_out, m_out_coo, [&](IndexType row, IndexType nz) {
+        exec, m, m_out_builder, m_out_coo, [&](IndexType row, IndexType nz) {
             return abs(vals[nz]) >= threshold || col_idxs[nz] == row;
         });
 }
@@ -165,12 +165,12 @@ constexpr auto sample_size = bucket_count * sampleselect_oversampling;
  * and removes all elements below this threshold from the input matrix.
  */
 template <typename ValueType, typename IndexType>
-void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
-                             const matrix::Csr<ValueType, IndexType>* m,
-                             IndexType rank, array<ValueType>& tmp,
-                             remove_complex<ValueType>& threshold,
-                             matrix::Csr<ValueType, IndexType>* m_out,
-                             matrix::Coo<ValueType, IndexType>* m_out_coo)
+void threshold_filter_approx(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* m, IndexType rank,
+    array<ValueType>& tmp, remove_complex<ValueType>& threshold,
+    matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
+    matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
     auto vals = m->get_const_values();
     auto col_idxs = m->get_const_col_idxs();
@@ -221,7 +221,7 @@ void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec,
                                      : zero<remove_complex<ValueType>>();
     // filter elements
     abstract_filter(
-        exec, m, m_out, m_out_coo, [&](IndexType row, IndexType nz) {
+        exec, m, m_out_builder, m_out_coo, [&](IndexType row, IndexType nz) {
             return abs(vals[nz]) >= threshold || col_idxs[nz] == row;
         });
 }
@@ -331,8 +331,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Csr<ValueType, IndexType>* l,
                     const matrix::Csr<ValueType, IndexType>* u,
-                    matrix::Csr<ValueType, IndexType>* l_new,
-                    matrix::Csr<ValueType, IndexType>* u_new)
+                    matrix::CsrBuilder<ValueType, IndexType>* l_new_builder,
+                    matrix::CsrBuilder<ValueType, IndexType>* u_new_builder)
 {
     auto num_rows = a->get_size()[0];
     auto l_row_ptrs = l->get_const_row_ptrs();
@@ -341,6 +341,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
     auto u_row_ptrs = u->get_const_row_ptrs();
     auto u_col_idxs = u->get_const_col_idxs();
     auto u_vals = u->get_const_values();
+    auto l_new = l_new_builder->get_matrix();
+    auto u_new = u_new_builder->get_matrix();
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     auto u_new_row_ptrs = u_new->get_row_ptrs();
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
@@ -363,12 +365,10 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
     u_new_row_ptrs[num_rows] = u_nnz;
 
     // resize arrays
-    matrix::CsrBuilder<ValueType, IndexType> l_builder{l_new};
-    matrix::CsrBuilder<ValueType, IndexType> u_builder{u_new};
-    l_builder.get_col_idx_array().resize_and_reset(l_nnz);
-    l_builder.get_value_array().resize_and_reset(l_nnz);
-    u_builder.get_col_idx_array().resize_and_reset(u_nnz);
-    u_builder.get_value_array().resize_and_reset(u_nnz);
+    l_new_builder->get_col_idx_array().resize_and_reset(l_nnz);
+    l_new_builder->get_value_array().resize_and_reset(l_nnz);
+    u_new_builder->get_col_idx_array().resize_and_reset(u_nnz);
+    u_new_builder->get_value_array().resize_and_reset(u_nnz);
     auto l_new_col_idxs = l_new->get_col_idxs();
     auto l_new_vals = l_new->get_values();
     auto u_new_col_idxs = u_new->get_col_idxs();

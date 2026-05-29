@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -412,13 +412,14 @@ void initialize_l(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const DpcppExecutor> exec,
-                           matrix::Csr<ValueType, IndexType>* mtx,
-                           bool is_sorted)
+void add_diagonal_elements(
+    std::shared_ptr<const DpcppExecutor> exec,
+    matrix::CsrBuilder<ValueType, IndexType>* mtx_builder, bool is_sorted)
 {
     // TODO: Runtime can be optimized by choosing a appropriate size for the
     //       subwarp dependent on the matrix properties
     constexpr int subwarp_size = config::warp_size;
+    auto mtx = mtx_builder->get_matrix();
     auto mtx_size = mtx->get_size();
     auto num_rows = static_cast<IndexType>(mtx_size[0]);
     auto num_cols = static_cast<IndexType>(mtx_size[1]);

@@ -1357,8 +1357,10 @@ void spgeam(syn::value_list<int, subwarp_size>,
             const IndexType* a_row_ptrs, const IndexType* a_col_idxs,
             const ValueType* a_vals, const ValueType* beta,
             const IndexType* b_row_ptrs, const IndexType* b_col_idxs,
-            const ValueType* b_vals, matrix::Csr<ValueType, IndexType>* c)
+            const ValueType* b_vals,
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
+    auto c = c_builder->get_matrix();
     auto m = static_cast<IndexType>(c->get_size()[0]);
     auto c_row_ptrs = c->get_row_ptrs();
     // count nnz for alpha * A + beta * B
@@ -1374,10 +1376,9 @@ void spgeam(syn::value_list<int, subwarp_size>,
     components::prefix_sum_nonnegative(exec, c_row_ptrs, m + 1);
 
     // accumulate non-zeros for alpha * A + beta * B
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
     auto c_nnz = exec->copy_val_to_host(c_row_ptrs + m);
-    c_builder.get_col_idx_array().resize_and_reset(c_nnz);
-    c_builder.get_value_array().resize_and_reset(c_nnz);
+    c_builder->get_col_idx_array().resize_and_reset(c_nnz);
+    c_builder->get_value_array().resize_and_reset(c_nnz);
     auto c_col_idxs = c->get_col_idxs();
     auto c_vals = c->get_values();
     if (num_blocks > 0) {
@@ -1402,7 +1403,7 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             matrix::view::dense<const ValueType> beta,
             const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto total_nnz =
         a->get_num_stored_elements() + b->get_num_stored_elements();
@@ -1416,7 +1417,7 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
         syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
         a->get_const_row_ptrs(), a->get_const_col_idxs(), a->get_const_values(),
         beta.values, b->get_const_row_ptrs(), b->get_const_col_idxs(),
-        b->get_const_values(), c);
+        b->get_const_values(), c_builder);
 }
 
 
@@ -2474,8 +2475,9 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
+    auto c = c_builder->get_matrix();
 #ifdef GKO_COMPILING_HIP
     if (sparselib::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_sparselib_handle();
@@ -2502,9 +2504,8 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
         auto n = static_cast<IndexType>(b->get_size()[1]);
         auto k = static_cast<IndexType>(a->get_size()[1]);
         auto c_row_ptrs = c->get_row_ptrs();
-        matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-        auto& c_col_idxs_array = c_builder.get_col_idx_array();
-        auto& c_vals_array = c_builder.get_value_array();
+        auto& c_col_idxs_array = c_builder->get_col_idx_array();
+        auto& c_vals_array = c_builder->get_value_array();
 
         // allocate buffer
         size_type buffer_size{};
@@ -2562,9 +2563,8 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto m = IndexType(a->get_size()[0]);
     auto n = IndexType(b->get_size()[1]);
     auto k = IndexType(a->get_size()[1]);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
 
     const auto beta = zero<ValueType>();
     auto spgemm_descr = sparselib::create_spgemm_descr();
@@ -2624,8 +2624,9 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* b,
                      matrix::view::dense<const ValueType> beta,
                      const matrix::Csr<ValueType, IndexType>* d,
-                     matrix::Csr<ValueType, IndexType>* c)
+                     matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
+    auto c = c_builder->get_matrix();
 #ifdef GKO_COMPILING_HIP
     if (sparselib::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_sparselib_handle();
@@ -2701,7 +2702,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
             },
             syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
             c_tmp_row_ptrs, c_tmp_col_idxs, c_tmp_vals, beta.values, d_row_ptrs,
-            d_col_idxs, d_vals, c);
+            d_col_idxs, d_vals, c_builder);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -2793,7 +2794,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
         c_tmp_row_ptrs_array.get_const_data(),
         c_tmp_col_idxs_array.get_const_data(),
         c_tmp_vals_array.get_const_data(), beta.values, d_row_ptrs, d_col_idxs,
-        d_vals, c);
+        d_vals, c_builder);
 #endif  // GKO_COMPILING_CUDA
 }
 

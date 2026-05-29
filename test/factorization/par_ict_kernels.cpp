@@ -100,6 +100,7 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     if (std::is_same_v<gko::remove_complex<value_type>, gko::float16>) {
         // We set the diagonal larger than 1 in half precision to reduce the
         // possibility of resulting inf. It might introduce (a - llh)/diag when
@@ -119,13 +120,14 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
     dmtx_llh->copy_from(mtx_llh);
     auto res_mtx_l = Csr::create(this->ref, this->mtx_size);
     auto dres_mtx_l = Csr::create(this->exec, this->mtx_size);
+    auto builder = gko::matrix::CsrBuilder<value_type, index_type>(res_mtx_l);
+    auto dbuilder = gko::matrix::CsrBuilder<value_type, index_type>(dres_mtx_l);
 
     gko::kernels::reference::par_ict_factorization::add_candidates(
-        this->ref, mtx_llh.get(), this->mtx.get(), this->mtx_l.get(),
-        res_mtx_l.get());
+        this->ref, mtx_llh.get(), this->mtx.get(), this->mtx_l.get(), &builder);
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ict_factorization::add_candidates(
         this->exec, dmtx_llh.get(), this->dmtx.get(), this->dmtx_l.get(),
-        dres_mtx_l.get());
+        &dbuilder);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, dres_mtx_l);
     GKO_ASSERT_MTX_NEAR(res_mtx_l, dres_mtx_l, r<value_type>::value);

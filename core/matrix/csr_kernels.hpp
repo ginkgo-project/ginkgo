@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/base/kernel_declaration.hpp"
+#include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
 
@@ -47,7 +48,7 @@ namespace kernels {
     void spgemm(std::shared_ptr<const DefaultExecutor> exec, \
                 const matrix::Csr<ValueType, IndexType>* a,  \
                 const matrix::Csr<ValueType, IndexType>* b,  \
-                matrix::Csr<ValueType, IndexType>* c)
+                matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 
 #define GKO_DECLARE_CSR_ADVANCED_SPGEMM_KERNEL(ValueType, IndexType)  \
     void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec, \
@@ -56,7 +57,7 @@ namespace kernels {
                          const matrix::Csr<ValueType, IndexType>* b,  \
                          matrix::view::dense<const ValueType> beta,   \
                          const matrix::Csr<ValueType, IndexType>* d,  \
-                         matrix::Csr<ValueType, IndexType>* c)
+                         matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 
 #define GKO_DECLARE_CSR_SPGEMM_REUSE_KERNEL(ValueType, IndexType)          \
     void spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,         \
@@ -82,7 +83,7 @@ namespace kernels {
                 const matrix::Csr<ValueType, IndexType>* a,  \
                 matrix::view::dense<const ValueType> beta,   \
                 const matrix::Csr<ValueType, IndexType>* b,  \
-                matrix::Csr<ValueType, IndexType>* c)
+                matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 
 #define GKO_DECLARE_CSR_SPGEAM_NUMERIC_KERNEL(ValueType, IndexType)  \
     void spgeam_numeric(std::shared_ptr<const DefaultExecutor> exec, \

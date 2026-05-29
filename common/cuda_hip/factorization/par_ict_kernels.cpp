@@ -331,12 +331,12 @@ void add_candidates(syn::value_list<int, subwarp_size>,
                     const matrix::Csr<ValueType, IndexType>* llh,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Csr<ValueType, IndexType>* l,
-                    matrix::Csr<ValueType, IndexType>* l_new)
+                    matrix::CsrBuilder<ValueType, IndexType>* l_new_builder)
 {
     auto num_rows = static_cast<IndexType>(llh->get_size()[0]);
     auto subwarps_per_block = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(num_rows, subwarps_per_block);
-    matrix::CsrBuilder<ValueType, IndexType> l_new_builder(l_new);
+    auto l_new = l_new_builder->get_matrix();
     auto llh_row_ptrs = llh->get_const_row_ptrs();
     auto llh_col_idxs = llh->get_const_col_idxs();
     auto llh_vals = llh->get_const_values();
@@ -360,8 +360,8 @@ void add_candidates(syn::value_list<int, subwarp_size>,
 
     // resize output arrays
     auto l_new_nnz = exec->copy_val_to_host(l_new_row_ptrs + num_rows);
-    l_new_builder.get_col_idx_array().resize_and_reset(l_new_nnz);
-    l_new_builder.get_value_array().resize_and_reset(l_new_nnz);
+    l_new_builder->get_col_idx_array().resize_and_reset(l_new_nnz);
+    l_new_builder->get_value_array().resize_and_reset(l_new_nnz);
 
     auto l_new_col_idxs = l_new->get_col_idxs();
     auto l_new_vals = l_new->get_values();
@@ -422,7 +422,7 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* llh,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Csr<ValueType, IndexType>* l,
-                    matrix::Csr<ValueType, IndexType>* l_new)
+                    matrix::CsrBuilder<ValueType, IndexType>* l_new_builder)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz =
@@ -434,7 +434,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subwarp_size ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, llh, a, l, l_new);
+        syn::value_list<int>(), syn::type_list<>(), exec, llh, a, l,
+        l_new_builder);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

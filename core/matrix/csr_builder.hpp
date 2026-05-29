@@ -35,6 +35,11 @@ public:
     array<ValueType>& get_value_array() { return matrix_->values_; }
 
     /**
+     * Returns the matrix pointer
+     */
+    Csr<ValueType, IndexType>* get_matrix() { return matrix_; }
+
+    /**
      * Initializes a CsrBuilder from an existing CSR matrix.
      */
     explicit CsrBuilder(ptr_param<Csr<ValueType, IndexType>> matrix)
@@ -44,9 +49,7 @@ public:
     /**
      * Updates the internal matrix data structures at destruction.
      */
-    ~CsrBuilder()
-    { /*matrix_->make_srow();*/
-    }
+    ~CsrBuilder() { matrix_->make_srow(); }
 
     // make this type non-movable
     CsrBuilder(const CsrBuilder&) = delete;

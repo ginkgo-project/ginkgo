@@ -1956,7 +1956,7 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto num_rows = a->get_size()[0];
     const auto a_row_ptrs = a->get_const_row_ptrs();
@@ -1965,6 +1965,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     const auto b_row_ptrs = b->get_const_row_ptrs();
     const auto b_cols = b->get_const_col_idxs();
     const auto b_vals = as_device_type(b->get_const_values());
+    auto c = c_builder->get_matrix();
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
 
@@ -1993,9 +1994,8 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
@@ -2036,8 +2036,9 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* b,
                      matrix::view::dense<const ValueType> beta,
                      const matrix::Csr<ValueType, IndexType>* d,
-                     matrix::Csr<ValueType, IndexType>* c)
+                     matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
+    auto c = c_builder->get_matrix();
     auto num_rows = a->get_size()[0];
     const auto a_row_ptrs = a->get_const_row_ptrs();
     const auto a_cols = a->get_const_col_idxs();
@@ -2093,9 +2094,8 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
 
@@ -2321,7 +2321,7 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             matrix::view::dense<const ValueType> beta,
             const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     const auto num_rows = a->get_size()[0];
@@ -2329,6 +2329,7 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
     const auto a_cols = a->get_const_col_idxs();
     const auto b_row_ptrs = b->get_const_row_ptrs();
     const auto b_cols = b->get_const_col_idxs();
+    auto c = c_builder->get_matrix();
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
 
@@ -2356,9 +2357,8 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_cols = c_col_idxs_array.get_data();

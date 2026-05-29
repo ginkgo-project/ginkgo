@@ -154,6 +154,12 @@ protected:
     {
         auto res = Mtx::create(ref, mtx_size);
         auto dres = Mtx::create(exec, mtx_size);
+        auto res_builder =
+            gko::matrix::CsrBuilder<typename Mtx::value_type,
+                                    typename Mtx::index_type>(res);
+        auto dres_builder =
+            gko::matrix::CsrBuilder<typename Mtx::value_type,
+                                    typename Mtx::index_type>(dres);
         auto res_coo = Coo::create(ref, mtx_size);
         auto dres_coo = Coo::create(exec, mtx_size);
         auto local_mtx = gko::as<Mtx>(lower ? mtx->clone() : mtx->transpose());
@@ -161,9 +167,10 @@ protected:
             gko::as<Mtx>(lower ? dmtx->clone() : dmtx->transpose());
 
         gko::kernels::reference::par_ilut_factorization::threshold_filter(
-            ref, local_mtx.get(), threshold, res.get(), res_coo.get(), lower);
+            ref, local_mtx.get(), threshold, &res_builder, res_coo.get(),
+            lower);
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
-            threshold_filter(exec, local_dmtx.get(), threshold, dres.get(),
+            threshold_filter(exec, local_dmtx.get(), threshold, &dres_builder,
                              dres_coo.get(), lower);
 
         GKO_ASSERT_MTX_NEAR(res, dres, 0);
@@ -184,6 +191,12 @@ protected:
             gko::is_complex<value_type>() ? double(r<value_type>::value) : 0.0;
         auto res = Mtx::create(ref, mtx_size);
         auto dres = Mtx::create(exec, mtx_size);
+        auto res_builder =
+            gko::matrix::CsrBuilder<typename Mtx::value_type,
+                                    typename Mtx::index_type>(res);
+        auto dres_builder =
+            gko::matrix::CsrBuilder<typename Mtx::value_type,
+                                    typename Mtx::index_type>(dres);
         auto res_coo = Coo::create(ref, mtx_size);
         auto dres_coo = Coo::create(exec, mtx_size);
         using ValueType = typename Mtx::value_type;
@@ -195,10 +208,10 @@ protected:
 
         gko::kernels::reference::par_ilut_factorization::
             threshold_filter_approx(ref, mtx.get(), rank, tmp, threshold,
-                                    res.get(), res_coo.get());
+                                    &res_builder, res_coo.get());
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
             threshold_filter_approx(exec, dmtx.get(), rank, dtmp, dthreshold,
-                                    dres.get(), dres_coo.get());
+                                    &dres_builder, dres_coo.get());
 
         GKO_ASSERT_MTX_NEAR(res, dres, 0);
         GKO_ASSERT_MTX_NEAR(res, res_coo, 0);
@@ -288,14 +301,18 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCooIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     auto res = Csr::create(this->ref, this->mtx_size);
     auto dres = Csr::create(this->exec, this->mtx_size);
+    auto res_builder = gko::matrix::CsrBuilder<value_type, index_type>(res);
+    auto dres_builder = gko::matrix::CsrBuilder<value_type, index_type>(dres);
     Coo* null_coo = nullptr;
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
-        this->ref, this->mtx_l.get(), 0.5, res.get(), null_coo, true);
+        this->ref, this->mtx_l.get(), 0.5, &res_builder, null_coo, true);
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
-        threshold_filter(this->exec, this->dmtx_l.get(), 0.5, dres.get(),
+        threshold_filter(this->exec, this->dmtx_l.get(), 0.5, &dres_builder,
                          null_coo, true);
 
     GKO_ASSERT_MTX_NEAR(res, dres, 0);
@@ -355,6 +372,8 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     this->test_filter(this->mtx_l, this->dmtx_l, 0.5, true);
     auto res = Csr::create(this->ref, this->mtx_size);
     auto dres = Csr::create(this->exec, this->mtx_size);
+    auto res_builder = gko::matrix::CsrBuilder<value_type, index_type>(res);
+    auto dres_builder = gko::matrix::CsrBuilder<value_type, index_type>(dres);
     Coo* null_coo = nullptr;
     gko::array<value_type> tmp(this->ref);
     gko::array<value_type> dtmp(this->exec);
@@ -363,11 +382,11 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     index_type rank{};
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
-        this->ref, this->mtx_l.get(), rank, tmp, threshold, res.get(),
+        this->ref, this->mtx_l.get(), rank, tmp, threshold, &res_builder,
         null_coo);
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
         threshold_filter_approx(this->exec, this->dmtx_l.get(), rank, dtmp,
-                                dthreshold, dres.get(), null_coo);
+                                dthreshold, &dres_builder, null_coo);
 
     GKO_ASSERT_MTX_NEAR(res, dres, 0);
     GKO_ASSERT_MTX_EQ_SPARSITY(res, dres);
@@ -426,6 +445,7 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
     using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
     if (std::is_same_v<gko::remove_complex<value_type>, gko::float16>) {
         // We set the diagonal larger than 1 in half precision to reduce the
         // possibility of resulting inf. It might introduce (a - lu)/u_diag when
@@ -447,13 +467,21 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
     auto res_mtx_u = Csr::create(this->ref, square_size);
     auto dres_mtx_l = Csr::create(this->exec, square_size);
     auto dres_mtx_u = Csr::create(this->exec, square_size);
+    auto res_mtx_l_builder =
+        gko::matrix::CsrBuilder<value_type, index_type>(res_mtx_l);
+    auto dres_mtx_l_builder =
+        gko::matrix::CsrBuilder<value_type, index_type>(dres_mtx_l);
+    auto res_mtx_u_builder =
+        gko::matrix::CsrBuilder<value_type, index_type>(res_mtx_u);
+    auto dres_mtx_u_builder =
+        gko::matrix::CsrBuilder<value_type, index_type>(dres_mtx_u);
 
     gko::kernels::reference::par_ilut_factorization::add_candidates(
         this->ref, mtx_lu.get(), this->mtx_square.get(), this->mtx_l2.get(),
-        this->mtx_u.get(), res_mtx_l.get(), res_mtx_u.get());
+        this->mtx_u.get(), &res_mtx_l_builder, &res_mtx_u_builder);
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::add_candidates(
         this->exec, dmtx_lu.get(), this->dmtx_square.get(), this->dmtx_l2.get(),
-        this->dmtx_u.get(), dres_mtx_l.get(), dres_mtx_u.get());
+        this->dmtx_u.get(), &dres_mtx_l_builder, &dres_mtx_u_builder);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, dres_mtx_l);
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_u, dres_mtx_u);

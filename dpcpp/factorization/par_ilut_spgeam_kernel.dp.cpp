@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -349,14 +349,14 @@ void add_candidates(syn::value_list<int, subgroup_size>,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Csr<ValueType, IndexType>* l,
                     const matrix::Csr<ValueType, IndexType>* u,
-                    matrix::Csr<ValueType, IndexType>* l_new,
-                    matrix::Csr<ValueType, IndexType>* u_new)
+                    matrix::CsrBuilder<ValueType, IndexType>* l_new_builder,
+                    matrix::CsrBuilder<ValueType, IndexType>* u_new_builder)
 {
     auto num_rows = static_cast<IndexType>(lu->get_size()[0]);
     auto subwarps_per_block = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(num_rows, subwarps_per_block);
-    matrix::CsrBuilder<ValueType, IndexType> l_new_builder(l_new);
-    matrix::CsrBuilder<ValueType, IndexType> u_new_builder(u_new);
+    auto l_new = l_new->get_matrix();
+    auto u_new = u_new->get_matrix();
     auto lu_row_ptrs = lu->get_const_row_ptrs();
     auto lu_col_idxs = lu->get_const_col_idxs();
     auto lu_vals = as_device_type(lu->get_const_values());
@@ -384,10 +384,10 @@ void add_candidates(syn::value_list<int, subgroup_size>,
     // resize output arrays
     auto l_new_nnz = exec->copy_val_to_host(l_new_row_ptrs + num_rows);
     auto u_new_nnz = exec->copy_val_to_host(u_new_row_ptrs + num_rows);
-    l_new_builder.get_col_idx_array().resize_and_reset(l_new_nnz);
-    l_new_builder.get_value_array().resize_and_reset(l_new_nnz);
-    u_new_builder.get_col_idx_array().resize_and_reset(u_new_nnz);
-    u_new_builder.get_value_array().resize_and_reset(u_new_nnz);
+    l_new_builder->get_col_idx_array().resize_and_reset(l_new_nnz);
+    l_new_builder->get_value_array().resize_and_reset(l_new_nnz);
+    u_new_builder->get_col_idx_array().resize_and_reset(u_new_nnz);
+    u_new_builder->get_value_array().resize_and_reset(u_new_nnz);
 
     auto l_new_col_idxs = l_new->get_col_idxs();
     auto l_new_vals = as_device_type(l_new->get_values());
@@ -416,8 +416,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Csr<ValueType, IndexType>* a,
                     const matrix::Csr<ValueType, IndexType>* l,
                     const matrix::Csr<ValueType, IndexType>* u,
-                    matrix::Csr<ValueType, IndexType>* l_new,
-                    matrix::Csr<ValueType, IndexType>* u_new)
+                    matrix::CsrBuilder<ValueType, IndexType>* l_new_builder,
+                    matrix::CsrBuilder<ValueType, IndexType>* u_new_builder)
 {
     auto num_rows = a->get_size()[0];
     auto total_nnz =
@@ -429,8 +429,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subgroup_size ||
                    compiled_subgroup_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, lu, a, l, u, l_new,
-        u_new);
+        syn::value_list<int>(), syn::type_list<>(), exec, lu, a, l, u,
+        l_new_builder, u_new_builder);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
