@@ -18,6 +18,7 @@
 
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/multigrid/rs_kernels.hpp"
 
 
@@ -123,9 +124,31 @@ void Rs<ValueType, IndexType>::generate()
     this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
 }
 
+
+template <typename ValueType, typename IndexType>
+typename Rs<ValueType, IndexType>::parameters_type
+Rs<ValueType, IndexType>::parse(const config::pnode& config,
+                                const config::registry& context,
+                                const config::type_descriptor& td_for_child)
+{
+    auto params = Rs<ValueType, IndexType>::build();
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("strength_threshold")) {
+        params.with_strength_threshold(config::get_value<double>(obj));
+    }
+    if (auto& obj = config_check.get("skip_sorting")) {
+        params.with_skip_sorting(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config_check.get("skip_m_matrix_check")) {
+        params.with_skip_m_matrix_check(config::get_value<bool>(obj));
+    }
+
+    return params;
+}
+
+
 #define GKO_DECLARE_RS(_vtype, _itype) class Rs<_vtype, _itype>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS);
-
 
 }  // namespace multigrid
 }  // namespace gko

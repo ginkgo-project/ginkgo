@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
@@ -84,6 +85,11 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(Rs, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    static parameters_type parse(
+        const config::pnode& config, const config::registry& context,
+        const config::type_descriptor& td_for_child =
+            config::make_type_descriptor<ValueType, IndexType>());
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
