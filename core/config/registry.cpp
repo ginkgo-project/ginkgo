@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -52,6 +52,7 @@ configuration_map generate_config_map()
             {"preconditioner::Sor", parse<LinOpFactoryType::Sor>},
             {"solver::Multigrid", parse<LinOpFactoryType::Multigrid>},
             {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>},
+            {"multigrid::Rs", parse<LinOpFactoryType::Rs>},
 #if GINKGO_BUILD_MPI
         {
             "preconditioner::Schwarz", parse<LinOpFactoryType::Schwarz>
