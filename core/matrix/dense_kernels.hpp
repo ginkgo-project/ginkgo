@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -490,6 +490,21 @@ compute_bound_work_estimate simple_apply(const matrix::Dense<ValueType>* a,
     const auto a_cols = a->get_size()[1];
     const auto b_cols = b->get_size()[1];
     return compute_bound_work_estimate{2 * a_rows * a_cols * b_cols};
+}
+
+
+template <typename ValueType>
+compute_bound_work_estimate apply(const matrix::Dense<ValueType>* alpha,
+                                  const matrix::Dense<ValueType>* a,
+                                  const matrix::Dense<ValueType>* b,
+                                  const matrix::Dense<ValueType>* beta,
+                                  matrix::Dense<ValueType>* c)
+{
+    const auto a_rows = a->get_size()[0];
+    const auto a_cols = a->get_size()[1];
+    const auto b_cols = b->get_size()[1];
+    const auto c_size = c->get_size()[0] * c->get_size()[1];
+    return compute_bound_work_estimate{3 * a_rows * a_cols * b_cols + c_size};
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/base/kernel_declaration.hpp"
+#include "ginkgo/core/base/work_estimate.hpp"
 
 
 namespace gko {
@@ -75,6 +76,42 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(coo, GKO_DECLARE_ALL_AS_TEMPLATES);
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
+namespace work_estimate::coo {
+
+
+template <typename ValueType, typename IndexType>
+memory_bound_work_estimate spmv(const matrix::Coo<ValueType, IndexType>* a,
+                                const matrix::Dense<ValueType>* b,
+                                matrix::Dense<ValueType>* c)
+{
+    const auto num_stored_elements = a->get_num_stored_elements();
+    const auto matrix_storage =
+        num_stored_elements * (sizeof(ValueType) + 2 * sizeof(IndexType));
+    const auto vector_size = b->get_size()[0] * b->get_size()[1];
+    return memory_bound_work_estimate{
+        matrix_storage + vector_size * sizeof(ValueType),
+        vector_size * sizeof(ValueType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+memory_bound_work_estimate advanced_spmv(
+    const matrix::Dense<ValueType>* alpha,
+    const matrix::Coo<ValueType, IndexType>* a,
+    const matrix::Dense<ValueType>* b, const matrix::Dense<ValueType>* beta,
+    matrix::Dense<ValueType>* c)
+{
+    const auto num_stored_elements = a->get_num_stored_elements();
+    const auto matrix_storage =
+        num_stored_elements * (sizeof(ValueType) + 2 * sizeof(IndexType));
+    const auto vector_size = b->get_size()[0] * b->get_size()[1];
+    return memory_bound_work_estimate{
+        matrix_storage + 2 * vector_size * sizeof(ValueType),
+        vector_size * sizeof(ValueType)};
+}
+
+
+}  // namespace work_estimate::coo
 }  // namespace kernels
 }  // namespace gko
 

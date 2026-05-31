@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,8 +31,8 @@ namespace ell {
 namespace {
 
 
-GKO_REGISTER_OPERATION(spmv, ell::spmv);
-GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(spmv, ell::spmv);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(advanced_spmv, ell::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, ell::fill_in_matrix_data);

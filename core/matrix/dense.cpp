@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,7 +41,7 @@ namespace {
 
 
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(simple_apply, dense::simple_apply);
-GKO_REGISTER_OPERATION(apply, dense::apply);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(apply, dense::apply);
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(copy, dense::copy);
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(fill, dense::fill);
 GKO_REGISTER_OPERATION(scale, dense::scale);

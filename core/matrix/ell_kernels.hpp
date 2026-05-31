@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 #define GKO_CORE_MATRIX_ELL_KERNELS_HPP_
 
 
+#include <ginkgo/core/base/work_estimate.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -101,6 +102,44 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ell, GKO_DECLARE_ALL_AS_TEMPLATES);
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
 
 
+namespace work_estimate::ell {
+
+
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+memory_bound_work_estimate spmv(
+    const matrix::Ell<MatrixValueType, IndexType>* a,
+    const matrix::Dense<InputValueType>* b, matrix::Dense<OutputValueType>* c)
+{
+    const auto matrix_storage = a->get_num_stored_elements() *
+                                (sizeof(MatrixValueType) + sizeof(IndexType));
+    const auto vector_size = b->get_size()[0] * b->get_size()[1];
+    return memory_bound_work_estimate{
+        matrix_storage + vector_size * sizeof(InputValueType),
+        vector_size * sizeof(OutputValueType)};
+}
+
+
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
+memory_bound_work_estimate advanced_spmv(
+    const matrix::Dense<MatrixValueType>* alpha,
+    const matrix::Ell<MatrixValueType, IndexType>* a,
+    const matrix::Dense<InputValueType>* b,
+    const matrix::Dense<OutputValueType>* beta,
+    matrix::Dense<OutputValueType>* c)
+{
+    const auto matrix_storage = a->get_num_stored_elements() *
+                                (sizeof(MatrixValueType) + sizeof(IndexType));
+    const auto vector_size = b->get_size()[0] * b->get_size()[1];
+    return memory_bound_work_estimate{
+        matrix_storage +
+            vector_size * (sizeof(InputValueType) + sizeof(OutputValueType)),
+        vector_size * sizeof(OutputValueType)};
+}
+
+
+}  // namespace work_estimate::ell
 }  // namespace kernels
 }  // namespace gko
 
