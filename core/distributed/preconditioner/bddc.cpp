@@ -860,7 +860,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 auto eigs_LL =
                     share(local_vec::create(host_exec, dim<2>{2, 1}));
                 condest_LL->condest(condest_rhs_LL.get(), eigs_LL.get());
-                if (abs(eigs_LL->at(1, 0)) > 1.0) {
+                if (abs(eigs_LL->at(1, 0)) > 0.0) {
                     as<NSPSolver<ValueType, LocalIndexType>>(local_solver_)
                         ->add_scaling(one<ValueType>() / eigs_LL->at(1, 0));
                 }
@@ -885,7 +885,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 auto eigs_II =
                     share(local_vec::create(host_exec, dim<2>{2, 1}));
                 condest_II->condest(condest_rhs_II.get(), eigs_II.get());
-                if (abs(eigs_II->at(1, 0)) > 1.0) {
+                if (abs(eigs_II->at(1, 0)) > 0.0) {
                     as<NSPSolver<ValueType, LocalIndexType>>(inner_solver_)
                         ->add_scaling(one<ValueType>() / eigs_II->at(1, 0));
                 }
