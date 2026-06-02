@@ -12,9 +12,6 @@
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 template <typename T>
 class MultiVector : public ::testing::Test {
 protected:
@@ -567,5 +564,3 @@ TYPED_TEST(MultiVector, AllowsInfinitePaddingValue)
 
     ASSERT_NO_THROW(m->validate_data());
 }
-
-}  // namespace
