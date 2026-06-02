@@ -156,8 +156,8 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             // This kernel checks if a transpose is needed for the multiple rhs
             // case. Currently only the algorithm for HIP needs this
             // transposition due to the limitation in the hipsparse algorithm.
-            // The other executors (omp and reference, CUDA) do not use the
-            // transpose (trans_x and trans_b) and hence are passed in empty
+            // The other executors (omp and reference, CUDA, dpcpp) do not use
+            // the transpose (trans_x and trans_b) and hence are passed in empty
             // pointers.
             Vector* trans_b{};
             Vector* trans_x{};

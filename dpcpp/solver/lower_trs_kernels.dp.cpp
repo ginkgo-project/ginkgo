@@ -9,13 +9,13 @@
 
 #include <sycl/sycl.hpp>
 
-#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
+
+#include "dpcpp/solver/common_trs_kernels.hpp"
 
 
 namespace gko {
@@ -41,16 +41,16 @@ void generate(std::shared_ptr<const DpcppExecutor> exec,
               const matrix::Csr<ValueType, IndexType>* matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
               bool unit_diag, const solver::trisolve_algorithm algorithm,
-              const size_type num_rhs) GKO_NOT_IMPLEMENTED;
+              const size_type num_rhs)
+{
+    generate_kernel<ValueType, IndexType>(exec, matrix, solve_struct, num_rhs,
+                                          false, unit_diag);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
 
 
-/**
- * The parameters trans_x and trans_b are used only in the CUDA executor for
- * versions <=9.1 due to a limitation in the cssrsm_solve algorithm
- */
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const DpcppExecutor> exec,
            const matrix::Csr<ValueType, IndexType>* matrix,
@@ -59,7 +59,10 @@ void solve(std::shared_ptr<const DpcppExecutor> exec,
            std::optional<matrix::view::dense<ValueType>> trans_b,
            std::optional<matrix::view::dense<ValueType>> trans_x,
            matrix::view::dense<const ValueType> b,
-           matrix::view::dense<ValueType> x) GKO_NOT_IMPLEMENTED;
+           matrix::view::dense<ValueType> x)
+{
+    solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, b, x);
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);

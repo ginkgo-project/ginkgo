@@ -483,57 +483,6 @@ build/nogpu/mpi/gcc13/noomp/release/shared:
     BUILD_MPI: "ON"
     MODULE_LOAD: "cmake/3.18.6 gcc/13.3.0 openmpi/5.0.7"
 
-# spack oneapi 2023.1
-build/icpx20231/gpu/release/shared:
-  extends:
-    - .build_and_test_template
-    - .default_variables
-    - .quick_test_condition
-    - .use_gko-oneapi20231-gpu
-  variables:
-    CXX_COMPILER: "icpx"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "ON"
-    DPCPP_SINGLE_MODE: "ON"
-    ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
-    BUILD_HWLOC: "OFF"
-
-build/dpcpp20231/gpu/release/shared:
-  extends:
-    - .build_and_test_tum_template
-    - .default_variables
-    - .full_test_condition
-    - .use_tum-intel-fp32
-  variables:
-    CXX_COMPILER: "dpcpp"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise"
-    BUILD_SYCL: "ON"
-    BUILD_TYPE: "Release"
-    BUILD_SHARED_LIBS: "ON"
-    DPCPP_SINGLE_MODE: "ON"
-    MODULE_LOAD: "cmake/3.21.7 intel-oneapi-compilers/2023.1.0 intel-oneapi-dpl/2022.1.0 intel-oneapi-tbb/2021.9.0 intel-oneapi-mkl/2023.1.0"
-    ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
-    BUILD_HWLOC: "OFF"
-
-build/icpx202402/gpu/release/shared:
-  extends:
-    - .build_and_test_tum_template
-    - .default_variables
-    - .full_test_condition
-    - .use_tum-intel
-  variables:
-    CXX_COMPILER: "icpx"
-    CXX_FLAGS: "-Wpedantic -ffp-model=precise -Wno-deprecated-declarations"
-    BUILD_SYCL: "ON"
-    BUILD_HWLOC: "OFF"
-    BUILD_TYPE: "Release"
-    ENABLE_HALF: "OFF"
-    ENABLE_BFLOAT16: "OFF"
-    ONEAPI_DEVICE_SELECTOR: "opencl:gpu"
-    MODULE_LOAD: "cmake/3.21.7 intel-oneapi-compilers/2024.0.2 intel-oneapi-dpl/2022.3.0 intel-oneapi-tbb/2021.11.0 intel-oneapi-mkl/2024.0.0"
-
 build/icpx202421/gpu/release/shared:
   extends:
     - .build_and_test_tum_template
