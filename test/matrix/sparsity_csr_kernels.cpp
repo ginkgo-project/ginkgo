@@ -101,11 +101,11 @@ TEST_F(SparsityCsr, ToAdjacencyMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(SparsityCsr, ConvertToMultiVectorIsEquivalentToRef)
+TEST_F(SparsityCsr, ConvertToDenseIsEquivalentToRef)
 {
-    const auto out_dense = gko::matrix::MultiVector<value_type>::create(
+    const auto out_dense = gko::matrix::Dense<value_type>::create(
         exec, mtx->get_size(), mtx->get_size()[1] + 2);
-    const auto dout_dense = gko::matrix::MultiVector<value_type>::create(
+    const auto dout_dense = gko::matrix::Dense<value_type>::create(
         exec, mtx->get_size(), mtx->get_size()[1] + 2);
 
     mtx->convert_to(out_dense);

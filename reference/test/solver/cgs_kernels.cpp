@@ -28,11 +28,12 @@ class Cgs : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Cgs<value_type>;
 
     Cgs()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           stopped{},
           non_stopped{},
@@ -43,13 +44,13 @@ protected:
                                   .with_reduction_factor(r<value_type>::value))
                           .on(exec)),
           mtx_big(
-              gko::initialize<Mtx>({{-99.0, 87.0, -67.0, -62.0, -68.0, -19.0},
-                                    {-30.0, -17.0, -1.0, 9.0, 23.0, 77.0},
-                                    {80.0, 89.0, 36.0, 94.0, 55.0, 34.0},
-                                    {-31.0, 21.0, 96.0, -26.0, 24.0, -57.0},
-                                    {60.0, 45.0, -16.0, -4.0, 96.0, 24.0},
-                                    {69.0, 32.0, -68.0, 57.0, -30.0, -51.0}},
-                                   exec)),
+              gko::initialize<Dense>({{-99.0, 87.0, -67.0, -62.0, -68.0, -19.0},
+                                      {-30.0, -17.0, -1.0, 9.0, 23.0, 77.0},
+                                      {80.0, 89.0, 36.0, 94.0, 55.0, 34.0},
+                                      {-31.0, 21.0, 96.0, -26.0, 24.0, -57.0},
+                                      {60.0, 45.0, -16.0, -4.0, 96.0, 24.0},
+                                      {69.0, 32.0, -68.0, 57.0, -30.0, -51.0}},
+                                     exec)),
           cgs_factory_big(
               Solver::build()
                   .with_criteria(
@@ -95,8 +96,8 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> mtx_big;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> mtx_big;
     std::unique_ptr<Mtx> small_one;
     std::unique_ptr<Mtx> small_zero;
     std::unique_ptr<Mtx> small_prev_rho;
@@ -359,25 +360,29 @@ TYPED_TEST(Cgs, SolvesMultiVectorSystemComplex)
 }
 
 
-TYPED_TEST(Cgs, SolvesMultiVectorSystemMixedComplex)
+TYPED_TEST(Cgs, SolvesMultiVectorSystemUsingAdvancedApplyMixedComplex)
 {
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Scalar = gko::matrix::MultiVector<
+        gko::next_precision<typename TestFixture::value_type>>;
+    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
+    using value_type = typename Mtx::value_type;
     auto solver = this->cgs_factory->generate(this->mtx);
+    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
+    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
     auto b = gko::initialize<Mtx>(
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
         this->exec);
     auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
+        {value_type{-2.0, 4.0}, value_type{-0.5, 1.0}, value_type{2.0, -4.0}},
         this->exec);
 
-    solver->apply(b, x);
+
+    solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
-                           value_type{4.0, -8.0}}),
-                        (r_mixed<value_type, TypeParam>() * 1e2));
+                        l({value_type{-6.0, 12.0}, value_type{-1.5, 3.0},
+                           value_type{6.0, -12.0}}),
+                        (r_mixed<value_type, TypeParam>()) * 1e3);
 }
 
 

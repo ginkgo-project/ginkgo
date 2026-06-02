@@ -27,7 +27,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::SparsityCsr<v_type, i_type>;
     using Csr = gko::matrix::Csr<v_type, i_type>;
-    using MultiVectorMtx = gko::matrix::MultiVector<v_type>;
+    using Dense = gko::matrix::Dense<v_type>;
 
     SparsityCsr()
         : exec(gko::ReferenceExecutor::create()),
@@ -55,11 +55,11 @@ TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes,
 TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)
 {
     using Csr = typename TestFixture::Csr;
-    using MultiVectorMtx = typename TestFixture::MultiVectorMtx;
+    using Dense = typename TestFixture::Dense;
     using Mtx = typename TestFixture::Mtx;
     auto csr_mtx = gko::initialize<Csr>(
         {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, this->exec);
-    auto comp_mtx = gko::initialize<MultiVectorMtx>(
+    auto comp_mtx = gko::initialize<Dense>(
         {{1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, 1.0}}, this->exec);
 
     auto mtx = Mtx::create(this->exec, std::move(csr_mtx));
@@ -68,13 +68,13 @@ TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)
 }
 
 
-TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingMultiVectorMatrix)
+TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingDense)
 {
-    using MultiVectorMtx = typename TestFixture::MultiVectorMtx;
+    using Dense = typename TestFixture::Dense;
     using Mtx = typename TestFixture::Mtx;
-    auto dense_mtx = gko::initialize<MultiVectorMtx>(
+    auto dense_mtx = gko::initialize<Dense>(
         {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, this->exec);
-    auto comp_mtx = gko::initialize<MultiVectorMtx>(
+    auto comp_mtx = gko::initialize<Dense>(
         {{1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, 1.0}}, this->exec);
 
     auto mtx = Mtx::create(this->exec, std::move(dense_mtx));

@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/perturbation.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace {
@@ -62,14 +63,14 @@ protected:
           projector{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 2})},
           trans_basis{std::make_shared<TransposableDummyOperator>(
               exec, gko::dim<2>{3, 1})},
-          scalar{std::make_shared<DummyOperator>(exec, gko::dim<2>{1, 1})}
+          scalar{gko::matrix::MultiVector<>::create(exec, gko::dim<2>{1, 1})}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<gko::LinOp> basis;
     std::shared_ptr<gko::LinOp> projector;
     std::shared_ptr<gko::LinOp> trans_basis;
-    std::shared_ptr<gko::LinOp> scalar;
+    std::shared_ptr<gko::matrix::MultiVector<>> scalar;
 };
 
 

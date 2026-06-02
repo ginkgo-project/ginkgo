@@ -42,7 +42,7 @@ struct SimpleMatrixTest {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
-        return matrix_type::create(exec->get_master(), size);
+        return matrix_type::create(exec, size);
     }
 
     static void modify_data(

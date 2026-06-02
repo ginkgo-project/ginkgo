@@ -45,7 +45,7 @@ TYPED_TEST(LowerTrs, LowerTrsFactoryKnowsItsExecutor)
 
 TYPED_TEST(LowerTrs, ThrowsOnRectangularMatrixInFactory)
 {
-    using Mtx = gko::matrix::MultiVector<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::Dense<typename TestFixture::value_type>;
     std::shared_ptr<Mtx> rectangular_matrix =
         Mtx::create(this->exec, gko::dim<2>{1, 2});
 
