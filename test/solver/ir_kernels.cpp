@@ -62,7 +62,7 @@ TEST_F(Ir, InitializeIsEquivalentToRef)
 
 TEST_F(Ir, ApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 52);
+    auto mtx = gen_mtx(50, 50, 52)->as_dense_view()->clone();
     auto x = gen_mtx(50, 3, 8);
     auto b = gen_mtx(50, 3, 5);
     auto d_mtx = clone(exec, mtx);
@@ -91,7 +91,7 @@ TEST_F(Ir, ApplyIsEquivalentToRef)
 
 TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 54);
+    auto mtx = gen_mtx(50, 50, 54)->as_dense_view()->clone();
     auto x = gen_mtx(50, 3, 6);
     auto b = gen_mtx(50, 3, 10);
     auto d_mtx = clone(exec, mtx);
@@ -125,7 +125,7 @@ TEST_F(Ir, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 
 TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 54);
+    auto mtx = gen_mtx(50, 50, 54)->as_dense_view()->clone();
     auto x = gen_mtx(50, 3, 4);
     auto b = gen_mtx(50, 3, 3);
     auto d_mtx = clone(exec, mtx);
@@ -156,7 +156,7 @@ TEST_F(Ir, RichardsonApplyIsEquivalentToRef)
 
 TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 52);
+    auto mtx = gen_mtx(50, 50, 52)->as_dense_view()->clone();
     auto x = gen_mtx(50, 3, 4);
     auto b = gen_mtx(50, 3, 7);
     auto d_mtx = clone(exec, mtx);
@@ -192,7 +192,7 @@ TEST_F(Ir, RichardsonApplyWithIterativeInnerSolverIsEquivalentToRef)
 TEST_F(Ir, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
 {
     using initial_guess_mode = gko::solver::initial_guess_mode;
-    auto mtx = gko::share(gen_mtx(50, 50, 52));
+    auto mtx = gko::share(gen_mtx(50, 50, 52)->as_dense_view()->clone());
     auto b = gen_mtx(50, 3, 7);
     auto d_mtx = gko::share(clone(exec, mtx));
     auto d_b = clone(exec, b);

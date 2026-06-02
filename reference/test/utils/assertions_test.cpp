@@ -24,7 +24,7 @@ TYPED_TEST_SUITE(MatricesNear, gko::test::ValueTypes, TypenameNameGenerator);
 TYPED_TEST(MatricesNear, CanPassAnyMatrixType)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto mtx = gko::initialize<gko::matrix::MultiVector<TypeParam>>(
+    auto mtx = gko::initialize<gko::matrix::Dense<TypeParam>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec);
 
     auto csr_mtx = gko::matrix::Csr<TypeParam>::create(exec);
