@@ -292,8 +292,8 @@ protected:
             scale_2_->inv_scale(scale_1_);
             scale_2_->scale(neg_one_);
             dense_x->add_scaled(scale_2_, nsp_1_);
-            dense_x->scale(scale_4_);
             dense_x->add_scaled(scale_3_, nsp_1_);
+            dense_x->scale(scale_4_);
         }
         if (permutation_ != nullptr) {
             dense_x->permute(permutation_, buf_,

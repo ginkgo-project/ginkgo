@@ -6,7 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <fstream>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -14,12 +14,9 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/factorization/lu.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
@@ -207,6 +204,7 @@ void Cg<ValueType>::condest_impl(const VectorType* dense_b,
 {
     using std::swap;
     using LocalVector = matrix::Dense<ValueType>;
+    using real_type = remove_complex<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
 
@@ -279,54 +277,81 @@ void Cg<ValueType>::condest_impl(const VectorType* dense_b,
             all_stopped);
         if (all_stopped) {
             auto n = est_alpha.size();
-            if (n <= 4) {
+            // The CG step lengths (est_alpha) and update coefficients
+            // (est_beta) define the Lanczos/Jacobi tridiagonal matrix T whose
+            // eigenvalues (the Ritz values) approximate the spectrum of the
+            // (preconditioned) operator:
+            //   T_ii      = 1/alpha_i + beta_{i-1}/alpha_{i-1}
+            //   T_{i,i-1} = sqrt(beta_i)/alpha_i
+            // We skip the very first Ritz index and the last few iterations,
+            // whose Ritz values are the least converged.
+            constexpr size_type num_skipped = 4;
+            if (n <= num_skipped) {
                 dense_eigs->fill(one<ValueType>());
             } else {
-                // std::ofstream out_alpha{"alpha_" + std::to_string(n-4) +
-                // ".mtx"}; std::ofstream out_beta{"beta_" + std::to_string(n-4)
-                // + ".mtx"};
-                gko::matrix_data<ValueType, int> t_data(dim<2>{n - 4, n - 4});
-                t_data.nonzeros.emplace_back(0, 0, est_beta[1] / est_alpha[1]);
-                // out_alpha << est_alpha[1] << std::endl;
-                // out_beta << est_beta[1] << std::endl;
-                for (size_type i = 0; i < n - 5; i++) {
-                    // out_alpha << est_alpha[i + 2] << std::endl;
-                    // out_beta << est_beta[i + 2] << std::endl;
-                    t_data.nonzeros.emplace_back(
-                        i, i, one<ValueType>() / est_alpha[i + 2]);
-                    t_data.nonzeros.emplace_back(
-                        i + 1, i, sqrt(est_beta[i + 2]) / est_alpha[i + 2]);
-                    t_data.nonzeros.emplace_back(
-                        i, i + 1, sqrt(est_beta[i + 2]) / est_alpha[i + 2]);
-                    t_data.nonzeros.emplace_back(
-                        i + 1, i + 1, est_beta[i + 2] / est_alpha[i + 2]);
+                const auto m = n - num_skipped;  // size of T
+                std::vector<real_type> t_diag(m);
+                std::vector<real_type> t_off(m > 0 ? m - 1 : 0);
+                for (size_type i = 0; i < m; i++) {
+                    t_diag[i] = real(one<ValueType>() / est_alpha[i + 2] +
+                                     est_beta[i + 1] / est_alpha[i + 1]);
                 }
-                // out_alpha << est_alpha[n - 3] << std::endl;
-                t_data.nonzeros.emplace_back(
-                    n - 5, n - 5, one<ValueType>() / est_alpha[n - 3]);
-                t_data.sum_duplicates();
-                auto t = share(matrix::Csr<ValueType, int>::create(exec));
-                t->read(t_data);
-                auto fact = share(
-                    experimental::factorization::Lu<ValueType, int>::build()
-                        .on(exec)
-                        ->generate(t)
-                        ->unpack());
-                auto diag = fact->get_upper_factor()->extract_diagonal();
-                auto host_diag = clone(exec->get_master(), diag);
-                // std::ofstream out{"diag_" +
-                // std::to_string(diag->get_size()[0]) + ".mtx"};
-                // gko::write(out, t);
-                ValueType min_eig = 1e9;
-                ValueType max_eig = 0;
-                for (size_type i = 0; i < diag->get_size()[0]; i++) {
-                    min_eig = min(abs(min_eig),
-                                  abs(host_diag->get_const_values()[i]));
-                    max_eig = max(abs(max_eig),
-                                  abs(host_diag->get_const_values()[i]));
+                for (size_type i = 0; i + 1 < m; i++) {
+                    t_off[i] = real(sqrt(est_beta[i + 2]) / est_alpha[i + 2]);
                 }
-                gko::detail::get_local(dense_eigs)->at(0, 0) = min_eig;
-                gko::detail::get_local(dense_eigs)->at(1, 0) = max_eig;
+                constexpr auto tiny = std::numeric_limits<real_type>::min();
+                // Number of eigenvalues of T strictly below sigma, via the
+                // Sturm sequence (sign changes of the LDL^T pivots of
+                // T - sigma*I). This is the standard symmetric-tridiagonal
+                // eigenvalue count used for bisection.
+                auto count_less = [&](real_type sigma) {
+                    int count = 0;
+                    real_type q = t_diag[0] - sigma;
+                    count += q < zero<real_type>();
+                    for (size_type i = 1; i < m; i++) {
+                        if (q == zero<real_type>()) {
+                            q = tiny;
+                        }
+                        q = (t_diag[i] - sigma) - t_off[i - 1] * t_off[i - 1] / q;
+                        count += q < zero<real_type>();
+                    }
+                    return count;
+                };
+                // Gershgorin disks bracket the whole spectrum of T.
+                real_type lower = t_diag[0];
+                real_type upper = t_diag[0];
+                for (size_type i = 0; i < m; i++) {
+                    real_type radius = zero<real_type>();
+                    if (i > 0) {
+                        radius += abs(t_off[i - 1]);
+                    }
+                    if (i + 1 < m) {
+                        radius += abs(t_off[i]);
+                    }
+                    lower = min(lower, t_diag[i] - radius);
+                    upper = max(upper, t_diag[i] + radius);
+                }
+                // Bisect for the k-th smallest eigenvalue of T.
+                auto find_eig = [&](int k) {
+                    real_type lo = lower;
+                    real_type hi = upper;
+                    for (int it = 0;
+                         it < 100 &&
+                         hi - lo > std::numeric_limits<real_type>::epsilon() *
+                                       (abs(lo) + abs(hi) + tiny);
+                         it++) {
+                        real_type mid = lo + (hi - lo) / 2;
+                        if (count_less(mid) >= k) {
+                            hi = mid;
+                        } else {
+                            lo = mid;
+                        }
+                    }
+                    return lo + (hi - lo) / 2;
+                };
+                gko::detail::get_local(dense_eigs)->at(0, 0) = find_eig(1);
+                gko::detail::get_local(dense_eigs)->at(1, 0) =
+                    find_eig(static_cast<int>(m));
                 break;
             }
         }
@@ -345,7 +370,6 @@ void Cg<ValueType>::condest_impl(const VectorType* dense_b,
         p->compute_conj_dot(q, beta, reduction_tmp);
         host_beta->copy_from(beta);
         est_alpha.emplace_back(host_rho->at(0, 0) / host_beta->at(0, 0));
-        auto oldalpha = host_rho->at(0, 0) / host_beta->at(0, 0);
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
