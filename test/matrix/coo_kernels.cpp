@@ -289,11 +289,11 @@ TEST_F(Coo, ApplyAddToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, ConvertToMultiVectorIsEquivalentToRef)
+TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx);
     dmtx->convert_to(ddense_mtx);
@@ -305,7 +305,7 @@ TEST_F(Coo, ConvertToMultiVectorIsEquivalentToRef)
 TEST_F(Coo, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
     auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
 

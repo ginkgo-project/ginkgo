@@ -25,6 +25,7 @@
 class Gcr : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Gcr<value_type>;
     using norm_type = gko::remove_complex<value_type>;
     using NormVector = gko::matrix::MultiVector<norm_type>;
@@ -34,7 +35,7 @@ protected:
 
     Gcr() : rand_engine(30)
     {
-        mtx = gen_mtx(123, 123);
+        mtx = gen_mtx(123, 123)->as_dense_view()->clone();
         mtx->write(data);
         gko::utils::make_spd(data, 1.0001);
         mtx->read(data);
@@ -109,9 +110,9 @@ protected:
 
     std::default_random_engine rand_engine;
 
-    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Dense> mtx;
     mtx_data data;
-    std::shared_ptr<Mtx> d_mtx;
+    std::shared_ptr<Dense> d_mtx;
     std::unique_ptr<Solver::Factory> exec_gcr_factory;
     std::unique_ptr<Solver::Factory> ref_gcr_factory;
 
