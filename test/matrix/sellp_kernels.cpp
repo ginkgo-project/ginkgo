@@ -192,11 +192,11 @@ TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Sellp, ConvertToMultiVectorIsEquivalentToRef)
+TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx);
     dmtx->convert_to(ddense_mtx);
@@ -218,11 +218,11 @@ TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Sellp, ConvertEmptyToMultiVectorIsEquivalentToRef)
+TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
     empty->convert_to(dense_mtx);
     dempty->convert_to(ddense_mtx);

@@ -31,7 +31,7 @@ protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::batch::solver::Cg<value_type>;
-    using Mtx = gko::batch::matrix::MultiVector<value_type>;
+    using Mtx = gko::batch::matrix::Dense<value_type>;
     using EllMtx = gko::batch::matrix::Ell<value_type>;
     using CsrMtx = gko::batch::matrix::Csr<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;

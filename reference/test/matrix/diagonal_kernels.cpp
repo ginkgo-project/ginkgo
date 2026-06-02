@@ -46,11 +46,11 @@ protected:
               4, {{2.0, 3.0, 4.0}, {3.0, 4.5, 6.0}}, exec))
     {
         csr1 = Csr::create(exec);
-        csr1->copy_from(dense1);
+        csr1->copy_from(dense1->as_const_dense_view().get());
         csr2 = Csr::create(exec);
-        csr2->copy_from(dense2);
+        csr2->copy_from(dense2->as_const_dense_view().get());
         csr3 = Csr::create(exec);
-        csr3->copy_from(dense3);
+        csr3->copy_from(dense3->as_const_dense_view().get());
         this->create_diag1(diag1.get());
         this->create_diag2(diag2.get());
     }

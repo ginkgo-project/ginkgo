@@ -537,12 +537,12 @@ TYPED_TEST(Sellp, ApplyWithSliceSizeAndStrideFactorFailsOnWrongNumberOfCols)
 }
 
 
-TYPED_TEST(Sellp, ConvertsWithSliceSizeAndStrideFactorToMultiVector)
+TYPED_TEST(Sellp, ConvertsWithSliceSizeAndStrideFactorToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx2->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx2->get_executor());
     // clang-format off
-    auto dense_other = gko::initialize<Vec>(
+    auto dense_other = gko::initialize<Dense>(
         4, {{1.0, 3.0, 2.0},
             {0.0, 5.0, 0.0}}, this->exec);
     // clang-format on

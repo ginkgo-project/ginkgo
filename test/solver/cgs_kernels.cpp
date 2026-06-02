@@ -24,6 +24,7 @@
 class Cgs : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Cgs<value_type>;
 
     Cgs() : rand_engine(30)
@@ -32,7 +33,7 @@ protected:
             gko::dim<2>{123, 123},
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
         gko::utils::make_diag_dominant(data);
-        mtx = Mtx::create(ref, data.size, 125);
+        mtx = Dense::create(ref, data.size, 125);
         mtx->read(data);
         d_mtx = gko::clone(exec, mtx);
         exec_cgs_factory =
@@ -112,8 +113,8 @@ protected:
 
     std::default_random_engine rand_engine;
 
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> d_mtx;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> d_mtx;
     std::unique_ptr<Solver::Factory> exec_cgs_factory;
     std::unique_ptr<Solver::Factory> ref_cgs_factory;
 

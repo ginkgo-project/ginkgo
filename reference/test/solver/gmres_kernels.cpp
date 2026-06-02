@@ -35,12 +35,13 @@ protected:
     using rc_value_type = gko::remove_complex<value_type>;
     using Mtx = gko::matrix::MultiVector<value_type>;
     using rc_Mtx = gko::matrix::MultiVector<rc_value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Gmres<value_type>;
     Gmres()
         : exec(gko::ReferenceExecutor::create()),
           stopped{},
           non_stopped{},
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           gmres_factory(
               Solver::build()
@@ -52,7 +53,7 @@ protected:
                           .with_reduction_factor(r<value_type>::value))
                   .with_krylov_dim(3u)
                   .on(exec)),
-          mtx_big(gko::initialize<Mtx>(
+          mtx_big(gko::initialize<Dense>(
               {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
                {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
                {138.3, 78.2, 485.5, -899.9, 392.9, 1408.9},
@@ -75,12 +76,12 @@ protected:
                           .with_reduction_factor(r<value_type>::value))
                   .on(exec)),
           mtx_medium(
-              gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
-                                    {7.70, -77.00, 3.30, -149.20, 74.80},
-                                    {-121.40, 37.10, 55.30, -74.20, -19.20},
-                                    {-111.40, -22.60, 110.10, -106.20, 88.90},
-                                    {-0.70, 111.70, 154.40, 235.00, -76.50}},
-                                   exec))
+              gko::initialize<Dense>({{-86.40, 153.30, -108.90, 8.60, -61.60},
+                                      {7.70, -77.00, 3.30, -149.20, 74.80},
+                                      {-121.40, 37.10, 55.30, -74.20, -19.20},
+                                      {-111.40, -22.60, 110.10, -106.20, 88.90},
+                                      {-0.70, 111.70, 154.40, 235.00, -76.50}},
+                                     exec))
     {
         auto small_size = gko::dim<2>{3, 2};
         constexpr gko::size_type small_restart{2};
@@ -129,9 +130,9 @@ protected:
 
     gko::stopping_status stopped;
     gko::stopping_status non_stopped;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> mtx_medium;
-    std::shared_ptr<Mtx> mtx_big;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> mtx_medium;
+    std::shared_ptr<Dense> mtx_big;
     std::unique_ptr<typename Solver::Factory> gmres_factory;
     std::unique_ptr<typename Solver::Factory> gmres_factory_big;
     std::unique_ptr<typename Solver::Factory> gmres_factory_big2;

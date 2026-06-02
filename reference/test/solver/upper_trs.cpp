@@ -26,7 +26,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using CsrMtx = gko::matrix::Csr<value_type, index_type>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::UpperTrs<value_type, index_type>;
 
     UpperTrs()

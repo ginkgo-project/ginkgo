@@ -38,6 +38,7 @@ using rr = typename gko::test::reduction_factor<Precision, OutputType>;
 class Idr : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Idr<value_type>;
 
     Idr() : rand_engine(30)
@@ -68,7 +69,7 @@ protected:
     {
         nrhs = input_nrhs;
         int s = 4;
-        mtx = gen_mtx(size, size);
+        mtx = gen_mtx(size, size)->as_dense_view()->clone();
         x = gen_mtx(size, nrhs);
         b = gen_mtx(size, nrhs);
         r = gen_mtx(size, nrhs);
@@ -108,8 +109,8 @@ protected:
 
     std::default_random_engine rand_engine;
 
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> d_mtx;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> d_mtx;
     std::unique_ptr<Solver::Factory> exec_idr_factory;
     std::unique_ptr<Solver::Factory> ref_idr_factory;
 

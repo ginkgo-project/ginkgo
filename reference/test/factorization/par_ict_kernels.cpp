@@ -52,7 +52,7 @@ protected:
         gko::factorization::ParIct<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using MultiVector = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
 
     ParIct()
         : ref(gko::ReferenceExecutor::create()),
@@ -274,11 +274,11 @@ TYPED_TEST(ParIct, GenerateIdentity)
 }
 
 
-TYPED_TEST(ParIct, GenerateMultiVectorIdentity)
+TYPED_TEST(ParIct, GenerateDenseIdentity)
 {
-    using MultiVector = typename TestFixture::MultiVector;
+    using Dense = typename TestFixture::Dense;
     auto dense_id =
-        gko::share(MultiVector::create(this->exec, this->identity->get_size()));
+        gko::share(Dense::create(this->exec, this->identity->get_size()));
     this->identity->convert_to(dense_id);
     auto fact = this->fact_fact->generate(dense_id);
 

@@ -114,8 +114,8 @@ TYPED_TEST(ParIct, KernelAddCandidatesIsEquivalentToRef)
         }
         this->dmtx_l->copy_from(this->mtx_l);
     }
-    auto mtx_llh = Csr::create(this->ref, this->mtx_size);
-    this->mtx_l->apply(this->mtx_l->conj_transpose(), mtx_llh);
+    auto mtx_llh =
+        this->mtx_l->multiply(gko::as<Csr>(this->mtx_l->conj_transpose()));
     auto dmtx_llh = Csr::create(this->exec, this->mtx_size);
     dmtx_llh->copy_from(mtx_llh);
     auto res_mtx_l = Csr::create(this->ref, this->mtx_size);
