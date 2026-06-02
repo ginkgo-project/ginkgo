@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -49,29 +49,27 @@ protected:
                              std::make_shared<typename Mtx::classical>())),
           coarse_rows(exec, {0, 2, 3}),
           gen_coarse_rows(exec, 5),
-          coarse_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
-              exec)),
-          fine_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
-               I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
-              exec)),
-          restrict_ans(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({3.0, -2.0})},
-              exec)),
-          prolong_applyans(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, 0.0}), I<VT>({3.0, 1.0}),
-               I<VT>({0.0, -1.0}), I<VT>({0.0, 0.0})},
-              exec)),
-          fine_x(gko::initialize<Vec>(
-              {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
-               I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
-              exec)),
           fixed_coarsening_factory(MgLevel::build()
                                        .with_coarse_rows(coarse_rows)
                                        .with_skip_sorting(true)
                                        .on(exec))
     {
+        coarse_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})}, exec);
+        fine_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
+             I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
+            exec);
+        restrict_ans = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({3.0, -2.0})}, exec);
+        prolong_applyans = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({0.0, 0.0}), I<VT>({3.0, 1.0}),
+             I<VT>({0.0, -1.0}), I<VT>({0.0, 0.0})},
+            exec);
+        fine_x = gko::initialize<Vec>(
+            {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
+             I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
+            exec);
         this->create_mtx(mtx.get(), &gen_coarse_rows, coarse.get());
         mg_level = fixed_coarsening_factory->generate(mtx);
     }

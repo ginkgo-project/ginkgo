@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,9 +23,10 @@ protected:
     Perturbation()
         : exec{gko::ReferenceExecutor::create()},
           basis{gko::initialize<Mtx>({2.0, 1.0}, exec)},
-          projector{gko::initialize<Mtx>({I<T>({3.0, 2.0})}, exec)},
           scalar{gko::initialize<Mtx>({2.0}, exec)}
-    {}
+    {
+        projector = gko::initialize<Mtx>({I<T>({3.0, 2.0})}, exec);
+    }
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<gko::LinOp> basis;
