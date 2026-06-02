@@ -28,11 +28,12 @@ class Idr : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Idr<value_type>;
 
     Idr()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           idr_factory(Solver::build()
                           .with_deterministic(true)
@@ -56,7 +57,7 @@ protected:
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Dense> mtx;
     std::unique_ptr<typename Solver::Factory> idr_factory;
     std::unique_ptr<typename Solver::Factory> idr_factory_precision;
 };
@@ -327,6 +328,7 @@ TYPED_TEST(Idr, SolvesMultipleMultiVectorSystemsUsingAdvancedApply)
 TYPED_TEST(Idr, SolvesBigMultiVectorSystemForDivergenceCheck1)
 {
     using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     // the internal vector t will be too large in the first run and then out of
     // the half precision range.
@@ -334,14 +336,14 @@ TYPED_TEST(Idr, SolvesBigMultiVectorSystemForDivergenceCheck1)
     // rounding error for bfloat16
     SKIP_IF_BFLOAT16(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
-    std::shared_ptr<Mtx> locmtx =
-        gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
-                              {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
-                              {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
-                              {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
-                              {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
-                              {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
-                             this->exec);
+    std::shared_ptr<Dense> locmtx =
+        gko::initialize<Dense>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
+                                {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
+                                {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
+                                {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
+                                {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
+                                {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
+                               this->exec);
     auto solver = this->idr_factory_precision->generate(locmtx);
     auto b =
         gko::initialize<Mtx>({0.0, -9.0, -2.0, 8.0, -5.0, -6.0}, this->exec);
@@ -369,6 +371,7 @@ TYPED_TEST(Idr, SolvesBigMultiVectorSystemForDivergenceCheck1)
 TYPED_TEST(Idr, SolvesBigMultiVectorSystemForDivergenceCheck2)
 {
     using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     // the internal vector t will be too large in the first run and then out of
     // the half precision range.
@@ -376,14 +379,14 @@ TYPED_TEST(Idr, SolvesBigMultiVectorSystemForDivergenceCheck2)
     // rounding error for bfloat16
     SKIP_IF_BFLOAT16(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
-    std::shared_ptr<Mtx> locmtx =
-        gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
-                              {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
-                              {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
-                              {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
-                              {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
-                              {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
-                             this->exec);
+    std::shared_ptr<Dense> locmtx =
+        gko::initialize<Dense>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
+                                {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
+                                {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
+                                {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
+                                {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
+                                {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
+                               this->exec);
     auto solver = this->idr_factory_precision->generate(locmtx);
     auto b =
         gko::initialize<Mtx>({9.0, -4.0, -6.0, -10.0, 1.0, 10.0}, this->exec);
@@ -402,6 +405,7 @@ TYPED_TEST(Idr, SolvesBigMultiVectorSystemForDivergenceCheck2)
 TYPED_TEST(Idr, SolvesMultipleMultiVectorSystemsDivergenceCheck)
 {
     using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
     // the internal vector t will be too large in the first run and then out of
@@ -409,14 +413,14 @@ TYPED_TEST(Idr, SolvesMultipleMultiVectorSystemsDivergenceCheck)
     SKIP_IF_HALF(value_type);
     // for OSX
     SKIP_IF_BFLOAT16(value_type);
-    std::shared_ptr<Mtx> locmtx =
-        gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
-                              {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
-                              {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
-                              {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
-                              {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
-                              {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
-                             this->exec);
+    std::shared_ptr<Dense> locmtx =
+        gko::initialize<Dense>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
+                                {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
+                                {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
+                                {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
+                                {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
+                                {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
+                               this->exec);
     auto solver = this->idr_factory_precision->generate(locmtx);
     auto b1 =
         gko::initialize<Mtx>({0.0, -9.0, -2.0, 8.0, -5.0, -6.0}, this->exec);

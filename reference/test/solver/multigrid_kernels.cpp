@@ -51,7 +51,7 @@ class DummyLinOp : public gko::LinOp,
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : LinOp(exec, size)
+        : LinOp(exec, size, gko::precision::fp64)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }
@@ -74,7 +74,7 @@ public:
 
     DummyRestrictOp(std::shared_ptr<const gko::Executor> exec,
                     gko::dim<2> size = gko::dim<2>{})
-        : LinOp(exec, size)
+        : LinOp(exec, size, gko::precision::fp64)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }
@@ -101,7 +101,7 @@ public:
 
     DummyProlongOp(std::shared_ptr<const gko::Executor> exec,
                    gko::dim<2> size = gko::dim<2>{})
-        : LinOp(exec, size)
+        : LinOp(exec, size, gko::precision::fp64)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }

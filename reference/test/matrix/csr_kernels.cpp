@@ -677,7 +677,7 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToMultiVectorMatrix3)
 TYPED_TEST(Csr, AppliesToCsrMatrix)
 {
     using T = typename TestFixture::value_type;
-    this->mtx->apply(this->mtx3_unsorted, this->mtx2);
+    this->mtx2 = this->mtx->multiply(this->mtx3_unsorted);
 
     ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
@@ -778,7 +778,8 @@ TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrix)
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
 
-    this->mtx->apply(alpha, this->mtx3_unsorted, beta, this->mtx2);
+    this->mtx2 =
+        this->mtx->multiply_add(alpha, this->mtx3_unsorted, beta, this->mtx2);
 
     ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
@@ -914,7 +915,7 @@ TYPED_TEST(Csr, AppliesLinearCombinationToIdentityMatrix)
         this->exec);
     auto id = gko::matrix::Identity<T>::create(this->exec, a->get_size()[1]);
 
-    a->apply(alpha, id, beta, b);
+    b = a->scale_add(alpha, beta, b);
 
     GKO_ASSERT_MTX_NEAR(b, expect, r<T>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(b, expect);
@@ -1696,13 +1697,12 @@ std::unique_ptr<gko::matrix::Csr<ValueType, IndexType>> ref_permute(
         permutation, (mode & permute_mode::inverse) == permute_mode::inverse);
     if ((mode & permute_mode::rows) == permute_mode::rows) {
         // compute P * A
-        permutation_csr->apply(input, result);
+        result = permutation_csr->multiply(input);
     }
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         // compute A * P^T = (P * A^T)^T
-        auto tmp = result->transpose();
-        auto tmp2 = gko::as<Csr>(gko::as<gko::Cloneable>(tmp.get())->clone());
-        permutation_csr->apply(tmp, tmp2);
+        auto tmp = gko::as<Csr>(result->transpose());
+        auto tmp2 = permutation_csr->multiply(tmp);
         result = gko::as<Csr>(tmp2->transpose());
     }
     return result;
@@ -1716,15 +1716,13 @@ std::unique_ptr<gko::matrix::Csr<ValueType, IndexType>> ref_permute(
 {
     using gko::matrix::permute_mode;
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
-    auto result = input->clone();
     auto row_permutation_csr =
         csr_from_permutation<ValueType>(row_permutation, invert);
     auto col_permutation_csr =
         csr_from_permutation<ValueType>(col_permutation, invert);
-    row_permutation_csr->apply(input, result);
-    auto tmp = result->transpose();
-    auto tmp2 = gko::as<Csr>(gko::as<gko::Cloneable>(tmp.get())->clone());
-    col_permutation_csr->apply(tmp, tmp2);
+    auto result = row_permutation_csr->multiply(input);
+    auto tmp = gko::as<Csr>(result->transpose());
+    auto tmp2 = col_permutation_csr->multiply(tmp);
     return gko::as<Csr>(tmp2->transpose());
 }
 

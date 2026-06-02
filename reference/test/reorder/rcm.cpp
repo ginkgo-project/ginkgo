@@ -78,7 +78,7 @@ TYPED_TEST(Rcm, CanBeCreatedWithStartingStrategy)
         reorder_type::build()
             .with_strategy(gko::reorder::starting_strategy::minimum_degree)
             .on(this->exec)
-            ->generate(gko::initialize<gko::matrix::MultiVector<v_type>>(
+            ->generate(gko::initialize<gko::matrix::Dense<v_type>>(
                 3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
                 this->exec));
 

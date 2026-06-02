@@ -23,7 +23,7 @@ template <typename T>
 class Bicgstab : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Bicgstab<value_type>;
 
     Bicgstab()
