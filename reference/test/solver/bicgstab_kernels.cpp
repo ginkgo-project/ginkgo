@@ -26,12 +26,13 @@ template <typename T>
 class Bicgstab : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Bicgstab<value_type>;
 
     Bicgstab()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           stopped{},
           finalized{},
@@ -66,16 +67,16 @@ protected:
     {
         auto small_size = gko::dim<2>{2, 2};
         auto small_scalar_size = gko::dim<2>{1, small_size[1]};
-        small_b = Mtx::create(exec, small_size, small_size[1] + 1);
-        small_x = Mtx::create(exec, small_size, small_size[1] + 2);
-        small_one = Mtx::create(exec, small_size);
-        small_zero = Mtx::create(exec, small_size);
-        small_prev_rho = Mtx::create(exec, small_scalar_size);
-        small_rho = Mtx::create(exec, small_scalar_size);
-        small_alpha = Mtx::create(exec, small_scalar_size);
-        small_beta = Mtx::create(exec, small_scalar_size);
-        small_gamma = Mtx::create(exec, small_scalar_size);
-        small_omega = Mtx::create(exec, small_scalar_size);
+        small_b = Vec::create(exec, small_size, small_size[1] + 1);
+        small_x = Vec::create(exec, small_size, small_size[1] + 2);
+        small_one = Vec::create(exec, small_size);
+        small_zero = Vec::create(exec, small_size);
+        small_prev_rho = Vec::create(exec, small_scalar_size);
+        small_rho = Vec::create(exec, small_scalar_size);
+        small_alpha = Vec::create(exec, small_scalar_size);
+        small_beta = Vec::create(exec, small_scalar_size);
+        small_gamma = Vec::create(exec, small_scalar_size);
+        small_omega = Vec::create(exec, small_scalar_size);
         small_zero->fill(0);
         small_one->fill(1);
         small_r = small_zero->clone();
@@ -94,25 +95,25 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::shared_ptr<Mtx> mtx;
-    std::unique_ptr<Mtx> small_one;
-    std::unique_ptr<Mtx> small_zero;
-    std::unique_ptr<Mtx> small_prev_rho;
-    std::unique_ptr<Mtx> small_rho;
-    std::unique_ptr<Mtx> small_alpha;
-    std::unique_ptr<Mtx> small_beta;
-    std::unique_ptr<Mtx> small_gamma;
-    std::unique_ptr<Mtx> small_omega;
-    std::unique_ptr<Mtx> small_x;
-    std::unique_ptr<Mtx> small_b;
-    std::unique_ptr<Mtx> small_r;
-    std::unique_ptr<Mtx> small_rr;
-    std::unique_ptr<Mtx> small_v;
-    std::unique_ptr<Mtx> small_s;
-    std::unique_ptr<Mtx> small_t;
-    std::unique_ptr<Mtx> small_z;
-    std::unique_ptr<Mtx> small_y;
-    std::unique_ptr<Mtx> small_p;
+    std::shared_ptr<Dense> mtx;
+    std::unique_ptr<Vec> small_one;
+    std::unique_ptr<Vec> small_zero;
+    std::unique_ptr<Vec> small_prev_rho;
+    std::unique_ptr<Vec> small_rho;
+    std::unique_ptr<Vec> small_alpha;
+    std::unique_ptr<Vec> small_beta;
+    std::unique_ptr<Vec> small_gamma;
+    std::unique_ptr<Vec> small_omega;
+    std::unique_ptr<Vec> small_x;
+    std::unique_ptr<Vec> small_b;
+    std::unique_ptr<Vec> small_r;
+    std::unique_ptr<Vec> small_rr;
+    std::unique_ptr<Vec> small_v;
+    std::unique_ptr<Vec> small_s;
+    std::unique_ptr<Vec> small_t;
+    std::unique_ptr<Vec> small_z;
+    std::unique_ptr<Vec> small_y;
+    std::unique_ptr<Vec> small_p;
     gko::array<gko::stopping_status> small_stop;
     gko::stopping_status stopped;
     gko::stopping_status finalized;
@@ -410,11 +411,11 @@ TYPED_TEST(Bicgstab, KernelFinalize)
 
 TYPED_TEST(Bicgstab, SolvesMultiVectorSystem)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b, x);
 
@@ -425,10 +426,10 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystem)
 TYPED_TEST(Bicgstab, SolvesMultiVectorSystemMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b, x);
 
@@ -439,13 +440,13 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystemMixed)
 
 TYPED_TEST(Bicgstab, SolvesMultiVectorSystemComplex)
 {
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
+    using Vec = gko::to_complex<typename TestFixture::Vec>;
+    using value_type = typename Vec::value_type;
     auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
         this->exec);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
@@ -482,14 +483,14 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystemMixedComplex)
 
 TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystems)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {I<T>{-1.0, -5.0}, I<T>{3.0, 1.0}, I<T>{1.0, -2.0}}, this->exec);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
     solver->apply(b, x);
@@ -501,14 +502,14 @@ TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystems)
 
 TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsWithImplicitResNormCrit)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->bicgstab_factory2->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {I<T>{-1.0, -5.0}, I<T>{3.0, 1.0}, I<T>{1.0, -2.0}}, this->exec);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
     solver->apply(b, x);
@@ -520,13 +521,13 @@ TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsWithImplicitResNormCrit)
 
 TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApply)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.5, 1.0, 2.0}, this->exec);
 
     solver->apply(alpha, b, beta, x);
 
@@ -537,12 +538,12 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApply)
 TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.5, 1.0, 2.0}, this->exec);
 
     solver->apply(alpha, b, beta, x);
 
@@ -553,16 +554,16 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyMixed)
 
 TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyComplex)
 {
-    using Scalar = typename TestFixture::Mtx;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
+    using Scalar = typename TestFixture::Vec;
+    using Vec = gko::to_complex<typename TestFixture::Vec>;
+    using value_type = typename Vec::value_type;
     auto solver = this->bicgstab_factory->generate(this->mtx);
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
     auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
         this->exec);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {value_type{0.5, -0.5}, value_type{1.0, 0.5}, value_type{2.0, -1.0}},
         this->exec);
 
@@ -602,16 +603,16 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyMixedComplex)
 
 TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsUsingAdvancedApply)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>(
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Vec>(
         {I<T>{-1.0, -5.0}, I<T>{3.0, 1.0}, I<T>{1.0, -2.0}}, this->exec);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
     solver->apply(alpha, b, beta, x);
@@ -624,7 +625,8 @@ TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsUsingAdvancedApply)
 // The following test-data was generated and validated with MATLAB
 TYPED_TEST(Bicgstab, SolvesBigMultiVectorSystemForDivergenceCheck1)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     // beta encounters huge value out of the half-precision range in the first
     // part of the second iteration
@@ -632,18 +634,18 @@ TYPED_TEST(Bicgstab, SolvesBigMultiVectorSystemForDivergenceCheck1)
     // rounding error for bfloat16
     SKIP_IF_BFLOAT16(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
-    std::shared_ptr<Mtx> locmtx =
-        gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
-                              {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
-                              {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
-                              {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
-                              {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
-                              {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
-                             this->exec);
+    std::shared_ptr<Dense> locmtx =
+        gko::initialize<Dense>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
+                                {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
+                                {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
+                                {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
+                                {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
+                                {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
+                               this->exec);
     auto solver = this->bicgstab_factory_precision->generate(locmtx);
     auto b =
-        gko::initialize<Mtx>({0.0, -9.0, -2.0, 8.0, -5.0, -6.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+        gko::initialize<Vec>({0.0, -9.0, -2.0, 8.0, -5.0, -6.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b, x);
 
@@ -657,7 +659,8 @@ TYPED_TEST(Bicgstab, SolvesBigMultiVectorSystemForDivergenceCheck1)
 
 TYPED_TEST(Bicgstab, SolvesBigMultiVectorSystemForDivergenceCheck2)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     // beta encounters huge value out of the half-precision range in the first
     // part of second iteration
@@ -665,18 +668,18 @@ TYPED_TEST(Bicgstab, SolvesBigMultiVectorSystemForDivergenceCheck2)
     // rounding error for bfloat16
     SKIP_IF_BFLOAT16(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
-    std::shared_ptr<Mtx> locmtx =
-        gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
-                              {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
-                              {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
-                              {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
-                              {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
-                              {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
-                             this->exec);
+    std::shared_ptr<Dense> locmtx =
+        gko::initialize<Dense>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
+                                {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
+                                {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
+                                {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
+                                {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
+                                {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
+                               this->exec);
     auto solver = this->bicgstab_factory_precision->generate(locmtx);
     auto b =
-        gko::initialize<Mtx>({9.0, -4.0, -6.0, -10.0, 1.0, 10.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+        gko::initialize<Vec>({9.0, -4.0, -6.0, -10.0, 1.0, 10.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b, x);
 
@@ -690,31 +693,32 @@ TYPED_TEST(Bicgstab, SolvesBigMultiVectorSystemForDivergenceCheck2)
 
 TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsDivergenceCheck)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
     // beta encounters huge value out of the half-precision range in the first
     // part of second iteration
     SKIP_IF_HALF(value_type);
-    std::shared_ptr<Mtx> locmtx =
-        gko::initialize<Mtx>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
-                              {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
-                              {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
-                              {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
-                              {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
-                              {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
-                             this->exec);
+    std::shared_ptr<Dense> locmtx =
+        gko::initialize<Dense>({{-19.0, 47.0, -41.0, 35.0, -21.0, 71.0},
+                                {-8.0, -66.0, 29.0, -96.0, -95.0, -14.0},
+                                {-93.0, -58.0, -9.0, -87.0, 15.0, 35.0},
+                                {60.0, -86.0, 54.0, -40.0, -93.0, 56.0},
+                                {53.0, 94.0, -54.0, 86.0, -61.0, 4.0},
+                                {-42.0, 57.0, 32.0, 89.0, 89.0, -39.0}},
+                               this->exec);
     auto solver = this->bicgstab_factory_precision->generate(locmtx);
     auto b1 =
-        gko::initialize<Mtx>({0.0, -9.0, -2.0, 8.0, -5.0, -6.0}, this->exec);
-    auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+        gko::initialize<Vec>({0.0, -9.0, -2.0, 8.0, -5.0, -6.0}, this->exec);
+    auto x1 = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
     auto b2 =
-        gko::initialize<Mtx>({9.0, -4.0, -6.0, -10.0, 1.0, 10.0}, this->exec);
-    auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
-    auto bc = gko::initialize<Mtx>({I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.},
+        gko::initialize<Vec>({9.0, -4.0, -6.0, -10.0, 1.0, 10.0}, this->exec);
+    auto x2 = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto bc = gko::initialize<Vec>({I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.},
                                     I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.}},
                                    this->exec);
-    auto xc = gko::initialize<Mtx>({I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.},
+    auto xc = gko::initialize<Vec>({I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.},
                                     I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.}},
                                    this->exec);
     for (size_t i = 0; i < xc->get_size()[0]; ++i) {
@@ -728,22 +732,22 @@ TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsDivergenceCheck)
     solver->apply(b2, x2);
     solver->apply(bc, xc);
     auto testMtx =
-        gko::initialize<Mtx>({I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.},
-                              I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.}},
-                             this->exec);
+        gko::initialize<Dense>({I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.},
+                                I<T>{0., 0.}, I<T>{0., 0.}, I<T>{0., 0.}},
+                               this->exec);
 
     for (size_t i = 0; i < testMtx->get_size()[0]; ++i) {
         testMtx->at(i, 0) = x1->at(i);
         testMtx->at(i, 1) = x2->at(i);
     }
 
-    auto alpha = gko::initialize<Mtx>({1.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto residual1 = gko::initialize<Mtx>({0.}, this->exec);
+    auto alpha = gko::initialize<Vec>({1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto residual1 = gko::initialize<Vec>({0.}, this->exec);
     residual1->copy_from(b1);
-    auto residual2 = gko::initialize<Mtx>({0.}, this->exec);
+    auto residual2 = gko::initialize<Vec>({0.}, this->exec);
     residual2->copy_from(b2);
-    auto residualC = gko::initialize<Mtx>({0.}, this->exec);
+    auto residualC = gko::initialize<Vec>({0.}, this->exec);
     residualC->copy_from(bc);
 
     locmtx->apply(alpha, x1, beta, residual1);
@@ -770,12 +774,12 @@ TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsDivergenceCheck)
 
 TYPED_TEST(Bicgstab, SolvesTransposedMultiVectorSystem)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->bicgstab_factory->generate(this->mtx->transpose());
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0}, this->exec);
 
     solver->transpose()->apply(b, x);
 
@@ -785,12 +789,12 @@ TYPED_TEST(Bicgstab, SolvesTransposedMultiVectorSystem)
 
 TYPED_TEST(Bicgstab, SolvesConjTransposedMultiVectorSystem)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto half_tol = std::sqrt(r<value_type>::value);
     auto solver = this->bicgstab_factory->generate(this->mtx->conj_transpose());
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0}, this->exec);
 
     solver->conj_transpose()->apply(b, x);
 

@@ -1295,7 +1295,7 @@ TYPED_TEST(MultiVectorTest, WritesToStreamFromLinOpPtrOnMultiVector)
         "2.0\n"
         "0.0\n");
     std::unique_ptr<gko::LinOp> lin_op =
-        gko::read<gko::matrix::MultiVector<value_type>>(
+        gko::read<gko::matrix::Dense<value_type>>(
             iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 

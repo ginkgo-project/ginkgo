@@ -50,7 +50,7 @@ protected:
                 .on(exec);
         solver = factory->generate(mtx);
         std::normal_distribution<> dist(0, 1);
-        x = gko::test::generate_random_dense_matrix<value_type>(
+        x = gko::test::generate_random_multi_vector<value_type>(
             mtx->get_size()[0], nrhs, dist, rng, this->exec);
         x_ref = x->clone();
         b = x->clone();
