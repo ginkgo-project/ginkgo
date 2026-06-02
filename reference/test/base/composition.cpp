@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -50,23 +50,22 @@ protected:
     using Mtx = gko::matrix::Dense<T>;
     using value_type = T;
 
-    Composition()
-        : exec{gko::ReferenceExecutor::create()},
-          operators{
-              gko::initialize<Mtx>(I<T>({2.0, 1.0}), exec),
-              gko::initialize<Mtx>({I<T>({3.0, 2.0})}, exec),
-              gko::initialize<Mtx>(
-                  {I<T>({-1.0, 1.0, 2.0}), I<T>({5.0, -3.0, 0.0})}, exec),
-              gko::initialize<Mtx>(
-                  {I<T>({9.0, 4.0}), I<T>({6.0, -2.0}), I<T>({-3.0, 2.0})},
-                  exec),
-              gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec),
-              gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec)},
-          identity{
-              gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec)},
-          product{gko::initialize<Mtx>({I<T>({-9.0, -2.0}), I<T>({27.0, 26.0})},
-                                       exec)}
-    {}
+    Composition() : exec{gko::ReferenceExecutor::create()}
+    {
+        operators = {
+            gko::initialize<Mtx>(I<T>({2.0, 1.0}), exec),
+            gko::initialize<Mtx>({I<T>({3.0, 2.0})}, exec),
+            gko::initialize<Mtx>(
+                {I<T>({-1.0, 1.0, 2.0}), I<T>({5.0, -3.0, 0.0})}, exec),
+            gko::initialize<Mtx>(
+                {I<T>({9.0, 4.0}), I<T>({6.0, -2.0}), I<T>({-3.0, 2.0})}, exec),
+            gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec),
+            gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec)};
+        identity =
+            gko::initialize<Mtx>({I<T>({1.0, 0.0}), I<T>({0.0, 1.0})}, exec);
+        product = gko::initialize<Mtx>({I<T>({-9.0, -2.0}), I<T>({27.0, 26.0})},
+                                       exec);
+    }
 
     std::shared_ptr<const gko::Executor> exec;
     std::vector<std::shared_ptr<gko::LinOp>> coefficients;

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,52 +29,52 @@ protected:
     using Mtx = gko::batch::MultiVector<value_type>;
     using DenseMtx = gko::matrix::Dense<value_type>;
     using ComplexMtx = gko::to_complex<Mtx>;
-    MultiVector()
-        : exec(gko::ReferenceExecutor::create()),
-          mtx_0(gko::batch::initialize<Mtx>(
-              {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
-               {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
-              exec)),
-          mtx_00(gko::initialize<DenseMtx>(
-              {I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})}, exec)),
-          mtx_01(gko::initialize<DenseMtx>(
-              {I<T>({1.0, -2.0, -0.5}), I<T>({1.0, -2.5, 4.0})}, exec)),
-          mtx_1(gko::batch::initialize<Mtx>(
-              {{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
-               {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
-              exec)),
-          mtx_10(gko::initialize<DenseMtx>(
-              {I<T>({1.0, -1.0, 2.2}), I<T>({-2.0, 2.0, -0.5})}, exec)),
-          mtx_11(gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
-                                           exec)),
-          mtx_2(gko::batch::initialize<Mtx>(
-              {{{1.0, 1.5}, {6.0, 1.0}, {-0.25, 1.0}},
-               {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
-              exec)),
-          mtx_20(gko::initialize<DenseMtx>(
-              {I<T>({1.0, 1.5}), I<T>({6.0, 1.0}), I<T>({-0.25, 1.0})}, exec)),
-          mtx_21(gko::initialize<DenseMtx>(
-              {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}, exec)),
-          mtx_3(gko::batch::initialize<Mtx>(
-              {{I<T>({1.0, 1.5}), I<T>({6.0, 1.0})}, {{2.0, -2.0}, {1.0, 3.0}}},
-              exec)),
-          mtx_30(gko::initialize<DenseMtx>({I<T>({1.0, 1.5}), I<T>({6.0, 1.0})},
-                                           exec)),
-          mtx_31(gko::initialize<DenseMtx>(
-              {I<T>({2.0, -2.0}), I<T>({1.0, 3.0})}, exec)),
-          mtx_4(gko::batch::initialize<Mtx>(
-              {{{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}, {6.0, 1.0, 5.5}},
-               {{2.0, -2.0, 1.5}, {4.0, 3.0, 2.2}, {-1.25, 3.0, 0.5}}},
-              exec)),
-          mtx_5(gko::batch::initialize<Mtx>(
-              {{{1.0, 1.5}, {6.0, 1.0}, {7.0, -4.5}},
-               {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
-              exec)),
-          mtx_6(gko::batch::initialize<Mtx>(
-              {{{1.0, 0.0, 3.0}, {0.0, 3.0, 0.0}, {0.0, 1.0, 5.0}},
-               {{2.0, 0.0, 5.0}, {0.0, 1.0, 0.0}, {0.0, -1.0, 8.0}}},
-              exec))
-    {}
+    MultiVector() : exec(gko::ReferenceExecutor::create())
+    {
+        mtx_0 = gko::batch::initialize<Mtx>(
+            {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
+             {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
+            exec);
+        mtx_00 = gko::initialize<DenseMtx>(
+            {I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})}, exec);
+        mtx_01 = gko::initialize<DenseMtx>(
+            {I<T>({1.0, -2.0, -0.5}), I<T>({1.0, -2.5, 4.0})}, exec);
+        mtx_1 =
+            gko::batch::initialize<Mtx>({{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
+                                         {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
+                                        exec);
+        mtx_10 = gko::initialize<DenseMtx>(
+            {I<T>({1.0, -1.0, 2.2}), I<T>({-2.0, 2.0, -0.5})}, exec);
+        mtx_11 =
+            gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec);
+        mtx_2 = gko::batch::initialize<Mtx>(
+            {{{1.0, 1.5}, {6.0, 1.0}, {-0.25, 1.0}},
+             {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
+            exec);
+        mtx_20 = gko::initialize<DenseMtx>(
+            {I<T>({1.0, 1.5}), I<T>({6.0, 1.0}), I<T>({-0.25, 1.0})}, exec);
+        mtx_21 = gko::initialize<DenseMtx>(
+            {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}, exec);
+        mtx_3 = gko::batch::initialize<Mtx>(
+            {{I<T>({1.0, 1.5}), I<T>({6.0, 1.0})}, {{2.0, -2.0}, {1.0, 3.0}}},
+            exec);
+        mtx_30 = gko::initialize<DenseMtx>({I<T>({1.0, 1.5}), I<T>({6.0, 1.0})},
+                                           exec);
+        mtx_31 = gko::initialize<DenseMtx>(
+            {I<T>({2.0, -2.0}), I<T>({1.0, 3.0})}, exec);
+        mtx_4 = gko::batch::initialize<Mtx>(
+            {{{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}, {6.0, 1.0, 5.5}},
+             {{2.0, -2.0, 1.5}, {4.0, 3.0, 2.2}, {-1.25, 3.0, 0.5}}},
+            exec);
+        mtx_5 = gko::batch::initialize<Mtx>(
+            {{{1.0, 1.5}, {6.0, 1.0}, {7.0, -4.5}},
+             {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
+            exec);
+        mtx_6 = gko::batch::initialize<Mtx>(
+            {{{1.0, 0.0, 3.0}, {0.0, 3.0, 0.0}, {0.0, 1.0, 5.0}},
+             {{2.0, 0.0, 5.0}, {0.0, 1.0, 0.0}, {0.0, -1.0, 8.0}}},
+            exec);
+    }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx_0;
