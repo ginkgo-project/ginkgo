@@ -80,9 +80,9 @@ protected:
     void set_up_apply_data(int num_vectors = 1)
     {
         mtx = Mtx::create(ref, strategy);
-        mtx->move_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
+        mtx->move_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 1));
         square_mtx = Mtx::create(ref, strategy);
-        square_mtx->move_from(gen_mtx<Vec>(mtx_size[0], mtx_size[0], 1));
+        square_mtx->move_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[0], 1));
         expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
         y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
@@ -126,7 +126,7 @@ protected:
     {
         complex_mtx = ComplexMtx::create(ref, strategy);
         complex_mtx->move_from(
-            gen_mtx<ComplexVec>(mtx_size[0], mtx_size[1], 1));
+            gen_mtx<ComplexMtx>(mtx_size[0], mtx_size[1], 1));
         dcomplex_mtx = ComplexMtx::create(exec, strategy);
         dcomplex_mtx->copy_from(complex_mtx);
     }
@@ -501,21 +501,6 @@ TEST_F(Csr, OneAutomaticWorksWithDifferentMatrices)
 #endif
 
 
-TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
-{
-    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    auto trans = mtx->transpose();
-    auto dtrans = dmtx->transpose();
-
-    mtx->apply(alpha, trans, beta, square_mtx);
-    dmtx->apply(dalpha, dtrans, dbeta, dsquare_mtx);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(dsquare_mtx, square_mtx);
-    GKO_ASSERT_MTX_NEAR(dsquare_mtx, square_mtx, r<value_type>::value);
-    ASSERT_TRUE(dsquare_mtx->is_sorted_by_column_index());
-}
-
-
 TEST_F(Csr, MultiplyAddIsEquivalentToRef)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
@@ -581,21 +566,6 @@ TEST_F(Csr, MultiplyAddReuseUpdateCrossExecutor)
     dreuse.update_values(mtx, alpha, trans, beta, square_mtx, result);
 
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
-}
-
-
-TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
-{
-    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    auto trans = mtx->transpose();
-    auto dtrans = dmtx->transpose();
-
-    mtx->apply(trans, square_mtx);
-    dmtx->apply(dtrans, dsquare_mtx);
-
-    GKO_ASSERT_MTX_EQ_SPARSITY(dsquare_mtx, square_mtx);
-    GKO_ASSERT_MTX_NEAR(dsquare_mtx, square_mtx, r<value_type>::value);
-    ASSERT_TRUE(dsquare_mtx->is_sorted_by_column_index());
 }
 
 
@@ -694,26 +664,6 @@ TEST_F(Csr, MultiplyReuseUpdateCrossExecutor)
     expected = mtx->multiply(trans);
 
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
-}
-
-
-TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
-{
-    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
-    auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
-    auto da = gko::clone(exec, a);
-    auto db = gko::clone(exec, b);
-    auto id = gko::matrix::Identity<Mtx::value_type>::create(ref, mtx_size[1]);
-    auto did =
-        gko::matrix::Identity<Mtx::value_type>::create(exec, mtx_size[1]);
-
-    a->apply(alpha, id, beta, b);
-    da->apply(dalpha, did, dbeta, db);
-
-    GKO_ASSERT_MTX_NEAR(b, db, r<value_type>::value);
-    GKO_ASSERT_MTX_EQ_SPARSITY(b, db);
-    ASSERT_TRUE(db->is_sorted_by_column_index());
 }
 
 
@@ -942,11 +892,11 @@ TEST_F(Csr, ConjugateTranspose64IsEquivalentToRef)
 }
 
 
-TEST_F(Csr, ConvertToMultiVectorIsEquivalentToRef)
+TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx);
     dmtx->convert_to(ddense_mtx);
@@ -955,11 +905,11 @@ TEST_F(Csr, ConvertToMultiVectorIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, MoveToMultiVectorIsEquivalentToRef)
+TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
     mtx->move_to(dense_mtx);
     dmtx->move_to(ddense_mtx);

@@ -29,7 +29,7 @@ using namespace gko::config;
 class Config : public ::testing::Test {
 protected:
     using value_type = double;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     Config()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(

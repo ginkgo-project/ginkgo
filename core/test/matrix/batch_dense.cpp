@@ -20,7 +20,7 @@ template <typename T>
 class Dense : public ::testing::Test {
 protected:
     using value_type = T;
-    using MultiVectorMtx = gko::matrix::MultiVector<value_type>;
+    using DenseMtx = gko::matrix::Dense<value_type>;
     using size_type = gko::size_type;
     Dense()
         : exec(gko::ReferenceExecutor::create()),
@@ -215,16 +215,16 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingConstData)
 TYPED_TEST(Dense, CanBeConstructedFromDenseMatrices)
 {
     using value_type = typename TestFixture::value_type;
-    using MultiVectorMtx = typename TestFixture::MultiVectorMtx;
+    using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<MultiVectorMtx>(
-        {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
-    auto mat2 = gko::initialize<MultiVectorMtx>(
-        {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, this->exec);
+    auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+                                          this->exec);
+    auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                          this->exec);
 
     auto m =
         gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
-            this->exec, std::vector<MultiVectorMtx*>{mat1.get(), mat2.get()});
+            this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
 
     this->assert_equal_to_original_mtx(m.get());
 }
@@ -233,16 +233,16 @@ TYPED_TEST(Dense, CanBeConstructedFromDenseMatrices)
 TYPED_TEST(Dense, CanBeConstructedFromMultiVectorMatricesByDuplication)
 {
     using value_type = typename TestFixture::value_type;
-    using MultiVectorMtx = typename TestFixture::MultiVectorMtx;
+    using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<MultiVectorMtx>(
+    auto mat1 = gko::initialize<DenseMtx>(
         4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
-    auto mat2 = gko::initialize<MultiVectorMtx>(
-        {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, this->exec);
+    auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                          this->exec);
     auto bat_m =
         gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
             this->exec,
-            std::vector<MultiVectorMtx*>{mat1.get(), mat1.get(), mat1.get()});
+            std::vector<DenseMtx*>{mat1.get(), mat1.get(), mat1.get()});
 
     auto m =
         gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
@@ -255,20 +255,20 @@ TYPED_TEST(Dense, CanBeConstructedFromMultiVectorMatricesByDuplication)
 TYPED_TEST(Dense, CanBeConstructedByDuplicatingMultiVectorMatrices)
 {
     using value_type = typename TestFixture::value_type;
-    using MultiVectorMtx = typename TestFixture::MultiVectorMtx;
+    using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<MultiVectorMtx>(
-        {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
-    auto mat2 = gko::initialize<MultiVectorMtx>(
-        {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, this->exec);
+    auto mat1 = gko::initialize<DenseMtx>({{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}},
+                                          this->exec);
+    auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                          this->exec);
     auto m =
         gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
-            this->exec, std::vector<MultiVectorMtx*>{mat1.get(), mat2.get()});
+            this->exec, std::vector<DenseMtx*>{mat1.get(), mat2.get()});
     auto m_ref =
         gko::batch::create_from_item<gko::batch::matrix::Dense<value_type>>(
             this->exec,
-            std::vector<MultiVectorMtx*>{mat1.get(), mat2.get(), mat1.get(),
-                                         mat2.get(), mat1.get(), mat2.get()});
+            std::vector<DenseMtx*>{mat1.get(), mat2.get(), mat1.get(),
+                                   mat2.get(), mat1.get(), mat2.get()});
 
     auto m2 = gko::batch::duplicate<gko::batch::matrix::Dense<value_type>>(
         this->exec, 3, m.get());
@@ -280,12 +280,12 @@ TYPED_TEST(Dense, CanBeConstructedByDuplicatingMultiVectorMatrices)
 TYPED_TEST(Dense, CanBeUnbatchedIntoMultiVectorMatrices)
 {
     using value_type = typename TestFixture::value_type;
-    using MultiVectorMtx = typename TestFixture::MultiVectorMtx;
+    using DenseMtx = typename TestFixture::DenseMtx;
     using size_type = gko::size_type;
-    auto mat1 = gko::initialize<MultiVectorMtx>(
+    auto mat1 = gko::initialize<DenseMtx>(
         4, {{-1.0, 2.0, 3.0}, {-1.5, 2.5, 3.5}}, this->exec);
-    auto mat2 = gko::initialize<MultiVectorMtx>(
-        {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, this->exec);
+    auto mat2 = gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}},
+                                          this->exec);
 
     auto dense_mats =
         gko::batch::unbatch<gko::batch::matrix::Dense<value_type>>(

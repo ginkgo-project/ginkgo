@@ -26,6 +26,7 @@ class Fft : public ::testing::Test {
 protected:
     using value_type = T;
     using Vec = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Mtx = gko::matrix::Fft;
     using Mtx2 = gko::matrix::Fft2;
     using Mtx3 = gko::matrix::Fft3;
@@ -61,15 +62,15 @@ protected:
           fft(Mtx::create(exec, n)),
           fft2(Mtx2::create(exec, n1 * n2, n3)),
           fft3(Mtx3::create(exec, n1, n2, n3)),
-          dense_fft(Vec::create(exec, gko::dim<2>{n, n})),
-          dense_fft2(Vec::create(exec, gko::dim<2>{n, n})),
-          dense_fft3(Vec::create(exec, gko::dim<2>{n, n})),
+          dense_fft(Dense::create(exec, gko::dim<2>{n, n})),
+          dense_fft2(Dense::create(exec, gko::dim<2>{n, n})),
+          dense_fft3(Dense::create(exec, gko::dim<2>{n, n})),
           ifft(Mtx::create(exec, n, true)),
           ifft2(Mtx2::create(exec, n1 * n2, n3, true)),
           ifft3(Mtx3::create(exec, n1, n2, n3, true)),
-          dense_ifft(Vec::create(exec, gko::dim<2>{n, n})),
-          dense_ifft2(Vec::create(exec, gko::dim<2>{n, n})),
-          dense_ifft3(Vec::create(exec, gko::dim<2>{n, n}))
+          dense_ifft(Dense::create(exec, gko::dim<2>{n, n})),
+          dense_ifft2(Dense::create(exec, gko::dim<2>{n, n})),
+          dense_ifft3(Dense::create(exec, gko::dim<2>{n, n}))
     {
         std::uniform_int_distribution<gko::size_type> nz_dist(nrhs - 2, nrhs);
         std::uniform_real_distribution<gko::remove_complex<value_type>>
@@ -144,15 +145,15 @@ protected:
     std::unique_ptr<Mtx> fft;
     std::unique_ptr<Mtx2> fft2;
     std::unique_ptr<Mtx3> fft3;
-    std::unique_ptr<Vec> dense_fft;
-    std::unique_ptr<Vec> dense_fft2;
-    std::unique_ptr<Vec> dense_fft3;
+    std::unique_ptr<Dense> dense_fft;
+    std::unique_ptr<Dense> dense_fft2;
+    std::unique_ptr<Dense> dense_fft3;
     std::unique_ptr<Mtx> ifft;
     std::unique_ptr<Mtx2> ifft2;
     std::unique_ptr<Mtx3> ifft3;
-    std::unique_ptr<Vec> dense_ifft;
-    std::unique_ptr<Vec> dense_ifft2;
-    std::unique_ptr<Vec> dense_ifft3;
+    std::unique_ptr<Dense> dense_ifft;
+    std::unique_ptr<Dense> dense_ifft2;
+    std::unique_ptr<Dense> dense_ifft3;
 };
 
 TYPED_TEST_SUITE(Fft, gko::test::ComplexValueTypesBase, TypenameNameGenerator);
@@ -327,9 +328,9 @@ TYPED_TEST(Fft, AppliesStrided1DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->frequency1->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency1->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -355,9 +356,9 @@ TYPED_TEST(Fft, AppliesStridedInverse1DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->frequency1->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency1->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -383,9 +384,9 @@ TYPED_TEST(Fft, AppliesStrided2DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->frequency2->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency2->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -411,9 +412,9 @@ TYPED_TEST(Fft, AppliesStridedInverse2DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->frequency2->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency2->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -439,9 +440,9 @@ TYPED_TEST(Fft, AppliesStrided3DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->frequency3->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency3->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -467,9 +468,9 @@ TYPED_TEST(Fft, AppliesStridedInverse3DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->frequency3->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency3->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 

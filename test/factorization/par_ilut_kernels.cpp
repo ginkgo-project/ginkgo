@@ -453,8 +453,7 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
         this->dmtx_u->copy_from(this->mtx_u);
     }
     auto square_size = this->mtx_square->get_size();
-    auto mtx_lu = Csr::create(this->ref, square_size);
-    this->mtx_l2->apply(this->mtx_u, mtx_lu);
+    auto mtx_lu = this->mtx_l2->multiply(this->mtx_u);
     auto dmtx_lu = Csr::create(this->exec, square_size);
     dmtx_lu->copy_from(mtx_lu);
     auto res_mtx_l = Csr::create(this->ref, square_size);

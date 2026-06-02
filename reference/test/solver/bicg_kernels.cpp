@@ -27,12 +27,13 @@ class Bicg : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Bicg<value_type>;
     Bicg()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
-          mtx_big(gko::initialize<Mtx>(
+          mtx_big(gko::initialize<Dense>(
               {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
                {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
                {4150.0, 1805.0, 6472.5, 2656.0, 2409.5, 3836.5},
@@ -40,7 +41,7 @@ protected:
                {3829.5, 1966.0, 2409.5, 665.0, 4240.5, 4373.5},
                {5856.0, 3919.5, 3836.5, -132.0, 4373.5, 5678.0}},
               exec)),
-          mtx_non_symmetric(gko::initialize<Mtx>(
+          mtx_non_symmetric(gko::initialize<Dense>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
           stopped{},
           non_stopped{},
@@ -93,9 +94,9 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> mtx_big;
-    std::shared_ptr<Mtx> mtx_non_symmetric;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> mtx_big;
+    std::shared_ptr<Dense> mtx_non_symmetric;
     std::unique_ptr<Mtx> small_one;
     std::unique_ptr<Mtx> small_zero;
     std::unique_ptr<Mtx> small_prev_rho;

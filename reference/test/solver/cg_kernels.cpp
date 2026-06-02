@@ -26,11 +26,13 @@ template <typename T>
 class Cg : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Cg<value_type>;
+
     Cg()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{2, -1.0, 0.0}, {-1.0, 2, -1.0}, {0.0, -1.0, 2}}, exec)),
           stopped{},
           non_stopped{},
@@ -42,7 +44,7 @@ protected:
                              gko::stop::ResidualNorm<value_type>::build()
                                  .with_reduction_factor(r<value_type>::value))
                          .on(exec)),
-          mtx_big(gko::initialize<Mtx>(
+          mtx_big(gko::initialize<Dense>(
               {{8828.0, 2673.0, 4150.0, -3139.5, 3829.5, 5856.0},
                {2673.0, 10765.5, 1805.0, 73.0, 1966.0, 3919.5},
                {4150.0, 1805.0, 6472.5, 2656.0, 2409.5, 3836.5},
@@ -67,13 +69,13 @@ protected:
     {
         auto small_size = gko::dim<2>{2, 2};
         auto small_scalar_size = gko::dim<2>{1, small_size[1]};
-        small_b = Mtx::create(exec, small_size, small_size[1] + 1);
-        small_x = Mtx::create(exec, small_size, small_size[1] + 2);
-        small_one = Mtx::create(exec, small_size);
-        small_zero = Mtx::create(exec, small_size);
-        small_prev_rho = Mtx::create(exec, small_scalar_size);
-        small_rho = Mtx::create(exec, small_scalar_size);
-        small_beta = Mtx::create(exec, small_scalar_size);
+        small_b = Vec::create(exec, small_size, small_size[1] + 1);
+        small_x = Vec::create(exec, small_size, small_size[1] + 2);
+        small_one = Vec::create(exec, small_size);
+        small_zero = Vec::create(exec, small_size);
+        small_prev_rho = Vec::create(exec, small_scalar_size);
+        small_rho = Vec::create(exec, small_scalar_size);
+        small_beta = Vec::create(exec, small_scalar_size);
         small_zero->fill(0);
         small_one->fill(1);
         small_r = small_zero->clone();
@@ -87,19 +89,19 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> mtx_big;
-    std::unique_ptr<Mtx> small_one;
-    std::unique_ptr<Mtx> small_zero;
-    std::unique_ptr<Mtx> small_prev_rho;
-    std::unique_ptr<Mtx> small_beta;
-    std::unique_ptr<Mtx> small_rho;
-    std::unique_ptr<Mtx> small_x;
-    std::unique_ptr<Mtx> small_b;
-    std::unique_ptr<Mtx> small_r;
-    std::unique_ptr<Mtx> small_z;
-    std::unique_ptr<Mtx> small_p;
-    std::unique_ptr<Mtx> small_q;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> mtx_big;
+    std::unique_ptr<Vec> small_one;
+    std::unique_ptr<Vec> small_zero;
+    std::unique_ptr<Vec> small_prev_rho;
+    std::unique_ptr<Vec> small_beta;
+    std::unique_ptr<Vec> small_rho;
+    std::unique_ptr<Vec> small_x;
+    std::unique_ptr<Vec> small_b;
+    std::unique_ptr<Vec> small_r;
+    std::unique_ptr<Vec> small_z;
+    std::unique_ptr<Vec> small_p;
+    std::unique_ptr<Vec> small_q;
     gko::array<gko::stopping_status> small_stop;
     gko::stopping_status stopped;
     gko::stopping_status non_stopped;
@@ -227,11 +229,11 @@ TYPED_TEST(Cg, KernelStep2DivByZero)
 
 TYPED_TEST(Cg, SolvesStencilSystem)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto solver = this->cg_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b, x);
 
@@ -242,10 +244,10 @@ TYPED_TEST(Cg, SolvesStencilSystem)
 TYPED_TEST(Cg, SolvesStencilSystemMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto solver = this->cg_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b, x);
 
@@ -256,13 +258,13 @@ TYPED_TEST(Cg, SolvesStencilSystemMixed)
 
 TYPED_TEST(Cg, SolvesStencilSystemComplex)
 {
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
+    using Vec = gko::to_complex<typename TestFixture::Vec>;
+    using value_type = typename Vec::value_type;
     auto solver = this->cg_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
         this->exec);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
         this->exec);
 
@@ -299,13 +301,13 @@ TYPED_TEST(Cg, SolvesStencilSystemMixedComplex)
 
 TYPED_TEST(Cg, SolvesMultipleStencilSystems)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
     auto solver = this->cg_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {I<T>{-1.0, 1.0}, I<T>{3.0, 0.0}, I<T>{1.0, 1.0}}, this->exec);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {I<T>{0.0, 0.0}, I<T>{0.0, 0.0}, I<T>{0.0, 0.0}}, this->exec);
 
     solver->apply(b, x);
@@ -317,13 +319,13 @@ TYPED_TEST(Cg, SolvesMultipleStencilSystems)
 
 TYPED_TEST(Cg, SolvesStencilSystemUsingAdvancedApply)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto solver = this->cg_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.5, 1.0, 2.0}, this->exec);
 
     solver->apply(alpha, b, beta, x);
 
@@ -334,12 +336,12 @@ TYPED_TEST(Cg, SolvesStencilSystemUsingAdvancedApply)
 TYPED_TEST(Cg, SolvesStencilSystemUsingAdvancedApplyMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto solver = this->cg_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.5, 1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Vec>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.5, 1.0, 2.0}, this->exec);
 
     solver->apply(alpha, b, beta, x);
 
@@ -350,16 +352,16 @@ TYPED_TEST(Cg, SolvesStencilSystemUsingAdvancedApplyMixed)
 
 TYPED_TEST(Cg, SolvesStencilSystemUsingAdvancedApplyComplex)
 {
-    using Scalar = typename TestFixture::Mtx;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
+    using Scalar = typename TestFixture::Vec;
+    using Vec = gko::to_complex<typename TestFixture::Vec>;
+    using value_type = typename Vec::value_type;
     auto solver = this->cg_factory->generate(this->mtx);
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
     auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
         this->exec);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
         this->exec);
 
@@ -399,15 +401,15 @@ TYPED_TEST(Cg, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
 
 TYPED_TEST(Cg, SolvesMultipleStencilSystemsUsingAdvancedApply)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     using T = value_type;
     auto solver = this->cg_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>(
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Vec>(
         {I<T>{-1.0, 1.0}, I<T>{3.0, 0.0}, I<T>{1.0, 1.0}}, this->exec);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {I<T>{0.5, 1.0}, I<T>{1.0, 2.0}, I<T>{2.0, 3.0}}, this->exec);
 
     solver->apply(alpha, b, beta, x);
@@ -419,15 +421,15 @@ TYPED_TEST(Cg, SolvesMultipleStencilSystemsUsingAdvancedApply)
 
 TYPED_TEST(Cg, SolvesBigMultiVectorSystem1)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     // the system is already out of half precision range
     SKIP_IF_HALF(value_type);
     auto solver = this->cg_factory_big->generate(this->mtx_big);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
         this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b, x);
 
@@ -438,15 +440,15 @@ TYPED_TEST(Cg, SolvesBigMultiVectorSystem1)
 
 TYPED_TEST(Cg, SolvesBigMultiVectorSystem2)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     // the system is already out of half precision range
     SKIP_IF_HALF(value_type);
     auto solver = this->cg_factory_big->generate(this->mtx_big);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
         this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b, x);
 
@@ -457,15 +459,15 @@ TYPED_TEST(Cg, SolvesBigMultiVectorSystem2)
 
 TYPED_TEST(Cg, SolvesBigMultiVectorSystem3)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     // the system is already out of half precision range
     SKIP_IF_HALF(value_type);
     auto solver = this->cg_factory_big2->generate(this->mtx_big);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
         this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     solver->apply(b, x);
 
@@ -476,25 +478,25 @@ TYPED_TEST(Cg, SolvesBigMultiVectorSystem3)
 
 TYPED_TEST(Cg, SolvesMultipleMultiVectorSystemForDivergenceCheck)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     // the system is already out of half precision range
     SKIP_IF_HALF(value_type);
     auto solver = this->cg_factory_big->generate(this->mtx_big);
-    auto b1 = gko::initialize<Mtx>(
+    auto b1 = gko::initialize<Vec>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
         this->exec);
-    auto b2 = gko::initialize<Mtx>(
+    auto b2 = gko::initialize<Vec>(
         {886630.5, -172578.0, 684522.0, -65310.5, 455487.5, 607436.0},
         this->exec);
 
-    auto x1 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
-    auto x2 = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x1 = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x2 = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     auto bc =
-        Mtx::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[0], 2});
+        Vec::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[0], 2});
     auto xc =
-        Mtx::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[1], 2});
+        Vec::create(this->exec, gko::dim<2>{this->mtx_big->get_size()[1], 2});
     for (size_t i = 0; i < bc->get_size()[0]; ++i) {
         bc->at(i, 0) = b1->at(i);
         bc->at(i, 1) = b2->at(i);
@@ -506,20 +508,20 @@ TYPED_TEST(Cg, SolvesMultipleMultiVectorSystemForDivergenceCheck)
     solver->apply(b1, x1);
     solver->apply(b2, x2);
     solver->apply(bc, xc);
-    auto mergedRes = Mtx::create(this->exec, gko::dim<2>{b1->get_size()[0], 2});
+    auto mergedRes = Vec::create(this->exec, gko::dim<2>{b1->get_size()[0], 2});
     for (size_t i = 0; i < mergedRes->get_size()[0]; ++i) {
         mergedRes->at(i, 0) = x1->at(i);
         mergedRes->at(i, 1) = x2->at(i);
     }
 
-    auto alpha = gko::initialize<Mtx>({1.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
 
-    auto residual1 = Mtx::create(this->exec, b1->get_size());
+    auto residual1 = Vec::create(this->exec, b1->get_size());
     residual1->copy_from(b1);
-    auto residual2 = Mtx::create(this->exec, b2->get_size());
+    auto residual2 = Vec::create(this->exec, b2->get_size());
     residual2->copy_from(b2);
-    auto residualC = Mtx::create(this->exec, bc->get_size());
+    auto residualC = Vec::create(this->exec, bc->get_size());
     residualC->copy_from(bc);
 
     this->mtx_big->apply(alpha, x1, beta, residual1);
@@ -546,15 +548,15 @@ TYPED_TEST(Cg, SolvesMultipleMultiVectorSystemForDivergenceCheck)
 
 TYPED_TEST(Cg, SolvesTransposedBigMultiVectorSystem)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     // the system is already out of half precision range
     SKIP_IF_HALF(value_type);
     auto solver = this->cg_factory_big->generate(this->mtx_big);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
         this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     solver->transpose()->apply(b, x);
 
@@ -565,15 +567,15 @@ TYPED_TEST(Cg, SolvesTransposedBigMultiVectorSystem)
 
 TYPED_TEST(Cg, SolvesConjTransposedBigMultiVectorSystem)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     // the system is already out of half precision range
     SKIP_IF_HALF(value_type);
     auto solver = this->cg_factory_big->generate(this->mtx_big);
-    auto b = gko::initialize<Mtx>(
+    auto b = gko::initialize<Vec>(
         {1300083.0, 1018120.5, 906410.0, -42679.5, 846779.5, 1176858.5},
         this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
 
     solver->conj_transpose()->apply(b, x);
 

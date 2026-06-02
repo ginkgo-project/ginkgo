@@ -28,14 +28,13 @@ class ConvertToWithSorting : public ::testing::Test {
 protected:
     using value_type = double;
     using index_type = gko::int32;
-    using MultiVector = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
 
     ConvertToWithSorting()
         : ref{gko::ReferenceExecutor::create()},
-          mtx{gko::initialize<MultiVector>({{1, 2, 3}, {6, 0, 7}, {-1, 8, 0}},
-                                           ref)},
+          mtx{gko::initialize<Mtx>({{1, 2, 3}, {6, 0, 7}, {-1, 8, 0}}, ref)},
           unsorted_coo{
               Coo::create(ref, gko::dim<2>{3, 3},
                           gko::array<value_type>{ref, {1, 3, 2, 7, 6, -1, 8}},
@@ -50,7 +49,7 @@ protected:
     {}
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::unique_ptr<MultiVector> mtx;
+    std::unique_ptr<Mtx> mtx;
     std::unique_ptr<Coo> unsorted_coo;
     std::unique_ptr<Csr> unsorted_csr;
 };
