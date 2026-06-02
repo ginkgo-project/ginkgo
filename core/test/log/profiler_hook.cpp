@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,6 +25,32 @@ const std::string dense_complex_double =
 const std::string dense_complex_double =
     "gko::matrix::Dense<std::complex<double> >";
 #endif
+
+
+// MSVC has class/struct in the type name, so we remove it to keep the same
+// output as the others.
+void normalize_type_names(std::vector<std::string>& str_vec)
+{
+#ifdef _MSC_VER
+    auto normalize = [](std::string s) {
+        const std::string class_str = "class ";
+        auto pos = s.find(class_str);
+        while (pos != std::string::npos) {
+            s.erase(pos, class_str.size());
+            pos = s.find(class_str);
+        }
+        const std::string struct_str = "struct ";
+        pos = s.find(struct_str);
+        while (pos != std::string::npos) {
+            s.erase(pos, struct_str.size());
+            pos = s.find(struct_str);
+        }
+        return s;
+    };
+    std::transform(str_vec.begin(), str_vec.end(), str_vec.begin(),
+                   [&](std::string s) { return normalize(s); });
+#endif
+}
 
 std::pair<gko::log::ProfilerHook::hook_function,
           gko::log::ProfilerHook::hook_function>
@@ -160,6 +186,7 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
                                          false);
 
     exec->remove_logger(logger);
+    normalize_type_names(output);
     ASSERT_EQ(output, expected);
 }
 
@@ -207,6 +234,7 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
     linop->apply(linop, outvec);
     linop->apply(alpha, invec, scalar, linop);
 
+    normalize_type_names(output);
     ASSERT_EQ(output, expected);
 }
 
@@ -245,6 +273,7 @@ TEST(ProfilerHook, LogsIteration)
     solver->apply(alpha, mtx, alpha, mtx);
 
     solver->remove_logger(logger);
+    normalize_type_names(output);
     ASSERT_EQ(output, expected);
 }
 
