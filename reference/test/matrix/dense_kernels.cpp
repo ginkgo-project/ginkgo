@@ -513,7 +513,7 @@ TYPED_TEST(Dense, AppliesToComplex)
 {
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
-    using Vec = gko::matrix::Dense<complex_type>;
+    using Vec = gko::matrix::MultiVector<complex_type>;
     auto exec = gko::ReferenceExecutor::create();
     auto b =
         gko::initialize<Vec>({{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},

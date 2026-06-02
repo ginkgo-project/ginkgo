@@ -35,7 +35,6 @@ protected:
     using Arr = gko::array<index_type>;
     using ComplexMtx = gko::matrix::MultiVector<std::complex<value_type>>;
     using Diagonal = gko::matrix::Diagonal<value_type>;
-    using MixedComplexMtx = gko::matrix::MultiVector<std::complex<mixed_type>>;
     using Permutation = gko::matrix::Permutation<index_type>;
     using ScaledPermutation =
         gko::matrix::ScaledPermutation<value_type, index_type>;

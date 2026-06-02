@@ -28,7 +28,7 @@ protected:
     using nc_value_type = gko::remove_complex<value_type>;
     using storage_helper_type =
         typename std::tuple_element<1, decltype(ValueEnumType())>::type;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::CbGmres<value_type>;
 
     CbGmres()

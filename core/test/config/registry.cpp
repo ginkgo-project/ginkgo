@@ -23,7 +23,7 @@ using namespace gko::config;
 
 class Registry : public ::testing::Test {
 protected:
-    using Matrix = gko::matrix::MultiVector<float>;
+    using Matrix = gko::matrix::Dense<float>;
     using Solver = gko::solver::Cg<float>;
     using Stop = gko::stop::Iteration;
 
@@ -173,7 +173,7 @@ TEST_F(Registry, ThrowWithWrongType)
     reg.emplace("stop_factory", stop_factory);
 
     ASSERT_THROW(
-        detail::registry_accessor::get_data<gko::matrix::MultiVector<double>>(
+        detail::registry_accessor::get_data<gko::matrix::Dense<double>>(
             reg, "matrix"),
         gko::NotSupported);
     ASSERT_THROW(

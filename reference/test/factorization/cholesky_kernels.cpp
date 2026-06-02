@@ -54,8 +54,8 @@ protected:
             {gko::one<value_type>()}, ref);
         auto id = gko::matrix::Identity<value_type>::create(
             ref, l_factor->get_size()[0]);
-        auto result = gko::as<matrix_type>(l_factor->conj_transpose());
-        l_factor->apply(one, id, one, result);
+        auto result = l_factor->scale_add(
+            one, one, gko::as<matrix_type>(l_factor->conj_transpose()));
         gko::matrix_data<value_type, index_type> data;
         result->write(data);
         for (auto& entry : data.nonzeros) {
