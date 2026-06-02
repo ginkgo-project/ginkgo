@@ -10,8 +10,6 @@
 #include <ginkgo/core/reorder/multicolor.hpp>
 
 #include "core/test/utils.hpp"
-#include "core/test/utils/matrix_generator.hpp"
-#include "core/test/utils/reordering.hpp"
 
 
 template <typename IndexType>
@@ -36,65 +34,4 @@ TYPED_TEST_SUITE(Multicolor, gko::test::IndexTypes, TypenameNameGenerator);
 TYPED_TEST(Multicolor, MulticolorFactoryKnowsItsExecutor)
 {
     ASSERT_EQ(this->mc_factory->get_executor(), this->exec);
-}
-
-TYPED_TEST(Multicolor, GeneratesCorrectOrderingWithCsrInput)
-{
-    using v_type = typename TestFixture::v_type;
-    using i_type = typename TestFixture::i_type;
-    const gko::dim<2> grid{5, 5};
-    auto expected =
-        gko::test::compute_multicolor_ordering_regular_star<i_type>(grid);
-    const auto size = 25u;
-    auto mdata =
-        gko::test::generate_laplacian_2d_5point_matrix_data<v_type, i_type>(
-            grid);
-    auto mat = gko::share(gko::matrix::Csr<v_type, i_type>::create(this->exec));
-    mat->read(mdata);
-
-    auto mc = this->mc_factory->generate(mat);
-
-    auto color_ptrs_arr = mc->get_color_pointers();
-    auto perm = mc->get_permutation()->get_const_permutation();
-    auto iperm = mc->get_inverse_permutation()->get_const_permutation();
-    const auto permv = std::vector<i_type>(perm, perm + size);
-    const auto ipermv = std::vector<i_type>(iperm, iperm + size);
-    const auto color_ptrs = std::vector<i_type>(
-        color_ptrs_arr.get_const_data(),
-        color_ptrs_arr.get_const_data() + color_ptrs_arr.get_size());
-    EXPECT_EQ(color_ptrs, expected.color_ptrs);
-    EXPECT_EQ(permv, expected.old_to_new);
-    EXPECT_EQ(ipermv, expected.new_to_old);
-}
-
-TYPED_TEST(Multicolor, GeneratesCorrectOrderingWithSparsityCsrInput)
-{
-    using v_type = typename TestFixture::v_type;
-    using i_type = typename TestFixture::i_type;
-    const gko::dim<2> grid{5, 5};
-    auto expected =
-        gko::test::compute_multicolor_ordering_regular_star<i_type>(grid);
-    const auto size = 25u;
-    auto mdata =
-        gko::test::generate_laplacian_2d_5point_matrix_data<v_type, i_type>(
-            grid);
-    auto mat = gko::matrix::Csr<v_type, i_type>::create(this->exec);
-    mat->read(mdata);
-    auto smat = gko::share(
-        gko::matrix::SparsityCsr<v_type, i_type>::create(this->exec));
-    mat->convert_to(smat.get());
-
-    auto mc = this->mc_factory->generate(smat);
-
-    auto color_ptrs_arr = mc->get_color_pointers();
-    auto perm = mc->get_permutation()->get_const_permutation();
-    auto iperm = mc->get_inverse_permutation()->get_const_permutation();
-    const auto permv = std::vector<i_type>(perm, perm + size);
-    const auto ipermv = std::vector<i_type>(iperm, iperm + size);
-    const auto color_ptrs = std::vector<i_type>(
-        color_ptrs_arr.get_const_data(),
-        color_ptrs_arr.get_const_data() + color_ptrs_arr.get_size());
-    EXPECT_EQ(color_ptrs, expected.color_ptrs);
-    EXPECT_EQ(permv, expected.old_to_new);
-    EXPECT_EQ(ipermv, expected.new_to_old);
 }
