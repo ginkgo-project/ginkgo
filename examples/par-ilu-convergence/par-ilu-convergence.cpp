@@ -74,6 +74,7 @@ int main(int argc, char* argv[])
 {
     using ValueType = double;
     using IndexType = int;
+    using Csr = gko::matrix::Csr<ValueType, IndexType>;
 
     // print usage message
     if (argc < 2 || executors.find(argv[1]) == executors.end()) {
@@ -145,9 +146,11 @@ int main(int argc, char* argv[])
                 gko::as<gko::Composition<ValueType>>(factory->generate(mtx));
             exec->synchronize();
             auto toc = std::chrono::high_resolution_clock::now();
-            auto residual = gko::clone(exec, mtx);
-            result->get_operators()[0]->apply(one, result->get_operators()[1],
-                                              minus_one, residual);
+            auto residual =
+                gko::as<Csr>(result->get_operators()[0])
+                    ->multiply_add(one,
+                                   gko::as<Csr>(result->get_operators()[1]),
+                                   minus_one, mtx);
             times.push_back(
                 std::chrono::duration_cast<std::chrono::nanoseconds>(toc - tic)
                     .count());

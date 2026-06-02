@@ -24,6 +24,7 @@
 class PipeCg : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
 
     PipeCg() : rand_engine(30) {}
 
@@ -239,7 +240,7 @@ TEST_F(PipeCg, ApplyIsEquivalentToRef)
         gko::dim<2>{50, 50}, std::normal_distribution<value_type>(-1.0, 1.0),
         rand_engine);
     gko::utils::make_hpd(data);
-    auto mtx = Mtx::create(ref, data.size, 53);
+    auto mtx = Dense::create(ref, data.size, 53);
     mtx->read(data);
     auto x = gen_mtx(50, 3, 5);
     auto b = gen_mtx(50, 3, 4);

@@ -22,7 +22,7 @@ template <typename T>
 class Fcg : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Fcg<value_type>;
 
     Fcg()

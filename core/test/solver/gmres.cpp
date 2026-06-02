@@ -24,7 +24,7 @@ template <typename T>
 class Gmres : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Gmres<value_type>;
     using Big_solver = gko::solver::Gmres<double>;
 

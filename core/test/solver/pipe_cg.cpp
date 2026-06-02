@@ -21,7 +21,7 @@ template <typename T>
 class PipeCg : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::PipeCg<value_type>;
 
     PipeCg()

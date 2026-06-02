@@ -20,7 +20,7 @@ class MatricesNear : public CudaTestFixture {};
 
 TEST_F(MatricesNear, CanPassCudaMatrix)
 {
-    auto mtx = gko::initialize<gko::matrix::MultiVector<>>(
+    auto mtx = gko::initialize<gko::matrix::Dense<>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
     auto csr_ref = gko::matrix::Csr<>::create(ref);
     csr_ref->copy_from(mtx);

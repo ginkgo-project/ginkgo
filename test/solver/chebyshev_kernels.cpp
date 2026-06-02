@@ -24,18 +24,22 @@
 class Chebyshev : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using coeff_type = gko::solver::detail::coeff_type<value_type>;
 
     Chebyshev() : rand_engine(30) {}
 
-    std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
-                                 gko::size_type num_cols, gko::size_type stride)
+    template <typename MtxType = Mtx>
+    std::unique_ptr<MtxType> gen_mtx(gko::size_type num_rows,
+                                     gko::size_type num_cols,
+                                     gko::size_type stride)
     {
-        auto tmp_mtx = gko::test::generate_random_matrix<Mtx>(
+        auto tmp_mtx = gko::test::generate_random_matrix<MtxType>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
-        auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
+        auto result =
+            MtxType::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
         result->copy_from(tmp_mtx);
         return result;
     }
@@ -94,7 +98,7 @@ TEST_F(Chebyshev, KernelUpdate)
 
 TEST_F(Chebyshev, ApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 52);
+    auto mtx = gen_mtx<Dense>(50, 50, 52);
     auto x = gen_mtx(50, 3, 8);
     auto b = gen_mtx(50, 3, 5);
     auto d_mtx = gko::clone(exec, mtx);
@@ -123,7 +127,7 @@ TEST_F(Chebyshev, ApplyIsEquivalentToRef)
 
 TEST_F(Chebyshev, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 54);
+    auto mtx = gen_mtx(50, 50, 54)->as_dense_view()->clone();
     auto x = gen_mtx(50, 3, 6);
     auto b = gen_mtx(50, 3, 10);
     auto d_mtx = gko::clone(exec, mtx);
@@ -159,7 +163,7 @@ TEST_F(Chebyshev, ApplyWithIterativeInnerSolverIsEquivalentToRef)
 TEST_F(Chebyshev, ApplyWithGivenInitialGuessModeIsEquivalentToRef)
 {
     using initial_guess_mode = gko::solver::initial_guess_mode;
-    auto mtx = gko::share(gen_mtx(50, 50, 52));
+    auto mtx = gko::share(gen_mtx<Dense>(50, 50, 52));
     auto b = gen_mtx(50, 3, 7);
     auto d_mtx = gko::share(clone(exec, mtx));
     auto d_b = gko::clone(exec, b);
