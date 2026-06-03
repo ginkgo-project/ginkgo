@@ -158,67 +158,79 @@ void MultiVector::get_imag(ptr_param<MultiVector> result) const
 void MultiVector::fill(any_scalar value) { this->fill_impl(value); }
 
 
-void MultiVector::scale(any_const_dense_t alpha)
+#define GKO_ASSERT_IS_DENSE(alpha)                                           \
+    {                                                                        \
+        bool is_dense = std::visit(                                          \
+            [alpha](auto p) {                                                \
+                using value_type = std::decay_t<decltype(p)>;                \
+                return dynamic_cast<const matrix::Dense<value_type>*>(       \
+                           alpha.get()) != nullptr;                          \
+            },                                                               \
+            precision_to_variant(alpha->get_precision()));                   \
+        if (!is_dense) {                                                     \
+            GKO_NOT_SUPPORTED(alpha);                                        \
+        }                                                                    \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+void MultiVector::scale(ptr_param<const MultiVector> alpha)
 {
-    std::visit(
-        [this](auto alpha_v) {
-            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
-            if (alpha_v->get_size()[1] != 1) {
-                // different alpha for each column
-                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
-            }
-        },
-        alpha);
-    this->scale_impl(alpha);
+    GKO_ASSERT_IS_DENSE(alpha);
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    auto exec = this->get_executor();
+    this->scale_impl(make_temporary_clone(exec, alpha).get());
 }
 
 
-void MultiVector::inv_scale(any_const_dense_t alpha)
+void MultiVector::inv_scale(ptr_param<const MultiVector> alpha)
 {
-    std::visit(
-        [this](auto alpha_v) {
-            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
-            if (alpha_v->get_size()[1] != 1) {
-                // different alpha for each column
-                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
-            }
-        },
-        alpha);
-    this->inv_scale_impl(alpha);
+    GKO_ASSERT_IS_DENSE(alpha);
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    auto exec = this->get_executor();
+    this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
 }
 
 
-void MultiVector::add_scaled(any_const_dense_t alpha,
+void MultiVector::add_scaled(ptr_param<const MultiVector> alpha,
                              ptr_param<const MultiVector> b)
 {
-    std::visit(
-        [this, b](auto alpha_v) {
-            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
-            if (alpha_v->get_size()[1] != 1) {
-                // different alpha for each column
-                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
-            }
-            GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-        },
-        alpha);
-    this->add_scaled_impl(alpha, b.get());
+    GKO_ASSERT_IS_DENSE(alpha);
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    auto exec = this->get_executor();
+    this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get());
 }
 
 
-void MultiVector::sub_scaled(any_const_dense_t alpha,
+void MultiVector::sub_scaled(ptr_param<const MultiVector> alpha,
                              ptr_param<const MultiVector> b)
 {
-    std::visit(
-        [this, b](auto alpha_v) {
-            GKO_ASSERT_EQUAL_ROWS(alpha_v, dim<2>(1, 1));
-            if (alpha_v->get_size()[1] != 1) {
-                // different alpha for each column
-                GKO_ASSERT_EQUAL_COLS(this, alpha_v);
-            }
-            GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-        },
-        alpha);
-    this->sub_scaled_impl(alpha, b.get());
+    GKO_ASSERT_IS_DENSE(alpha);
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
+    auto exec = this->get_executor();
+    this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
+                          make_temporary_clone(exec, b).get());
 }
 
 
