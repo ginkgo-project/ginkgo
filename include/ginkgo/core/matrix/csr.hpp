@@ -796,15 +796,6 @@ public:
     csr::spmv_strategy get_strategy() const noexcept;
 
     /**
-     * Returns the actual strategy. When the strategy is automatical, this
-     * returns the actual underlying strategy. This returns the same strategy as
-     * `get_strategy` when the strategy is not automatical.
-     *
-     * @return the acutal strategy
-     */
-    csr::spmv_strategy get_actual_strategy() const noexcept;
-
-    /**
      * Set the strategy
      *
      * @param strategy the csr strategy
@@ -1003,6 +994,14 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
+    /**
+     * Returns the actual strategy. When the strategy is automatical, this
+     * returns the actual underlying strategy. This returns the same strategy as
+     * `get_strategy` when the strategy is not automatical.
+     *
+     * @return the acutal strategy
+     */
+    csr::spmv_strategy get_actual_strategy() const noexcept;
 
     /**
      * Computes srow. It should be run after changing any row_ptrs_ value.
