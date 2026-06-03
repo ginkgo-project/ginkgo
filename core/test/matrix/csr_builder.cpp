@@ -11,9 +11,6 @@
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 template <typename ValueIndexType>
 class CsrBuilder : public ::testing::Test {
 public:
@@ -51,45 +48,3 @@ TYPED_TEST(CsrBuilder, ReturnsCorrectArrays)
     ASSERT_EQ(builder_col_idxs, ref_col_idxs);
     ASSERT_EQ(builder_values, ref_values);
 }
-
-
-// TYPED_TEST(CsrBuilder, UpdatesSrowOnDestruction)
-// {
-//     using Mtx = typename TestFixture::Mtx;
-//     using value_type = typename TestFixture::value_type;
-//     using index_type = typename TestFixture::index_type;
-//     struct mock_strategy : public Mtx::strategy_type {
-// #if defined(_MSC_VER) && defined(__clang__)
-//         // only clang_cl in Windows needs this workaround. detail:
-//         // https://github.com/llvm/llvm-project/issues/64996
-//         using Mtx = Mtx;
-// #endif
-//         virtual void process(const gko::array<index_type>&,
-//                              gko::array<index_type>*) override
-//         {
-//             *was_called = true;
-//         }
-
-//         virtual int64_t clac_size(const int64_t nnz) override { return 0; }
-
-//         virtual std::shared_ptr<typename Mtx::strategy_type> copy() override
-//         {
-//             return std::make_shared<mock_strategy>(*was_called);
-//         }
-
-//         mock_strategy(bool& flag) : Mtx::strategy_type(""), was_called(&flag)
-//         {}
-
-//         bool* was_called;
-//     };
-//     bool was_called{};
-//     this->mtx->set_strategy(std::make_shared<mock_strategy>(was_called));
-//     was_called = false;
-
-//     gko::matrix::CsrBuilder<value_type, index_type>{this->mtx};
-
-//     ASSERT_TRUE(was_called);
-// }
-
-
-}  // namespace
