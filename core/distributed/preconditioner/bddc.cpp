@@ -292,8 +292,8 @@ protected:
             scale_2_->inv_scale(scale_1_);
             scale_2_->scale(neg_one_);
             dense_x->add_scaled(scale_2_, nsp_1_);
-            dense_x->add_scaled(scale_3_, nsp_1_);
             dense_x->scale(scale_4_);
+            dense_x->add_scaled(scale_3_, nsp_1_);
         }
         if (permutation_ != nullptr) {
             dense_x->permute(permutation_, buf_,
@@ -848,11 +848,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                     share(gko::solver::Cg<ValueType>::build()
                               .with_criteria(
                                   gko::stop::ResidualNorm<ValueType>::build()
-                                      .with_reduction_factor(1e-4)
-                                      .with_baseline(gko::stop::mode::rhs_norm)
+                                      .with_reduction_factor(1e-8)
+                                      .with_baseline(gko::stop::mode::absolute)
                                       .on(exec),
                                   gko::stop::Iteration::build()
-                                      .with_max_iters(100u)
+                                      .with_max_iters(1000u)
                                       .on(exec))
                               .with_generated_preconditioner(local_solver_)
                               .on(exec)
@@ -860,7 +860,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 auto eigs_LL =
                     share(local_vec::create(host_exec, dim<2>{2, 1}));
                 condest_LL->condest(condest_rhs_LL.get(), eigs_LL.get());
-                if (abs(eigs_LL->at(1, 0)) > 1.0) {
+                if (abs(eigs_LL->at(1, 0)) > 0.0) {
                     as<NSPSolver<ValueType, LocalIndexType>>(local_solver_)
                         ->add_scaling(one<ValueType>() / eigs_LL->at(1, 0));
                 }
@@ -873,11 +873,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                     share(gko::solver::Cg<ValueType>::build()
                               .with_criteria(
                                   gko::stop::ResidualNorm<ValueType>::build()
-                                      .with_reduction_factor(1e-4)
+                                      .with_reduction_factor(1e-8)
                                       .with_baseline(gko::stop::mode::rhs_norm)
                                       .on(exec),
                                   gko::stop::Iteration::build()
-                                      .with_max_iters(100u)
+                                      .with_max_iters(1000u)
                                       .on(exec))
                               .with_generated_preconditioner(inner_solver_)
                               .on(exec)
@@ -885,7 +885,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 auto eigs_II =
                     share(local_vec::create(host_exec, dim<2>{2, 1}));
                 condest_II->condest(condest_rhs_II.get(), eigs_II.get());
-                if (abs(eigs_II->at(1, 0)) > 1.0) {
+                if (abs(eigs_II->at(1, 0)) > 0.0) {
                     as<NSPSolver<ValueType, LocalIndexType>>(inner_solver_)
                         ->add_scaling(one<ValueType>() / eigs_II->at(1, 0));
                 }
