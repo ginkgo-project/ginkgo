@@ -71,8 +71,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_soc_and_run_rs(std::shared_ptr<const ReferenceExecutor> exec,
                             const matrix::Csr<ValueType, IndexType>* A,
-                            remove_complex<ValueType> theta,
-                            array<bool>& is_strong, array<IndexType>& lambda,
+                            double theta, array<bool>& is_strong,
+                            array<IndexType>& lambda,
                             array<IndexType>& cf_marker, IndexType& coarse_size)
 {
     using real_type = remove_complex<ValueType>;

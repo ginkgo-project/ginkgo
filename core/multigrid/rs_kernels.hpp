@@ -29,10 +29,9 @@ namespace rs {
 #define GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType) \
     void compute_soc_and_run_rs(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Csr<ValueType, IndexType>* A,                        \
-        remove_complex<ValueType> theta, array<bool>& is_strong,           \
-        array<IndexType>& lambda, array<IndexType>& cf_marker,             \
-        IndexType& coarse_dim)
+        const matrix::Csr<ValueType, IndexType>* A, double theta,          \
+        array<bool>& is_strong, array<IndexType>& lambda,                  \
+        array<IndexType>& cf_marker, IndexType& coarse_dim)
 
 #define GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL(   \
     ValueType, IndexType)                                                 \

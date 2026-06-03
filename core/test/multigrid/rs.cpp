@@ -54,7 +54,7 @@ TYPED_TEST(RsFactory, DefaultSetting)
     using MgLevel = typename TestFixture::MgLevel;
     auto factory = MgLevel::build().on(this->exec);
 
-    ASSERT_EQ(factory->get_parameters().strength_threshold, 0.25f);
+    ASSERT_EQ(factory->get_parameters().strength_threshold, 0.25);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(factory->get_parameters().skip_m_matrix_check, false);
 }
