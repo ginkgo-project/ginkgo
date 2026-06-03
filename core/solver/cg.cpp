@@ -78,7 +78,8 @@ bool Cg<ValueType>::apply_uses_initial_guess() const
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
+void Cg<ValueType>::apply_impl(const AbstractMultiVector* b,
+                               AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
@@ -125,7 +126,8 @@ void Cg<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const MultiVector>(dense_b, [](const MultiVector*) {}),
+        std::shared_ptr<const AbstractMultiVector>(
+            dense_b, [](const AbstractMultiVector*) {}),
         dense_x, r);
 
     int iter = -1;
@@ -186,8 +188,10 @@ void Cg<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
 
 
 template <typename ValueType>
-void Cg<ValueType>::apply_impl(const MultiVector* alpha, const MultiVector* b,
-                               const MultiVector* beta, MultiVector* x) const
+void Cg<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                               const AbstractMultiVector* b,
+                               const AbstractMultiVector* beta,
+                               AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;

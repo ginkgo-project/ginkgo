@@ -25,10 +25,11 @@ std::unique_ptr<T> clone_or_nullptr(T* input)
 
 
 iteration_complete_data::iteration_complete_data(
-    const LinOp* solver, const MultiVector* right_hand_side,
-    const MultiVector* solution, const size_type num_iterations,
-    const MultiVector* residual, const MultiVector* residual_norm,
-    const MultiVector* implicit_sq_residual_norm,
+    const LinOp* solver, const AbstractMultiVector* right_hand_side,
+    const AbstractMultiVector* solution, const size_type num_iterations,
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_sq_residual_norm,
     const gko::array<stopping_status>* status, bool all_stopped)
 
     : num_iterations{num_iterations}, all_stopped(all_stopped)
@@ -67,9 +68,10 @@ polymorphic_object_data::polymorphic_object_data(
 }
 
 
-linop_data::linop_data(const LinOp* A, const MultiVector* alpha,
-                       const MultiVector* b, const MultiVector* beta,
-                       const MultiVector* x)
+linop_data::linop_data(const LinOp* A, const AbstractMultiVector* alpha,
+                       const AbstractMultiVector* b,
+                       const AbstractMultiVector* beta,
+                       const AbstractMultiVector* x)
 
 {
     this->A = clone_or_nullptr(A);
@@ -96,12 +98,15 @@ linop_factory_data::linop_factory_data(const LinOpFactory* factory,
 }
 
 
-criterion_data::criterion_data(
-    const stop::Criterion* criterion, const size_type& num_iterations,
-    const MultiVector* residual, const MultiVector* residual_norm,
-    const MultiVector* solution, const uint8 stopping_id,
-    const bool set_finalized, const array<stopping_status>* status,
-    const bool oneChanged, const bool converged)
+criterion_data::criterion_data(const stop::Criterion* criterion,
+                               const size_type& num_iterations,
+                               const AbstractMultiVector* residual,
+                               const AbstractMultiVector* residual_norm,
+                               const AbstractMultiVector* solution,
+                               const uint8 stopping_id,
+                               const bool set_finalized,
+                               const array<stopping_status>* status,
+                               const bool oneChanged, const bool converged)
 
     : criterion{criterion},
       num_iterations{num_iterations},
@@ -115,13 +120,13 @@ criterion_data::criterion_data(
       converged{converged}
 {
     if (residual != nullptr) {
-        this->residual = clone_or_nullptr(residual);
+        this->residual = residual->clone();
     }
     if (residual_norm != nullptr) {
-        this->residual_norm = clone_or_nullptr(residual_norm);
+        this->residual_norm = residual_norm->clone();
     }
     if (solution != nullptr) {
-        this->solution = clone_or_nullptr(solution);
+        this->solution = solution->clone();
     }
 }
 void Record::on_allocation_started(const Executor* exec,
@@ -271,8 +276,9 @@ void Record::on_polymorphic_object_deleted(const Executor* exec,
 }
 
 
-void Record::on_linop_apply_started(const LinOp* A, const MultiVector* b,
-                                    const MultiVector* x) const
+void Record::on_linop_apply_started(const LinOp* A,
+                                    const AbstractMultiVector* b,
+                                    const AbstractMultiVector* x) const
 {
     append_deque(data_.linop_apply_started,
                  (std::unique_ptr<linop_data>(
@@ -280,8 +286,9 @@ void Record::on_linop_apply_started(const LinOp* A, const MultiVector* b,
 }
 
 
-void Record::on_linop_apply_completed(const LinOp* A, const MultiVector* b,
-                                      const MultiVector* x) const
+void Record::on_linop_apply_completed(const LinOp* A,
+                                      const AbstractMultiVector* b,
+                                      const AbstractMultiVector* x) const
 {
     append_deque(data_.linop_apply_completed,
                  (std::unique_ptr<linop_data>(
@@ -290,10 +297,10 @@ void Record::on_linop_apply_completed(const LinOp* A, const MultiVector* b,
 
 
 void Record::on_linop_advanced_apply_started(const LinOp* A,
-                                             const MultiVector* alpha,
-                                             const MultiVector* b,
-                                             const MultiVector* beta,
-                                             const MultiVector* x) const
+                                             const AbstractMultiVector* alpha,
+                                             const AbstractMultiVector* b,
+                                             const AbstractMultiVector* beta,
+                                             const AbstractMultiVector* x) const
 {
     append_deque(
         data_.linop_advanced_apply_started,
@@ -301,11 +308,10 @@ void Record::on_linop_advanced_apply_started(const LinOp* A,
 }
 
 
-void Record::on_linop_advanced_apply_completed(const LinOp* A,
-                                               const MultiVector* alpha,
-                                               const MultiVector* b,
-                                               const MultiVector* beta,
-                                               const MultiVector* x) const
+void Record::on_linop_advanced_apply_completed(
+    const LinOp* A, const AbstractMultiVector* alpha,
+    const AbstractMultiVector* b, const AbstractMultiVector* beta,
+    const AbstractMultiVector* x) const
 {
     append_deque(
         data_.linop_advanced_apply_completed,
@@ -367,13 +373,12 @@ Record::Record(const mask_type& enabled_events, size_type max_storage)
 {}
 
 
-void Record::on_criterion_check_started(const stop::Criterion* criterion,
-                                        const size_type& num_iterations,
-                                        const MultiVector* residual,
-                                        const MultiVector* residual_norm,
-                                        const MultiVector* solution,
-                                        const uint8& stopping_id,
-                                        const bool& set_finalized) const
+void Record::on_criterion_check_started(
+    const stop::Criterion* criterion, const size_type& num_iterations,
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* solution, const uint8& stopping_id,
+    const bool& set_finalized) const
 {
     append_deque(data_.criterion_check_started,
                  (std::unique_ptr<criterion_data>(new criterion_data{
@@ -384,11 +389,12 @@ void Record::on_criterion_check_started(const stop::Criterion* criterion,
 
 void Record::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
-    const MultiVector* residual, const MultiVector* residual_norm,
-    const MultiVector* implicit_residual_norm_sq, const MultiVector* solution,
-    const uint8& stopping_id, const bool& set_finalized,
-    const array<stopping_status>* status, const bool& oneChanged,
-    const bool& converged) const
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_residual_norm_sq,
+    const AbstractMultiVector* solution, const uint8& stopping_id,
+    const bool& set_finalized, const array<stopping_status>* status,
+    const bool& oneChanged, const bool& converged) const
 {
     append_deque(
         data_.criterion_check_completed,
@@ -400,8 +406,9 @@ void Record::on_criterion_check_completed(
 
 void Record::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
-    const MultiVector* residual, const MultiVector* residual_norm,
-    const MultiVector* solution, const uint8& stopping_id,
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* solution, const uint8& stopping_id,
     const bool& set_finalized, const array<stopping_status>* status,
     const bool& oneChanged, const bool& converged) const
 {
@@ -411,11 +418,10 @@ void Record::on_criterion_check_completed(
 }
 
 
-void Record::on_iteration_complete(const LinOp* solver,
-                                   const size_type& num_iterations,
-                                   const MultiVector* residual,
-                                   const MultiVector* solution,
-                                   const MultiVector* residual_norm) const
+void Record::on_iteration_complete(
+    const LinOp* solver, const size_type& num_iterations,
+    const AbstractMultiVector* residual, const AbstractMultiVector* solution,
+    const AbstractMultiVector* residual_norm) const
 {
     this->on_iteration_complete(solver, nullptr, solution, num_iterations,
                                 residual, residual_norm, nullptr, nullptr,
@@ -425,9 +431,9 @@ void Record::on_iteration_complete(const LinOp* solver,
 
 void Record::on_iteration_complete(
     const LinOp* solver, const size_type& num_iterations,
-    const MultiVector* residual, const MultiVector* solution,
-    const MultiVector* residual_norm,
-    const MultiVector* implicit_sq_residual_norm) const
+    const AbstractMultiVector* residual, const AbstractMultiVector* solution,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_sq_residual_norm) const
 {
     this->on_iteration_complete(solver, nullptr, solution, num_iterations,
                                 residual, residual_norm,
@@ -436,10 +442,11 @@ void Record::on_iteration_complete(
 
 
 void Record::on_iteration_complete(
-    const LinOp* solver, const MultiVector* right_hand_side,
-    const MultiVector* solution, const size_type& num_iterations,
-    const MultiVector* residual, const MultiVector* residual_norm,
-    const MultiVector* implicit_resnorm_sq,
+    const LinOp* solver, const AbstractMultiVector* right_hand_side,
+    const AbstractMultiVector* solution, const size_type& num_iterations,
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_resnorm_sq,
     const array<stopping_status>* status, bool stopped) const
 {
     append_deque(

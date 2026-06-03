@@ -131,8 +131,8 @@ std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Combination<ValueType>::apply_impl(const MultiVector* b,
-                                        MultiVector* x) const
+void Combination<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                        AbstractMultiVector* x) const
 {
     initialize_scalars(this->get_executor(), cache_.zero, cache_.one);
 
@@ -148,10 +148,10 @@ void Combination<ValueType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType>
-void Combination<ValueType>::apply_impl(const MultiVector* alpha,
-                                        const MultiVector* b,
-                                        const MultiVector* beta,
-                                        MultiVector* x) const
+void Combination<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                        const AbstractMultiVector* b,
+                                        const AbstractMultiVector* beta,
+                                        AbstractMultiVector* x) const
 {
     auto converted_b = b->as_precision(this);
     auto converted_x = x->as_precision(this);

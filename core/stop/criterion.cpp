@@ -29,9 +29,9 @@ void Criterion::set_all_statuses(uint8 stoppingId, bool setFinalized,
 
 
 CriterionArgs::CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
-                             std::shared_ptr<const MultiVector> b,
-                             const MultiVector* x,
-                             const MultiVector* initial_residual)
+                             std::shared_ptr<const AbstractMultiVector> b,
+                             const AbstractMultiVector* x,
+                             const AbstractMultiVector* initial_residual)
     : system_matrix{system_matrix},
       b{b},
       x{x},

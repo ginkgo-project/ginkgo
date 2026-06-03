@@ -113,8 +113,8 @@ Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2(ptr_param<const MultiVector> b,
-                                       ptr_param<MultiVector> x) const
+void Coo<ValueType, IndexType>::apply2(ptr_param<const AbstractMultiVector> b,
+                                       ptr_param<AbstractMultiVector> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
@@ -123,9 +123,10 @@ void Coo<ValueType, IndexType>::apply2(ptr_param<const MultiVector> b,
 }
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2(ptr_param<const MultiVector> alpha,
-                                       ptr_param<const MultiVector> b,
-                                       ptr_param<MultiVector> x) const
+void Coo<ValueType, IndexType>::apply2(
+    ptr_param<const AbstractMultiVector> alpha,
+    ptr_param<const AbstractMultiVector> b,
+    ptr_param<AbstractMultiVector> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -137,8 +138,8 @@ void Coo<ValueType, IndexType>::apply2(ptr_param<const MultiVector> alpha,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                           MultiVector* x) const
+void Coo<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                           AbstractMultiVector* x) const
 {
     apply_precision_dispatch<ValueType>(
         [this](auto view_b, auto view_x, auto...) {
@@ -150,10 +151,10 @@ void Coo<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
-                                           const MultiVector* b,
-                                           const MultiVector* beta,
-                                           MultiVector* x) const
+void Coo<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                           const AbstractMultiVector* b,
+                                           const AbstractMultiVector* beta,
+                                           AbstractMultiVector* x) const
 {
     apply_precision_dispatch<ValueType>(
         [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x,
@@ -168,8 +169,8 @@ void Coo<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2_impl(const MultiVector* b,
-                                            MultiVector* x) const
+void Coo<ValueType, IndexType>::apply2_impl(const AbstractMultiVector* b,
+                                            AbstractMultiVector* x) const
 {
     apply_precision_dispatch<ValueType>(
         [this](auto view_b, auto view_x, auto...) {
@@ -181,9 +182,9 @@ void Coo<ValueType, IndexType>::apply2_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void Coo<ValueType, IndexType>::apply2_impl(const MultiVector* alpha,
-                                            const MultiVector* b,
-                                            MultiVector* x) const
+void Coo<ValueType, IndexType>::apply2_impl(const AbstractMultiVector* alpha,
+                                            const AbstractMultiVector* b,
+                                            AbstractMultiVector* x) const
 {
     auto dense_alpha = as<Dense<ValueType>>(alpha->as_precision(this));
     apply_precision_dispatch<ValueType>(

@@ -174,7 +174,8 @@ void init_one_cache(std::shared_ptr<const Executor> exec,
 }
 
 
-void BlockOperator::apply_impl(const MultiVector* b, MultiVector* x) const
+void BlockOperator::apply_impl(const AbstractMultiVector* b,
+                               AbstractMultiVector* x) const
 {
     auto block_b = create_vector_blocks(b, col_spans_);
     auto block_x = create_vector_blocks(x, row_spans_);
@@ -198,8 +199,10 @@ void BlockOperator::apply_impl(const MultiVector* b, MultiVector* x) const
 }
 
 
-void BlockOperator::apply_impl(const MultiVector* alpha, const MultiVector* b,
-                               const MultiVector* beta, MultiVector* x) const
+void BlockOperator::apply_impl(const AbstractMultiVector* alpha,
+                               const AbstractMultiVector* b,
+                               const AbstractMultiVector* beta,
+                               AbstractMultiVector* x) const
 {
     auto block_b = create_vector_blocks(b, col_spans_);
     auto block_x = create_vector_blocks(x, row_spans_);

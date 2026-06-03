@@ -152,8 +152,8 @@ void Perturbation<ValueType>::cache_struct::allocate(
 
 
 template <typename ValueType>
-void Perturbation<ValueType>::apply_impl(const MultiVector* b,
-                                         MultiVector* x) const
+void Perturbation<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                         AbstractMultiVector* x) const
 {
     // x = (I + scalar * basis * projector) * b
     // temp = projector * b                 : projector->apply(b, temp)
@@ -174,10 +174,10 @@ void Perturbation<ValueType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType>
-void Perturbation<ValueType>::apply_impl(const MultiVector* alpha,
-                                         const MultiVector* b,
-                                         const MultiVector* beta,
-                                         MultiVector* x) const
+void Perturbation<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                         const AbstractMultiVector* b,
+                                         const AbstractMultiVector* beta,
+                                         AbstractMultiVector* x) const
 {
     // x = alpha * (I + scalar * basis * projector) b + beta * x
     //   = beta * x + alpha * b + alpha * scalar * basis * projector * b

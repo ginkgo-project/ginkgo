@@ -128,8 +128,8 @@ Ell<ValueType, IndexType>::Ell(Ell&& other) : Ell(other.get_executor())
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                           MultiVector* x) const
+void Ell<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                           AbstractMultiVector* x) const
 {
     apply_mixed_precision_dispatch<ValueType>(
         [this](auto view_b, auto view_x, auto...) {
@@ -141,10 +141,10 @@ void Ell<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void Ell<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
-                                           const MultiVector* b,
-                                           const MultiVector* beta,
-                                           MultiVector* x) const
+void Ell<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                           const AbstractMultiVector* b,
+                                           const AbstractMultiVector* beta,
+                                           AbstractMultiVector* x) const
 {
     apply_mixed_precision_dispatch<ValueType>(
         [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x,

@@ -36,26 +36,28 @@ namespace detail {
 // give access to test function on protected function
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event> apply_prepare(
-    const RowGatherer<LocalIndexType>* rg, ptr_param<const MultiVector> b);
+    const RowGatherer<LocalIndexType>* rg,
+    ptr_param<const AbstractMultiVector> b);
 
 // give access to test function on protected function
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event> apply_prepare(
-    const RowGatherer<LocalIndexType>* rg, ptr_param<const MultiVector> b,
+    const RowGatherer<LocalIndexType>* rg,
+    ptr_param<const AbstractMultiVector> b,
     gko::detail::GenericDenseCache& workspace);
 
 // give access to test function on protected function
 template <typename LocalIndexType>
 mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
-                            ptr_param<const MultiVector> b,
-                            ptr_param<MultiVector> x,
+                            ptr_param<const AbstractMultiVector> b,
+                            ptr_param<AbstractMultiVector> x,
                             std::shared_ptr<const gko::detail::Event>);
 
 // give access to test function on protected function
 template <typename LocalIndexType>
 mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
-                            ptr_param<const MultiVector> b,
-                            ptr_param<MultiVector> x,
+                            ptr_param<const AbstractMultiVector> b,
+                            ptr_param<AbstractMultiVector> x,
                             std::shared_ptr<const gko::detail::Event>,
                             gko::detail::GenericDenseCache& workspace);
 
@@ -98,17 +100,20 @@ class RowGatherer final : public PolymorphicObject,
     friend class Matrix;
     // for test purpose
     friend std::shared_ptr<const gko::detail::Event>
-    detail::apply_prepare<LocalIndexType>(const RowGatherer* rg,
-                                          ptr_param<const MultiVector> b);
-    friend std::shared_ptr<const gko::detail::Event> detail::apply_prepare<
-        LocalIndexType>(const RowGatherer* rg, ptr_param<const MultiVector> b,
-                        gko::detail::GenericDenseCache& workspace);
+    detail::apply_prepare<LocalIndexType>(
+        const RowGatherer* rg, ptr_param<const AbstractMultiVector> b);
+    friend std::shared_ptr<const gko::detail::Event>
+    detail::apply_prepare<LocalIndexType>(
+        const RowGatherer* rg, ptr_param<const AbstractMultiVector> b,
+        gko::detail::GenericDenseCache& workspace);
     friend mpi::request detail::apply_finalize<LocalIndexType>(
-        const RowGatherer* rg, ptr_param<const MultiVector> b,
-        ptr_param<MultiVector> x, std::shared_ptr<const gko::detail::Event>);
+        const RowGatherer* rg, ptr_param<const AbstractMultiVector> b,
+        ptr_param<AbstractMultiVector> x,
+        std::shared_ptr<const gko::detail::Event>);
     friend mpi::request detail::apply_finalize<LocalIndexType>(
-        const RowGatherer* rg, ptr_param<const MultiVector> b,
-        ptr_param<MultiVector> x, std::shared_ptr<const gko::detail::Event>,
+        const RowGatherer* rg, ptr_param<const AbstractMultiVector> b,
+        ptr_param<AbstractMultiVector> x,
+        std::shared_ptr<const gko::detail::Event>,
         gko::detail::GenericDenseCache& workspace);
 
 public:
@@ -127,8 +132,9 @@ public:
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
      */
-    [[nodiscard]] mpi::request apply_async(ptr_param<const MultiVector> b,
-                                           ptr_param<MultiVector> x) const;
+    [[nodiscard]] mpi::request apply_async(
+        ptr_param<const AbstractMultiVector> b,
+        ptr_param<AbstractMultiVector> x) const;
 
     /**
      * Asynchronous version of LinOp::apply.
@@ -149,7 +155,8 @@ public:
      *          be completed only after `.wait()` has been called on it.
      */
     [[nodiscard]] mpi::request apply_async(
-        ptr_param<const MultiVector> b, ptr_param<MultiVector> x,
+        ptr_param<const AbstractMultiVector> b,
+        ptr_param<AbstractMultiVector> x,
         gko::detail::GenericDenseCache& workspace) const;
 
     /**
@@ -241,18 +248,20 @@ public:
 
 protected:
     std::shared_ptr<const gko::detail::Event> apply_prepare(
-        ptr_param<const MultiVector> b) const;
+        ptr_param<const AbstractMultiVector> b) const;
 
     std::shared_ptr<const gko::detail::Event> apply_prepare(
-        ptr_param<const MultiVector> b,
+        ptr_param<const AbstractMultiVector> b,
         gko::detail::GenericDenseCache& workspace) const;
 
     mpi::request apply_finalize(
-        ptr_param<const MultiVector> b, ptr_param<MultiVector> x,
+        ptr_param<const AbstractMultiVector> b,
+        ptr_param<AbstractMultiVector> x,
         std::shared_ptr<const gko::detail::Event>) const;
 
     mpi::request apply_finalize(
-        ptr_param<const MultiVector> b, ptr_param<MultiVector> x,
+        ptr_param<const AbstractMultiVector> b,
+        ptr_param<AbstractMultiVector> x,
         std::shared_ptr<const gko::detail::Event>,
         gko::detail::GenericDenseCache& workspace) const;
 

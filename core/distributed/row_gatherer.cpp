@@ -27,7 +27,8 @@ GKO_REGISTER_OPERATION(record_event, event::record_event);
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(
-    ptr_param<const MultiVector> b, ptr_param<MultiVector> x) const
+    ptr_param<const AbstractMultiVector> b,
+    ptr_param<AbstractMultiVector> x) const
 {
     return apply_async(b, x, send_cache_);
 }
@@ -35,7 +36,7 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(
-    ptr_param<const MultiVector> b, ptr_param<MultiVector> x,
+    ptr_param<const AbstractMultiVector> b, ptr_param<AbstractMultiVector> x,
     gko::detail::GenericDenseCache& workspace) const
 {
     auto ev = this->apply_prepare(b, workspace);
@@ -44,7 +45,8 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
 
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event>
-RowGatherer<LocalIndexType>::apply_prepare(ptr_param<const MultiVector> b) const
+RowGatherer<LocalIndexType>::apply_prepare(
+    ptr_param<const AbstractMultiVector> b) const
 {
     return apply_prepare(b, send_cache_);
 }
@@ -52,7 +54,7 @@ RowGatherer<LocalIndexType>::apply_prepare(ptr_param<const MultiVector> b) const
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event>
 RowGatherer<LocalIndexType>::apply_prepare(
-    ptr_param<const MultiVector> b,
+    ptr_param<const AbstractMultiVector> b,
     gko::detail::GenericDenseCache& workspace) const
 {
     std::shared_ptr<const gko::detail::Event> ev = nullptr;
@@ -82,7 +84,7 @@ RowGatherer<LocalIndexType>::apply_prepare(
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_finalize(
-    ptr_param<const MultiVector> b, ptr_param<MultiVector> x,
+    ptr_param<const AbstractMultiVector> b, ptr_param<AbstractMultiVector> x,
     std::shared_ptr<const gko::detail::Event> ev) const
 {
     auto req = apply_finalize(b, x, ev, send_cache_);
@@ -91,7 +93,7 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_finalize(
-    ptr_param<const MultiVector> b, ptr_param<MultiVector> x,
+    ptr_param<const AbstractMultiVector> b, ptr_param<AbstractMultiVector> x,
     std::shared_ptr<const gko::detail::Event> ev,
     gko::detail::GenericDenseCache& workspace) const
 {
@@ -141,7 +143,8 @@ namespace detail {
 
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event> apply_prepare(
-    const RowGatherer<LocalIndexType>* rg, ptr_param<const MultiVector> b)
+    const RowGatherer<LocalIndexType>* rg,
+    ptr_param<const AbstractMultiVector> b)
 {
     return rg->apply_prepare(b);
 }
@@ -149,7 +152,8 @@ std::shared_ptr<const gko::detail::Event> apply_prepare(
 
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event> apply_prepare(
-    const RowGatherer<LocalIndexType>* rg, ptr_param<const MultiVector> b,
+    const RowGatherer<LocalIndexType>* rg,
+    ptr_param<const AbstractMultiVector> b,
     gko::detail::GenericDenseCache& workspace)
 {
     return rg->apply_prepare(b, workspace);
@@ -158,8 +162,8 @@ std::shared_ptr<const gko::detail::Event> apply_prepare(
 
 template <typename LocalIndexType>
 mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
-                            ptr_param<const MultiVector> b,
-                            ptr_param<MultiVector> x,
+                            ptr_param<const AbstractMultiVector> b,
+                            ptr_param<AbstractMultiVector> x,
                             std::shared_ptr<const gko::detail::Event> ev)
 {
     return rg->apply_finalize(b, x, ev);
@@ -168,8 +172,8 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
 
 template <typename LocalIndexType>
 mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
-                            ptr_param<const MultiVector> b,
-                            ptr_param<MultiVector> x,
+                            ptr_param<const AbstractMultiVector> b,
+                            ptr_param<AbstractMultiVector> x,
                             std::shared_ptr<const gko::detail::Event> ev,
                             gko::detail::GenericDenseCache& workspace)
 {
@@ -179,23 +183,23 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
 
 #define GKO_DECLARE_TEST_APPLY_PREPARE(IndexType)            \
     std::shared_ptr<const gko::detail::Event> apply_prepare( \
-        const RowGatherer<IndexType>*, ptr_param<const MultiVector>)
+        const RowGatherer<IndexType>*, ptr_param<const AbstractMultiVector>)
 
-#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(IndexType)          \
-    std::shared_ptr<const gko::detail::Event> apply_prepare(         \
-        const RowGatherer<IndexType>*, ptr_param<const MultiVector>, \
+#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(IndexType)                  \
+    std::shared_ptr<const gko::detail::Event> apply_prepare(                 \
+        const RowGatherer<IndexType>*, ptr_param<const AbstractMultiVector>, \
         gko::detail::GenericDenseCache&)
 
-#define GKO_DECLARE_TEST_APPLY_FINALIZE(IndexType)                \
-    mpi::request apply_finalize(const RowGatherer<IndexType>* rg, \
-                                ptr_param<const MultiVector> b,   \
-                                ptr_param<MultiVector> x,         \
+#define GKO_DECLARE_TEST_APPLY_FINALIZE(IndexType)                      \
+    mpi::request apply_finalize(const RowGatherer<IndexType>* rg,       \
+                                ptr_param<const AbstractMultiVector> b, \
+                                ptr_param<AbstractMultiVector> x,       \
                                 std::shared_ptr<const gko::detail::Event> ev)
 
 #define GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE(IndexType)                  \
     mpi::request apply_finalize(const RowGatherer<IndexType>* rg,             \
-                                ptr_param<const MultiVector> b,               \
-                                ptr_param<MultiVector> x,                     \
+                                ptr_param<const AbstractMultiVector> b,       \
+                                ptr_param<AbstractMultiVector> x,             \
                                 std::shared_ptr<const gko::detail::Event> ev, \
                                 gko::detail::GenericDenseCache&)
 

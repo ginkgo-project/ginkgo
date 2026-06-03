@@ -25,7 +25,7 @@ namespace log {
 namespace {
 
 
-bool is_dense(const MultiVector* value)
+bool is_dense(const AbstractMultiVector* value)
 {
     using conv_to_double = ConvertibleTo<matrix::Dense<double>>;
     using conv_to_complex = ConvertibleTo<matrix::Dense<std::complex<double>>>;
@@ -39,17 +39,19 @@ class SolverProgressPrint : public SolverProgress {
 
 public:
     /* Internal solver events */
-    void on_linop_apply_started(const LinOp* solver, const MultiVector* in,
-                                const MultiVector* out) const override
+    void on_linop_apply_started(const LinOp* solver,
+                                const AbstractMultiVector* in,
+                                const AbstractMultiVector* out) const override
     {
         printed_header_ = false;
     }
 
     void on_iteration_complete(
-        const LinOp* solver, const MultiVector* right_hand_side,
-        const MultiVector* solution, const size_type& num_iterations,
-        const MultiVector* residual, const MultiVector* residual_norm,
-        const MultiVector* implicit_sq_residual_norm,
+        const LinOp* solver, const AbstractMultiVector* right_hand_side,
+        const AbstractMultiVector* solution, const size_type& num_iterations,
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* implicit_sq_residual_norm,
         const array<stopping_status>* status, bool stopped) const override
     {
         using solver_base = solver::detail::SolverBaseLinOp;
@@ -103,11 +105,11 @@ public:
     GKO_DEPRECATED(
         "Please use the version with the additional stopping "
         "information.")
-    void on_iteration_complete(const LinOp* solver,
-                               const size_type& num_iterations,
-                               const MultiVector* residual,
-                               const MultiVector* solution,
-                               const MultiVector* residual_norm) const override
+    void on_iteration_complete(
+        const LinOp* solver, const size_type& num_iterations,
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* solution,
+        const AbstractMultiVector* residual_norm) const override
     {
         on_iteration_complete(solver, nullptr, solution, num_iterations,
                               residual, residual_norm, nullptr, nullptr, false);
@@ -118,9 +120,10 @@ public:
         "information.")
     void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
-        const MultiVector* residual, const MultiVector* solution,
-        const MultiVector* residual_norm,
-        const MultiVector* implicit_sq_residual_norm) const override
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* solution,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* implicit_sq_residual_norm) const override
     {
         on_iteration_complete(solver, nullptr, solution, num_iterations,
                               residual, residual_norm,
@@ -128,7 +131,8 @@ public:
     }
 
 private:
-    void print_scalar(const MultiVector* value, std::ostream& stream) const
+    void print_scalar(const AbstractMultiVector* value,
+                      std::ostream& stream) const
     {
         if (separator_) {
             stream << separator_;
@@ -177,8 +181,9 @@ class SolverProgressStore : public SolverProgress {
 
 public:
     /* Internal solver events */
-    void on_linop_apply_started(const LinOp* solver, const MultiVector* in,
-                                const MultiVector* out) const override
+    void on_linop_apply_started(const LinOp* solver,
+                                const AbstractMultiVector* in,
+                                const AbstractMultiVector* out) const override
     {
         using solver_base = solver::detail::SolverBaseLinOp;
         auto dynamic_type = name_demangling::get_dynamic_type(*solver);
@@ -189,10 +194,11 @@ public:
     }
 
     void on_iteration_complete(
-        const LinOp* solver, const MultiVector* right_hand_side,
-        const MultiVector* solution, const size_type& num_iterations,
-        const MultiVector* residual, const MultiVector* residual_norm,
-        const MultiVector* implicit_sq_residual_norm,
+        const LinOp* solver, const AbstractMultiVector* right_hand_side,
+        const AbstractMultiVector* solution, const size_type& num_iterations,
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* implicit_sq_residual_norm,
         const array<stopping_status>* status, bool stopped) const override
     {
         using solver_base = solver::detail::SolverBaseLinOp;
@@ -213,11 +219,11 @@ public:
     GKO_DEPRECATED(
         "Please use the version with the additional stopping "
         "information.")
-    void on_iteration_complete(const LinOp* solver,
-                               const size_type& num_iterations,
-                               const MultiVector* residual,
-                               const MultiVector* solution,
-                               const MultiVector* residual_norm) const override
+    void on_iteration_complete(
+        const LinOp* solver, const size_type& num_iterations,
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* solution,
+        const AbstractMultiVector* residual_norm) const override
     {
         on_iteration_complete(solver, nullptr, solution, num_iterations,
                               residual, residual_norm, nullptr, nullptr, false);
@@ -228,9 +234,10 @@ public:
         "information.")
     void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
-        const MultiVector* residual, const MultiVector* solution,
-        const MultiVector* residual_norm,
-        const MultiVector* implicit_sq_residual_norm) const override
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* solution,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* implicit_sq_residual_norm) const override
     {
         on_iteration_complete(solver, nullptr, solution, num_iterations,
                               residual, residual_norm,
@@ -284,7 +291,8 @@ private:
             gko::WritableToMatrixData<std::complex<float>, int64>>(value, name);
     }
 
-    void store_vector(const MultiVector* value, const std::string& name) const
+    void store_vector(const AbstractMultiVector* value,
+                      const std::string& name) const
     {
         store_generic<
 #if GINKGO_ENABLE_HALF
@@ -300,7 +308,7 @@ private:
             gko::matrix::Dense<std::complex<float>>>(value, name);
     }
 
-    void store_vector(const MultiVector* value, size_type iteration,
+    void store_vector(const AbstractMultiVector* value, size_type iteration,
                       const std::string& name) const
     {
         store_vector(value, std::to_string(iteration) + "_" + name);

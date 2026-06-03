@@ -528,7 +528,7 @@ init_recv_buffers(std::shared_ptr<const Executor> exec,
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const MultiVector* b, MultiVector* x) const
+    const AbstractMultiVector* b, AbstractMultiVector* x) const
 {
     mixed_precision_dispatch<ValueType>(
         [this](const auto b_, auto x_, auto p_b, auto p_x) {
@@ -591,8 +591,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const MultiVector* alpha, const MultiVector* b, const MultiVector* beta,
-    MultiVector* x) const
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
 {
     mixed_precision_dispatch<ValueType>(
         [&](const auto b_, auto x_, auto p_b, auto p_x) {

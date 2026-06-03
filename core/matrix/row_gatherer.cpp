@@ -63,8 +63,8 @@ RowGatherer<IndexType>::create_const(
 
 
 template <typename IndexType>
-void RowGatherer<IndexType>::apply_impl(const MultiVector* in,
-                                        MultiVector* out) const
+void RowGatherer<IndexType>::apply_impl(const AbstractMultiVector* in,
+                                        AbstractMultiVector* out) const
 {
     std::visit(
         [this, in, out](auto p) {
@@ -75,10 +75,10 @@ void RowGatherer<IndexType>::apply_impl(const MultiVector* in,
 }
 
 template <typename IndexType>
-void RowGatherer<IndexType>::apply_impl(const MultiVector* alpha,
-                                        const MultiVector* in,
-                                        const MultiVector* beta,
-                                        MultiVector* out) const
+void RowGatherer<IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                        const AbstractMultiVector* in,
+                                        const AbstractMultiVector* beta,
+                                        AbstractMultiVector* out) const
 {
     std::visit(
         [=](auto p) {

@@ -9,8 +9,8 @@
 namespace gko {
 
 
-void LinOp::apply(ptr_param<const MultiVector> b,
-                  ptr_param<MultiVector> x) const
+void LinOp::apply(ptr_param<const AbstractMultiVector> b,
+                  ptr_param<AbstractMultiVector> x) const
 {
     this->template log<log::Logger::linop_apply_started>(this, b.get(),
                                                          x.get());
@@ -23,10 +23,10 @@ void LinOp::apply(ptr_param<const MultiVector> b,
 }
 
 
-void LinOp::apply(ptr_param<const MultiVector> alpha,
-                  ptr_param<const MultiVector> b,
-                  ptr_param<const MultiVector> beta,
-                  ptr_param<MultiVector> x) const
+void LinOp::apply(ptr_param<const AbstractMultiVector> alpha,
+                  ptr_param<const AbstractMultiVector> b,
+                  ptr_param<const AbstractMultiVector> beta,
+                  ptr_param<AbstractMultiVector> x) const
 
 {
     this->template log<log::Logger::linop_advanced_apply_started>(
@@ -70,8 +70,10 @@ LinOp::LinOp(std::shared_ptr<const Executor> exec, const dim<2>& size,
 void LinOp::set_size(const dim<2>& value) noexcept { size_ = value; }
 
 
-void LinOp::apply_impl(const MultiVector* alpha, const MultiVector* b,
-                       const MultiVector* beta, MultiVector* x) const
+void LinOp::apply_impl(const AbstractMultiVector* alpha,
+                       const AbstractMultiVector* b,
+                       const AbstractMultiVector* beta,
+                       AbstractMultiVector* x) const
 {
     auto converted_b = b->as_precision(this);
     auto converted_x = x->as_precision(this);
@@ -91,8 +93,8 @@ void LinOp::apply_impl(const MultiVector* alpha, const MultiVector* b,
 }
 
 
-void LinOp::validate_application_parameters(const MultiVector* b,
-                                            const MultiVector* x) const
+void LinOp::validate_application_parameters(const AbstractMultiVector* b,
+                                            const AbstractMultiVector* x) const
 
 {
     GKO_ASSERT_CONFORMANT(this, b);
@@ -110,10 +112,10 @@ void LinOp::validate_application_parameters(const LinOp* b,
 }
 
 
-void LinOp::validate_application_parameters(const MultiVector* alpha,
-                                            const MultiVector* b,
-                                            const MultiVector* beta,
-                                            const MultiVector* x) const
+void LinOp::validate_application_parameters(const AbstractMultiVector* alpha,
+                                            const AbstractMultiVector* b,
+                                            const AbstractMultiVector* beta,
+                                            const AbstractMultiVector* x) const
 
 {
     this->validate_application_parameters(b, x);
@@ -122,8 +124,9 @@ void LinOp::validate_application_parameters(const MultiVector* alpha,
 }
 
 
-void ScaledIdentityAddable::add_scaled_identity(ptr_param<const MultiVector> a,
-                                                ptr_param<const MultiVector> b)
+void ScaledIdentityAddable::add_scaled_identity(
+    ptr_param<const AbstractMultiVector> a,
+    ptr_param<const AbstractMultiVector> b)
 {
     GKO_ASSERT_IS_SCALAR(a);
     GKO_ASSERT_IS_SCALAR(b);

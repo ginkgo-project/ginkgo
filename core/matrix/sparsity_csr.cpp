@@ -44,8 +44,8 @@ GKO_REGISTER_OPERATION(is_sorted_by_column_index,
 
 
 template <typename ValueType, typename IndexType>
-void SparsityCsr<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                                   MultiVector* x) const
+void SparsityCsr<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                                   AbstractMultiVector* x) const
 {
     apply_mixed_precision_dispatch<ValueType>(
         [this](auto view_b, auto view_x, auto...) {
@@ -57,10 +57,9 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void SparsityCsr<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
-                                                   const MultiVector* b,
-                                                   const MultiVector* beta,
-                                                   MultiVector* x) const
+void SparsityCsr<ValueType, IndexType>::apply_impl(
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
 {
     apply_mixed_precision_dispatch<ValueType>(
         [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x,

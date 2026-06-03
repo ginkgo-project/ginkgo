@@ -74,7 +74,8 @@ std::unique_ptr<LinOp> PipeCg<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void PipeCg<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
+void PipeCg<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                   AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
@@ -103,7 +104,7 @@ void PipeCg<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
             dim<2> global_conjoined_size = {global_original_size[0],
                                             local_original_size[1] * 2};
 
-            MultiVector* rw = this->create_workspace_op_with_type_of(
+            AbstractMultiVector* rw = this->create_workspace_op_with_type_of(
                 GKO_SOLVER_TRAITS::rw, converted_b, global_conjoined_size,
                 local_conjoined_size);
             auto r_unique = rw->create_subview(
@@ -192,8 +193,8 @@ void PipeCg<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
             // check for an early termination
             auto stop_criterion = this->get_stop_criterion_factory()->generate(
                 this->get_system_matrix(),
-                std::shared_ptr<const MultiVector>(converted_b,
-                                                   [](const MultiVector*) {}),
+                std::shared_ptr<const AbstractMultiVector>(
+                    converted_b, [](const AbstractMultiVector*) {}),
                 converted_x, r);
             int iter = 0;
             bool all_stopped = stop_criterion->update()
@@ -303,10 +304,10 @@ void PipeCg<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
 
 
 template <typename ValueType>
-void PipeCg<ValueType>::apply_impl(const MultiVector* alpha,
-                                   const MultiVector* b,
-                                   const MultiVector* beta,
-                                   MultiVector* x) const
+void PipeCg<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                   const AbstractMultiVector* b,
+                                   const AbstractMultiVector* beta,
+                                   AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;

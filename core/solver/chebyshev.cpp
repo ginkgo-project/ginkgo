@@ -177,8 +177,8 @@ std::unique_ptr<LinOp> Chebyshev<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Chebyshev<ValueType>::apply_impl(const MultiVector* b,
-                                      MultiVector* x) const
+void Chebyshev<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                      AbstractMultiVector* x) const
 {
     this->apply_with_initial_guess(b, x, this->get_default_initial_guess());
 }
@@ -186,7 +186,8 @@ void Chebyshev<ValueType>::apply_impl(const MultiVector* b,
 
 template <typename ValueType>
 void Chebyshev<ValueType>::apply_with_initial_guess_prepared_impl(
-    const MultiVector* b, MultiVector* x, initial_guess_mode guess) const
+    const AbstractMultiVector* b, AbstractMultiVector* x,
+    initial_guess_mode guess) const
 {
     using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Chebyshev>;
@@ -213,13 +214,14 @@ void Chebyshev<ValueType>::apply_with_initial_guess_prepared_impl(
         this->get_system_matrix()->apply(neg_one_op, x, one_op, residual);
     }
     // zero input the residual is b
-    const MultiVector* residual_ptr =
+    const AbstractMultiVector* residual_ptr =
         guess == initial_guess_mode::zero ? b : residual;
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const MultiVector>(b, [](const MultiVector*) {}), x,
-        residual_ptr);
+        std::shared_ptr<const AbstractMultiVector>(
+            b, [](const AbstractMultiVector*) {}),
+        x, residual_ptr);
 
     int iter = -1;
     while (true) {
@@ -276,7 +278,8 @@ void Chebyshev<ValueType>::apply_with_initial_guess_prepared_impl(
 
 template <typename ValueType>
 void Chebyshev<ValueType>::apply_with_initial_guess_impl(
-    const MultiVector* b, MultiVector* x, initial_guess_mode guess) const
+    const AbstractMultiVector* b, AbstractMultiVector* x,
+    initial_guess_mode guess) const
 {
     if (!this->get_system_matrix()) {
         return;
@@ -292,10 +295,10 @@ void Chebyshev<ValueType>::apply_with_initial_guess_impl(
 
 
 template <typename ValueType>
-void Chebyshev<ValueType>::apply_impl(const MultiVector* alpha,
-                                      const MultiVector* b,
-                                      const MultiVector* beta,
-                                      MultiVector* x) const
+void Chebyshev<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                      const AbstractMultiVector* b,
+                                      const AbstractMultiVector* beta,
+                                      AbstractMultiVector* x) const
 {
     this->apply_with_initial_guess(alpha, b, beta, x,
                                    this->get_default_initial_guess());
@@ -303,8 +306,9 @@ void Chebyshev<ValueType>::apply_impl(const MultiVector* alpha,
 
 template <typename ValueType>
 void Chebyshev<ValueType>::apply_with_initial_guess_impl(
-    const MultiVector* alpha, const MultiVector* b, const MultiVector* beta,
-    MultiVector* x, initial_guess_mode guess) const
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x,
+    initial_guess_mode guess) const
 {
     if (!this->get_system_matrix()) {
         return;

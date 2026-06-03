@@ -20,13 +20,14 @@ struct DummyOperator : public gko::LinOp {
         : gko::LinOp(exec, gko::dim<2>{1, 1})
     {}
 
-    void apply_impl(const gko::MultiVector* b,
-                    gko::MultiVector* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {}
 
-    void apply_impl(const gko::MultiVector* alpha, const gko::MultiVector* b,
-                    const gko::MultiVector* beta,
-                    gko::MultiVector* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 };
 

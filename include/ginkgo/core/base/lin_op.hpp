@@ -35,7 +35,7 @@ class Diagonal;
 }  // namespace matrix
 
 
-class MultiVector;
+class AbstractMultiVector;
 
 
 /**
@@ -128,7 +128,8 @@ public:
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
      */
-    void apply(ptr_param<const MultiVector> b, ptr_param<MultiVector> x) const;
+    void apply(ptr_param<const AbstractMultiVector> b,
+               ptr_param<AbstractMultiVector> x) const;
 
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
@@ -138,10 +139,10 @@ public:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    void apply(ptr_param<const MultiVector> alpha,
-               ptr_param<const MultiVector> b,
-               ptr_param<const MultiVector> beta,
-               ptr_param<MultiVector> x) const;
+    void apply(ptr_param<const AbstractMultiVector> alpha,
+               ptr_param<const AbstractMultiVector> b,
+               ptr_param<const AbstractMultiVector> beta,
+               ptr_param<AbstractMultiVector> x) const;
 
     /**
      * Returns the size of the operator.
@@ -209,11 +210,13 @@ protected:
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
      */
-    virtual void apply_impl(const MultiVector* b, MultiVector* x) const = 0;
+    virtual void apply_impl(const AbstractMultiVector* b,
+                            AbstractMultiVector* x) const = 0;
 
     /**
-     * Default implementation of apply(const MultiVector*, const MultiVector*,
-     * const MultiVector*, MultiVector*). Implementers of LinOp may override
+     * Default implementation of apply(const AbstractMultiVector*,
+     * const AbstractMultiVector*, const AbstractMultiVector*,
+     * AbstractMultiVector*). Implementers of LinOp may override
      * this function to provide a custom implementation.
      *
      * @param alpha  scaling of the result of op(b)
@@ -221,8 +224,10 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    virtual void apply_impl(const MultiVector* alpha, const MultiVector* b,
-                            const MultiVector* beta, MultiVector* x) const;
+    virtual void apply_impl(const AbstractMultiVector* alpha,
+                            const AbstractMultiVector* b,
+                            const AbstractMultiVector* beta,
+                            AbstractMultiVector* x) const;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -231,8 +236,8 @@ protected:
      * @param b  vector(s) on which the operator is applied
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const MultiVector* b,
-                                         const MultiVector* x) const;
+    void validate_application_parameters(const AbstractMultiVector* b,
+                                         const AbstractMultiVector* x) const;
 
     /**
      * @copydoc validate_application_parameters
@@ -248,10 +253,10 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const MultiVector* alpha,
-                                         const MultiVector* b,
-                                         const MultiVector* beta,
-                                         const MultiVector* x) const;
+    void validate_application_parameters(const AbstractMultiVector* alpha,
+                                         const AbstractMultiVector* b,
+                                         const AbstractMultiVector* beta,
+                                         const AbstractMultiVector* x) const;
 
 private:
     dim<2> size_{};
@@ -758,12 +763,12 @@ public:
      * @param b  Scalar to multiply this before adding the scaled identity to
      *           it.
      */
-    void add_scaled_identity(ptr_param<const MultiVector> a,
-                             ptr_param<const MultiVector> b);
+    void add_scaled_identity(ptr_param<const AbstractMultiVector> a,
+                             ptr_param<const AbstractMultiVector> b);
 
 private:
-    virtual void add_scaled_identity_impl(const MultiVector* a,
-                                          const MultiVector* b) = 0;
+    virtual void add_scaled_identity_impl(const AbstractMultiVector* a,
+                                          const AbstractMultiVector* b) = 0;
 };
 
 

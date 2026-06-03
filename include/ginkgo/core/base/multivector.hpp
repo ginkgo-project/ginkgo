@@ -104,114 +104,119 @@ struct vector_traits<ConcreteType<ValueType, Args...>> {
 };
 
 
-class MultiVector : public PolymorphicObject, public Cloneable {
+class AbstractMultiVector : public PolymorphicObject, public Cloneable {
 public:
     template <typename ValueType>
     using device_view = matrix::view::dense<ValueType>;
 
-    [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
-        ptr_param<const MultiVector> other);
+    [[nodiscard]] static std::unique_ptr<AbstractMultiVector>
+    create_with_config_of(ptr_param<const AbstractMultiVector> other);
 
-    [[nodiscard]] static std::unique_ptr<MultiVector> create_with_type_of(
-        ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec);
+    [[nodiscard]] static std::unique_ptr<AbstractMultiVector>
+    create_with_type_of(ptr_param<const AbstractMultiVector> other,
+                        std::shared_ptr<const Executor> exec);
 
-    [[nodiscard]] static std::unique_ptr<MultiVector> create_with_type_of(
-        ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size);
+    [[nodiscard]] static std::unique_ptr<AbstractMultiVector>
+    create_with_type_of(ptr_param<const AbstractMultiVector> other,
+                        std::shared_ptr<const Executor> exec,
+                        const dim<2>& global_size, const dim<2>& local_size);
 
-    [[nodiscard]] static std::unique_ptr<MultiVector> create_with_type_of(
-        ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size, size_type stride);
+    [[nodiscard]] static std::unique_ptr<AbstractMultiVector>
+    create_with_type_of(ptr_param<const AbstractMultiVector> other,
+                        std::shared_ptr<const Executor> exec,
+                        const dim<2>& global_size, const dim<2>& local_size,
+                        size_type stride);
 
-    [[nodiscard]] std::unique_ptr<MultiVector> clone(
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> clone(
         std::shared_ptr<const Executor> exec) const;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> clone() const;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> clone() const;
 
-    MultiVector* copy_from(ptr_param<const MultiVector> other);
+    AbstractMultiVector* copy_from(ptr_param<const AbstractMultiVector> other);
 
-    MultiVector* move_from(ptr_param<MultiVector> other);
+    AbstractMultiVector* move_from(ptr_param<AbstractMultiVector> other);
 
-    [[nodiscard]] std::unique_ptr<MultiVector> create_default(
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_default(
         std::shared_ptr<const Executor> exec) const;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> create_default() const;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_default() const;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> compute_absolute() const;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> compute_absolute() const;
 
-    void compute_absolute(ptr_param<MultiVector> output) const;
+    void compute_absolute(ptr_param<AbstractMultiVector> output) const;
 
     void compute_absolute_inplace();
 
-    [[nodiscard]] std::unique_ptr<MultiVector> make_complex() const;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> make_complex() const;
 
-    void make_complex(ptr_param<MultiVector> result) const;
+    void make_complex(ptr_param<AbstractMultiVector> result) const;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> get_real() const;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> get_real() const;
 
-    void get_real(ptr_param<MultiVector> result) const;
+    void get_real(ptr_param<AbstractMultiVector> result) const;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> get_imag() const;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> get_imag() const;
 
-    void get_imag(ptr_param<MultiVector> result) const;
+    void get_imag(ptr_param<AbstractMultiVector> result) const;
 
     void fill(any_scalar value);
 
     // Todo figure out real * complex, since this has a special dense kernel
-    void scale(ptr_param<const MultiVector> alpha);
+    void scale(ptr_param<const AbstractMultiVector> alpha);
 
-    void inv_scale(ptr_param<const MultiVector> alpha);
+    void inv_scale(ptr_param<const AbstractMultiVector> alpha);
 
-    void add_scaled(ptr_param<const MultiVector> alpha,
-                    ptr_param<const MultiVector> b);
+    void add_scaled(ptr_param<const AbstractMultiVector> alpha,
+                    ptr_param<const AbstractMultiVector> b);
 
-    void sub_scaled(ptr_param<const MultiVector> alpha,
-                    ptr_param<const MultiVector> b);
+    void sub_scaled(ptr_param<const AbstractMultiVector> alpha,
+                    ptr_param<const AbstractMultiVector> b);
 
     // @todo: the result can only be one of Dense<...>
-    void compute_dot(ptr_param<const MultiVector> b,
-                     ptr_param<MultiVector> result) const;
+    void compute_dot(ptr_param<const AbstractMultiVector> b,
+                     ptr_param<AbstractMultiVector> result) const;
 
-    void compute_dot(ptr_param<const MultiVector> b,
-                     ptr_param<MultiVector> result, array<char>& tmp) const;
+    void compute_dot(ptr_param<const AbstractMultiVector> b,
+                     ptr_param<AbstractMultiVector> result,
+                     array<char>& tmp) const;
 
-    void compute_conj_dot(ptr_param<const MultiVector> b,
-                          ptr_param<MultiVector> result) const;
+    void compute_conj_dot(ptr_param<const AbstractMultiVector> b,
+                          ptr_param<AbstractMultiVector> result) const;
 
-    void compute_conj_dot(ptr_param<const MultiVector> b,
-                          ptr_param<MultiVector> result,
+    void compute_conj_dot(ptr_param<const AbstractMultiVector> b,
+                          ptr_param<AbstractMultiVector> result,
                           array<char>& tmp) const;
 
-    void compute_norm2(ptr_param<MultiVector> result) const;
+    void compute_norm2(ptr_param<AbstractMultiVector> result) const;
 
-    void compute_norm2(ptr_param<MultiVector> result, array<char>& tmp) const;
+    void compute_norm2(ptr_param<AbstractMultiVector> result,
+                       array<char>& tmp) const;
 
-    void compute_squared_norm2(ptr_param<MultiVector> result) const;
+    void compute_squared_norm2(ptr_param<AbstractMultiVector> result) const;
 
-    void compute_squared_norm2(ptr_param<MultiVector> result,
+    void compute_squared_norm2(ptr_param<AbstractMultiVector> result,
                                array<char>& tmp) const;
 
-    void compute_norm1(ptr_param<MultiVector> result) const;
+    void compute_norm1(ptr_param<AbstractMultiVector> result) const;
 
-    void compute_norm1(ptr_param<MultiVector> result, array<char>& tmp) const;
+    void compute_norm1(ptr_param<AbstractMultiVector> result,
+                       array<char>& tmp) const;
 
-    [[nodiscard]] std::unique_ptr<const MultiVector> create_real_view() const;
+    [[nodiscard]] std::unique_ptr<const AbstractMultiVector> create_real_view()
+        const;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> create_real_view();
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_real_view();
 
-    [[nodiscard]] std::unique_ptr<MultiVector> create_subview(
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_subview(
         local_span rows, local_span columns);
 
-    [[nodiscard]] std::unique_ptr<const MultiVector> create_subview(
+    [[nodiscard]] std::unique_ptr<const AbstractMultiVector> create_subview(
         local_span rows, local_span columns) const;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> create_subview(
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_subview(
         local_span rows, local_span columns, dim<2> global_size);
 
-    [[nodiscard]] std::unique_ptr<const MultiVector> create_subview(
+    [[nodiscard]] std::unique_ptr<const AbstractMultiVector> create_subview(
         local_span rows, local_span columns, dim<2> global_size) const;
 
     template <typename ValueType>
@@ -232,132 +237,136 @@ public:
      * @param p The requested precision
      * @return A vector with the requested precision
      */
-    [[nodiscard]] detail::temporary_conversion<MultiVector> as_precision(
-        precision p);
+    [[nodiscard]] detail::temporary_conversion<AbstractMultiVector>
+    as_precision(precision p);
 
-    [[nodiscard]] detail::temporary_conversion<MultiVector> as_precision(
-        ptr_param<const MultiVector> p);
+    [[nodiscard]] detail::temporary_conversion<AbstractMultiVector>
+    as_precision(ptr_param<const AbstractMultiVector> p);
 
-    [[nodiscard]] detail::temporary_conversion<MultiVector> as_precision(
-        ptr_param<const LinOp> p);
+    [[nodiscard]] detail::temporary_conversion<AbstractMultiVector>
+    as_precision(ptr_param<const LinOp> p);
 
-    [[nodiscard]] detail::temporary_conversion<const MultiVector> as_precision(
-        precision p) const;
+    [[nodiscard]] detail::temporary_conversion<const AbstractMultiVector>
+    as_precision(precision p) const;
 
-    [[nodiscard]] detail::temporary_conversion<const MultiVector> as_precision(
-        ptr_param<const MultiVector> p) const;
+    [[nodiscard]] detail::temporary_conversion<const AbstractMultiVector>
+    as_precision(ptr_param<const AbstractMultiVector> p) const;
 
-    [[nodiscard]] detail::temporary_conversion<const MultiVector> as_precision(
-        ptr_param<const LinOp> p) const;
+    [[nodiscard]] detail::temporary_conversion<const AbstractMultiVector>
+    as_precision(ptr_param<const LinOp> p) const;
 
     [[nodiscard]] precision get_precision() const noexcept;
 
     [[nodiscard]] dim<2> get_size() const noexcept;
 
-    MultiVector(const MultiVector& other);
+    AbstractMultiVector(const AbstractMultiVector& other);
 
-    MultiVector(MultiVector&& other);
-
-    // Preserves executor and precision on both objects
-    MultiVector& operator=(const MultiVector& other);
+    AbstractMultiVector(AbstractMultiVector&& other);
 
     // Preserves executor and precision on both objects
-    MultiVector& operator=(MultiVector&& other);
+    AbstractMultiVector& operator=(const AbstractMultiVector& other);
+
+    // Preserves executor and precision on both objects
+    AbstractMultiVector& operator=(AbstractMultiVector&& other);
 
 protected:
-    explicit MultiVector(std::shared_ptr<const Executor> exec,
-                         const dim<2>& size = dim<2>{},
-                         precision p = precision::none);
+    explicit AbstractMultiVector(std::shared_ptr<const Executor> exec,
+                                 const dim<2>& size = dim<2>{},
+                                 precision p = precision::none);
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     create_generic_with_same_config_impl() const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     create_generic_with_type_of_impl(std::shared_ptr<const Executor> exec,
                                      const dim<2>& global_size,
                                      const dim<2>& local_size,
                                      size_type stride) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     compute_absolute_generic_impl() const = 0;
 
-    virtual void compute_absolute_generic_impl(MultiVector* result) const = 0;
+    virtual void compute_absolute_generic_impl(
+        AbstractMultiVector* result) const = 0;
 
     virtual void compute_absolute_inplace_impl() = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     make_complex_generic_impl() const = 0;
 
-    virtual void make_complex_generic_impl(MultiVector* result) const = 0;
+    virtual void make_complex_generic_impl(
+        AbstractMultiVector* result) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> get_real_generic_impl()
-        const = 0;
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
+    get_real_generic_impl() const = 0;
 
-    virtual void get_real_generic_impl(MultiVector* result) const = 0;
+    virtual void get_real_generic_impl(AbstractMultiVector* result) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector> get_imag_generic_impl()
-        const = 0;
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
+    get_imag_generic_impl() const = 0;
 
-    virtual void get_imag_generic_impl(MultiVector* result) const = 0;
+    virtual void get_imag_generic_impl(AbstractMultiVector* result) const = 0;
 
     virtual void fill_impl(any_scalar value) = 0;
 
     // @todo: need to fix alpha to a our dense type
-    virtual void scale_impl(const MultiVector* alpha) = 0;
+    virtual void scale_impl(const AbstractMultiVector* alpha) = 0;
 
-    virtual void inv_scale_impl(const MultiVector* alpha) = 0;
+    virtual void inv_scale_impl(const AbstractMultiVector* alpha) = 0;
 
-    virtual void add_scaled_impl(const MultiVector* alpha,
-                                 const MultiVector* b) = 0;
+    virtual void add_scaled_impl(const AbstractMultiVector* alpha,
+                                 const AbstractMultiVector* b) = 0;
 
-    virtual void sub_scaled_impl(const MultiVector* alpha,
-                                 const MultiVector* b) = 0;
+    virtual void sub_scaled_impl(const AbstractMultiVector* alpha,
+                                 const AbstractMultiVector* b) = 0;
 
-    virtual void compute_dot_impl(const MultiVector* b,
-                                  MultiVector* result) const = 0;
+    virtual void compute_dot_impl(const AbstractMultiVector* b,
+                                  AbstractMultiVector* result) const = 0;
 
-    virtual void compute_dot_impl(const MultiVector* b, MultiVector* result,
+    virtual void compute_dot_impl(const AbstractMultiVector* b,
+                                  AbstractMultiVector* result,
                                   array<char>& tmp) const = 0;
 
-    virtual void compute_conj_dot_impl(const MultiVector* b,
-                                       MultiVector* result) const = 0;
+    virtual void compute_conj_dot_impl(const AbstractMultiVector* b,
+                                       AbstractMultiVector* result) const = 0;
 
-    virtual void compute_conj_dot_impl(const MultiVector* b,
-                                       MultiVector* result,
+    virtual void compute_conj_dot_impl(const AbstractMultiVector* b,
+                                       AbstractMultiVector* result,
                                        array<char>& tmp) const = 0;
 
-    virtual void compute_norm2_impl(MultiVector* result) const = 0;
+    virtual void compute_norm2_impl(AbstractMultiVector* result) const = 0;
 
-    virtual void compute_norm2_impl(MultiVector* result,
+    virtual void compute_norm2_impl(AbstractMultiVector* result,
                                     array<char>& tmp) const = 0;
 
-    virtual void compute_squared_norm2_impl(MultiVector* result) const = 0;
+    virtual void compute_squared_norm2_impl(
+        AbstractMultiVector* result) const = 0;
 
-    virtual void compute_squared_norm2_impl(MultiVector* result,
+    virtual void compute_squared_norm2_impl(AbstractMultiVector* result,
                                             array<char>& tmp) const = 0;
 
-    virtual void compute_norm1_impl(MultiVector* result) const = 0;
+    virtual void compute_norm1_impl(AbstractMultiVector* result) const = 0;
 
-    virtual void compute_norm1_impl(MultiVector* result,
+    virtual void compute_norm1_impl(AbstractMultiVector* result,
                                     array<char>& tmp) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<const MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<const AbstractMultiVector>
     create_real_view_generic_impl() const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     create_real_view_generic_impl() = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     create_subview_generic_impl(local_span rows, local_span columns) = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<const MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<const AbstractMultiVector>
     create_subview_generic_impl(local_span rows, local_span columns) const = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     create_subview_generic_impl(local_span rows, local_span columns,
                                 dim<2> global_size) = 0;
 
-    [[nodiscard]] virtual std::unique_ptr<const MultiVector>
+    [[nodiscard]] virtual std::unique_ptr<const AbstractMultiVector>
     create_subview_generic_impl(local_span rows, local_span columns,
                                 dim<2> global_size) const = 0;
 
@@ -383,10 +392,11 @@ protected:
         device_view<const double>, device_view<const std::complex<double>>>
     get_const_local_device_view_generic_impl() const = 0;
 
-    [[nodiscard]] virtual gko::detail::temporary_conversion<MultiVector>
+    [[nodiscard]] virtual gko::detail::temporary_conversion<AbstractMultiVector>
     as_precision_impl(precision p) = 0;
 
-    [[nodiscard]] virtual gko::detail::temporary_conversion<const MultiVector>
+    [[nodiscard]] virtual gko::detail::temporary_conversion<
+        const AbstractMultiVector>
     as_precision_impl(precision p) const = 0;
 
     void set_size(const dim<2>& value) noexcept;
@@ -398,7 +408,7 @@ private:
 
 
 template <typename ConcreteType>
-class EnableMultiVector : public MultiVector,
+class EnableMultiVector : public AbstractMultiVector,
                           public ConvertibleTo<ConcreteType> {
 public:
     using traits = vector_traits<ConcreteType>;
@@ -408,8 +418,9 @@ public:
     using real_type = typename traits::real_type;
     using complex_type = typename traits::complex_type;
     using result_type = ConcreteType;
-    using device_view = MultiVector::device_view<value_type>;
-    using const_device_view = MultiVector::device_view<const value_type>;
+    using device_view = AbstractMultiVector::device_view<value_type>;
+    using const_device_view =
+        AbstractMultiVector::device_view<const value_type>;
 
     using ConvertibleTo<result_type>::convert_to;
     using ConvertibleTo<result_type>::move_to;
@@ -502,7 +513,7 @@ protected:
         std::shared_ptr<const Executor> exec) const override;
 
     EnableMultiVector(std::shared_ptr<const Executor> exec, dim<2> size = {})
-        : MultiVector(exec, size, type_to_precision<value_type>)
+        : AbstractMultiVector(exec, size, type_to_precision<value_type>)
     {}
 
     // Concretized function calls
@@ -596,132 +607,141 @@ protected:
     virtual void compute_norm1_impl(matrix::Dense<absolute_value_type>* result,
                                     array<char>& tmp) const = 0;
 
-    [[nodiscard]] detail::temporary_conversion<MultiVector> as_precision_impl(
-        precision p) override;
+    [[nodiscard]] detail::temporary_conversion<AbstractMultiVector>
+    as_precision_impl(precision p) override;
 
-    [[nodiscard]] detail::temporary_conversion<const MultiVector>
+    [[nodiscard]] detail::temporary_conversion<const AbstractMultiVector>
     as_precision_impl(precision p) const override;
 
-    virtual MultiVector::device_view<value_type>
+    virtual AbstractMultiVector::device_view<value_type>
     get_local_device_view_impl() = 0;
 
-    virtual MultiVector::device_view<const value_type>
+    virtual AbstractMultiVector::device_view<const value_type>
     get_const_local_device_view_impl() const = 0;
 
     [[nodiscard]] std::variant<
 #if GINKGO_ENABLE_HALF
-        MultiVector::device_view<half>,
-        MultiVector::device_view<std::complex<half>>,
+        AbstractMultiVector::device_view<half>,
+        AbstractMultiVector::device_view<std::complex<half>>,
 #endif
 #if GINKGO_ENABLE_BFLOAT16
-        MultiVector::device_view<bfloat16>,
-        MultiVector::device_view<std::complex<bfloat16>>,
+        AbstractMultiVector::device_view<bfloat16>,
+        AbstractMultiVector::device_view<std::complex<bfloat16>>,
 #endif
-        MultiVector::device_view<float>,
-        MultiVector::device_view<std::complex<float>>,
-        MultiVector::device_view<double>,
-        MultiVector::device_view<std::complex<double>>>
+        AbstractMultiVector::device_view<float>,
+        AbstractMultiVector::device_view<std::complex<float>>,
+        AbstractMultiVector::device_view<double>,
+        AbstractMultiVector::device_view<std::complex<double>>>
     get_local_device_view_generic_impl() override;
 
     [[nodiscard]] std::variant<
 #if GINKGO_ENABLE_HALF
-        MultiVector::device_view<const half>,
-        MultiVector::device_view<const std::complex<half>>,
+        AbstractMultiVector::device_view<const half>,
+        AbstractMultiVector::device_view<const std::complex<half>>,
 #endif
 #if GINKGO_ENABLE_BFLOAT16
-        MultiVector::device_view<const bfloat16>,
-        MultiVector::device_view<const std::complex<bfloat16>>,
+        AbstractMultiVector::device_view<const bfloat16>,
+        AbstractMultiVector::device_view<const std::complex<bfloat16>>,
 #endif
-        MultiVector::device_view<const float>,
-        MultiVector::device_view<const std::complex<float>>,
-        MultiVector::device_view<const double>,
-        MultiVector::device_view<const std::complex<double>>>
+        AbstractMultiVector::device_view<const float>,
+        AbstractMultiVector::device_view<const std::complex<float>>,
+        AbstractMultiVector::device_view<const double>,
+        AbstractMultiVector::device_view<const std::complex<double>>>
     get_const_local_device_view_generic_impl() const override;
 
     GKO_ENABLE_SELF(ConcreteType);
 
 private:
-    [[nodiscard]] std::unique_ptr<MultiVector>
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector>
     create_generic_with_same_config_impl() const final;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> create_generic_with_type_of_impl(
-        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size, size_type stride) const final;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector>
+    create_generic_with_type_of_impl(std::shared_ptr<const Executor> exec,
+                                     const dim<2>& global_size,
+                                     const dim<2>& local_size,
+                                     size_type stride) const final;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> create_subview_generic_impl(
-        local_span rows, local_span columns) final;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector>
+    create_subview_generic_impl(local_span rows, local_span columns) final;
 
-    [[nodiscard]] std::unique_ptr<const MultiVector>
+    [[nodiscard]] std::unique_ptr<const AbstractMultiVector>
     create_subview_generic_impl(local_span rows,
                                 local_span columns) const final;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> create_subview_generic_impl(
-        local_span rows, local_span columns, dim<2> global_size) final;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector>
+    create_subview_generic_impl(local_span rows, local_span columns,
+                                dim<2> global_size) final;
 
-    [[nodiscard]] std::unique_ptr<const MultiVector>
+    [[nodiscard]] std::unique_ptr<const AbstractMultiVector>
     create_subview_generic_impl(local_span rows, local_span columns,
                                 dim<2> global_size) const final;
 
-    [[nodiscard]] std::unique_ptr<const MultiVector>
+    [[nodiscard]] std::unique_ptr<const AbstractMultiVector>
     create_real_view_generic_impl() const final;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> create_real_view_generic_impl()
-        final;
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector>
+    create_real_view_generic_impl() final;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> compute_absolute_generic_impl()
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector>
+    compute_absolute_generic_impl() const final;
+
+    void compute_absolute_generic_impl(AbstractMultiVector* result) const final;
+
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector>
+    make_complex_generic_impl() const final;
+
+    void make_complex_generic_impl(AbstractMultiVector* result) const final;
+
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> get_real_generic_impl()
         const final;
 
-    void compute_absolute_generic_impl(MultiVector* result) const final;
+    void get_real_generic_impl(AbstractMultiVector* result) const final;
 
-    [[nodiscard]] std::unique_ptr<MultiVector> make_complex_generic_impl()
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> get_imag_generic_impl()
         const final;
 
-    void make_complex_generic_impl(MultiVector* result) const final;
-
-    [[nodiscard]] std::unique_ptr<MultiVector> get_real_generic_impl()
-        const final;
-
-    void get_real_generic_impl(MultiVector* result) const final;
-
-    [[nodiscard]] std::unique_ptr<MultiVector> get_imag_generic_impl()
-        const final;
-
-    void get_imag_generic_impl(MultiVector* result) const final;
+    void get_imag_generic_impl(AbstractMultiVector* result) const final;
 
     void fill_impl(any_scalar value) override final;
 
-    void scale_impl(const MultiVector* alpha) override final;
+    void scale_impl(const AbstractMultiVector* alpha) override final;
 
-    void inv_scale_impl(const MultiVector* alpha) override final;
+    void inv_scale_impl(const AbstractMultiVector* alpha) override final;
 
-    void add_scaled_impl(const MultiVector* alpha, const MultiVector* b) final;
+    void add_scaled_impl(const AbstractMultiVector* alpha,
+                         const AbstractMultiVector* b) final;
 
-    void sub_scaled_impl(const MultiVector* alpha, const MultiVector* b) final;
+    void sub_scaled_impl(const AbstractMultiVector* alpha,
+                         const AbstractMultiVector* b) final;
 
-    void compute_dot_impl(const MultiVector* b,
-                          MultiVector* result) const final;
+    void compute_dot_impl(const AbstractMultiVector* b,
+                          AbstractMultiVector* result) const final;
 
-    void compute_dot_impl(const MultiVector* b, MultiVector* result,
+    void compute_dot_impl(const AbstractMultiVector* b,
+                          AbstractMultiVector* result,
                           array<char>& tmp) const final;
 
-    void compute_conj_dot_impl(const MultiVector* b,
-                               MultiVector* result) const final;
+    void compute_conj_dot_impl(const AbstractMultiVector* b,
+                               AbstractMultiVector* result) const final;
 
-    void compute_conj_dot_impl(const MultiVector* b, MultiVector* result,
+    void compute_conj_dot_impl(const AbstractMultiVector* b,
+                               AbstractMultiVector* result,
                                array<char>& tmp) const final;
 
-    void compute_norm2_impl(MultiVector* result) const final;
+    void compute_norm2_impl(AbstractMultiVector* result) const final;
 
-    void compute_norm2_impl(MultiVector* result, array<char>& tmp) const final;
+    void compute_norm2_impl(AbstractMultiVector* result,
+                            array<char>& tmp) const final;
 
-    void compute_squared_norm2_impl(MultiVector* result) const final;
+    void compute_squared_norm2_impl(AbstractMultiVector* result) const final;
 
-    void compute_squared_norm2_impl(MultiVector* result,
+    void compute_squared_norm2_impl(AbstractMultiVector* result,
                                     array<char>& tmp) const final;
 
-    void compute_norm1_impl(MultiVector* result) const final;
+    void compute_norm1_impl(AbstractMultiVector* result) const final;
 
-    void compute_norm1_impl(MultiVector* result, array<char>& tmp) const final;
+    void compute_norm1_impl(AbstractMultiVector* result,
+                            array<char>& tmp) const final;
 };
 
 
@@ -1032,7 +1052,7 @@ std::unique_ptr<Cloneable> EnableMultiVector<ConcreteType>::create_default_impl(
 
 
 template <typename ConcreteType>
-std::unique_ptr<MultiVector>
+std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::create_generic_with_same_config_impl() const
 {
     return this->create_with_same_config_impl();
@@ -1040,7 +1060,7 @@ EnableMultiVector<ConcreteType>::create_generic_with_same_config_impl() const
 
 
 template <typename ConcreteType>
-std::unique_ptr<MultiVector>
+std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::create_generic_with_type_of_impl(
     std::shared_ptr<const Executor> exec, const dim<2>& global_size,
     const dim<2>& local_size, size_type stride) const
@@ -1051,7 +1071,7 @@ EnableMultiVector<ConcreteType>::create_generic_with_type_of_impl(
 
 
 template <typename ConcreteType>
-std::unique_ptr<MultiVector>
+std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::create_subview_generic_impl(local_span rows,
                                                              local_span columns)
 {
@@ -1060,7 +1080,7 @@ EnableMultiVector<ConcreteType>::create_subview_generic_impl(local_span rows,
 
 
 template <typename ConcreteType>
-std::unique_ptr<const MultiVector>
+std::unique_ptr<const AbstractMultiVector>
 EnableMultiVector<ConcreteType>::create_subview_generic_impl(
     local_span rows, local_span columns) const
 {
@@ -1069,7 +1089,7 @@ EnableMultiVector<ConcreteType>::create_subview_generic_impl(
 
 
 template <typename ConcreteType>
-std::unique_ptr<MultiVector>
+std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::create_subview_generic_impl(local_span rows,
                                                              local_span columns,
                                                              dim<2> global_size)
@@ -1079,7 +1099,7 @@ EnableMultiVector<ConcreteType>::create_subview_generic_impl(local_span rows,
 
 
 template <typename ConcreteType>
-std::unique_ptr<const MultiVector>
+std::unique_ptr<const AbstractMultiVector>
 EnableMultiVector<ConcreteType>::create_subview_generic_impl(
     local_span rows, local_span columns, dim<2> global_size) const
 {
@@ -1088,7 +1108,7 @@ EnableMultiVector<ConcreteType>::create_subview_generic_impl(
 
 
 template <typename ConcreteType>
-std::unique_ptr<const MultiVector>
+std::unique_ptr<const AbstractMultiVector>
 EnableMultiVector<ConcreteType>::create_real_view_generic_impl() const
 {
     return this->create_real_view_impl();
@@ -1096,7 +1116,7 @@ EnableMultiVector<ConcreteType>::create_real_view_generic_impl() const
 
 
 template <typename ConcreteType>
-std::unique_ptr<MultiVector>
+std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::create_real_view_generic_impl()
 {
     return this->create_real_view_impl();
@@ -1104,7 +1124,7 @@ EnableMultiVector<ConcreteType>::create_real_view_generic_impl()
 
 
 template <typename ConcreteType>
-std::unique_ptr<MultiVector>
+std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::compute_absolute_generic_impl() const
 {
     return this->compute_absolute_impl();
@@ -1113,13 +1133,13 @@ EnableMultiVector<ConcreteType>::compute_absolute_generic_impl() const
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_absolute_generic_impl(
-    MultiVector* result) const
+    AbstractMultiVector* result) const
 {
     this->compute_absolute_impl(as<absolute_type>(result));
 }
 
 template <typename ConcreteType>
-std::unique_ptr<MultiVector>
+std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::make_complex_generic_impl() const
 {
     return this->make_complex_impl();
@@ -1128,14 +1148,14 @@ EnableMultiVector<ConcreteType>::make_complex_generic_impl() const
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::make_complex_generic_impl(
-    MultiVector* result) const
+    AbstractMultiVector* result) const
 {
     this->make_complex_impl(as<complex_type>(result));
 }
 
 
 template <typename ConcreteType>
-std::unique_ptr<MultiVector>
+std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::get_real_generic_impl() const
 {
     return this->get_real_impl();
@@ -1144,14 +1164,14 @@ EnableMultiVector<ConcreteType>::get_real_generic_impl() const
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::get_real_generic_impl(
-    MultiVector* result) const
+    AbstractMultiVector* result) const
 {
     this->get_real_impl(as<absolute_type>(result));
 }
 
 
 template <typename ConcreteType>
-std::unique_ptr<MultiVector>
+std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::get_imag_generic_impl() const
 {
     return this->get_imag_impl();
@@ -1160,7 +1180,7 @@ EnableMultiVector<ConcreteType>::get_imag_generic_impl() const
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::get_imag_generic_impl(
-    MultiVector* result) const
+    AbstractMultiVector* result) const
 {
     this->get_imag_impl(as<absolute_type>(result));
 }
@@ -1201,7 +1221,8 @@ using scaling_factor_target_type =
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::scale_impl(const MultiVector* alpha)
+void EnableMultiVector<ConcreteType>::scale_impl(
+    const AbstractMultiVector* alpha)
 {
     std::visit(
         [this, alpha](auto p) {
@@ -1224,7 +1245,8 @@ void EnableMultiVector<ConcreteType>::scale_impl(const MultiVector* alpha)
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::inv_scale_impl(const MultiVector* alpha)
+void EnableMultiVector<ConcreteType>::inv_scale_impl(
+    const AbstractMultiVector* alpha)
 {
     std::visit(
         [this, alpha](auto p) {
@@ -1246,8 +1268,8 @@ void EnableMultiVector<ConcreteType>::inv_scale_impl(const MultiVector* alpha)
 }
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::add_scaled_impl(const MultiVector* alpha,
-                                                      const MultiVector* b)
+void EnableMultiVector<ConcreteType>::add_scaled_impl(
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b)
 {
     std::visit(
         [this, alpha, b](auto p) {
@@ -1273,8 +1295,8 @@ void EnableMultiVector<ConcreteType>::add_scaled_impl(const MultiVector* alpha,
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::sub_scaled_impl(const MultiVector* alpha,
-                                                      const MultiVector* b)
+void EnableMultiVector<ConcreteType>::sub_scaled_impl(
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b)
 {
     std::visit(
         [this, alpha, b](auto p) {
@@ -1301,7 +1323,7 @@ void EnableMultiVector<ConcreteType>::sub_scaled_impl(const MultiVector* alpha,
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_dot_impl(
-    const MultiVector* b, MultiVector* result) const
+    const AbstractMultiVector* b, AbstractMultiVector* result) const
 {
     this->compute_dot_impl(
         as<const ConcreteType>(b->as_precision(this->get_precision()).get()),
@@ -1311,9 +1333,9 @@ void EnableMultiVector<ConcreteType>::compute_dot_impl(
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_dot_impl(const MultiVector* b,
-                                                       MultiVector* result,
-                                                       array<char>& tmp) const
+void EnableMultiVector<ConcreteType>::compute_dot_impl(
+    const AbstractMultiVector* b, AbstractMultiVector* result,
+    array<char>& tmp) const
 {
     this->compute_dot_impl(
         as<const ConcreteType>(b->as_precision(this->get_precision()).get()),
@@ -1325,7 +1347,7 @@ void EnableMultiVector<ConcreteType>::compute_dot_impl(const MultiVector* b,
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
-    const MultiVector* b, MultiVector* result) const
+    const AbstractMultiVector* b, AbstractMultiVector* result) const
 {
     this->compute_conj_dot_impl(
         as<const ConcreteType>(b->as_precision(this->get_precision()).get()),
@@ -1336,7 +1358,8 @@ void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
-    const MultiVector* b, MultiVector* result, array<char>& tmp) const
+    const AbstractMultiVector* b, AbstractMultiVector* result,
+    array<char>& tmp) const
 {
     this->compute_conj_dot_impl(
         as<const ConcreteType>(b->as_precision(this->get_precision()).get()),
@@ -1348,7 +1371,7 @@ void EnableMultiVector<ConcreteType>::compute_conj_dot_impl(
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_norm2_impl(
-    MultiVector* result) const
+    AbstractMultiVector* result) const
 {
     this->compute_norm2_impl(as<matrix::Dense<absolute_value_type>>(
         result->as_precision(as_real(this->get_precision())).get()));
@@ -1356,8 +1379,8 @@ void EnableMultiVector<ConcreteType>::compute_norm2_impl(
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_norm2_impl(MultiVector* result,
-                                                         array<char>& tmp) const
+void EnableMultiVector<ConcreteType>::compute_norm2_impl(
+    AbstractMultiVector* result, array<char>& tmp) const
 {
     this->compute_norm2_impl(
         as<matrix::Dense<absolute_value_type>>(
@@ -1368,7 +1391,7 @@ void EnableMultiVector<ConcreteType>::compute_norm2_impl(MultiVector* result,
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
-    MultiVector* result) const
+    AbstractMultiVector* result) const
 {
     this->compute_squared_norm2_impl(as<matrix::Dense<absolute_value_type>>(
         result->as_precision(as_real(this->get_precision())).get()));
@@ -1377,7 +1400,7 @@ void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
-    MultiVector* result, array<char>& tmp) const
+    AbstractMultiVector* result, array<char>& tmp) const
 {
     this->compute_squared_norm2_impl(
         as<matrix::Dense<absolute_value_type>>(
@@ -1388,7 +1411,7 @@ void EnableMultiVector<ConcreteType>::compute_squared_norm2_impl(
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::compute_norm1_impl(
-    MultiVector* result) const
+    AbstractMultiVector* result) const
 {
     this->compute_norm1_impl(as<matrix::Dense<absolute_value_type>>(
         result->as_precision(as_real(this->get_precision())).get()));
@@ -1396,8 +1419,8 @@ void EnableMultiVector<ConcreteType>::compute_norm1_impl(
 
 
 template <typename ConcreteType>
-void EnableMultiVector<ConcreteType>::compute_norm1_impl(MultiVector* result,
-                                                         array<char>& tmp) const
+void EnableMultiVector<ConcreteType>::compute_norm1_impl(
+    AbstractMultiVector* result, array<char>& tmp) const
 {
     this->compute_norm1_impl(
         as<matrix::Dense<absolute_value_type>>(
@@ -1407,15 +1430,15 @@ void EnableMultiVector<ConcreteType>::compute_norm1_impl(MultiVector* result,
 
 
 template <typename ConcreteType>
-detail::temporary_conversion<MultiVector>
+detail::temporary_conversion<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::as_precision_impl(precision p)
 {
     return std::visit(
-        [this](auto v) -> detail::temporary_conversion<MultiVector> {
+        [this](auto v) -> detail::temporary_conversion<AbstractMultiVector> {
             using target_value_type = std::decay_t<decltype(v)>;
             if constexpr (is_supported_conversion_v<value_type,
                                                     target_value_type>) {
-                return detail::temporary_conversion<MultiVector>::
+                return detail::temporary_conversion<AbstractMultiVector>::
                     create_from_derived(
                         self()->template as_precision<target_value_type>());
             } else {
@@ -1427,15 +1450,16 @@ EnableMultiVector<ConcreteType>::as_precision_impl(precision p)
 
 
 template <typename ConcreteType>
-detail::temporary_conversion<const MultiVector>
+detail::temporary_conversion<const AbstractMultiVector>
 EnableMultiVector<ConcreteType>::as_precision_impl(precision p) const
 {
     return std::visit(
-        [this](auto v) -> detail::temporary_conversion<const MultiVector> {
+        [this](
+            auto v) -> detail::temporary_conversion<const AbstractMultiVector> {
             using target_value_type = std::decay_t<decltype(v)>;
             if constexpr (is_supported_conversion_v<value_type,
                                                     target_value_type>) {
-                return detail::temporary_conversion<const MultiVector>::
+                return detail::temporary_conversion<const AbstractMultiVector>::
                     create_from_derived(
                         self()->template as_precision<target_value_type>());
             } else {
@@ -1449,18 +1473,18 @@ EnableMultiVector<ConcreteType>::as_precision_impl(precision p) const
 template <typename ConcreteType>
 std::variant<
 #if GINKGO_ENABLE_HALF
-    MultiVector::device_view<half>,
-    MultiVector::device_view<std::complex<half>>,
+    AbstractMultiVector::device_view<half>,
+    AbstractMultiVector::device_view<std::complex<half>>,
 #endif
 #if GINKGO_ENABLE_BFLOAT16
-    MultiVector::device_view<bfloat16>,
-    MultiVector::device_view<std::complex<bfloat16>>,
+    AbstractMultiVector::device_view<bfloat16>,
+    AbstractMultiVector::device_view<std::complex<bfloat16>>,
 #endif
 
-    MultiVector::device_view<float>,
-    MultiVector::device_view<std::complex<float>>,
-    MultiVector::device_view<double>,
-    MultiVector::device_view<std::complex<double>>>
+    AbstractMultiVector::device_view<float>,
+    AbstractMultiVector::device_view<std::complex<float>>,
+    AbstractMultiVector::device_view<double>,
+    AbstractMultiVector::device_view<std::complex<double>>>
 EnableMultiVector<ConcreteType>::get_local_device_view_generic_impl()
 {
     return static_cast<ConcreteType*>(this)->get_local_device_view();
@@ -1470,17 +1494,17 @@ EnableMultiVector<ConcreteType>::get_local_device_view_generic_impl()
 template <typename ConcreteType>
 std::variant<
 #if GINKGO_ENABLE_HALF
-    MultiVector::device_view<const half>,
-    MultiVector::device_view<const std::complex<half>>,
+    AbstractMultiVector::device_view<const half>,
+    AbstractMultiVector::device_view<const std::complex<half>>,
 #endif
 #if GINKGO_ENABLE_BFLOAT16
-    MultiVector::device_view<const bfloat16>,
-    MultiVector::device_view<const std::complex<bfloat16>>,
+    AbstractMultiVector::device_view<const bfloat16>,
+    AbstractMultiVector::device_view<const std::complex<bfloat16>>,
 #endif
-    MultiVector::device_view<const float>,
-    MultiVector::device_view<const std::complex<float>>,
-    MultiVector::device_view<const double>,
-    MultiVector::device_view<const std::complex<double>>>
+    AbstractMultiVector::device_view<const float>,
+    AbstractMultiVector::device_view<const std::complex<float>>,
+    AbstractMultiVector::device_view<const double>,
+    AbstractMultiVector::device_view<const std::complex<double>>>
 EnableMultiVector<ConcreteType>::get_const_local_device_view_generic_impl()
     const
 {

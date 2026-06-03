@@ -158,10 +158,11 @@ struct ResidualLogger : gko::log::Logger {
 
 protected:
     void on_iteration_complete(
-        const gko::LinOp*, const gko::MultiVector* right_hand_side,
-        const gko::MultiVector* solution, const gko::size_type&,
-        const gko::MultiVector* residual, const gko::MultiVector* residual_norm,
-        const gko::MultiVector* implicit_sq_residual_norm,
+        const gko::LinOp*, const gko::AbstractMultiVector* right_hand_side,
+        const gko::AbstractMultiVector* solution, const gko::size_type&,
+        const gko::AbstractMultiVector* residual,
+        const gko::AbstractMultiVector* residual_norm,
+        const gko::AbstractMultiVector* implicit_sq_residual_norm,
         const gko::array<gko::stopping_status>* status,
         bool all_stopped) const override
     {
@@ -193,7 +194,7 @@ protected:
 
 private:
     const gko::LinOp* matrix;
-    const gko::MultiVector* b;
+    const gko::AbstractMultiVector* b;
     std::chrono::steady_clock::time_point start;
     json* rec_res_norms;
     json* true_res_norms;
@@ -212,13 +213,12 @@ struct IterationLogger : gko::log::Logger {
     void write_data(json& output) { output["iterations"] = this->num_iters; }
 
 protected:
-    void on_iteration_complete(const gko::LinOp*, const gko::MultiVector*,
-                               const gko::MultiVector*,
-                               const gko::size_type& num_iterations,
-                               const gko::MultiVector*, const gko::MultiVector*,
-                               const gko::MultiVector*,
-                               const gko::array<gko::stopping_status>*,
-                               bool) const override
+    void on_iteration_complete(
+        const gko::LinOp*, const gko::AbstractMultiVector*,
+        const gko::AbstractMultiVector*, const gko::size_type& num_iterations,
+        const gko::AbstractMultiVector*, const gko::AbstractMultiVector*,
+        const gko::AbstractMultiVector*,
+        const gko::array<gko::stopping_status>*, bool) const override
     {
         this->num_iters = num_iterations;
     }

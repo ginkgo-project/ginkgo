@@ -251,15 +251,16 @@ auto run(std::shared_ptr<T> obj, Func&& f, Args&&... args)
  * Also handles complex->real conversion if necessary.
  *
  * @tparam ValueType Value type to convert the inputs to
- * @tparam Fn Function type, has signature void(const MultiVector*,
- *                                              MultiVector*)
+ * @tparam Fn Function type, has signature void(const AbstractMultiVector*,
+ *                                              AbstractMultiVector*)
  *
  * @param fn Function to apply to the converted inputs
  * @param b Input vector
  * @param x Output vector
  */
 template <typename ValueType, typename Fn>
-void precision_dispatch(Fn&& fn, const MultiVector* b, MultiVector* x)
+void precision_dispatch(Fn&& fn, const AbstractMultiVector* b,
+                        AbstractMultiVector* x)
 {
     auto p = type_to_precision<ValueType>;
     if constexpr (!is_complex<ValueType>()) {
@@ -278,7 +279,8 @@ void precision_dispatch(Fn&& fn, const MultiVector* b, MultiVector* x)
  *       fn(device_view_type<ValueType>, device_view_type<ValueType>)
  */
 template <typename ValueType, typename Fn>
-void apply_precision_dispatch(Fn&& fn, const MultiVector* b, MultiVector* x)
+void apply_precision_dispatch(Fn&& fn, const AbstractMultiVector* b,
+                              AbstractMultiVector* x)
 {
     precision_dispatch<ValueType>(
         [&fn](auto b_, auto x_) {
@@ -290,17 +292,18 @@ void apply_precision_dispatch(Fn&& fn, const MultiVector* b, MultiVector* x)
 
 
 /**
- * Same as apply_dispatch(Fn, const MultiVector*, MultiVector*), except for the
- * additional alpha and beta scalars.
+ * Same as apply_dispatch(Fn, const AbstractMultiVector*, AbstractMultiVector*),
+ * except for the additional alpha and beta scalars.
  *
  * Note: the function needs to have the following signature:
  *       fn(Dense<ValueType>*, device_view_type<ValueType>, Dense<ValueType>*,
  *          device_view_type<ValueType>)
  */
 template <typename ValueType, typename Fn>
-void apply_precision_dispatch(Fn&& fn, const MultiVector* alpha,
-                              const MultiVector* b, const MultiVector* beta,
-                              MultiVector* x)
+void apply_precision_dispatch(Fn&& fn, const AbstractMultiVector* alpha,
+                              const AbstractMultiVector* b,
+                              const AbstractMultiVector* beta,
+                              AbstractMultiVector* x)
 {
     auto p = type_to_precision<ValueType>;
     auto dense_alpha = as<matrix::Dense<ValueType>>(alpha->as_precision(p));
@@ -327,15 +330,16 @@ void apply_precision_dispatch(Fn&& fn, const MultiVector* alpha,
  *
  * @tparam ValueType Value type to ensure compatibility with
  * @tparam Fn Function type, has signature
- *            void(const MultiVector* b, MultiVector* x, ValueTypeIn,
- *                 ValueTypeOut)
+ *            void(const AbstractMultiVector* b, AbstractMultiVector* x,
+ *                 ValueTypeIn, ValueTypeOut)
  *
  * @param fn Function to apply to the inputs
  * @param b Input vector
  * @param x Output vector
  */
 template <typename ValueType, typename Fn>
-void mixed_precision_dispatch(Fn&& fn, const MultiVector* b, MultiVector* x)
+void mixed_precision_dispatch(Fn&& fn, const AbstractMultiVector* b,
+                              AbstractMultiVector* x)
 {
 #ifdef GINKGO_MIXED_PRECISION
     auto precision_b = precision_to_variant(b->get_precision());
@@ -381,8 +385,8 @@ void mixed_precision_dispatch(Fn&& fn, const MultiVector* b, MultiVector* x)
  *          ValueTypeIn, ValueTypeOut)
  */
 template <typename ValueType, typename Fn>
-void apply_mixed_precision_dispatch(Fn&& fn, const MultiVector* b,
-                                    MultiVector* x)
+void apply_mixed_precision_dispatch(Fn&& fn, const AbstractMultiVector* b,
+                                    AbstractMultiVector* x)
 {
     mixed_precision_dispatch<ValueType>(
         [&fn](auto b_, auto x_, auto p_b, auto p_x) {
@@ -396,8 +400,8 @@ void apply_mixed_precision_dispatch(Fn&& fn, const MultiVector* b,
 
 
 /**
- * Same as mixed_precision_apply_dispatch(Fn, const MultiVector*, MultiVector*),
- * except for the additional alpha and beta scalars.
+ * Same as mixed_precision_apply_dispatch(Fn, const AbstractMultiVector*,
+ * AbstractMultiVector*), except for the additional alpha and beta scalars.
  *
  * @note the function needs to have the following signature:
  *       fn(Dense<ValueType>, device_view_type<ValueTypeIn>,
@@ -408,9 +412,10 @@ void apply_mixed_precision_dispatch(Fn&& fn, const MultiVector* b,
  * @param beta input scalar converted to precision of x if necessary
  */
 template <typename ValueType, typename Fn>
-void apply_mixed_precision_dispatch(Fn&& fn, const MultiVector* alpha,
-                                    const MultiVector* b,
-                                    const MultiVector* beta, MultiVector* x)
+void apply_mixed_precision_dispatch(Fn&& fn, const AbstractMultiVector* alpha,
+                                    const AbstractMultiVector* b,
+                                    const AbstractMultiVector* beta,
+                                    AbstractMultiVector* x)
 {
     auto dense_alpha = as<matrix::Dense<ValueType>>(
         alpha->as_precision(type_to_precision<ValueType>));

@@ -184,10 +184,13 @@ protected:
                       std::forward<Rest>(rest)...);
     }
 
-    void apply_impl(const MultiVector* b, MultiVector* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const MultiVector* alpha, const MultiVector* b,
-                    const MultiVector* beta, MultiVector* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
 private:
     std::vector<std::shared_ptr<const matrix::Dense<ValueType>>> coefficients_;
@@ -202,7 +205,7 @@ private:
 
         std::unique_ptr<matrix::Dense<ValueType>> zero;
         std::unique_ptr<matrix::Dense<ValueType>> one;
-        std::unique_ptr<MultiVector> intermediate_x;
+        std::unique_ptr<AbstractMultiVector> intermediate_x;
     } cache_;
 };
 

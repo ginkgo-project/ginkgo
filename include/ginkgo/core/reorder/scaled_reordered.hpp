@@ -102,10 +102,13 @@ protected:
     explicit ScaledReordered(const Factory* factory,
                              std::shared_ptr<const LinOp> system_matrix);
 
-    void apply_impl(const MultiVector* b, MultiVector* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const MultiVector* alpha, const MultiVector* b,
-                    const MultiVector* beta, MultiVector* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     /**
      * Prepares the intermediate right hand side, solution and intermediate
@@ -118,7 +121,8 @@ protected:
      * case the inner operator uses an initial guess, will be scaled and
      * permuted accordingly.
      */
-    void set_cache_to(const MultiVector* b, const MultiVector* x) const;
+    void set_cache_to(const AbstractMultiVector* b,
+                      const AbstractMultiVector* x) const;
 
 private:
     std::shared_ptr<matrix::Csr<ValueType, IndexType>> system_matrix_{};

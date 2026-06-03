@@ -189,8 +189,8 @@ Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                              MultiVector* x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                              AbstractMultiVector* x) const
 {
     auto converted_b = b->as_precision(this);
     auto converted_x = x->as_precision(this);
@@ -200,10 +200,10 @@ void Hybrid<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
-                                              const MultiVector* b,
-                                              const MultiVector* beta,
-                                              MultiVector* x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                              const AbstractMultiVector* b,
+                                              const AbstractMultiVector* beta,
+                                              AbstractMultiVector* x) const
 {
     auto converted_alpha = alpha->as_precision(this);
     auto converted_b = b->as_precision(this);

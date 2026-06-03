@@ -20,7 +20,8 @@ namespace solver {
  * @param x  the input vectors
  * @param guess  the input guess
  */
-inline void prepare_initial_guess(const MultiVector* b, MultiVector* x,
+inline void prepare_initial_guess(const AbstractMultiVector* b,
+                                  AbstractMultiVector* x,
                                   initial_guess_mode guess)
 {
     if (guess == initial_guess_mode::zero) {

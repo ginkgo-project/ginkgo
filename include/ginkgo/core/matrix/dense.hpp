@@ -587,13 +587,13 @@ public:
      *                        matrix and `gather_indices->get_size()` rows.
      */
     void row_gather(const array<int32>* gather_indices,
-                    ptr_param<MultiVector> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const array<int32>*, LinOp*) const
      */
     void row_gather(const array<int64>* gather_indices,
-                    ptr_param<MultiVector> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * Copies the given rows from this matrix into `row_collection` with scaling
@@ -608,19 +608,19 @@ public:
      *             It must have the same number of columns as this
      *             matrix and `gather_indices->get_size()` rows.
      */
-    void row_gather(ptr_param<const MultiVector> alpha,
+    void row_gather(ptr_param<const AbstractMultiVector> alpha,
                     const array<int32>* gather_indices,
-                    ptr_param<const MultiVector> beta,
-                    ptr_param<MultiVector> row_collection) const;
+                    ptr_param<const AbstractMultiVector> beta,
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const LinOp*, const array<int32>*, const LinOp*,
      * LinOp*) const
      */
-    void row_gather(ptr_param<const MultiVector> alpha,
+    void row_gather(ptr_param<const AbstractMultiVector> alpha,
                     const array<int64>* gather_indices,
-                    ptr_param<const MultiVector> beta,
-                    ptr_param<MultiVector> row_collection) const;
+                    ptr_param<const AbstractMultiVector> beta,
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     std::unique_ptr<Dense> column_permute(
         const array<int32>* permutation_indices) const;
@@ -795,10 +795,10 @@ public:
         return values_.get_const_data()[linearize_index(idx)];
     }
 
-    void add_scaled(ptr_param<const MultiVector> alpha,
+    void add_scaled(ptr_param<const AbstractMultiVector> alpha,
                     ptr_param<const Diagonal<value_type>> diag);
 
-    void sub_scaled(ptr_param<const MultiVector> alpha,
+    void sub_scaled(ptr_param<const AbstractMultiVector> alpha,
                     ptr_param<const Diagonal<value_type>> diag);
 
     /**
@@ -808,7 +808,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_mean(ptr_param<MultiVector> result) const;
+    void compute_mean(ptr_param<AbstractMultiVector> result) const;
 
     /**
      * Computes the column-wise arithmetic mean of this matrix.
@@ -820,7 +820,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_mean(ptr_param<MultiVector> result, array<char>& tmp) const;
+    void compute_mean(ptr_param<AbstractMultiVector> result,
+                      array<char>& tmp) const;
 
     template <typename OtherValueType>
     [[nodiscard]] gko::detail::temporary_conversion<Dense<OtherValueType>>
@@ -1013,7 +1014,7 @@ protected:
     /**
      * @copydoc compute_mean(LinOp*) const
      */
-    virtual void compute_mean_impl(MultiVector* result) const;
+    virtual void compute_mean_impl(AbstractMultiVector* result) const;
 
     /**
      * Resizes the matrix to the given size.
@@ -1153,8 +1154,8 @@ private:
     size_type stride_;
     array<value_type> values_;
 
-    void add_scaled_identity_impl(const MultiVector* a,
-                                  const MultiVector* b) override;
+    void add_scaled_identity_impl(const AbstractMultiVector* a,
+                                  const AbstractMultiVector* b) override;
 };
 
 

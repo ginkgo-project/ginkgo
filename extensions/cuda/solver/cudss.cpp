@@ -266,8 +266,8 @@ void Cudss<ValueType, IndexType>::refactorize(
 
 
 template <typename ValueType, typename IndexType>
-void Cudss<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                             MultiVector* x) const
+void Cudss<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                             AbstractMultiVector* x) const
 {
     auto dense_b = as<matrix::Dense<ValueType>>(b->as_precision(this));
     auto dense_x = as<matrix::Dense<ValueType>>(x->as_precision(this));
@@ -341,10 +341,10 @@ void Cudss<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void Cudss<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
-                                             const MultiVector* b,
-                                             const MultiVector* beta,
-                                             MultiVector* x) const
+void Cudss<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                             const AbstractMultiVector* b,
+                                             const AbstractMultiVector* beta,
+                                             AbstractMultiVector* x) const
 {
     auto converted_x = x->as_precision(this);
     auto tmp = converted_x->clone();

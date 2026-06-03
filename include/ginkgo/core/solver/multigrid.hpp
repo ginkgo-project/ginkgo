@@ -398,20 +398,25 @@ public:
                                      config::make_type_descriptor<>());
 
 protected:
-    void apply_impl(const MultiVector* b, MultiVector* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const MultiVector* alpha, const MultiVector* b,
-                    const MultiVector* beta, MultiVector* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
-    void apply_with_initial_guess_impl(const MultiVector* b, MultiVector* x,
+    void apply_with_initial_guess_impl(const AbstractMultiVector* b,
+                                       AbstractMultiVector* x,
                                        initial_guess_mode guess) const override;
 
-    void apply_with_initial_guess_impl(const MultiVector* alpha,
-                                       const MultiVector* b,
-                                       const MultiVector* beta, MultiVector* x,
+    void apply_with_initial_guess_impl(const AbstractMultiVector* alpha,
+                                       const AbstractMultiVector* b,
+                                       const AbstractMultiVector* beta,
+                                       AbstractMultiVector* x,
                                        initial_guess_mode guess) const override;
 
-    void apply_dense_impl(const MultiVector* b, MultiVector* x,
+    void apply_dense_impl(const AbstractMultiVector* b, AbstractMultiVector* x,
                           initial_guess_mode guess) const;
 
     /**

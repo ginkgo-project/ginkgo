@@ -126,8 +126,8 @@ Ic<ValueType, IndexType>::Ic(Ic&& other) : Ic{other.get_executor()}
 
 
 template <typename ValueType, typename IndexType>
-void Ic<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                          MultiVector* x) const
+void Ic<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                          AbstractMultiVector* x) const
 {
     auto converted_b = b->as_precision(this);
     auto converted_x = x->as_precision(this);
@@ -144,10 +144,10 @@ void Ic<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void Ic<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
-                                          const MultiVector* b,
-                                          const MultiVector* beta,
-                                          MultiVector* x) const
+void Ic<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                          const AbstractMultiVector* b,
+                                          const AbstractMultiVector* beta,
+                                          AbstractMultiVector* x) const
 {
     auto converted_b = b->as_precision(this);
     auto converted_x = x->as_precision(this);
@@ -223,7 +223,7 @@ Ic<ValueType, IndexType>::Ic(const Factory* factory,
 
 
 template <typename ValueType, typename IndexType>
-void Ic<ValueType, IndexType>::set_cache_to(const MultiVector* b) const
+void Ic<ValueType, IndexType>::set_cache_to(const AbstractMultiVector* b) const
 {
     if (cache_.intermediate == nullptr) {
         cache_.intermediate =

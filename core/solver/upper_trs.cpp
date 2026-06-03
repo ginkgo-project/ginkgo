@@ -162,8 +162,8 @@ static bool needs_transpose(std::shared_ptr<const Executor> exec)
 
 
 template <typename ValueType, typename IndexType>
-void UpperTrs<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                                MultiVector* x) const
+void UpperTrs<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                                AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
@@ -204,10 +204,9 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void UpperTrs<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
-                                                const MultiVector* b,
-                                                const MultiVector* beta,
-                                                MultiVector* x) const
+void UpperTrs<ValueType, IndexType>::apply_impl(
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;

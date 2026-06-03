@@ -262,8 +262,8 @@ void Permutation<IndexType>::write(
 
 
 template <typename IndexType>
-void Permutation<IndexType>::apply_impl(const MultiVector* in,
-                                        MultiVector* out) const
+void Permutation<IndexType>::apply_impl(const AbstractMultiVector* in,
+                                        AbstractMultiVector* out) const
 {
     std::visit(
         [this, in, out](auto p) {
@@ -277,10 +277,10 @@ void Permutation<IndexType>::apply_impl(const MultiVector* in,
 
 
 template <typename IndexType>
-void Permutation<IndexType>::apply_impl(const MultiVector* alpha,
-                                        const MultiVector* in,
-                                        const MultiVector* beta,
-                                        MultiVector* out) const
+void Permutation<IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                        const AbstractMultiVector* in,
+                                        const AbstractMultiVector* beta,
+                                        AbstractMultiVector* out) const
 {
     std::visit(
         [this, in, out, alpha, beta](auto p) {

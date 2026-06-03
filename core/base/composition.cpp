@@ -25,9 +25,9 @@ GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 
 
 template <typename ValueType>
-std::unique_ptr<MultiVector> apply_inner_operators(
+std::unique_ptr<AbstractMultiVector> apply_inner_operators(
     const std::vector<std::shared_ptr<const LinOp>>& operators,
-    array<ValueType>& storage, const MultiVector* rhs)
+    array<ValueType>& storage, const AbstractMultiVector* rhs)
 {
     using Dense = matrix::Dense<ValueType>;
     // determine amount of necessary storage:
@@ -185,8 +185,8 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Composition<ValueType>::apply_impl(const MultiVector* b,
-                                        MultiVector* x) const
+void Composition<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                        AbstractMultiVector* x) const
 {
     auto converted_b = b->as_precision(this);
     auto converted_x = x->as_precision(this);
@@ -202,10 +202,10 @@ void Composition<ValueType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType>
-void Composition<ValueType>::apply_impl(const MultiVector* alpha,
-                                        const MultiVector* b,
-                                        const MultiVector* beta,
-                                        MultiVector* x) const
+void Composition<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                        const AbstractMultiVector* b,
+                                        const AbstractMultiVector* beta,
+                                        AbstractMultiVector* x) const
 {
     auto converted_alpha = alpha->as_precision(this);
     auto converted_b = b->as_precision(this);

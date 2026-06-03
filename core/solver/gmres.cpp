@@ -128,7 +128,7 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 template <typename ValueType, typename = void>
 struct help_compute_norm {
     static void compute_next_krylov_norm_into_hessenberg(
-        const MultiVector* next_krylov,
+        const AbstractMultiVector* next_krylov,
         matrix::Dense<ValueType>* hessenberg_norm_entry,
         matrix::Dense<remove_complex<ValueType>>*, array<char>& reduction_tmp)
     {
@@ -140,7 +140,8 @@ struct help_compute_norm {
 // Orthogonalization helper functions
 template <typename ValueType>
 void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
-                       MultiVector* krylov_bases, MultiVector* next_krylov,
+                       AbstractMultiVector* krylov_bases,
+                       AbstractMultiVector* next_krylov,
                        array<char>& reduction_tmp, size_type restart_iter,
                        size_type num_rows, size_type num_rhs,
                        size_type local_num_rows)
@@ -165,7 +166,7 @@ void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
 
 template <typename ValueType>
 void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
-                   MultiVector* next_krylov, const size_type num_rhs,
+                   AbstractMultiVector* next_krylov, const size_type num_rhs,
                    const size_type restart_iter)
 {
 #if GINKGO_BUILD_MPI
@@ -206,9 +207,10 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
 
 template <typename ValueType>
 void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
-                       MultiVector* krylov_bases, MultiVector* next_krylov,
-                       size_type restart_iter, size_type num_rows,
-                       size_type num_rhs, size_type local_num_rows)
+                       AbstractMultiVector* krylov_bases,
+                       AbstractMultiVector* next_krylov, size_type restart_iter,
+                       size_type num_rows, size_type num_rhs,
+                       size_type local_num_rows)
 {
     auto exec = hessenberg_iter->get_executor();
     // hessenberg(0:restart_iter, restart_iter) = krylov_basis' *
@@ -236,7 +238,8 @@ void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
 
 template <typename ValueType>
 void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
-                        MultiVector* krylov_bases, MultiVector* next_krylov,
+                        AbstractMultiVector* krylov_bases,
+                        AbstractMultiVector* next_krylov,
                         matrix::Dense<ValueType>* hessenberg_aux,
                         const matrix::Dense<ValueType>* one_op,
                         size_type restart_iter, size_type num_rows,
@@ -292,7 +295,7 @@ template <typename ValueType>
 struct help_compute_norm<ValueType,
                          std::enable_if_t<is_complex_s<ValueType>::value>> {
     static void compute_next_krylov_norm_into_hessenberg(
-        const MultiVector* next_krylov,
+        const AbstractMultiVector* next_krylov,
         matrix::Dense<ValueType>* hessenberg_norm_entry,
         matrix::Dense<remove_complex<ValueType>>* next_krylov_norm_tmp,
         array<char>& reduction_tmp)
@@ -304,7 +307,8 @@ struct help_compute_norm<ValueType,
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
+void Gmres<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                  AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
@@ -335,7 +339,7 @@ void Gmres<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
     auto krylov_bases = this->create_workspace_op_with_type_of(
         ws::krylov_bases, dense_b, dim<2>{num_rows * (krylov_dim + 1), num_rhs},
         dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
-    MultiVector* preconditioned_krylov_bases = nullptr;
+    AbstractMultiVector* preconditioned_krylov_bases = nullptr;
     if (is_flexible) {
         preconditioned_krylov_bases = this->create_workspace_op_with_type_of(
             ws::preconditioned_krylov_bases, dense_b,
@@ -415,7 +419,8 @@ void Gmres<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
-        std::shared_ptr<const MultiVector>(dense_b, [](const MultiVector*) {}),
+        std::shared_ptr<const AbstractMultiVector>(
+            dense_b, [](const AbstractMultiVector*) {}),
         dense_x, residual);
 
     int total_iter = -1;
@@ -503,7 +508,7 @@ void Gmres<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
             local_span{local_num_rows * (restart_iter + 1),
                        local_num_rows * (restart_iter + 2)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-        std::unique_ptr<MultiVector> preconditioned_krylov;
+        std::unique_ptr<AbstractMultiVector> preconditioned_krylov;
         auto preconditioned_krylov_vector = preconditioned_vector;
         if (is_flexible) {
             preconditioned_krylov = preconditioned_krylov_bases->create_subview(
@@ -635,9 +640,10 @@ void Gmres<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const MultiVector* alpha,
-                                  const MultiVector* b, const MultiVector* beta,
-                                  MultiVector* x) const
+void Gmres<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                  const AbstractMultiVector* b,
+                                  const AbstractMultiVector* beta,
+                                  AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;

@@ -129,8 +129,8 @@ ScaledPermutation<ValueType, IndexType>::compose(
 
 
 template <typename ValueType, typename IndexType>
-void ScaledPermutation<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                                         MultiVector* x) const
+void ScaledPermutation<ValueType, IndexType>::apply_impl(
+    const AbstractMultiVector* b, AbstractMultiVector* x) const
 {
     using dense_type = Dense<ValueType>;
     as<dense_type>(b->as_precision(this))
@@ -141,8 +141,8 @@ void ScaledPermutation<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 template <typename ValueType, typename IndexType>
 void ScaledPermutation<ValueType, IndexType>::apply_impl(
-    const MultiVector* alpha, const MultiVector* b, const MultiVector* beta,
-    MultiVector* x) const
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
 {
     using dense_type = Dense<ValueType>;
     auto tmp = as<dense_type>(b->as_precision(this))

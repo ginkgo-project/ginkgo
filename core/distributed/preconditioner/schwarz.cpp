@@ -85,7 +85,7 @@ bool Schwarz<ValueType, LocalIndexType,
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const MultiVector* b, MultiVector* x) const
+    const AbstractMultiVector* b, AbstractMultiVector* x) const
 {
     precision_dispatch<ValueType>(
         [&](auto converted_b, auto converted_x) {
@@ -144,8 +144,8 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const MultiVector* alpha, const MultiVector* b, const MultiVector* beta,
-    MultiVector* x) const
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
 {
     // only dispatch distributed case
     auto dense_x = as<Vector<ValueType>>(x->as_precision(this));

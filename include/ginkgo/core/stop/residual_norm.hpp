@@ -74,7 +74,7 @@ protected:
 private:
     mode baseline_{mode::rhs_norm};
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const MultiVector> b_{};
+    std::shared_ptr<const AbstractMultiVector> b_{};
     /* one/neg_one for residual computation */
     std::shared_ptr<const Vector> one_{};
     std::shared_ptr<const Vector> neg_one_{};

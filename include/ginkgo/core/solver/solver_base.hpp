@@ -79,11 +79,12 @@ protected:
      * @param x  the output vector(s) where the result is stored
      * @param guess  the input guess to handle the input vector(s)
      */
-    virtual void apply_with_initial_guess(const MultiVector* b, MultiVector* x,
+    virtual void apply_with_initial_guess(const AbstractMultiVector* b,
+                                          AbstractMultiVector* x,
                                           initial_guess_mode guess) const = 0;
 
-    void apply_with_initial_guess(ptr_param<const MultiVector> b,
-                                  ptr_param<MultiVector> x,
+    void apply_with_initial_guess(ptr_param<const AbstractMultiVector> b,
+                                  ptr_param<AbstractMultiVector> x,
                                   initial_guess_mode guess) const
     {
         apply_with_initial_guess(b.get(), x.get(), guess);
@@ -101,17 +102,17 @@ protected:
      * @param x  output vector(s)
      * @param guess  the input guess to handle the input vector(s)
      */
-    virtual void apply_with_initial_guess(const MultiVector* alpha,
-                                          const MultiVector* b,
-                                          const MultiVector* beta,
-                                          MultiVector* x,
+    virtual void apply_with_initial_guess(const AbstractMultiVector* alpha,
+                                          const AbstractMultiVector* b,
+                                          const AbstractMultiVector* beta,
+                                          AbstractMultiVector* x,
                                           initial_guess_mode guess) const = 0;
 
 
-    void apply_with_initial_guess(ptr_param<const MultiVector> alpha,
-                                  ptr_param<const MultiVector> b,
-                                  ptr_param<const MultiVector> beta,
-                                  ptr_param<MultiVector> x,
+    void apply_with_initial_guess(ptr_param<const AbstractMultiVector> alpha,
+                                  ptr_param<const AbstractMultiVector> b,
+                                  ptr_param<const AbstractMultiVector> beta,
+                                  ptr_param<AbstractMultiVector> x,
                                   initial_guess_mode guess) const
     {
         apply_with_initial_guess(alpha.get(), b.get(), beta.get(), x.get(),
@@ -171,10 +172,12 @@ protected:
     {}
 
     /**
-     * @copydoc apply_with_initial_guess(const MultiVector*, MultiVector*,
-     *          initial_guess_mode)
+     * @copydoc apply_with_initial_guess(const AbstractMultiVector*,
+     *                                   AbstractMultiVector*,
+     *                                   initial_guess_mode)
      */
-    void apply_with_initial_guess(const MultiVector* b, MultiVector* x,
+    void apply_with_initial_guess(const AbstractMultiVector* b,
+                                  AbstractMultiVector* x,
                                   initial_guess_mode guess) const override
     {
         self()->template log<log::Logger::linop_apply_started>(self(), b, x);
@@ -189,12 +192,14 @@ protected:
     }
 
     /**
-     * @copydoc apply_with_initial_guess(const MultiVector*,const
-     * MultiVector*,const MultiVector*, MultiVector*, initial_guess_mode)
+     * @copydoc apply_with_initial_guess(const AbstractMultiVector*,const
+     *          AbstractMultiVector*,const AbstractMultiVector*,
+     *          AbstractMultiVector*, initial_guess_mode)
      */
-    void apply_with_initial_guess(const MultiVector* alpha,
-                                  const MultiVector* b, const MultiVector* beta,
-                                  MultiVector* x,
+    void apply_with_initial_guess(const AbstractMultiVector* alpha,
+                                  const AbstractMultiVector* b,
+                                  const AbstractMultiVector* beta,
+                                  AbstractMultiVector* x,
                                   initial_guess_mode guess) const override
     {
         self()->template log<log::Logger::linop_advanced_apply_started>(
@@ -220,7 +225,7 @@ protected:
      * according to the initial_guess_mode
      */
     virtual void apply_with_initial_guess_impl(
-        const MultiVector* b, MultiVector* x,
+        const AbstractMultiVector* b, AbstractMultiVector* x,
         initial_guess_mode guess) const = 0;
 
     /**
@@ -228,8 +233,9 @@ protected:
      * according to the initial_guess_mode
      */
     virtual void apply_with_initial_guess_impl(
-        const MultiVector* alpha, const MultiVector* b, const MultiVector* beta,
-        MultiVector* x, initial_guess_mode guess) const = 0;
+        const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+        const AbstractMultiVector* beta, AbstractMultiVector* x,
+        initial_guess_mode guess) const = 0;
 
     GKO_ENABLE_SELF(DerivedType);
 };
@@ -382,7 +388,7 @@ public:
         return system_matrix_;
     }
 
-    const MultiVector* get_workspace_op(int vector_id) const
+    const AbstractMultiVector* get_workspace_op(int vector_id) const
     {
         return workspace_.get_vector(vector_id);
     }
@@ -417,9 +423,9 @@ protected:
         workspace_.set_size(num_operators, num_arrays);
     }
 
-    template <
-        typename VectorType,
-        typename = std::enable_if_t<std::is_base_of_v<MultiVector, VectorType>>>
+    template <typename VectorType,
+              typename = std::enable_if_t<
+                  std::is_base_of_v<AbstractMultiVector, VectorType>>>
     VectorType* create_workspace_op(int vector_id, gko::dim<2> size) const
     {
         return as<VectorType>(workspace_.create_or_get_vector(
@@ -431,9 +437,9 @@ protected:
             typeid(VectorType), size));
     }
 
-    template <
-        typename VectorType,
-        typename = std::enable_if_t<std::is_base_of_v<MultiVector, VectorType>>>
+    template <typename VectorType,
+              typename = std::enable_if_t<
+                  std::is_base_of_v<AbstractMultiVector, VectorType>>>
     VectorType* create_workspace_op_with_config_of(int vector_id,
                                                    const VectorType* vec) const
     {
@@ -442,9 +448,9 @@ protected:
             typeid(*vec), vec->get_size()));
     }
 
-    template <
-        typename VectorType,
-        typename = std::enable_if_t<std::is_base_of_v<MultiVector, VectorType>>>
+    template <typename VectorType,
+              typename = std::enable_if_t<
+                  std::is_base_of_v<AbstractMultiVector, VectorType>>>
     VectorType* create_workspace_op_with_type_of(int vector_id,
                                                  const VectorType* vec,
                                                  dim<2> global_size,

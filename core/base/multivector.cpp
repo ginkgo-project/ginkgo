@@ -8,32 +8,37 @@
 namespace gko {
 
 
-MultiVector::MultiVector(std::shared_ptr<const Executor> exec,
-                         const dim<2>& size, precision p)
+AbstractMultiVector::AbstractMultiVector(std::shared_ptr<const Executor> exec,
+                                         const dim<2>& size, precision p)
     : PolymorphicObject(std::move(exec)), size_(size), precision_(p)
 {}
 
 
-void MultiVector::set_size(const dim<2>& value) noexcept { size_ = value; }
+void AbstractMultiVector::set_size(const dim<2>& value) noexcept
+{
+    size_ = value;
+}
 
 
-std::unique_ptr<MultiVector> MultiVector::create_with_config_of(
-    ptr_param<const MultiVector> other)
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_with_config_of(
+    ptr_param<const AbstractMultiVector> other)
 {
     return other->create_generic_with_same_config_impl();
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::create_with_type_of(
-    ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec)
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_with_type_of(
+    ptr_param<const AbstractMultiVector> other,
+    std::shared_ptr<const Executor> exec)
 {
     return other->create_generic_with_type_of_impl(std::move(exec), {}, {}, 0);
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::create_with_type_of(
-    ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec,
-    const dim<2>& global_size, const dim<2>& local_size)
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_with_type_of(
+    ptr_param<const AbstractMultiVector> other,
+    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+    const dim<2>& local_size)
 {
     GKO_ASSERT_EQUAL_COLS(global_size, local_size);
     return other->create_generic_with_type_of_impl(std::move(exec), global_size,
@@ -41,64 +46,69 @@ std::unique_ptr<MultiVector> MultiVector::create_with_type_of(
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::create_with_type_of(
-    ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec,
-    const dim<2>& global_size, const dim<2>& local_size, size_type stride)
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_with_type_of(
+    ptr_param<const AbstractMultiVector> other,
+    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+    const dim<2>& local_size, size_type stride)
 {
     return other->create_generic_with_type_of_impl(std::move(exec), global_size,
                                                    local_size, stride);
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::clone(
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::clone(
     std::shared_ptr<const Executor> exec) const
 {
-    return std::unique_ptr<MultiVector>(
-        as<MultiVector>(this->clone_impl(std::move(exec)).release()));
+    return std::unique_ptr<AbstractMultiVector>(
+        as<AbstractMultiVector>(this->clone_impl(std::move(exec)).release()));
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::clone() const
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::clone() const
 {
-    return std::unique_ptr<MultiVector>(
-        as<MultiVector>(this->clone_impl(this->get_executor()).release()));
+    return std::unique_ptr<AbstractMultiVector>(as<AbstractMultiVector>(
+        this->clone_impl(this->get_executor()).release()));
 }
 
 
-MultiVector* MultiVector::copy_from(ptr_param<const MultiVector> other)
+AbstractMultiVector* AbstractMultiVector::copy_from(
+    ptr_param<const AbstractMultiVector> other)
 {
-    return as<MultiVector>(this->copy_from_impl(other.get()));
+    return as<AbstractMultiVector>(this->copy_from_impl(other.get()));
 }
 
 
-MultiVector* MultiVector::move_from(ptr_param<MultiVector> other)
+AbstractMultiVector* AbstractMultiVector::move_from(
+    ptr_param<AbstractMultiVector> other)
 {
-    return as<MultiVector>(this->move_from_impl(other.get()));
+    return as<AbstractMultiVector>(this->move_from_impl(other.get()));
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::create_default(
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_default(
     std::shared_ptr<const Executor> exec) const
 {
-    return std::unique_ptr<MultiVector>(
-        as<MultiVector>(this->create_default_impl(std::move(exec)).release()));
+    return std::unique_ptr<AbstractMultiVector>(as<AbstractMultiVector>(
+        this->create_default_impl(std::move(exec)).release()));
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::create_default() const
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_default() const
 {
-    return std::unique_ptr<MultiVector>(as<MultiVector>(
+    return std::unique_ptr<AbstractMultiVector>(as<AbstractMultiVector>(
         this->create_default_impl(this->get_executor()).release()));
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::compute_absolute() const
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::compute_absolute()
+    const
 {
     return this->compute_absolute_generic_impl();
 }
 
 
-void MultiVector::compute_absolute(ptr_param<MultiVector> output) const
+void AbstractMultiVector::compute_absolute(
+    ptr_param<AbstractMultiVector> output) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
@@ -107,19 +117,20 @@ void MultiVector::compute_absolute(ptr_param<MultiVector> output) const
 }
 
 
-void MultiVector::compute_absolute_inplace()
+void AbstractMultiVector::compute_absolute_inplace()
 {
     this->compute_absolute_inplace_impl();
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::make_complex() const
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::make_complex() const
 {
     return this->make_complex_generic_impl();
 }
 
 
-void MultiVector::make_complex(ptr_param<MultiVector> result) const
+void AbstractMultiVector::make_complex(
+    ptr_param<AbstractMultiVector> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
@@ -128,13 +139,13 @@ void MultiVector::make_complex(ptr_param<MultiVector> result) const
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::get_real() const
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::get_real() const
 {
     return this->get_real_generic_impl();
 }
 
 
-void MultiVector::get_real(ptr_param<MultiVector> result) const
+void AbstractMultiVector::get_real(ptr_param<AbstractMultiVector> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
@@ -143,13 +154,13 @@ void MultiVector::get_real(ptr_param<MultiVector> result) const
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::get_imag() const
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::get_imag() const
 {
     return this->get_imag_generic_impl();
 }
 
 
-void MultiVector::get_imag(ptr_param<MultiVector> result) const
+void AbstractMultiVector::get_imag(ptr_param<AbstractMultiVector> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
@@ -158,7 +169,7 @@ void MultiVector::get_imag(ptr_param<MultiVector> result) const
 }
 
 
-void MultiVector::fill(any_scalar value) { this->fill_impl(value); }
+void AbstractMultiVector::fill(any_scalar value) { this->fill_impl(value); }
 
 
 #define GKO_ASSERT_IS_DENSE(alpha)                                           \
@@ -179,7 +190,7 @@ void MultiVector::fill(any_scalar value) { this->fill_impl(value); }
                   "semi-colon warnings")
 
 
-void MultiVector::scale(ptr_param<const MultiVector> alpha)
+void AbstractMultiVector::scale(ptr_param<const AbstractMultiVector> alpha)
 {
     GKO_ASSERT_IS_DENSE(alpha);
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
@@ -192,7 +203,7 @@ void MultiVector::scale(ptr_param<const MultiVector> alpha)
 }
 
 
-void MultiVector::inv_scale(ptr_param<const MultiVector> alpha)
+void AbstractMultiVector::inv_scale(ptr_param<const AbstractMultiVector> alpha)
 {
     GKO_ASSERT_IS_DENSE(alpha);
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
@@ -205,8 +216,8 @@ void MultiVector::inv_scale(ptr_param<const MultiVector> alpha)
 }
 
 
-void MultiVector::add_scaled(ptr_param<const MultiVector> alpha,
-                             ptr_param<const MultiVector> b)
+void AbstractMultiVector::add_scaled(ptr_param<const AbstractMultiVector> alpha,
+                                     ptr_param<const AbstractMultiVector> b)
 {
     GKO_ASSERT_IS_DENSE(alpha);
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
@@ -221,8 +232,8 @@ void MultiVector::add_scaled(ptr_param<const MultiVector> alpha,
 }
 
 
-void MultiVector::sub_scaled(ptr_param<const MultiVector> alpha,
-                             ptr_param<const MultiVector> b)
+void AbstractMultiVector::sub_scaled(ptr_param<const AbstractMultiVector> alpha,
+                                     ptr_param<const AbstractMultiVector> b)
 {
     GKO_ASSERT_IS_DENSE(alpha);
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
@@ -237,8 +248,9 @@ void MultiVector::sub_scaled(ptr_param<const MultiVector> alpha,
 }
 
 
-void MultiVector::compute_dot(ptr_param<const MultiVector> b,
-                              ptr_param<MultiVector> result) const
+void AbstractMultiVector::compute_dot(
+    ptr_param<const AbstractMultiVector> b,
+    ptr_param<AbstractMultiVector> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -248,9 +260,9 @@ void MultiVector::compute_dot(ptr_param<const MultiVector> b,
 }
 
 
-void MultiVector::compute_dot(ptr_param<const MultiVector> b,
-                              ptr_param<MultiVector> result,
-                              array<char>& tmp) const
+void AbstractMultiVector::compute_dot(ptr_param<const AbstractMultiVector> b,
+                                      ptr_param<AbstractMultiVector> result,
+                                      array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -265,8 +277,9 @@ void MultiVector::compute_dot(ptr_param<const MultiVector> b,
 }
 
 
-void MultiVector::compute_conj_dot(ptr_param<const MultiVector> b,
-                                   ptr_param<MultiVector> result) const
+void AbstractMultiVector::compute_conj_dot(
+    ptr_param<const AbstractMultiVector> b,
+    ptr_param<AbstractMultiVector> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -277,9 +290,9 @@ void MultiVector::compute_conj_dot(ptr_param<const MultiVector> b,
 }
 
 
-void MultiVector::compute_conj_dot(ptr_param<const MultiVector> b,
-                                   ptr_param<MultiVector> result,
-                                   array<char>& tmp) const
+void AbstractMultiVector::compute_conj_dot(
+    ptr_param<const AbstractMultiVector> b,
+    ptr_param<AbstractMultiVector> result, array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -294,7 +307,8 @@ void MultiVector::compute_conj_dot(ptr_param<const MultiVector> b,
 }
 
 
-void MultiVector::compute_norm2(ptr_param<MultiVector> result) const
+void AbstractMultiVector::compute_norm2(
+    ptr_param<AbstractMultiVector> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
@@ -302,8 +316,8 @@ void MultiVector::compute_norm2(ptr_param<MultiVector> result) const
 }
 
 
-void MultiVector::compute_norm2(ptr_param<MultiVector> result,
-                                array<char>& tmp) const
+void AbstractMultiVector::compute_norm2(ptr_param<AbstractMultiVector> result,
+                                        array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
@@ -316,7 +330,8 @@ void MultiVector::compute_norm2(ptr_param<MultiVector> result,
 }
 
 
-void MultiVector::compute_squared_norm2(ptr_param<MultiVector> result) const
+void AbstractMultiVector::compute_squared_norm2(
+    ptr_param<AbstractMultiVector> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
@@ -325,8 +340,8 @@ void MultiVector::compute_squared_norm2(ptr_param<MultiVector> result) const
 }
 
 
-void MultiVector::compute_squared_norm2(ptr_param<MultiVector> result,
-                                        array<char>& tmp) const
+void AbstractMultiVector::compute_squared_norm2(
+    ptr_param<AbstractMultiVector> result, array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
@@ -339,7 +354,8 @@ void MultiVector::compute_squared_norm2(ptr_param<MultiVector> result,
 }
 
 
-void MultiVector::compute_norm1(ptr_param<MultiVector> result) const
+void AbstractMultiVector::compute_norm1(
+    ptr_param<AbstractMultiVector> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
@@ -347,8 +363,8 @@ void MultiVector::compute_norm1(ptr_param<MultiVector> result) const
 }
 
 
-void MultiVector::compute_norm1(ptr_param<MultiVector> result,
-                                array<char>& tmp) const
+void AbstractMultiVector::compute_norm1(ptr_param<AbstractMultiVector> result,
+                                        array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
@@ -361,108 +377,112 @@ void MultiVector::compute_norm1(ptr_param<MultiVector> result,
 }
 
 
-std::unique_ptr<const MultiVector> MultiVector::create_real_view() const
+std::unique_ptr<const AbstractMultiVector>
+AbstractMultiVector::create_real_view() const
 {
     return this->create_real_view_generic_impl();
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::create_real_view()
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_real_view()
 {
     return this->create_real_view_generic_impl();
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
-                                                         local_span columns)
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_subview(
+    local_span rows, local_span columns)
 {
     return this->create_subview_generic_impl(rows, columns);
 }
 
 
-std::unique_ptr<const MultiVector> MultiVector::create_subview(
+std::unique_ptr<const AbstractMultiVector> AbstractMultiVector::create_subview(
     local_span rows, local_span columns) const
 {
     return this->create_subview_generic_impl(rows, columns);
 }
 
 
-std::unique_ptr<const MultiVector> MultiVector::create_subview(
+std::unique_ptr<const AbstractMultiVector> AbstractMultiVector::create_subview(
     local_span rows, local_span columns, dim<2> global_size) const
 {
     return this->create_subview_generic_impl(rows, columns, global_size);
 }
 
 
-std::unique_ptr<MultiVector> MultiVector::create_subview(local_span rows,
-                                                         local_span columns,
-                                                         dim<2> global_size)
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_subview(
+    local_span rows, local_span columns, dim<2> global_size)
 {
     return this->create_subview_generic_impl(rows, columns, global_size);
 }
 
 
-gko::detail::temporary_conversion<MultiVector> MultiVector::as_precision(
-    precision p)
+gko::detail::temporary_conversion<AbstractMultiVector>
+AbstractMultiVector::as_precision(precision p)
 {
     return this->as_precision_impl(p);
 }
 
 
-detail::temporary_conversion<MultiVector> MultiVector::as_precision(
-    ptr_param<const MultiVector> p)
+detail::temporary_conversion<AbstractMultiVector>
+AbstractMultiVector::as_precision(ptr_param<const AbstractMultiVector> p)
 {
     return this->as_precision_impl(p->get_precision());
 }
 
 
-detail::temporary_conversion<MultiVector> MultiVector::as_precision(
-    ptr_param<const LinOp> p)
+detail::temporary_conversion<AbstractMultiVector>
+AbstractMultiVector::as_precision(ptr_param<const LinOp> p)
 {
     return this->as_precision_impl(p->get_precision());
 }
 
 
-gko::detail::temporary_conversion<const MultiVector> MultiVector::as_precision(
-    precision p) const
+gko::detail::temporary_conversion<const AbstractMultiVector>
+AbstractMultiVector::as_precision(precision p) const
 {
     return this->as_precision_impl(p);
 }
 
 
-detail::temporary_conversion<const MultiVector> MultiVector::as_precision(
-    ptr_param<const MultiVector> p) const
+detail::temporary_conversion<const AbstractMultiVector>
+AbstractMultiVector::as_precision(ptr_param<const AbstractMultiVector> p) const
 {
     return this->as_precision_impl(p->get_precision());
 }
 
 
-detail::temporary_conversion<const MultiVector> MultiVector::as_precision(
-    ptr_param<const LinOp> p) const
+detail::temporary_conversion<const AbstractMultiVector>
+AbstractMultiVector::as_precision(ptr_param<const LinOp> p) const
 {
     return this->as_precision_impl(p->get_precision());
 }
 
 
-precision MultiVector::get_precision() const noexcept { return precision_; }
+precision AbstractMultiVector::get_precision() const noexcept
+{
+    return precision_;
+}
 
 
-dim<2> MultiVector::get_size() const noexcept { return size_; }
+dim<2> AbstractMultiVector::get_size() const noexcept { return size_; }
 
 
-MultiVector::MultiVector(const MultiVector& other)
+AbstractMultiVector::AbstractMultiVector(const AbstractMultiVector& other)
     : PolymorphicObject(other), size_(other.size_), precision_(other.precision_)
 {}
 
 
-MultiVector::MultiVector(MultiVector&& other)
+AbstractMultiVector::AbstractMultiVector(AbstractMultiVector&& other)
     : PolymorphicObject(std::move(other)),
       size_(std::exchange(other.size_, {})),
       precision_(other.precision_)
 {}
 
 
-MultiVector& MultiVector::operator=(const MultiVector& other)
+AbstractMultiVector& AbstractMultiVector::operator=(
+    const AbstractMultiVector& other)
 {
     if (this != &other) {
         PolymorphicObject::operator=(other);
@@ -472,7 +492,7 @@ MultiVector& MultiVector::operator=(const MultiVector& other)
 }
 
 
-MultiVector& MultiVector::operator=(MultiVector&& other)
+AbstractMultiVector& AbstractMultiVector::operator=(AbstractMultiVector&& other)
 {
     if (this != &other) {
         PolymorphicObject::operator=(std::move(other));
@@ -483,7 +503,8 @@ MultiVector& MultiVector::operator=(MultiVector&& other)
 
 
 template <typename ValueType>
-MultiVector::device_view<ValueType> MultiVector::get_local_device_view()
+AbstractMultiVector::device_view<ValueType>
+AbstractMultiVector::get_local_device_view()
 {
     if (this->get_precision() != type_to_precision<ValueType>) {
         GKO_INVALID_STATE("Multivector doesn't have the requested precision");
@@ -494,13 +515,14 @@ MultiVector::device_view<ValueType> MultiVector::get_local_device_view()
 }
 
 #define GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW(ValueType) \
-    MultiVector::device_view<ValueType> MultiVector::get_local_device_view()
+    AbstractMultiVector::device_view<ValueType>              \
+    AbstractMultiVector::get_local_device_view()
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW);
 
 
 template <typename ValueType>
-MultiVector::device_view<const ValueType>
-MultiVector::get_const_local_device_view() const
+AbstractMultiVector::device_view<const ValueType>
+AbstractMultiVector::get_const_local_device_view() const
 {
     if (this->get_precision() != type_to_precision<ValueType>) {
         GKO_INVALID_STATE("Multivector doesn't have the requested precision");
@@ -511,8 +533,8 @@ MultiVector::get_const_local_device_view() const
 }
 
 #define GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW_CONST(ValueType) \
-    MultiVector::device_view<const ValueType>                      \
-    MultiVector::get_const_local_device_view() const
+    AbstractMultiVector::device_view<const ValueType>              \
+    AbstractMultiVector::get_const_local_device_view() const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
     GKO_DECLARE_MULTIVECTOR_CREATE_LOCAL_VIEW_CONST);
 

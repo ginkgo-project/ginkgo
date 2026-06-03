@@ -95,7 +95,8 @@ std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp* mtx)
 
 
 template <typename ValueType>
-void Bicg<ValueType>::apply_impl(const MultiVector* b, MultiVector* x) const
+void Bicg<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                 AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
@@ -262,8 +263,10 @@ Bicg<ValueType>::Bicg(const Factory* factory,
 
 
 template <typename ValueType>
-void Bicg<ValueType>::apply_impl(const MultiVector* alpha, const MultiVector* b,
-                                 const MultiVector* beta, MultiVector* x) const
+void Bicg<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                 const AbstractMultiVector* b,
+                                 const AbstractMultiVector* beta,
+                                 AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;

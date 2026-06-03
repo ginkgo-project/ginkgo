@@ -94,15 +94,15 @@ public:
     }
 
     template <typename CreateOperation>
-    MultiVector* create_or_get_vector(int op_id, CreateOperation create,
-                                      const std::type_info& expected_type,
-                                      dim<2> size)
+    AbstractMultiVector* create_or_get_vector(
+        int op_id, CreateOperation create, const std::type_info& expected_type,
+        dim<2> size)
     {
         GKO_ASSERT(op_id >= 0 && op_id < vectors_.size());
         // does the existing object have the wrong type?
         // vector types may vary e.g. if users derive from Dense
         auto stored_op = vectors_[op_id].get();
-        MultiVector* op{};
+        AbstractMultiVector* op{};
         if (!stored_op || typeid(*stored_op) != expected_type) {
             auto new_op = create();
             op = new_op.get();
@@ -118,7 +118,7 @@ public:
         return stored_op;
     }
 
-    const MultiVector* get_vector(int op_id) const
+    const AbstractMultiVector* get_vector(int op_id) const
     {
         GKO_ASSERT(op_id >= 0 && op_id < vectors_.size());
         return vectors_[op_id].get();
@@ -169,7 +169,7 @@ public:
 
 private:
     std::shared_ptr<const Executor> exec_;
-    std::vector<std::unique_ptr<MultiVector>> vectors_;
+    std::vector<std::unique_ptr<AbstractMultiVector>> vectors_;
     std::vector<any_array> arrays_;
 };
 

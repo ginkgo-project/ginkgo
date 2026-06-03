@@ -40,25 +40,28 @@ class Convergence : public Logger {
 public:
     void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
-        const MultiVector* residual, const MultiVector* residual_norm,
-        const MultiVector* solution, const uint8& stopping_id,
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* solution, const uint8& stopping_id,
         const bool& set_finalized, const array<stopping_status>* status,
         const bool& one_changed, const bool& all_stopped) const override;
 
     void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
-        const MultiVector* residual, const MultiVector* residual_norm,
-        const MultiVector* implicit_sq_resnorm, const MultiVector* solution,
-        const uint8& stopping_id, const bool& set_finalized,
-        const array<stopping_status>* status, const bool& one_changed,
-        const bool& all_stopped) const override;
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* implicit_sq_resnorm,
+        const AbstractMultiVector* solution, const uint8& stopping_id,
+        const bool& set_finalized, const array<stopping_status>* status,
+        const bool& one_changed, const bool& all_stopped) const override;
 
-    void on_iteration_complete(const LinOp* solver, const MultiVector* b,
-                               const MultiVector* x,
+    void on_iteration_complete(const LinOp* solver,
+                               const AbstractMultiVector* b,
+                               const AbstractMultiVector* x,
                                const size_type& num_iterations,
-                               const MultiVector* residual,
-                               const MultiVector* residual_norm,
-                               const MultiVector* implicit_resnorm_sq,
+                               const AbstractMultiVector* residual,
+                               const AbstractMultiVector* residual_norm,
+                               const AbstractMultiVector* implicit_resnorm_sq,
                                const array<stopping_status>* status,
                                bool stopped) const override;
 
@@ -115,21 +118,21 @@ public:
      *
      * @return the residual
      */
-    const MultiVector* get_residual() const noexcept;
+    const AbstractMultiVector* get_residual() const noexcept;
 
     /**
      * Returns the residual norm
      *
      * @return the residual norm
      */
-    const MultiVector* get_residual_norm() const noexcept;
+    const AbstractMultiVector* get_residual_norm() const noexcept;
 
     /**
      * Returns the implicit squared residual norm
      *
      * @return the implicit squared residual norm
      */
-    const MultiVector* get_implicit_sq_resnorm() const noexcept;
+    const AbstractMultiVector* get_implicit_sq_resnorm() const noexcept;
 
 protected:
     /**
@@ -158,9 +161,9 @@ protected:
 private:
     mutable bool convergence_status_{false};
     mutable size_type num_iterations_{};
-    mutable std::unique_ptr<MultiVector> residual_{};
-    mutable std::unique_ptr<MultiVector> residual_norm_{};
-    mutable std::unique_ptr<MultiVector> implicit_sq_resnorm_{};
+    mutable std::unique_ptr<AbstractMultiVector> residual_{};
+    mutable std::unique_ptr<AbstractMultiVector> residual_norm_{};
+    mutable std::unique_ptr<AbstractMultiVector> implicit_sq_resnorm_{};
 };
 
 

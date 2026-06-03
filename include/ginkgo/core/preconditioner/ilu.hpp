@@ -222,10 +222,13 @@ public:
     Ilu(Ilu&& other);
 
 protected:
-    void apply_impl(const MultiVector* b, MultiVector* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const MultiVector* alpha, const MultiVector* b,
-                    const MultiVector* beta, MultiVector* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     explicit Ilu(std::shared_ptr<const Executor> exec);
 
@@ -238,7 +241,7 @@ protected:
      * @param b  Right hand side of the first solve. Also acts as the initial
      *           guess, meaning the intermediate value will be a copy of b
      */
-    void set_cache_to(const MultiVector* b) const;
+    void set_cache_to(const AbstractMultiVector* b) const;
 
 private:
     std::shared_ptr<const LinOp> l_solver_{};

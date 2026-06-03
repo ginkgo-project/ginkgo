@@ -456,7 +456,7 @@ ValueType get_norm(const vec<ValueType>* norm)
 
 
 template <typename ValueType = etype>
-gko::remove_complex<ValueType> compute_norm2(const gko::MultiVector* b)
+gko::remove_complex<ValueType> compute_norm2(const gko::AbstractMultiVector* b)
 {
     auto exec = b->get_executor();
     auto b_norm =
@@ -485,8 +485,8 @@ gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
 
 template <typename ValueType = etype>
 gko::remove_complex<ValueType> compute_residual_norm(
-    const gko::LinOp* system_matrix, const gko::MultiVector* b,
-    const gko::MultiVector* x)
+    const gko::LinOp* system_matrix, const gko::AbstractMultiVector* b,
+    const gko::AbstractMultiVector* x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);

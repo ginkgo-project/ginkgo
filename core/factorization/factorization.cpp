@@ -330,8 +330,8 @@ Factorization<ValueType, IndexType>::create_from_combined_ldl(
 
 
 template <typename ValueType, typename IndexType>
-void Factorization<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                                     MultiVector* x) const
+void Factorization<ValueType, IndexType>::apply_impl(
+    const AbstractMultiVector* b, AbstractMultiVector* x) const
 {
     switch (storage_type_) {
     case storage_type::composition:
@@ -350,10 +350,9 @@ void Factorization<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void Factorization<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
-                                                     const MultiVector* b,
-                                                     const MultiVector* beta,
-                                                     MultiVector* x) const
+void Factorization<ValueType, IndexType>::apply_impl(
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
 {
     switch (storage_type_) {
     case storage_type::composition:

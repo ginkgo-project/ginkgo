@@ -178,8 +178,8 @@ auto Sellp<ValueType, IndexType>::get_const_device_view() const
 
 
 template <typename ValueType, typename IndexType>
-void Sellp<ValueType, IndexType>::apply_impl(const MultiVector* b,
-                                             MultiVector* x) const
+void Sellp<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                             AbstractMultiVector* x) const
 {
     apply_precision_dispatch<ValueType>(
         [this](auto view_b, auto view_x, auto...) {
@@ -191,10 +191,10 @@ void Sellp<ValueType, IndexType>::apply_impl(const MultiVector* b,
 
 
 template <typename ValueType, typename IndexType>
-void Sellp<ValueType, IndexType>::apply_impl(const MultiVector* alpha,
-                                             const MultiVector* b,
-                                             const MultiVector* beta,
-                                             MultiVector* x) const
+void Sellp<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                             const AbstractMultiVector* b,
+                                             const AbstractMultiVector* beta,
+                                             AbstractMultiVector* x) const
 {
     apply_precision_dispatch<ValueType>(
         [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x,

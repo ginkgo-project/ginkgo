@@ -18,7 +18,7 @@
 namespace gko {
 
 
-class MultiVector;
+class AbstractMultiVector;
 
 
 namespace matrix {
@@ -172,7 +172,8 @@ struct ScalarCache {
 private:
     std::shared_ptr<const Executor> exec;
     double value;
-    mutable std::map<std::string, std::shared_ptr<const MultiVector>> scalars;
+    mutable std::map<std::string, std::shared_ptr<const AbstractMultiVector>>
+        scalars;
 };
 
 
