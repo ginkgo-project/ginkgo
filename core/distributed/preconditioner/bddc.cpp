@@ -689,7 +689,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         }
         A_II_ = clone(A_II);
         if (A_LL->get_size()[0] > 0) {
-            if (n_vertices == 0) {
+            if (n_vertices < 0) {
                 std::cout << "RANK " << comm.rank() << " HAS NO VERTICES"
                           << std::endl;
                 auto minor = share(A_LL->create_submatrix(
