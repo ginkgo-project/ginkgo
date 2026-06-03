@@ -174,6 +174,9 @@ csr::spmv_strategy get_strategy_enum(
         return csr::spmv_strategy::classical;
     } else if (std::dynamic_pointer_cast<typename Csr::merge_path>(strategy)) {
         return csr::spmv_strategy::merge_path;
+    } else if (std::dynamic_pointer_cast<typename Csr::load_balance>(
+                   strategy)) {
+        return csr::spmv_strategy::load_balance;
     } else if (std::dynamic_pointer_cast<typename Csr::sparselib>(strategy) ||
                std::dynamic_pointer_cast<typename Csr::cusparse>(strategy)) {
         return csr::spmv_strategy::sparselib;
@@ -219,6 +222,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
     return create(std::move(exec), size, std::move(values), std::move(col_idxs),
                   std::move(row_ptrs), get_strategy_enum<Csr>(strategy));
 }
+
 
 GKO_END_DISABLE_DEPRECATION_WARNINGS
 

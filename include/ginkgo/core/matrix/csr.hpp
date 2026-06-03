@@ -968,6 +968,7 @@ public:
         csr::spmv_strategy strategy = csr::spmv_strategy::automatical);
 
     GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
     /**
      * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
      * csr::spmv_strategy)
@@ -998,6 +999,7 @@ public:
                  gko::detail::const_array_view<IndexType>&& col_idxs,
                  gko::detail::const_array_view<IndexType>&& row_ptrs,
                  std::shared_ptr<strategy_type> strategy);
+
     GKO_END_DISABLE_DEPRECATION_WARNINGS
 
     /**

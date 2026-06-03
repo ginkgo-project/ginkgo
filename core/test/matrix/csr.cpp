@@ -155,6 +155,98 @@ TYPED_TEST(Csr, CanBeCreatedFromExistingConstData)
 }
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
+TYPED_TEST(Csr, CanBeCreatedFromDeprecatedStrategy)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx_automatical = Mtx::create(
+        this->exec, std::make_shared<typename Mtx::automatical>(this->exec));
+    auto mtx_nullptr = Mtx::create(
+        this->exec, std::shared_ptr<typename Mtx::strategy_type>{nullptr});
+    auto mtx_classical =
+        Mtx::create(this->exec, std::make_shared<typename Mtx::classical>());
+    auto mtx_merge_path =
+        Mtx::create(this->exec, std::make_shared<typename Mtx::merge_path>());
+    auto mtx_load_balance = Mtx::create(
+        this->exec, std::make_shared<typename Mtx::load_balance>(this->exec));
+    auto mtx_sparselib =
+        Mtx::create(this->exec, std::make_shared<typename Mtx::sparselib>());
+    auto mtx_cusparse =
+        Mtx::create(this->exec, std::make_shared<typename Mtx::cusparse>());
+
+    ASSERT_EQ(mtx_automatical->get_strategy(),
+              gko::matrix::csr::spmv_strategy::automatical);
+    ASSERT_EQ(mtx_nullptr->get_strategy(),
+              gko::matrix::csr::spmv_strategy::automatical);
+    ASSERT_EQ(mtx_classical->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
+    ASSERT_EQ(mtx_merge_path->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
+    ASSERT_EQ(mtx_load_balance->get_strategy(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+    ASSERT_EQ(mtx_sparselib->get_strategy(),
+              gko::matrix::csr::spmv_strategy::sparselib);
+    ASSERT_EQ(mtx_cusparse->get_strategy(),
+              gko::matrix::csr::spmv_strategy::sparselib);
+}
+
+
+TYPED_TEST(Csr, CanBeCreatedFromExistingDataAndDeprecatedStrategy)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 2.0, 3.0, 4.0};
+    index_type col_idxs[] = {0, 1, 1, 0};
+    index_type row_ptrs[] = {0, 2, 3, 4};
+
+    auto mtx =
+        Mtx::create(this->exec, gko::dim<2>{3, 2},
+                    gko::make_array_view(this->exec, 4, values),
+                    gko::make_array_view(this->exec, 4, col_idxs),
+                    gko::make_array_view(this->exec, 4, row_ptrs),
+                    std::make_shared<typename Mtx::load_balance>(this->exec));
+
+    ASSERT_EQ(mtx->get_num_srow_elements(), 0);
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_const_srow(), nullptr);
+    ASSERT_EQ(mtx->get_strategy(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+}
+
+
+TYPED_TEST(Csr, CanBeCreatedFromExistingConstDataAndDeprecatedStrategy)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const value_type values[] = {1.0, 2.0, 3.0, 4.0};
+    const index_type col_idxs[] = {0, 1, 1, 0};
+    const index_type row_ptrs[] = {0, 2, 3, 4};
+
+    auto mtx = Mtx::create_const(
+        this->exec, gko::dim<2>{3, 2},
+        gko::array<value_type>::const_view(this->exec, 4, values),
+        gko::array<index_type>::const_view(this->exec, 4, col_idxs),
+        gko::array<index_type>::const_view(this->exec, 4, row_ptrs),
+        std::make_shared<typename Mtx::load_balance>(this->exec));
+
+    ASSERT_EQ(mtx->get_num_srow_elements(), 0);
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_strategy(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+}
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+
 TYPED_TEST(Csr, CanBeCopied)
 {
     using Mtx = typename TestFixture::Mtx;
