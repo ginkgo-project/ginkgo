@@ -52,7 +52,6 @@ protected:
 
     Csr()
         : exec(gko::ReferenceExecutor::create()),
-          // load_balance(2)
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
                           gko::matrix::csr::spmv_strategy::load_balance)),
           mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5,
@@ -104,7 +103,6 @@ protected:
         v[3] = 5.0;
         // set srow after filling the matrix
         m->set_strategy(m->get_strategy());
-        // s[0] = 0;
     }
 
     void create_mtx2(Mtx* m)

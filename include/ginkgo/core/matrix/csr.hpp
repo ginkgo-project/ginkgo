@@ -55,16 +55,44 @@ class Permutation;
 namespace csr {
 
 
+/**
+ * Type describes the Csr SpMV strategy.
+ */
 enum class spmv_strategy {
+    /**
+     * automatical is the strategy choosing between load_balance and classical
+     * based on the maximum number of entries per row and the number of entries
+     * of the matrix.
+     */
     automatical,
+    /**
+     * load_balance is the strategy trying to distribute the work equally in
+     * terms of the number of matrix entries. More detail can be checked in
+     * Goran and Enrique: Balanced CSR sparse matrix-vector product on graphics
+     * processors.
+     */
     load_balance,
+    /**
+     * merge_path is the strategy trying to distribute the work equally in terms
+     * of the number of matrix entries and row pointers. More detail can be
+     * checked in Merrill and Garland: Merge-Based Parallel Sparse Matrix-Vector
+     * Multiplication.
+     */
     merge_path,
+    /**
+     * classical is the strategy assigning the same amount of the working
+     * resource to each row.
+     */
     classical,
+    /**
+     * sparselib is the strategy calling the backend sparse library
+     * implementation when it is supported.
+     */
     sparselib
 };
 
 
-}
+}  // namespace csr
 
 
 /**
@@ -891,7 +919,8 @@ public:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
-     * @param strategy  the strategy of CSR. default is automatical.
+     * @param strategy  the strategy the matrix uses for SpMV operations,
+     * default is automatical.
      *
      * @return A smart pointer to the newly created matrix.
      */
@@ -909,7 +938,8 @@ public:
      * @param values  array of matrix values
      * @param col_idxs  array of column indexes
      * @param row_ptrs  array of row pointers
-     * @param strategy  the strategy the matrix uses for SpMV operations
+     * @param strategy  the strategy the matrix uses for SpMV operations,
+     * default is automatical.
      *
      * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
      *       an array of IndexType, IndexType and ValueType, respectively, or
@@ -953,7 +983,8 @@ public:
      * @param values  the value array of the matrix
      * @param col_idxs  the column index array of the matrix
      * @param row_ptrs  the row pointer array of the matrix
-     * @param strategy  the strategy the matrix uses for SpMV operations
+     * @param strategy  the strategy the matrix uses for SpMV operations,
+     * default is automatical.
      * @returns A smart pointer to the constant matrix wrapping the input arrays
      *          (if they reside on the same executor as the matrix) or a copy of
      *          these arrays on the correct executor.
@@ -1056,6 +1087,15 @@ public:
      */
     Csr(Csr&&);
 
+    /**
+     * Returns the actual strategy. When the strategy is automatical, this
+     * returns the actual underlying strategy. This returns the same strategy as
+     * `get_strategy` when the strategy is not automatical.
+     *
+     * @return the acutal strategy
+     */
+    csr::spmv_strategy get_actual_strategy() const noexcept;
+
 protected:
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
         size_type num_nonzeros = {},
@@ -1070,15 +1110,6 @@ protected:
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
-
-    /**
-     * Returns the actual strategy. When the strategy is automatical, this
-     * returns the actual underlying strategy. This returns the same strategy as
-     * `get_strategy` when the strategy is not automatical.
-     *
-     * @return the acutal strategy
-     */
-    csr::spmv_strategy get_actual_strategy() const noexcept;
 
     /**
      * Computes srow. It should be run after changing any row_ptrs_ value.

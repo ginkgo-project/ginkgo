@@ -447,33 +447,37 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 }
 
 
-// TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
-// {
-//     auto automatical =gko::matrix::csr::spmv_strategy::automatical;
-// #ifdef GKO_COMPILING_CUDA
-//     auto row_len_limit = automatical->nvidia_row_len_limit;
-// #elif defined(GKO_COMPILING_HIP)
-//     auto row_len_limit = std::max(automatical->nvidia_row_len_limit,
-//                                   automatical->amd_row_len_limit);
-// #else
-//     auto row_len_limit = automatical->intel_row_len_limit;
-// #endif
-//     auto load_balance_mtx =
-//         gen_mtx<Mtx>(1, row_len_limit + 1000, row_len_limit + 1);
-//     auto classical_mtx = gen_mtx<Mtx>(50, 50, 1);
-//     auto load_balance_mtx_d = gko::clone(exec, load_balance_mtx);
-//     auto classical_mtx_d = gko::clone(exec, classical_mtx);
+TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
+{
+    if (std::dynamic_pointer_cast<const gko::OmpExecutor>(exec)) {
+        GTEST_SKIP() << "Csr does not have load balance under automatical on "
+                        "OmpExecutor";
+    }
+    auto automatical = gko::matrix::csr::spmv_strategy::automatical;
+#ifdef GKO_COMPILING_CUDA
+    int64_t nnz_limit = 1e6;
+    int64_t row_len_limit = 1024;
+#elif defined(GKO_COMPILING_HIP)
+    int64_t nnz_limit = 1e8;
+    int64_t row_len_limit = 768;
+#else  // INTEL
+    int64_t nnz_limit = 3e8;
+    int64_t row_len_limit = 25600;
+#endif
+    auto load_balance_mtx =
+        gen_mtx<Mtx>(1, row_len_limit + 1000, row_len_limit + 1);
+    auto classical_mtx = gen_mtx<Mtx>(50, 50, 1);
+    auto load_balance_mtx_d = gko::clone(exec, load_balance_mtx);
+    auto classical_mtx_d = gko::clone(exec, classical_mtx);
 
-//     load_balance_mtx_d->set_strategy(automatical);
-//     classical_mtx_d->set_strategy(automatical);
+    load_balance_mtx_d->set_strategy(automatical);
+    classical_mtx_d->set_strategy(automatical);
 
-//     EXPECT_EQ(load_balance_mtx_d->get_strategy(),
-//               gko::matrix::csr::spmv_strategy::load_balance);
-//     EXPECT_EQ(classical_mtx_d->get_strategy(),
-//               gko::matrix::csr::spmv_strategy::classical);
-//     ASSERT_NE(load_balance_mtx_d->get_strategy(),
-//               classical_mtx_d->get_strategy());
-// }
+    EXPECT_EQ(load_balance_mtx_d->get_actual_strategy(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+    EXPECT_EQ(classical_mtx_d->get_actual_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
+}
 
 
 #endif

@@ -310,6 +310,8 @@ inline matrix::csr::spmv_strategy get_strategy(const pnode& config)
         return matrix::csr::spmv_strategy::classical;
     } else if (str == "automatical") {
         return matrix::csr::spmv_strategy::automatical;
+    } else if (str == "load_balance") {
+        return matrix::csr::spmv_strategy::load_balance;
     } else {
         GKO_INVALID_CONFIG_VALUE("strategy", str);
     }

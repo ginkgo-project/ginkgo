@@ -44,7 +44,9 @@ TYPED_TEST(CsrBuilder, ReturnsCorrectArrays)
     auto builder_values = builder.get_value_array().get_data();
     auto ref_col_idxs = this->mtx->get_col_idxs();
     auto ref_values = this->mtx->get_values();
+    auto builder_mtx = builder.get_matrix();
 
     ASSERT_EQ(builder_col_idxs, ref_col_idxs);
     ASSERT_EQ(builder_values, ref_values);
+    ASSERT_EQ(builder_mtx, this->mtx.get());
 }

@@ -413,8 +413,6 @@ void Csr<ValueType, IndexType>::make_srow()
         strategy_ == csr::spmv_strategy::automatical) {
         srow_size = load_balance_size(this->get_num_stored_elements());
     }
-    // just to make load_balance(2) works
-    // srow_size = std::max(srow_size, size_type{1});
     srow_.resize_and_reset(srow_size);
     if (srow_size != 0) {
         srow_.set_executor(exec->get_master());
