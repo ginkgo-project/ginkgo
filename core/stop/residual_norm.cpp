@@ -199,7 +199,7 @@ ImplicitResidualNorm<ValueType>::ImplicitResidualNorm(const Factory* factory,
 {}
 
 
-#define GKO_DECLARE_RESIDUAL_NORM(ValueType) class ResidualNormBase<ValueType>
+#define GKO_DECLARE_RESIDUAL_NORM(ValueType) class ResidualNorm<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 
 
