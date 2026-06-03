@@ -171,6 +171,48 @@ public:
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Csr>;
 
+    class [[deprecated(
+        "please use enum "
+        "gko::matrix::csr::spmv_strategy::<strategy>")]] strategy_type
+    {
+    public:
+        virtual ~strategy_type() = default;
+    };
+
+    class [[deprecated(
+        "please use enum "
+        "gko::matrix::csr::spmv_strategy::classical")]] classical
+        : public strategy_type{};
+
+    class [[deprecated(
+        "please use enum "
+        "gko::matrix::csr::spmv_strategy::merge_path")]] merge_path
+        : public strategy_type{};
+
+    class [[deprecated(
+        "please use enum "
+        "gko::matrix::csr::spmv_strategy::sparselib")]] cusparse
+        : public strategy_type{};
+
+    class [[deprecated(
+        "please use enum "
+        "gko::matrix::csr::spmv_strategy::sparselib")]] sparselib
+        : public strategy_type{};
+
+    class [[deprecated(
+        "please use enum "
+        "gko::matrix::csr::spmv_strategy::load_balance")]] load_balance
+        : public strategy_type{
+            public : load_balance(std::shared_ptr<const Executor>){}
+        };
+
+    class [[deprecated(
+        "please use enum "
+        "gko::matrix::csr::spmv_strategy::automatical")]] automatical
+        : public strategy_type{
+            public : automatical(std::shared_ptr<const Executor>){}
+        };
+
 
     friend class Csr<previous_precision<ValueType>, IndexType>;
 
@@ -924,6 +966,39 @@ public:
         gko::detail::const_array_view<IndexType>&& col_idxs,
         gko::detail::const_array_view<IndexType>&& row_ptrs,
         csr::spmv_strategy strategy = csr::spmv_strategy::automatical);
+
+    GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+    /**
+     * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
+     * csr::spmv_strategy)
+     */
+    [[deprecated("please use enum version")]] static std::unique_ptr<Csr>
+    create(std::shared_ptr<const Executor> exec,
+           std::shared_ptr<strategy_type> strategy);
+
+    /**
+     * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, array<value_type>, array<index_type>, array<index_type>,
+     * csr::spmv_strategy)
+     */
+    [[deprecated("please use enum version")]] static std::unique_ptr<Csr>
+    create(std::shared_ptr<const Executor> exec, const dim<2>& size,
+           array<value_type> values, array<index_type> col_idxs,
+           array<index_type> row_ptrs, std::shared_ptr<strategy_type> strategy);
+
+    /**
+     * @copydoc std::unique_ptr<const Csr> create_const(std::shared_ptr<const
+     * Executor>, const dim<2>&, gko::detail::const_array_view<ValueType>&&,
+     * gko::detail::const_array_view<IndexType>&&,
+     * gko::detail::const_array_view<IndexType>&&, csr::spmv_strategy)
+     */
+    [[deprecated("please use enum version")]] static std::unique_ptr<const Csr>
+    create_const(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                 gko::detail::const_array_view<ValueType>&& values,
+                 gko::detail::const_array_view<IndexType>&& col_idxs,
+                 gko::detail::const_array_view<IndexType>&& row_ptrs,
+                 std::shared_ptr<strategy_type> strategy);
+    GKO_END_DISABLE_DEPRECATION_WARNINGS
 
     /**
      * Creates a submatrix from this Csr matrix given row and column index_set

@@ -157,6 +157,72 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
 }
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
+// C++ can not deduce template parameters from a nested dependent type.
+// Thus, we put Csr not ValueType, IndexType as template because we need to call
+// with explicit type anyway.
+template <typename Csr>
+csr::spmv_strategy get_strategy_enum(
+    std::shared_ptr<typename Csr::strategy_type> strategy)
+{
+    if (strategy == nullptr ||
+        std::dynamic_pointer_cast<typename Csr::automatical>(strategy)) {
+        return csr::spmv_strategy::automatical;
+    } else if (std::dynamic_pointer_cast<typename Csr::classical>(strategy)) {
+        return csr::spmv_strategy::classical;
+    } else if (std::dynamic_pointer_cast<typename Csr::merge_path>(strategy)) {
+        return csr::spmv_strategy::merge_path;
+    } else if (std::dynamic_pointer_cast<typename Csr::sparselib>(strategy) ||
+               std::dynamic_pointer_cast<typename Csr::cusparse>(strategy)) {
+        return csr::spmv_strategy::sparselib;
+    } else {
+        GKO_NOT_SUPPORTED(strategy);
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<ValueType>&& values,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    gko::detail::const_array_view<IndexType>&& row_ptrs,
+    std::shared_ptr<strategy_type> strategy)
+{
+    return create_const(
+        std::move(exec), size,
+        std::forward<gko::detail::const_array_view<ValueType>>(values),
+        std::forward<gko::detail::const_array_view<IndexType>>(col_idxs),
+        std::forward<gko::detail::const_array_view<IndexType>>(row_ptrs),
+        get_strategy_enum<Csr>(strategy));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<strategy_type> strategy)
+{
+    return create(std::move(exec), get_strategy_enum<Csr>(strategy));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<value_type> values, array<index_type> col_idxs,
+    array<index_type> row_ptrs, std::shared_ptr<strategy_type> strategy)
+{
+    return create(std::move(exec), size, std::move(values), std::move(col_idxs),
+                  std::move(row_ptrs), get_strategy_enum<Csr>(strategy));
+}
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+
 template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, size_type num_nonzeros,
