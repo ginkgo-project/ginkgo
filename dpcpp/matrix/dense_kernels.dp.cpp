@@ -292,7 +292,6 @@ void mspm(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::Csr<ValueType, IndexType>* b,
           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
 {
-    // TODO: implement c = alpha * a * b + beta * c with single thread
     GKO_NOT_IMPLEMENTED;
 }
 
