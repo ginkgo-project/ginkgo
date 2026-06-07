@@ -341,4 +341,73 @@ TYPED_TEST(MatrixBuilder, BuildFromLinOpDiagAndOffDiag)
 }
 
 
+TYPED_TEST(MatrixBuilder, WritesMatrixDataWithGlobalIndices)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_mtx_type = gko::matrix::Csr<value_type, local_index_type>;
+    using partition_type =
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
+    using map_type =
+        gko::experimental::distributed::index_map<local_index_type,
+                                                  global_index_type>;
+    using writable_type =
+        gko::WritableToMatrixData<value_type, global_index_type>;
+
+    if (this->comm.size() < 2) {
+        GTEST_SKIP() << "This test needs non-local columns.";
+    }
+
+    const auto rank = this->comm.rank();
+    const auto next_rank = (rank + 1) % this->comm.size();
+    const auto global_size =
+        static_cast<global_index_type>(2 * this->comm.size());
+    auto partition = gko::share(partition_type::build_from_global_size_uniform(
+        this->ref, this->comm.size(), global_size));
+    auto local = local_mtx_type::create(this->ref);
+    auto non_local = local_mtx_type::create(this->ref);
+    auto value = [](int value) {
+        return value_type{static_cast<gko::remove_complex<value_type>>(value)};
+    };
+    const auto global_row = static_cast<global_index_type>(2 * rank);
+    const auto remote_col = static_cast<global_index_type>(2 * next_rank);
+
+    local->read(gko::matrix_data<value_type, local_index_type>{
+        gko::dim<2>{2, 2}, {{0, 0, value(1)}, {1, 1, value(2)}}});
+    non_local->read(gko::matrix_data<value_type, local_index_type>{
+        gko::dim<2>{2, 2}, {{0, 0, value(3)}, {1, 1, value(4)}}});
+    auto remote_cols = gko::array<global_index_type>{
+        this->ref,
+        {remote_col, static_cast<global_index_type>(remote_col + 1)}};
+    auto imap = map_type{this->ref, partition, rank, remote_cols};
+
+    auto matrix = dist_mtx_type::create(this->ref, this->comm, std::move(imap),
+                                        std::move(local), std::move(non_local));
+    auto writable = dynamic_cast<writable_type*>(matrix.get());
+    ASSERT_NE(writable, nullptr);
+    gko::matrix_data<value_type, global_index_type> written;
+    writable->write(written);
+
+    gko::matrix_data<value_type, global_index_type> expected{
+        gko::dim<2>{static_cast<gko::size_type>(global_size),
+                    static_cast<gko::size_type>(global_size)},
+        {{global_row, global_row, value(1)},
+         {static_cast<global_index_type>(global_row + 1),
+          static_cast<global_index_type>(global_row + 1), value(2)},
+         {global_row, remote_col, value(3)},
+         {static_cast<global_index_type>(global_row + 1),
+          static_cast<global_index_type>(remote_col + 1), value(4)}}};
+    expected.sort_row_major();
+
+    ASSERT_EQ(written.size, expected.size);
+    ASSERT_EQ(written.nonzeros.size(), expected.nonzeros.size());
+    for (gko::size_type i = 0; i < expected.nonzeros.size(); ++i) {
+        EXPECT_EQ(written.nonzeros[i], expected.nonzeros[i]);
+    }
+}
+
+
 }  // namespace
