@@ -6,6 +6,7 @@
 #define GKO_CORE_MATRIX_DENSE_KERNELS_HPP_
 
 
+#include <algorithm>
 #include <memory>
 
 #include <ginkgo/core/base/math.hpp>
@@ -526,6 +527,70 @@ memory_bound_work_estimate fill(matrix::Dense<ValueType>* mat, ValueType value)
 }
 
 
+template <typename ValueType, typename ScalarType>
+memory_bound_work_estimate scale(const matrix::Dense<ScalarType>* alpha,
+                                 matrix::Dense<ValueType>* x)
+{
+    const auto alpha_size = alpha->get_size()[0] * alpha->get_size()[1];
+    const auto x_size = x->get_size()[0] * x->get_size()[1];
+    return memory_bound_work_estimate{
+        alpha_size * sizeof(ScalarType) + x_size * sizeof(ValueType),
+        x_size * sizeof(ValueType)};
+}
+
+
+template <typename ValueType, typename ScalarType>
+memory_bound_work_estimate inv_scale(const matrix::Dense<ScalarType>* alpha,
+                                     matrix::Dense<ValueType>* x)
+{
+    return scale(alpha, x);
+}
+
+
+template <typename ValueType, typename ScalarType>
+memory_bound_work_estimate add_scaled(const matrix::Dense<ScalarType>* alpha,
+                                      const matrix::Dense<ValueType>* x,
+                                      matrix::Dense<ValueType>* y)
+{
+    const auto alpha_size = alpha->get_size()[0] * alpha->get_size()[1];
+    const auto x_size = x->get_size()[0] * x->get_size()[1];
+    const auto y_size = y->get_size()[0] * y->get_size()[1];
+    return memory_bound_work_estimate{
+        alpha_size * sizeof(ScalarType) + (x_size + y_size) * sizeof(ValueType),
+        y_size * sizeof(ValueType)};
+}
+
+
+template <typename ValueType, typename ScalarType>
+memory_bound_work_estimate sub_scaled(const matrix::Dense<ScalarType>* alpha,
+                                      const matrix::Dense<ValueType>* x,
+                                      matrix::Dense<ValueType>* y)
+{
+    return add_scaled(alpha, x, y);
+}
+
+
+template <typename ValueType>
+memory_bound_work_estimate add_scaled_diag(
+    const matrix::Dense<ValueType>* alpha, const matrix::Diagonal<ValueType>* x,
+    matrix::Dense<ValueType>* y)
+{
+    const auto diag_size = x->get_size()[0];
+    return memory_bound_work_estimate{
+        sizeof(ValueType) + 2 * diag_size * sizeof(ValueType),
+        diag_size * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+memory_bound_work_estimate sub_scaled_diag(
+    const matrix::Dense<ValueType>* alpha, const matrix::Diagonal<ValueType>* x,
+    matrix::Dense<ValueType>* y)
+{
+    return add_scaled_diag(alpha, x, y);
+}
+
+
 template <typename ValueType>
 memory_bound_work_estimate compute_dot_dispatch(
     const matrix::Dense<ValueType>* x, const matrix::Dense<ValueType>* y,
@@ -552,6 +617,63 @@ memory_bound_work_estimate compute_norm2_dispatch(
 {
     const auto num_elements = x->get_size()[0] * x->get_size()[1];
     return memory_bound_work_estimate{num_elements * sizeof(ValueType), 0};
+}
+
+
+template <typename ValueType>
+memory_bound_work_estimate compute_norm1(
+    const matrix::Dense<ValueType>* x,
+    matrix::Dense<remove_complex<ValueType>>* result, array<char>& tmp)
+{
+    const auto x_size = x->get_size()[0] * x->get_size()[1];
+    const auto result_size = result->get_size()[0] * result->get_size()[1];
+    return memory_bound_work_estimate{
+        x_size * sizeof(ValueType),
+        result_size * sizeof(remove_complex<ValueType>)};
+}
+
+
+template <typename ValueType>
+memory_bound_work_estimate compute_mean(const matrix::Dense<ValueType>* x,
+                                        matrix::Dense<ValueType>* result,
+                                        array<char>& tmp)
+{
+    const auto x_size = x->get_size()[0] * x->get_size()[1];
+    const auto result_size = result->get_size()[0] * result->get_size()[1];
+    return memory_bound_work_estimate{x_size * sizeof(ValueType),
+                                      result_size * sizeof(ValueType)};
+}
+
+
+template <typename ValueType>
+memory_bound_work_estimate compute_squared_norm2(
+    const matrix::Dense<ValueType>* x,
+    matrix::Dense<remove_complex<ValueType>>* result, array<char>& tmp)
+{
+    return compute_norm1(x, result, tmp);
+}
+
+
+template <typename ValueType>
+memory_bound_work_estimate compute_sqrt(matrix::Dense<ValueType>* data)
+{
+    const auto data_size = data->get_size()[0] * data->get_size()[1];
+    return memory_bound_work_estimate{data_size * sizeof(ValueType),
+                                      data_size * sizeof(ValueType)};
+}
+
+
+template <typename ValueType, typename ScalarType>
+memory_bound_work_estimate add_scaled_identity(
+    const matrix::Dense<ScalarType>* alpha,
+    const matrix::Dense<ScalarType>* beta, matrix::Dense<ValueType>* mtx)
+{
+    const auto matrix_size = mtx->get_size()[0] * mtx->get_size()[1];
+    const auto diag_size = std::min(mtx->get_size()[0], mtx->get_size()[1]);
+    return memory_bound_work_estimate{
+        2 * sizeof(ScalarType) + matrix_size * sizeof(ValueType) +
+            diag_size * sizeof(ValueType),
+        matrix_size * sizeof(ValueType) + diag_size * sizeof(ValueType)};
 }
 
 
