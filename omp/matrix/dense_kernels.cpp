@@ -211,7 +211,8 @@ void mspm(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto advanced_init_acc = [b, c, beta](ValueType* acc_begin_ptr, IndexType acc_size, IndexType row){
         const auto begin_row_c_vals_ptr = c->get_const_values() + c->get_stride()*row;
-        std::transform( //initialize the accumulator with c + beta
+        //initialize the accumulator with c + beta
+        std::transform(
             begin_row_c_vals_ptr, begin_row_c_vals_ptr + acc_size,
             acc_begin_ptr, std::bind1st(std::multiplies<ValueType>(), beta->at(0, 0)));
     };
