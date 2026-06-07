@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -271,6 +271,7 @@ class Matrix
       public ConvertibleTo<Matrix<next_precision<ValueType, 3>, LocalIndexType,
                                   GlobalIndexType>>,
 #endif
+      public WritableToMatrixData<ValueType, GlobalIndexType>,
       public DistributedBase {
     friend class EnablePolymorphicObject<Matrix, LinOp>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
@@ -409,6 +410,14 @@ public:
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition,
         assembly_mode assembly_type = assembly_mode::local_only);
+
+    /**
+     * Writes the locally stored matrix data into a matrix_data structure using
+     * global row and column indices.
+     *
+     * @param data  the matrix_data structure
+     */
+    void write(matrix_data<value_type, global_index_type>& data) const override;
 
     /**
      * Get read access to the stored local matrix.
@@ -717,6 +726,7 @@ protected:
 
 private:
     std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;
+    index_map<local_index_type, global_index_type> row_map_;
     index_map<local_index_type, global_index_type> imap_;
     gko::detail::ScalarCache one_scalar_;
     detail::GenericVectorCache recv_buffer_;
