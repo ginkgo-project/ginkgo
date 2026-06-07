@@ -168,7 +168,7 @@ void mspm_auxiliary(std::shared_ptr<const DefaultExecutor> exec,
             //reinitialize accumulator to 0
             initialize_accumulator(th_acc_begin_ptr, sub_acc_size, row);
             //iterate over the whole matrix b
-            for(IndexType k=zero<IndexType>(); k<b->get_size()[0]; k++){
+            for(auto k=zero<IndexType>(); k<b->get_size()[0]; k++){
                 const auto val_A = define_multiplication_operand(row, k);
                 //iterate over the non-zero values of a row
                 for(IndexType idx_B=b_rowptrs[k]; idx_B<b_rowptrs[k+1]; idx_B++){
