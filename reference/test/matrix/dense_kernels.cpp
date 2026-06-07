@@ -1428,27 +1428,28 @@ TYPED_TEST_SUITE(DenseWithIndexType, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 TYPED_TEST(DenseWithIndexType, SimpleMspmVectors)
-{ //dense vector (mtx9) x horizontal sparse vector
+{  // dense vector (mtx9) x horizontal sparse vector
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using SMtx = gko::matrix::Csr<T, index_type>;
     using Mtx = gko::matrix::Dense<T>;
-    //create sparse vector { 0 1 10 100 0 }
+    // create sparse vector { 0 1 10 100 0 }
     gko::array<T> arr_val(this->exec, {1.0, 10.0, 100.0});
     gko::array<index_type> arr_col(this->exec, {1, 2, 3});
     gko::array<index_type> arr_row(this->exec, {0, 3});
-    std::unique_ptr<SMtx> smtx( SMtx::create(this->exec, gko::dim<2>(1, 5), arr_val, arr_col, arr_row) );
-    //declare result
-    std::unique_ptr<Mtx> res(gko::initialize<Mtx>({
-        {-1.0, -1.0, -1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0, -1.0, -1.0}
-    }, this->exec));
+    std::unique_ptr<SMtx> smtx(
+        SMtx::create(this->exec, gko::dim<2>(1, 5), arr_val, arr_col, arr_row));
+    // declare result
+    std::unique_ptr<Mtx> res(
+        gko::initialize<Mtx>({{-1.0, -1.0, -1.0, -1.0, -1.0},
+                              {-1.0, -1.0, -1.0, -1.0, -1.0},
+                              {-1.0, -1.0, -1.0, -1.0, -1.0},
+                              {-1.0, -1.0, -1.0, -1.0, -1.0}},
+                             this->exec));
 
     this->mtx9->apply(smtx, res);
 
-    for(index_type row=0; row<res->get_size()[0]; row++){
+    for (index_type row = 0; row < res->get_size()[0]; row++) {
         EXPECT_EQ(res->at(row, 0), T{0.0});
         EXPECT_EQ(res->at(row, 4), T{0.0});
     }
@@ -1467,61 +1468,58 @@ TYPED_TEST(DenseWithIndexType, SimpleMspmVectors)
 }
 
 TYPED_TEST(DenseWithIndexType, SimpleMspmMatrices)
-{ //dense matrix (mtx5) x sparse matrix (mtx3 of sparse test file)
+{  // dense matrix (mtx5) x sparse matrix (mtx3 of sparse test file)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using SMtx = gko::matrix::Csr<T, index_type>;
     using Mtx = gko::matrix::Dense<T>;
-    //create sparse matrix
-        // 0 2 1
-        // 3 1 8
-        // 0 0 0
+    // create sparse matrix
+    //  0 2 1
+    //  3 1 8
+    //  0 0 0
     gko::array<T> arr_val(this->exec, {2.0, 1.0, 3.0, 1.0, 8.0});
     gko::array<index_type> arr_col(this->exec, {1, 2, 0, 1, 2});
     gko::array<index_type> arr_row(this->exec, {0, 2, 5, 5});
-    std::unique_ptr<SMtx> smtx( SMtx::create(this->exec, gko::dim<2>(3, 3), arr_val, arr_col, arr_row) );
-    //declare result
-    std::unique_ptr<Mtx> res(gko::initialize<Mtx>({
-        {-1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0}
-    }, this->exec));
+    std::unique_ptr<SMtx> smtx(
+        SMtx::create(this->exec, gko::dim<2>(3, 3), arr_val, arr_col, arr_row));
+    // declare result
+    std::unique_ptr<Mtx> res(gko::initialize<Mtx>(
+        {{-1.0, -1.0, -1.0}, {-1.0, -1.0, -1.0}, {-1.0, -1.0, -1.0}},
+        this->exec));
 
     this->mtx5->apply(smtx, res);
 
-    std::unique_ptr<Mtx> expected(gko::initialize<Mtx>({
-        {-3.0, 1.0, -7.0},
-        {6.0, -2.0, 14.0},
-        {10.2, 7.6, 29.3}
-    }, this->exec));
+    std::unique_ptr<Mtx> expected(gko::initialize<Mtx>(
+        {{-3.0, 1.0, -7.0}, {6.0, -2.0, 14.0}, {10.2, 7.6, 29.3}}, this->exec));
     GKO_ASSERT_MTX_NEAR(res, expected, r<T>::value);
 }
 
 TYPED_TEST(DenseWithIndexType, AdvancedMspmVectors)
-{ //dense vector (mtx9) x horizontal sparse vector
+{  // dense vector (mtx9) x horizontal sparse vector
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using SMtx = gko::matrix::Csr<T, index_type>;
     using Mtx = gko::matrix::Dense<T>;
-    //create sparse vector { 0 1 10 100 0 }
+    // create sparse vector { 0 1 10 100 0 }
     gko::array<T> arr_val(this->exec, {1.0, 10.0, 100.0});
     gko::array<index_type> arr_col(this->exec, {1, 2, 3});
     gko::array<index_type> arr_row(this->exec, {0, 3});
-    std::unique_ptr<SMtx> smtx( SMtx::create(this->exec, gko::dim<2>(1, 5), arr_val, arr_col, arr_row) );
-    //scalars
+    std::unique_ptr<SMtx> smtx(
+        SMtx::create(this->exec, gko::dim<2>(1, 5), arr_val, arr_col, arr_row));
+    // scalars
     const auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     const auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    //declare result
-    std::unique_ptr<Mtx> res(gko::initialize<Mtx>({
-        {-1.0, -1.0, -1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0, -1.0, -1.0}
-    }, this->exec));
+    // declare result
+    std::unique_ptr<Mtx> res(
+        gko::initialize<Mtx>({{-1.0, -1.0, -1.0, -1.0, -1.0},
+                              {-1.0, -1.0, -1.0, -1.0, -1.0},
+                              {-1.0, -1.0, -1.0, -1.0, -1.0},
+                              {-1.0, -1.0, -1.0, -1.0, -1.0}},
+                             this->exec));
 
     this->mtx9->apply(alpha, smtx, beta, res);
 
-    for(index_type row=0; row<res->get_size()[0]; row++){
+    for (index_type row = 0; row < res->get_size()[0]; row++) {
         EXPECT_EQ(res->at(row, 0), T{1.0});
         EXPECT_EQ(res->at(row, 4), T{1.0});
     }
@@ -1540,36 +1538,33 @@ TYPED_TEST(DenseWithIndexType, AdvancedMspmVectors)
 }
 
 TYPED_TEST(DenseWithIndexType, AdvancedMspmMatrices)
-{ //dense matrix (mtx5) x sparse matrix (mtx3 of sparse test file)
+{  // dense matrix (mtx5) x sparse matrix (mtx3 of sparse test file)
     using T = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using SMtx = gko::matrix::Csr<T, index_type>;
     using Mtx = gko::matrix::Dense<T>;
-    //create sparse matrix
-        // 0 2 1
-        // 3 1 8
-        // 0 0 0
+    // create sparse matrix
+    //  0 2 1
+    //  3 1 8
+    //  0 0 0
     gko::array<T> arr_val(this->exec, {2.0, 1.0, 3.0, 1.0, 8.0});
     gko::array<index_type> arr_col(this->exec, {1, 2, 0, 1, 2});
     gko::array<index_type> arr_row(this->exec, {0, 2, 5, 5});
-    std::unique_ptr<SMtx> smtx( SMtx::create(this->exec, gko::dim<2>(3, 3), arr_val, arr_col, arr_row) );
-    //scalars
+    std::unique_ptr<SMtx> smtx(
+        SMtx::create(this->exec, gko::dim<2>(3, 3), arr_val, arr_col, arr_row));
+    // scalars
     const auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     const auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    //declare result
-    std::unique_ptr<Mtx> res(gko::initialize<Mtx>({
-        {-1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0},
-        {-1.0, -1.0, -1.0}
-    }, this->exec));
+    // declare result
+    std::unique_ptr<Mtx> res(gko::initialize<Mtx>(
+        {{-1.0, -1.0, -1.0}, {-1.0, -1.0, -1.0}, {-1.0, -1.0, -1.0}},
+        this->exec));
 
     this->mtx5->apply(alpha, smtx, beta, res);
 
-    std::unique_ptr<Mtx> expected(gko::initialize<Mtx>({
-        {-5.0, 3.0, -13.0},
-        {13.0, -3.0, 29.0},
-        {21.4, 16.2, 59.6}
-    }, this->exec));
+    std::unique_ptr<Mtx> expected(gko::initialize<Mtx>(
+        {{-5.0, 3.0, -13.0}, {13.0, -3.0, 29.0}, {21.4, 16.2, 59.6}},
+        this->exec));
     GKO_ASSERT_MTX_NEAR(res, expected, r<T>::value);
 }
 

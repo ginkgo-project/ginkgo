@@ -377,28 +377,29 @@ TEST_F(Dense, SimpleMspmIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    #ifdef GKO_COMPILING_OMP
+#ifdef GKO_COMPILING_OMP
     x->apply(csr_y, result);
     dx->apply(dcsr_y, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
-    #else
+#else
     ASSERT_THROW(dx->apply(dcsr_y, dresult), gko::NotImplemented);
-    #endif
+#endif
 }
 
 TEST_F(Dense, AdvancedMspmIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    #ifdef GKO_COMPILING_OMP
+#ifdef GKO_COMPILING_OMP
     x->apply(alpha, csr_y, beta, result);
     dx->apply(dalpha, dcsr_y, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, result, r<value_type>::value);
-    #else
-    ASSERT_THROW(dx->apply(dalpha, dcsr_y, dbeta, dresult), gko::NotImplemented);
-    #endif
+#else
+    ASSERT_THROW(dx->apply(dalpha, dcsr_y, dbeta, dresult),
+                 gko::NotImplemented);
+#endif
 }
 
 TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
