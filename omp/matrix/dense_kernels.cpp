@@ -164,7 +164,7 @@ void mspm_auxiliary(std::shared_ptr<const DefaultExecutor> exec,
         const auto th_acc_begin_ptr = acc_ptr + th_id*sub_acc_size;
         const auto th_acc_end_ptr = acc_ptr + (th_id+1)*sub_acc_size;
         #pragma omp for
-        for(IndexType row=zero<IndexType>(); row<c->get_size()[0]; row++){
+        for(auto row=zero<IndexType>(); row<c->get_size()[0]; row++){
             //reinitialize accumulator to 0
             initialize_accumulator(th_acc_begin_ptr, sub_acc_size, row);
             //iterate over the whole matrix b
