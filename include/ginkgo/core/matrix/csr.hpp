@@ -92,6 +92,31 @@ enum class spmv_strategy {
 };
 
 
+namespace detail {
+
+
+/**
+ * Returns the actual strategy passed. When the strategy is automatical, this
+ * returns the actual underlying strategy. This returns the same strategy as
+ * the input when the input is not automatical.
+ *
+ * @param exec  Executor associated to the matrix
+ * @param strategy  the strategy of CSR
+ * @param num_stored_elements  the number of stored elements
+ * @param max_nnz_per_row  the maximum number of stored elements per row
+ *
+ * @return the acutal strategy
+ *
+ * @note Users should not use this function. This is only make the function
+ * public for test
+ */
+spmv_strategy get_actual_strategy(std::shared_ptr<const Executor> exec,
+                                  spmv_strategy strategy,
+                                  size_type num_stored_elements,
+                                  size_type max_nnz_per_row);
+
+
+}  // namespace detail
 }  // namespace csr
 
 
@@ -1087,15 +1112,6 @@ public:
      */
     Csr(Csr&&);
 
-    /**
-     * Returns the actual strategy. When the strategy is automatical, this
-     * returns the actual underlying strategy. This returns the same strategy as
-     * `get_strategy` when the strategy is not automatical.
-     *
-     * @return the acutal strategy
-     */
-    csr::spmv_strategy get_actual_strategy() const noexcept;
-
 protected:
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
         size_type num_nonzeros = {},
@@ -1131,6 +1147,15 @@ protected:
      *        instead of inv_scale(const LinOp *alpha).
      */
     virtual void inv_scale_impl(const LinOp* alpha);
+
+    /**
+     * Returns the actual strategy. When the strategy is automatical, this
+     * returns the actual underlying strategy. This returns the same strategy as
+     * `get_strategy` when the strategy is not automatical.
+     *
+     * @return the acutal strategy
+     */
+    csr::spmv_strategy get_actual_strategy() const noexcept;
 
 private:
     csr::spmv_strategy strategy_;

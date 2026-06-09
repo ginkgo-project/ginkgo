@@ -107,6 +107,62 @@ GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
 
 
 }  // anonymous namespace
+
+
+namespace detail {
+
+
+spmv_strategy get_actual_strategy(std::shared_ptr<const Executor> exec,
+                                  spmv_strategy strategy,
+                                  size_type num_stored_elements,
+                                  size_type max_nnz_per_row)
+{
+    if (strategy != csr::spmv_strategy::automatical) {
+        return strategy;
+    }
+    // If the number of stored elements is larger than <nnz_limit> or the
+    // maximum
+    // number of stored elements per row is larger than <row_len_limit>, use
+    // load_balance otherwise use classical
+    /* Use imbalance strategy when the maximum number of nonzero per row
+     * is more than 1024 on NVIDIA hardware */
+    const int64_t nvidia_row_len_limit = 1024;
+    /* Use imbalance strategy when the matrix has more more than 1e6 on
+     * NVIDIA hardware */
+    const int64_t nvidia_nnz_limit{static_cast<int64_t>(1e6)};
+    /* Use imbalance strategy when the maximum number of nonzero per row
+     * is more than 768 on AMD hardware */
+    const int64_t amd_row_len_limit = 768;
+    /* Use imbalance strategy when the matrix has more more than 1e8 on
+     * AMD hardware */
+    const int64_t amd_nnz_limit{static_cast<int64_t>(1e8)};
+    /* Use imbalance strategy when the maximum number of nonzero per row
+     * is more than 25600 on Intel hardware */
+    const int64_t intel_row_len_limit = 25600;
+    /* Use imbalance strategy when the matrix has more more than 3e8 on
+     * Intel hardware */
+    const int64_t intel_nnz_limit{static_cast<int64_t>(3e8)};
+    auto nnz_limit = nvidia_nnz_limit;
+    auto row_len_limit = nvidia_row_len_limit;
+    if (std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
+        nnz_limit = intel_nnz_limit;
+        row_len_limit = intel_row_len_limit;
+    } else if (std::dynamic_pointer_cast<const HipExecutor>(exec)) {
+        nnz_limit = amd_nnz_limit;
+        row_len_limit = amd_row_len_limit;
+    } else if (!std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
+        // we do not have load balance on reference and omp executor.
+        return csr::spmv_strategy::classical;
+    }
+    if (num_stored_elements > nnz_limit || max_nnz_per_row > row_len_limit) {
+        return csr::spmv_strategy::load_balance;
+    } else {
+        return csr::spmv_strategy::classical;
+    }
+}
+
+
+}  // namespace detail
 }  // namespace csr
 
 
@@ -1796,55 +1852,15 @@ csr::spmv_strategy Csr<ValueType, IndexType>::get_strategy() const noexcept
     return strategy_;
 }
 
+
 template <typename ValueType, typename IndexType>
 csr::spmv_strategy Csr<ValueType, IndexType>::get_actual_strategy()
     const noexcept
 {
-    auto strategy = this->get_strategy();
-    if (strategy != csr::spmv_strategy::automatical) {
-        return strategy;
-    }
-    auto exec = this->get_executor();
-    // If the number of stored elements is larger than <nnz_limit> or the
-    // maximum
-    // number of stored elements per row is larger than <row_len_limit>, use
-    // load_balance otherwise use classical
-    /* Use imbalance strategy when the maximum number of nonzero per row
-     * is more than 1024 on NVIDIA hardware */
-    const int64_t nvidia_row_len_limit = 1024;
-    /* Use imbalance strategy when the matrix has more more than 1e6 on
-     * NVIDIA hardware */
-    const int64_t nvidia_nnz_limit{static_cast<int64_t>(1e6)};
-    /* Use imbalance strategy when the maximum number of nonzero per row
-     * is more than 768 on AMD hardware */
-    const int64_t amd_row_len_limit = 768;
-    /* Use imbalance strategy when the matrix has more more than 1e8 on
-     * AMD hardware */
-    const int64_t amd_nnz_limit{static_cast<int64_t>(1e8)};
-    /* Use imbalance strategy when the maximum number of nonzero per row
-     * is more than 25600 on Intel hardware */
-    const int64_t intel_row_len_limit = 25600;
-    /* Use imbalance strategy when the matrix has more more than 3e8 on
-     * Intel hardware */
-    const int64_t intel_nnz_limit{static_cast<int64_t>(3e8)};
-    auto nnz_limit = nvidia_nnz_limit;
-    auto row_len_limit = nvidia_row_len_limit;
-    if (std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
-        nnz_limit = intel_nnz_limit;
-        row_len_limit = intel_row_len_limit;
-    } else if (std::dynamic_pointer_cast<const HipExecutor>(exec)) {
-        nnz_limit = amd_nnz_limit;
-        row_len_limit = amd_row_len_limit;
-    } else if (!std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
-        // we do not have load balance on reference and omp executor.
-        return csr::spmv_strategy::classical;
-    }
-    if (this->get_num_stored_elements() > nnz_limit ||
-        max_nnz_per_row_ > row_len_limit) {
-        return csr::spmv_strategy::load_balance;
-    } else {
-        return csr::spmv_strategy::classical;
-    }
+    return csr::detail::get_actual_strategy(
+        this->get_executor(), this->get_strategy(),
+        this->get_num_stored_elements(),
+        static_cast<size_type>(max_nnz_per_row_));
 }
 
 

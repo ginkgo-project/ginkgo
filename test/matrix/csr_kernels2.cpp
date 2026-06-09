@@ -467,15 +467,35 @@ TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
     auto load_balance_mtx =
         gen_mtx<Mtx>(1, row_len_limit + 1000, row_len_limit + 1);
     auto classical_mtx = gen_mtx<Mtx>(50, 50, 1);
+    auto get_max_nnz_per_row = [](gko::size_type num_rows, auto row_ptrs) {
+        int64_t max_row_nnz = 0;
+        for (gko::size_type i = 0; i < num_rows; i++) {
+            max_row_nnz =
+                std::max(max_row_nnz,
+                         static_cast<int64_t>(row_ptrs[i + 1] - row_ptrs[i]));
+        }
+        return max_row_nnz;
+    };
+    auto load_balance_max_row_nnz =
+        get_max_nnz_per_row(load_balance_mtx->get_size()[0],
+                            load_balance_mtx->get_const_row_ptrs());
+    auto classical_max_row_nnz = get_max_nnz_per_row(
+        classical_mtx->get_size()[0], classical_mtx->get_const_row_ptrs());
     auto load_balance_mtx_d = gko::clone(exec, load_balance_mtx);
     auto classical_mtx_d = gko::clone(exec, classical_mtx);
 
     load_balance_mtx_d->set_strategy(automatical);
     classical_mtx_d->set_strategy(automatical);
 
-    EXPECT_EQ(load_balance_mtx_d->get_actual_strategy(),
+    EXPECT_EQ(gko::matrix::csr::detail::get_actual_strategy(
+                  exec, load_balance_mtx_d->get_strategy(),
+                  load_balance_mtx_d->get_num_stored_elements(),
+                  static_cast<gko::size_type>(load_balance_max_row_nnz)),
               gko::matrix::csr::spmv_strategy::load_balance);
-    EXPECT_EQ(classical_mtx_d->get_actual_strategy(),
+    EXPECT_EQ(gko::matrix::csr::detail::get_actual_strategy(
+                  exec, classical_mtx_d->get_strategy(),
+                  classical_mtx_d->get_num_stored_elements(),
+                  static_cast<gko::size_type>(classical_max_row_nnz)),
               gko::matrix::csr::spmv_strategy::classical);
 }
 
