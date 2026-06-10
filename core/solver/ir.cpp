@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 #include "core/config/config_helper.hpp"
@@ -187,7 +188,6 @@ void Ir<ValueType>::apply_with_initial_guess_impl(
         b, x);
 }
 
-
 template <typename ValueType>
 template <typename VectorType>
 void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
@@ -212,7 +212,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         residual->copy_from(dense_b);
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
     }
-    // zero input the residual is dense_b
+    // zero input: residual is dense_b
     const VectorType* residual_ptr =
         guess == initial_guess_mode::zero ? dense_b : residual;
 
@@ -220,6 +220,56 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         residual_ptr);
+
+    // Matches the OpenFOAM GAMGSolver::scale function:
+    //   acf   = A * x
+    //   alpha = (x·b) / (x·acf)              [Rayleigh-quotient step length]
+    //   x     = alpha*x + D^{-1}*(b - alpha*acf)  [scale + Jacobi correction]
+    // Falls back to scale-only if the system matrix diagonal is not
+    // extractable.
+    auto apply_scale_correction = [&](VectorType* x, const VectorType* b) {
+        const auto n_rhs = b->get_size()[1];
+
+        // acf = A * x
+        auto acf = gko::detail::create_with_config_of(x);
+        this->get_system_matrix()->apply(x, acf);
+
+        // alpha = (x·b) / (x·Ax); skip if x·Ax = 0 (e.g., x = 0)
+        auto alpha = Vector::create(exec, dim<2>{1, n_rhs});
+        auto denom = Vector::create(exec, dim<2>{1, n_rhs});
+        x->compute_dot(b, alpha);    // alpha = x·b
+        x->compute_dot(acf, denom);  // denom = x·Ax
+        if (exec->copy_val_to_host(denom->get_const_values()) ==
+            zero<ValueType>()) {
+            return;
+        }
+        alpha->inv_scale(denom);  // alpha = (x·b)/(x·Ax)
+
+        // r_scaled = b - alpha * Ax  (residual of the optimally-scaled
+        // solution)
+        auto r_scaled = gko::detail::create_with_config_of(x);
+        r_scaled->copy_from(b);
+        acf->scale(alpha);                      // acf = alpha * Ax
+        r_scaled->add_scaled(neg_one_op, acf);  // r_scaled = b - alpha*Ax
+
+        // Jacobi correction: corr = D^{-1} * r_scaled, where D = diag(A_local)
+        // get_local returns the diagonal block for distributed matrices.
+        const auto* local_A =
+            gko::detail::get_local(this->get_system_matrix().get());
+        if (const auto* de =
+                dynamic_cast<const DiagonalExtractable<ValueType>*>(local_A)) {
+            auto diag = de->extract_diagonal();
+            auto corr = gko::detail::create_with_config_of(x);
+            diag->inverse_apply(gko::detail::get_local(r_scaled.get()),
+                                gko::detail::get_local(corr.get()));
+            // x = alpha*x + D^{-1}*(b - alpha*Ax)
+            x->scale(alpha);
+            x->add_scaled(one_op, corr);
+        } else {
+            // Diagonal not available; apply Rayleigh-quotient scale only
+            x->scale(alpha);
+        }
+    };
 
     int iter = -1;
     while (true) {
@@ -241,16 +291,32 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         }
 
         if (solver_->apply_uses_initial_guess()) {
-            // Use the inner solver to solve
-            // A * inner_solution = residual
-            // with residual as initial guess.
+            // A * inner_solution = residual with residual as initial guess
             inner_solution->copy_from(residual_ptr);
             solver_->apply(residual_ptr, inner_solution);
-
             // x = x + relaxation_factor * inner_solution
             dense_x->add_scaled(relaxation_factor_, inner_solution);
+        } else if (parameters_.scale_correction == 1) {
+            // forward: additive solver step on x, then scale+Jacobi correction
+            // Use 2-arg apply so the correction accumulates into x rather than
+            // replacing it (the alpha-beta form zeroes x via
+            // prepare_initial_guess for zero-initial-guess inner solvers such
+            // as multigrid).
+            inner_solution->copy_from(residual_ptr);
+            solver_->apply(residual_ptr, inner_solution);
+            dense_x->add_scaled(relaxation_factor_, inner_solution);
+            apply_scale_correction(dense_x, dense_b);
+        } else if (parameters_.scale_correction == 2) {
+            // backward: solver step, then scale+Jacobi correction applied to
+            // the correction itself (b = residual, not dense_b).  This keeps
+            // everything in the correction equation A*delta = r, so no
+            // residual recomputation is needed.
+            inner_solution->copy_from(residual_ptr);
+            solver_->apply(residual_ptr, inner_solution);
+            apply_scale_correction(inner_solution, residual_ptr);
+            dense_x->add_scaled(relaxation_factor_, inner_solution);
         } else {
-            // x = x + relaxation_factor * A \ residual
+            // plain Richardson: x = x + relaxation_factor * solver(r)
             solver_->apply(relaxation_factor_, residual_ptr, one_op, dense_x);
         }
     }
