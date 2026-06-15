@@ -282,7 +282,8 @@ void classify_dofs_2(
                            ValueType>::bits_type>,
                        IndexType>,
              IndexType>& occurences,
-    ValueType* vertex_flags, comm_index_type local_part,
+    ValueType* vertex_flags, matrix::Dense<ValueType>* components,
+    comm_index_type local_part,
     array<experimental::distributed::preconditioner::dof_type>& dof_types,
     array<IndexType>& permutation_array, array<IndexType>& interface_sizes,
     array<ValueType>& unique_labels, array<IndexType>& unique_tags,
@@ -294,6 +295,30 @@ void classify_dofs_2(
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_CLASSIFY_DOFS2);
+
+
+template <typename ValueType, typename IndexType, typename GlobalIndexType>
+void classify_dofs_3(
+    std::shared_ptr<const DefaultExecutor> exec, const IndexType* row_ptrs,
+    const IndexType* col_idxs, array<GlobalIndexType> global_idxs,
+    matrix::Dense<ValueType>* labels, array<IndexType>& tags,
+    std::map<std::pair<std::vector<typename gko::detail::float_traits<
+                           ValueType>::bits_type>,
+                       IndexType>,
+             IndexType>& occurences,
+    ValueType* vertex_flags, matrix::Dense<ValueType>* components,
+    comm_index_type local_part,
+    array<experimental::distributed::preconditioner::dof_type>& dof_types,
+    array<IndexType>& permutation_array, array<IndexType>& interface_sizes,
+    array<ValueType>& unique_labels, array<IndexType>& unique_tags,
+    array<ValueType>& owning_labels, array<IndexType>& owning_tags,
+    size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
+    size_type& n_vertices, size_type& n_faces, size_type& n_edges,
+    size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
+    bool use_edges, bool use_connected_components) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
+    GKO_DECLARE_CLASSIFY_DOFS3);
 
 
 template <typename ValueType, typename IndexType>

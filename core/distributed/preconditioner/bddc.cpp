@@ -75,6 +75,7 @@ namespace {
 
 GKO_REGISTER_OPERATION(classify_dofs_1, bddc::classify_dofs_1);
 GKO_REGISTER_OPERATION(classify_dofs_2, bddc::classify_dofs_2);
+GKO_REGISTER_OPERATION(classify_dofs_3, bddc::classify_dofs_3);
 GKO_REGISTER_OPERATION(generate_constraints, bddc::generate_constraints);
 GKO_REGISTER_OPERATION(fill_coarse_data, bddc::fill_coarse_data);
 GKO_REGISTER_OPERATION(build_coarse_contribution,
@@ -161,6 +162,17 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
                    ->get_size()[0],
                1});
 
+    // components carries each face/edge dof's local connected-component
+    // representative (min global index). Each rank writes only its own column,
+    // so the summing restriction below assembles the full per-rank tuple, from
+    // which classify_dofs_3 derives globally consistent coarse dofs. The width
+    // is 1 (and the buffer unused) when connected components are disabled.
+    size_type comp_width =
+        use_connected_components ? static_cast<size_type>(num_parts) : 1;
+    auto comp_local = gko::matrix::Dense<remove_complex<ValueType>>::create(
+        exec, dim<2>{n_local_rows, comp_width});
+    comp_local->fill(zero<remove_complex<ValueType>>());
+
     system_matrix->get_prolongation()->apply(buffer_1, buffer_2);
     system_matrix->get_restriction()->apply(buffer_2, buffer_1);
     auto labels = clone(buffer_1->get_local_vector());
@@ -187,11 +199,39 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
 
     exec->run(bddc::make_classify_dofs_2(
         row_ptrs, col_idxs, global_idxs, labels.get(), tags, occurences,
-        buffer_3->get_local_values(), local_part, dof_types, permutation_array,
-        interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
-        n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
-        n_constraints, n_owning_interfaces, use_faces, use_edges,
-        use_connected_components));
+        buffer_3->get_local_values(), comp_local.get(), local_part, dof_types,
+        permutation_array, interface_sizes, unique_labels, unique_tags,
+        owning_labels, owning_tags, n_inner_idxs, n_face_idxs, n_edge_idxs,
+        n_vertices, n_faces, n_edges, n_constraints, n_owning_interfaces,
+        use_faces, use_edges, use_connected_components));
+
+    // Exchange the per-rank local component representatives so that every
+    // shared dof holds the tuple of representatives from all sharing ranks.
+    auto comp_buffer_1 = share(Vector<remove_complex<ValueType>>::create(
+        exec, comm,
+        dim<2>{system_matrix->get_restriction()->get_size()[0], comp_width},
+        std::move(comp_local)));
+    if (use_connected_components) {
+        auto comp_buffer_2 = Vector<remove_complex<ValueType>>::create(
+            exec, comm,
+            dim<2>{system_matrix->get_prolongation()->get_size()[0],
+                   comp_width},
+            dim<2>{system_matrix->get_prolongation()
+                       ->get_local_matrix()
+                       ->get_size()[0],
+                   comp_width});
+        system_matrix->get_prolongation()->apply(comp_buffer_1, comp_buffer_2);
+        system_matrix->get_restriction()->apply(comp_buffer_2, comp_buffer_1);
+    }
+    auto components = clone(comp_buffer_1->get_local_vector());
+
+    exec->run(bddc::make_classify_dofs_3(
+        row_ptrs, col_idxs, global_idxs, labels.get(), tags, occurences,
+        buffer_3->get_local_values(), components.get(), local_part, dof_types,
+        permutation_array, interface_sizes, unique_labels, unique_tags,
+        owning_labels, owning_tags, n_inner_idxs, n_face_idxs, n_edge_idxs,
+        n_vertices, n_faces, n_edges, n_constraints, n_owning_interfaces,
+        use_faces, use_edges, use_connected_components));
 
     // std::cout << "RANK " << comm.rank() << ": " << n_vertices << " VERTICES,
     // " << n_edges << " EDGES, " << n_faces << " FACES ==> " << n_constraints
