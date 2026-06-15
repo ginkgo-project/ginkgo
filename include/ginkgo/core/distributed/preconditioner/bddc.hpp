@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -118,6 +118,13 @@ public:
          * Use of Face constraints.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(faces, true);
+
+        /**
+         * Split interfaces into connected components of the local graph, so
+         * that dofs sharing the same set of ranks but belonging to
+         * geometrically disconnected pieces become separate coarse dofs.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(connected_components, true);
 
         std::shared_ptr<const stop::CriterionFactory>
             GKO_DEFERRED_FACTORY_PARAMETER(local_criterion);

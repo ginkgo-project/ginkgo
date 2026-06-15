@@ -103,7 +103,8 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
     array<LocalIndexType>& owning_tags, size_type& n_inner_idxs,
     size_type& n_face_idxs, size_type& n_edge_idxs, size_type& n_vertices,
     size_type& n_faces, size_type& n_edges, size_type& n_constraints,
-    int& n_owning_interfaces, bool use_faces, bool use_edges)
+    int& n_owning_interfaces, bool use_faces, bool use_edges,
+    bool use_connected_components)
 {
     using uint_type = typename gko::detail::float_traits<
         remove_complex<ValueType>>::bits_type;
@@ -189,7 +190,8 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
         buffer_3->get_local_values(), local_part, dof_types, permutation_array,
         interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
         n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
-        n_constraints, n_owning_interfaces, use_faces, use_edges));
+        n_constraints, n_owning_interfaces, use_faces, use_edges,
+        use_connected_components));
 
     // std::cout << "RANK " << comm.rank() << ": " << n_vertices << " VERTICES,
     // " << n_edges << " EDGES, " << n_faces << " FACES ==> " << n_constraints
@@ -563,7 +565,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
         n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
         n_constraints, n_owning_interfaces, parameters_.faces,
-        parameters_.edges);
+        parameters_.edges, parameters_.connected_components);
     if (exec != host_exec) {
         labels = clone(exec, labels);
     }

@@ -7,8 +7,10 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <map>
 #include <string>
 
+#include "core/components/disjoint_sets.hpp"
 #include "ginkgo/core/distributed/preconditioner/bddc.hpp"
 
 
@@ -209,9 +211,10 @@ void classify_dofs_2(
     size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
     size_type& n_vertices, size_type& n_faces, size_type& n_edges,
     size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
-    bool use_edges)
+    bool use_edges, bool use_connected_components)
 {
     using uint_type = typename gko::detail::float_traits<ValueType>::bits_type;
+    using dof_type = experimental::distributed::preconditioner::dof_type;
     comm_index_type n_significand_bits =
         std::numeric_limits<remove_complex<ValueType>>::digits;
     auto local_labels = labels->get_const_values();
@@ -262,6 +265,105 @@ void classify_dofs_2(
                 n_edges--;
                 dof_types.get_data()[i] =
                     experimental::distributed::preconditioner::dof_type::vertex;
+            }
+        }
+    }
+
+    if (use_connected_components) {
+        // Split each (label, tag) interface into the connected components of
+        // the local graph, so that geometrically disconnected pieces shared by
+        // the same set of ranks become separate coarse dofs. Each component is
+        // identified by the minimum global index it contains, which is
+        // consistent across the subdomains sharing the interface.
+        gko::disjoint_sets<IndexType> sets(exec,
+                                           static_cast<IndexType>(n_rows));
+        auto join_same_interface = [&](size_type i, dof_type type) {
+            for (auto nz = row_ptrs[i]; nz < row_ptrs[i + 1]; nz++) {
+                auto j = static_cast<size_type>(col_idxs[nz]);
+                if (j == i) {
+                    continue;
+                }
+                if (dof_types.get_const_data()[j] == type &&
+                    tags.get_const_data()[j] == tags.get_const_data()[i] &&
+                    labels_eq(n_cols, local_labels + n_cols * j,
+                              local_labels + n_cols * i)) {
+                    sets.join(static_cast<IndexType>(i),
+                              static_cast<IndexType>(j));
+                }
+            }
+        };
+        for (size_type i = 0; i < n_rows; i++) {
+            auto type = dof_types.get_const_data()[i];
+            if (type == dof_type::face || type == dof_type::edge) {
+                join_same_interface(i, type);
+            }
+        }
+
+        // Per component, track its minimum global index and its size (number of
+        // face/edge dofs it contains).
+        std::map<IndexType, GlobalIndexType> min_global;
+        std::map<IndexType, size_type> comp_size;
+        for (size_type i = 0; i < n_rows; i++) {
+            auto type = dof_types.get_const_data()[i];
+            if (type != dof_type::face && type != dof_type::edge) {
+                continue;
+            }
+            auto rep = sets.find(static_cast<IndexType>(i));
+            auto gidx = global_idxs.get_const_data()[i];
+            auto it = min_global.find(rep);
+            if (it == min_global.end()) {
+                min_global[rep] = gidx;
+                comp_size[rep] = 1;
+            } else {
+                it->second = std::min(it->second, gidx);
+                comp_size[rep]++;
+            }
+        }
+
+        // Retag the face/edge dofs with their component identifier. A component
+        // of a single dof becomes a vertex, consistent with the single-dof
+        // handling above.
+        for (size_type i = 0; i < n_rows; i++) {
+            auto type = dof_types.get_data()[i];
+            if (type != dof_type::face && type != dof_type::edge) {
+                continue;
+            }
+            auto rep = sets.find(static_cast<IndexType>(i));
+            if (comp_size[rep] == 1) {
+                n_vertices++;
+                if (type == dof_type::face) {
+                    n_face_idxs--;
+                } else {
+                    n_edge_idxs--;
+                }
+                dof_types.get_data()[i] = dof_type::vertex;
+                tags.get_data()[i] = global_idxs.get_const_data()[i];
+            } else {
+                tags.get_data()[i] = static_cast<IndexType>(min_global[rep]);
+            }
+        }
+
+        // Rebuild the occurence counts and the face/edge interface counts from
+        // the updated tags: each remaining face/edge interface is now a single
+        // connected component with a positive dof count.
+        occurences.clear();
+        n_faces = 0;
+        n_edges = 0;
+        for (size_type i = 0; i < n_rows; i++) {
+            auto type = dof_types.get_const_data()[i];
+            if (type != dof_type::face && type != dof_type::edge) {
+                continue;
+            }
+            std::memcpy(key.data(), local_labels + n_cols * i,
+                        n_cols * sizeof(uint_type));
+            auto keypair = std::make_pair(key, tags.get_const_data()[i]);
+            occurences[keypair]++;
+            if (occurences[keypair] == 1) {
+                if (type == dof_type::face) {
+                    n_faces++;
+                } else {
+                    n_edges++;
+                }
             }
         }
     }
