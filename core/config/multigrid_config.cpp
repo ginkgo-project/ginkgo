@@ -1,8 +1,9 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/rs.hpp>
 
 #include "core/config/parse_macro.hpp"
 
@@ -12,6 +13,7 @@ namespace config {
 
 
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Pgm, gko::multigrid::Pgm);
+GKO_PARSE_VALUE_AND_INDEX_TYPE(Rs, gko::multigrid::Rs);
 
 
 }  // namespace config
