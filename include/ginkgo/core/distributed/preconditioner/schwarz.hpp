@@ -21,6 +21,7 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/distributed/vector_cache.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
+#include <ginkgo/core/solver/workspace.hpp>
 
 
 namespace gko {
@@ -73,6 +74,42 @@ public:
     using index_type = GlobalIndexType;
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
+
+    Schwarz(const Schwarz& other) : LinOp(other) { *this = other; }
+    Schwarz(Schwarz&& other) noexcept : LinOp(std::move(other))
+    {
+        *this = std::move(other);
+    }
+    Schwarz& operator=(const Schwarz& other)
+    {
+        if (this != &other) {
+            LinOp::operator=(other);
+            local_solver_ = other.local_solver_;
+            system_matrix_ = other.system_matrix_;
+            parameters_ = other.parameters_;
+            coarse_level_ = other.coarse_level_;
+            coarse_solver_ = other.coarse_solver_;
+            coarse_weight_ = other.coarse_weight_;
+            local_weight_ = other.local_weight_;
+        }
+        return *this;
+    }
+    Schwarz& operator=(Schwarz&& other) noexcept
+    {
+        if (this != &other) {
+            LinOp::operator=(std::move(other));
+            local_solver_ = std::move(other.local_solver_);
+            system_matrix_ = std::move(other.system_matrix_);
+            parameters_ = std::move(other.parameters_);
+            coarse_level_ = std::move(other.coarse_level_);
+            coarse_solver_ = std::move(other.coarse_solver_);
+            coarse_weight_ = std::move(other.coarse_weight_);
+            local_weight_ = std::move(other.local_weight_);
+            owned_workspace_ = std::move(other.owned_workspace_);
+            workspace_view_ = std::exchange(other.workspace_view_, nullptr);
+        }
+        return *this;
+    }
 
     /**
      * Return whether the local solvers use the data in x as an initial guess.
@@ -183,6 +220,12 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{components.system_matrix}
     {
+        if (components.has_owned_workspace()) {
+            owned_workspace_ = components.take_owned_workspace();
+            workspace_view_ = owned_workspace_.get();
+        } else if (components.has_view_workspace()) {
+            workspace_view_ = components.get_view_workspace();
+        }
         this->generate(std::move(components.system_matrix));
     }
 
@@ -190,6 +233,16 @@ protected:
      * Generates the preconditioner.
      */
     void generate(std::shared_ptr<const LinOp> system_matrix);
+
+    /**
+     * Generate an inner LinOp, threading the workspace view through to the
+     * factory when one is available. Otherwise falls back to the workspace-
+     * less generate overload. `tag` names the child node created under the
+     * Schwarz workspace.
+     */
+    std::unique_ptr<LinOp> generate_inner(const LinOpFactory* factory,
+                                          std::shared_ptr<const LinOp> matrix,
+                                          const std::string& tag);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -209,6 +262,9 @@ private:
 
     std::shared_ptr<const LinOp> local_solver_;
     std::shared_ptr<const LinOp> system_matrix_;
+
+    std::unique_ptr<solver::Workspace> owned_workspace_;
+    solver::Workspace* workspace_view_ = nullptr;
 
     // Used for advanced apply
     detail::VectorCache<ValueType> cache_;
