@@ -61,12 +61,13 @@ public:
 
 protected:
     DummyMultigridLevelWithFactory(const Factory* factory,
-                                   std::shared_ptr<const gko::LinOp> op)
+                                   gko::LinOpGenerateComponents components)
         : gko::EnableLinOp<DummyMultigridLevelWithFactory>(
-              factory->get_executor(), op->get_size()),
-          gko::multigrid::EnableMultigridLevel<ValueType>(op),
+              factory->get_executor(), components.system_matrix->get_size()),
+          gko::multigrid::EnableMultigridLevel<ValueType>(
+              components.system_matrix),
           parameters_{factory->get_parameters()},
-          op_{op}
+          op_{std::move(components.system_matrix)}
     {
         auto exec = this->get_executor();
         auto distributed_op = dynamic_cast<const dist_mtx_type*>(op_.get());

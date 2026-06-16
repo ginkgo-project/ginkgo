@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -63,13 +63,14 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     DummyLinOpWithFactory(const Factory* factory,
-                          std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor(),
-                                                  op->get_size()),
-          gko::multigrid::EnableMultigridLevel<ValueType>(op),
+                          gko::LinOpGenerateComponents components)
+        : gko::EnableLinOp<DummyLinOpWithFactory>(
+              factory->get_executor(), components.system_matrix->get_size()),
+          gko::multigrid::EnableMultigridLevel<ValueType>(
+              components.system_matrix),
           parameters_{factory->get_parameters()},
-          op_{op},
-          n_{op->get_size()[0]}
+          op_{std::move(components.system_matrix)},
+          n_{op_->get_size()[0]}
     {
         this->set_multigrid_level(
             std::make_shared<DummyLinOp>(this->get_executor(),

@@ -123,13 +123,16 @@ generate_factorization(
 
 template <typename ValueType, typename IndexType>
 Direct<ValueType, IndexType>::Direct(const Factory* factory,
-                                     std::shared_ptr<const LinOp> system_matrix)
-    : EnableLinOp<Direct>{factory->get_executor(), system_matrix->get_size()},
+                                     LinOpGenerateComponents components)
+    : EnableLinOp<Direct>{factory->get_executor(),
+                          components.system_matrix->get_size()},
       gko::solver::EnableSolverBase<
           Direct, factorization::Factorization<ValueType, IndexType>>{
           generate_factorization<ValueType, IndexType>(
-              factory->get_parameters().factorization, system_matrix)}
+              factory->get_parameters().factorization,
+              components.system_matrix)}
 {
+    this->adopt_workspace(components, this->get_executor());
     using factorization::storage_type;
     const auto factors = this->get_system_matrix();
     const auto exec = this->get_executor();

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -185,7 +185,7 @@ protected:
         components_type args) const override
     {
         return std::unique_ptr<abstract_product_type>(
-            new product_type(self(), args));
+            new product_type(self(), std::move(args)));
     }
 
 private:

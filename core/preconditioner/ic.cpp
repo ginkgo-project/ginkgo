@@ -168,11 +168,13 @@ Ic<ValueType, IndexType>::Ic(std::shared_ptr<const Executor> exec)
 
 template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>::Ic(const Factory* factory,
-                             std::shared_ptr<const LinOp> lin_op)
+                             LinOpGenerateComponents components)
 
-    : EnableLinOp<Ic>(factory->get_executor(), lin_op->get_size()),
+    : EnableLinOp<Ic>(factory->get_executor(),
+                      components.system_matrix->get_size()),
       parameters_{factory->get_parameters()}
 {
+    auto lin_op = std::move(components.system_matrix);
     auto comp =
         std::dynamic_pointer_cast<const Composition<value_type>>(lin_op);
     std::shared_ptr<const LinOp> l_factor;

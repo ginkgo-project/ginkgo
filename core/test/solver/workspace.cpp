@@ -121,7 +121,7 @@ TEST_F(Workspace, AnyArrayClearAfterInitWorks)
 
 TEST_F(Workspace, CanCreateArrays)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(0, 2);
 
     auto& arr1 = ws.create_or_get_array<int>(1, 2);
@@ -136,7 +136,7 @@ TEST_F(Workspace, CanCreateArrays)
 
 TEST_F(Workspace, CanReuseArrays)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(0, 2);
     auto& arr1 = ws.create_or_get_array<int>(1, 2);
     auto& arr2 = ws.create_or_get_array<double>(0, 3);
@@ -155,7 +155,7 @@ TEST_F(Workspace, CanReuseArrays)
 
 TEST_F(Workspace, CanResizeArrays)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(0, 2);
     auto& arr1 = ws.create_or_get_array<int>(1, 2);
     auto& arr2 = ws.create_or_get_array<double>(0, 3);
@@ -177,7 +177,7 @@ TEST_F(Workspace, CanResizeArrays)
 
 TEST_F(Workspace, AbortsOnDifferentArrayTypes)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(0, 1);
     ws.create_or_get_array<double>(0, 3);
 
@@ -191,7 +191,7 @@ TEST_F(Workspace, AbortsOnDifferentArrayTypes)
 
 TEST_F(Workspace, CanCreateOperators)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(2, 0);
     const gko::dim<2> size1{1, 2};
     const gko::dim<2> size2{5};
@@ -213,14 +213,14 @@ TEST_F(Workspace, CanCreateOperators)
     ASSERT_EQ(op2->get_stride(), stride2);
     GKO_ASSERT_DYNAMIC_TYPE(op1, DummyLinOp);
     GKO_ASSERT_DYNAMIC_TYPE(op2, DummyLinOp2);
-    ASSERT_EQ(op1, ws.get_op(1));
-    ASSERT_EQ(op2, ws.get_op(0));
+    ASSERT_EQ(op1, ws.get_const_op(1));
+    ASSERT_EQ(op2, ws.get_const_op(0));
 }
 
 
 TEST_F(Workspace, CanReuseOperators)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(1, 0);
     auto op1 = ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
@@ -234,7 +234,7 @@ TEST_F(Workspace, CanReuseOperators)
 
 TEST_F(Workspace, ChecksExactOperatorType)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(1, 0);
     ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
@@ -249,7 +249,7 @@ TEST_F(Workspace, ChecksExactOperatorType)
 
 TEST_F(Workspace, ChecksOperatorSize)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(1, 0);
     const gko::dim<2> size{1, 2};
     ws.template create_or_get_op<DummyLinOp>(
@@ -265,7 +265,7 @@ TEST_F(Workspace, ChecksOperatorSize)
 
 TEST_F(Workspace, ChecksOperatorStride)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(1, 0);
     ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
@@ -280,25 +280,67 @@ TEST_F(Workspace, ChecksOperatorStride)
 
 TEST_F(Workspace, ClearResetsOperators)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(1, 0);
     auto op1 = ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
 
     ws.clear();
 
-    ASSERT_EQ(ws.get_op(0), nullptr);
+    ASSERT_EQ(ws.get_const_op(0), nullptr);
 }
 
 
-TEST_F(Workspace, MoveResetsOperators)
+TEST_F(Workspace, MoveTransfersOperatorsToDestination)
 {
-    gko::solver::detail::workspace ws{exec};
+    gko::solver::Workspace ws{exec};
     ws.set_size(1, 0);
     auto op1 = ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
 
-    gko::solver::detail::workspace ws2{std::move(ws)};
+    gko::solver::Workspace ws2{std::move(ws)};
 
-    ASSERT_EQ(ws.get_op(0), nullptr);
+    ASSERT_EQ(ws2.get_const_op(0), op1);
+}
+
+
+TEST_F(Workspace, ResetUpdatesExecutor)
+{
+    auto exec1 = gko::ReferenceExecutor::create();
+    auto exec2 = gko::ReferenceExecutor::create();
+    gko::solver::Workspace ws{exec1};
+
+    ws.reset(exec2);
+
+    ASSERT_EQ(ws.get_executor(), exec2);
+}
+
+
+TEST_F(Workspace, ResetClearsSlotsWhenExecutorChanges)
+{
+    auto exec1 = gko::ReferenceExecutor::create();
+    auto exec2 = gko::ReferenceExecutor::create();
+    gko::solver::Workspace ws{exec1};
+    ws.set_size(1, 0);
+    ws.template create_or_get_op<DummyLinOp>(
+        0, [&] { return DummyLinOp::create(exec1); }, typeid(DummyLinOp), {},
+        0);
+
+    ws.reset(exec2);
+
+    ASSERT_EQ(ws.get_executor(), exec2);
+    ASSERT_EQ(ws.get_const_op(0), nullptr);
+}
+
+
+TEST_F(Workspace, ResetPreservesSlotsWhenExecutorUnchanged)
+{
+    gko::solver::Workspace ws{exec};
+    ws.set_size(1, 0);
+    auto op1 = ws.template create_or_get_op<DummyLinOp>(
+        0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
+
+    ws.reset(exec);
+
+    ASSERT_EQ(ws.get_const_op(0), op1);
 }

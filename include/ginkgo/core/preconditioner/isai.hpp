@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -228,11 +228,12 @@ protected:
      * @param factory  the factory to use to create the preconditioner
      * @param system_matrix  the matrix for which an ISAI is to be computed
      */
-    explicit Isai(const Factory* factory,
-                  std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Isai>(factory->get_executor(), system_matrix->get_size()),
+    explicit Isai(const Factory* factory, LinOpGenerateComponents components)
+        : EnableLinOp<Isai>(factory->get_executor(),
+                            components.system_matrix->get_size()),
           parameters_{factory->get_parameters()}
     {
+        auto system_matrix = std::move(components.system_matrix);
         const auto skip_sorting = parameters_.skip_sorting;
         const auto power = parameters_.sparsity_power;
         const auto excess_limit = parameters_.excess_limit;

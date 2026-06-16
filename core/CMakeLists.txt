@@ -37,6 +37,7 @@ target_sources(
         base/device_matrix_data.cpp
         base/executor.cpp
         base/index_set.cpp
+        base/lin_op.cpp
         base/memory.cpp
         base/mpi.cpp
         base/mtx_io.cpp
@@ -127,6 +128,7 @@ target_sources(
         solver/multigrid.cpp
         solver/pipe_cg.cpp
         solver/upper_trs.cpp
+        solver/workspace.cpp
         stop/combined.cpp
         stop/criterion.cpp
         stop/iteration.cpp

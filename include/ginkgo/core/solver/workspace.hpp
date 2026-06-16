@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,18 +6,40 @@
 #define GKO_PUBLIC_CORE_SOLVER_WORKSPACE_HPP_
 
 
+#include <iostream>
+#include <map>
+#include <memory>
+#include <string>
 #include <typeinfo>
+#include <vector>
 
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dim.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
+
+
+class LinOpFactory;
+
+
 namespace solver {
+
+
 namespace detail {
 
 
+class SolverBaseLinOp;
+
+
 /**
- * Type-erased object storing any kind of gko::array
+ * Type-erased container for any gko::array<T>. Used internally by Workspace
+ * to back the workspace_array slots without templating the workspace itself
+ * on a value type.
  */
 class any_array {
 public:
@@ -74,24 +96,76 @@ private:
 };
 
 
-class workspace {
+}  // namespace detail
+
+
+/**
+ * The Workspace is a node in a solver's temporary-storage tree. Each node owns
+ * a flat slot container (operators and arrays sized by the solver) plus a map
+ * of named child Workspaces for sub-solvers. Every node is bound to an
+ * executor at construction; children initially inherit their parent's
+ * executor, and an inner solver may rebind its child node via reset(exec)
+ * (used by Multigrid to bind each level to its level executor).
+ *
+ * Top-level workspaces are constructed via Workspace::create and passed into
+ * LinOpFactory::generate(matrix, unique_ptr<Workspace>). The outer solver
+ * builds the child tree as it generates inner solvers; external users only
+ * ever construct and hand off a root workspace.
+ *
+ * One workspace per factory shape. Slot count and type are tied to a
+ * particular solver class; reusing the same workspace across a Cg and then a
+ * Gmres factory works but defeats the point — the second generate() resizes
+ * the slot vector to the new shape (dropping slots when the new solver needs
+ * fewer, extending when it needs more) and reallocates any slots whose type
+ * or dimensions don't match the new use. The old child subtree is left in
+ * place as dead weight. Hold one workspace per factory you want to amortize
+ * allocations for.
+ *
+ * Not thread-safe: A workspace (or any of its descendants) must not be
+ * used by two solvers concurrently.
+ *
+ * Non-copyable: a copy would either share scratch storage (unsafe) or
+ * silently produce an empty workspace (misleading).
+ *
+ * Move semantics transfer the full tree.
+ */
+class Workspace {
 public:
-    workspace(std::shared_ptr<const Executor> exec) : exec_{std::move(exec)} {}
+    explicit Workspace(std::shared_ptr<const Executor> exec);
 
-    workspace(const workspace& other) : workspace{other.get_executor()} {}
+    static std::unique_ptr<Workspace> create(
+        std::shared_ptr<const Executor> exec);
 
-    workspace(workspace&& other) : workspace{other.get_executor()}
-    {
-        other.clear();
-    }
+    Workspace(const Workspace&) = delete;
+    Workspace& operator=(const Workspace&) = delete;
+    Workspace(Workspace&&) = default;
+    Workspace& operator=(Workspace&&) = default;
 
-    workspace& operator=(const workspace& other) { return *this; }
+    Workspace* get_or_create_child(const std::string& tag);
 
-    workspace& operator=(workspace&& other)
-    {
-        other.clear();
-        return *this;
-    }
+    Workspace* get_child(const std::string& tag) const;
+
+    bool has_child(const std::string& tag) const;
+
+    /**
+     * Dumps the workspace tree shape to `os`. The child tree is populated as
+     * solvers generate into the workspace, so describing a freshly-created
+     * (unused) workspace shows only the root.
+     */
+    void describe(std::ostream& os, int indent = 0) const;
+
+    std::shared_ptr<const Executor> get_executor() const { return exec_; }
+
+    /**
+     * Rebinds the workspace to a different executor. When the new executor
+     * differs from the current one, existing slot data would be stranded on
+     * the previous device, so the workspace is cleared before rebinding.
+     * When the executor is unchanged, this is a no-op and slot contents are
+     * preserved.
+     */
+    void reset(std::shared_ptr<const Executor> exec);
+
+    void set_size(int num_operators, int num_arrays);
 
     template <typename LinOpType, typename CreateOperation>
     LinOpType* create_or_get_op(int op_id, CreateOperation create,
@@ -120,11 +194,9 @@ public:
         return op;
     }
 
-    const LinOp* get_op(int op_id) const
-    {
-        GKO_ASSERT(op_id >= 0 && op_id < operators_.size());
-        return operators_[op_id].get();
-    }
+    const LinOp* get_const_op(int op_id) const;
+
+    LinOp* get_mutable_op(int op_id);
 
     template <typename ValueType>
     array<ValueType>& init_or_get_array(int array_id)
@@ -151,32 +223,37 @@ public:
         return result;
     }
 
-    std::shared_ptr<const Executor> get_executor() const { return exec_; }
+    bool empty() const;
 
-    void set_size(int num_operators, int num_arrays)
-    {
-        operators_.resize(num_operators);
-        arrays_.resize(num_arrays);
-    }
-
-    void clear()
-    {
-        for (auto& op : operators_) {
-            op.reset();
-        }
-        for (auto& array : arrays_) {
-            array.clear();
-        }
-    }
+    void clear();
 
 private:
     std::shared_ptr<const Executor> exec_;
     std::vector<std::unique_ptr<LinOp>> operators_;
-    std::vector<any_array> arrays_;
+    std::vector<detail::any_array> arrays_;
+    std::map<std::string, std::unique_ptr<Workspace>> children_;
+    std::string tag_;
 };
 
 
-}  // namespace detail
+/**
+ * Extracts the workspace from a solver, invalidating the solver.
+ * The solver unique_ptr is consumed and reset to nullptr after extraction.
+ * Only works on top-level solvers that own their workspace. Pass with
+ * std::move at the call site so the consumption is explicit.
+ *
+ * @param solver  the solver to extract from (consumed by rvalue reference;
+ *                reset to nullptr on return)
+ *
+ * @return the extracted workspace
+ *
+ * @throws InvalidStateError if the solver is not workspace-aware or has no
+ *         owned workspace (e.g., it is an inner solver)
+ */
+std::unique_ptr<Workspace> invalidate_and_extract_workspace(
+    std::unique_ptr<LinOp>&& solver);
+
+
 }  // namespace solver
 }  // namespace gko
 

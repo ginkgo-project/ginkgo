@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -101,7 +101,7 @@ protected:
     {}
 
     std::unique_ptr<LinOp> generate_impl(
-        std::shared_ptr<const LinOp> system_matrix) const override;
+        LinOpGenerateComponents components) const override;
 
 private:
     parameters_type parameters_;

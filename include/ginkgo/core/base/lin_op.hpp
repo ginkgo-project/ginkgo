@@ -24,6 +24,33 @@
 
 
 namespace gko {
+
+
+class LinOp;
+class LinOpFactory;
+
+
+namespace solver {
+class Workspace;
+namespace detail {
+
+
+/**
+ * Internal: generate a solver that borrows a non-owning Workspace view.
+ * Called by composite solvers (multigrid, IR, preconditioned Krylov) to
+ * wire inner solvers into a child node of the outer solver's workspace.
+ * External callers should not use this — the borrowed view's lifetime is
+ * the responsibility of the outer solver, not the caller.
+ */
+std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
+                                          std::shared_ptr<const LinOp> input,
+                                          Workspace* view);
+
+
+}  // namespace detail
+}  // namespace solver
+
+
 namespace matrix {
 
 
@@ -340,27 +367,79 @@ private:
  *
  * @ingroup LinOp
  */
-class LinOpFactory
-    : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
-public:
-    using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
 
-    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
-    {
-        this->template log<log::Logger::linop_factory_generate_started>(
-            this, input.get());
-        const auto exec = this->get_executor();
-        std::unique_ptr<LinOp> generated;
-        if (input->get_executor() == exec) {
-            generated = this->AbstractFactory::generate(input);
-        } else {
-            generated =
-                this->AbstractFactory::generate(gko::clone(exec, input));
-        }
-        this->template log<log::Logger::linop_factory_generate_completed>(
-            this, input.get(), generated.get());
-        return generated;
-    }
+
+/**
+ * Components needed to generate a LinOp product from a factory.
+ * Carries the system matrix and an optional workspace for temporary storage.
+ *
+ * Each instance is constructed in exactly one of three states:
+ *   - no workspace,
+ *   - owning workspace (transferred to the factory),
+ *   - non-owning workspace view (borrowed by an inner solver).
+ * The state is fixed at construction; the workspace storage is private so
+ * the two cases cannot coexist or be set after the fact.
+ */
+struct LinOpGenerateComponents {
+    std::shared_ptr<const LinOp> system_matrix;
+
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix);
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
+                            std::unique_ptr<solver::Workspace> ws);
+    ~LinOpGenerateComponents();
+    LinOpGenerateComponents(LinOpGenerateComponents&&) noexcept;
+    LinOpGenerateComponents& operator=(LinOpGenerateComponents&&) noexcept;
+
+    // Non-copyable (unique_ptr member)
+    LinOpGenerateComponents(const LinOpGenerateComponents&) = delete;
+    LinOpGenerateComponents& operator=(const LinOpGenerateComponents&) = delete;
+
+    bool has_owned_workspace() const { return owned_workspace_ != nullptr; }
+    bool has_view_workspace() const { return view_workspace_ != nullptr; }
+
+    std::unique_ptr<solver::Workspace> take_owned_workspace();
+
+    solver::Workspace* get_view_workspace() const { return view_workspace_; }
+
+private:
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
+                            solver::Workspace* view);
+
+    friend std::unique_ptr<LinOp> solver::detail::generate_with_view(
+        const LinOpFactory*, std::shared_ptr<const LinOp>, solver::Workspace*);
+
+    std::unique_ptr<solver::Workspace> owned_workspace_;
+    solver::Workspace* view_workspace_ = nullptr;
+};
+
+
+class LinOpFactory : public AbstractFactory<LinOp, LinOpGenerateComponents> {
+public:
+    using AbstractFactory<LinOp, LinOpGenerateComponents>::AbstractFactory;
+
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const;
+
+    /**
+     * Generate a solver that owns the given workspace. After this call returns,
+     * the workspace lives inside the returned solver — any raw Workspace*
+     * obtained before the move is dangling once the solver is destroyed. Use
+     * solver::invalidate_and_extract_workspace() to recover it safely.
+     */
+    std::unique_ptr<LinOp> generate(
+        std::shared_ptr<const LinOp> input,
+        std::unique_ptr<solver::Workspace> ws) const;
+
+    // Deleted: external code must transfer ownership of the workspace via the
+    // unique_ptr overload above. The non-owning view path is reserved for
+    // internal solver composition (see solver::detail::generate_with_view).
+    // Without this delete, `factory->generate(matrix, ws.get())` would silently
+    // bind to the AbstractFactory variadic template fallback and produce a
+    // solver holding a dangling Workspace* once the caller's unique_ptr drops.
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp>,
+                                    solver::Workspace*) const = delete;
+
+    friend std::unique_ptr<LinOp> solver::detail::generate_with_view(
+        const LinOpFactory*, std::shared_ptr<const LinOp>, solver::Workspace*);
 };
 
 
@@ -854,8 +933,8 @@ protected:
  *                          [CRTP parameter]
  * @tparam ConcreteLinOp  the concrete LinOp type which this factory produces,
  *                        needs to have a constructor which takes a
- *                        const ConcreteFactory *, and an
- *                        std::shared_ptr<const LinOp> as parameters.
+ *                        const ConcreteFactory *, and a
+ *                        LinOpGenerateComponents as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
@@ -881,7 +960,7 @@ using EnableDefaultLinOpFactory =
  * after the macro definition, and should contain a list of
  * GKO_FACTORY_PARAMETER_* declarations. The class should provide a constructor
  * with signature
- * _lin_op(const _factory_name *, std::shared_ptr<const LinOp>)
+ * _lin_op(const _factory_name *, LinOpGenerateComponents)
  * which the factory will use a callback to construct the object.
  *
  * A minimal example of a linear operator is the following:
@@ -901,8 +980,9 @@ using EnableDefaultLinOpFactory =
  *         : EnableLinOp<MyLinOp>(exec) {}
  *     // constructor needed by the factory
  *     explicit MyLinOp(const Factory *factory,
- *                      std::shared_ptr<const LinOp> matrix)
- *         : EnableLinOp<MyLinOp>(factory->get_executor()), matrix->get_size()),
+ *                      LinOpGenerateComponents components)
+ *         : EnableLinOp<MyLinOp>(factory->get_executor(),
+ *                                components.system_matrix->get_size()),
  *           // store factory's parameters locally
  *           my_parameters_{factory->get_parameters()},
  *     {

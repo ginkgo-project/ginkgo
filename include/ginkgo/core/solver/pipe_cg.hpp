@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -121,14 +121,18 @@ protected:
         : EnableLinOp<PipeCg>(std::move(exec))
     {}
 
-    explicit PipeCg(const Factory* factory,
-                    std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<PipeCg>(factory->get_executor(),
-                              gko::transpose(system_matrix->get_size())),
+    explicit PipeCg(const Factory* factory, LinOpGenerateComponents components)
+        : EnableLinOp<PipeCg>(
+              factory->get_executor(),
+              gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, PipeCg<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+              std::move(components.system_matrix), factory->get_parameters(),
+              deferred_preconditioner},
           parameters_{factory->get_parameters()}
-    {}
+    {
+        this->adopt_workspace(components, this->get_executor());
+        this->generate_preconditioner_with_workspace(parameters_);
+    }
 };
 
 

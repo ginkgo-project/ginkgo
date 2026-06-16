@@ -330,13 +330,17 @@ Minres<ValueType>::Minres(std::shared_ptr<const Executor> exec)
 
 template <typename ValueType>
 Minres<ValueType>::Minres(const Factory* factory,
-                          std::shared_ptr<const LinOp> system_matrix)
+                          LinOpGenerateComponents components)
     : EnableLinOp<Minres>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
+                          gko::transpose(components.system_matrix->get_size())),
       EnablePreconditionedIterativeSolver<ValueType, Minres>{
-          std::move(system_matrix), factory->get_parameters()},
+          std::move(components.system_matrix), factory->get_parameters(),
+          deferred_preconditioner},
       parameters_{factory->get_parameters()}
-{}
+{
+    this->adopt_workspace(components, this->get_executor());
+    this->generate_preconditioner_with_workspace(parameters_);
+}
 
 
 template <typename ValueType>

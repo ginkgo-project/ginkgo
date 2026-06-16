@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -361,9 +361,18 @@ namespace detail {
  */
 class SolverBaseLinOp {
 public:
-    SolverBaseLinOp(std::shared_ptr<const Executor> exec)
-        : workspace_{std::move(exec)}
-    {}
+    SolverBaseLinOp(std::shared_ptr<const Executor> exec);
+
+    /**
+     * Copy-constructed solvers get a fresh, empty owned workspace on the
+     * source's executor — workspace state (slots and child tree) is not
+     * aliased between copies, since concurrent solvers must not share scratch
+     * storage. The copy starts cold and reallocates on first apply().
+     */
+    SolverBaseLinOp(const SolverBaseLinOp& other);
+    SolverBaseLinOp(SolverBaseLinOp&& other) noexcept;
+    SolverBaseLinOp& operator=(const SolverBaseLinOp& other);
+    SolverBaseLinOp& operator=(SolverBaseLinOp&& other) noexcept;
 
     virtual ~SolverBaseLinOp() = default;
 
@@ -379,7 +388,7 @@ public:
 
     const LinOp* get_workspace_op(int vector_id) const
     {
-        return workspace_.get_op(vector_id);
+        return node_->get_const_op(vector_id);
     }
 
     virtual int get_num_workspace_ops() const { return 0; }
@@ -409,17 +418,15 @@ protected:
 
     void set_workspace_size(int num_operators, int num_arrays) const
     {
-        workspace_.set_size(num_operators, num_arrays);
+        node_->set_size(num_operators, num_arrays);
     }
 
     template <typename LinOpType>
     LinOpType* create_workspace_op(int vector_id, gko::dim<2> size) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return node_->template create_or_get_op<LinOpType>(
             vector_id,
-            [&] {
-                return LinOpType::create(this->workspace_.get_executor(), size);
-            },
+            [&] { return LinOpType::create(node_->get_executor(), size); },
             typeid(LinOpType), size, size[1]);
     }
 
@@ -427,7 +434,7 @@ protected:
     LinOpType* create_workspace_op_with_config_of(int vector_id,
                                                   const LinOpType* vec) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return node_->template create_or_get_op<LinOpType>(
             vector_id, [&] { return LinOpType::create_with_config_of(vec); },
             typeid(*vec), vec->get_size(), vec->get_stride());
     }
@@ -437,11 +444,11 @@ protected:
                                                 const LinOpType* vec,
                                                 dim<2> size) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return node_->template create_or_get_op<LinOpType>(
             vector_id,
             [&] {
                 return LinOpType::create_with_type_of(
-                    vec, workspace_.get_executor(), size, size[1]);
+                    vec, node_->get_executor(), size, size[1]);
             },
             typeid(*vec), size, size[1]);
     }
@@ -452,11 +459,11 @@ protected:
                                                 dim<2> global_size,
                                                 dim<2> local_size) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return node_->template create_or_get_op<LinOpType>(
             vector_id,
             [&] {
                 return LinOpType::create_with_type_of(
-                    vec, workspace_.get_executor(), global_size, local_size,
+                    vec, node_->get_executor(), global_size, local_size,
                     local_size[1]);
             },
             typeid(*vec), global_size, local_size[1]);
@@ -466,11 +473,11 @@ protected:
     matrix::Dense<ValueType>* create_workspace_scalar(int vector_id,
                                                       size_type size) const
     {
-        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
+        return node_->template create_or_get_op<matrix::Dense<ValueType>>(
             vector_id,
             [&] {
-                return matrix::Dense<ValueType>::create(
-                    workspace_.get_executor(), dim<2>{1, size});
+                return matrix::Dense<ValueType>::create(node_->get_executor(),
+                                                        dim<2>{1, size});
             },
             typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
     }
@@ -479,11 +486,11 @@ protected:
     const matrix::Dense<ValueType>* create_workspace_fixed_scalar(
         int vector_id, size_type size, ValueType val) const
     {
-        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
+        return node_->template create_or_get_op<matrix::Dense<ValueType>>(
             vector_id,
             [&] {
                 auto mat = matrix::Dense<ValueType>::create(
-                    workspace_.get_executor(), dim<2>{1, size});
+                    node_->get_executor(), dim<2>{1, size});
                 mat->fill(val);
                 return mat;
             },
@@ -493,18 +500,43 @@ protected:
     template <typename ValueType>
     array<ValueType>& create_workspace_array(int array_id, size_type size) const
     {
-        return workspace_.template create_or_get_array<ValueType>(array_id,
-                                                                  size);
+        return node_->template create_or_get_array<ValueType>(array_id, size);
     }
 
     template <typename ValueType>
     array<ValueType>& create_workspace_array(int array_id) const
     {
-        return workspace_.template init_or_get_array<ValueType>(array_id);
+        return node_->template init_or_get_array<ValueType>(array_id);
     }
 
+    /**
+     * Returns the workspace node for this solver. Never null: a workspace
+     * is constructed eagerly by every SolverBaseLinOp ctor and adopt_workspace
+     * preserves that invariant (it either keeps the eager workspace, swaps in
+     * an owned one, or repoints to a non-owning view).
+     */
+    Workspace* get_workspace_node() const { return node_; }
+
+    /**
+     * Adopts either the owned workspace or the non-owning view from
+     * LinOpGenerateComponents, depending on which was provided, and binds
+     * the owned case to `exec`. No-op if components carries neither.
+     */
+    void adopt_workspace(LinOpGenerateComponents& components,
+                         std::shared_ptr<const Executor> exec);
+
+    /**
+     * Extracts the owned workspace. Only succeeds on the top-level solver.
+     * Sets node_ to nullptr, invalidating this solver.
+     */
+    std::unique_ptr<solver::Workspace> extract_workspace();
+
 private:
-    mutable detail::workspace workspace_;
+    friend std::unique_ptr<solver::Workspace>
+    solver::invalidate_and_extract_workspace(std::unique_ptr<LinOp>&& solver);
+
+    mutable std::unique_ptr<solver::Workspace> owned_workspace_;
+    mutable Workspace* node_ = nullptr;
 
     std::shared_ptr<const LinOp> system_matrix_;
 };
@@ -655,6 +687,9 @@ protected:
 
     void setup_workspace() const
     {
+        GKO_THROW_IF_INVALID(
+            this->get_workspace_node() != nullptr,
+            "solver workspace has been extracted; solver is invalidated");
         using traits = workspace_traits<DerivedType>;
         this->set_workspace_size(traits::num_vectors(*self()),
                                  traits::num_arrays(*self()));
@@ -785,6 +820,20 @@ private:
 };
 
 
+}  // namespace solver
+
+
+/**
+ * Tag type for deferring preconditioner generation to the constructor
+ * body, allowing workspace wiring before preconditioner creation.
+ */
+struct deferred_preconditioner_t {};
+inline constexpr deferred_preconditioner_t deferred_preconditioner{};
+
+
+namespace solver {
+
+
 /**
  * A LinOp implementing this interface stores a system matrix and stopping
  * criterion factory.
@@ -803,37 +852,33 @@ class EnablePreconditionedIterativeSolver
 public:
     EnablePreconditionedIterativeSolver() = default;
 
+    template <typename FactoryParameters>
     EnablePreconditionedIterativeSolver(
         std::shared_ptr<const LinOp> system_matrix,
-        std::shared_ptr<const stop::CriterionFactory> stop_factory,
-        std::shared_ptr<const LinOp> preconditioner)
+        const FactoryParameters& params, deferred_preconditioner_t)
         : EnableSolverBase<DerivedType>(std::move(system_matrix)),
-          EnableIterativeBase<DerivedType>{std::move(stop_factory)},
-          EnablePreconditionable<DerivedType>{std::move(preconditioner)}
+          EnableIterativeBase<DerivedType>{stop::combine(params.criteria)}
     {}
 
+protected:
+    /**
+     * Generates the preconditioner, using the workspace node if available
+     * to propagate workspace tree to inner preconditioners.
+     */
     template <typename FactoryParameters>
-    EnablePreconditionedIterativeSolver(
-        std::shared_ptr<const LinOp> system_matrix,
-        const FactoryParameters& params)
-        : EnablePreconditionedIterativeSolver{
-              system_matrix, stop::combine(params.criteria),
-              generate_preconditioner(system_matrix, params)}
-    {}
-
-private:
-    template <typename FactoryParameters>
-    static std::shared_ptr<const LinOp> generate_preconditioner(
-        std::shared_ptr<const LinOp> system_matrix,
-        const FactoryParameters& params)
+    void generate_preconditioner_with_workspace(const FactoryParameters& params)
     {
         if (params.generated_preconditioner) {
-            return params.generated_preconditioner;
+            this->set_preconditioner(params.generated_preconditioner);
         } else if (params.preconditioner) {
-            return params.preconditioner->generate(system_matrix);
+            auto* child = this->get_workspace_node()->get_or_create_child(
+                "preconditioner");
+            this->set_preconditioner(detail::generate_with_view(
+                params.preconditioner.get(), this->get_system_matrix(), child));
         } else {
-            return matrix::Identity<ValueType>::create(
-                system_matrix->get_executor(), system_matrix->get_size());
+            this->set_preconditioner(matrix::Identity<ValueType>::create(
+                this->get_system_matrix()->get_executor(),
+                this->get_system_matrix()->get_size()));
         }
     }
 };

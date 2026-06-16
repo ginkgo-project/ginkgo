@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -118,11 +118,12 @@ protected:
     {}
 
     explicit Overhead(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Overhead>(factory->get_executor(),
-                                transpose(system_matrix->get_size())),
+                      LinOpGenerateComponents components)
+        : EnableLinOp<Overhead>(
+              factory->get_executor(),
+              transpose(components.system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          system_matrix_{std::move(system_matrix)}
+          system_matrix_{std::move(components.system_matrix)}
     {
         if (parameters_.generated_preconditioner) {
             GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.generated_preconditioner,

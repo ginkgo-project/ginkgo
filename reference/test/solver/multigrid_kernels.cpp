@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -133,11 +133,12 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     DummyLinOpWithFactory(const Factory* factory,
-                          std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor(),
-                                                  transpose(op->get_size())),
+                          gko::LinOpGenerateComponents components)
+        : gko::EnableLinOp<DummyLinOpWithFactory>(
+              factory->get_executor(),
+              transpose(components.system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          op_{op}
+          op_{std::move(components.system_matrix)}
     {}
 
     std::shared_ptr<const gko::LinOp> op_;
@@ -190,12 +191,13 @@ public:
 
 protected:
     DummyMultigridLevelWithFactory(const Factory* factory,
-                                   std::shared_ptr<const gko::LinOp> op)
+                                   gko::LinOpGenerateComponents components)
         : gko::EnableLinOp<DummyMultigridLevelWithFactory>(
-              factory->get_executor(), op->get_size()),
-          gko::multigrid::EnableMultigridLevel<ValueType>(op),
+              factory->get_executor(), components.system_matrix->get_size()),
+          gko::multigrid::EnableMultigridLevel<ValueType>(
+              components.system_matrix),
           parameters_{factory->get_parameters()},
-          op_{op}
+          op_{std::move(components.system_matrix)}
     {
         auto exec = this->get_executor();
         gko::size_type n = op_->get_size()[0] - 1;
