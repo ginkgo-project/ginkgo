@@ -39,13 +39,14 @@ namespace multigrid {
 
 
 /**
- * UniformCoarsening is a simple algebraic coarse grid generation algorithm.
- * It selects the coarse rows by a constant stride `coarse_skip` over the
- * fine-row index space (no geometry of the underlying mesh is used) and
- * builds the coarse system from them. Fine row `i` either contributes only
- * when it is itself a selected coarse row (injection-style), or is mapped
- * to its nearest coarse row `floor(i / coarse_skip)` (aggregation-style),
- * depending on the `aggregation` parameter.
+ * UniformCoarsening is a simple coarse grid generation algorithm. It selects
+ * the coarse rows by a constant stride `coarse_skip` over the fine-row index
+ * space and builds the coarse system from them. The choice is purely
+ * index-based — neither matrix values nor mesh geometry are consulted. Fine
+ * row `i` either contributes only when it is itself a selected coarse row
+ * (injection-style), or is mapped to its nearest coarse row
+ * `floor(i / coarse_skip)` (aggregation-style), depending on the
+ * `aggregation` parameter.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes

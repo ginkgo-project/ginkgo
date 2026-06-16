@@ -161,11 +161,19 @@ int main(int argc, char* argv[])
         for (GlobalIndexType i = range_start; i < range_end; i++) {
             const auto r = i / N;
             const auto c = i % N;
-            if (r > 0) A_data.nonzeros.emplace_back(i, i - N, -1);
-            if (c > 0) A_data.nonzeros.emplace_back(i, i - 1, -1);
+            if (r > 0) {
+                A_data.nonzeros.emplace_back(i, i - N, -1);
+            }
+            if (c > 0) {
+                A_data.nonzeros.emplace_back(i, i - 1, -1);
+            }
             A_data.nonzeros.emplace_back(i, i, 4);
-            if (c < N - 1) A_data.nonzeros.emplace_back(i, i + 1, -1);
-            if (r < N - 1) A_data.nonzeros.emplace_back(i, i + N, -1);
+            if (c < N - 1) {
+                A_data.nonzeros.emplace_back(i, i + 1, -1);
+            }
+            if (r < N - 1) {
+                A_data.nonzeros.emplace_back(i, i + N, -1);
+            }
             b_data.nonzeros.emplace_back(i, 0, std::sin(i * 0.01));
             x_data.nonzeros.emplace_back(i, 0, gko::zero<ValueType>());
         }
