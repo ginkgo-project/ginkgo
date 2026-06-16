@@ -386,8 +386,6 @@ struct LinOpGenerateComponents {
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix);
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
                             std::unique_ptr<solver::Workspace> ws);
-    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
-                            solver::Workspace* view);
     ~LinOpGenerateComponents();
     LinOpGenerateComponents(LinOpGenerateComponents&&) noexcept;
     LinOpGenerateComponents& operator=(LinOpGenerateComponents&&) noexcept;
@@ -404,6 +402,12 @@ struct LinOpGenerateComponents {
     solver::Workspace* get_view_workspace() const { return view_workspace_; }
 
 private:
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
+                            solver::Workspace* view);
+
+    friend std::unique_ptr<LinOp> solver::detail::generate_with_view(
+        const LinOpFactory*, std::shared_ptr<const LinOp>, solver::Workspace*);
+
     std::unique_ptr<solver::Workspace> owned_workspace_;
     solver::Workspace* view_workspace_ = nullptr;
 };
