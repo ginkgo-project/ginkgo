@@ -378,7 +378,7 @@ TEST_F(WorkspaceIntegration, GmresWithWorkspaceAndApply)
 }
 
 
-TEST_F(WorkspaceIntegration, DescribeOutputIsNonEmpty)
+TEST_F(WorkspaceIntegration, DescribeShowsCgWithPreconditionerTree)
 {
     auto ws = Workspace::create(exec);
     auto factory =
@@ -394,9 +394,9 @@ TEST_F(WorkspaceIntegration, DescribeOutputIsNonEmpty)
     std::ostringstream oss;
     ws->describe(oss);
 
-    // Should contain workspace node info
-    ASSERT_FALSE(oss.str().empty());
-    ASSERT_NE(oss.str().find("Workspace"), std::string::npos);
+    ASSERT_EQ(oss.str(),
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=0)\n");
 }
 
 

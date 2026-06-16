@@ -181,6 +181,21 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::set_solver(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<LinOp>
+Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate_inner(
+    const LinOpFactory* factory, std::shared_ptr<const LinOp> matrix,
+    const std::string& tag)
+{
+    if (workspace_view_) {
+        auto* child = workspace_view_->get_or_create_child(tag);
+        return solver::detail::generate_with_view(factory, std::move(matrix),
+                                                  child);
+    }
+    return factory->generate(std::move(matrix));
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix)
 {
@@ -236,11 +251,11 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
             {::gko::one<ValueType>()}, exec);
         l1_diag_csr->apply(one, id, one, diag_matrix_copy);
 
-        this->set_solver(
-            gko::share(parameters_.local_solver->generate(diag_matrix_copy)));
+        this->set_solver(gko::share(this->generate_inner(
+            parameters_.local_solver.get(), diag_matrix_copy, "local_solver")));
     } else {
-        this->set_solver(
-            gko::share(parameters_.local_solver->generate(diag_matrix)));
+        this->set_solver(gko::share(this->generate_inner(
+            parameters_.local_solver.get(), diag_matrix, "local_solver")));
     }
 
     gko::remove_complex<ValueType> cweight =
@@ -261,16 +276,17 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     }
 
     if (parameters_.coarse_level && parameters_.coarse_solver) {
-        this->coarse_level_ =
-            share(parameters_.coarse_level->generate(system_matrix));
+        this->coarse_level_ = share(this->generate_inner(
+            parameters_.coarse_level.get(), system_matrix, "coarse_level"));
         if (this->coarse_level_ == nullptr) {
             GKO_NOT_SUPPORTED(this->coarse_level_);
         }
         if (auto coarse = as<multigrid::MultigridLevel>(this->coarse_level_)
                               ->get_coarse_op()) {
-            this->coarse_solver_ = share(parameters_.coarse_solver->generate(
-                as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
-                    coarse)));
+            this->coarse_solver_ = share(this->generate_inner(
+                parameters_.coarse_solver.get(),
+                as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(coarse),
+                "coarse_solver"));
             if (this->coarse_solver_ == nullptr) {
                 GKO_NOT_SUPPORTED(this->coarse_solver_);
             }
