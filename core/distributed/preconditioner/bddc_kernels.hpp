@@ -53,8 +53,9 @@ namespace kernels {
                                ValueType>::bits_type>,                         \
                            IndexType>,                                         \
                  IndexType>& occurences,                                       \
-        ValueType* vertex_flags, matrix::Dense<ValueType>* components,         \
-        comm_index_type local_part,                                            \
+        ValueType* vertex_flags, array<GlobalIndexType>& local_edge_src,       \
+        array<GlobalIndexType>& local_edge_dst,                                \
+        array<IndexType>& local_edge_expected, comm_index_type local_part,     \
         array<experimental::distributed::preconditioner::dof_type>& dof_types, \
         array<IndexType>& permutation_array,                                   \
         array<IndexType>& interface_sizes, array<ValueType>& unique_labels,    \
@@ -76,8 +77,9 @@ namespace kernels {
                                ValueType>::bits_type>,                         \
                            IndexType>,                                         \
                  IndexType>& occurences,                                       \
-        ValueType* vertex_flags, matrix::Dense<ValueType>* components,         \
-        comm_index_type local_part,                                            \
+        ValueType* vertex_flags, array<GlobalIndexType>& global_edge_src,      \
+        array<GlobalIndexType>& global_edge_dst,                               \
+        array<IndexType>& global_edge_expected, comm_index_type local_part,    \
         array<experimental::distributed::preconditioner::dof_type>& dof_types, \
         array<IndexType>& permutation_array,                                   \
         array<IndexType>& interface_sizes, array<ValueType>& unique_labels,    \

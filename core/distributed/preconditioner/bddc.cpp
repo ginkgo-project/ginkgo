@@ -162,16 +162,15 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
                    ->get_size()[0],
                1});
 
-    // components carries each face/edge dof's local connected-component
-    // representative (min global index). Each rank writes only its own column,
-    // so the summing restriction below assembles the full per-rank tuple, from
-    // which classify_dofs_3 derives globally consistent coarse dofs. The width
-    // is 1 (and the buffer unused) when connected components are disabled.
-    size_type comp_width =
-        use_connected_components ? static_cast<size_type>(num_parts) : 1;
-    auto comp_local = gko::matrix::Dense<remove_complex<ValueType>>::create(
-        exec, dim<2>{n_local_rows, comp_width});
-    comp_local->fill(zero<remove_complex<ValueType>>());
+    // For the connected-component analysis, classify_dofs_2 emits this rank's
+    // local interface adjacency as global index pairs (with the number of ranks
+    // sharing each edge as the agreement threshold). We gather these across all
+    // ranks below so classify_dofs_3 can build the cross-rank-consistent
+    // interface graph and split disconnected interfaces into separate coarse
+    // dofs.
+    array<GlobalIndexType> local_edge_src{exec};
+    array<GlobalIndexType> local_edge_dst{exec};
+    array<LocalIndexType> local_edge_expected{exec};
 
     system_matrix->get_prolongation()->apply(buffer_1, buffer_2);
     system_matrix->get_restriction()->apply(buffer_2, buffer_1);
@@ -199,39 +198,53 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
 
     exec->run(bddc::make_classify_dofs_2(
         row_ptrs, col_idxs, global_idxs, labels.get(), tags, occurences,
-        buffer_3->get_local_values(), comp_local.get(), local_part, dof_types,
-        permutation_array, interface_sizes, unique_labels, unique_tags,
-        owning_labels, owning_tags, n_inner_idxs, n_face_idxs, n_edge_idxs,
-        n_vertices, n_faces, n_edges, n_constraints, n_owning_interfaces,
-        use_faces, use_edges, use_connected_components));
+        buffer_3->get_local_values(), local_edge_src, local_edge_dst,
+        local_edge_expected, local_part, dof_types, permutation_array,
+        interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
+        n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
+        n_constraints, n_owning_interfaces, use_faces, use_edges,
+        use_connected_components));
 
-    // Exchange the per-rank local component representatives so that every
-    // shared dof holds the tuple of representatives from all sharing ranks.
-    auto comp_buffer_1 = share(Vector<remove_complex<ValueType>>::create(
-        exec, comm,
-        dim<2>{system_matrix->get_restriction()->get_size()[0], comp_width},
-        std::move(comp_local)));
+    // Gather every rank's local interface edges so that each rank holds the
+    // full edge multiset. From it, classify_dofs_3 keeps only edges that all
+    // sharing ranks agree on and computes the (now globally consistent)
+    // connected components.
+    array<GlobalIndexType> global_edge_src{exec};
+    array<GlobalIndexType> global_edge_dst{exec};
+    array<LocalIndexType> global_edge_expected{exec};
     if (use_connected_components) {
-        auto comp_buffer_2 = Vector<remove_complex<ValueType>>::create(
-            exec, comm,
-            dim<2>{system_matrix->get_prolongation()->get_size()[0],
-                   comp_width},
-            dim<2>{system_matrix->get_prolongation()
-                       ->get_local_matrix()
-                       ->get_size()[0],
-                   comp_width});
-        system_matrix->get_prolongation()->apply(comp_buffer_1, comp_buffer_2);
-        system_matrix->get_restriction()->apply(comp_buffer_2, comp_buffer_1);
+        int n_local_edges = static_cast<int>(local_edge_src.get_size());
+        array<int> edge_counts{exec, static_cast<size_type>(num_parts)};
+        comm.all_gather(exec, &n_local_edges, 1, edge_counts.get_data(), 1);
+        array<int> edge_offsets{exec, static_cast<size_type>(num_parts) + 1};
+        edge_offsets.get_data()[0] = 0;
+        for (comm_index_type p = 0; p < num_parts; p++) {
+            edge_offsets.get_data()[p + 1] =
+                edge_offsets.get_data()[p] + edge_counts.get_data()[p];
+        }
+        int total_edges = edge_offsets.get_data()[num_parts];
+        global_edge_src.resize_and_reset(total_edges);
+        global_edge_dst.resize_and_reset(total_edges);
+        global_edge_expected.resize_and_reset(total_edges);
+        comm.all_gather_v(exec, local_edge_src.get_data(), n_local_edges,
+                          global_edge_src.get_data(), edge_counts.get_data(),
+                          edge_offsets.get_data());
+        comm.all_gather_v(exec, local_edge_dst.get_data(), n_local_edges,
+                          global_edge_dst.get_data(), edge_counts.get_data(),
+                          edge_offsets.get_data());
+        comm.all_gather_v(exec, local_edge_expected.get_data(), n_local_edges,
+                          global_edge_expected.get_data(),
+                          edge_counts.get_data(), edge_offsets.get_data());
     }
-    auto components = clone(comp_buffer_1->get_local_vector());
 
     exec->run(bddc::make_classify_dofs_3(
         row_ptrs, col_idxs, global_idxs, labels.get(), tags, occurences,
-        buffer_3->get_local_values(), components.get(), local_part, dof_types,
-        permutation_array, interface_sizes, unique_labels, unique_tags,
-        owning_labels, owning_tags, n_inner_idxs, n_face_idxs, n_edge_idxs,
-        n_vertices, n_faces, n_edges, n_constraints, n_owning_interfaces,
-        use_faces, use_edges, use_connected_components));
+        buffer_3->get_local_values(), global_edge_src, global_edge_dst,
+        global_edge_expected, local_part, dof_types, permutation_array,
+        interface_sizes, unique_labels, unique_tags, owning_labels, owning_tags,
+        n_inner_idxs, n_face_idxs, n_edge_idxs, n_vertices, n_faces, n_edges,
+        n_constraints, n_owning_interfaces, use_faces, use_edges,
+        use_connected_components));
 
     // std::cout << "RANK " << comm.rank() << ": " << n_vertices << " VERTICES,
     // " << n_edges << " EDGES, " << n_faces << " FACES ==> " << n_constraints
