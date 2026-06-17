@@ -433,6 +433,35 @@ void classify_dofs_3(
             tags.get_data()[i] = static_cast<IndexType>(rep);
         }
 
+        // Reclassify size-1 components as vertices. A face/edge dof that is in
+        // no kept edge is isolated in the (globally identical) interface graph,
+        // so it is a singleton component on every sharing rank. Such a dof
+        // cannot carry an averaging constraint and is instead treated as a
+        // primal vertex. This both (a) reclassifies genuine size-1 face/edge
+        // components, and (b) makes vertex detection consistent across ranks:
+        // when one rank sees an interior vertex it stops reporting that dof's
+        // edges, so the dof becomes a singleton (hence a vertex) on every rank,
+        // and the surrounding interface splits into one component on either
+        // side. The vertex tag convention (tag == own global index) is already
+        // satisfied, since singletons were assigned tag == gi above.
+        for (size_type i = 0; i < n_rows; i++) {
+            auto type = dof_types.get_const_data()[i];
+            if (type != dof_type::face && type != dof_type::edge) {
+                continue;
+            }
+            auto gi = global_idxs.get_const_data()[i];
+            if (g2l.find(gi) == g2l.end()) {
+                if (type == dof_type::face) {
+                    n_face_idxs--;
+                } else {
+                    n_edge_idxs--;
+                }
+                n_vertices++;
+                dof_types.get_data()[i] = dof_type::vertex;
+                tags.get_data()[i] = static_cast<IndexType>(gi);
+            }
+        }
+
         // Rebuild the occurence counts and the face/edge interface counts from
         // the updated tags: each remaining face/edge interface is now a single
         // globally connected component with a positive dof count.
