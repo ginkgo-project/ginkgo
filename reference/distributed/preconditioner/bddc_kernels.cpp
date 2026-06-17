@@ -178,6 +178,25 @@ void classify_dofs_1(
             } else if (!use_faces) {
                 dof_types.get_data()[i] = experimental::distributed::
                     preconditioner::dof_type::inactive;
+            } else {
+                // Count face neighbors of the same interface. As for edges, a
+                // face dof connected to only one other dof of its interface is
+                // an endpoint and is turned into a vertex below.
+                IndexType n_face_neighbors = 0;
+                for (auto j = row_ptrs[i]; j < row_ptrs[i + 1]; j++) {
+                    auto neighbor = col_idxs[j];
+                    if (neighbor != static_cast<IndexType>(i) &&
+                        dof_types.get_const_data()[neighbor] ==
+                            experimental::distributed::preconditioner::
+                                dof_type::face &&
+                        tags.get_const_data()[neighbor] ==
+                            tags.get_const_data()[i] &&
+                        labels_eq(n_cols, local_labels + n_cols * neighbor,
+                                  local_labels + n_cols * i)) {
+                        n_face_neighbors++;
+                    }
+                }
+                vertex_flags[i] = n_face_neighbors;
             }
         }
     }
@@ -249,9 +268,31 @@ void classify_dofs_2(
                     preconditioner::dof_type::inactive;
             }
         }
+        if (dof_types.get_data()[i] == dof_type::face) {
+            std::memcpy(key.data(), local_labels + n_cols * i,
+                        n_cols * sizeof(uint_type));
+            auto keypair = std::make_pair(key, tags.get_const_data()[i]);
+            if (vertex_flags[i] > 0) {
+                n_vertices++;
+                n_face_idxs--;
+                dof_types.get_data()[i] = dof_type::vertex;
+                tags.get_data()[i] = global_idxs.get_const_data()[i];
+                // Mark this face as having one less DOF in occurences.
+                // Negative values encode modified faces: -occ - 1 = remaining
+                if (occurences[keypair] > 0) {
+                    occurences[keypair] = -occurences[keypair];
+                } else {
+                    occurences[keypair]++;
+                    // if this was the last dof in the face, remove the face
+                    if (occurences[keypair] == -1) {
+                        n_faces--;
+                    }
+                }
+            }
+        }
     }
 
-    // Treat edges that are no longer edges
+    // Treat edges/faces that are no longer edges/faces
     for (size_type i = 0; i < n_rows; i++) {
         if (dof_types.get_data()[i] ==
             experimental::distributed::preconditioner::dof_type::edge) {
@@ -264,6 +305,17 @@ void classify_dofs_2(
                 n_edges--;
                 dof_types.get_data()[i] =
                     experimental::distributed::preconditioner::dof_type::vertex;
+            }
+        }
+        if (dof_types.get_data()[i] == dof_type::face) {
+            std::memcpy(key.data(), local_labels + n_cols * i,
+                        n_cols * sizeof(uint_type));
+            auto keypair = std::make_pair(key, tags.get_const_data()[i]);
+            if (occurences[keypair] == -2) {
+                n_vertices++;
+                n_face_idxs--;
+                n_faces--;
+                dof_types.get_data()[i] = dof_type::vertex;
             }
         }
     }
