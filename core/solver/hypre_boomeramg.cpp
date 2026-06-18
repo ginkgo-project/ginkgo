@@ -364,7 +364,10 @@ void HypreBoomerAmg<ValueType>::setup_hypre()
                                                 parameters_.max_levels));
 
     // Suppress output
-    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetPrintLevel(state_->amg_solver, 0));
+    // TEMP DIAGNOSTIC: print level 1 dumps the BoomerAMG setup hierarchy and the
+    // full effective parameter list (incl. knobs not set here, at hypre
+    // defaults) once per setup. Revert to 0 when done comparing.
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetPrintLevel(state_->amg_solver, 1));
 
     // Run setup
     GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetup(state_->amg_solver, state_->par_matrix,
