@@ -20,9 +20,16 @@ namespace kernels {
 namespace pmis {
 
 
+#define GKO_DECLARE_PMIS_COMPUTE_ROW_MAXABS_KERNEL(ValueType, IndexType)  \
+    void compute_row_maxabs(std::shared_ptr<const DefaultExecutor> exec,  \
+                            const matrix::Csr<ValueType, IndexType>* csr, \
+                            remove_complex<ValueType>* row_maxabs)
+
+
 #define GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL(ValueType, IndexType)  \
     void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,  \
                                 const matrix::Csr<ValueType, IndexType>* csr, \
+                                const remove_complex<ValueType>* row_maxabs,  \
                                 remove_complex<ValueType> strength_threshold, \
                                 IndexType* sparsity_rows)
 
@@ -30,6 +37,7 @@ namespace pmis {
     void compute_strong_dep(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Csr<ValueType, IndexType>* csr,                    \
+        const remove_complex<ValueType>* row_maxabs,                     \
         remove_complex<ValueType> strength_threshold,                    \
         matrix::SparsityCsr<ValueType, IndexType>* strong_dep)
 
@@ -40,18 +48,22 @@ namespace pmis {
         const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,    \
         remove_complex<ValueType>* weight, int* status)
 
-#define GKO_DECLARE_PMIS_CLASSIFY_KERNEL(ValueType, IndexType)                 \
-    void classify(std::shared_ptr<const DefaultExecutor> exec,                 \
-                  const remove_complex<ValueType>* weight,                     \
-                  const matrix::SparsityCsr<ValueType, IndexType>* strong_dep, \
-                  int* status)
+#define GKO_DECLARE_PMIS_CLASSIFY_KERNEL(ValueType, IndexType)             \
+    void classify(                                                         \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const remove_complex<ValueType>* weight,                           \
+        const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,       \
+        const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep, \
+        const int* status, int* new_status)
 
-#define GKO_DECLARE_COUNT_KERNEL                            \
-    void count(std::shared_ptr<const DefaultExecutor> exec, \
-               const array<int>& status, size_type* num)
+#define GKO_DECLARE_COUNT_KERNEL                                           \
+    void count(std::shared_ptr<const DefaultExecutor> exec, size_type num, \
+               const int* status, size_type* num_unassigned)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
+    template <typename ValueType, typename IndexType>                     \
+    GKO_DECLARE_PMIS_COMPUTE_ROW_MAXABS_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                     \

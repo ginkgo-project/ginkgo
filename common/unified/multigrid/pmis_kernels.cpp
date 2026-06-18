@@ -28,8 +28,21 @@ namespace pmis {
 
 
 template <typename ValueType, typename IndexType>
+void compute_row_maxabs(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType>* csr,
+                        remove_complex<ValueType>* row_maxabs)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PMIS_COMPUTE_ROW_MAXABS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Csr<ValueType, IndexType>* csr,
+                            const remove_complex<ValueType>* row_maxabs,
                             remove_complex<ValueType> strength_threshold,
                             IndexType* sparsity_rows)
 {
@@ -43,6 +56,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_strong_dep(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* csr,
+                        const remove_complex<ValueType>* row_maxabs,
                         remove_complex<ValueType> strength_threshold,
                         matrix::SparsityCsr<ValueType, IndexType>* strong_dep)
 {
@@ -70,7 +84,8 @@ template <typename ValueType, typename IndexType>
 void classify(std::shared_ptr<const DefaultExecutor> exec,
               const remove_complex<ValueType>* weight,
               const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
-              int* status)
+              const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
+              const int* status, int* new_status)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -78,8 +93,8 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_CLASSIFY_KERNEL);
 
 
-void count(std::shared_ptr<const DefaultExecutor> exec,
-           const array<int>& status, size_type* num)
+void count(std::shared_ptr<const DefaultExecutor> exec, size_type num,
+           const int* status, size_type* num_unassigned)
 {
     GKO_NOT_IMPLEMENTED;
 }
