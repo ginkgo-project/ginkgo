@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,6 +22,10 @@
 
 
 // Command-line arguments
+DEFINE_uint64(max_time, 0,
+              "Maximal time in miliseconds the solver will be run for (0 means "
+              "no limit)");
+
 DEFINE_uint32(max_iters, 1000,
               "Maximal number of iterations the solver will be run for");
 
@@ -104,7 +108,8 @@ std::string solver_example_config = R"(
 
 
 std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
-    std::shared_ptr<const gko::Executor> exec, std::uint32_t max_iters)
+    std::shared_ptr<const gko::Executor> exec, std::uint32_t max_iters,
+    std::uint64_t max_time)
 {
     std::shared_ptr<const gko::stop::CriterionFactory> residual_stop;
     if (FLAGS_rel_residual) {
@@ -126,6 +131,13 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
         gko::stop::Iteration::build().with_max_iters(max_iters).on(exec));
     std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>
         criterion_vector{residual_stop, iteration_stop};
+    if (max_time > 0) {
+        auto time_stop =
+            gko::share(gko::stop::Time::build()
+                           .with_time_limit(std::chrono::milliseconds(max_time))
+                           .on(exec));
+        criterion_vector.push_back(time_stop);
+    }
     return gko::stop::combine(criterion_vector);
 }
 
@@ -133,9 +145,10 @@ std::shared_ptr<const gko::stop::CriterionFactory> create_criterion(
 template <typename SolverIntermediate>
 std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
     SolverIntermediate inter, const std::shared_ptr<const gko::Executor>& exec,
-    std::shared_ptr<const gko::LinOpFactory> precond, std::uint32_t max_iters)
+    std::shared_ptr<const gko::LinOpFactory> precond, std::uint32_t max_iters,
+    std::uint64_t max_time)
 {
-    return inter.with_criteria(create_criterion(exec, max_iters))
+    return inter.with_criteria(create_criterion(exec, max_iters, max_time))
         .with_preconditioner(give(precond))
         .on(exec);
 }
@@ -144,17 +157,19 @@ std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
 template <typename Solver>
 std::unique_ptr<gko::LinOpFactory> add_criteria_precond_finalize(
     const std::shared_ptr<const gko::Executor>& exec,
-    std::shared_ptr<const gko::LinOpFactory> precond, std::uint32_t max_iters)
+    std::shared_ptr<const gko::LinOpFactory> precond, std::uint32_t max_iters,
+    std::uint64_t max_time)
 {
     return add_criteria_precond_finalize(Solver::build(), exec, precond,
-                                         max_iters);
+                                         max_iters, max_time);
 }
 
 
 std::unique_ptr<gko::LinOpFactory> generate_solver(
     const std::shared_ptr<const gko::Executor>& exec,
     std::shared_ptr<const gko::LinOpFactory> precond,
-    const std::string& description, std::uint32_t max_iters)
+    const std::string& description, std::uint32_t max_iters,
+    std::uint64_t max_time)
 {
     std::string cb_gmres_prefix("cb_gmres_");
     if (description.find(cb_gmres_prefix) == 0) {
@@ -182,31 +197,31 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             gko::solver::CbGmres<etype>::build()
                 .with_krylov_dim(FLAGS_gmres_restart)
                 .with_storage_precision(s_prec),
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "bicgstab") {
         return add_criteria_precond_finalize<gko::solver::Bicgstab<etype>>(
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "bicg") {
         return add_criteria_precond_finalize<gko::solver::Bicg<etype>>(
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "cg") {
         return add_criteria_precond_finalize<gko::solver::Cg<etype>>(
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "cgs") {
         return add_criteria_precond_finalize<gko::solver::Cgs<etype>>(
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "fcg") {
         return add_criteria_precond_finalize<gko::solver::Fcg<etype>>(
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "pipe_cg") {
         return add_criteria_precond_finalize<gko::solver::PipeCg<etype>>(
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "idr") {
         return add_criteria_precond_finalize(
             gko::solver::Idr<etype>::build()
                 .with_subspace_dim(FLAGS_idr_subspace_dim)
                 .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "gmres") {
         gko::solver::gmres::ortho_method ortho_method;
         if (FLAGS_gmres_ortho_method == "mgs") {
@@ -225,10 +240,10 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             gko::solver::Gmres<etype>::build()
                 .with_krylov_dim(FLAGS_gmres_restart)
                 .with_ortho_method(ortho_method),
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "minres") {
         return add_criteria_precond_finalize<gko::solver::Minres<etype>>(
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     } else if (description == "lower_trs") {
         return gko::solver::LowerTrs<etype>::build()
             .with_num_rhs(FLAGS_nrhs)
@@ -264,7 +279,7 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
             .on(exec);
     } else if (description == "overhead") {
         return add_criteria_precond_finalize<gko::Overhead<etype>>(
-            exec, precond, max_iters);
+            exec, precond, max_iters, max_time);
     }
     throw std::range_error(std::string("The provided string <") + description +
                            "> does not match any solver!");
@@ -493,7 +508,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 auto x_clone = clone(state.x);
                 auto precond = precond_factory.at(precond_name)(exec);
                 auto solver = generate_solver(exec, give(precond), solver_name,
-                                              FLAGS_warmup_max_iters)
+                                              FLAGS_warmup_max_iters, 0)
                                   ->generate(state.system_matrix);
                 solver->apply(state.b, x_clone);
                 exec->synchronize();
@@ -515,9 +530,10 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
 
                 {
                     auto precond = precond_factory.at(precond_name)(exec);
-                    auto solver = generate_solver(exec, give(precond),
-                                                  solver_name, FLAGS_max_iters)
-                                      ->generate(state.system_matrix);
+                    auto solver =
+                        generate_solver(exec, give(precond), solver_name,
+                                        FLAGS_max_iters, 0)
+                            ->generate(state.system_matrix);
                 }
 
                 exec->remove_logger(gen_logger);
@@ -528,9 +544,10 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
 
             // generate it for apply usage
             auto precond = precond_factory.at(precond_name)(exec);
-            auto detailed_solver = generate_solver(exec, give(precond),
-                                                   solver_name, FLAGS_max_iters)
-                                       ->generate(state.system_matrix);
+            auto detailed_solver =
+                generate_solver(exec, give(precond), solver_name,
+                                FLAGS_max_iters, 0)
+                    ->generate(state.system_matrix);
 
             if (auto prec = dynamic_cast<const gko::Preconditionable*>(
                     detailed_solver.get())) {
@@ -585,9 +602,10 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         // different iteration criterion.
         if (!FLAGS_benchmark_from_scratch) {
             auto precond = precond_factory.at(precond_name)(exec);
-            solver = gko::share(generate_solver(exec, give(precond),
-                                                solver_name, FLAGS_max_iters)
-                                    ->generate(state.system_matrix));
+            solver =
+                gko::share(generate_solver(exec, give(precond), solver_name,
+                                           FLAGS_max_iters, FLAGS_max_time)
+                               ->generate(state.system_matrix));
             solver->apply(state.b, x_clone);
         }
         for (auto status : ic.run(false)) {
@@ -600,7 +618,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 auto precond = precond_factory.at(precond_name)(exec);
                 auto generated_solver =
                     gko::share(generate_solver(exec, give(precond), solver_name,
-                                               FLAGS_max_iters)
+                                               FLAGS_max_iters, FLAGS_max_time)
                                    ->generate(state.system_matrix));
                 generate_timer->toc();
                 // when it is not from scratch, we always generate it explicitly
