@@ -1085,10 +1085,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                     auto DD_nsp_1 =
                         share(local_vec::create(exec, dim<2>{n_dual_dofs, 1}));
                     DD_nsp_1->fill(one<ValueType>());
-                    auto DD_nsp_2 = clone(DD_nsp_1);
+                    auto DD_nsp_2 = gko::share(clone(DD_nsp_1));
                     S_DD->apply(DD_nsp_1, DD_nsp_2);
-                    auto DD_scal =
-                        gko::initialize<local_vec>({one<ValueType>()}, exec);
+                    auto DD_scal = gko::share(
+                        gko::initialize<local_vec>({one<ValueType>()}, exec));
                     DD_nsp_1->compute_dot(DD_nsp_2, DD_scal);
                     S_DD_solver = NSPSolver<ValueType, LocalIndexType>::create(
                         exec, S_DD_solver, DD_nsp_1, DD_nsp_2, DD_scal);
