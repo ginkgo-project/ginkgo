@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <type_traits>
@@ -19,7 +20,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -48,7 +48,37 @@ void ensure_hypre_init()
 }
 
 
+// HYPRE functions return a nonzero error flag (a bitmask of HYPRE_ERROR_*)
+// on failure. We don't treat these as fatal — BoomerAMG is used here as a
+// preconditioner and a failed/non-converged cycle should not abort the
+// host application — but we must not swallow them silently either. Warn,
+// then clear the flag so it doesn't leak into unrelated later HYPRE calls.
+void warn_on_hypre_error(HYPRE_Int error, const char* call,
+                         HYPRE_Int ignore_mask = 0)
+{
+    // Clear the (background) flags we deliberately tolerate before deciding
+    // whether anything is left worth warning about.
+    error &= ~ignore_mask;
+    if (error != 0) {
+        char description[256] = {};
+        HYPRE_DescribeError(error, description);
+        std::cerr << "Ginkgo warning: HypreBoomerAmg: HYPRE call failed ("
+                  << call << "): error code " << error << " (" << description
+                  << ")" << std::endl;
+    }
+    // Always clear so a flag does not leak into unrelated later HYPRE calls.
+    HYPRE_ClearAllErrors();
+}
+
+
 }  // namespace
+
+
+#define GKO_CHECK_HYPRE(_call) warn_on_hypre_error((_call), #_call)
+// Single-cycle preconditioner solves never reach a tolerance, so HYPRE's
+// convergence flag is expected and must not be reported as a failure.
+#define GKO_CHECK_HYPRE_SOLVE(_call) \
+    warn_on_hypre_error((_call), #_call, HYPRE_ERROR_CONV)
 
 
 template <typename ValueType>
@@ -103,7 +133,7 @@ struct HypreBoomerAmg<ValueType>::hypre_state {
         }
 
         if (amg_solver) {
-            HYPRE_BoomerAMGDestroy(amg_solver);
+            GKO_CHECK_HYPRE(HYPRE_BoomerAMGDestroy(amg_solver));
             amg_solver = nullptr;
         }
         // Data owner is 0, so HYPRE won't free the data pointer.
@@ -111,16 +141,16 @@ struct HypreBoomerAmg<ValueType>::hypre_state {
         // frees the right memory.
         if (ij_rhs) {
             vector_data_ref(par_rhs) = rhs_buffer.data();
-            HYPRE_IJVectorDestroy(ij_rhs);
+            GKO_CHECK_HYPRE(HYPRE_IJVectorDestroy(ij_rhs));
             ij_rhs = nullptr;
         }
         if (ij_sol) {
             vector_data_ref(par_sol) = sol_buffer.data();
-            HYPRE_IJVectorDestroy(ij_sol);
+            GKO_CHECK_HYPRE(HYPRE_IJVectorDestroy(ij_sol));
             ij_sol = nullptr;
         }
         if (ij_matrix) {
-            HYPRE_IJMatrixDestroy(ij_matrix);
+            GKO_CHECK_HYPRE(HYPRE_IJMatrixDestroy(ij_matrix));
             ij_matrix = nullptr;
         }
         par_matrix = nullptr;
@@ -135,9 +165,11 @@ struct HypreBoomerAmg<ValueType>::hypre_state {
         num_rows = n;
 
         // Create IJ matrix (sequential: rows [0, n))
-        HYPRE_IJMatrixCreate(MPI_COMM_SELF, 0, n - 1, 0, n - 1, &ij_matrix);
-        HYPRE_IJMatrixSetObjectType(ij_matrix, HYPRE_PARCSR);
-        HYPRE_IJMatrixInitialize(ij_matrix);
+        GKO_CHECK_HYPRE(
+            HYPRE_IJMatrixCreate(MPI_COMM_SELF, 0, n - 1, 0, n - 1, &ij_matrix));
+        GKO_CHECK_HYPRE(
+            HYPRE_IJMatrixSetObjectType(ij_matrix, HYPRE_PARCSR));
+        GKO_CHECK_HYPRE(HYPRE_IJMatrixInitialize(ij_matrix));
 
         const auto row_ptrs = csr->get_const_row_ptrs();
         const auto col_idxs = csr->get_const_col_idxs();
@@ -152,13 +184,14 @@ struct HypreBoomerAmg<ValueType>::hypre_state {
             for (HYPRE_Int k = 0; k < ncols; ++k) {
                 cols[k] = static_cast<HYPRE_Int>(col_idxs[row_start + k]);
             }
-            HYPRE_IJMatrixSetValues(ij_matrix, 1, &ncols, &row, cols.data(),
-                                    values + row_start);
+            GKO_CHECK_HYPRE(HYPRE_IJMatrixSetValues(ij_matrix, 1, &ncols, &row,
+                                                    cols.data(),
+                                                    values + row_start));
         }
 
-        HYPRE_IJMatrixAssemble(ij_matrix);
-        HYPRE_IJMatrixGetObject(ij_matrix,
-                                reinterpret_cast<void**>(&par_matrix));
+        GKO_CHECK_HYPRE(HYPRE_IJMatrixAssemble(ij_matrix));
+        GKO_CHECK_HYPRE(HYPRE_IJMatrixGetObject(
+            ij_matrix, reinterpret_cast<void**>(&par_matrix)));
     }
 
     void create_vectors(HYPRE_Int n)
@@ -168,18 +201,20 @@ struct HypreBoomerAmg<ValueType>::hypre_state {
         sol_buffer.resize(n, 0.0);
 
         // RHS vector
-        HYPRE_IJVectorCreate(MPI_COMM_SELF, 0, n - 1, &ij_rhs);
-        HYPRE_IJVectorSetObjectType(ij_rhs, HYPRE_PARCSR);
-        HYPRE_IJVectorInitialize(ij_rhs);
-        HYPRE_IJVectorAssemble(ij_rhs);
-        HYPRE_IJVectorGetObject(ij_rhs, reinterpret_cast<void**>(&par_rhs));
+        GKO_CHECK_HYPRE(HYPRE_IJVectorCreate(MPI_COMM_SELF, 0, n - 1, &ij_rhs));
+        GKO_CHECK_HYPRE(HYPRE_IJVectorSetObjectType(ij_rhs, HYPRE_PARCSR));
+        GKO_CHECK_HYPRE(HYPRE_IJVectorInitialize(ij_rhs));
+        GKO_CHECK_HYPRE(HYPRE_IJVectorAssemble(ij_rhs));
+        GKO_CHECK_HYPRE(
+            HYPRE_IJVectorGetObject(ij_rhs, reinterpret_cast<void**>(&par_rhs)));
 
         // Solution vector
-        HYPRE_IJVectorCreate(MPI_COMM_SELF, 0, n - 1, &ij_sol);
-        HYPRE_IJVectorSetObjectType(ij_sol, HYPRE_PARCSR);
-        HYPRE_IJVectorInitialize(ij_sol);
-        HYPRE_IJVectorAssemble(ij_sol);
-        HYPRE_IJVectorGetObject(ij_sol, reinterpret_cast<void**>(&par_sol));
+        GKO_CHECK_HYPRE(HYPRE_IJVectorCreate(MPI_COMM_SELF, 0, n - 1, &ij_sol));
+        GKO_CHECK_HYPRE(HYPRE_IJVectorSetObjectType(ij_sol, HYPRE_PARCSR));
+        GKO_CHECK_HYPRE(HYPRE_IJVectorInitialize(ij_sol));
+        GKO_CHECK_HYPRE(HYPRE_IJVectorAssemble(ij_sol));
+        GKO_CHECK_HYPRE(
+            HYPRE_IJVectorGetObject(ij_sol, reinterpret_cast<void**>(&par_sol)));
 
         // Tell HYPRE not to free the vector data — we manage the data
         // pointers ourselves (swapping between our buffers and external
@@ -306,30 +341,34 @@ void HypreBoomerAmg<ValueType>::setup_hypre()
     state_->create_vectors(n);
 
     // Create and configure BoomerAMG
-    HYPRE_BoomerAMGCreate(&state_->amg_solver);
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGCreate(&state_->amg_solver));
 
     // Use as preconditioner: single cycle, zero tolerance
-    HYPRE_BoomerAMGSetMaxIter(state_->amg_solver, 1);
-    HYPRE_BoomerAMGSetTol(state_->amg_solver, 0.0);
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetMaxIter(state_->amg_solver, 1));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetTol(state_->amg_solver, 0.0));
 
     // User-configurable parameters
-    HYPRE_BoomerAMGSetCycleType(state_->amg_solver, parameters_.cycle_type);
-    HYPRE_BoomerAMGSetCoarsenType(state_->amg_solver,
-                                  parameters_.coarsening_type);
-    HYPRE_BoomerAMGSetStrongThreshold(state_->amg_solver,
-                                      parameters_.strength_threshold);
-    HYPRE_BoomerAMGSetRelaxType(state_->amg_solver, parameters_.smoother_type);
-    HYPRE_BoomerAMGSetNumSweeps(state_->amg_solver, parameters_.num_sweeps);
-    HYPRE_BoomerAMGSetInterpType(state_->amg_solver,
-                                 parameters_.interpolation_type);
-    HYPRE_BoomerAMGSetMaxLevels(state_->amg_solver, parameters_.max_levels);
+    GKO_CHECK_HYPRE(
+        HYPRE_BoomerAMGSetCycleType(state_->amg_solver, parameters_.cycle_type));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetCoarsenType(state_->amg_solver,
+                                                  parameters_.coarsening_type));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetStrongThreshold(
+        state_->amg_solver, parameters_.strength_threshold));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetRelaxType(state_->amg_solver,
+                                                parameters_.smoother_type));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetNumSweeps(state_->amg_solver,
+                                                parameters_.num_sweeps));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetInterpType(
+        state_->amg_solver, parameters_.interpolation_type));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetMaxLevels(state_->amg_solver,
+                                                parameters_.max_levels));
 
     // Suppress output
-    HYPRE_BoomerAMGSetPrintLevel(state_->amg_solver, 0);
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetPrintLevel(state_->amg_solver, 0));
 
     // Run setup
-    HYPRE_BoomerAMGSetup(state_->amg_solver, state_->par_matrix,
-                         state_->par_rhs, state_->par_sol);
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetup(state_->amg_solver, state_->par_matrix,
+                                         state_->par_rhs, state_->par_sol));
 }
 
 
@@ -392,37 +431,58 @@ void HypreBoomerAmg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            const auto host_exec = this->get_executor()->get_master();
+            const auto exec = this->get_executor();
+            const auto host_exec = exec->get_master();
             const auto size = dense_b->get_size();
 
-            auto host_b = make_temporary_clone(host_exec, dense_b);
-            auto host_x = make_temporary_clone(host_exec, dense_x);
+            // Hypre runs on the host. If the operands already live on the
+            // host we operate on them in place (which lets set_vectors take
+            // its zero-copy path). Otherwise we stage them through the
+            // persistent host buffers, which are reused across applies so we
+            // don't reallocate on every call.
+            const matrix::Dense<ValueType>* host_b;
+            matrix::Dense<ValueType>* host_x;
+            const bool needs_host_copy = host_exec != exec;
+            if (needs_host_copy) {
+                host_buffer_.init(host_exec, size);
+                host_x_buffer_.init(host_exec, size);
+                host_buffer_->copy_from(dense_b);
+                host_b = host_buffer_.get();
+                host_x = host_x_buffer_.get();
+            } else {
+                host_b = dense_b;
+                host_x = dense_x;
+            }
 
             for (size_type col = 0; col < size[1]; ++col) {
-                bool zero_copy =
-                    state_->set_vectors(host_b.get(), host_x.get(), col);
+                bool zero_copy = state_->set_vectors(host_b, host_x, col);
 
-                if (!zero_copy) {
-                    // Zero the solution buffer (done inside set_vectors)
-                    // but for zero-copy, zero x externally
-                } else {
-                    // Zero out the x column for the initial guess
+                if (zero_copy) {
+                    // set_vectors pointed hypre straight at host_x; zero the
+                    // column to give the expected zero initial guess.
                     for (HYPRE_Int i = 0; i < state_->num_rows; ++i) {
                         host_x->at(i, col) = zero<ValueType>();
                     }
                 }
+                // In the non-zero-copy path set_vectors already zeroed the
+                // internal solution buffer, so no initial guess is needed.
 
-                HYPRE_BoomerAMGSolve(state_->amg_solver, state_->par_matrix,
-                                     state_->par_rhs, state_->par_sol);
+                GKO_CHECK_HYPRE_SOLVE(HYPRE_BoomerAMGSolve(
+                    state_->amg_solver, state_->par_matrix, state_->par_rhs,
+                    state_->par_sol));
 
                 if (!zero_copy) {
-                    state_->copy_back(host_x.get(), col);
+                    state_->copy_back(host_x, col);
                 }
             }
 
-            // Always restore owned buffers after solving to avoid
-            // dangling pointers to temporary host clones
+            // Drop hypre's pointers into host_b/host_x before those buffers
+            // are reused on the next apply or destroyed.
             state_->restore_owned_buffers();
+
+            if (needs_host_copy) {
+                dense_x->copy_from(host_x);
+            }
         },
         b, x);
 }
