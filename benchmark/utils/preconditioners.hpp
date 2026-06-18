@@ -70,12 +70,12 @@ DEFINE_bool(pgm_deterministic, false,
             "Use deterministic computation of the aggregated group within PGM");
 
 DEFINE_uint32(
-    mg_max_num_levels, false,
+    mg_max_num_levels, 10,
     "The maximum number of levels to use for the Multigrid preconditioner");
 
-DEFINE_double(mg_tolerance, false, "The tolerance for the coarse solver");
+DEFINE_double(mg_tolerance, 1e-6, "The tolerance for the coarse solver");
 
-DEFINE_uint32(mg_max_iters, false,
+DEFINE_uint32(mg_max_iters, 5,
               "The max number of iterations for the coarse solver");
 
 
@@ -314,20 +314,19 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
          }},
         {"mg",
          [](std::shared_ptr<const gko::Executor> exec) {
-             using ir = gko::solver::Ir<etype>;
-             auto iter_stop = gko::share(gko::stop::Iteration::build()
-                                             .with_max_iters(FLAGS_mg_max_iters)
-                                             .on(exec));
-             auto tol_stop =
-                 gko::share(gko::stop::ResidualNorm<etype>::build()
-                                .with_baseline(gko::stop::mode::absolute)
-                                .with_reduction_factor(FLAGS_mg_tolerance)
-                                .on(exec));
+             using gmres = gko::solver::Gmres<etype>;
              return gko::solver::Multigrid::build()
                  .with_mg_level(
                      gko::multigrid::Pgm<etype, itype>::build()
                          .with_deterministic(FLAGS_pgm_deterministic))
-                 .with_criteria(iter_stop, tol_stop)
+                 .with_criteria(gko::stop::max_iters(1))
+                 .with_coarsest_solver(
+                     gmres::build()
+                         .with_krylov_dim(FLAGS_mg_max_iters)
+                         .with_criteria(gko::stop::max_iters(1),
+                                        gko::stop::relative_residual_norm(
+                                            FLAGS_mg_tolerance))
+                         .on(exec))
                  .with_max_levels(FLAGS_mg_max_num_levels)
                  .on(exec);
          }}
