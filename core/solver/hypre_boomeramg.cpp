@@ -354,13 +354,18 @@ void HypreBoomerAmg<ValueType>::setup_hypre()
                                                   parameters_.coarsening_type));
     GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetStrongThreshold(
         state_->amg_solver, parameters_.strength_threshold));
-    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetRelaxType(state_->amg_solver,
-                                                parameters_.smoother_type));
-    // SetRelaxType above sets the smoother on ALL levels including the coarsest,
-    // clobbering hypre's default Gaussian-elimination coarse solve. Restore an
-    // exact coarse solve (relax type 9 = GE) on the coarsest grid (cycle
-    // position 3), matching hypre's/PETSc's default. A single smoother sweep on
-    // the coarse grid is a poor coarse solve and badly weakens the V-cycle.
+    // Set the smoother per cycle position instead of via the blanket
+    // HYPRE_BoomerAMGSetRelaxType: that scalar is re-expanded over all levels at
+    // setup and overrides a per-cycle coarse setting (observed: the coarsest
+    // slot stayed at the smoother type despite a later SetCycleRelaxType). This
+    // mirrors how PETSc configures BoomerAMG. Down (1) and up (2) cycles use the
+    // configured smoother; the coarsest grid (3) uses an exact Gaussian-
+    // elimination solve (relax type 9), matching hypre's/PETSc's default. A
+    // single smoother sweep on the coarse grid badly weakens the V-cycle.
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetCycleRelaxType(
+        state_->amg_solver, parameters_.smoother_type, 1));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetCycleRelaxType(
+        state_->amg_solver, parameters_.smoother_type, 2));
     GKO_CHECK_HYPRE(
         HYPRE_BoomerAMGSetCycleRelaxType(state_->amg_solver, 9, 3));
     // Relax in C/F order (C-points then F-points on the down sweep, reversed on
