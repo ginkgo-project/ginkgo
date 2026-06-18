@@ -1079,24 +1079,31 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                                                      LocalIndexType>::build()
                         .on(exec)
                         ->generate(S_DD);
-                // Deflate the (near-)constant nullspace of the interior Schur
-                // complement, mirroring the A_LL/A_II handling above.
-                if (parameters_.constant_nullspace) {
-                    auto DD_nsp_1 =
-                        share(local_vec::create(exec, dim<2>{n_dual_dofs, 1}));
-                    DD_nsp_1->fill(one<ValueType>());
-                    auto DD_nsp_2 = gko::share(clone(DD_nsp_1));
-                    S_DD->apply(DD_nsp_1, DD_nsp_2);
-                    auto DD_scal = gko::share(
-                        gko::initialize<local_vec>({one<ValueType>()}, exec));
-                    DD_nsp_1->compute_dot(DD_nsp_2, DD_scal);
-                    S_DD_solver = NSPSolver<ValueType, LocalIndexType>::create(
-                        exec, S_DD_solver, DD_nsp_1, DD_nsp_2, DD_scal);
-                }
 
-                local_solver_ = BlockLLSolver<ValueType, LocalIndexType>::create(
-                    exec, inner_solver_, A_ID, A_DI, S_DD_solver, n_inner_idxs,
-                    n_dual_dofs);
+                std::shared_ptr<const LinOp> block =
+                    BlockLLSolver<ValueType, LocalIndexType>::create(
+                        exec, inner_solver_, A_ID, A_DI, S_DD_solver,
+                        n_inner_idxs, n_dual_dofs);
+                if (parameters_.constant_nullspace) {
+                    // Give the block A_LL^{-1} the same constant-nullspace
+                    // (balancing) property the original A_LL solver had, applied
+                    // at the A_LL level rather than at the sub-solves.
+                    // A_LL_backup is in the natural [I|D] ordering the block
+                    // operates in (the reorder swap only touches A_LL), and the
+                    // constant vector is ordering invariant.
+                    auto LL_const = share(local_vec::create(
+                        exec, dim<2>{n_inner_idxs + n_dual_dofs, 1}));
+                    LL_const->fill(one<ValueType>());
+                    auto LL_Ac = gko::share(clone(LL_const));
+                    A_LL_backup->apply(LL_const, LL_Ac);
+                    auto LL_s = gko::share(
+                        gko::initialize<local_vec>({one<ValueType>()}, exec));
+                    LL_const->compute_dot(LL_Ac, LL_s);
+                    local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                        exec, block, LL_const, LL_Ac, LL_s);
+                } else {
+                    local_solver_ = block;
+                }
             }
         }
 
