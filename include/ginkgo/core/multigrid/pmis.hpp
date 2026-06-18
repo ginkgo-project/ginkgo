@@ -129,8 +129,7 @@ protected:
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
-          weight_(factory->get_executor(), system_matrix_->get_size()[0]),
-          status_(factory->get_executor(), system_matrix_->get_size()[0])
+          weight_(factory->get_executor(), system_matrix_->get_size()[0])
     {
         GKO_ASSERT(parameters_.strength_threshold <= 1.0);
         GKO_ASSERT(parameters_.strength_threshold >= 0.0);
@@ -156,9 +155,6 @@ private:
     std::shared_ptr<const LinOp> system_matrix_{};
     // weight = the number of strong dependence + rand[0, 1]
     gko::array<remove_complex<ValueType>> weight_;
-    // status records the nodes set status. 0: not assigned, 1: fine group 2:
-    // coarse group
-    gko::array<int> status_;
 };
 
 

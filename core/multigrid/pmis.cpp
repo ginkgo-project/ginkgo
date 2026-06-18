@@ -30,6 +30,7 @@ namespace pmis {
 namespace {
 
 
+GKO_REGISTER_OPERATION(compute_row_maxabs, pmis::compute_row_maxabs);
 GKO_REGISTER_OPERATION(compute_strong_dep_row, pmis::compute_strong_dep_row);
 GKO_REGISTER_OPERATION(compute_strong_dep, pmis::compute_strong_dep);
 GKO_REGISTER_OPERATION(initialize_weight_and_status,
@@ -80,10 +81,13 @@ void Pmis<ValueType, IndexType>::generate()
     }
 
     array<IndexType> sparsity_rows(exec, pmis_op->get_size()[0] + 1);
+    array<remove_complex<ValueType>> row_maxabs(exec, pmis_op->get_size()[0]);
+    exec->run(
+        pmis::make_compute_row_maxabs(pmis_op.get(), row_maxabs.get_data()));
     // the number of #S_i into sparsity_row i
     exec->run(pmis::make_compute_strong_dep_row(
-        pmis_op.get(), this->get_parameters().strength_threshold,
-        sparsity_rows.get_data()));
+        pmis_op.get(), row_maxabs.get_const_data(),
+        this->get_parameters().strength_threshold, sparsity_rows.get_data()));
     // build offset
     exec->run(pmis::make_prefix_sum_nonnegative(sparsity_rows.get_data(),
                                                 sparsity_rows.get_size()));
@@ -95,26 +99,36 @@ void Pmis<ValueType, IndexType>::generate()
         std::move(sparsity_rows));
     // fill column index into sparsity csr
     exec->run(pmis::make_compute_strong_dep(
-        pmis_op.get(), this->get_parameters().strength_threshold,
-        strong_dep.get()));
+        pmis_op.get(), row_maxabs.get_const_data(),
+        this->get_parameters().strength_threshold, strong_dep.get()));
     // weight[i] = #S^T + rand(0, 1)
     // status 0: not assigned, 1: fine group 2: coarse group
     // status[i] = 1 if #S^T_i = 0 or 0
+    gko::array<int> status(exec, this->get_size()[0]);
+    gko::array<int> new_status(exec, this->get_size()[0]);
+    auto status_ptr = status.get_data();
+    auto new_status_ptr = new_status.get_data();
     exec->run(pmis::make_initialize_weight_and_status(
-        strong_dep.get(), weight_.get_data(), status_.get_data()));
+        strong_dep.get(), weight_.get_data(), status_ptr));
     size_type num_not_assigned = 0;
+    auto transpose_strong_dep =
+        as<matrix::SparsityCsr<ValueType, IndexType>>(strong_dep->transpose());
     // count #{status == 0}
-    exec->run(pmis::make_count(status_, &num_not_assigned));
+    exec->run(
+        pmis::make_count(this->get_size()[0], status_ptr, &num_not_assigned));
     while (num_not_assigned != 0) {
-        exec->run(pmis::make_classify(weight_.get_const_data(),
-                                      strong_dep.get(), status_.get_data()));
+        exec->run(pmis::make_classify(
+            weight_.get_const_data(), strong_dep.get(),
+            transpose_strong_dep.get(), status_ptr, new_status_ptr));
         size_type new_num = 0;
-        exec->run(pmis::make_count(status_, &new_num));
+        exec->run(
+            pmis::make_count(this->get_size()[0], new_status_ptr, &new_num));
         if (new_num == num_not_assigned) {
             // no progess -> throw error (maybe unneccessary)
             throw std::runtime_error("no progress in Pmis");
         }
         num_not_assigned = new_num;
+        std::swap(new_status_ptr, status_ptr);
     }
     // finish classify points to fine and coarse group.
     // TODO: change count to accept checking value
