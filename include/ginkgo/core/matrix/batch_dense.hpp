@@ -45,7 +45,7 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
+class Dense final : public BatchLinOp,
                     public EnableCloneable<Dense<ValueType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
                     public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,

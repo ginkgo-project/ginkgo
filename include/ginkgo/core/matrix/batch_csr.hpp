@@ -45,7 +45,7 @@ namespace matrix {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr final
-    : public EnableBatchLinOp<Csr<ValueType, IndexType>>,
+    : public BatchLinOp,
       public EnableCloneable<Csr<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>,
@@ -389,7 +389,7 @@ private:
     Csr(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
         array<index_type> row_ptrs)
-        : EnableBatchLinOp<Csr>(exec, size),
+        : BatchLinOp(exec, size),
           values_{exec, std::move(values)},
           col_idxs_{exec, std::move(col_idxs)},
           row_ptrs_{exec, std::move(row_ptrs)}

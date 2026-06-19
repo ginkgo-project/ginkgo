@@ -101,15 +101,14 @@ std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
 template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const batch_dim<2>& size)
-    : EnableBatchLinOp<Dense<ValueType>>(exec, size),
-      values_(exec, compute_num_elems(size))
+    : BatchLinOp(exec, size), values_(exec, compute_num_elems(size))
 {}
 
 
 template <typename ValueType>
 Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
                         const batch_dim<2>& size, array<value_type> values)
-    : EnableBatchLinOp<Dense>(exec, size), values_{exec, std::move(values)}
+    : BatchLinOp(exec, size), values_{exec, std::move(values)}
 {
     // Ensure that the values array has the correct size
     auto num_elems = compute_num_elems(size);
