@@ -124,6 +124,36 @@ public:
          * Maximum number of AMG levels.
          */
         int GKO_FACTORY_PARAMETER_SCALAR(max_levels, 25);
+
+        /**
+         * Relaxation type on the coarsest grid (cycle position k=3), set
+         * independently of smoother_type.
+         *   9 = Gaussian elimination (exact direct solve, default)
+         * hypre's coarse solver defaults to GE; using the smoother here instead
+         * leaves low-frequency error and badly weakens the V-cycle.
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(coarse_smoother_type, 9);
+
+        /**
+         * Relaxation ordering for the smoother sweeps.
+         *   0 = lexicographic / all points
+         *   1 = C/F ordering, C-points then F-points (default)
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(relax_order, 1);
+
+        /**
+         * Maximum size of the coarsest grid. Coarsening continues until the
+         * grid is no larger than this; a small value lets the coarsest grid be
+         * solved exactly by Gaussian elimination (default 9, matches hypre).
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(max_coarse_size, 9);
+
+        /**
+         * hypre BoomerAMG print level (0 = silent, default; 1 = setup info /
+         * hierarchy; 2 = solve info; 3 = both). Use 1 to dump the coarsening
+         * hierarchy and effective parameters once per setup.
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(print_level, 0);
     };
     GKO_ENABLE_LIN_OP_FACTORY(HypreBoomerAmg, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
