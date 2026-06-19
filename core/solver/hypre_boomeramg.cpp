@@ -366,26 +366,34 @@ void HypreBoomerAmg<ValueType>::setup_hypre()
         state_->amg_solver, parameters_.smoother_type, 1));
     GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetCycleRelaxType(
         state_->amg_solver, parameters_.smoother_type, 2));
-    GKO_CHECK_HYPRE(
-        HYPRE_BoomerAMGSetCycleRelaxType(state_->amg_solver, 9, 3));
     // Relax in C/F order (C-points then F-points on the down sweep, reversed on
     // the up sweep) instead of all-point lexicographic order. This matches the
     // grid-relax-points pattern PETSc uses (1 -1 / -1 1) and is the standard,
     // more effective smoothing for AMG; SetRelaxOrder(1) is the non-deprecated
     // way to set it.
-    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetRelaxOrder(state_->amg_solver, 1));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetRelaxOrder(state_->amg_solver,
+                                                 parameters_.relax_order));
     GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetNumSweeps(state_->amg_solver,
                                                 parameters_.num_sweeps));
     GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetInterpType(
         state_->amg_solver, parameters_.interpolation_type));
     GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetMaxLevels(state_->amg_solver,
                                                 parameters_.max_levels));
+    // Coarsest-grid solver (cycle position k=3), exact Gaussian elimination by
+    // default. Set this LAST so no other setter re-expands the relaxation
+    // arrays over it. Also force coarsening down to a small grid: GE is only
+    // applied when the coarsest grid is reduced into [MinCoarseSize,
+    // MaxCoarseSize] (PETSc reaches a 1-row coarsest); a stalled larger coarse
+    // grid keeps the default smoother instead of GE.
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetMaxCoarseSize(state_->amg_solver,
+                                                    parameters_.max_coarse_size));
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetCycleRelaxType(
+        state_->amg_solver, parameters_.coarse_smoother_type, 3));
 
-    // Suppress output
-    // TEMP DIAGNOSTIC: print level 1 dumps the BoomerAMG setup hierarchy and the
-    // full effective parameter list (incl. knobs not set here, at hypre
-    // defaults) once per setup. Revert to 0 when done comparing.
-    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetPrintLevel(state_->amg_solver, 1));
+    // Output verbosity (0 = silent by default). Set print_level=1 on the
+    // factory to dump the BoomerAMG setup hierarchy and effective parameters.
+    GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetPrintLevel(state_->amg_solver,
+                                                 parameters_.print_level));
 
     // Run setup
     GKO_CHECK_HYPRE(HYPRE_BoomerAMGSetup(state_->amg_solver, state_->par_matrix,
