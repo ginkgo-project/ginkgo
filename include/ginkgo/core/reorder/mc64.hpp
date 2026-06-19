@@ -74,9 +74,7 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  * @tparam IndexType  Type of the indices of all matrices used in this class
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Mc64 final : public LinOpFactory,
-                   public EnableCloneable<Mc64<ValueType, IndexType>> {
-    friend class EnableCloneable<Mc64>;
+class Mc64 final : public LinOpFactory {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

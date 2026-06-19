@@ -51,9 +51,7 @@ enum class symbolic_type {
  *                    system matrix
  */
 template <typename ValueType, typename IndexType>
-class Lu : public LinOpFactory,
-           public EnableCloneable<Lu<ValueType, IndexType>> {
-    friend class EnableCloneable<Lu>;
+class Lu : public LinOpFactory {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
