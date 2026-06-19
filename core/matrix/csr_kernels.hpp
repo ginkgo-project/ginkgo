@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -383,6 +383,40 @@ memory_bound_work_estimate advanced_spmv(
         matrix_storage +
             vector_size * (sizeof(InputValueType) + sizeof(OutputValueType)),
         vector_size * sizeof(OutputValueType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+memory_bound_work_estimate scale(const matrix::Dense<ValueType>* alpha,
+                                 matrix::Csr<ValueType, IndexType>* to_scale)
+{
+    const auto num_stored_elements = to_scale->get_num_stored_elements();
+    return memory_bound_work_estimate{
+        sizeof(ValueType) + num_stored_elements * sizeof(ValueType),
+        num_stored_elements * sizeof(ValueType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+memory_bound_work_estimate inv_scale(
+    const matrix::Dense<ValueType>* alpha,
+    matrix::Csr<ValueType, IndexType>* to_scale)
+{
+    return scale(alpha, to_scale);
+}
+
+
+template <typename ValueType, typename IndexType>
+memory_bound_work_estimate add_scaled_identity(
+    const matrix::Dense<ValueType>* alpha, const matrix::Dense<ValueType>* beta,
+    matrix::Csr<ValueType, IndexType>* mtx)
+{
+    const auto num_rows = mtx->get_size()[0];
+    const auto num_stored_elements = mtx->get_num_stored_elements();
+    return memory_bound_work_estimate{
+        2 * sizeof(ValueType) + (num_rows + 1) * sizeof(IndexType) +
+            num_stored_elements * (sizeof(IndexType) + sizeof(ValueType)),
+        num_stored_elements * sizeof(ValueType)};
 }
 
 

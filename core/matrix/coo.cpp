@@ -31,8 +31,8 @@ namespace {
 
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(spmv, coo::spmv);
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(advanced_spmv, coo::advanced_spmv);
-GKO_REGISTER_OPERATION(spmv2, coo::spmv2);
-GKO_REGISTER_OPERATION(advanced_spmv2, coo::advanced_spmv2);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(spmv2, coo::spmv2);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(advanced_spmv2, coo::advanced_spmv2);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(fill_in_dense, coo::fill_in_dense);
 GKO_REGISTER_OPERATION(extract_diagonal, coo::extract_diagonal);

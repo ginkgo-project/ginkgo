@@ -111,6 +111,34 @@ memory_bound_work_estimate advanced_spmv(
 }
 
 
+template <typename ValueType, typename IndexType>
+memory_bound_work_estimate spmv2(const matrix::Coo<ValueType, IndexType>* a,
+                                 const matrix::Dense<ValueType>* b,
+                                 matrix::Dense<ValueType>* c)
+{
+    const auto num_stored_elements = a->get_num_stored_elements();
+    const auto matrix_storage =
+        num_stored_elements * (sizeof(ValueType) + 2 * sizeof(IndexType));
+    const auto input_size = b->get_size()[0] * b->get_size()[1];
+    const auto output_size = c->get_size()[0] * c->get_size()[1];
+    return memory_bound_work_estimate{
+        matrix_storage + (input_size + output_size) * sizeof(ValueType),
+        output_size * sizeof(ValueType)};
+}
+
+
+template <typename ValueType, typename IndexType>
+memory_bound_work_estimate advanced_spmv2(
+    const matrix::Dense<ValueType>* alpha,
+    const matrix::Coo<ValueType, IndexType>* a,
+    const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+{
+    auto work = spmv2(a, b, c);
+    work.bytes_read += sizeof(ValueType);
+    return work;
+}
+
+
 }  // namespace work_estimate::coo
 }  // namespace kernels
 }  // namespace gko

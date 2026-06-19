@@ -139,6 +139,19 @@ memory_bound_work_estimate advanced_spmv(
 }
 
 
+template <typename ValueType, typename IndexType>
+memory_bound_work_estimate extract_diagonal(
+    const matrix::Ell<ValueType, IndexType>* orig,
+    matrix::Diagonal<ValueType>* diag)
+{
+    const auto matrix_storage = orig->get_num_stored_elements() *
+                                (sizeof(ValueType) + sizeof(IndexType));
+    const auto diag_size = diag->get_size()[0];
+    return memory_bound_work_estimate{matrix_storage,
+                                      diag_size * sizeof(ValueType)};
+}
+
+
 }  // namespace work_estimate::ell
 }  // namespace kernels
 }  // namespace gko
