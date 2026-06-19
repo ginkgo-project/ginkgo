@@ -28,7 +28,7 @@ namespace detail {
 template <typename T>
 std::unique_ptr<T> clone_or_nullptr(T* input)
 {
-    // whether throw exception if input is not clonable?
+    // whether throw exception if input is not cloneable?
     if (auto tmp = dynamic_cast<const Cloneable*>(input)) {
         return as<T>(tmp->clone());
     }

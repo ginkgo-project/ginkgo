@@ -430,7 +430,7 @@ inline detail::cloned_type<Pointer> clone(const Pointer& p)
 }
 
 /**
- * when the class does not have clone, try CloneableObject
+ * when the class does not have clone, try Cloneable
  */
 template <typename Pointer,
           std::enable_if_t<!detail::is_cloneable<detail::pointee<Pointer>>()>* =
@@ -470,7 +470,7 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
 }
 
 /**
- * when the class does not have clone, try CloneableObject
+ * when the class does not have clone, try Cloneable
  */
 template <typename Pointer,
           std::enable_if_t<!detail::is_cloneable<detail::pointee<Pointer>>()>* =

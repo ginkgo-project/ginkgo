@@ -49,8 +49,6 @@ class NestedDissection : public LinOpFactory {
 
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<NestedDissection<ValueType, IndexType>,
-                                         LinOpFactory>;
     friend class enable_parameters_type<parameters_type,
                                         NestedDissection<ValueType, IndexType>>;
 

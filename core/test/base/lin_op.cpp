@@ -113,9 +113,9 @@ protected:
 };
 
 
-class EnableLinOp : public ::testing::Test {
+class LinOp : public ::testing::Test {
 protected:
-    EnableLinOp()
+    LinOp()
         : ref{gko::ReferenceExecutor::create()},
           ref2{gko::ReferenceExecutor::create()},
           op{DummyLinOp::create(ref2, gko::dim<2>{3, 5})},
@@ -139,7 +139,7 @@ protected:
 };
 
 
-TEST_F(EnableLinOp, CallsApplyImpl)
+TEST_F(LinOp, CallsApplyImpl)
 {
     op->apply(b, x);
 
@@ -147,7 +147,7 @@ TEST_F(EnableLinOp, CallsApplyImpl)
 }
 
 
-TEST_F(EnableLinOp, CallsExtendedApplyImpl)
+TEST_F(LinOp, CallsExtendedApplyImpl)
 {
     op->apply(alpha, b, beta, x);
 
@@ -155,7 +155,7 @@ TEST_F(EnableLinOp, CallsExtendedApplyImpl)
 }
 
 
-TEST_F(EnableLinOp, ApplyFailsOnWrongBSize)
+TEST_F(LinOp, ApplyFailsOnWrongBSize)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
 
@@ -163,7 +163,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongBSize)
 }
 
 
-TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionRows)
+TEST_F(LinOp, ApplyFailsOnWrongSolutionRows)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
 
@@ -171,7 +171,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionRows)
 }
 
 
-TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionColumns)
+TEST_F(LinOp, ApplyFailsOnWrongSolutionColumns)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
 
@@ -179,7 +179,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionColumns)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBSize)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongBSize)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
 
@@ -187,7 +187,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBSize)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionRows)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongSolutionRows)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
 
@@ -195,7 +195,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionRows)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionColumns)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
 
@@ -203,7 +203,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongAlphaDimension)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
 
@@ -211,7 +211,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBetaDimension)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongBetaDimension)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
 
@@ -220,7 +220,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBetaDimension)
 
 
 // For tests between different memory, check cuda/test/base/lin_op.cu
-TEST_F(EnableLinOp, ApplyDoesNotCopyBetweenSameMemory)
+TEST_F(LinOp, ApplyDoesNotCopyBetweenSameMemory)
 {
     op->apply(b, x);
 
@@ -229,7 +229,7 @@ TEST_F(EnableLinOp, ApplyDoesNotCopyBetweenSameMemory)
 }
 
 
-TEST_F(EnableLinOp, ApplyNoCopyBackBetweenSameMemory)
+TEST_F(LinOp, ApplyNoCopyBackBetweenSameMemory)
 {
     op->apply(b, x);
 
@@ -238,7 +238,7 @@ TEST_F(EnableLinOp, ApplyNoCopyBackBetweenSameMemory)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
+TEST_F(LinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
 {
     op->apply(alpha, b, beta, x);
 
@@ -249,7 +249,7 @@ TEST_F(EnableLinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
+TEST_F(LinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
 {
     op->apply(alpha, b, beta, x);
 
@@ -260,13 +260,13 @@ TEST_F(EnableLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
 }
 
 
-TEST_F(EnableLinOp, ApplyUsesInitialGuessReturnsFalse)
+TEST_F(LinOp, ApplyUsesInitialGuessReturnsFalse)
 {
     ASSERT_FALSE(op->apply_uses_initial_guess());
 }
 
 
-TEST_F(EnableLinOp, ApplyIsLogged)
+TEST_F(LinOp, ApplyIsLogged)
 {
     auto before_logger = *logger;
 
@@ -279,7 +279,7 @@ TEST_F(EnableLinOp, ApplyIsLogged)
 }
 
 
-TEST_F(EnableLinOp, AdvancedApplyIsLogged)
+TEST_F(LinOp, AdvancedApplyIsLogged)
 {
     auto before_logger = *logger;
 

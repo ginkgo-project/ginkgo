@@ -807,17 +807,11 @@ TEST_F(Jacobi, TransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
                     {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
                     99);
 
-
+    auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    // we do not have clone on Jacobi
-    // d_bj and bj use 1e-1 in the previous settings.
-    // testing after transpose is hard to say it transpose correct because we
-    // can only put 1e-1 as check. check it with dumping to Dense matrix
-    auto vec = Vec::create(exec);
-    d_bj->convert_to(vec);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
-                        gko::as<Vec>(vec->transpose()), 0);
+                        gko::as<Bj>(bj->transpose()), 1e-14);
 }
 
 
@@ -827,12 +821,11 @@ TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
                     {sp, sp, dp, dp, tp, tp, qp, qp, hp, dp, up}, {}, 13, 97,
                     99);
 
+    auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    auto vec = Vec::create(exec);
-    d_bj->convert_to(vec);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
-                        gko::as<Vec>(vec->conj_transpose()), 0);
+                        gko::as<Bj>(bj->conj_transpose()), 1e-14);
 }
 
 
