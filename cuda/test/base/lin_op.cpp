@@ -11,6 +11,7 @@ namespace {
 
 
 class DummyLinOp : public gko::LinOp,
+                   public gko::EnableCloneable<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
@@ -52,9 +53,9 @@ protected:
 };
 
 
-class EnableLinOp : public CudaTestFixture {
+class LinOp : public CudaTestFixture {
 protected:
-    EnableLinOp()
+    LinOp()
         : op{DummyLinOp::create(exec, gko::dim<2>{3, 5})},
           alpha{DummyLinOp::create(ref, gko::dim<2>{1})},
           beta{DummyLinOp::create(ref, gko::dim<2>{1})},
@@ -70,7 +71,7 @@ protected:
 };
 
 
-TEST_F(EnableLinOp, ApplyCopiesDataToCorrectExecutor)
+TEST_F(LinOp, ApplyCopiesDataToCorrectExecutor)
 {
     op->apply(b, x);
 
@@ -79,7 +80,7 @@ TEST_F(EnableLinOp, ApplyCopiesDataToCorrectExecutor)
 }
 
 
-TEST_F(EnableLinOp, ApplyCopiesBackOnlyX)
+TEST_F(LinOp, ApplyCopiesBackOnlyX)
 {
     op->apply(b, x);
 
@@ -88,7 +89,7 @@ TEST_F(EnableLinOp, ApplyCopiesBackOnlyX)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyCopiesDataToCorrectExecutor)
+TEST_F(LinOp, ExtendedApplyCopiesDataToCorrectExecutor)
 {
     op->apply(alpha, b, beta, x);
 
@@ -99,7 +100,7 @@ TEST_F(EnableLinOp, ExtendedApplyCopiesDataToCorrectExecutor)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyCopiesBackOnlyX)
+TEST_F(LinOp, ExtendedApplyCopiesBackOnlyX)
 {
     op->apply(alpha, b, beta, x);
 

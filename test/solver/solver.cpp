@@ -496,7 +496,7 @@ struct test_pair {
     std::shared_ptr<ObjectType> dev;
 
     // use template here such that we can use SFINAE here
-    // it only allows the constructor calling clone on CloneableObject
+    // it only allows the constructor calling clone on Cloneable
     template <typename T = ObjectType,
               std::enable_if_t<std::is_base_of_v<gko::Cloneable, ObjectType> &&
                                std::is_same_v<T, ObjectType>>* = nullptr>

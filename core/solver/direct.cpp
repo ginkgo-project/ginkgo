@@ -157,6 +157,7 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
     switch (type) {
     case storage_type::empty:
         // remove the factor storage entirely
+        this->set_size(dim<2>());
         lower_solver_ = nullptr;
         upper_solver_ = nullptr;
         break;

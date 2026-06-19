@@ -20,19 +20,18 @@ void stencil_kernel(std::size_t size, const ValueType* coefs,
 
 
 // A stencil matrix class representing the 3pt stencil linear operator.
-// We include the gko::EnableLinOp mixin which implements the entire LinOp
-// interface, except the two apply_impl methods, which get called inside the
-// default implementation of apply (after argument verification) to perform the
-// actual application of the linear operator. In addition, it includes the
-// implementation of the entire PolymorphicObject interface.
+// We include the gko::LinOp interface, where we need to implement the two
+// apply_impl methods, which get called inside the default implementation of
+// apply (after argument verification) to perform the actual application of the
+// linear operator.
 //
 // It also includes the gko::EnableCreateMethod mixin which provides a default
 // implementation of the static create method. This method will forward all its
 // arguments to the constructor to create the object, and return an
 // std::unique_ptr to the created object.
 template <typename ValueType>
-    class StencilMatrix : public gko::LinOp >,
-    public gko::EnableCreateMethod<StencilMatrix<ValueType>> {
+class StencilMatrix : public gko::LinOp,
+                      public gko::EnableCreateMethod<StencilMatrix<ValueType>> {
 public:
     // This constructor will be called by the create method. Here we initialize
     // the coefficients of the stencil.

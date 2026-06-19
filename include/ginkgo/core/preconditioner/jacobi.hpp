@@ -185,9 +185,11 @@ struct block_interleaved_storage_scheme {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Jacobi : public LinOp,
+               public EnableCloneable<Jacobi<ValueType, IndexType>>,
                public ConvertibleTo<matrix::Dense<ValueType>>,
                public WritableToMatrixData<ValueType, IndexType>,
                public Transposable {
+    friend class EnableCloneable<Jacobi<ValueType, IndexType>>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

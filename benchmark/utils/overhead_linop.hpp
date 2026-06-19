@@ -115,7 +115,7 @@ protected:
 
     explicit Overhead(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(get_executor(), transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(), transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{std::move(system_matrix)}
     {

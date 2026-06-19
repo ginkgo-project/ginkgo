@@ -480,30 +480,12 @@ public:
         return *this;
     }
 
-    Cloneable* copy_from_impl(const Cloneable* other) override
+protected:
+    [[nodiscard]] std::unique_ptr<Cloneable> clone_impl(
+        std::shared_ptr<const gko::Executor> exec) const override
     {
-        gko::as<gko::ConvertibleTo<CustomDense>>(other)->convert_to(this);
-        return this;
+        return create(exec, this->get_size(), this->data_);
     }
-
-    Cloneable* copy_from_impl(std::unique_ptr<Cloneable> other) override
-    {
-        gko::as<gko::ConvertibleTo<CustomDense>>(other.get())->move_to(this);
-        return this;
-    }
-
-    Cloneable* move_from_impl(Cloneable* other) override
-    {
-        gko::as<ConvertibleTo<CustomDense>>(other)->move_to(this);
-        return this;
-    }
-
-    Cloneable* move_from_impl(std::unique_ptr<Cloneable> other) override
-    {
-        gko::as<ConvertibleTo<CustomDense>>(other.get())->move_to(this);
-        return this;
-    }
-
 
 private:
     explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
@@ -522,7 +504,18 @@ private:
 };
 
 
-TEST(DenseView, CustomViewKeepsRuntimeType)
+TEST(CustomDense, Clone)
+{
+    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
+                                      gko::dim<2>{3, 4}, 2);
+
+    auto v = gko::share(vector->clone());
+
+    GKO_ASSERT_EQ(gko::as<CustomDense>(v)->get_data(), 2);
+}
+
+
+TEST(CustomDense, CustomViewKeepsRuntimeType)
 {
     auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
                                       gko::dim<2>{3, 4}, 2);
@@ -532,16 +525,6 @@ TEST(DenseView, CustomViewKeepsRuntimeType)
     ASSERT_EQ(view->get_values(), vector->get_values());
     EXPECT_TRUE(dynamic_cast<CustomDense*>(view.get()));
     ASSERT_EQ(dynamic_cast<CustomDense*>(view.get())->get_data(), 2);
-}
-
-TEST(DenseView, Clone)
-{
-    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
-                                      gko::dim<2>{3, 4}, 2);
-
-    auto v = gko::share(vector->clone());
-
-    GKO_ASSERT_EQ(gko::as<CustomDense>(v)->get_data(), 2);
 }
 
 

@@ -110,7 +110,42 @@ struct DummyLogger : gko::log::Logger {
 };
 
 
-class PolymorphicObject : public testing::Test {
+TEST(PolymorphicObject, HoldsExecutor)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto obj = DummyObject(ref, 5);
+
+    ASSERT_EQ(obj.get_executor(), ref);
+    ASSERT_EQ(obj.x, 5);
+}
+
+
+TEST(PolymorphicObject, LogsObjectDeletion)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    std::shared_ptr<DummyLogger> logger{std::make_shared<DummyLogger>()};
+    auto before_count = logger->deleted;
+
+    {
+        auto obj = DummyObject(ref, 5);
+        obj.add_logger(logger);
+    }
+
+    ASSERT_EQ(logger->deleted, before_count + 1);
+}
+
+
+TEST(EnableCreateMethod, CreatesObject)
+{
+    auto ref = gko::ReferenceExecutor::create();
+    auto obj = DummyObject::create(ref, 5);
+
+    ASSERT_EQ(obj->get_executor(), ref);
+    ASSERT_EQ(obj->x, 5);
+}
+
+
+class Cloneable : public testing::Test {
 protected:
     std::shared_ptr<gko::ReferenceExecutor> ref{
         gko::ReferenceExecutor::create()};
@@ -134,13 +169,7 @@ protected:
 };
 
 
-TEST_F(PolymorphicObject, CreatesConcreteClass)
-{
-    // this test passes as soon as an instance of `DummyObject` can be created
-}
-
-
-TEST_F(PolymorphicObject, CreatesDefaultObject)
+TEST_F(Cloneable, CreatesDefaultObject)
 {
     auto def = obj->create_default();
 
@@ -150,7 +179,7 @@ TEST_F(PolymorphicObject, CreatesDefaultObject)
 }
 
 
-TEST_F(PolymorphicObject, CreatesDefaultObjectOnAnotherExecutor)
+TEST_F(Cloneable, CreatesDefaultObjectOnAnotherExecutor)
 {
     auto def = obj->create_default(omp);
 
@@ -160,24 +189,73 @@ TEST_F(PolymorphicObject, CreatesDefaultObjectOnAnotherExecutor)
 }
 
 
-TEST_F(PolymorphicObject, CreatesDefaultObjectIsLogged)
+TEST_F(Cloneable, ClonesObject)
 {
-    auto before_logger = *this->logger;
+    auto clone = obj->clone();
 
-    auto def = obj->create_default();
-
-    ASSERT_EQ(logger->create_started, before_logger.create_started + 1);
-    ASSERT_EQ(logger->create_completed, before_logger.create_completed + 1);
+    ASSERT_NE(clone.get(), obj.get());
+    ASSERT_EQ(clone->get_executor(), obj->get_executor());
+    ASSERT_EQ(clone->x, obj->x);
 }
 
 
-TEST(EnableCreateMethod, CreatesObject)
+TEST_F(Cloneable, ClonesObjectOnAnotherExecutor)
 {
-    auto ref = gko::ReferenceExecutor::create();
-    auto obj = DummyObject::create(ref, 5);
+    auto clone = obj->clone(omp);
 
-    ASSERT_EQ(obj->get_executor(), ref);
-    ASSERT_EQ(obj->x, 5);
+    ASSERT_NE(clone.get(), obj.get());
+    ASSERT_EQ(clone->get_executor(), omp);
+    ASSERT_EQ(clone->x, obj->x);
+}
+
+
+TEST_F(Cloneable, CopiesFrom)
+{
+    auto copy = obj->create_default();
+
+    copy->copy_from(obj.get());
+
+    ASSERT_EQ(copy->x, obj->x);
+}
+
+
+TEST_F(Cloneable, CopiesFromLogsEvents)
+{
+    auto copy_started = logger->copy_started;
+    auto copy_completed = logger->copy_completed;
+    auto copy = obj->create_default();
+    copy->add_logger(logger);
+
+    copy->copy_from(obj.get());
+
+    ASSERT_EQ(logger->copy_started, copy_started + 1);
+    ASSERT_EQ(logger->copy_completed, copy_completed + 1);
+}
+
+
+TEST_F(Cloneable, MovesFrom)
+{
+    auto move = obj->create_default();
+    auto expected_x = obj->x;
+
+    move->move_from(obj.get());
+
+    ASSERT_EQ(move->x, expected_x);
+    ASSERT_EQ(obj->x, 0);
+}
+
+
+TEST_F(Cloneable, MovesFromLogsEvents)
+{
+    auto move_started = logger->move_started;
+    auto move_completed = logger->move_completed;
+    auto move = obj->create_default();
+    move->add_logger(logger);
+
+    move->move_from(obj.get());
+
+    ASSERT_EQ(logger->move_started, move_started + 1);
+    ASSERT_EQ(logger->move_completed, move_completed + 1);
 }
 
 
