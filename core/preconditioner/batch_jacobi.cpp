@@ -43,7 +43,7 @@ size_type Jacobi<ValueType, IndexType>::compute_storage_space(
 
 template <typename ValueType, typename IndexType>
 Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
-    : EnableBatchLinOp<Jacobi>(exec),
+    : BatchLinOp(exec),
       block_pointers_(exec),
       num_blocks_{0},
       blocks_(exec),
@@ -55,8 +55,8 @@ Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
 template <typename ValueType, typename IndexType>
 Jacobi<ValueType, IndexType>::Jacobi(
     const Factory* factory, std::shared_ptr<const BatchLinOp> system_matrix)
-    : EnableBatchLinOp<Jacobi>(factory->get_executor(),
-                               gko::transpose(system_matrix->get_size())),
+    : BatchLinOp(factory->get_executor(),
+                 gko::transpose(system_matrix->get_size())),
       parameters_{factory->get_parameters()},
       block_pointers_(std::move(parameters_.block_pointers)),
       num_blocks_{

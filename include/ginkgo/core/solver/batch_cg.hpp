@@ -48,7 +48,7 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Cg final : public EnableBatchSolver<Cg<ValueType>, ValueType> {
-    friend class EnableBatchLinOp<Cg>;
+    friend class BatchLinOp;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

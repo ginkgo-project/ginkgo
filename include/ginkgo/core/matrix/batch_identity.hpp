@@ -29,7 +29,7 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Identity final : public EnableBatchLinOp<Identity<ValueType>>,
+class Identity final : public BatchLinOp,
                        public EnableCloneable<Identity<ValueType>> {
     friend class EnableCloneable<Identity>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;

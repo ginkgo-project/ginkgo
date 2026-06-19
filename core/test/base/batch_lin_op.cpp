@@ -42,12 +42,12 @@ struct DummyLogger : gko::log::Logger {
 };
 
 
-class DummyBatchLinOp : public gko::batch::EnableBatchLinOp<DummyBatchLinOp>,
+class DummyBatchLinOp : public gko::batch::BatchLinOp,
                         public gko::EnableCreateMethod<DummyBatchLinOp> {
 public:
     DummyBatchLinOp(std::shared_ptr<const gko::Executor> exec,
                     gko::batch_dim<2> size = gko::batch_dim<2>{})
-        : gko::batch::EnableBatchLinOp<DummyBatchLinOp>(exec, size)
+        : gko::batch::BatchLinOp(exec, size)
     {}
 };
 
@@ -79,11 +79,10 @@ TEST_F(EnableBatchLinOp, KnowsItsSizes)
 
 
 template <typename T = int>
-class DummyBatchLinOpWithFactory
-    : public gko::batch::EnableBatchLinOp<DummyBatchLinOpWithFactory<T>> {
+class DummyBatchLinOpWithFactory : public gko::batch::BatchLinOp {
 public:
     DummyBatchLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::batch::EnableBatchLinOp<DummyBatchLinOpWithFactory>(exec)
+        : gko::batch::BatchLinOp(exec)
     {}
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -96,8 +95,7 @@ public:
 
     DummyBatchLinOpWithFactory(const Factory* factory,
                                std::shared_ptr<const gko::batch::BatchLinOp> op)
-        : gko::batch::EnableBatchLinOp<DummyBatchLinOpWithFactory>(
-              factory->get_executor()),
+        : gko::batch::BatchLinOp(factory->get_executor()),
           parameters_{factory->get_parameters()},
           op_{op}
     {}

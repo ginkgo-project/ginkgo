@@ -50,7 +50,7 @@ namespace matrix {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell final
-    : public EnableBatchLinOp<Ell<ValueType, IndexType>>,
+    : public BatchLinOp,
       public EnableCloneable<Ell<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Ell<next_precision<ValueType, 2>, IndexType>>,

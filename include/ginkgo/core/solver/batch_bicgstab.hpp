@@ -49,7 +49,7 @@ namespace solver {
 template <typename ValueType = default_precision>
 class Bicgstab final
     : public EnableBatchSolver<Bicgstab<ValueType>, ValueType> {
-    friend class EnableBatchLinOp<Bicgstab>;
+    friend class BatchLinOp;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
