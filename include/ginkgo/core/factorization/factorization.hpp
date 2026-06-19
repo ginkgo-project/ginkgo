@@ -73,7 +73,10 @@ enum class storage_type {
  * @tparam IndexType  the index type used to represent the sparsity pattern
  */
 template <typename ValueType, typename IndexType>
-class Factorization : public LinOp {
+class Factorization
+    : public LinOp,
+      public EnableCloneable<Factorization<ValueType, IndexType>> {
+    friend class EnableCloneable<Factorization<ValueType, IndexType>>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
