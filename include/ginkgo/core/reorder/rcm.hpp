@@ -171,8 +171,8 @@ using rcm_starting_strategy = gko::reorder::starting_strategy;
  * @ingroup reorder
  */
 template <typename IndexType = int32>
-class Rcm : public LinOpFactory, public EnableCloneable<Rcm<IndexType>> {
-    friend class EnableCloneable<Rcm>;
+class Rcm : public LinOpFactory {
+    GKO_ASSERT_SUPPORTED_INDEX_TYPE;
 
 public:
     struct parameters_type;

@@ -32,9 +32,7 @@ namespace factorization {
  *                    system matrix
  */
 template <typename ValueType, typename IndexType>
-class Cholesky : public LinOpFactory,
-                 public EnableCloneable<Cholesky<ValueType, IndexType>> {
-    friend class EnableCloneable<Cholesky>;
+class Cholesky : public LinOpFactory {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

@@ -44,10 +44,7 @@ namespace reorder {
  *                    system matrix
  */
 template <typename ValueType, typename IndexType>
-class NestedDissection
-    : public LinOpFactory,
-      public EnableCloneable<NestedDissection<ValueType, IndexType>> {
-    friend class EnableCloneable<NestedDissection>;
+class NestedDissection : public LinOpFactory {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

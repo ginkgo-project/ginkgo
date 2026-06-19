@@ -119,10 +119,7 @@ protected:
  */
 template <typename ConcreteFactory, typename ProductType,
           typename ParametersType, typename PolymorphicBase>
-class EnableDefaultFactory : public PolymorphicBase,
-                             public EnableCloneable<ConcreteFactory> {
-    friend class EnableCloneable<ConcreteFactory>;
-
+class EnableDefaultFactory : public PolymorphicBase {
 public:
     using product_type = ProductType;
     using parameters_type = ParametersType;

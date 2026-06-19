@@ -251,9 +251,7 @@ struct residual_norm_factory_parameters
 };
 
 
-class ResidualNormFactory : public CriterionFactory,
-                            public EnableCloneable<ResidualNormFactory> {
-    friend class EnableCloneable<ResidualNormFactory>;
+class ResidualNormFactory : public CriterionFactory {
     friend CriterionFactory;
     friend class enable_parameters_type<residual_norm_factory_parameters,
                                         ResidualNormFactory>;
