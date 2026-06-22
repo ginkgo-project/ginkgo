@@ -40,18 +40,19 @@ namespace kernels {
               matrix::view::dense<const InValueType> input,      \
               matrix::view::dense<OutValueType> output)
 
-#define GKO_DECLARE_DENSE_SIMPLE_MSPM_KERNEL(ValueType, IndexType)      \
-    void simple_mspm(std::shared_ptr<const DefaultExecutor> exec, \
-                     const matrix::Dense<ValueType>* a,              \
-                     const matrix::Csr<ValueType, IndexType>* b,        \
+#define GKO_DECLARE_DENSE_SIMPLE_MSPM_KERNEL(ValueType, IndexType) \
+    void simple_mspm(std::shared_ptr<const DefaultExecutor> exec,  \
+                     const matrix::Dense<ValueType>* a,            \
+                     const matrix::Csr<ValueType, IndexType>* b,   \
                      matrix::Dense<ValueType>* c)
 
-#define GKO_DECLARE_DENSE_MSPM_KERNEL(ValueType, IndexType)      \
-    void mspm(std::shared_ptr<const DefaultExecutor> exec, \
-              const matrix::Dense<ValueType>* alpha,          \
-              const matrix::Dense<ValueType>* a,              \
-              const matrix::Csr<ValueType, IndexType>* b,        \
-              const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* c)
+#define GKO_DECLARE_DENSE_MSPM_KERNEL(ValueType, IndexType) \
+    void mspm(std::shared_ptr<const DefaultExecutor> exec,  \
+              const matrix::Dense<ValueType>* alpha,        \
+              const matrix::Dense<ValueType>* a,            \
+              const matrix::Csr<ValueType, IndexType>* b,   \
+              const matrix::Dense<ValueType>* beta,         \
+              matrix::Dense<ValueType>* c)
 
 
 #define GKO_DECLARE_DENSE_FILL_KERNEL(ValueType)           \

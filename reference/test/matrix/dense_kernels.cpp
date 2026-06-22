@@ -56,7 +56,8 @@ protected:
         mtx7 = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, exec);
         mtx8 = gko::initialize<Mtx>(
             {I<T>({1.0, -1.0}), I<T>({-2.0, 2.0}), I<T>({-3.0, 3.0})}, exec);
-        mtx9 = gko::initialize<Mtx>({I<T>({1.0}), I<T>({2.0}), I<T>({3.0}), I<T>({4.0})}, exec);
+        mtx9 = gko::initialize<Mtx>(
+            {I<T>({1.0}), I<T>({2.0}), I<T>({3.0}), I<T>({4.0})}, exec);
     }
 
     std::shared_ptr<const gko::Executor> exec;

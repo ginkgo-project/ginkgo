@@ -149,13 +149,15 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             as<Dense>(alpha), this, b_csr, as<Dense>(beta), as<Dense>(x)));
     } else {
         precision_dispatch_real_complex<ValueType>(
-            [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(dense::make_apply(
-                dense_alpha->get_const_device_view(),
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_beta->get_const_device_view(),
-                dense_x->get_device_view()));
-        },
+            [this](auto dense_alpha, auto dense_b, auto dense_beta,
+                   auto dense_x) {
+                this->get_executor()->run(
+                    dense::make_apply(dense_alpha->get_const_device_view(),
+                                      this->get_const_device_view(),
+                                      dense_b->get_const_device_view(),
+                                      dense_beta->get_const_device_view(),
+                                      dense_x->get_device_view()));
+            },
             alpha, b, beta, x);
     }
 }
