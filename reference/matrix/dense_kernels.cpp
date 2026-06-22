@@ -136,7 +136,7 @@ void simple_mspm(std::shared_ptr<const DefaultExecutor> exec,
 {
     // reinitialize accumulator with zeroes
     auto simple_init = [b](ValueType* acc_begin_ptr, IndexType acc_size,
-                           IndexType row) {
+                           IndexType) {
         std::fill(acc_begin_ptr, acc_begin_ptr + acc_size, zero<ValueType>());
     };
     // no multiplication by alpha, just get value in a
@@ -156,7 +156,7 @@ void mspm(std::shared_ptr<const DefaultExecutor> exec,
           matrix::view::dense<const ValueType> beta,
           matrix::view::dense<ValueType> c)
 {
-    // initialize the accumulator with c + beta
+    // initialize the accumulator with c * beta
     auto advanced_init = [b, c, beta](ValueType* acc_begin_ptr,
                                       IndexType acc_size, IndexType row) {
         const auto begin_row_c_vals_ptr = c.values + c.stride * row;
