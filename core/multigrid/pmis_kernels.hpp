@@ -60,6 +60,21 @@ namespace pmis {
     void count(std::shared_ptr<const DefaultExecutor> exec, size_type num, \
                const int* status, size_type* num_unassigned)
 
+#define GKO_DECLARE_DIRECT_INTERPOLATION_ROW_COUNT(ValueType, IndexType) \
+    void direct_interpolation_row_count(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,     \
+        const int* status, IndexType* prolong_row_ptr)
+
+#define GKO_DECLARE_DIRECT_INTERPOLATION_FILL(ValueType, IndexType) \
+    void direct_interpolation_fill(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        const matrix::Csr<ValueType, IndexType>* csr,               \
+        const remove_complex<ValueType>* row_maxabs,                \
+        const remove_complex<ValueType> strength_threshold,         \
+        const int* coarse_map, const IndexType* prolong_row_ptrs,   \
+        IndexType* prolong_col_idxs, ValueType* prolong_values)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
     template <typename ValueType, typename IndexType>                     \
@@ -73,7 +88,11 @@ namespace pmis {
                                                          IndexType);      \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_PMIS_CLASSIFY_KERNEL(ValueType, IndexType);               \
-    GKO_DECLARE_COUNT_KERNEL
+    GKO_DECLARE_COUNT_KERNEL;                                             \
+    template <typename ValueType, typename IndexType>                     \
+    GKO_DECLARE_DIRECT_INTERPOLATION_ROW_COUNT(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                     \
+    GKO_DECLARE_DIRECT_INTERPOLATION_FILL(ValueType, IndexType)
 
 
 }  // namespace pmis
