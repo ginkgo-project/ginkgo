@@ -116,11 +116,13 @@ void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     if (auto b_csr =
             dynamic_cast<const matrix::Csr<ValueType, gko::int32>*>(b)) {
         this->get_executor()->run(
-            dense::make_simple_mspm(this, b_csr, as<Dense>(x)));
+            dense::make_simple_mspm(this->get_const_device_view(), b_csr,
+                                    as<Dense>(x)->get_device_view()));
     } else if (auto b_csr =
                    dynamic_cast<const matrix::Csr<ValueType, gko::int64>*>(b)) {
         this->get_executor()->run(
-            dense::make_simple_mspm(this, b_csr, as<Dense>(x)));
+            dense::make_simple_mspm(this->get_const_device_view(), b_csr,
+                                    as<Dense>(x)->get_device_view()));
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
@@ -141,12 +143,18 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     // TODO: it does not consider mixed precision for MSpM
     if (auto b_csr =
             dynamic_cast<const matrix::Csr<ValueType, gko::int32>*>(b)) {
-        this->get_executor()->run(dense::make_mspm(
-            as<Dense>(alpha), this, b_csr, as<Dense>(beta), as<Dense>(x)));
+        this->get_executor()->run(
+            dense::make_mspm(as<Dense>(alpha)->get_const_device_view(),
+                             this->get_const_device_view(), b_csr,
+                             as<Dense>(beta)->get_const_device_view(),
+                             as<Dense>(x)->get_device_view()));
     } else if (auto b_csr =
                    dynamic_cast<const matrix::Csr<ValueType, gko::int64>*>(b)) {
-        this->get_executor()->run(dense::make_mspm(
-            as<Dense>(alpha), this, b_csr, as<Dense>(beta), as<Dense>(x)));
+        this->get_executor()->run(
+            dense::make_mspm(as<Dense>(alpha)->get_const_device_view(),
+                             this->get_const_device_view(), b_csr,
+                             as<Dense>(beta)->get_const_device_view(),
+                             as<Dense>(x)->get_device_view()));
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this](auto dense_alpha, auto dense_b, auto dense_beta,
