@@ -100,6 +100,35 @@ void count(std::shared_ptr<const DefaultExecutor> exec, size_type num,
 }
 
 
+template <typename ValueType, typename IndexType>
+void direct_interpolation_row_count(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
+    const int* status, IndexType* prolong_row_ptr)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIRECT_INTERPOLATION_ROW_COUNT);
+
+
+template <typename ValueType, typename IndexType>
+void direct_interpolation_fill(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* csr,
+    const remove_complex<ValueType>* row_maxabs,
+    const remove_complex<ValueType> strength_threshold, const int* coarse_map,
+    const IndexType* prolong_row_ptrs, IndexType* prolong_col_idxs,
+    ValueType* prolong_values)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIRECT_INTERPOLATION_FILL);
+
+
 }  // namespace pmis
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

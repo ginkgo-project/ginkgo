@@ -37,6 +37,10 @@ GKO_REGISTER_OPERATION(initialize_weight_and_status,
                        pmis::initialize_weight_and_status);
 GKO_REGISTER_OPERATION(classify, pmis::classify);
 GKO_REGISTER_OPERATION(count, pmis::count);
+GKO_REGISTER_OPERATION(direct_interpolation_row_count,
+                       pmis::direct_interpolation_row_count);
+GKO_REGISTER_OPERATION(direct_interpolation_fill,
+                       pmis::direct_interpolation_fill);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
 
@@ -102,10 +106,10 @@ void Pmis<ValueType, IndexType>::generate()
         pmis_op.get(), row_maxabs.get_const_data(),
         this->get_parameters().strength_threshold, strong_dep.get()));
     // weight[i] = #S^T + rand(0, 1)
-    // status 0: not assigned, 1: fine group 2: coarse group
+    // status -1: not assigned, 0: fine group 1: coarse group
     // status[i] = 1 if #S^T_i = 0 or 0
-    gko::array<int> status(exec, this->get_size()[0]);
-    gko::array<int> new_status(exec, this->get_size()[0]);
+    gko::array<int> status(exec, this->get_size()[0] + 1);
+    gko::array<int> new_status(exec, this->get_size()[0] + 1);
     auto status_ptr = status.get_data();
     auto new_status_ptr = new_status.get_data();
     exec->run(pmis::make_initialize_weight_and_status(
@@ -131,26 +135,51 @@ void Pmis<ValueType, IndexType>::generate()
         std::swap(new_status_ptr, status_ptr);
     }
     // finish classify points to fine and coarse group.
-    // TODO: change count to accept checking value
-    size_type num_coarse = 0;
-    // exec->run(pmis::make_count(status_, 2, &num_coarse));
+    array<IndexType> prolong_row_ptrs(exec, pmis_op->get_size()[0] + 1);
+    exec->run(pmis::make_direct_interpolation_row_count(
+        strong_dep.get(), status_ptr, prolong_row_ptrs.get_data()));
+    // coarse_map[i] gives the coarse index from i if i is in coarse grid.
+    // if i is not in coarse grid, coarse_map[i] has no meaning;
+    exec->run(
+        pmis::make_prefix_sum_nonnegative(status_ptr, this->get_size()[0] + 1));
+    auto num_coarse = static_cast<size_type>(
+        exec->copy_val_to_host(status_ptr + this->get_size()[0]));
     // the following implements direct interpolation
-    // get the row sum from two kind of matrix
-    // alpha_i = sum(a_ij which a_ij < 0) / sum(a_ik which s_ik exist, a_ik < 0,
-    // k is coarse point) beta_i = sum(a_ij which a_ij > 0) / sum(a_ik which
-    // s_ik exist, a_ik > 0, k is coarse point) if the dividor is zero, set it
-    // to zero create a coarse point map k in coarse -> c[k] c[k] in the fine
+    //  create a coarse point map k in coarse -> c[k] c[k] in the fine
     // construct interpolation w_ik k from S_ic[k] exists and c[k] is coarse
     // point counte nnz per row again depends on S_ic[k] get row offset allocate
-    // col and value and move them into csr auto prolongation =
-    // share(matrix::Csr<ValueType>(exec, dim<2>{pmis_op->get_size()[0],
-    // num_coarse})); finish weight construction w_ik = {-alpha_i if a_ic[k] is
-    // negative or -beta_i if it is positive} * a_ic[k]/a_ii auto restriction =
-    // share(prolongation->transpose()); auto internal = matrix::Csr<ValueType,
-    // IndexType>::create(exec, prolongation->get_size()); auto coarse =
-    // matrix::Csr<ValueType, IndexType>::create(exec, dim<2>{num_coarse,
-    // num_coarse}); this->set_multigrid_level(prolongation, coarse,
-    // restriction);
+    // col and value and move them into csr
+
+    exec->run(pmis::make_prefix_sum_nonnegative(prolong_row_ptrs.get_data(),
+                                                this->get_size()[0] + 1));
+    IndexType prolong_nnz = exec->copy_val_to_host(
+        prolong_row_ptrs.get_const_data() + this->get_size()[0]);
+    array<IndexType> prolong_col_idxs(exec, prolong_nnz);
+    array<ValueType> prolong_values(exec, prolong_nnz);
+    // alpha_i = sum(a_ij which a_ij < 0) / sum(a_ik which s_ik exist, a_ik < 0,
+    // k is coarse point)
+    // beta_i = sum(a_ij which a_ij > 0) / sum(a_ik which
+    // s_ik exist, a_ik > 0, k is coarse point)
+    // if nothing in divisor, do not add the interpolation
+    // finish weight construction w_ik = {-alpha_i if a_ic[k] is
+    // negative or -beta_i if it is positive} * a_ic[k]/a_ii
+    exec->run(pmis::make_direct_interpolation_fill(
+        pmis_op.get(), row_maxabs.get_const_data(),
+        this->get_parameters().strength_threshold, status_ptr,
+        prolong_row_ptrs.get_const_data(), prolong_col_idxs.get_data(),
+        prolong_values.get_data()));
+    auto prolongation = share(matrix::Csr<ValueType, IndexType>::create(
+        exec, dim<2>{pmis_op->get_size()[0], num_coarse},
+        std::move(prolong_values), std::move(prolong_col_idxs),
+        std::move(prolong_row_ptrs)));
+    auto restriction = share(prolongation->transpose());
+    auto internal = matrix::Csr<ValueType, IndexType>::create(
+        exec, prolongation->get_size());
+    auto coarse = share(matrix::Csr<ValueType, IndexType>::create(
+        exec, dim<2>{num_coarse, num_coarse}));
+    pmis_op->apply(prolongation, internal);
+    internal->apply(restriction, coarse);
+    this->set_multigrid_level(prolongation, coarse, restriction);
 }
 
 
