@@ -175,7 +175,7 @@ public:
                                                value_type{1});
 
         /**
-         * Scale correction mode (matches OpenFOAM GAMGSolver::scale).
+         * Scale correction mode (matches OpenFOAM GAMGSolverScale.C::scale).
          *
          * After the inner solver produces correction δ = M⁻¹(r), the
          * Rayleigh-quotient step length alpha and a Jacobi correction are
@@ -187,11 +187,11 @@ public:
          * 2 - backward: correct δ w.r.t. r, then accumulate into x
          *       alpha = (δ·r)/(δ·Aδ);  δ = alpha·δ + D⁻¹(r − alpha·Aδ)
          *
-         * In a multigrid context, following OpenFOAM convention, the two modes
-         * should be applied asymmetrically: mode 1 on the pre-smoother
-         * (restriction / going down) and mode 2 on the post-smoother
-         * (prolongation / going up).  Use separate IR factory instances with
-         * with_pre_smoother / with_post_smoother rather than post_uses_pre.
+         * Mode 2 matches OpenFOAM's GAMGSolver::scale(), which is called at
+         * the finest level on the V-cycle correction δ before it is added to
+         * the solution x (GAMGSolverSolve.C::Vcycle, lines 438-456).
+         * OpenFOAM never scales x directly, so mode 1 has no OpenFOAM
+         * equivalent.
          */
         int GKO_FACTORY_PARAMETER_SCALAR(scale_correction, 0);
 
