@@ -41,8 +41,7 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     config::config_check_decorator config_check(config);
     if (auto& obj = config_check.get("criteria")) {
         params.with_criteria(
-            config::parse_or_get_factory_vector<const stop::CriterionFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_criteria(obj, context, td_for_child));
     }
     if (auto& obj = config_check.get("solver")) {
         params.with_solver(config::parse_or_get_factory<const LinOpFactory>(
@@ -58,6 +57,9 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     if (auto& obj = config_check.get("default_initial_guess")) {
         params.with_default_initial_guess(
             config::get_value<solver::initial_guess_mode>(obj));
+    }
+    if (auto& obj = config_check.get("scale_correction")) {
+        params.with_scale_correction(config::get_value<int>(obj));
     }
 
     return params;
