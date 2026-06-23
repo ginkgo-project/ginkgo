@@ -41,8 +41,7 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     config::config_check_decorator config_check(config);
     if (auto& obj = config_check.get("criteria")) {
         params.with_criteria(
-            config::parse_or_get_factory_vector<const stop::CriterionFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_criteria(obj, context, td_for_child));
     }
     if (auto& obj = config_check.get("solver")) {
         params.with_solver(config::parse_or_get_factory<const LinOpFactory>(
@@ -58,6 +57,9 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     if (auto& obj = config_check.get("default_initial_guess")) {
         params.with_default_initial_guess(
             config::get_value<solver::initial_guess_mode>(obj));
+    }
+    if (auto& obj = config_check.get("scale_correction")) {
+        params.with_scale_correction(config::get_value<int>(obj));
     }
 
     return params;
@@ -290,31 +292,31 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             break;
         }
 
-        if (solver_->apply_uses_initial_guess()) {
-            // A * inner_solution = residual with residual as initial guess
+        // Compute the correction δ = M⁻¹(r), then optionally apply scale
+        // correction before accumulating into x.
+        // apply_uses_initial_guess() and scale_correction are orthogonal:
+        // the former controls how we call the inner solver, the latter what
+        // we do with the result.
+        if (solver_->apply_uses_initial_guess() ||
+            parameters_.scale_correction != 0) {
+            // Need δ as an explicit vector (for initial-guess handoff or
+            // to apply scale correction before adding to x).
             inner_solution->copy_from(residual_ptr);
             solver_->apply(residual_ptr, inner_solution);
-            // x = x + relaxation_factor * inner_solution
+            if (parameters_.scale_correction == 2) {
+                // Matches OpenFOAM GAMGSolver::scale(): correct δ w.r.t. r,
+                //   alpha = (δ·r)/(δ·Aδ)
+                //   δ = alpha·δ + D⁻¹·(r − alpha·Aδ)
+                // then accumulate into x.
+                apply_scale_correction(inner_solution, residual_ptr);
+            }
             dense_x->add_scaled(relaxation_factor_, inner_solution);
-        } else if (parameters_.scale_correction == 1) {
-            // forward: additive solver step on x, then scale+Jacobi correction
-            // Use 2-arg apply so the correction accumulates into x rather than
-            // replacing it (the alpha-beta form zeroes x via
-            // prepare_initial_guess for zero-initial-guess inner solvers such
-            // as multigrid).
-            inner_solution->copy_from(residual_ptr);
-            solver_->apply(residual_ptr, inner_solution);
-            dense_x->add_scaled(relaxation_factor_, inner_solution);
-            apply_scale_correction(dense_x, dense_b);
-        } else if (parameters_.scale_correction == 2) {
-            // backward: solver step, then scale+Jacobi correction applied to
-            // the correction itself (b = residual, not dense_b).  This keeps
-            // everything in the correction equation A*delta = r, so no
-            // residual recomputation is needed.
-            inner_solution->copy_from(residual_ptr);
-            solver_->apply(residual_ptr, inner_solution);
-            apply_scale_correction(inner_solution, residual_ptr);
-            dense_x->add_scaled(relaxation_factor_, inner_solution);
+            if (parameters_.scale_correction == 1) {
+                // forward: correct x w.r.t. b after accumulation,
+                //   alpha = (x·b)/(x·Ax)
+                //   x = alpha·x + D⁻¹·(b − alpha·Ax)
+                apply_scale_correction(dense_x, dense_b);
+            }
         } else {
             // plain Richardson: x = x + relaxation_factor * solver(r)
             solver_->apply(relaxation_factor_, residual_ptr, one_op, dense_x);
