@@ -312,9 +312,11 @@ void abstract_spmv(
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType,
+                                    IndexType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType,
+                                    IndexType>;
 
     const auto nrows = a.size[0];
     const auto stride = a.stride;
@@ -340,16 +342,15 @@ void abstract_spmv(
         GKO_KERNEL_NOT_FOUND;
     } else {
         const auto a_vals = gko::acc::range<a_accessor>(
-            std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
-                num_stored_elements_per_row * stride)}},
+            typename a_accessor::dim_type{
+                {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
             a.values);
         const auto b_vals = gko::acc::range<b_accessor>(
-            std::array<acc::size_type, 2>{
-                {static_cast<acc::size_type>(b.size[0]),
-                 static_cast<acc::size_type>(b.size[1])}},
+            typename b_accessor::dim_type{{static_cast<IndexType>(b.size[0]),
+                                           static_cast<IndexType>(b.size[1])}},
             b.values,
-            std::array<acc::size_type, 1>{
-                {static_cast<acc::size_type>(b.stride)}});
+            typename b_accessor::storage_stride_type{
+                {static_cast<IndexType>(b.stride)}});
 
         if (!alpha && !beta) {
             kernel::spmv<num_thread_per_worker, atomic>(
@@ -360,7 +361,7 @@ void abstract_spmv(
                 c.stride);
         } else if (alpha && beta) {
             const auto alpha_val = gko::acc::range<a_accessor>(
-                std::array<acc::size_type, 1>{1}, alpha->values);
+                typename a_accessor::dim_type{{1}}, alpha->values);
             kernel::spmv<num_thread_per_worker, atomic>(
                 grid_size, block_size, 0, exec->get_queue(), nrows,
                 num_worker_per_row, acc::as_device_range(alpha_val),

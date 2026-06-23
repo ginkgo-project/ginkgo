@@ -239,10 +239,10 @@ void abstract_spmv(
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
-    using a_accessor =
-        acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
-    using b_accessor =
-        acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+    using a_accessor = acc::reduced_row_major<1, arithmetic_type,
+                                              const MatrixValueType, IndexType>;
+    using b_accessor = acc::reduced_row_major<2, arithmetic_type,
+                                              const InputValueType, IndexType>;
 
     const auto nrows = a.size[0];
     const auto stride = a.stride;
@@ -290,16 +290,15 @@ void abstract_spmv(
 #endif
     {
         const auto a_vals = acc::range<a_accessor>(
-            std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
-                num_stored_elements_per_row * stride)}},
+            typename a_accessor::dim_type{
+                {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
             a.values);
         const auto b_vals = acc::range<b_accessor>(
-            std::array<acc::size_type, 2>{
-                {static_cast<acc::size_type>(b.size[0]),
-                 static_cast<acc::size_type>(b.size[1])}},
+            typename b_accessor::dim_type{{static_cast<IndexType>(b.size[0]),
+                                           static_cast<IndexType>(b.size[1])}},
             b.values,
-            std::array<acc::size_type, 1>{
-                {static_cast<acc::size_type>(b.stride)}});
+            typename b_accessor::storage_stride_type{
+                {static_cast<IndexType>(b.stride)}});
 
         if (!alpha && !beta) {
             if (grid_size.x > 0 && grid_size.y > 0) {
@@ -312,7 +311,7 @@ void abstract_spmv(
             }
         } else if (alpha && beta) {
             const auto alpha_val = acc::range<a_accessor>(
-                std::array<acc::size_type, 1>{1}, alpha->values);
+                typename a_accessor::dim_type{{1}}, alpha->values);
             if (grid_size.x > 0 && grid_size.y > 0) {
                 kernel::spmv<num_thread_per_worker, atomic>
                     <<<grid_size, block_size, 0, exec->get_stream()>>>(

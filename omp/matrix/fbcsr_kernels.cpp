@@ -49,8 +49,8 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     const size_type nbnz = a->get_num_stored_blocks();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        to_std_array<acc::size_type>(nbnz, bs, bs), a->get_const_values()};
+    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
+        avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
@@ -94,8 +94,8 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto col_idxs = a->get_const_col_idxs();
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
-    const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
-        to_std_array<acc::size_type>(nbnz, bs, bs), a->get_const_values()};
+    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
+        avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
@@ -195,8 +195,9 @@ void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
     const auto nbnz = source->get_num_stored_blocks();
     auto row_ptrs = source->get_const_row_ptrs();
     auto col_idxs = source->get_const_col_idxs();
-    const acc::range<acc::block_col_major<const ValueType, 3>> values{
-        to_std_array<acc::size_type>(nbnz, bs, bs), source->get_const_values()};
+    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
+        values{to_std_array<IndexType>(nbnz, bs, bs),
+               source->get_const_values()};
 #pragma omp parallel for
     for (size_type block_row = 0; block_row < nbrows; block_row++) {
         const auto row_begin = row_ptrs[block_row];
@@ -230,10 +231,9 @@ void convert_to_csr(const std::shared_ptr<const OmpExecutor> exec,
     const auto row_ptrs = result->get_row_ptrs();
     const auto col_idxs = result->get_col_idxs();
     const auto vals = result->get_values();
-    auto sizes =
-        gko::to_std_array<acc::size_type>(block_row_ptrs[nbrows], bs, bs);
+    auto sizes = gko::to_std_array<IndexType>(block_row_ptrs[nbrows], bs, bs);
     const auto block_vals =
-        acc::range<acc::block_col_major<const ValueType, 3>>(
+        acc::range<acc::block_col_major<const ValueType, 3, IndexType>>(
             sizes, source->get_const_values());
 #pragma omp parallel for
     for (IndexType block_row = 0; block_row < nbrows; block_row++) {
@@ -275,10 +275,11 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
                             ValueType* const csc_vals, UnaryOperator op)
 {
     auto sizes =
-        gko::to_std_array<acc::size_type>(row_ptrs[num_blk_rows], blksz, blksz);
-    const acc::range<acc::block_col_major<const ValueType, 3>> rvalues(
-        sizes, fbcsr_vals);
-    acc::range<acc::block_col_major<ValueType, 3>> cvalues(sizes, csc_vals);
+        gko::to_std_array<IndexType>(row_ptrs[num_blk_rows], blksz, blksz);
+    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
+        rvalues(sizes, fbcsr_vals);
+    acc::range<acc::block_col_major<ValueType, 3, IndexType>> cvalues(sizes,
+                                                                      csc_vals);
     for (IndexType brow = 0; brow < num_blk_rows; ++brow) {
         for (auto i = row_ptrs[brow]; i < row_ptrs[brow + 1]; ++i) {
             const auto dest_idx = col_ptrs[col_idxs[i]];
@@ -451,8 +452,8 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 
     assert(diag->get_size()[0] == nbdim_min * bs);
 
-    const acc::range<acc::block_col_major<const ValueType, 3>> vblocks(
-        gko::to_std_array<acc::size_type>(row_ptrs[nbrows], bs, bs), values);
+    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
+        vblocks(gko::to_std_array<IndexType>(row_ptrs[nbrows], bs, bs), values);
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbdim_min; ++ibrow) {

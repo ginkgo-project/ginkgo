@@ -56,8 +56,9 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+        acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(b);
+    auto c_vals =
+        acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
 
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c.size[1]; ++j) {
@@ -97,8 +98,9 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+        acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(b);
+    auto c_vals =
+        acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
     for (size_type row = 0; row < a->get_size()[0]; ++row) {
         for (size_type j = 0; j < c.size[1]; ++j) {
             auto sum = is_zero(vbeta) ? zero(vbeta) : c_vals(row, j) * vbeta;

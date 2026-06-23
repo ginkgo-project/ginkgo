@@ -1984,10 +1984,11 @@ void merge_path_spmv(
             acc::index_span(static_cast<acc::size_type>(column_id),
                             static_cast<acc::size_type>(column_id + 1));
         const auto b_vals =
-            acc::helper::build_const_rrm_accessor<arithmetic_type>(b,
-                                                                   column_span);
+            acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(
+                b, column_span);
         auto c_vals =
-            acc::helper::build_rrm_accessor<arithmetic_type>(c, column_span);
+            acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(
+                c, column_span);
         if (!alpha && !beta) {
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
@@ -2122,8 +2123,9 @@ void classical_spmv(
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+        acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(b);
+    auto c_vals =
+        acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
     if (!alpha && !beta) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
@@ -2196,8 +2198,10 @@ bool load_balance_spmv(
             const auto a_vals =
                 acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
             const auto b_vals =
-                acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-            auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+                acc::helper::build_const_rrm_accessor<arithmetic_type,
+                                                      IndexType>(b);
+            auto c_vals =
+                acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
             if (alpha) {
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     kernel::abstract_spmv<<<csr_grid, csr_block, 0,
