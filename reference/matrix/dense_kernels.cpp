@@ -561,7 +561,7 @@ void convert_to_fbcsr(std::shared_ptr<const ReferenceExecutor> exec,
     const auto nzbs = result->get_num_stored_blocks();
     const auto num_block_rows = num_rows / bs;
     const auto num_block_cols = num_cols / bs;
-    acc::range<acc::block_col_major<ValueType, 3>> blocks(
+    acc::range<acc::block_col_major<ValueType, 3, IndexType>> blocks(
         std::array<acc::size_type, 3>{static_cast<acc::size_type>(nzbs),
                                       static_cast<acc::size_type>(bs),
                                       static_cast<acc::size_type>(bs)},

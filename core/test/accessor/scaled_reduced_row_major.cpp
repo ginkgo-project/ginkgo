@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,11 +9,13 @@
 #include <limits>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 #include <gtest/gtest.h>
 
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
+#include "core/test/accessor/utils.hpp"
 
 
 namespace {
@@ -362,14 +364,16 @@ protected:
     using size_type = gko::acc::size_type;
     static constexpr ar_type delta{0.1};
 
-    using accessor1d =
-        gko::acc::scaled_reduced_row_major<1, ar_type, st_type, 1>;
-    using accessor2d =
-        gko::acc::scaled_reduced_row_major<2, ar_type, st_type, 3>;
+    using accessor1d = gko::acc::scaled_reduced_row_major<1, ar_type, st_type,
+                                                          1, std::int32_t>;
+    using accessor2d = gko::acc::scaled_reduced_row_major<2, ar_type, st_type,
+                                                          3, std::int32_t>;
     using const_accessor1d =
-        gko::acc::scaled_reduced_row_major<1, ar_type, const st_type, 1>;
+        gko::acc::scaled_reduced_row_major<1, ar_type, const st_type, 1,
+                                           std::int32_t>;
     using const_accessor2d =
-        gko::acc::scaled_reduced_row_major<2, ar_type, const st_type, 3>;
+        gko::acc::scaled_reduced_row_major<2, ar_type, const st_type, 3,
+                                           std::int32_t>;
     static_assert(std::is_same<const_accessor1d,
                                typename accessor1d::const_accessor>::value,
                   "Const accessors must be the same!");
@@ -455,6 +459,49 @@ TEST_F(ScaledReducedStorageXd, CanWrite2)
     data_equal_except_for(5);
     scalar_equal_except_for(99);
     EXPECT_NEAR(r2(1, 1), 0.5, delta);
+}
+
+
+template <typename IndexType>
+class ScaledReducedStorageXdIndexType : public ScaledReducedStorageXd {};
+
+TYPED_TEST_SUITE(ScaledReducedStorageXdIndexType,
+                 gko::acc::test::AltIndexTypes);
+
+TYPED_TEST(ScaledReducedStorageXdIndexType, AddressMatchesDefaultIndexType)
+{
+    using ar_type = typename TestFixture::ar_type;
+    using st_type = typename TestFixture::st_type;
+
+    using ref_acc = gko::acc::scaled_reduced_row_major<2, ar_type, st_type, 3>;
+    using alt_acc =
+        gko::acc::scaled_reduced_row_major<2, ar_type, st_type, 3, TypeParam>;
+    gko::acc::range<ref_acc> ref{this->size_2d, this->data, this->stride1,
+                                 this->scalar, this->stride_sc};
+    gko::acc::range<alt_acc> alt{this->size_2d, this->data, this->stride1,
+                                 this->scalar, this->stride_sc};
+
+    EXPECT_EQ(ref(0, 0), alt(0, 0));
+    EXPECT_EQ(ref(0, 1), alt(0, 1));
+    EXPECT_EQ(ref(1, 1), alt(1, 1));
+
+    alt(0, 0) = ar_type{7.0};
+    EXPECT_EQ(ref(0, 0), alt(0, 0));
+}
+
+
+TYPED_TEST(ScaledReducedStorageXdIndexType, ComputeIndexReturnsIndexType)
+{
+    using size_array = std::array<gko::acc::size_type, 2>;
+    using stride_array = std::array<gko::acc::size_type, 1>;
+    using result_type =
+        decltype(gko::acc::helper::compute_row_major_index<TypeParam>(
+            std::declval<size_array>(), std::declval<stride_array>(), 0, 0));
+
+    static_assert(
+        std::is_same<result_type, TypeParam>::value,
+        "scaled_reduced_row_major index computation must return IndexType");
+    SUCCEED();
 }
 
 

@@ -319,11 +319,11 @@ void Fbcsr<ValueType, IndexType>::write(mat_data& data) const
     data = {tmp->get_size(), {}};
 
     const size_type nbnz = tmp->get_num_stored_blocks();
-    const acc::range<acc::block_col_major<const value_type, 3>> vblocks(
-        std::array<acc::size_type, 3>{static_cast<acc::size_type>(nbnz),
-                                      static_cast<acc::size_type>(bs_),
-                                      static_cast<acc::size_type>(bs_)},
-        tmp->values_.get_const_data());
+    const acc::range<acc::block_col_major<const value_type, 3, IndexType>>
+        vblocks(std::array<acc::size_type, 3>{static_cast<acc::size_type>(nbnz),
+                                              static_cast<acc::size_type>(bs_),
+                                              static_cast<acc::size_type>(bs_)},
+                tmp->values_.get_const_data());
 
     for (size_type brow = 0; brow < tmp->get_num_block_rows(); ++brow) {
         const auto start = tmp->row_ptrs_.get_const_data()[brow];

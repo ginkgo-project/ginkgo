@@ -39,7 +39,8 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType,
+                                    IndexType>;
     using b_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
@@ -88,7 +89,8 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType,
+                                    IndexType>;
     using b_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 

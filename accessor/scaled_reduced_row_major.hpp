@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -127,12 +127,13 @@ private:
  * @note  This class only manages the accesses and not the memory itself.
  */
 template <std::size_t Dimensionality, typename ArithmeticType,
-          typename StorageType, std::uint64_t ScalarMask>
+          typename StorageType, std::uint64_t ScalarMask,
+          typename IndexType = std::int64_t>
 class scaled_reduced_row_major
     : public detail::enable_write_scalar<
           Dimensionality,
           scaled_reduced_row_major<Dimensionality, ArithmeticType, StorageType,
-                                   ScalarMask>,
+                                   ScalarMask, IndexType>,
           ArithmeticType, std::is_const<StorageType>::value> {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
@@ -145,7 +146,7 @@ public:
 
     using const_accessor =
         scaled_reduced_row_major<dimensionality, arithmetic_type,
-                                 const storage_type, ScalarMask>;
+                                 const storage_type, ScalarMask, IndexType>;
 
     static_assert(!is_complex<ArithmeticType>::value &&
                       !is_complex<StorageType>::value,
@@ -173,7 +174,7 @@ protected:
         reference_class::scaled_reduced_storage<arithmetic_type, StorageType>;
 
 private:
-    using index_type = std::int64_t;
+    using index_type = IndexType;
 
 protected:
     /**

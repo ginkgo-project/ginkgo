@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,7 +32,8 @@ namespace acc {
  * @tparam ValueType  type of values this accessor returns
  * @tparam Dimensionality  number of dimensions of this accessor
  */
-template <typename ValueType, std::size_t Dimensionality>
+template <typename ValueType, std::size_t Dimensionality,
+          typename IndexType = std::int64_t>
 class block_col_major {
 public:
     friend class range<block_col_major>;
@@ -57,12 +58,13 @@ public:
      */
     using data_type = value_type*;
 
-    using const_accessor = block_col_major<const ValueType, Dimensionality>;
+    using const_accessor =
+        block_col_major<const ValueType, Dimensionality, IndexType>;
     using stride_type = std::array<size_type, dimensionality - 1>;
     using length_type = std::array<size_type, dimensionality>;
 
 private:
-    using index_type = std::int64_t;
+    using index_type = IndexType;
 
 protected:
     /**
