@@ -175,6 +175,21 @@ public:
                                                value_type{1});
 
         /**
+         * Scale correction mode (matches OpenFOAM GAMGSolver::scale).
+         *
+         * After the inner solver produces correction δ = M⁻¹(r), the
+         * Rayleigh-quotient step length alpha and a Jacobi correction are
+         * applied.  D = diag(A).
+         *
+         * 0 - none (default): plain Richardson, fixed relaxation_factor
+         * 1 - forward:  accumulate δ into x, then correct x w.r.t. b
+         *       alpha = (x·b)/(x·Ax);  x = alpha·x + D⁻¹(b − alpha·Ax)
+         * 2 - backward: correct δ w.r.t. r, then accumulate into x
+         *       alpha = (δ·r)/(δ·Aδ);  δ = alpha·δ + D⁻¹(r − alpha·Aδ)
+         */
+        int GKO_FACTORY_PARAMETER_SCALAR(scale_correction, 0);
+
+        /**
          * Default initial guess mode. The available options are under
          * initial_guess_mode.
          */
