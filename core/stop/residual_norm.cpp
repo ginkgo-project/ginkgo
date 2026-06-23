@@ -158,6 +158,9 @@ ResidualNormBase<ValueType>::ResidualNormBase(
         GKO_NOT_SUPPORTED(nullptr);
     }
     this->u_dense_tau_ = NormVector::create_with_config_of(this->starting_tau_);
+    this->host_starting_tau_ = this->starting_tau_->clone(exec->get_master());
+    this->host_dense_tau_ =
+        NormVector::create_with_config_of(this->host_starting_tau_);
 }
 
 
@@ -196,11 +199,22 @@ bool ResidualNormBase<ValueType>::check_impl(
     }
     bool all_converged = true;
 
-    this->get_executor()->run(residual_norm::make_residual_norm(
-        dense_tau->get_const_device_view(),
-        starting_tau_->get_const_device_view(), reduction_factor_, stopping_id,
-        set_finalized, *stop_status, device_storage_, &all_converged,
-        one_changed));
+    if (this->get_executor() == stop_status->get_executor()) {
+        this->get_executor()->run(residual_norm::make_residual_norm(
+            dense_tau->get_const_device_view(),
+            starting_tau_->get_const_device_view(), reduction_factor_,
+            stopping_id, set_finalized, *stop_status, device_storage_,
+            &all_converged, one_changed));
+    } else {
+        host_dense_tau_->copy_from(dense_tau);
+        // device_storage is not used in omp/reference
+        stop_status->get_executor()->get_master()->run(
+            residual_norm::make_residual_norm(
+                host_dense_tau_->get_const_device_view(),
+                host_starting_tau_->get_const_device_view(), reduction_factor_,
+                stopping_id, set_finalized, *stop_status, device_storage_,
+                &all_converged, one_changed));
+    }
 
     return all_converged;
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,7 +73,9 @@ protected:
 
     remove_complex<ValueType> reduction_factor_{};
     std::unique_ptr<NormVector> starting_tau_{};
+    std::unique_ptr<NormVector> host_starting_tau_{};
     std::unique_ptr<NormVector> u_dense_tau_{};
+    std::unique_ptr<NormVector> host_dense_tau_{};
     /* Contains device side: all_converged and one_changed booleans */
     array<bool> device_storage_;
 

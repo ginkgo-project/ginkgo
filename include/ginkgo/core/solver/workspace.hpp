@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -139,6 +139,21 @@ public:
         // array types should not change!
         GKO_ASSERT(array.template contains<ValueType>());
         return array.template get<ValueType>();
+    }
+
+    template <>
+    array<stopping_status>& init_or_get_array<stopping_status>(int array_id)
+    {
+        GKO_ASSERT(array_id >= 0 && array_id < arrays_.size());
+        auto& array = arrays_[array_id];
+        if (array.empty()) {
+            auto& result = array.template init<stopping_status>(
+                this->get_executor()->get_master(), 0);
+            return result;
+        }
+        // array types should not change!
+        GKO_ASSERT(array.template contains<stopping_status>());
+        return array.template get<stopping_status>();
     }
 
     template <typename ValueType>
