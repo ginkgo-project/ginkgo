@@ -5,20 +5,24 @@
 // Solves the system from gko_export/ using IR as the outer loop with one PGM
 // multigrid V-cycle as the inner solver.
 //
-// The scale correction (ir.hpp parameter) mirrors OpenFOAM GAMGSolver::scale:
-// after the inner solver produces a correction δ = M⁻¹(r) it computes the
-// optimal Rayleigh-quotient step length alpha and applies a Jacobi correction.
-// D = diag(A).
+// The scale correction (ir.hpp parameter) mirrors OpenFOAM GAMGSolverScale.C:
+// after the V-cycle produces correction δ = M⁻¹(r), compute the optimal
+// Rayleigh-quotient step length and apply a Jacobi correction. D = diag(A).
 //
-// Following OpenFOAM convention the two modes are applied asymmetrically:
-//   pre-smoother  (restriction / going down): mode 1 (forward)
-//     alpha = (x·b)/(x·Ax);  x = alpha·x + D⁻¹(b − alpha·Ax)
-//   post-smoother (prolongation / going up):  mode 2 (backward)
-//     alpha = (δ·r)/(δ·Aδ);  δ = alpha·δ + D⁻¹(r − alpha·Aδ)
+//   Acf   = A * δ
+//   alpha = (δ·r) / (δ·Acf)
+//   δ     = alpha·δ + D⁻¹·(r − alpha·Acf)
+//   x    += δ
+//
+// This is mode 2 (backward) in ir.hpp: scale the correction before
+// accumulating it into x.  OpenFOAM applies the same scale() call at the
+// finest level in Vcycle() and also at each intermediate coarse level; the
+// per-level corrections require changes inside the multigrid kernel and are
+// not replicated here.
 //
 // Usage: ./scale-correction-mg-solver [executor] [scale_correction] [data_dir]
 //   executor        : omp (default), reference, cuda, hip
-//   scale_correction: 0 = none, 1 = forward/backward on pre/post (default)
+//   scale_correction: 0 = none, 2 = OpenFOAM-matching backward (default)
 //   data_dir        : path to gko_export directory (default: gko_export)
 
 #include <chrono>
@@ -74,7 +78,7 @@ int main(int argc, char* argv[])
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;
 
     const auto executor_string = argc >= 2 ? argv[1] : "omp";
-    const int scale_correction = argc >= 3 ? std::atoi(argv[2]) : 1;
+    const int scale_correction = argc >= 3 ? std::atoi(argv[2]) : 2;
     const std::string data_dir = argc >= 4 ? argv[3] : "gko_export";
 
     std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
@@ -95,7 +99,7 @@ int main(int argc, char* argv[])
 
     std::cout << "Executor:         " << executor_string << "\n"
               << "Scale correction: " << scale_correction
-              << "  (0=none, 1=forward on pre / backward on post)\n"
+              << "  (0=none, 2=backward/OpenFOAM-matching)\n"
               << "Data directory:   " << data_dir << "\n\n";
 
     // -------------------------------------------------------------------------
@@ -128,36 +132,25 @@ int main(int argc, char* argv[])
     // -------------------------------------------------------------------------
     // Solver setup
     //
-    //  outer: IR (plain Richardson, one V-cycle per iteration)
-    //    inner: Multigrid V-cycle
-    //      pre-smoother:   IR + Jacobi, 2 sweeps, mode 1 (forward) when enabled
-    //      post-smoother:  IR + Jacobi, 2 sweeps, mode 2 (backward) when enabled
-    //      coarse solver:  IR + Jacobi, 4 sweeps
-    //      coarsening:     PGM (parallel graph matching)
+    //  outer: IR with scale correction (mode 2, backward) on the outer step
+    //    inner: Multigrid V-cycle (one iteration)
+    //      smoother:      IR + Jacobi, 2 sweeps (plain Richardson, no correction)
+    //      coarse solver: IR + Jacobi, 4 sweeps
+    //      coarsening:    PGM (parallel graph matching)
     //
-    // Scale correction is applied inside the V-cycle on the smoothers:
-    //   pre  uses mode 1 (forward): corrects x after accumulating the update
-    //   post uses mode 2 (backward): corrects the update δ before accumulating
-    // This matches OpenFOAM GAMGSolver where restriction and prolongation
-    // sweeps use different correction directions.
+    // Scale correction is applied at the finest level to the V-cycle output δ:
+    //   Acf   = A * δ
+    //   alpha = (δ·r) / (δ·Acf)
+    //   δ     = alpha·δ + D⁻¹·(r − alpha·Acf)
+    //   x    += δ
+    // This mirrors OpenFOAM GAMGSolverSolve.C::Vcycle() lines 438-456.
     // -------------------------------------------------------------------------
     auto jacobi_gen = gko::share(bj::build().with_max_block_size(1u).on(exec));
 
-    // Pre-smoother: forward scale correction (mode 1, restriction phase)
-    auto pre_smoother_gen = gko::share(
+    auto smoother_gen = gko::share(
         ir::build()
             .with_solver(jacobi_gen)
             .with_relaxation_factor(ValueType{0.9})
-            .with_scale_correction(scale_correction == 0 ? 0 : 1)
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
-            .on(exec));
-
-    // Post-smoother: backward scale correction (mode 2, prolongation phase)
-    auto post_smoother_gen = gko::share(
-        ir::build()
-            .with_solver(jacobi_gen)
-            .with_relaxation_factor(ValueType{0.9})
-            .with_scale_correction(scale_correction == 0 ? 0 : 2)
             .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
             .on(exec));
 
@@ -168,23 +161,25 @@ int main(int argc, char* argv[])
             .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(exec));
 
-    // One V-cycle: stop after 1 iteration
+    // One V-cycle per outer iteration
     auto mg_gen = gko::share(
         mg::build()
             .with_max_levels(10u)
             .with_min_coarse_rows(64u)
             .with_mg_level(
                 gko::share(pgm::build().with_deterministic(true).on(exec)))
-            .with_pre_smoother(pre_smoother_gen)
-            .with_post_smoother(post_smoother_gen)
+            .with_pre_smoother(smoother_gen)
+            .with_post_uses_pre(true)
             .with_coarsest_solver(coarse_solver_gen)
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec));
 
-    // Outer IR: plain Richardson with multigrid V-cycle as the inner solver
+    // Outer IR: after each V-cycle apply scale correction (mode 2) to δ
+    // before accumulating into x, matching OpenFOAM GAMGSolver::scale().
     auto solver_gen =
         ir::build()
             .with_solver(mg_gen)
+            .with_scale_correction(scale_correction)
             .with_criteria(gko::stop::Iteration::build().with_max_iters(50u),
                            gko::stop::ResidualNorm<ValueType>::build()
                                .with_baseline(gko::stop::mode::rhs_norm)
