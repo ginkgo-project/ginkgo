@@ -1,17 +1,18 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "accessor/row_major.hpp"
 
 #include <array>
-#include <tuple>
 #include <type_traits>
+#include <utility>
 
 #include <gtest/gtest.h>
 
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
+#include "core/test/accessor/utils.hpp"
 
 
 namespace {
@@ -197,6 +198,39 @@ TEST_F(RowMajorAccessor3d, CanAssignValues)
     default_r(1, 1, 1) = default_r(0, 0, 0);
 
     EXPECT_EQ(data[17], 1);
+}
+
+
+template <typename IndexType>
+class RowMajorIndexType : public RowMajorAccessor {};
+
+TYPED_TEST_SUITE(RowMajorIndexType, gko::acc::test::AltIndexTypes);
+
+TYPED_TEST(RowMajorIndexType, AddressMatchesDefaultIndexType)
+{
+    using alt = gko::acc::row_major<int, 2, TypeParam>;
+    gko::acc::range<alt> r_alt{typename alt::length_type{{3, 2}}, this->data,
+                               typename alt::stride_type{{3}}};
+
+    EXPECT_EQ(this->r(0, 0), r_alt(0, 0));
+    EXPECT_EQ(this->r(1, 1), r_alt(1, 1));
+    EXPECT_EQ(this->r(2, 1), r_alt(2, 1));
+
+    r_alt(2, 0) = 42;
+    EXPECT_EQ(this->r(2, 0), 42);
+}
+
+
+TYPED_TEST(RowMajorIndexType, ComputeIndexReturnsIndexType)
+{
+    using size_array = std::array<gko::acc::size_type, 2>;
+    using stride_array = std::array<gko::acc::size_type, 1>;
+    using result_type =
+        decltype(gko::acc::helper::compute_row_major_index<TypeParam>(
+            std::declval<size_array>(), std::declval<stride_array>(), 0, 0));
+
+    static_assert(std::is_same<result_type, TypeParam>::value,
+                  "row_major index computation must return IndexType");
 }
 
 
