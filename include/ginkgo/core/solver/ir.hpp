@@ -186,6 +186,12 @@ public:
          *       alpha = (x·b)/(x·Ax);  x = alpha·x + D⁻¹(b − alpha·Ax)
          * 2 - backward: correct δ w.r.t. r, then accumulate into x
          *       alpha = (δ·r)/(δ·Aδ);  δ = alpha·δ + D⁻¹(r − alpha·Aδ)
+         *
+         * In a multigrid context, following OpenFOAM convention, the two modes
+         * should be applied asymmetrically: mode 1 on the pre-smoother
+         * (restriction / going down) and mode 2 on the post-smoother
+         * (prolongation / going up).  Use separate IR factory instances with
+         * with_pre_smoother / with_post_smoother rather than post_uses_pre.
          */
         int GKO_FACTORY_PARAMETER_SCALAR(scale_correction, 0);
 
