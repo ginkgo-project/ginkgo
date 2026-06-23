@@ -37,6 +37,7 @@ void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs, auto values) {
             bool has_diag = false;
+            bool valid = true;
             for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; ++nz) {
                 const auto col = col_idxs[nz];
                 const auto val = real(values[nz]);
@@ -44,16 +45,12 @@ void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
 
                 if (row == col) {
                     has_diag = true;
-                    if (val <= zero<real_t>()) {
-                        return IndexType{0};
-                    }
+                    if (val <= zero<real_t>()) valid = false;
                 } else {
-                    if (val > zero<real_t>()) {
-                        return IndexType{0};
-                    }
+                    if (val > zero<real_t>()) valid = false;
                 }
             }
-            return has_diag ? IndexType{1} : IndexType{0};
+            return (valid && has_diag) ? IndexType{1} : IndexType{0};
         },
         GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(), num_rows,
         row_ptrs, col_idxs, values);
@@ -128,46 +125,56 @@ void compute_soc_and_run_rs(
         exec, [] GKO_KERNEL(auto i, auto cf) { cf[i] = 0; },
         cf_marker.get_size(), cf);
 
-    /// 4. RS-COARSENING (inherently sequential algorithm?)
-    run_kernel(
-        exec,
-        [n] GKO_KERNEL(auto tidx, auto a_row_ptrs, auto a_col_idxs,
-                       auto is_strong_vals, auto lambda_vals, auto cf) {
-            while (true) {
-                IndexType max_idx = -1;
-                IndexType max_val = -1;
+    /// 4. RS-COARSENING (on host. inherently sequential algorithm?)
+    {
+        auto host_exec = exec->get_master();
+        const auto nnz = A->get_num_stored_elements();
 
-                for (IndexType i = 0; i < n; ++i) {
-                    if (cf[i] == 0 && lambda_vals[i] > max_val) {
-                        max_val = lambda_vals[i];
-                        max_idx = i;
-                    }
+        // Copy device arrays to host
+        array<IndexType> h_row_ptrs(host_exec, a_row_ptrs, a_row_ptrs + n + 1);
+        array<IndexType> h_col_idxs(host_exec, a_col_idxs, a_col_idxs + nnz);
+        array<bool> h_is_strong(host_exec, is_strong);
+        array<IndexType> h_lambda(host_exec, lambda);
+        array<IndexType> h_cf(host_exec, cf_marker);
+
+        const auto* hr_ptrs = h_row_ptrs.get_const_data();
+        const auto* hc_idxs = h_col_idxs.get_const_data();
+        const auto* h_is_str = h_is_strong.get_const_data();
+        auto* h_lam = h_lambda.get_data();
+        auto* h_cf_v = h_cf.get_data();
+
+        while (true) {
+            IndexType max_idx = -1;
+            IndexType max_val = -1;
+            for (IndexType i = 0; i < static_cast<IndexType>(n); ++i) {
+                if (h_cf_v[i] == 0 && h_lam[i] > max_val) {
+                    max_val = h_lam[i];
+                    max_idx = i;
                 }
-                if (max_idx == -1) {
-                    break;
-                }
+            }
+            if (max_idx == -1) break;
 
-                cf[max_idx] = 1;  // C-point
-
-                for (auto jj = a_row_ptrs[max_idx];
-                     jj < a_row_ptrs[max_idx + 1]; ++jj) {
-                    if (is_strong_vals[jj]) {
-                        const auto j = a_col_idxs[jj];
-                        if (cf[j] == 0) {
-                            cf[j] = -1;  // F-point
-                            for (auto kk = a_row_ptrs[j];
-                                 kk < a_row_ptrs[j + 1]; ++kk) {
-                                if (is_strong_vals[kk] &&
-                                    cf[a_col_idxs[kk]] == 0) {
-                                    lambda_vals[a_col_idxs[kk]]--;
-                                }
+            h_cf_v[max_idx] = 1;  // C-point
+            for (auto jj = hr_ptrs[max_idx]; jj < hr_ptrs[max_idx + 1]; ++jj) {
+                if (h_is_str[jj]) {
+                    const auto j = hc_idxs[jj];
+                    if (h_cf_v[j] == 0) {
+                        h_cf_v[j] = -1;  // F-point
+                        for (auto kk = hr_ptrs[j]; kk < hr_ptrs[j + 1]; ++kk) {
+                            if (h_is_str[kk] && h_cf_v[hc_idxs[kk]] == 0) {
+                                h_lam[hc_idxs[kk]]--;
                             }
                         }
                     }
                 }
             }
-        },
-        1, a_row_ptrs, a_col_idxs, is_strong_vals, lambda_vals, cf);
+        }
+
+        // Copy results back to device
+        lambda = array<IndexType>(exec, h_lambda);
+        cf_marker = array<IndexType>(exec, h_cf);
+        cf = cf_marker.get_data();
+    }
 
     /// 5. CLEANUP, MAKE SURE NO UNDECIDED REMAIN
     run_kernel(
@@ -262,11 +269,11 @@ void fill_coarse_and_compute_prolong_row_ptrs(
             }
             row_ptrs[i] = row_nnz;
         },
-        n, cf, a_row_ptrs, a_col_idxs, is_strong_vals, row_ptrs_vals + n);
+        n, cf, a_row_ptrs, a_col_idxs, is_strong_vals, row_ptrs_vals);
 
     run_kernel(
         exec, [] GKO_KERNEL(auto i, auto row_ptrs) { row_ptrs[0] = 0; }, 1,
-        row_ptrs_vals);
+        row_ptrs_vals + n);
 
     components::prefix_sum_nonnegative(exec, row_ptrs_vals, n + 1);
 }

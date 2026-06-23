@@ -100,16 +100,16 @@ TEST_F(Rs, CheckMMatrixIsEquivalentToRef)
     gko::kernels::reference::rs::check_m_matrix(ref, m_matrix.get(), is_m_ref);
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::check_m_matrix(
         exec, d_m_matrix.get(), is_m_exec);
-    GKO_ASSERT_ARRAY_EQ(is_m_ref, is_m_exec);
     EXPECT_TRUE(is_m_ref.get_const_data()[0]);
+    EXPECT_TRUE(is_m_exec.get_const_data()[0]);
 
     // Test on an invalid M-matrix
     gko::kernels::reference::rs::check_m_matrix(ref, non_m_matrix.get(),
                                                 is_m_ref);
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::check_m_matrix(
         exec, d_non_m_matrix.get(), is_m_exec);
-    GKO_ASSERT_ARRAY_EQ(is_m_ref, is_m_exec);
     EXPECT_FALSE(is_m_ref.get_const_data()[0]);
+    EXPECT_FALSE(is_m_exec.get_const_data()[0]);
 }
 
 
