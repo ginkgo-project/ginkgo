@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -142,8 +142,16 @@ public:
             this, updater.num_iterations_, updater.residual_,
             updater.residual_norm_, updater.solution_, stopping_id,
             set_finalized);
-        auto all_converged = this->check_impl(
-            stopping_id, set_finalized, stop_status, one_changed, updater);
+        auto status_ptr = stop_status;
+        if (host_stop_status.get_executor() != stop_status->get_executor()) {
+            host_stop_status = *stop_status;
+            status_ptr = &host_stop_status;
+        }
+        auto all_converged = this->check_impl(stopping_id, set_finalized,
+                                              status_ptr, one_changed, updater);
+        if (host_stop_status.get_executor() != stop_status->get_executor()) {
+            *stop_status = host_stop_status;
+        }
         this->template log<log::Logger::criterion_check_completed>(
             this, updater.num_iterations_, updater.residual_,
             updater.residual_norm_, updater.implicit_sq_residual_norm_,
@@ -187,8 +195,12 @@ protected:
                           array<stopping_status>* stop_status);
 
     explicit Criterion(std::shared_ptr<const gko::Executor> exec)
-        : EnableAbstractPolymorphicObject<Criterion>(exec)
+        : EnableAbstractPolymorphicObject<Criterion>(exec),
+          host_stop_status(exec->get_master())
     {}
+
+private:
+    array<stopping_status> host_stop_status;
 };
 
 

@@ -221,8 +221,12 @@ protected:
               factory->get_executor(), args,
               factory->get_parameters().reduction_factor,
               factory->get_parameters().baseline),
-          parameters_{factory->get_parameters()}
+          parameters_{factory->get_parameters()},
+          host_vector_dense_tau_(
+              Vector::create(factory->get_executor()->get_master()))
     {}
+
+    std::unique_ptr<Vector> host_vector_dense_tau_{};
 };
 
 

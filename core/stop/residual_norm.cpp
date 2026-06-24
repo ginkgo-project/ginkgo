@@ -233,12 +233,26 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
     }
     bool all_converged = true;
 
-    this->get_executor()->run(
-        implicit_residual_norm::make_implicit_residual_norm(
-            dense_tau->get_const_device_view(),
-            this->starting_tau_->get_const_device_view(),
-            this->reduction_factor_, stopping_id, set_finalized, *stop_status,
-            this->device_storage_, &all_converged, one_changed));
+    if (this->get_executor() == stop_status->get_executor()) {
+        this->get_executor()->run(
+            implicit_residual_norm::make_implicit_residual_norm(
+                dense_tau->get_const_device_view(),
+                this->starting_tau_->get_const_device_view(),
+                this->reduction_factor_, stopping_id, set_finalized,
+                *stop_status, this->device_storage_, &all_converged,
+                one_changed));
+    } else {
+        this->host_vector_dense_tau_->copy_from(dense_tau);
+        // device_storage is not used in omp/reference
+        stop_status->get_executor()->run(
+            implicit_residual_norm::make_implicit_residual_norm(
+                this->host_vector_dense_tau_->get_const_device_view(),
+                this->host_starting_tau_->get_const_device_view(),
+                this->reduction_factor_, stopping_id, set_finalized,
+                *stop_status, this->device_storage_, &all_converged,
+                one_changed));
+    }
+
 
     return all_converged;
 }
