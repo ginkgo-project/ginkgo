@@ -17,6 +17,7 @@
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/distributed/index_map_kernels.hpp"
@@ -43,6 +44,7 @@ GKO_REGISTER_OPERATION(direct_interpolation_fill,
                        pmis::direct_interpolation_fill);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
+GKO_REGISTER_OPERATION(convert_precision, components::convert_precision);
 
 
 }  // anonymous namespace
@@ -107,9 +109,9 @@ void Pmis<ValueType, IndexType>::generate()
         this->get_parameters().strength_threshold, strong_dep.get()));
     // weight[i] = #S^T + rand(0, 1)
     // status -1: not assigned, 0: fine group 1: coarse group
-    // status[i] = 1 if #S^T_i = 0 or 0
-    gko::array<int> status(exec, this->get_size()[0] + 1);
-    gko::array<int> new_status(exec, this->get_size()[0] + 1);
+    // status[i] = 0 if #S^T_i = 0 or -1
+    gko::array<int> status(exec, this->get_size()[0]);
+    gko::array<int> new_status(exec, this->get_size()[0]);
     auto status_ptr = status.get_data();
     auto new_status_ptr = new_status.get_data();
     exec->run(pmis::make_initialize_weight_and_status(
@@ -121,9 +123,9 @@ void Pmis<ValueType, IndexType>::generate()
     exec->run(
         pmis::make_count(this->get_size()[0], status_ptr, &num_not_assigned));
     while (num_not_assigned != 0) {
-        exec->run(pmis::make_classify(
-            weight_.get_const_data(), strong_dep.get(),
-            transpose_strong_dep.get(), status_ptr, new_status_ptr));
+        exec->run(pmis::make_classify(weight_.get_const_data(), pmis_op.get(),
+                                      transpose_strong_dep.get(), status_ptr,
+                                      new_status_ptr));
         size_type new_num = 0;
         exec->run(
             pmis::make_count(this->get_size()[0], new_status_ptr, &new_num));
@@ -140,10 +142,16 @@ void Pmis<ValueType, IndexType>::generate()
         strong_dep.get(), status_ptr, prolong_row_ptrs.get_data()));
     // coarse_map[i] gives the coarse index from i if i is in coarse grid.
     // if i is not in coarse grid, coarse_map[i] has no meaning;
-    exec->run(
-        pmis::make_prefix_sum_nonnegative(status_ptr, this->get_size()[0] + 1));
-    auto num_coarse = static_cast<size_type>(
-        exec->copy_val_to_host(status_ptr + this->get_size()[0]));
+    // In theory, we can reuse status_ptr as coarse_map. We iterate the classify
+    // process on status_ptr, so keeping that it in int not IndexType might give
+    // some performance benifit.
+    array<IndexType> coarse_map(exec, pmis_op->get_size()[0] + 1);
+    exec->run(pmis::make_convert_precision(pmis_op->get_size()[0], status_ptr,
+                                           coarse_map.get_data()));
+    exec->run(pmis::make_prefix_sum_nonnegative(coarse_map.get_data(),
+                                                this->get_size()[0] + 1));
+    auto num_coarse = static_cast<size_type>(exec->copy_val_to_host(
+        coarse_map.get_const_data() + this->get_size()[0]));
     // the following implements direct interpolation
     //  create a coarse point map k in coarse -> c[k] c[k] in the fine
     // construct interpolation w_ik k from S_ic[k] exists and c[k] is coarse
@@ -165,7 +173,7 @@ void Pmis<ValueType, IndexType>::generate()
     // negative or -beta_i if it is positive} * a_ic[k]/a_ii
     exec->run(pmis::make_direct_interpolation_fill(
         pmis_op.get(), row_maxabs.get_const_data(),
-        this->get_parameters().strength_threshold, status_ptr,
+        this->get_parameters().strength_threshold, coarse_map.get_const_data(),
         prolong_row_ptrs.get_const_data(), prolong_col_idxs.get_data(),
         prolong_values.get_data()));
     auto prolongation = share(matrix::Csr<ValueType, IndexType>::create(
@@ -178,7 +186,7 @@ void Pmis<ValueType, IndexType>::generate()
     auto coarse = share(matrix::Csr<ValueType, IndexType>::create(
         exec, dim<2>{num_coarse, num_coarse}));
     pmis_op->apply(prolongation, internal);
-    internal->apply(restriction, coarse);
+    restriction->apply(internal, coarse);
     this->set_multigrid_level(prolongation, coarse, restriction);
 }
 
