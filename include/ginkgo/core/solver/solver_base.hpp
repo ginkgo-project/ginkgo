@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -43,6 +43,32 @@ enum class initial_guess_mode {
      * the input is provided
      */
     provided
+};
+
+
+/**
+ * Scale correction mode for IR / Richardson smoothers.
+ *
+ * Controls whether and how a Rayleigh-quotient step-length and an inner-solver
+ * correction are applied after each Richardson update.
+ *
+ * @see scale_correction parameter of Ir
+ */
+enum class scale_correction_mode {
+    /** Plain Richardson iteration; no scale correction. */
+    none,
+    /**
+     * Forward mode: solve for δ = omega·M⁻¹(r), then Rayleigh-correct δ.
+     *   alpha = (δ·r)/(δ·Aδ);  δ = alpha·δ + solver(r − alpha·Aδ);  x += δ
+     */
+    forward,
+    /**
+     * Backward mode: Rayleigh-correct r as initial guess, then apply solver.
+     *   alpha = (r·r)/(r·Ar);  r* = alpha·r + solver(r − alpha·Ar)
+     *   x += omega·solver(r, init=r*)
+     * Matches OpenFOAM GAMGSolver::scale().
+     */
+    backward
 };
 
 
