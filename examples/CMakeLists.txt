@@ -37,6 +37,7 @@ set(EXAMPLES_LIST
     performance-debugging
     preconditioner-export
     reordered-preconditioned-solver
+    scale-correction-mg-solver
     simple-solver-logging
 )
 

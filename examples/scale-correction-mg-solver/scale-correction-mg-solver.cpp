@@ -15,15 +15,44 @@
 //   x    += omega·V-cycle(r, init=r*)
 //
 // This is scale_correction_mode::backward in ir.hpp.
-// OpenFOAM applies the same scale() call at the
-// finest level in Vcycle() and also at each intermediate coarse level; the
-// per-level corrections require changes inside the multigrid kernel and are
-// not replicated here.
 //
-// Usage: ./scale-correction-mg-solver [executor] [scale_correction] [data_dir]
+// OpenFOAM applies scale() at three points inside Vcycle(); only the finest-
+// level call (3) is replicated here — (1) and (2) require hooks inside the
+// multigrid kernel.
+//
+// (1) Pre-smooth, going down (GAMGSolverSolve.C ~229, only if nPreSweeps_>0):
+//     For each level l (except the one above coarsest):
+//       δ_pre  = smoother_l(r_l)              [pre-sweep with level-l residual]
+//       scale(δ_pre, r_l)                     [Rayleigh-correct δ_pre]
+//       r_l   -= A_l * δ_pre                  [deflate residual in-place]
+//       r_{l+1} = restrict(r_l)               [restrict UPDATED r down]
+//     Effect: the component of r already captured by the pre-smoother is
+//     removed before restriction, so coarser levels work on a cleaner residual.
+//
+// (2) Post-smooth, going up (GAMGSolverSolve.C ~377):
+//     For each level l (except coarsest−1, unless interpolateCorrection_):
+//       δ_c    = prolong(δ_{l+1})             [prolonged coarser correction]
+//       scale(δ_c, r_l)                       [Rayleigh-correct prolonged δ]
+//       δ_l    = δ_c + δ_pre                  [add pre-smoother result AFTER]
+//       δ_l    = post_smoother_l(δ_l, r_l)
+//     Note: r_l here is the residual left over after step (1), so the Rayleigh
+//     quotient is taken against the already-deflated residual.  The pre-smooth
+//     correction δ_pre is merged in after scaling (unscaled).
+//
+// (3) Finest level (GAMGSolverSolve.C:438, always when scaleCorrection_):
+//     δ      = prolong(coarseCorrFields[0])   [prolonged level-0 correction]
+//     scale(δ, finestResidual)                [Rayleigh-correct w.r.t.
+//     r_finest] psi   += δ smoother_finest.smooth(psi, source)     [post-sweep
+//     on actual psi] Uses the original finest-grid residual (not modified by
+//     pre-sweeps).
+//
+// Usage: ./scale-correction-mg-solver [executor] [scale_correction] [mg_scale]
+// [data_dir]
 //   executor        : omp (default), reference, cuda, hip
-//   scale_correction: none, forward, backward (default)
-//   data_dir        : path to gko_export directory (default: gko_export)
+//   scale_correction: none, forward, backward (default) — IR outer-loop
+//   correction mg_scale        : 0 (default) or 1 — per-level MG scale
+//   correction data_dir        : path to gko_export directory (default:
+//   gko_export)
 
 #include <chrono>
 #include <fstream>
@@ -79,7 +108,8 @@ int main(int argc, char* argv[])
 
     const auto executor_string = argc >= 2 ? argv[1] : "omp";
     const std::string sc_str = argc >= 3 ? argv[2] : "backward";
-    const std::string data_dir = argc >= 4 ? argv[3] : "gko_export";
+    const bool mg_scale = argc >= 4 && std::string(argv[3]) == "1";
+    const std::string data_dir = argc >= 5 ? argv[4] : "gko_export";
 
     using sc_mode = gko::solver::scale_correction_mode;
     const auto scale_correction =
@@ -106,6 +136,8 @@ int main(int argc, char* argv[])
     std::cout << "Executor:         " << executor_string << "\n"
               << "Scale correction: " << sc_str
               << "  (none, forward, backward/OpenFOAM-matching)\n"
+              << "MG scale corr:    " << (mg_scale ? "enabled" : "disabled")
+              << "\n"
               << "Data directory:   " << data_dir << "\n\n";
 
     // -------------------------------------------------------------------------
@@ -150,7 +182,30 @@ int main(int argc, char* argv[])
     //   alpha = (r·r) / (r·Acf)
     //   r*    = alpha·r + solver(r − alpha·Acf)
     //   x    += omega·V-cycle(r, init=r*)
-    // This mirrors OpenFOAM GAMGSolverSolve.C::Vcycle() lines 438-456.
+    //
+    // OpenFOAM GAMGSolverSolve.C::Vcycle() lines 438-456 (the finest-grid
+    // correction step, after the full coarse hierarchy has been solved and
+    // prolonged back to the finest level into finestCorrection = δ):
+    //
+    //   // GAMGSolverSolve.C:438
+    //   if (scaleCorrection_)
+    //       scale(finestCorrection, Apsi, matrix_, ..., finestResidual);
+    //       // GAMGSolverScale.C::scale():
+    //       //   Apsi = A * δ
+    //       //   sf   = (δ·r) / (δ·Apsi)          [Rayleigh-quotient step
+    //       length]
+    //       //   δ[i] = sf*δ[i] + (r[i] − sf*Apsi[i]) / D[i]
+    //       //          ^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    //       //          scaled δ + one Jacobi step on residual r − α*Aδ
+    //
+    //   // GAMGSolverSolve.C:455
+    //   psi += finestCorrection;                   [accumulate δ into x]
+    //
+    //   // GAMGSolverSolve.C:458
+    //   smoothers[0].smooth(psi, source, nFinestSweeps_);  [post-sweep]
+    //
+    // Ginkgo replaces the hardcoded Jacobi step (÷D) with the configured
+    // inner solver (here: multigrid V-cycle).
     // -------------------------------------------------------------------------
     auto jacobi_gen = gko::share(bj::build().with_max_block_size(1u).on(exec));
 
@@ -178,6 +233,7 @@ int main(int argc, char* argv[])
             .with_pre_smoother(smoother_gen)
             .with_post_uses_pre(true)
             .with_coarsest_solver(coarse_solver_gen)
+            .with_scale_correction(mg_scale)
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec));
 
