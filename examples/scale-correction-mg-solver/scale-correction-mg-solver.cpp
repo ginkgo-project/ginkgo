@@ -40,19 +40,17 @@
 //     correction δ_pre is merged in after scaling (unscaled).
 //
 // (3) Finest level (GAMGSolverSolve.C:438, always when scaleCorrection_):
-//     δ      = prolong(coarseCorrFields[0])   [prolonged level-0 correction]
-//     scale(δ, finestResidual)                [Rayleigh-correct w.r.t.
-//     r_finest] psi   += δ smoother_finest.smooth(psi, source)     [post-sweep
-//     on actual psi] Uses the original finest-grid residual (not modified by
-//     pre-sweeps).
+//     e = prolong(coarseCorrFields[0])   [prolonged level-0 correction]
+//     scale(e, finestResidual)           [Rayleigh-correct w.r.t. r_finest]
+//     psi   += e
+//     smoother_finest.smooth(psi, source)   [post-sweep on actual psi]
+//     Uses original finest-grid residual (not deflated by pre-sweeps).
 //
-// Usage: ./scale-correction-mg-solver [executor] [scale_correction] [mg_scale]
-// [data_dir]
-//   executor        : omp (default), reference, cuda, hip
-//   scale_correction: none, forward, backward (default) — IR outer-loop
-//   correction mg_scale        : 0 (default) or 1 — per-level MG scale
-//   correction data_dir        : path to gko_export directory (default:
-//   gko_export)
+// Usage: ./scale-correction-mg-solver [exec] [sc] [mg] [dir]
+//   exec : reference (default), omp, cuda, hip
+//   sc   : none, forward, backward (default) -- IR outer-loop correction
+//   mg   : 0 (default) or 1 -- per-level MG scale correction
+//   dir  : path to gko_export directory (default: gko_export)
 
 #include <chrono>
 #include <fstream>
@@ -85,7 +83,7 @@ struct ResidualNormLogger : gko::log::Logger {
         gko::as<const vec>(r)->compute_norm2(norm);
         const auto val =
             norm->get_executor()->copy_val_to_host(norm->get_const_values());
-        std::cout << std::setw(5) << iter << "  " << std::scientific
+        std::cout << std::setw(8) << iter << "  " << std::scientific
                   << std::setprecision(6) << val << "\n";
     }
 
@@ -172,9 +170,9 @@ int main(int argc, char* argv[])
     //
     //  outer: IR with scale correction (backward) on the outer step
     //    inner: Multigrid V-cycle (one iteration)
-    //      smoother:      IR + Jacobi, 2 sweeps (plain Richardson, no
-    //      correction) coarse solver: IR + Jacobi, 4 sweeps coarsening:    PGM
-    //      (parallel graph matching)
+    //      smoother:      IR + Jacobi, 2 sweeps (plain Richardson)
+    //      coarse solver: IR + Jacobi, 4 sweeps
+    //      coarsening:    PGM (parallel graph matching)
     //
     // Scale correction (backward): Rayleigh-correct r as initial guess r*,
     // then run the V-cycle from r*.
@@ -191,12 +189,11 @@ int main(int argc, char* argv[])
     //   if (scaleCorrection_)
     //       scale(finestCorrection, Apsi, matrix_, ..., finestResidual);
     //       // GAMGSolverScale.C::scale():
-    //       //   Apsi = A * δ
-    //       //   sf   = (δ·r) / (δ·Apsi)          [Rayleigh-quotient step
-    //       length]
-    //       //   δ[i] = sf*δ[i] + (r[i] − sf*Apsi[i]) / D[i]
-    //       //          ^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    //       //          scaled δ + one Jacobi step on residual r − α*Aδ
+    //       //   Apsi    = A * d
+    //       //   sf      = (d.r) / (d.Apsi)    [Rayleigh step length]
+    //       //   d[i]    = sf*d[i] + (r[i] - sf*Apsi[i]) / D[i]
+    //       //             ^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^^^^^
+    //       //             scaled d + one Jacobi step on r - sf*Ad
     //
     //   // GAMGSolverSolve.C:455
     //   psi += finestCorrection;                   [accumulate δ into x]
@@ -237,8 +234,19 @@ int main(int argc, char* argv[])
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec));
 
-    // Outer IR: after each V-cycle apply backward scale correction to δ
-    // before accumulating into x, matching OpenFOAM GAMGSolver::scale().
+    // TODO check if the scale correction factors are repcomputed.
+    // ideally they can be reused over the outer (IR) iterations
+    //
+    // The IR wrapper exists only to carry scale_correction_mode::backward,
+    // which pre-conditions the residual before handing it to the V-cycle as
+    // an initial guess.  That outer-loop Rayleigh correction belongs inside
+    // the MG solver itself (either as a finest-level scale step or as a new
+    // MG parameter), at which point the IR shell can be removed and the
+    // convergence logger attached directly to the MG solver.
+    //
+    // As-is, mg_gen is forced to exactly one iteration so that one outer IR
+    // iteration equals one V-cycle; the residual is therefore logged per
+    // V-cycle even though the logger is attached to the IR wrapper.
     auto solver_gen =
         ir::build()
             .with_solver(mg_gen)
@@ -268,7 +276,7 @@ int main(int argc, char* argv[])
     // Solve
     // -------------------------------------------------------------------------
     std::cout << "Solving ...\n"
-              << std::setw(5) << "iter"
+              << std::setw(8) << "V-cycle"
               << "  "
               << "||r||_2\n"
               << std::string(30, '-') << "\n";
@@ -291,9 +299,9 @@ int main(int argc, char* argv[])
 
     std::cout << "\nFinal residual norm ||b - Ax||:\n";
     gko::write(std::cout, normf);
-    std::cout << "\nIterations             : " << niters << "\n"
+    std::cout << "\nV-cycles               : " << niters << "\n"
               << "Solve time        [s]  : " << solve_s << "\n"
-              << "Time / iteration  [s]  : " << solve_s / niters << "\n";
+              << "Time / V-cycle    [s]  : " << solve_s / niters << "\n";
 
     return 0;
 }
