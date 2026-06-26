@@ -283,6 +283,29 @@ get_value(const pnode& config)
 }
 
 
+/**
+ * get_value gets the corresponding type value from config.
+ *
+ * This is specialization for scale_correction_mode
+ */
+template <typename ValueType>
+inline std::enable_if_t<
+    std::is_same<ValueType, solver::scale_correction_mode>::value,
+    solver::scale_correction_mode>
+get_value(const pnode& config)
+{
+    auto val = config.get_string();
+    if (val == "none") {
+        return solver::scale_correction_mode::none;
+    } else if (val == "forward") {
+        return solver::scale_correction_mode::forward;
+    } else if (val == "backward") {
+        return solver::scale_correction_mode::backward;
+    }
+    GKO_INVALID_CONFIG_VALUE("scale_correction", val);
+}
+
+
 template <typename Type>
 inline typename std::enable_if<std::is_same<Type, precision_reduction>::value,
                                Type>::type
