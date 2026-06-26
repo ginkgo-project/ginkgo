@@ -1109,21 +1109,22 @@ void Multigrid::update_matrix_value(std::shared_ptr<const LinOp> new_matrix)
             [this](auto mg_level, auto index, auto matrix) {
                 using value_type =
                     typename std::decay_t<decltype(*mg_level)>::value_type;
-                handle_list<value_type>(
-                    index, matrix, parameters_.pre_smoother, pre_smoother_list_,
-                    parameters_.smoother_iters, parameters_.smoother_relax);
+                handle_list<value_type>(index, matrix, parameters_.pre_smoother,
+                                        pre_smoother_list_,
+                                        parameters_.smoother_iters,
+                                        parameters_.smoother_relax, nullptr);
                 if (parameters_.mid_case ==
                     multigrid::mid_smooth_type::standalone) {
                     handle_list<value_type>(
                         index, matrix, parameters_.mid_smoother,
                         mid_smoother_list_, parameters_.smoother_iters,
-                        parameters_.smoother_relax);
+                        parameters_.smoother_relax, nullptr);
                 }
                 if (!parameters_.post_uses_pre) {
                     handle_list<value_type>(
                         index, matrix, parameters_.post_smoother,
                         post_smoother_list_, parameters_.smoother_iters,
-                        parameters_.smoother_relax);
+                        parameters_.smoother_relax, nullptr);
                 }
             },
             i, mg_level->get_fine_op());
