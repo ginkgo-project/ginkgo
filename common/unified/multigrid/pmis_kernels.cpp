@@ -70,7 +70,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_weight_and_status(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
+    const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
     remove_complex<ValueType>* weight, int* status)
 {
     GKO_NOT_IMPLEMENTED;

@@ -107,6 +107,8 @@ void Pmis<ValueType, IndexType>::generate()
     exec->run(pmis::make_compute_strong_dep(
         pmis_op.get(), row_maxabs.get_const_data(),
         this->get_parameters().strength_threshold, strong_dep.get()));
+    auto transpose_strong_dep =
+        as<matrix::SparsityCsr<ValueType, IndexType>>(strong_dep->transpose());
     // weight[i] = #S^T + rand(0, 1)
     // status -1: not assigned, 0: fine group 1: coarse group
     // status[i] = 0 if #S^T_i = 0 or -1
@@ -115,10 +117,8 @@ void Pmis<ValueType, IndexType>::generate()
     auto status_ptr = status.get_data();
     auto new_status_ptr = new_status.get_data();
     exec->run(pmis::make_initialize_weight_and_status(
-        strong_dep.get(), weight_.get_data(), status_ptr));
+        transpose_strong_dep.get(), weight_.get_data(), status_ptr));
     size_type num_not_assigned = 0;
-    auto transpose_strong_dep =
-        as<matrix::SparsityCsr<ValueType, IndexType>>(strong_dep->transpose());
     // count #{status == 0}
     exec->run(
         pmis::make_count(this->get_size()[0], status_ptr, &num_not_assigned));
