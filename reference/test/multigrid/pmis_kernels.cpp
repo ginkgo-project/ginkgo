@@ -234,9 +234,10 @@ TYPED_TEST(Pmis, InitializeWeightAndStatus1)
 {
     using real_type = typename TestFixture::real_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
-    auto S = SparsityCsr::create(this->exec, this->mtx1->get_size(),
-                                 std::move(this->dep_col_idxs1),
-                                 std::move(this->dep_row_ptrs1));
+    auto strong_dep = SparsityCsr::create(this->exec, this->mtx1->get_size(),
+                                          std::move(this->dep_col_idxs1),
+                                          std::move(this->dep_row_ptrs1));
+    auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
     auto num_row = this->mtx1->get_size()[0];
     gko::array<real_type> weight(this->exec, num_row);
     gko::array<int> status(this->exec, num_row);
@@ -244,7 +245,8 @@ TYPED_TEST(Pmis, InitializeWeightAndStatus1)
     gko::array<real_type> floor_weight(this->exec, {0, 2, 2, 1});
 
     gko::kernels::reference::pmis::initialize_weight_and_status(
-        this->exec, S.get(), weight.get_data(), status.get_data());
+        this->exec, trans_strong_dep.get(), weight.get_data(),
+        status.get_data());
 
     GKO_ASSERT_ARRAY_EQ(status, expected_status);
     for (int i = 0; i < num_row; i++) {
@@ -265,9 +267,10 @@ TYPED_TEST(Pmis, InitializeWeightAndStatus2)
 {
     using real_type = typename TestFixture::real_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
-    auto S = SparsityCsr::create(this->exec, this->mtx2->get_size(),
-                                 std::move(this->dep_col_idxs2),
-                                 std::move(this->dep_row_ptrs2));
+    auto strong_dep = SparsityCsr::create(this->exec, this->mtx2->get_size(),
+                                          std::move(this->dep_col_idxs2),
+                                          std::move(this->dep_row_ptrs2));
+    auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
     auto num_row = this->mtx2->get_size()[0];
     gko::array<real_type> weight(this->exec, num_row);
     gko::array<int> status(this->exec, num_row);
@@ -275,7 +278,8 @@ TYPED_TEST(Pmis, InitializeWeightAndStatus2)
     gko::array<real_type> floor_weight(this->exec, {0, 1, 2, 0, 3});
 
     gko::kernels::reference::pmis::initialize_weight_and_status(
-        this->exec, S.get(), weight.get_data(), status.get_data());
+        this->exec, trans_strong_dep.get(), weight.get_data(),
+        status.get_data());
 
 
     GKO_ASSERT_ARRAY_EQ(status, expected_status);
@@ -290,16 +294,16 @@ TYPED_TEST(Pmis, Classify1)
 {
     using real_type = typename TestFixture::real_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
-    auto S = SparsityCsr::create(this->exec, this->mtx1->get_size(),
-                                 std::move(this->dep_col_idxs1),
-                                 std::move(this->dep_row_ptrs1));
-    auto trans_S = gko::as<SparsityCsr>(S->transpose());
+    auto strong_dep = SparsityCsr::create(this->exec, this->mtx1->get_size(),
+                                          std::move(this->dep_col_idxs1),
+                                          std::move(this->dep_row_ptrs1));
+    auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
     gko::array<real_type> weight(this->exec, {0.1, 2.2, 2.1, 1.2});
     gko::array<int> status(this->exec, {0, -1, -1, -1});
     gko::array<int> new_status(this->exec, {0, -1, -1, -1});
 
     gko::kernels::reference::pmis::classify(
-        this->exec, weight.get_data(), this->mtx1.get(), trans_S.get(),
+        this->exec, weight.get_data(), this->mtx1.get(), trans_strong_dep.get(),
         status.get_const_data(), new_status.get_data());
 
     EXPECT_EQ(new_status.get_const_data()[0], 0);
@@ -313,16 +317,16 @@ TYPED_TEST(Pmis, Classify1Next)
 {
     using real_type = typename TestFixture::real_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
-    auto S = SparsityCsr::create(this->exec, this->mtx1->get_size(),
-                                 std::move(this->dep_col_idxs1),
-                                 std::move(this->dep_row_ptrs1));
-    auto trans_S = gko::as<SparsityCsr>(S->transpose());
+    auto strong_dep = SparsityCsr::create(this->exec, this->mtx1->get_size(),
+                                          std::move(this->dep_col_idxs1),
+                                          std::move(this->dep_row_ptrs1));
+    auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
     gko::array<real_type> weight(this->exec, {0.1, 2.2, 2.1, 1.2});
     gko::array<int> status(this->exec, {0, 1, 0, -1});
     gko::array<int> new_status(this->exec, {0, -1, -1, -1});
 
     gko::kernels::reference::pmis::classify(
-        this->exec, weight.get_data(), this->mtx1.get(), trans_S.get(),
+        this->exec, weight.get_data(), this->mtx1.get(), trans_strong_dep.get(),
         status.get_const_data(), new_status.get_data());
 
     EXPECT_EQ(new_status.get_const_data()[0], 0);
@@ -336,16 +340,16 @@ TYPED_TEST(Pmis, Classify2)
 {
     using real_type = typename TestFixture::real_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
-    auto S = SparsityCsr::create(this->exec, this->mtx2->get_size(),
-                                 std::move(this->dep_col_idxs2),
-                                 std::move(this->dep_row_ptrs2));
-    auto trans_S = gko::as<SparsityCsr>(S->transpose());
+    auto strong_dep = SparsityCsr::create(this->exec, this->mtx2->get_size(),
+                                          std::move(this->dep_col_idxs2),
+                                          std::move(this->dep_row_ptrs2));
+    auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
     gko::array<real_type> weight(this->exec, {0.0, 1.0, 2.0, 0.0, 3.0});
     gko::array<int> status(this->exec, {0, -1, -1, 0, -1});
     gko::array<int> new_status(this->exec, {0, -1, -1, 0, -1});
 
     gko::kernels::reference::pmis::classify(
-        this->exec, weight.get_data(), this->mtx2.get(), trans_S.get(),
+        this->exec, weight.get_data(), this->mtx2.get(), trans_strong_dep.get(),
         status.get_const_data(), new_status.get_data());
 
     EXPECT_EQ(new_status.get_const_data()[0], 0);
@@ -360,16 +364,16 @@ TYPED_TEST(Pmis, Classify2Next)
 {
     using real_type = typename TestFixture::real_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
-    auto S = SparsityCsr::create(this->exec, this->mtx2->get_size(),
-                                 std::move(this->dep_col_idxs2),
-                                 std::move(this->dep_row_ptrs2));
-    auto trans_S = gko::as<SparsityCsr>(S->transpose());
+    auto strong_dep = SparsityCsr::create(this->exec, this->mtx2->get_size(),
+                                          std::move(this->dep_col_idxs2),
+                                          std::move(this->dep_row_ptrs2));
+    auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
     gko::array<real_type> weight(this->exec, {0.0, 1.0, 2.0, 0.0, 3.0});
     gko::array<int> status(this->exec, {0, 0, -1, 0, 1});
     gko::array<int> new_status(this->exec, {0, 0, -1, 0, 1});
 
     gko::kernels::reference::pmis::classify(
-        this->exec, weight.get_data(), this->mtx2.get(), trans_S.get(),
+        this->exec, weight.get_data(), this->mtx2.get(), trans_strong_dep.get(),
         status.get_const_data(), new_status.get_data());
 
     EXPECT_EQ(new_status.get_const_data()[0], 0);
@@ -402,14 +406,14 @@ TYPED_TEST(Pmis, DirectInterpolationRowCount1)
 {
     using index_type = typename TestFixture::index_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
-    auto S = SparsityCsr::create(this->exec, this->mtx1->get_size(),
-                                 std::move(this->dep_col_idxs1),
-                                 std::move(this->dep_row_ptrs1));
+    auto strong_dep = SparsityCsr::create(this->exec, this->mtx1->get_size(),
+                                          std::move(this->dep_col_idxs1),
+                                          std::move(this->dep_row_ptrs1));
     gko::array<int> status(this->exec, {0, 1, 0, 1});
     gko::array<index_type> prolong_row_count(this->exec, 4);
 
     gko::kernels::reference::pmis::direct_interpolation_row_count(
-        this->exec, S.get(), status.get_const_data(),
+        this->exec, strong_dep.get(), status.get_const_data(),
         prolong_row_count.get_data());
 
     EXPECT_EQ(prolong_row_count.get_const_data()[0], 2);
@@ -423,14 +427,14 @@ TYPED_TEST(Pmis, DirectInterpolationRowCount2)
 {
     using index_type = typename TestFixture::index_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
-    auto S = SparsityCsr::create(this->exec, this->mtx2->get_size(),
-                                 std::move(this->dep_col_idxs2),
-                                 std::move(this->dep_row_ptrs2));
+    auto strong_dep = SparsityCsr::create(this->exec, this->mtx2->get_size(),
+                                          std::move(this->dep_col_idxs2),
+                                          std::move(this->dep_row_ptrs2));
     gko::array<int> status(this->exec, {0, 0, 1, 0, 1});
     gko::array<index_type> prolong_row_count(this->exec, 5);
 
     gko::kernels::reference::pmis::direct_interpolation_row_count(
-        this->exec, S.get(), status.get_const_data(),
+        this->exec, strong_dep.get(), status.get_const_data(),
         prolong_row_count.get_data());
 
     EXPECT_EQ(prolong_row_count.get_const_data()[0], 2);

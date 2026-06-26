@@ -125,29 +125,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_weight_and_status(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
+    const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
     remove_complex<ValueType>* weight, int* status)
 {
     // we can not use half, bfloat16 with random generator
     // generate it in double and then cast to corresponding type
-    std::mt19937 gen(42);
+    std::default_random_engine gen(42);
     std::uniform_real_distribution<double> dist(0.0, 1.0);
 
-    const auto nrows = static_cast<IndexType>(strong_dep->get_size()[0]);
-    const auto row_ptrs = strong_dep->get_const_row_ptrs();
-    const auto col_idxs = strong_dep->get_const_col_idxs();
+    const auto nrows = static_cast<IndexType>(trans_strong_dep->get_size()[0]);
+    const auto row_ptrs = trans_strong_dep->get_const_row_ptrs();
 
     for (size_type row = 0; row < nrows; row++) {
-        weight[row] = zero<remove_complex<ValueType>>();
-    }
-
-    for (size_type row = 0; row < nrows; row++) {
-        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
-            auto col = col_idxs[idx];
-            weight[col] += one<remove_complex<ValueType>>();
-        }
-    }
-    for (size_type row = 0; row < nrows; row++) {
+        weight[row] = static_cast<remove_complex<ValueType>>(row_ptrs[row + 1] -
+                                                             row_ptrs[row]);
         status[row] = (weight[row] == 0 ? 0 : -1);
         weight[row] += static_cast<remove_complex<ValueType>>(dist(gen));
     }

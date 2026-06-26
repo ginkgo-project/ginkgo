@@ -41,11 +41,11 @@ namespace pmis {
         remove_complex<ValueType> strength_threshold,                    \
         matrix::SparsityCsr<ValueType, IndexType>* strong_dep)
 
-#define GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL(ValueType, \
-                                                             IndexType) \
-    void initialize_weight_and_status(                                  \
-        std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,    \
+#define GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL(ValueType,    \
+                                                             IndexType)    \
+    void initialize_weight_and_status(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep, \
         remove_complex<ValueType>* weight, int* status)
 
 #define GKO_DECLARE_PMIS_CLASSIFY_KERNEL(ValueType, IndexType)             \
