@@ -294,10 +294,10 @@ public:
     // scale correction workspace (only allocated when scale_correction=true)
     std::vector<std::shared_ptr<LinOp>> acf_list;  // A*δ scratch, nrows×nrhs
     std::vector<std::shared_ptr<LinOp>>
-        delta_pre_list;  // A*δ_c / smoother scratch
-    std::vector<std::shared_ptr<LinOp>> alpha_list;  // Rayleigh scalar, 1×nrhs
-    std::vector<std::shared_ptr<LinOp>>
-        denom_list;  // denominator scalar, 1×nrhs
+        delta_pre_list;  // Aδ_c scratch, nrows×nrhs
+    std::vector<std::shared_ptr<LinOp>> pre_sf_list;   // pre-smooth sf, 1×nrhs
+    std::vector<std::shared_ptr<LinOp>> post_sf_list;  // post-smooth sf, 1×nrhs
+    std::vector<std::shared_ptr<LinOp>> denom_list;  // temp denominator, 1×nrhs
     const LinOp* system_matrix;
     const Multigrid* multigrid;
     size_type nrhs;
@@ -324,7 +324,8 @@ void MultigridState::generate(const LinOp* system_matrix_in,
     if (multigrid_in->get_parameters().scale_correction) {
         clear_and_reserve(acf_list, list_size);
         clear_and_reserve(delta_pre_list, list_size);
-        clear_and_reserve(alpha_list, list_size);
+        clear_and_reserve(pre_sf_list, list_size);
+        clear_and_reserve(post_sf_list, list_size);
         clear_and_reserve(denom_list, list_size);
     }
     // Allocate memory first such that reusing allocation in each iter.
@@ -418,7 +419,8 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
         acf_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
         delta_pre_list.emplace_back(
             vec::create(exec, dim<2>{current_nrows, nrhs}));
-        alpha_list.emplace_back(vec::create(exec, dim<2>{1, nrhs}));
+        pre_sf_list.emplace_back(vec::create(exec, dim<2>{1, nrhs}));
+        post_sf_list.emplace_back(vec::create(exec, dim<2>{1, nrhs}));
         denom_list.emplace_back(vec::create(exec, dim<2>{1, nrhs}));
     }
 }
@@ -476,7 +478,8 @@ void MultigridState::allocate_memory(
         delta_pre_list.emplace_back(
             vec::create(exec, current_comm, dim<2>{current_nrows, nrhs},
                         dim<2>{current_local_nrows, nrhs}));
-        alpha_list.emplace_back(dense_vec::create(exec, dim<2>{1, nrhs}));
+        pre_sf_list.emplace_back(dense_vec::create(exec, dim<2>{1, nrhs}));
+        post_sf_list.emplace_back(dense_vec::create(exec, dim<2>{1, nrhs}));
         denom_list.emplace_back(dense_vec::create(exec, dim<2>{1, nrhs}));
     }
 }
@@ -572,39 +575,34 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         }
     }
 
-    // Pre-smooth scale correction (OpenFOAM GAMGSolverSolve.C downward pass):
-    // Rayleigh-scale δ_pre = x, deflating r before restriction.
-    //   Aδ    = A * δ_pre
-    //   sf    = (δ_pre · b) / (δ_pre · Aδ)
-    //   δ_pre = sf * δ_pre + smoother(b − sf * Aδ)   [reuses acf, r scratch]
+    // Pre-smooth scale correction: Rayleigh-correct δ_pre, then set the
+    // deflated residual r = b − sf*Aδ_pre directly from the SpMV already
+    // computed here (avoids the second SpMV at the residual computation below).
+    // sf = (δ·b)/(δ·Aδ) is recomputed each V-cycle (direction changes every
+    // iter, so a stale sf causes divergence). The inner Jacobi correction from
+    // OpenFOAM's scale() is omitted; the outer smoother already handles it.
+    bool r_is_current = false;
     if (do_scale && use_pre && pre_smoother) {
         auto exec = multigrid->get_executor();
         auto acf = acf_list.at(level);
-        auto dp = delta_pre_list.at(level);
-        auto alpha_dense = as<matrix::Dense<value_type>>(alpha_list.at(level));
+        auto pre_sf = as<matrix::Dense<value_type>>(pre_sf_list.at(level));
         auto denom_dense = as<matrix::Dense<value_type>>(denom_list.at(level));
 
-        matrix->apply(x, acf);  // acf = A * δ_pre
-        as<VectorType>(x)->compute_dot(b, alpha_list.at(level));
+        matrix->apply(x, acf);  // acf = Aδ_pre (shared with residual below)
+        as<VectorType>(x)->compute_dot(b, pre_sf_list.at(level));
         as<VectorType>(x)->compute_dot(acf, denom_list.at(level));
         if (exec->copy_val_to_host(denom_dense->get_const_values()) !=
             zero<value_type>()) {
-            alpha_dense->inv_scale(denom_dense);  // sf = (δ·b)/(δ·Aδ)
-
-            // r temporarily holds r_scaled = b − sf * Aδ
-            as<VectorType>(acf)->scale(alpha_dense);  // acf = sf * Aδ
-            r->copy_from(b);
-            as<VectorType>(r)->add_scaled(neg_one, acf);  // r = b − sf*Aδ
-
-            // dp = smoother(r_scaled) starting from zero
-            as<VectorType>(dp)->fill(zero<value_type>());
-            pre_smoother->apply(r, dp);
-
-            // x = sf * δ_pre + smoother(b − sf*Aδ)
-            as<VectorType>(x)->scale(alpha_dense);
-            as<VectorType>(x)->add_scaled(one, dp);
+            pre_sf->inv_scale(denom_dense);      // sf = (δ·b)/(δ·Aδ)
+            as<VectorType>(x)->scale(pre_sf);    // x   = sf * δ_pre
+            as<VectorType>(acf)->scale(pre_sf);  // acf = sf * Aδ_pre
         }
-        // r is overwritten with the actual (deflated) residual below
+        // r = b − acf regardless of whether sf was updated (if denom=0, acf=Aδ,
+        // x is unchanged, and r = b − Aδ is the correct deflated residual for
+        // sf=1)
+        r->copy_from(b);
+        as<VectorType>(r)->add_scaled(neg_one, acf);  // r = b − sf*Aδ, no SpMV
+        r_is_current = true;
     }
 
     // The common smoother is wrapped by IR and IR already split the iter and
@@ -612,8 +610,13 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // additional residual computation.
     // TODO: if already computes the residual outside, the first level may not
     // need this residual computation when no presmoother in the first level.
-    r->copy_from(b);
-    matrix->apply(neg_one, x, one, r);  // r = b − A*x (deflated if scaled)
+    // When scale correction ran above, r = b − sf*Aδ was already set and the
+    // SpMV is not repeated (r_is_current avoids a redundant matrix-vector
+    // product).
+    if (!r_is_current) {
+        r->copy_from(b);
+        matrix->apply(neg_one, x, one, r);  // r = b − A*x
+    }
 
     // restrict
     mg_level->get_restrict_op()->apply(r, g);
@@ -646,48 +649,29 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         }
     }
 
-    // Post-smooth scale correction (OpenFOAM GAMGSolverSolve.C upward pass):
-    // Prolong coarse correction δ_c into acf, Rayleigh-scale it w.r.t. the
-    // deflated residual r, then merge with δ_pre (= current x).
-    //   δ_c  = prolong(e)
-    //   Aδ   = A * δ_c                  [stored in delta_pre scratch]
-    //   sf   = (δ_c · r) / (δ_c · Aδ)
-    //   δ_c  = sf * δ_c + smoother(r − sf * Aδ)
-    //   x   += δ_c                       [x = δ_pre + scale-corrected δ_c]
+    // Post-smooth scale correction: Rayleigh-correct the prolonged coarse
+    // correction δ_c = prolong(e).  sf = (δ_c·r)/(δ_c·Aδ_c) is recomputed
+    // each V-cycle for the same reason as the pre-smooth case.  No inner Jacobi
+    // correction is applied; the outer smoother handles residual refinement.
     if (do_scale) {
         auto exec = multigrid->get_executor();
         auto acf = acf_list.at(level);
         auto dp = delta_pre_list.at(level);
-        auto alpha_dense = as<matrix::Dense<value_type>>(alpha_list.at(level));
+        auto post_sf = as<matrix::Dense<value_type>>(post_sf_list.at(level));
         auto denom_dense = as<matrix::Dense<value_type>>(denom_list.at(level));
 
-        // prolong e into acf (δ_c = prolong(e))
         as<VectorType>(acf)->fill(zero<value_type>());
-        mg_level->get_prolong_op()->apply(next_one, e, next_one, acf);
+        mg_level->get_prolong_op()->apply(next_one, e, next_one, acf);  // δ_c
 
-        matrix->apply(acf, dp);  // dp = A * δ_c
-        as<VectorType>(acf)->compute_dot(r, alpha_list.at(level));
+        matrix->apply(acf, dp);  // dp = Aδ_c
+        as<VectorType>(acf)->compute_dot(r, post_sf_list.at(level));
         as<VectorType>(acf)->compute_dot(dp, denom_list.at(level));
         if (exec->copy_val_to_host(denom_dense->get_const_values()) !=
             zero<value_type>()) {
-            alpha_dense->inv_scale(denom_dense);  // sf = (δ_c·r)/(δ_c·Aδ_c)
-
-            // r temporarily holds r_scaled = r − sf * Aδ_c
-            as<VectorType>(dp)->scale(alpha_dense);      // dp = sf * Aδ_c
-            as<VectorType>(r)->add_scaled(neg_one, dp);  // r = r − sf*Aδ_c
-
-            // dp = smoother(r_scaled) starting from zero
-            as<VectorType>(dp)->fill(zero<value_type>());
-            if (pre_smoother) {
-                pre_smoother->apply(r, dp);
-            }
-
-            // acf = sf * δ_c + smoother(r − sf*Aδ_c)
-            as<VectorType>(acf)->scale(alpha_dense);
-            as<VectorType>(acf)->add_scaled(one, dp);
+            post_sf->inv_scale(denom_dense);  // sf = (δ_c·r)/(δ_c·Aδ_c)
+            as<VectorType>(acf)->scale(post_sf);  // acf = sf * δ_c
         }
-        // x = δ_pre + scale-corrected δ_c
-        as<VectorType>(x)->add_scaled(one, acf);
+        as<VectorType>(x)->add_scaled(one, acf);  // x += sf * δ_c
     } else {
         // standard prolongation: x += prolong(e)
         mg_level->get_prolong_op()->apply(next_one, e, next_one, x);
