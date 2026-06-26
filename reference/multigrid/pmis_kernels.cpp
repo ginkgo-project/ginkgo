@@ -31,21 +31,18 @@ void compute_row_maxabs(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* csr,
                         remove_complex<ValueType>* row_maxabs)
 {
-    using rc = remove_complex<ValueType>;
-
     const auto nrow = csr->get_size()[0];
     const auto row_ptrs = csr->get_const_row_ptrs();
     const auto col_idxs = csr->get_const_col_idxs();
     const auto vals = csr->get_const_values();
 
-    for (IndexType row = 0; row < nrow; ++row) {
+    for (IndexType row = 0; row < nrow; row++) {
         // get the max in the row except diagonal
-        rc max_abs = rc{0};
-        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
+        auto max_abs = zero<remove_complex<ValueType>>();
+        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
             if (col_idxs[idx] == row) {
                 continue;
             }
-
             max_abs = std::max(max_abs, abs(vals[idx]));
         }
         row_maxabs[row] = max_abs;
@@ -63,24 +60,25 @@ void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,
                             remove_complex<ValueType> strength_threshold,
                             IndexType* sparsity_rows)
 {
-    using rc = remove_complex<ValueType>;
-
     const auto nrow = csr->get_size()[0];
     const auto row_ptrs = csr->get_const_row_ptrs();
     const auto col_idxs = csr->get_const_col_idxs();
     const auto vals = csr->get_const_values();
 
-    for (IndexType row = 0; row < nrow; ++row) {
+    for (IndexType row = 0; row < nrow; row++) {
         // count the number of strongest neighbor
         IndexType count = 0;
         auto max_abs = row_maxabs[row];
-        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; ++idx) {
+        if (max_abs == zero<remove_complex<ValueType>>()) {
+            sparsity_rows[row] = zero<IndexType>();
+            continue;
+        }
+        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
             if (col_idxs[idx] == row) {
                 continue;
             }
 
-            if (max_abs > zero<rc>() &&
-                abs(vals[idx]) >= strength_threshold * max_abs) {
+            if (abs(vals[idx]) >= strength_threshold * max_abs) {
                 count++;
             }
         }
@@ -130,28 +128,28 @@ void initialize_weight_and_status(
     const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
     remove_complex<ValueType>* weight, int* status)
 {
+    // we can not use half, bfloat16 with random generator
+    // generate it in double and then cast to corresponding type
     std::mt19937 gen(42);
     std::uniform_real_distribution<double> dist(0.0, 1.0);
 
-    using rc = remove_complex<ValueType>;
-
     const auto nrows = static_cast<IndexType>(strong_dep->get_size()[0]);
-    const auto s_row_ptrs = strong_dep->get_const_row_ptrs();
-    const auto s_col_idxs = strong_dep->get_const_col_idxs();
+    const auto row_ptrs = strong_dep->get_const_row_ptrs();
+    const auto col_idxs = strong_dep->get_const_col_idxs();
 
-    for (auto r = 0; r < nrows; ++r) {
-        weight[r] = rc{0};
+    for (size_type row = 0; row < nrows; row++) {
+        weight[row] = zero<remove_complex<ValueType>>();
     }
 
-    for (auto r = 0; r < nrows; ++r) {
-        for (auto p = s_row_ptrs[r]; p < s_row_ptrs[r + 1]; ++p) {
-            auto c = s_col_idxs[p];
-            weight[c] += rc{1};
+    for (size_type row = 0; row < nrows; row++) {
+        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
+            auto col = col_idxs[idx];
+            weight[col] += one<remove_complex<ValueType>>();
         }
     }
-    for (auto i = 0; i < nrows; ++i) {
-        status[i] = (weight[i] == 0 ? 0 : -1);
-        weight[i] += static_cast<rc>(dist(gen));
+    for (size_type row = 0; row < nrows; row++) {
+        status[row] = (weight[row] == 0 ? 0 : -1);
+        weight[row] += static_cast<remove_complex<ValueType>>(dist(gen));
     }
 }
 
@@ -162,24 +160,28 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void classify(std::shared_ptr<const DefaultExecutor> exec,
               const remove_complex<ValueType>* weight,
-              const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
+              const matrix::Csr<ValueType, IndexType>* csr,
               const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
               const int* status, int* new_status)
 {
-    const auto nrows = static_cast<IndexType>(strong_dep->get_size()[0]);
-    const auto s_row_ptrs = strong_dep->get_const_row_ptrs();
-    const auto s_col_idxs = strong_dep->get_const_col_idxs();
+    const auto nrows = static_cast<IndexType>(csr->get_size()[0]);
+    const auto row_ptrs = csr->get_const_row_ptrs();
+    const auto col_idxs = csr->get_const_col_idxs();
 
     for (IndexType row = 0; row < nrows; row++) {
         // -1 is unassigned yet
         auto ans = status[row];
         if (status[row] == -1) {
-            const auto row_start = s_row_ptrs[row];
-            const auto row_end = s_row_ptrs[row + 1];
+            // works on the original graph
+            const auto row_start = row_ptrs[row];
+            const auto row_end = row_ptrs[row + 1];
             bool is_coarse = true;
-            for (IndexType j = row_start; j < row_end; ++j) {
-                auto c = s_col_idxs[j];
-                if (status[c] == -1 && weight[c] >= weight[row]) {
+            for (IndexType idx = row_start; idx < row_end; idx++) {
+                auto col = col_idxs[idx];
+                if (col == row) {
+                    continue;
+                }
+                if (status[col] == -1 && weight[col] >= weight[row]) {
                     is_coarse = false;
                     break;
                 }
@@ -229,20 +231,20 @@ void direct_interpolation_row_count(
     const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
     const int* status, IndexType* prolong_row_ptr)
 {
-    for (size_type i = 0; i < strong_dep->get_size()[0]; i++) {
+    for (size_type row = 0; row < strong_dep->get_size()[0]; row++) {
         IndexType num = 0;
-        if (status[i] == 1) {
-            prolong_row_ptr[i] = 1;
+        if (status[row] == 1) {
+            prolong_row_ptr[row] = 1;
             continue;
         }
-        for (auto idx = strong_dep->get_const_row_ptrs()[i];
-             idx < strong_dep->get_const_row_ptrs()[i + 1]; idx++) {
+        for (auto idx = strong_dep->get_const_row_ptrs()[row];
+             idx < strong_dep->get_const_row_ptrs()[row + 1]; idx++) {
             auto col = strong_dep->get_const_col_idxs()[idx];
             if (status[col] == 1) {
                 num++;
             }
         }
-        prolong_row_ptr[i] = num;
+        prolong_row_ptr[row] = num;
     }
 }
 
@@ -255,9 +257,9 @@ void direct_interpolation_fill(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::Csr<ValueType, IndexType>* csr,
     const remove_complex<ValueType>* row_maxabs,
-    const remove_complex<ValueType> strength_threshold, const int* coarse_map,
-    const IndexType* prolong_row_ptrs, IndexType* prolong_col_idxs,
-    ValueType* prolong_values)
+    const remove_complex<ValueType> strength_threshold,
+    const IndexType* coarse_map, const IndexType* prolong_row_ptrs,
+    IndexType* prolong_col_idxs, ValueType* prolong_values)
 {
     auto csr_values = csr->get_const_values();
     auto csr_col_idxs = csr->get_const_col_idxs();
