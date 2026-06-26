@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -177,23 +177,26 @@ public:
         /**
          * Scale correction mode (matches OpenFOAM GAMGSolverScale.C::scale).
          *
-         * After the inner solver produces correction δ = M⁻¹(r), the
-         * Rayleigh-quotient step length alpha and a Jacobi correction are
-         * applied.  D = diag(A).
+         * A Rayleigh-quotient step length alpha is computed and one
+         * inner-solver step is applied as a correction.
          *
-         * 0 - none (default): plain Richardson, fixed relaxation_factor
-         * 1 - forward:  accumulate δ into x, then correct x w.r.t. b
-         *       alpha = (x·b)/(x·Ax);  x = alpha·x + D⁻¹(b − alpha·Ax)
-         * 2 - backward: correct δ w.r.t. r, then accumulate into x
-         *       alpha = (δ·r)/(δ·Aδ);  δ = alpha·δ + D⁻¹(r − alpha·Aδ)
+         * - none (default): plain Richardson, fixed relaxation_factor
+         * - forward: solve for δ = omega·M⁻¹(r), then Rayleigh-correct δ
+         *       alpha = (δ·r)/(δ·Aδ);  δ = alpha·δ + solver(r − alpha·Aδ)
+         *       x += δ
+         * - backward: Rayleigh-correct r as initial guess, then apply solver
+         *       alpha = (r·r)/(r·Ar);  r* = alpha·r + solver(r − alpha·Ar)
+         *       x += omega·solver(r, init=r*)
          *
-         * Mode 2 matches OpenFOAM's GAMGSolver::scale(), which is called at
-         * the finest level on the V-cycle correction δ before it is added to
+         * backward matches OpenFOAM's GAMGSolver::scale(), which is called at
+         * the finest level on the V-cycle correction before it is added to
          * the solution x (GAMGSolverSolve.C::Vcycle, lines 438-456).
-         * OpenFOAM never scales x directly, so mode 1 has no OpenFOAM
-         * equivalent.
+         *
+         * @see https://doi.org/10.1145/3712285.3759807 for a generalization
+         *      of this correction approach.
          */
-        int GKO_FACTORY_PARAMETER_SCALAR(scale_correction, 0);
+        scale_correction_mode GKO_FACTORY_PARAMETER_SCALAR(
+            scale_correction, scale_correction_mode::none);
 
         /**
          * Default initial guess mode. The available options are under
@@ -304,6 +307,14 @@ struct workspace_traits<Ir<ValueType>> {
     constexpr static int one = 2;
     // constant -1.0 scalar
     constexpr static int minus_one = 3;
+    // A*x product for scale correction
+    constexpr static int acf = 4;
+    // scaled residual b - alpha*Ax for scale correction
+    constexpr static int r_scaled = 5;
+    // alpha = (x·b)/(x·Ax) scalar for scale correction
+    constexpr static int alpha = 6;
+    // denominator x·Ax scalar for scale correction
+    constexpr static int denom = 7;
 
     // stopping status array
     constexpr static int stop = 0;
