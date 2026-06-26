@@ -101,30 +101,21 @@ void mspm_auxiliary(std::shared_ptr<const DefaultExecutor> exec,
     // initialization
     const auto b_rowptrs = b->get_const_row_ptrs();
     const auto b_cols = b->get_const_col_idxs();
-    const auto a_vals = acc::helper::build_const_rrm_accessor<ValueType>(a);
-    const auto b_vals = acc::helper::build_const_rrm_accessor<ValueType>(b);
+    const auto b_vals = b->get_const_values();
     const auto c_vals_ptr = c.values;
-    // accumulate partial results of a row
-    const auto acc_size =
-        b->get_size()[1];  // the accumulator stores a whole row
-    array<ValueType> acc_array(exec, acc_size);
-    auto acc_begin_ptr = acc_array.get_data();
-    auto acc_end_ptr = acc_begin_ptr + acc_size;
     // compute the multiplication
     for (auto row = zero<IndexType>(); row < c.size[0]; row++) {
-        init(acc_begin_ptr, acc_size, row);
+        auto out_ptr = c_vals_ptr + row * c.stride;
+        init(out_ptr, acc_size, row);
         // iterate over the whole matrix b
         for (auto k = zero<IndexType>(); k < b->get_size()[0]; k++) {
             const auto val_a = op_a(row, k);
             // iterate over the non-zero values of a row
             for (auto idx_b = b_rowptrs[k]; idx_b < b_rowptrs[k + 1]; idx_b++) {
                 const auto col = b_cols[idx_b];
-                acc_begin_ptr[col] += val_a * b_vals(idx_b);
+                out_ptr[col] += val_a * b_vals[idx_b];
             }
         }
-        // move accumulator to result
-        auto out_ptr = c_vals_ptr + row * c.stride;
-        std::copy(acc_begin_ptr, acc_end_ptr, out_ptr);
     }
 }
 

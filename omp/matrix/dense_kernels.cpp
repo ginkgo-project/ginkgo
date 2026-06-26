@@ -149,38 +149,22 @@ void mspm_auxiliary(std::shared_ptr<const DefaultExecutor> exec,
     // initialization
     const auto b_rowptrs = b->get_const_row_ptrs();
     const auto b_cols = b->get_const_col_idxs();
-    const auto a_vals = acc::helper::build_const_rrm_accessor<ValueType>(a);
-    const auto b_vals = acc::helper::build_const_rrm_accessor<ValueType>(b);
+    const auto b_vals = b->get_const_values();
     const auto c_vals_ptr = c.values;
-    // accumulate partial results of a row
-    const auto sub_acc_size =
-        b->get_size()[1];  // each accumulator stores a whole row
-    const size_t nb_th = omp_get_max_threads();  // number of threads
-    array<ValueType> acc_array(
-        exec, sub_acc_size * nb_th);  // one accumulator per row
-    auto acc_ptr = acc_array.get_data();
 // compute the multiplication, 1 thread per row
 #pragma omp parallel
-    {
-        const auto th_id = omp_get_thread_num();
-        const auto th_acc_begin_ptr = acc_ptr + th_id * sub_acc_size;
-        const auto th_acc_end_ptr = acc_ptr + (th_id + 1) * sub_acc_size;
 #pragma omp for
-        for (auto row = zero<IndexType>(); row < c.size[0]; row++) {
-            init(th_acc_begin_ptr, sub_acc_size, row);
-            // iterate over the whole matrix b
-            for (auto k = zero<IndexType>(); k < b->get_size()[0]; k++) {
-                const auto val_a = op_a(row, k);
-                // iterate over the non-zero values of a row
-                for (auto idx_b = b_rowptrs[k]; idx_b < b_rowptrs[k + 1];
-                     idx_b++) {
-                    const auto col = b_cols[idx_b];
-                    th_acc_begin_ptr[col] += val_a * b_vals(idx_b);
-                }
+    for (auto row = zero<IndexType>(); row < c.size[0]; row++) {
+        auto out_ptr = c_vals_ptr + row * c.stride;
+        init(out_ptr, b->get_size()[1], row);
+        // iterate over the whole matrix b
+        for (auto k = zero<IndexType>(); k < b->get_size()[0]; k++) {
+            const auto val_a = op_a(row, k);
+            // iterate over the non-zero values of a row
+            for (auto idx_b = b_rowptrs[k]; idx_b < b_rowptrs[k + 1]; idx_b++) {
+                const auto col = b_cols[idx_b];
+                out_ptr[col] += val_a * b_vals[idx_b];
             }
-            // move accumulator to result
-            auto out_ptr = c_vals_ptr + row * c.stride;
-            std::copy(th_acc_begin_ptr, th_acc_end_ptr, out_ptr);
         }
     }
 }
