@@ -52,7 +52,7 @@ namespace pmis {
     void classify(                                                         \
         std::shared_ptr<const DefaultExecutor> exec,                       \
         const remove_complex<ValueType>* weight,                           \
-        const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,       \
+        const matrix::Csr<ValueType, IndexType>* csr,                      \
         const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep, \
         const int* status, int* new_status)
 
@@ -66,13 +66,13 @@ namespace pmis {
         const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,     \
         const int* status, IndexType* prolong_row_ptr)
 
-#define GKO_DECLARE_DIRECT_INTERPOLATION_FILL(ValueType, IndexType) \
-    void direct_interpolation_fill(                                 \
-        std::shared_ptr<const DefaultExecutor> exec,                \
-        const matrix::Csr<ValueType, IndexType>* csr,               \
-        const remove_complex<ValueType>* row_maxabs,                \
-        const remove_complex<ValueType> strength_threshold,         \
-        const int* coarse_map, const IndexType* prolong_row_ptrs,   \
+#define GKO_DECLARE_DIRECT_INTERPOLATION_FILL(ValueType, IndexType)     \
+    void direct_interpolation_fill(                                     \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType>* csr,                   \
+        const remove_complex<ValueType>* row_maxabs,                    \
+        const remove_complex<ValueType> strength_threshold,             \
+        const IndexType* coarse_map, const IndexType* prolong_row_ptrs, \
         IndexType* prolong_col_idxs, ValueType* prolong_values)
 
 
