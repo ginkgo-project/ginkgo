@@ -41,8 +41,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void append_global_matrix_data(
     std::shared_ptr<const Executor> exec,
     const matrix_data<ValueType, LocalIndexType>& local_data,
-    const index_map<LocalIndexType, GlobalIndexType>& row_map,
-    const index_map<LocalIndexType, GlobalIndexType>& col_map,
+    const index_map<LocalIndexType, GlobalIndexType>& imap,
     index_space col_space, matrix_data<ValueType, GlobalIndexType>& result)
 {
     if (local_data.nonzeros.empty()) {
@@ -58,8 +57,8 @@ void append_global_matrix_data(
     auto local_col_idxs =
         make_array_view(exec, nnz, device_data.get_col_idxs());
     auto global_row_idxs =
-        row_map.map_to_global(local_row_idxs, index_space::local);
-    auto global_col_idxs = col_map.map_to_global(local_col_idxs, col_space);
+        imap.map_to_global(local_row_idxs, index_space::local);
+    auto global_col_idxs = imap.map_to_global(local_col_idxs, col_space);
     auto values = make_array_view(exec, nnz, device_data.get_values());
     auto global_data =
         device_matrix_data<ValueType, GlobalIndexType>{
@@ -93,7 +92,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     : EnableLinOp<Matrix>{exec},
       DistributedBase{row_gather_template->get_communicator()},
       row_gatherer_{row_gather_template->clone(exec)},
-      row_map_{exec},
       imap_{exec},
       one_scalar_{exec, 1.0},
       local_mtx_{local_matrix_template->clone(exec)},
@@ -115,7 +113,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       DistributedBase{comm},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           exec, mpi::detail::create_default_collective_communicator(comm))},
-      row_map_{exec},
       imap_{exec},
       one_scalar_{exec, 1.0},
       non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
@@ -125,9 +122,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     auto partition =
         share(build_partition_from_local_size<LocalIndexType, GlobalIndexType>(
             exec, comm, local_linop->get_size()[0]));
-    row_map_ = index_map<local_index_type, global_index_type>(
+    imap_ = index_map<local_index_type, global_index_type>(
         exec, partition, comm.rank(), array<global_index_type>{exec});
-    imap_ = row_map_;
     local_mtx_ = std::move(local_linop);
 }
 
@@ -143,7 +139,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
           mpi::detail::create_default_collective_communicator(comm)
               ->create_with_same_type(comm, &imap),
           imap)),
-      row_map_(imap),
       imap_(std::move(imap)),
       one_scalar_{exec, 1.0}
 {
@@ -259,7 +254,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->local_mtx_->copy_from(this->local_mtx_);
     result->non_local_mtx_->copy_from(this->non_local_mtx_);
     result->row_gatherer_->copy_from(this->row_gatherer_);
-    result->row_map_ = this->row_map_;
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -275,7 +269,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->local_mtx_->move_from(this->local_mtx_);
     result->non_local_mtx_->move_from(this->non_local_mtx_);
     result->row_gatherer_->move_from(this->row_gatherer_);
-    result->row_map_ = std::move(this->row_map_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
     this->set_size({});
@@ -293,7 +286,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->local_mtx_->copy_from(this->local_mtx_.get());
     result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
     result->row_gatherer_->copy_from(this->row_gatherer_);
-    result->row_map_ = this->row_map_;
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -309,7 +301,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->local_mtx_->move_from(this->local_mtx_.get());
     result->non_local_mtx_->move_from(this->non_local_mtx_.get());
     result->row_gatherer_->move_from(this->row_gatherer_);
-    result->row_map_ = std::move(this->row_map_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
     this->set_size({});
@@ -328,7 +319,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     result->local_mtx_->copy_from(this->local_mtx_.get());
     result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
     result->row_gatherer_->copy_from(this->row_gatherer_);
-    result->row_map_ = this->row_map_;
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -344,7 +334,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     result->local_mtx_->move_from(this->local_mtx_.get());
     result->non_local_mtx_->move_from(this->non_local_mtx_.get());
     result->row_gatherer_->move_from(this->row_gatherer_);
-    result->row_map_ = std::move(this->row_map_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
     this->set_size({});
@@ -387,8 +376,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     auto global_num_cols = col_partition->get_size();
     dim<2> global_dim{global_num_rows, global_num_cols};
     this->set_size(global_dim);
-    row_map_ = index_map<local_index_type, global_index_type>(
-        exec, row_partition, comm.rank(), array<global_index_type>{exec});
 
     // temporary storage for the output
     array<local_index_type> local_row_idxs{exec};
@@ -492,9 +479,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::write(
 
     data = {this->get_size(), {}};
     auto exec = this->get_executor();
-    append_global_matrix_data(exec, local_data, row_map_, imap_,
-                              index_space::local, data);
-    append_global_matrix_data(exec, non_local_data, row_map_, imap_,
+    append_global_matrix_data(exec, local_data, imap_, index_space::local,
+                              data);
+    append_global_matrix_data(exec, non_local_data, imap_,
                               index_space::non_local, data);
     data.sort_row_major();
 }
@@ -755,7 +742,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
-      row_map_(other.get_executor()),
       imap_(other.get_executor()),
       one_scalar_(other.get_executor(), 1.0)
 {
@@ -771,7 +757,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
-      row_map_(other.get_executor()),
       imap_(other.get_executor()),
       one_scalar_(other.get_executor(), 1.0)
 {
@@ -791,7 +776,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         local_mtx_->copy_from(other.local_mtx_);
         non_local_mtx_->copy_from(other.non_local_mtx_);
         row_gatherer_->copy_from(other.row_gatherer_);
-        row_map_ = other.row_map_;
         imap_ = other.imap_;
     }
     return *this;
@@ -810,7 +794,6 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         local_mtx_->move_from(other.local_mtx_);
         non_local_mtx_->move_from(other.non_local_mtx_);
         row_gatherer_->move_from(other.row_gatherer_);
-        row_map_ = std::move(other.row_map_);
         imap_ = std::move(other.imap_);
     }
     return *this;
