@@ -1,4 +1,5 @@
 ginkgo_create_common_test(pgm_kernels)
+ginkgo_create_common_test(pmis_kernels)
 ginkgo_create_common_test(fixed_coarsening_kernels)
 ginkgo_create_common_test(uniform_coarsening_kernels)
 ginkgo_create_common_test(rs_kernels)
