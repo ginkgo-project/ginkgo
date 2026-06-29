@@ -46,6 +46,10 @@ constexpr int unassigned = -1;
         remove_complex<ValueType> strength_threshold,                    \
         matrix::SparsityCsr<ValueType, IndexType>* strong_dep)
 
+#define GKO_DECLARE_PMIS_INITIALIZE_RANDOM_WEIGHT_KERNEL(ValueType)            \
+    void initialize_random_weight(std::shared_ptr<const DefaultExecutor> exec, \
+                                  size_type num, ValueType* weight)
+
 #define GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL(ValueType,    \
                                                              IndexType)    \
     void initialize_weight_and_status(                                     \
@@ -88,6 +92,8 @@ constexpr int unassigned = -1;
     GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType>                                         \
+    GKO_DECLARE_PMIS_INITIALIZE_RANDOM_WEIGHT_KERNEL(ValueType);          \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL(ValueType,       \
                                                          IndexType);      \
