@@ -72,6 +72,7 @@ target_sources(
         matrix/sellp_kernels.dp.cpp
         matrix/sparsity_csr_kernels.dp.cpp
         multigrid/pgm_kernels.dp.cpp
+        multigrid/pmis_kernels.dp.cpp
         preconditioner/batch_jacobi_kernels.dp.cpp
         preconditioner/isai_kernels.dp.cpp
         preconditioner/jacobi_advanced_apply_kernel.dp.cpp

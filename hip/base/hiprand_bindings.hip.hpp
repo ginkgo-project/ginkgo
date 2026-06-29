@@ -10,9 +10,9 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-#include "common/cuda_hip/base/math.hpp"
-#include "common/cuda_hip/base/runtime.hpp"
-#include "common/cuda_hip/base/types.hpp"
+#include "common/hipda_hip/base/math.hpp"
+#include "common/hipda_hip/base/runtime.hpp"
+#include "common/hipda_hip/base/types.hpp"
 
 
 namespace gko {
@@ -94,6 +94,25 @@ GKO_BIND_HIPRAND_RANDOM_VECTOR(ValueType, detail::not_implemented);
 
 
 #undef GKO_BIND_HIPRAND_RANDOM_VECTOR
+
+
+#define GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR(ValueType, HiprandName)       \
+    inline void uniform_rand_vector(hiprandGenerator_t& gen, size_type n,    \
+                                    ValueType* values)                       \
+    {                                                                        \
+        GKO_ASSERT_NO_HIPRAND_ERRORS(HiprandName(gen, values, n));           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR(float, hiprandGenerateUniform);
+GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR(double, hiprandGenerateUniformDouble);
+template <typename ValueType>
+GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR(ValueType, detail::not_implemented);
+
+
+#undef GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR
 
 
 }  // namespace hiprand
