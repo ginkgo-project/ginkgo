@@ -64,9 +64,7 @@ struct is_cudss_supported_value_type<std::complex<double>> : std::true_type {};
  * @tparam IndexType  the index type of the system matrix
  */
 template <typename ValueType, typename IndexType = int32>
-class Cudss : public EnableLinOp<Cudss<ValueType, IndexType>> {
-    friend class EnableLinOp<Cudss>;
-    friend class EnablePolymorphicObject<Cudss, LinOp>;
+class Cudss : public Cudss {
     GKO_EXT_CUDSS_ASSERT_SUPPORTED_VALUE_TYPE;
     GKO_ASSERT_SUPPORTED_INDEX_TYPE;
 
