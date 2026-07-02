@@ -273,8 +273,7 @@ void Ilu<ValueType, ReverseApply, IndexType>::set_cache_to(const LinOp* b) const
             matrix::Dense<value_type>::create(this->get_executor());
     }
     // Use b as the initial guess for the first triangular solve
-    as<Cloneable>(cache_.intermediate.get())
-        ->copy_from(as<Cloneable>(b));
+    as<Cloneable>(cache_.intermediate.get())->copy_from(as<Cloneable>(b));
 }
 
 

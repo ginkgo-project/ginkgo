@@ -206,8 +206,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    as<Cloneable>(result->diag_mtx_)
-        ->copy_from(as<Cloneable>(this->diag_mtx_));
+    as<Cloneable>(result->diag_mtx_)->copy_from(as<Cloneable>(this->diag_mtx_));
     as<Cloneable>(result->off_diag_mtx_)
         ->copy_from(as<Cloneable>(this->off_diag_mtx_));
     as<Cloneable>(result->row_gatherer_)
@@ -224,8 +223,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    as<Cloneable>(result->diag_mtx_)
-        ->move_from(as<Cloneable>(this->diag_mtx_));
+    as<Cloneable>(result->diag_mtx_)->move_from(as<Cloneable>(this->diag_mtx_));
     as<Cloneable>(result->off_diag_mtx_)
         ->move_from(as<Cloneable>(this->off_diag_mtx_));
     as<Cloneable>(result->row_gatherer_)
@@ -718,8 +716,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         GKO_ASSERT_EQ(other.get_communicator().size(),
                       this->get_communicator().size());
         this->set_size(other.get_size());
-        as<Cloneable>(diag_mtx_)
-            ->copy_from(as<Cloneable>(other.diag_mtx_));
+        as<Cloneable>(diag_mtx_)->copy_from(as<Cloneable>(other.diag_mtx_));
         as<Cloneable>(off_diag_mtx_)
             ->copy_from(as<Cloneable>(other.off_diag_mtx_));
         as<Cloneable>(row_gatherer_)
@@ -739,8 +736,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
                       this->get_communicator().size());
         this->set_size(other.get_size());
         other.set_size({});
-        as<Cloneable>(diag_mtx_)
-            ->move_from(as<Cloneable>(other.diag_mtx_));
+        as<Cloneable>(diag_mtx_)->move_from(as<Cloneable>(other.diag_mtx_));
         as<Cloneable>(off_diag_mtx_)
             ->move_from(as<Cloneable>(other.off_diag_mtx_));
         as<Cloneable>(row_gatherer_)
