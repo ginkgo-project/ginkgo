@@ -52,9 +52,9 @@ public:
 };
 
 
-class EnableBatchLinOp : public ::testing::Test {
+class BatchLinOp : public ::testing::Test {
 protected:
-    EnableBatchLinOp()
+    BatchLinOp()
         : ref{gko::ReferenceExecutor::create()},
           op{DummyBatchLinOp::create(ref,
                                      gko::batch_dim<2>(1, gko::dim<2>{3, 5}))}
@@ -65,13 +65,13 @@ protected:
 };
 
 
-TEST_F(EnableBatchLinOp, KnowsNumBatchItems)
+TEST_F(BatchLinOp, KnowsNumBatchItems)
 {
     ASSERT_EQ(op->get_num_batch_items(), 1);
 }
 
 
-TEST_F(EnableBatchLinOp, KnowsItsSizes)
+TEST_F(BatchLinOp, KnowsItsSizes)
 {
     auto op1_sizes = gko::batch_dim<2>(1, gko::dim<2>{3, 5});
     ASSERT_EQ(op->get_size(), op1_sizes);
@@ -104,9 +104,9 @@ public:
 };
 
 
-class EnableBatchLinOpFactory : public ::testing::Test {
+class BatchLinOpFactory : public ::testing::Test {
 protected:
-    EnableBatchLinOpFactory()
+    BatchLinOpFactory()
         : ref{gko::ReferenceExecutor::create()},
           logger{std::make_shared<DummyLogger>()}
 
@@ -117,7 +117,7 @@ protected:
 };
 
 
-TEST_F(EnableBatchLinOpFactory, CreatesDefaultFactory)
+TEST_F(BatchLinOpFactory, CreatesDefaultFactory)
 {
     auto factory = DummyBatchLinOpWithFactory<>::build().on(ref);
 
@@ -126,7 +126,7 @@ TEST_F(EnableBatchLinOpFactory, CreatesDefaultFactory)
 }
 
 
-TEST_F(EnableBatchLinOpFactory, CreatesFactoryWithParameters)
+TEST_F(BatchLinOpFactory, CreatesFactoryWithParameters)
 {
     auto factory = DummyBatchLinOpWithFactory<>::build().with_value(7).on(ref);
 
@@ -135,7 +135,7 @@ TEST_F(EnableBatchLinOpFactory, CreatesFactoryWithParameters)
 }
 
 
-TEST_F(EnableBatchLinOpFactory, PassesParametersToBatchLinOp)
+TEST_F(BatchLinOpFactory, PassesParametersToBatchLinOp)
 {
     auto dummy = gko::share(
         DummyBatchLinOp::create(ref, gko::batch_dim<2>(1, gko::dim<2>{3, 5})));
@@ -149,7 +149,7 @@ TEST_F(EnableBatchLinOpFactory, PassesParametersToBatchLinOp)
 }
 
 
-TEST_F(EnableBatchLinOpFactory, FactoryGenerateIsLogged)
+TEST_F(BatchLinOpFactory, FactoryGenerateIsLogged)
 {
     auto before_logger = *logger;
     auto factory = DummyBatchLinOpWithFactory<>::build().on(ref);
@@ -164,7 +164,7 @@ TEST_F(EnableBatchLinOpFactory, FactoryGenerateIsLogged)
 }
 
 
-TEST_F(EnableBatchLinOpFactory, WithLoggersWorksAndPropagates)
+TEST_F(BatchLinOpFactory, WithLoggersWorksAndPropagates)
 {
     auto before_logger = *logger;
     auto factory =

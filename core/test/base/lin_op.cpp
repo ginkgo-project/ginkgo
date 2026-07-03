@@ -324,9 +324,9 @@ protected:
 };
 
 
-class EnableLinOpFactory : public ::testing::Test {
+class LinOpFactory : public ::testing::Test {
 protected:
-    EnableLinOpFactory()
+    LinOpFactory()
         : ref{gko::ReferenceExecutor::create()},
           logger{std::make_shared<DummyLogger>()}
     {}
@@ -336,7 +336,7 @@ protected:
 };
 
 
-TEST_F(EnableLinOpFactory, CreatesDefaultFactory)
+TEST_F(LinOpFactory, CreatesDefaultFactory)
 {
     auto factory = DummyLinOpWithFactory<>::build().on(ref);
 
@@ -345,7 +345,7 @@ TEST_F(EnableLinOpFactory, CreatesDefaultFactory)
 }
 
 
-TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
+TEST_F(LinOpFactory, CreatesFactoryWithParameters)
 {
     auto factory = DummyLinOpWithFactory<>::build().with_value(7).on(ref);
 
@@ -354,7 +354,7 @@ TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
 }
 
 
-TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
+TEST_F(LinOpFactory, PassesParametersToLinOp)
 {
     auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
     auto factory = DummyLinOpWithFactory<>::build().with_value(6).on(ref);
@@ -367,7 +367,7 @@ TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
 }
 
 
-TEST_F(EnableLinOpFactory, FactoryGenerateIsLogged)
+TEST_F(LinOpFactory, FactoryGenerateIsLogged)
 {
     auto before_logger = *logger;
     auto factory = DummyLinOpWithFactory<>::build().on(ref);
@@ -381,7 +381,7 @@ TEST_F(EnableLinOpFactory, FactoryGenerateIsLogged)
 }
 
 
-TEST_F(EnableLinOpFactory, WithLoggersWorksAndPropagates)
+TEST_F(LinOpFactory, WithLoggersWorksAndPropagates)
 {
     auto before_logger = *logger;
     auto factory =
@@ -400,7 +400,7 @@ TEST_F(EnableLinOpFactory, WithLoggersWorksAndPropagates)
 }
 
 
-TEST_F(EnableLinOpFactory, CopiesLinOpToOtherExecutor)
+TEST_F(LinOpFactory, CopiesLinOpToOtherExecutor)
 {
     auto ref2 = gko::ReferenceExecutor::create();
     auto dummy = gko::share(DummyLinOp::create(ref2, gko::dim<2>{3, 5}));

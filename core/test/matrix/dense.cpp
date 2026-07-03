@@ -443,7 +443,6 @@ TYPED_TEST(Dense, CanMakeConstView)
 }
 
 
-// but the clone will not work properly?
 class CustomDense : public gko::matrix::Dense<>,
                     public gko::ConvertibleTo<CustomDense> {
     friend class gko::matrix::Dense<>;

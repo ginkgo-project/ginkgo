@@ -268,7 +268,7 @@ using EnableDefaultBatchLinOpFactory =
  *         // and default value {5, 5}
  *         std::pair<int, int> GKO_FACTORY_PARAMETER_VECTOR(my_pair, 5, 5);
  *     };
- *     // constructor needed by EnableBatchLinOp
+ *     // constructor needed by BatchLinOp
  *     explicit MyBatchLinOp(std::shared_ptr<const Executor> exec) {
  *         : BatchLinOp(exec) {}
  *     // constructor needed by the factory
