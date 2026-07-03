@@ -48,9 +48,7 @@ namespace preconditioner {
  * @ingroup precond
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Sor : public LinOpFactory,
-            public EnableCloneable<Sor<ValueType, IndexType>> {
-    friend class EnableCloneable<Sor>;
+class Sor : public LinOpFactory {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
