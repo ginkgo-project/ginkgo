@@ -325,9 +325,7 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
     auto is_spd = IsaiType == isai_type::spd;
     if (is_spd) {
         auto cloned = std::unique_ptr<Isai>(new Isai{this->get_executor()});
-        cloned->LinOp::operator=(*this);
-        cloned->approximate_inverse_ = approximate_inverse_;
-        cloned->parameters_ = parameters_;
+        cloned->operator=(*this);
         return cloned;
     }
 
@@ -348,9 +346,7 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
     auto is_spd = IsaiType == isai_type::spd;
     if (is_spd) {
         auto cloned = std::unique_ptr<Isai>(new Isai{this->get_executor()});
-        cloned->LinOp::operator=(*this);
-        cloned->approximate_inverse_ = approximate_inverse_;
-        cloned->parameters_ = parameters_;
+        cloned->operator=(*this);
         return cloned;
     }
 
