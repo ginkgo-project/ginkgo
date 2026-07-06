@@ -227,10 +227,13 @@ Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
     if (this != &fact) {
         LinOp::operator=(std::move(fact));
         storage_type_ = std::exchange(fact.storage_type_, storage_type::empty);
-        factors_ =
-            std::exchange(fact.factors_, fact.factors_->create_default());
+        factors_ = std::exchange(
+            fact.factors_,
+            Composition<ValueType>::create(fact.factors_->get_executor()));
         if (factors_->get_executor() != this->get_executor()) {
-            factors_ = factors_->clone(this->get_executor());
+            // It should be failed as Composition is not cloneable currently but
+            // factorization is not clonenable, either.
+            factors_ = clone(this->get_executor(), factors_);
         }
     }
     return *this;

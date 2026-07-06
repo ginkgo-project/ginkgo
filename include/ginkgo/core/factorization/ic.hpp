@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -143,9 +143,11 @@ protected:
             parameters_.l_strategy =
                 std::make_shared<typename matrix_type::classical>();
         }
-        generate(system_matrix, parameters_.skip_sorting,
-                 parameters_.both_factors)
-            ->move_to(this);
+        auto comp = generate(system_matrix, parameters_.skip_sorting,
+                             parameters_.both_factors);
+        for (auto& op : comp->get_operators()) {
+            this->add_operators(op);
+        }
     }
 
     std::unique_ptr<Composition<ValueType>> generate(
