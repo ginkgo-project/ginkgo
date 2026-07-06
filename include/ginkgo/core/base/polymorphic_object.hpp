@@ -26,39 +26,6 @@ class DistributedBase;
 }  // namespace experimental
 
 
-class ExecutorHolder {
-public:
-    /**
-     * Returns the Executor of the object.
-     *
-     * @return Executor of the object
-     */
-    std::shared_ptr<const Executor> get_executor() const noexcept
-    {
-        return exec_;
-    }
-
-    // preserve the executor of the object
-    ExecutorHolder& operator=(const ExecutorHolder&) { return *this; }
-
-protected:
-    // This method is defined as protected since a polymorphic object should not
-    // be created using their constructor directly, but by creating an
-    // std::unique_ptr to it. Defining the constructor as protected keeps these
-    // access rights when inheriting the constructor.
-    /**
-     * Creates a new polymorphic object on the requested executor.
-     *
-     * @param exec  executor where the object will be created
-     */
-    explicit ExecutorHolder(std::shared_ptr<const Executor> exec)
-        : exec_{std::move(exec)}
-    {}
-
-private:
-    std::shared_ptr<const Executor> exec_;
-};
-
 /**
  * A PolymorphicObject is the abstract base for all "heavy" objects in Ginkgo
  * that behave polymorphically.
@@ -76,13 +43,25 @@ private:
  *       default behavior around virtual methods (parameter checking, type
  *       casting).
  */
-class PolymorphicObject : public log::EnableLogging<PolymorphicObject>,
-                          public ExecutorHolder {
+class PolymorphicObject : public log::EnableLogging<PolymorphicObject> {
 public:
     virtual ~PolymorphicObject()
     {
-        this->template log<log::Logger::polymorphic_object_deleted>(
-            this->get_executor().get(), this);
+        this->template log<log::Logger::polymorphic_object_deleted>(exec_.get(),
+                                                                    this);
+    }
+
+    // preserve the executor of the object
+    PolymorphicObject& operator=(const PolymorphicObject&) { return *this; }
+
+    /**
+     * Returns the Executor of the object.
+     *
+     * @return Executor of the object
+     */
+    std::shared_ptr<const Executor> get_executor() const noexcept
+    {
+        return exec_;
     }
 
 protected:
@@ -90,7 +69,23 @@ protected:
     // be created using their constructor directly, but by creating an
     // std::unique_ptr to it. Defining the constructor as protected keeps these
     // access rights when inheriting the constructor.
-    using ExecutorHolder::ExecutorHolder;
+    /**
+     * Creates a new polymorphic object on the requested executor.
+     *
+     * @param exec  executor where the object will be created
+     */
+    explicit PolymorphicObject(std::shared_ptr<const Executor> exec)
+        : exec_{std::move(exec)}
+    {}
+
+    // preserve the executor of the object
+    explicit PolymorphicObject(const PolymorphicObject& other)
+    {
+        *this = other;
+    }
+
+private:
+    std::shared_ptr<const Executor> exec_;
 };
 
 
@@ -298,7 +293,7 @@ std::shared_ptr<const R> copy_and_convert_to(
 /**
  * Interface for objects that can be cloned.
  *
- * @note The derived types must also derive from ExecutorHolder.
+ * @note The derived types must also derive from PolymorphicObject.
  */
 class Cloneable {
 public:
