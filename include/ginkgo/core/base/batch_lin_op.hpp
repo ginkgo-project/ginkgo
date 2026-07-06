@@ -329,7 +329,6 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::batch::EnableDefaultBatchLinOpFactory<               \
               _factory_name, _batch_lin_op, _parameters_name##_type> {       \
-        friend class ::gko::batch::BatchLinOpFactory;                        \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \
