@@ -222,8 +222,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 excess_row_ptrs_full.get_const_data(), excess_system.get(),
                 excess_rhs->get_device_view(), excess_start, block));
             // solve it after transposing
-            auto system_copy = excess_system->clone(exec->get_master());
-            auto rhs_copy = excess_rhs->clone(exec->get_master());
+            auto system_copy = gko::clone(exec->get_master(), excess_system);
+            auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
             std::shared_ptr<const LinOpFactory> excess_solver_factory;
             if (parameters_.excess_solver_factory) {
                 excess_solver_factory = parameters_.excess_solver_factory;

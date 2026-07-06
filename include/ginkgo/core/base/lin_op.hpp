@@ -848,7 +848,7 @@ using EnableDefaultLinOpFactory =
  *         // and default value {5, 5}
  *         std::pair<int, int> GKO_FACTORY_PARAMETER_VECTOR(my_pair, 5, 5);
  *     };
- *     // constructor needed by PolymorphicObject
+ *     // constructor needed by LinOp
  *     explicit MyLinOp(std::shared_ptr<const Executor> exec) {
  *         : LinOp(exec) {}
  *     // constructor needed by the factory
