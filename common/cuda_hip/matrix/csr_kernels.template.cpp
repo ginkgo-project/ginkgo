@@ -2486,6 +2486,32 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
+// Stub implementation.
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void spmm(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Csr<MatrixValueType, IndexType>* a,
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
+{
+    spmv(exec, a, b, c);
+}
+
+
+// Stub implementation.
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void advanced_spmm(std::shared_ptr<const DefaultExecutor> exec,
+                   matrix::view::dense<const MatrixValueType> alpha,
+                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
+{
+    advanced_spmv(exec, alpha, a, b, beta, c);
+}
+
+
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const DefaultExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,

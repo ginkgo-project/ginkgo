@@ -46,6 +46,8 @@ namespace {
 
 GKO_REGISTER_OPERATION(spmv, csr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
+GKO_REGISTER_OPERATION(spmm, csr::spmm);
+GKO_REGISTER_OPERATION(advanced_spmm, csr::advanced_spmm);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
 GKO_REGISTER_OPERATION(spgemm_reuse, csr::spgemm_reuse);
@@ -266,9 +268,15 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
-                this->get_executor()->run(
-                    csr::make_spmv(this, dense_b->get_const_device_view(),
-                                   dense_x->get_device_view()));
+                if (dense_b->get_size()[1] <= 2) {
+                    this->get_executor()->run(
+                        csr::make_spmv(this, dense_b->get_const_device_view(),
+                                       dense_x->get_device_view()));
+                } else {
+                    this->get_executor()->run(
+                        csr::make_spmm(this, dense_b->get_const_device_view(),
+                                       dense_x->get_device_view()));
+                }
             },
             b, x);
     }
@@ -305,11 +313,19 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                 auto dense_beta = make_temporary_conversion<
                     typename std::decay_t<decltype(*dense_x)>::value_type>(
                     beta);
-                this->get_executor()->run(csr::make_advanced_spmv(
-                    dense_alpha->get_const_device_view(), this,
-                    dense_b->get_const_device_view(),
-                    dense_beta->get_const_device_view(),
-                    dense_x->get_device_view()));
+                if (dense_b->get_size()[1] <= 2) {
+                    this->get_executor()->run(csr::make_advanced_spmv(
+                        dense_alpha->get_const_device_view(), this,
+                        dense_b->get_const_device_view(),
+                        dense_beta->get_const_device_view(),
+                        dense_x->get_device_view()));
+                } else {
+                    this->get_executor()->run(csr::make_advanced_spmm(
+                        dense_alpha->get_const_device_view(), this,
+                        dense_b->get_const_device_view(),
+                        dense_beta->get_const_device_view(),
+                        dense_x->get_device_view()));
+                }
             },
             b, x);
     }

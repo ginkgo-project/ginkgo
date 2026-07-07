@@ -1663,6 +1663,38 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
+// Stub implementation.
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void spmm(std::shared_ptr<const DpcppExecutor> exec,
+          const matrix::Csr<MatrixValueType, IndexType>* a,
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
+{
+    spmv(exec, a, b, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SPMM_KERNEL);
+
+
+// Stub implementation.
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void advanced_spmm(std::shared_ptr<const DpcppExecutor> exec,
+                   matrix::view::dense<const MatrixValueType> alpha,
+                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
+{
+    advanced_spmv(exec, alpha, a, b, beta, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPMM_KERNEL);
+
+
 namespace kernel {
 
 

@@ -39,6 +39,22 @@ namespace kernels {
                        matrix::view::dense<const OutputValueType> beta,       \
                        matrix::view::dense<OutputValueType> c)
 
+#define GKO_DECLARE_CSR_SPMM_KERNEL(MatrixValueType, InputValueType, \
+                                    OutputValueType, IndexType)      \
+    void spmm(std::shared_ptr<const DefaultExecutor> exec,           \
+              const matrix::Csr<MatrixValueType, IndexType>* a,      \
+              matrix::view::dense<const InputValueType> b,           \
+              matrix::view::dense<OutputValueType> c)
+
+#define GKO_DECLARE_CSR_ADVANCED_SPMM_KERNEL(MatrixValueType, InputValueType, \
+                                             OutputValueType, IndexType)      \
+    void advanced_spmm(std::shared_ptr<const DefaultExecutor> exec,           \
+                       matrix::view::dense<const MatrixValueType> alpha,      \
+                       const matrix::Csr<MatrixValueType, IndexType>* a,      \
+                       matrix::view::dense<const InputValueType> b,           \
+                       matrix::view::dense<const OutputValueType> beta,       \
+                       matrix::view::dense<OutputValueType> c)
+
 #define GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType)  \
     void spgemm(std::shared_ptr<const DefaultExecutor> exec, \
                 const matrix::Csr<ValueType, IndexType>* a,  \
@@ -295,6 +311,14 @@ namespace kernels {
     template <typename MatrixValueType, typename InputValueType,            \
               typename OutputValueType, typename IndexType>                 \
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(MatrixValueType, InputValueType,   \
+                                         OutputValueType, IndexType);       \
+    template <typename MatrixValueType, typename InputValueType,            \
+              typename OutputValueType, typename IndexType>                 \
+    GKO_DECLARE_CSR_SPMM_KERNEL(MatrixValueType, InputValueType,            \
+                                OutputValueType, IndexType);                \
+    template <typename MatrixValueType, typename InputValueType,            \
+              typename OutputValueType, typename IndexType>                 \
+    GKO_DECLARE_CSR_ADVANCED_SPMM_KERNEL(MatrixValueType, InputValueType,   \
                                          OutputValueType, IndexType);       \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_CSR_SPGEMM_KERNEL(ValueType, IndexType);                    \
