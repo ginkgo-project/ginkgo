@@ -169,6 +169,14 @@ public:
     const array<comm_index_type>& get_remote_target_ids() const;
 
     /**
+     * \brief get the partition associated with this index map.
+     */
+    std::shared_ptr<const partition_type> get_partition() const
+    {
+        return partition_;
+    }
+
+    /**
      * \brief get the associated executor.
      */
     std::shared_ptr<const Executor> get_executor() const;

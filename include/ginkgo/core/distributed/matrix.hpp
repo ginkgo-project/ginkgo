@@ -762,6 +762,8 @@ protected:
 private:
     std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;
     index_map<local_index_type, global_index_type> imap_;
+    std::shared_ptr<const Partition<local_index_type, global_index_type>>
+        row_partition_;
     gko::detail::ScalarCache one_scalar_;
     detail::GenericVectorCache recv_buffer_;
     detail::GenericVectorCache host_recv_buffer_;
