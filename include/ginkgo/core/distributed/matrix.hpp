@@ -471,6 +471,30 @@ public:
     }
 
     /**
+     * Get the row partition this matrix was constructed with via
+     * read_distributed. May be null if the matrix was not read.
+     */
+    std::shared_ptr<const Partition<local_index_type, global_index_type>>
+    get_row_partition() const
+    {
+        return row_partition_;
+    }
+
+    /**
+     * Computes the distributed sparse matrix-matrix product C = A * B,
+     * where A is this matrix. The output c is filled in place; any prior
+     * contents are overwritten.
+     *
+     * Matmul compatibility requires this matrix's column partition to equal
+     * b's row partition. The result c has this matrix's row partition and
+     * b's column partition, and shares this matrix's communicator.
+     *
+     * @param b  the right-hand operand of the product.
+     * @param c  a pre-created distributed Matrix (may be empty) to fill.
+     */
+    void spgemm(ptr_param<const Matrix> b, ptr_param<Matrix> c) const;
+
+    /**
      * Copy constructs a Matrix.
      *
      * @param other  Matrix to copy from.
