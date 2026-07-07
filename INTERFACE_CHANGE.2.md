@@ -44,13 +44,13 @@ If users previously rely on calling `source->clone([exec,] target)`, please use 
 `gko::clone` can adapt whether the class has clone natively or is `Cloneable`. If no clone is supported, it will throw an runtime exception.
 
 Factory does not support clone, either. 
-Users, who want to create the same factory for different executors, please create a factory without specifying executor in the compenents' factory.
+Users, who want to create the same factory for different executors, please create a factory without specifying executor in the components' factory.
 
 
 # Changed Interface
 ## Clone related function is not longer belonging to PolymorphicObject [#2005](https://github.com/ginkgo-project/ginkgo/pull/2005)
 For those classes supporting clone, the clone is still available under concreate type or via `Cloneable` class.
-Users can use `as<ConcreteType>(as<Clonable>(pointer)->clone())` or `as<ConcreteType>(as<gko::Clonable>(pointer)->clone(exec))` to have the clone object when the pointer is base type like `LinOp`.
+Users can use `as<ConcreteType>(as<Cloneable>(pointer)->clone())` or `as<ConcreteType>(as<gko::Cloneable>(pointer)->clone(exec))` to have the clone object when the pointer is base type like `LinOp`.
 If the object is the concrete type like Dense and Csr, `pointer->clone()` and `pointer->clone(exec)` works the same as previous version.
 
 If Users have their own class inherit from something like `EnableLinOp`, users only need to inherit from `LinOp` for `apply` function and optionally inherit from `EnableCloneable<ConcreteType>` for `clone` function.

@@ -44,7 +44,7 @@
 # Where the sources are located. By default, the current directory.
 #
 # ``CTEST_BINARY_DIRECTORY``
-# In which directory should the sources be builts. Default, `./build`.
+# In which directory should the sources be built. Default, `./build`.
 #
 # ``CTEST_SITE``
 # A string to describe the machine this is ran on. Default FineCI.
