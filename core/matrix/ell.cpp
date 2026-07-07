@@ -390,7 +390,7 @@ auto Ell<ValueType, IndexType>::get_device_view() -> device_view
     return device_view{
         this->get_size(), this->get_num_stored_elements_per_row(),
         this->get_stride(), this->get_values(), this->get_col_idxs()};
-};
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -401,7 +401,7 @@ auto Ell<ValueType, IndexType>::get_const_device_view() const
                              this->get_num_stored_elements_per_row(),
                              this->get_stride(), this->get_const_values(),
                              this->get_const_col_idxs()};
-};
+}
 
 
 template <typename ValueType, typename IndexType>
