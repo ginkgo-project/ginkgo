@@ -133,6 +133,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void spmm(std::shared_ptr<const DefaultExecutor> exec,
+          matrix::view::sellp<const ValueType, const IndexType> a,
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
+{
+    spmv(exec, a, b, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmm(std::shared_ptr<const DefaultExecutor> exec,
+                   matrix::view::dense<const ValueType> alpha,
+                   matrix::view::sellp<const ValueType, const IndexType> a,
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
+{
+    advanced_spmv(exec, alpha, a, b, beta, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_ADVANCED_SPMM_KERNEL);
+
+
 }  // namespace sellp
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

@@ -8,6 +8,7 @@
 
 #include <omp.h>
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
@@ -196,6 +197,122 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL);
+
+
+// Gustavson's algorithm: parallel over slices/rows, SIMD over dense columns.
+template <typename ValueType, typename IndexType>
+void spmm(std::shared_ptr<const OmpExecutor> exec,
+          matrix::view::sellp<const ValueType, const IndexType> a,
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
+{
+    const auto slice_lengths = a.slice_lengths;
+    const auto slice_sets = a.slice_sets;
+    const auto slice_size = a.slice_size;
+    const auto num_rows = a.size[0];
+    const auto num_cols = c.size[1];
+    const auto slice_num = ceildiv(num_rows + slice_size - 1, slice_size);
+
+#pragma omp parallel
+    {
+        array<ValueType> row_acc{exec, num_cols};
+        auto* row_acc_vals = row_acc.get_data();
+
+#pragma omp for collapse(2) schedule(static)
+        for (size_type slice = 0; slice < slice_num; ++slice) {
+            for (size_type row = 0; row < slice_size; ++row) {
+                const auto global_row = slice * slice_size + row;
+                if (global_row >= num_rows) {
+                    continue;
+                }
+                const auto slice_begin = slice_sets[slice];
+                const auto slice_length = slice_lengths[slice];
+                std::fill_n(row_acc_vals, num_cols, zero<ValueType>());
+                for (size_type idx = 0; idx < slice_length; ++idx) {
+                    const auto val = a.val_at(row, slice_begin, idx);
+                    const auto col = a.col_at(row, slice_begin, idx);
+                    if (col == invalid_index<IndexType>()) {
+                        continue;
+                    }
+#pragma omp simd
+                    for (size_type j = 0; j < num_cols; ++j) {
+                        row_acc_vals[j] += val * b(col, j);
+                    }
+                }
+#pragma omp simd
+                for (size_type j = 0; j < num_cols; ++j) {
+                    c(global_row, j) = row_acc_vals[j];
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SELLP_SPMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmm(std::shared_ptr<const OmpExecutor> exec,
+                   matrix::view::dense<const ValueType> alpha,
+                   matrix::view::sellp<const ValueType, const IndexType> a,
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
+{
+    const auto slice_lengths = a.slice_lengths;
+    const auto slice_sets = a.slice_sets;
+    const auto slice_size = a.slice_size;
+    const auto num_rows = a.size[0];
+    const auto num_cols = c.size[1];
+    const auto slice_num = ceildiv(num_rows + slice_size - 1, slice_size);
+    const auto alpha_val = alpha(0, 0);
+    const auto beta_val = beta(0, 0);
+
+#pragma omp parallel
+    {
+        array<ValueType> row_acc{exec, num_cols};
+        auto* row_acc_vals = row_acc.get_data();
+
+#pragma omp for collapse(2) schedule(static)
+        for (size_type slice = 0; slice < slice_num; ++slice) {
+            for (size_type row = 0; row < slice_size; ++row) {
+                const auto global_row = slice * slice_size + row;
+                if (global_row >= num_rows) {
+                    continue;
+                }
+                const auto slice_begin = slice_sets[slice];
+                const auto slice_length = slice_lengths[slice];
+                std::fill_n(row_acc_vals, num_cols, zero<ValueType>());
+                for (size_type idx = 0; idx < slice_length; ++idx) {
+                    const auto val = a.val_at(row, slice_begin, idx);
+                    const auto col = a.col_at(row, slice_begin, idx);
+                    if (col == invalid_index<IndexType>()) {
+                        continue;
+                    }
+#pragma omp simd
+                    for (size_type j = 0; j < num_cols; ++j) {
+                        row_acc_vals[j] += val * b(col, j);
+                    }
+                }
+                if (is_zero(beta_val)) {
+#pragma omp simd
+                    for (size_type j = 0; j < num_cols; ++j) {
+                        c(global_row, j) = alpha_val * row_acc_vals[j];
+                    }
+                } else {
+#pragma omp simd
+                    for (size_type j = 0; j < num_cols; ++j) {
+                        c(global_row, j) = alpha_val * row_acc_vals[j] +
+                                           beta_val * c(global_row, j);
+                    }
+                }
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SELLP_ADVANCED_SPMM_KERNEL);
 
 
 }  // namespace sellp
