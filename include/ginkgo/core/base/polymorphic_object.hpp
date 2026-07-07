@@ -421,13 +421,13 @@ protected:
     {
         self()->template log<log::Logger::polymorphic_object_copy_started>(
             self()->get_executor().get(),
-            dynamic_cast<const PolymorphicObject*>(this),
-            dynamic_cast<const PolymorphicObject*>(other));
+            dynamic_cast<const PolymorphicObject*>(other),
+            dynamic_cast<const PolymorphicObject*>(this));
         as<ConvertibleTo<ConcreteType>>(other)->convert_to(self());
         self()->template log<log::Logger::polymorphic_object_copy_completed>(
             self()->get_executor().get(),
-            dynamic_cast<const PolymorphicObject*>(this),
-            dynamic_cast<const PolymorphicObject*>(other));
+            dynamic_cast<const PolymorphicObject*>(other),
+            dynamic_cast<const PolymorphicObject*>(this));
         return this;
     }
 
@@ -435,13 +435,13 @@ protected:
     {
         self()->template log<log::Logger::polymorphic_object_copy_started>(
             self()->get_executor().get(),
-            dynamic_cast<const PolymorphicObject*>(this),
-            dynamic_cast<const PolymorphicObject*>(other.get()));
+            dynamic_cast<const PolymorphicObject*>(other.get()),
+            dynamic_cast<const PolymorphicObject*>(this));
         as<ConvertibleTo<ConcreteType>>(other.get())->convert_to(self());
         self()->template log<log::Logger::polymorphic_object_copy_completed>(
             self()->get_executor().get(),
-            dynamic_cast<const PolymorphicObject*>(this),
-            dynamic_cast<const PolymorphicObject*>(other.get()));
+            dynamic_cast<const PolymorphicObject*>(other.get()),
+            dynamic_cast<const PolymorphicObject*>(this));
         return this;
     }
 

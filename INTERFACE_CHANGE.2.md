@@ -33,14 +33,24 @@ auto ic = preconditioner::Ic<double>::build().on(exec);
 You can provide any `LinOpFactory` to `.with_l_solver()`.
 
 The same applies to `preconditioner::Ilu`, except that the solver for both the lower triangular and upper triangular part can be provided.
+# Removed Interface
+## Clone is no longer available by default in Ginkgo Classes
+Previously, Ginkgo provides `clone` to any class inherited from `PolymorphicObject` (or `EnablePolymorphicObject`).
+We decide to move `clone` related function from default requirement to optional feature via `Cloneable` class. (see changed interface for more details)
+That means `obj->clone(...)` might throw compile-time error now when the class does not support `clone`.
+
+Except for the matrix, vector, or utilities like partition, the classes under solver/preconditioner/factorization... do not have the clone now.
+If users previously rely on calling `source->clone([exec,] target)`, please use `auto target = gko::clone([exec,] source)`. 
+`gko::clone` can adapt whether the class has clone natively or is `Cloneable`. If no clone is supported, it will throw an runtime exception.
+
+Factory does not support clone, either. 
+Users, who want to create the same factory for different executors, please create a factory without specifying executor in the compenents' factory.
+
 
 # Changed Interface
-
 ## Clone related function is not longer belonging to PolymorphicObject [#2005](https://github.com/ginkgo-project/ginkgo/pull/2005)
-Previously, Ginkgo provides `clone` to any class inherited from PolymorphicObject (or EnablePolymorphicObject).
-We decide to move `clone` related function from default requirement to optional feature via `Cloneable` class.
+For those classes supporting clone, the clone is still available under concreate type or via `Cloneable` class.
 Users can use `as<ConcreteType>(as<Clonable>(pointer)->clone())` or `as<ConcreteType>(as<gko::Clonable>(pointer)->clone(exec))` to have the clone object when the pointer is base type like `LinOp`.
 If the object is the concrete type like Dense and Csr, `pointer->clone()` and `pointer->clone(exec)` works the same as previous version.
-Moreover, we still provide `gko::clone([exec,] pointer)` to deal with all cases, which return the same type as input but throw an exception when it is not `Cloneable`.
-If Users have their own class inherit from something like `EnableLinOp`, users only need to inherit from `LinOp` for apply function and optionally inherit from `EnableCloneable<ConcreteType>` for clone function.
-Matrix format, Vector, Partition, and etc are cloneable. Factory, Solvers, and Preconditioner are not cloneable now.
+
+If Users have their own class inherit from something like `EnableLinOp`, users only need to inherit from `LinOp` for `apply` function and optionally inherit from `EnableCloneable<ConcreteType>` for `clone` function.

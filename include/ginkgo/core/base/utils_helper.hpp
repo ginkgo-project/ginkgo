@@ -97,32 +97,32 @@ using pointee =
 
 
 template <typename T, typename = void>
-struct is_cloneable_impl : std::false_type {};
+struct has_clone_impl : std::false_type {};
 
 template <typename T>
-struct is_cloneable_impl<T, std::void_t<decltype(std::declval<T>().clone())>>
+struct has_clone_impl<T, std::void_t<decltype(std::declval<T>().clone())>>
     : std::true_type {};
 
 template <typename T>
 constexpr bool is_cloneable()
 {
-    return is_cloneable_impl<std::decay_t<T>>::value;
+    return has_clone_impl<std::decay_t<T>>::value;
 }
 
 
 template <typename T, typename = void>
-struct is_cloneable_to_impl : std::false_type {};
+struct has_clone_to_impl : std::false_type {};
 
 template <typename T>
-struct is_cloneable_to_impl<
-    T, std::void_t<decltype(std::declval<T>().clone(
-           std::declval<std::shared_ptr<const Executor>>()))>>
+struct has_clone_to_impl<T,
+                         std::void_t<decltype(std::declval<T>().clone(
+                             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
 template <typename T>
-constexpr bool is_cloneable_to()
+constexpr bool has_clone_to()
 {
-    return is_cloneable_to_impl<std::decay_t<T>>::value;
+    return has_clone_to_impl<std::decay_t<T>>::value;
 }
 
 
@@ -459,8 +459,9 @@ inline detail::cloned_type<Pointer> clone(const Pointer& p)
  *       LinOp::clone() is that this one preserves the static type of the
  *       object.
  */
-template <typename Pointer, std::enable_if_t<detail::is_cloneable_to<
-                                detail::pointee<Pointer>>()>* = nullptr>
+template <typename Pointer,
+          std::enable_if_t<detail::has_clone_to<detail::pointee<Pointer>>()>* =
+              nullptr>
 inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
                                           const Pointer& p)
 {
@@ -473,7 +474,7 @@ inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
  * when the class does not have clone, try Cloneable
  */
 template <typename Pointer,
-          std::enable_if_t<!detail::is_cloneable<detail::pointee<Pointer>>()>* =
+          std::enable_if_t<!detail::has_clone_to<detail::pointee<Pointer>>()>* =
               nullptr>
 inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
                                           const Pointer& p)
