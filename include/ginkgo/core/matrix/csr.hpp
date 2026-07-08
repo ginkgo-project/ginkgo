@@ -69,14 +69,14 @@ enum class spmv_strategy {
      * load_balance is the strategy trying to distribute the work equally in
      * terms of the number of matrix entries. More detail can be checked in
      * Goran and Enrique: Balanced CSR sparse matrix-vector product on graphics
-     * processors.
+     * processors (doi: 10.1007/978-3-319-64203-1_50).
      */
     load_balance,
     /**
      * merge_path is the strategy trying to distribute the work equally in terms
      * of the number of matrix entries and row pointers. More detail can be
      * checked in Merrill and Garland: Merge-Based Parallel Sparse Matrix-Vector
-     * Multiplication.
+     * Multiplication (doi: 10.1109/SC.2016.57).
      */
     merge_path,
     /**
@@ -87,36 +87,16 @@ enum class spmv_strategy {
     /**
      * sparselib is the strategy calling the backend sparse library
      * implementation when it is supported.
+     *
+     * - reference/omp: ginkgo's classical spmv
+     * - cuda: cuSPARSE
+     * - hip: hipSPARSE
+     * - dpcpp: oneMKL
      */
     sparselib
 };
 
 
-namespace detail {
-
-
-/**
- * Returns the actual strategy passed. When the strategy is automatical, this
- * returns the actual underlying strategy. This returns the same strategy as
- * the input when the input is not automatical.
- *
- * @param exec  Executor associated to the matrix
- * @param strategy  the strategy of CSR
- * @param num_stored_elements  the number of stored elements
- * @param max_nnz_per_row  the maximum number of stored elements per row
- *
- * @return the acutal strategy
- *
- * @note Users should not use this function. This is only make the function
- * public for test
- */
-spmv_strategy get_actual_strategy(std::shared_ptr<const Executor> exec,
-                                  spmv_strategy strategy,
-                                  size_type num_stored_elements,
-                                  size_type max_nnz_per_row);
-
-
-}  // namespace detail
 }  // namespace csr
 
 
@@ -1009,7 +989,7 @@ public:
      * @param col_idxs  the column index array of the matrix
      * @param row_ptrs  the row pointer array of the matrix
      * @param strategy  the strategy the matrix uses for SpMV operations,
-     * default is automatical.
+     *                  default is automatical.
      * @returns A smart pointer to the constant matrix wrapping the input arrays
      *          (if they reside on the same executor as the matrix) or a copy of
      *          these arrays on the correct executor.
@@ -1153,7 +1133,7 @@ protected:
      * returns the actual underlying strategy. This returns the same strategy as
      * `get_strategy` when the strategy is not automatical.
      *
-     * @return the acutal strategy
+     * @return the actual strategy
      */
     csr::spmv_strategy get_actual_strategy() const noexcept;
 

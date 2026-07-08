@@ -58,8 +58,9 @@ If the object is the concrete type like Dense and Csr, `pointer->clone()` and `p
 If Users have their own class inherit from something like `EnableLinOp`, users only need to inherit from `LinOp` for `apply` function and optionally inherit from `EnableCloneable<ConcreteType>` for `clone` function.
 
 ## Csr create function with the strategy
-No csr strategy with the class inheritence.
-`std::make_shared<Csr::<strategy_type>>(...)` -> `gko::matrix::csr::spmv_strategy::<strategy_name>`
-(currently still allow basic usage on the strategy shared pointer with deprecation warning).  
-`csr->get_strategy()` return enum class not shared_ptr.  
-No manual setup for load_balance strategy. (If you need it, please let us know)
+The `Csr::strategy` classes are deprecated.
+To create a Csr matrix with a specific strategy, use the enum `gko::matrix::csr::spmv_strategy` instead.
+For example, `std::make_shared<Csr<>>(exec, std::make_shared<Csr<>::classical>())` is equivalent to
+`std::make_shared<Csr<>>(exec, csr::spmv_strategy::classical)`. 
+`csr->get_strategy` will now return the enum value instead of a shared_ptr.
+**Note:** It is not possible to have a custom load_balance strategy with the new interface. (Please let us know if you need it)

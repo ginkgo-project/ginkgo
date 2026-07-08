@@ -32,6 +32,7 @@
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csr_strategy.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/permutation.hpp"
@@ -117,7 +118,7 @@ spmv_strategy get_actual_strategy(std::shared_ptr<const Executor> exec,
                                   size_type num_stored_elements,
                                   size_type max_nnz_per_row)
 {
-    if (strategy != csr::spmv_strategy::automatical) {
+    if (strategy != spmv_strategy::automatical) {
         return strategy;
     }
     // If the number of stored elements is larger than <nnz_limit> or the
@@ -152,12 +153,12 @@ spmv_strategy get_actual_strategy(std::shared_ptr<const Executor> exec,
         row_len_limit = amd_row_len_limit;
     } else if (!std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
         // we do not have load balance on reference and omp executor.
-        return csr::spmv_strategy::classical;
+        return spmv_strategy::classical;
     }
     if (num_stored_elements > nnz_limit || max_nnz_per_row > row_len_limit) {
-        return csr::spmv_strategy::load_balance;
+        return spmv_strategy::load_balance;
     } else {
-        return csr::spmv_strategy::classical;
+        return spmv_strategy::classical;
     }
 }
 
@@ -295,7 +296,7 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
       srow_(exec)
 {
     row_ptrs_.fill(0);
-    // this->make_srow();
+    this->make_srow();
 }
 
 
@@ -349,7 +350,6 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         strategy_ = other.strategy_;
         if (this->get_executor() != other.get_executor()) {
             this->make_srow();
-            // detail::strategy_rebuild_helper(this);
         }
         // restore other invariant
         other.row_ptrs_.resize_and_reset(1);
