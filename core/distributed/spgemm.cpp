@@ -6,12 +6,15 @@
 #include <vector>
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/components/format_conversion_kernels.hpp"
+#include "core/distributed/matrix_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
 #include "ginkgo/core/distributed/matrix.hpp"
 
@@ -23,6 +26,9 @@ namespace {
 
 
 GKO_REGISTER_OPERATION(local_spgemm, csr::spgemm);
+GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
+GKO_REGISTER_OPERATION(separate_diag_off_diag_local_rows,
+                       distributed_matrix::separate_diag_off_diag_local_rows);
 
 
 // Turns a per-rank counts vector into the corresponding exclusive-prefix-sum
@@ -446,117 +452,64 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(
                                     c_local.get()));
     }
 
-    // Split c_local into C's diagonal (locally-owned columns) and off-diagonal
-    // (remote columns) CSR blocks. c_local's rows are already C's local rows,
-    // so their row structure carries over directly.
-    auto c_local_host = make_temporary_clone(host, c_local.get());
-    auto c_nrows = c_local_host->get_size()[0];
-    auto c_nnz = c_local_host->get_num_stored_elements();
-    auto c_col_idxs_ptr = c_local_host->get_const_col_idxs();
-    auto c_vals_ptr = c_local_host->get_const_values();
-
+    // Reassemble the output entirely on the executor. c_local has this rank's
+    // local rows with global columns; separate_diag_off_diag_local_rows splits
+    // it into c's diagonal (local columns) and off-diagonal (remote columns)
+    // blocks, from which we build c's column index map and row gatherer -- all
+    // with device kernels, avoiding any host round-trip of the nonzeros.
     auto a_row_partition = this->get_row_partition();
     GKO_ASSERT(a_row_partition != nullptr);
     auto b_col_partition = b_ptr->imap_.get_partition();
+    auto c_num_local_rows = c_local->get_size()[0];
+    auto c_nnz = c_local->get_num_stored_elements();
 
-    // col_to_local maps an owned global column to its local index, or -1 if
-    // the column belongs to another rank.
-    auto col_part_host = b_col_partition->clone(host);
-    auto col_num_ranges = col_part_host->get_num_ranges();
-    auto col_bounds = col_part_host->get_range_bounds();
-    auto col_part_ids = col_part_host->get_part_ids();
-    auto col_starts = col_part_host->get_range_starting_indices();
-    std::vector<size_type> owned_ranges;
-    for (size_type r = 0; r < col_num_ranges; ++r) {
-        if (col_part_ids[r] == rank) {
-            owned_ranges.push_back(r);
-        }
-    }
-    auto col_to_local = [&](GlobalIndexType g) -> LocalIndexType {
-        for (auto r : owned_ranges) {
-            if (g >= col_bounds[r] && g < col_bounds[r + 1]) {
-                return static_cast<LocalIndexType>(col_starts[r]) +
-                       static_cast<LocalIndexType>(g - col_bounds[r]);
-            }
-        }
-        return LocalIndexType{-1};
-    };
+    // Per-nonzero local row index (int64 ptrs -> int32 idxs). The split kernel
+    // reads c_local's columns/values read-only, so view them in place rather
+    // than copying.
+    array<LocalIndexType> local_rows(exec, c_nnz);
+    exec->run(make_convert_ptrs_to_idxs(c_local->get_const_row_ptrs(),
+                                        c_num_local_rows,
+                                        local_rows.get_data()));
+    auto global_cols = make_array_view(exec, c_nnz, c_local->get_col_idxs());
+    auto global_vals = make_array_view(exec, c_nnz, c_local->get_values());
 
-    // Classify each entry (local column index, or -1 if remote) and count the
-    // per-row diagonal/off-diagonal entries to build the block row pointers.
-    array<LocalIndexType> entry_local_col(host, c_nnz);
-    auto entry_local_col_ptr = entry_local_col.get_data();
-    array<LocalIndexType> diag_row_ptrs_arr(host, c_nrows + 1);
-    array<LocalIndexType> off_row_ptrs_arr(host, c_nrows + 1);
-    auto diag_row_ptrs = diag_row_ptrs_arr.get_data();
-    auto off_row_ptrs = off_row_ptrs_arr.get_data();
-    auto c_row_ptrs = c_local_host->get_const_row_ptrs();
-    diag_row_ptrs[0] = 0;
-    off_row_ptrs[0] = 0;
-    for (size_type row = 0; row < c_nrows; ++row) {
-        LocalIndexType diag_count = 0;
-        LocalIndexType off_count = 0;
-        for (auto k = c_row_ptrs[row]; k < c_row_ptrs[row + 1]; ++k) {
-            const auto lc = col_to_local(c_col_idxs_ptr[k]);
-            entry_local_col_ptr[k] = lc;
-            if (lc >= 0) {
-                ++diag_count;
-            } else {
-                ++off_count;
-            }
-        }
-        diag_row_ptrs[row + 1] = diag_row_ptrs[row] + diag_count;
-        off_row_ptrs[row + 1] = off_row_ptrs[row] + off_count;
-    }
-    const auto diag_nnz = static_cast<size_type>(diag_row_ptrs[c_nrows]);
-    const auto off_nnz = static_cast<size_type>(off_row_ptrs[c_nrows]);
+    // Split into diagonal (local columns) and off-diagonal (global columns)
+    // COO blocks on the executor, keeping the local rows.
+    array<LocalIndexType> diag_rows(exec);
+    array<LocalIndexType> diag_cols(exec);
+    array<ValueType> diag_vals(exec);
+    array<LocalIndexType> off_rows(exec);
+    array<GlobalIndexType> off_global_cols(exec);
+    array<ValueType> off_vals(exec);
+    auto b_col_partition_dev = make_temporary_clone(exec, b_col_partition);
+    exec->run(make_separate_diag_off_diag_local_rows(
+        local_rows, global_cols, global_vals, b_col_partition_dev.get(), rank,
+        diag_rows, diag_cols, diag_vals, off_rows, off_global_cols, off_vals));
 
-    // Scatter each entry into the diagonal (local columns) or off-diagonal
-    // (global columns, mapped to local below) block arrays.
-    array<LocalIndexType> diag_cols(host, diag_nnz);
-    array<ValueType> diag_vals(host, diag_nnz);
-    array<GlobalIndexType> off_global_cols(host, off_nnz);
-    array<ValueType> off_vals(host, off_nnz);
-    auto diag_cols_ptr = diag_cols.get_data();
-    auto diag_vals_ptr = diag_vals.get_data();
-    auto off_global_cols_ptr = off_global_cols.get_data();
-    auto off_vals_ptr = off_vals.get_data();
-    size_type di = 0, oi = 0;
-    for (size_type k = 0; k < c_nnz; ++k) {
-        const auto lc = entry_local_col_ptr[k];
-        if (lc >= 0) {
-            diag_cols_ptr[di] = lc;
-            diag_vals_ptr[di] = c_vals_ptr[k];
-            ++di;
-        } else {
-            off_global_cols_ptr[oi] = c_col_idxs_ptr[k];
-            off_vals_ptr[oi] = c_vals_ptr[k];
-            ++oi;
-        }
-    }
-
-    // Build C's column index map from the off-diagonal columns, assemble its
-    // diagonal/off-diagonal blocks, and rebuild its row gatherer. The index
-    // map is built and queried on exec, so provide the columns there.
-    auto off_global_cols_dev = make_temporary_clone(exec, &off_global_cols);
+    // C's column index map from the off-diagonal global columns, then map them
+    // to non-local indices.
     c_ptr->set_size(
         dim<2>{a_row_partition->get_size(), b_col_partition->get_size()});
     c_ptr->imap_ = index_map<LocalIndexType, GlobalIndexType>(
-        exec, b_col_partition, rank, *off_global_cols_dev);
+        exec, b_col_partition, rank, off_global_cols);
     c_ptr->row_partition_ = a_row_partition;
     auto off_local_cols =
-        c_ptr->imap_.map_to_local(*off_global_cols_dev, index_space::non_local);
+        c_ptr->imap_.map_to_local(off_global_cols, index_space::non_local);
 
     const auto num_local_cols =
-        static_cast<size_type>(col_part_host->get_part_size(rank));
+        static_cast<size_type>(b_col_partition->get_part_size(rank));
     const auto num_remote_cols =
         c_ptr->imap_.get_remote_global_idxs().get_size();
-    c_ptr->diag_mtx_ = matrix::Csr<ValueType, LocalIndexType>::create(
-        exec, dim<2>{c_nrows, num_local_cols}, std::move(diag_vals),
-        std::move(diag_cols), std::move(diag_row_ptrs_arr));
-    c_ptr->off_diag_mtx_ = matrix::Csr<ValueType, LocalIndexType>::create(
-        exec, dim<2>{c_nrows, num_remote_cols}, std::move(off_vals),
-        std::move(off_local_cols), std::move(off_row_ptrs_arr));
+    device_matrix_data<ValueType, LocalIndexType> diag_data{
+        exec, dim<2>{c_num_local_rows, num_local_cols}, std::move(diag_rows),
+        std::move(diag_cols), std::move(diag_vals)};
+    device_matrix_data<ValueType, LocalIndexType> off_data{
+        exec, dim<2>{c_num_local_rows, num_remote_cols}, std::move(off_rows),
+        std::move(off_local_cols), std::move(off_vals)};
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(c_ptr->diag_mtx_)
+        ->read(std::move(diag_data));
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(c_ptr->off_diag_mtx_)
+        ->read(std::move(off_data));
 
     c_ptr->row_gatherer_ = RowGatherer<LocalIndexType>::create(
         c_ptr->row_gatherer_->get_executor(),

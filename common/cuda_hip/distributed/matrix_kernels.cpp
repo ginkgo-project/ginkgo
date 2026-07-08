@@ -198,6 +198,136 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
 
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+struct local_rows_input_type {
+    LocalIndexType row;
+    GlobalIndexType col;
+    ValueType val;
+    size_type col_range;
+
+    __forceinline__ __device__ __host__ local_rows_input_type(
+        thrust::tuple<LocalIndexType, GlobalIndexType, ValueType, size_type> t)
+        : row(thrust::get<0>(t)),
+          col(thrust::get<1>(t)),
+          val(thrust::get<2>(t)),
+          col_range(thrust::get<3>(t))
+    {}
+};
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void separate_diag_off_diag_local_rows(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<LocalIndexType>& row_idxs,
+    const array<GlobalIndexType>& col_idxs, const array<ValueType>& values,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        col_partition,
+    comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& off_diag_row_idxs,
+    array<GlobalIndexType>& off_diag_col_idxs,
+    array<ValueType>& off_diag_values)
+{
+    auto col_part_ids = col_partition->get_part_ids();
+    const auto* col_range_bounds = col_partition->get_range_bounds();
+    const auto* col_range_starting_indices =
+        col_partition->get_range_starting_indices();
+    const auto num_col_ranges = col_partition->get_num_ranges();
+    const auto num_input_elements = row_idxs.get_size();
+
+    auto policy = thrust_policy(exec);
+
+    // precompute the column range id of each input element
+    auto input_col_idxs = col_idxs.get_const_data();
+    array<size_type> col_range_ids{exec, num_input_elements};
+    thrust::upper_bound(policy, col_range_bounds + 1,
+                        col_range_bounds + num_col_ranges + 1, input_col_idxs,
+                        input_col_idxs + num_input_elements,
+                        col_range_ids.get_data());
+
+    // count number of diag<0> and off-diag<1> elements.
+    auto num_elements_pair = thrust::transform_reduce(
+        policy, col_range_ids.get_const_data(),
+        col_range_ids.get_const_data() + num_input_elements,
+        [local_part,
+         col_part_ids] __host__ __device__(const size_type col_range_id) {
+            bool is_diag_entry = col_part_ids[col_range_id] == local_part;
+            return thrust::make_tuple(
+                is_diag_entry ? size_type{1} : size_type{0},
+                is_diag_entry ? size_type{0} : size_type{1});
+        },
+        thrust::make_tuple(size_type{}, size_type{}),
+        [] __host__ __device__(const thrust::tuple<size_type, size_type>& a,
+                               const thrust::tuple<size_type, size_type>& b) {
+            return thrust::make_tuple(thrust::get<0>(a) + thrust::get<0>(b),
+                                      thrust::get<1>(a) + thrust::get<1>(b));
+        });
+    auto num_diag_elements = thrust::get<0>(num_elements_pair);
+    auto num_off_diag_elements = thrust::get<1>(num_elements_pair);
+
+    // define global-to-local map for column indices
+    auto map_to_local_col =
+        [col_range_bounds, col_range_starting_indices] __host__ __device__(
+            const GlobalIndexType col, const size_type range_id) {
+            return static_cast<LocalIndexType>(col -
+                                               col_range_bounds[range_id]) +
+                   col_range_starting_indices[range_id];
+        };
+
+    using input_type = local_rows_input_type<device_type<ValueType>,
+                                             LocalIndexType, GlobalIndexType>;
+    auto input_it = thrust::make_zip_iterator(
+        thrust::make_tuple(row_idxs.get_const_data(), col_idxs.get_const_data(),
+                           as_device_type(values.get_const_data()),
+                           col_range_ids.get_const_data()));
+
+    // copy and transform diag entries into arrays. the row is already local
+    // and passed through unchanged, only the column is mapped to a local
+    // index
+    diag_row_idxs.resize_and_reset(num_diag_elements);
+    diag_col_idxs.resize_and_reset(num_diag_elements);
+    diag_values.resize_and_reset(num_diag_elements);
+    auto diag_it = thrust::make_transform_iterator(
+        input_it,
+        [map_to_local_col] __host__ __device__(const input_type input) {
+            auto local_col = map_to_local_col(input.col, input.col_range);
+            return thrust::make_tuple(input.row, local_col, input.val);
+        });
+    thrust::copy_if(policy, diag_it, diag_it + num_input_elements,
+                    col_range_ids.get_const_data(),
+                    thrust::make_zip_iterator(thrust::make_tuple(
+                        diag_row_idxs.get_data(), diag_col_idxs.get_data(),
+                        as_device_type(diag_values.get_data()))),
+                    [local_part, col_part_ids] __host__ __device__(
+                        const size_type col_range_id) {
+                        return col_part_ids[col_range_id] == local_part;
+                    });
+
+
+    // copy off-diag entries into arrays. this keeps global column indices
+    off_diag_row_idxs.resize_and_reset(num_off_diag_elements);
+    off_diag_col_idxs.resize_and_reset(num_off_diag_elements);
+    off_diag_values.resize_and_reset(num_off_diag_elements);
+    auto off_diag_it = thrust::make_transform_iterator(
+        input_it, [] __host__ __device__(const input_type input) {
+            return thrust::make_tuple(input.row, input.col, input.val);
+        });
+    thrust::copy_if(
+        policy, off_diag_it, off_diag_it + num_input_elements,
+        col_range_ids.get_const_data(),
+        thrust::make_zip_iterator(thrust::make_tuple(
+            off_diag_row_idxs.get_data(), off_diag_col_idxs.get_data(),
+            as_device_type(off_diag_values.get_data()))),
+        [local_part,
+         col_part_ids] __host__ __device__(const size_type col_range_id) {
+            return col_part_ids[col_range_id] != local_part;
+        });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG_LOCAL_ROWS);
+
+
 }  // namespace distributed_matrix
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
