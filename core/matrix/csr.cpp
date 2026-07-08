@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -91,9 +91,10 @@ GKO_REGISTER_OPERATION(inplace_absolute_array,
                        components::inplace_absolute_array);
 GKO_REGISTER_OPERATION(outplace_absolute_array,
                        components::outplace_absolute_array);
-GKO_REGISTER_OPERATION(scale, csr::scale);
-GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
-GKO_REGISTER_OPERATION(add_scaled_identity, csr::add_scaled_identity);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(scale, csr::scale);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(inv_scale, csr::inv_scale);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(add_scaled_identity,
+                                          csr::add_scaled_identity);
 GKO_REGISTER_OPERATION(check_diagonal_entries,
                        csr::check_diagonal_entries_exist);
 GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);

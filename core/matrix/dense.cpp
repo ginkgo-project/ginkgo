@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,25 +41,28 @@ namespace {
 
 
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(simple_apply, dense::simple_apply);
-GKO_REGISTER_OPERATION(apply, dense::apply);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(apply, dense::apply);
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(copy, dense::copy);
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(fill, dense::fill);
-GKO_REGISTER_OPERATION(scale, dense::scale);
-GKO_REGISTER_OPERATION(inv_scale, dense::inv_scale);
-GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
-GKO_REGISTER_OPERATION(sub_scaled, dense::sub_scaled);
-GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
-GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(scale, dense::scale);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(inv_scale, dense::inv_scale);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(add_scaled, dense::add_scaled);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(sub_scaled, dense::sub_scaled);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(add_scaled_diag,
+                                          dense::add_scaled_diag);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(sub_scaled_diag,
+                                          dense::sub_scaled_diag);
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_dot,
                                           dense::compute_dot_dispatch);
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_conj_dot,
                                           dense::compute_conj_dot_dispatch);
 GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_norm2,
                                           dense::compute_norm2_dispatch);
-GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
-GKO_REGISTER_OPERATION(compute_mean, dense::compute_mean);
-GKO_REGISTER_OPERATION(compute_squared_norm2, dense::compute_squared_norm2);
-GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_norm1, dense::compute_norm1);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_mean, dense::compute_mean);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_squared_norm2,
+                                          dense::compute_squared_norm2);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(compute_sqrt, dense::compute_sqrt);
 GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
                        hybrid::compute_coo_row_ptrs);
@@ -103,7 +106,8 @@ GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
 GKO_REGISTER_OPERATION(make_complex, dense::make_complex);
 GKO_REGISTER_OPERATION(get_real, dense::get_real);
 GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
-GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(add_scaled_identity,
+                                          dense::add_scaled_identity);
 
 
 }  // anonymous namespace
