@@ -170,7 +170,7 @@ auto create_matrix_type(Args&&... args)
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>)>>
     matrix_type_factory{
-        {"csr", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::automatical)},
+        {"csr", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::automatic)},
         {"csri", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::load_balance)},
         {"csrm", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::merge_path)},
         {"csrc", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::classical)},

@@ -16,9 +16,9 @@ namespace detail {
 
 
 /**
- * Returns the actual strategy passed. When the strategy is automatical, this
+ * Returns the actual strategy passed. When the strategy is automatic, this
  * returns the actual underlying strategy. This returns the same strategy as
- * the input when the input is not automatical.
+ * the input when the input is not automatic.
  *
  * @param exec  Executor associated to the matrix
  * @param strategy  the strategy of CSR

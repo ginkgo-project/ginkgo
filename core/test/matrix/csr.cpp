@@ -42,7 +42,7 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
-        // need set strategy after filling the data, but the automatical
+        // need set strategy after filling the data, but the automatic
         // strategy has nothing on reference.
         mtx->set_strategy(mtx->get_strategy());
     }
@@ -181,9 +181,9 @@ TYPED_TEST(Csr, CanBeCreatedFromDeprecatedStrategy)
         Mtx::create(this->exec, std::make_shared<typename Mtx::cusparse>());
 
     ASSERT_EQ(mtx_automatical->get_strategy(),
-              gko::matrix::csr::spmv_strategy::automatical);
+              gko::matrix::csr::spmv_strategy::automatic);
     ASSERT_EQ(mtx_nullptr->get_strategy(),
-              gko::matrix::csr::spmv_strategy::automatical);
+              gko::matrix::csr::spmv_strategy::automatic);
     ASSERT_EQ(mtx_classical->get_strategy(),
               gko::matrix::csr::spmv_strategy::classical);
     ASSERT_EQ(mtx_merge_path->get_strategy(),

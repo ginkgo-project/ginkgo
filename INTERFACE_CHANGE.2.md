@@ -63,4 +63,5 @@ To create a Csr matrix with a specific strategy, use the enum `gko::matrix::csr:
 For example, `std::make_shared<Csr<>>(exec, std::make_shared<Csr<>::classical>())` is equivalent to
 `std::make_shared<Csr<>>(exec, csr::spmv_strategy::classical)`. 
 `csr->get_strategy` will now return the enum value instead of a shared_ptr.
+We use `automatic` in enum not `automatical` like old shared_ptr usage.
 **Note:** It is not possible to have a custom load_balance strategy with the new interface. (Please let us know if you need it)

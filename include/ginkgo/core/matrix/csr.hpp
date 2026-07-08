@@ -60,11 +60,11 @@ namespace csr {
  */
 enum class spmv_strategy {
     /**
-     * automatical is the strategy choosing between load_balance and classical
+     * automatic is the strategy choosing between load_balance and classical
      * based on the maximum number of entries per row and the number of entries
      * of the matrix.
      */
-    automatical,
+    automatic,
     /**
      * load_balance is the strategy trying to distribute the work equally in
      * terms of the number of matrix entries. More detail can be checked in
@@ -241,7 +241,7 @@ public:
 
     class [[deprecated(
         "please use enum "
-        "gko::matrix::csr::spmv_strategy::automatical")]] automatical
+        "gko::matrix::csr::spmv_strategy::automatic")]] automatical
         : public strategy_type{
             public : automatical(std::shared_ptr<const Executor>){}
         };
@@ -925,14 +925,14 @@ public:
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      * @param strategy  the strategy the matrix uses for SpMV operations,
-     * default is automatical.
+     *                  default is automatic.
      *
      * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Csr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size = {},
         size_type num_nonzeros = {},
-        csr::spmv_strategy strategy = csr::spmv_strategy::automatical);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
     /**
      * Creates a CSR matrix from already allocated (and initialized) row
@@ -944,7 +944,7 @@ public:
      * @param col_idxs  array of column indexes
      * @param row_ptrs  array of row pointers
      * @param strategy  the strategy the matrix uses for SpMV operations,
-     * default is automatical.
+     *                  default is automatic.
      *
      * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
      *       an array of IndexType, IndexType and ValueType, respectively, or
@@ -958,7 +958,7 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
         array<index_type> row_ptrs,
-        csr::spmv_strategy strategy = csr::spmv_strategy::automatical);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
     /**
      * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
@@ -989,7 +989,7 @@ public:
      * @param col_idxs  the column index array of the matrix
      * @param row_ptrs  the row pointer array of the matrix
      * @param strategy  the strategy the matrix uses for SpMV operations,
-     *                  default is automatical.
+     *                  default is automatic.
      * @returns A smart pointer to the constant matrix wrapping the input arrays
      *          (if they reside on the same executor as the matrix) or a copy of
      *          these arrays on the correct executor.
@@ -1001,7 +1001,7 @@ public:
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         gko::detail::const_array_view<IndexType>&& row_ptrs,
-        csr::spmv_strategy strategy = csr::spmv_strategy::automatical);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
     GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
@@ -1095,12 +1095,12 @@ public:
 protected:
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
         size_type num_nonzeros = {},
-        csr::spmv_strategy strategy = csr::spmv_strategy::automatical);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
         array<index_type> row_ptrs,
-        csr::spmv_strategy strategy = csr::spmv_strategy::automatical);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -1129,9 +1129,9 @@ protected:
     virtual void inv_scale_impl(const LinOp* alpha);
 
     /**
-     * Returns the actual strategy. When the strategy is automatical, this
+     * Returns the actual strategy. When the strategy is automatic, this
      * returns the actual underlying strategy. This returns the same strategy as
-     * `get_strategy` when the strategy is not automatical.
+     * `get_strategy` when the strategy is not automatic.
      *
      * @return the actual strategy
      */

@@ -118,7 +118,7 @@ spmv_strategy get_actual_strategy(std::shared_ptr<const Executor> exec,
                                   size_type num_stored_elements,
                                   size_type max_nnz_per_row)
 {
-    if (strategy != spmv_strategy::automatical) {
+    if (strategy != spmv_strategy::automatic) {
         return strategy;
     }
     // If the number of stored elements is larger than <nnz_limit> or the
@@ -226,7 +226,7 @@ csr::spmv_strategy get_strategy_enum(
 {
     if (strategy == nullptr ||
         std::dynamic_pointer_cast<typename Csr::automatical>(strategy)) {
-        return csr::spmv_strategy::automatical;
+        return csr::spmv_strategy::automatic;
     } else if (std::dynamic_pointer_cast<typename Csr::classical>(strategy)) {
         return csr::spmv_strategy::classical;
     } else if (std::dynamic_pointer_cast<typename Csr::merge_path>(strategy)) {
@@ -466,7 +466,7 @@ void Csr<ValueType, IndexType>::make_srow()
     };
 
     if (strategy_ == csr::spmv_strategy::load_balance ||
-        strategy_ == csr::spmv_strategy::automatical) {
+        strategy_ == csr::spmv_strategy::automatic) {
         srow_size = load_balance_size(this->get_num_stored_elements());
     }
     srow_.resize_and_reset(srow_size);

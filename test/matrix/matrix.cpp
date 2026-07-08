@@ -229,25 +229,25 @@ struct CsrWithLoadBalanceStrategy : CsrBase {
     }
 };
 
-struct CsrWithAutomaticalStrategy : CsrBase {
+struct CsrWithAutomaticStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
-        return matrix_type::create(
-            exec, size, 0, gko::matrix::csr::spmv_strategy::automatical);
+        return matrix_type::create(exec, size, 0,
+                                   gko::matrix::csr::spmv_strategy::automatic);
     }
 
     static void check_property(gko::ptr_param<const matrix_type> mtx)
     {
         ASSERT_EQ(mtx->get_strategy(),
-                  gko::matrix::csr::spmv_strategy::automatical);
+                  gko::matrix::csr::spmv_strategy::automatic);
     }
 
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         CsrBase::assert_empty_state(mtx);
         ASSERT_EQ(mtx->get_strategy(),
-                  gko::matrix::csr::spmv_strategy::automatical);
+                  gko::matrix::csr::spmv_strategy::automatic);
     }
 };
 
@@ -839,7 +839,7 @@ using MatrixTypes = ::testing::Types<
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
     defined(GKO_COMPILING_DPCPP)
     CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
-    CsrWithAutomaticalStrategy,
+    CsrWithAutomaticStrategy,
 #endif
     Ell,
 #ifdef GKO_COMPILING_OMP

@@ -381,9 +381,9 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithMergePath)
 }
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatic)
 {
-    set_up_apply_data<gko::matrix::csr::spmv_strategy::automatical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::automatic>();
 
     mtx->apply(y, expected);
     dmtx->apply(dy, dresult);
@@ -392,9 +392,9 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 }
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticalUnsorted)
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticUnsorted)
 {
-    set_up_apply_data<gko::matrix::csr::spmv_strategy::automatical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::automatic>();
     unsort_mtx();
 
     mtx->apply(y, expected);
@@ -448,13 +448,13 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 }
 
 
-TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
+TEST_F(Csr, OneAutomaticWorksWithDifferentMatrices)
 {
     if (std::dynamic_pointer_cast<const gko::OmpExecutor>(exec)) {
-        GTEST_SKIP() << "Csr does not have load balance under automatical on "
+        GTEST_SKIP() << "Csr does not have load balance under automatic on "
                         "OmpExecutor";
     }
-    auto automatical = gko::matrix::csr::spmv_strategy::automatical;
+    auto automatic = gko::matrix::csr::spmv_strategy::automatic;
 #ifdef GKO_COMPILING_CUDA
     int64_t nnz_limit = 1e6;
     int64_t row_len_limit = 1024;
@@ -485,8 +485,8 @@ TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
     auto load_balance_mtx_d = gko::clone(exec, load_balance_mtx);
     auto classical_mtx_d = gko::clone(exec, classical_mtx);
 
-    load_balance_mtx_d->set_strategy(automatical);
-    classical_mtx_d->set_strategy(automatical);
+    load_balance_mtx_d->set_strategy(automatic);
+    classical_mtx_d->set_strategy(automatic);
 
     EXPECT_EQ(gko::matrix::csr::detail::get_actual_strategy(
                   exec, load_balance_mtx_d->get_strategy(),
