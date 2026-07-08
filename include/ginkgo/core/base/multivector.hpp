@@ -9,6 +9,7 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
@@ -38,6 +39,20 @@ using supported_value_types =
                bfloat16, std::complex<bfloat16>
 #endif
                >;
+
+
+template <typename SourceValueType, typename TargetValueType>
+struct is_supported_conversion {
+    static constexpr bool value =
+        is_complex<SourceValueType>() == is_complex<TargetValueType>() ||
+        (is_complex<SourceValueType>() &&
+         std::is_same_v<SourceValueType, to_complex<TargetValueType>>);
+};
+
+template <typename SourceValueType, typename TargetValueType>
+constexpr bool is_supported_conversion_v =
+    is_supported_conversion<SourceValueType, TargetValueType>::value;
+
 
 class any_scalar : public syn::variant_from_tuple<supported_value_types> {
 public:
@@ -1378,24 +1393,12 @@ EnableMultiVector<ConcreteType>::as_precision_impl(precision p)
 {
     return std::visit(
         [this](auto v) -> detail::temporary_conversion<MultiVector> {
-            using source_value_type = typename ConcreteType::value_type;
             using target_value_type = std::decay_t<decltype(v)>;
-            if constexpr (is_complex<source_value_type>() ==
-                          is_complex<target_value_type>()) {
+            if constexpr (is_supported_conversion_v<value_type,
+                                                    target_value_type>) {
                 return detail::temporary_conversion<MultiVector>::
                     create_from_derived(
                         self()->template as_precision<target_value_type>());
-            } else if constexpr (!is_complex<target_value_type>() &&
-                                 std::is_same_v<
-                                     remove_complex<source_value_type>,
-                                     target_value_type>) {
-                // The as_precision is a noop, but necessary to convert
-                // the real view to a temporary_conversion
-                return detail::temporary_conversion<MultiVector>::
-                    create_from_derived(
-                        self()
-                            ->create_real_view()
-                            ->template as_precision<target_value_type>());
             } else {
                 GKO_NOT_IMPLEMENTED;
             }
@@ -1410,24 +1413,12 @@ EnableMultiVector<ConcreteType>::as_precision_impl(precision p) const
 {
     return std::visit(
         [this](auto v) -> detail::temporary_conversion<const MultiVector> {
-            using source_value_type = typename ConcreteType::value_type;
             using target_value_type = std::decay_t<decltype(v)>;
-            if constexpr (is_complex<source_value_type>() ==
-                          is_complex<target_value_type>()) {
+            if constexpr (is_supported_conversion_v<value_type,
+                                                    target_value_type>) {
                 return detail::temporary_conversion<const MultiVector>::
                     create_from_derived(
                         self()->template as_precision<target_value_type>());
-            } else if constexpr (!is_complex<target_value_type>() &&
-                                 std::is_same_v<
-                                     remove_complex<source_value_type>,
-                                     target_value_type>) {
-                // The as_precision is a noop, but necessary to convert
-                // the real view to a temporary_conversion
-                return detail::temporary_conversion<const MultiVector>::
-                    create_from_derived(
-                        self()
-                            ->create_real_view()
-                            ->template as_precision<target_value_type>());
             } else {
                 GKO_NOT_IMPLEMENTED;
             }
