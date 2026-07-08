@@ -78,11 +78,7 @@ namespace preconditioner {
  */
 template <typename ValueType = default_precision, bool ReverseApply = false,
           typename IndexType = int32>
-class Ilu : public EnableLinOp<Ilu<ValueType, ReverseApply, IndexType>>,
-            public Transposable {
-    friend class EnableLinOp<Ilu>;
-    friend class EnablePolymorphicObject<Ilu, LinOp>;
-
+class Ilu : public LinOp, public Transposable {
 public:
     using value_type = ValueType;
     static constexpr bool performs_reverse_apply = ReverseApply;

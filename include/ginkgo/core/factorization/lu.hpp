@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -51,14 +51,11 @@ enum class symbolic_type {
  *                    system matrix
  */
 template <typename ValueType, typename IndexType>
-class Lu
-    : public EnablePolymorphicObject<Lu<ValueType, IndexType>, LinOpFactory>,
-      public EnablePolymorphicAssignment<Lu<ValueType, IndexType>> {
+class Lu : public LinOpFactory {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<Lu, LinOpFactory>;
     friend class enable_parameters_type<parameters_type, Lu>;
 
     using value_type = ValueType;

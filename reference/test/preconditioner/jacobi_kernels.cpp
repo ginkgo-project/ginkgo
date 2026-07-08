@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -1076,7 +1076,7 @@ TYPED_TEST(Jacobi, ConvertsToDense)
     using value_type = typename TestFixture::value_type;
     auto dense = Vec::create(this->exec);
 
-    dense->move_from(this->bj_factory->generate(this->mtx));
+    this->bj_factory->generate(this->mtx)->move_to(dense);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense,
@@ -1084,7 +1084,8 @@ TYPED_TEST(Jacobi, ConvertsToDense)
            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
            {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), r<value_type>::value);
+           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}),
+           r<value_type>::value);
     // clang-format on
 }
 
@@ -1096,7 +1097,7 @@ TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
     auto half_tol = std::sqrt(r<value_type>::value);
     auto dense = Vec::create(this->exec);
 
-    dense->move_from(this->adaptive_bj_factory->generate(this->mtx));
+    this->adaptive_bj_factory->generate(this->mtx)->move_to(dense);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense,
@@ -1104,7 +1105,8 @@ TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
            {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), half_tol);
+           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}),
+           half_tol);
     // clang-format on
 }
 
@@ -1115,7 +1117,7 @@ TYPED_TEST(Jacobi, ConvertsEmptyToDense)
     auto empty = gko::share(Vec::create(this->exec));
     auto res = Vec::create(this->exec);
 
-    res->move_from(TestFixture::Bj::build().on(this->exec)->generate(empty));
+    TestFixture::Bj::build().on(this->exec)->generate(empty)->move_to(res);
 
     ASSERT_FALSE(res->get_size());
 }
@@ -1215,7 +1217,7 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
         mtx->get_values(),
         {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0, -1.0});
 
-    dense->move_from(bj_factory->generate(mtx));
+    bj_factory->generate(mtx)->move_to(dense);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense,
@@ -1223,7 +1225,8 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
            {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), r<value_type>::value);
+           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}),
+           r<value_type>::value);
     // clang-format on
 }
 
@@ -1262,7 +1265,7 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDenseWithAdaptivePrecision)
         mtx->get_values(),
         {2.0, -2.0, -2.0, -1.0, 4.0, 4.0, -2.0, -1.0, 4.0, -2.0, -4.0, -1.0});
 
-    dense->move_from(bj_factory->generate(mtx));
+    bj_factory->generate(mtx)->move_to(dense);
 
     // clang-format off
     GKO_ASSERT_MTX_NEAR(dense,
@@ -1270,7 +1273,8 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDenseWithAdaptivePrecision)
            {1.0 / 14, 4.0 / 14,       0.0,       0.0,       0.0},
            {     0.0,      0.0, 14.0 / 48,  8.0 / 48,  4.0 / 48},
            {     0.0,      0.0,  4.0 / 48, 16.0 / 48,  8.0 / 48},
-           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}), half_tol);
+           {     0.0,      0.0,  1.0 / 48,  4.0 / 48, 14.0 / 48}}),
+           half_tol);
     // clang-format on
 }
 

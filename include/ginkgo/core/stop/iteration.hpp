@@ -23,9 +23,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
-    friend class EnablePolymorphicObject<Iteration, Criterion>;
-
+class Iteration : public Criterion {
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -49,12 +47,11 @@ protected:
                     const Updater& updater) override;
 
     explicit Iteration(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))
+        : Criterion(std::move(exec))
     {}
 
     explicit Iteration(const Factory* factory, const CriterionArgs& args)
-        : EnablePolymorphicObject<Iteration, Criterion>(
-              factory->get_executor()),
+        : Criterion(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {}
 };

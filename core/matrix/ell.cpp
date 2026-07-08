@@ -61,7 +61,7 @@ Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(
 {
     if (&other != this) {
         const auto old_size = this->get_size();
-        EnableLinOp<Ell>::operator=(other);
+        LinOp::operator=(other);
         // NOTE: keep this consistent with resize(...)
         if (old_size != other.get_size() ||
             this->get_num_stored_elements_per_row() !=
@@ -102,7 +102,7 @@ template <typename ValueType, typename IndexType>
 Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(Ell&& other)
 {
     if (&other != this) {
-        EnableLinOp<Ell>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         values_ = std::move(other.values_);
         col_idxs_ = std::move(other.col_idxs_);
         num_stored_elements_per_row_ =
@@ -390,7 +390,7 @@ auto Ell<ValueType, IndexType>::get_device_view() -> device_view
     return device_view{
         this->get_size(), this->get_num_stored_elements_per_row(),
         this->get_stride(), this->get_values(), this->get_col_idxs()};
-};
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -401,7 +401,7 @@ auto Ell<ValueType, IndexType>::get_const_device_view() const
                              this->get_num_stored_elements_per_row(),
                              this->get_stride(), this->get_const_values(),
                              this->get_const_col_idxs()};
-};
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -448,7 +448,7 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                const dim<2>& size,
                                size_type num_stored_elements_per_row,
                                size_type stride)
-    : EnableLinOp<Ell>(exec, size),
+    : LinOp(exec, size),
       num_stored_elements_per_row_(num_stored_elements_per_row),
       stride_(stride == 0 ? size[0] : stride),
       values_(exec, stride_ * num_stored_elements_per_row),
@@ -462,7 +462,7 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                array<index_type> col_idxs,
                                size_type num_stored_elements_per_row,
                                size_type stride)
-    : EnableLinOp<Ell>(exec, size),
+    : LinOp(exec, size),
       num_stored_elements_per_row_{num_stored_elements_per_row},
       stride_{stride},
       values_{exec, std::move(values)},

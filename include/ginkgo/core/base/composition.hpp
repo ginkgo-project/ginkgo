@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,10 +36,9 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Composition : public EnableLinOp<Composition<ValueType>>,
+class Composition : public LinOp,
                     public EnableCreateMethod<Composition<ValueType>>,
                     public Transposable {
-    friend class EnablePolymorphicObject<Composition, LinOp>;
     friend class EnableCreateMethod<Composition>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -114,7 +113,7 @@ protected:
      * @param exec  Executor associated to the composition
      */
     explicit Composition(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Composition>(exec), storage_{exec}
+        : LinOp(exec), storage_{exec}
     {}
 
     /**
@@ -130,7 +129,7 @@ protected:
               typename = std::void_t<
                   typename std::iterator_traits<Iterator>::iterator_category>>
     explicit Composition(Iterator begin, Iterator end)
-        : EnableLinOp<Composition>([&] {
+        : LinOp([&] {
               if (begin == end) {
                   throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
               }

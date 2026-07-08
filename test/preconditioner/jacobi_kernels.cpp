@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -402,10 +402,9 @@ TEST_F(Jacobi, TransposedPreconditionerEquivalentToRefWithMPW)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    d_bj->copy_from(bj);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
-                        gko::as<Bj>(bj->transpose()), 1e-14);
+                        gko::as<Bj>(bj->transpose()), 1e-13);
 }
 
 
@@ -416,10 +415,9 @@ TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithMPW)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    d_bj->copy_from(bj);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
-                        gko::as<Bj>(bj->conj_transpose()), 1e-14);
+                        gko::as<Bj>(bj->conj_transpose()), 1e-13);
 }
 
 
@@ -668,11 +666,11 @@ TEST_F(Jacobi, ComputesTheSameConditionNumberAsRef)
                     {dp, dp, dp, dp, dp, dp, dp, dp, dp, dp}, {}, 13, 97, 99);
 
     auto bj = bj_factory->generate(mtx);
-    auto d_bj = clone(ref, d_bj_factory->generate(mtx));
+    auto d_bj = d_bj_factory->generate(mtx);
 
     for (int i = 0; i < gko::as<Bj>(bj.get())->get_num_blocks(); ++i) {
-        EXPECT_NEAR(bj->get_conditioning()[i], d_bj->get_conditioning()[i],
-                    1e-9);
+        EXPECT_NEAR(bj->get_conditioning()[i],
+                    exec->copy_val_to_host(d_bj->get_conditioning() + i), 1e-9);
     }
 }
 
@@ -686,7 +684,7 @@ TEST_F(Jacobi, SelectsTheSamePrecisionsAsRef)
         99, 1, 0.2);
 
     auto bj = bj_factory->generate(mtx);
-    auto d_bj = gko::clone(ref, d_bj_factory->generate(mtx));
+    auto d_bj = d_bj_factory->generate(mtx);
 
     GKO_ASSERT_ARRAY_EQ(bj->get_parameters().storage_optimization.block_wise,
                         d_bj->get_parameters().storage_optimization.block_wise);
@@ -719,11 +717,10 @@ TEST_F(Jacobi, AvoidsPrecisionsThatOverflow)
             ->generate(give(mtx));
 
     // both blocks are in the same group, both need (7, 8)
-    auto h_bj = clone(ref, bj);
     auto prec =
-        h_bj->get_parameters().storage_optimization.block_wise.get_const_data();
-    EXPECT_EQ(prec[0], gko::precision_reduction(1, 1));
-    ASSERT_EQ(prec[1], gko::precision_reduction(1, 1));
+        bj->get_parameters().storage_optimization.block_wise.get_const_data();
+    EXPECT_EQ(exec->copy_val_to_host(prec), gko::precision_reduction(1, 1));
+    ASSERT_EQ(exec->copy_val_to_host(prec + 1), gko::precision_reduction(1, 1));
 }
 
 
@@ -812,10 +809,9 @@ TEST_F(Jacobi, TransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    d_bj->copy_from(bj);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->transpose()),
-                        gko::as<Bj>(bj->transpose()), 0);
+                        gko::as<Bj>(bj->transpose()), 1e-14);
 }
 
 
@@ -827,10 +823,9 @@ TEST_F(Jacobi, ConjTransposedPreconditionerEquivalentToRefWithAdaptivePrecision)
 
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
-    d_bj->copy_from(bj);
 
     GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj->conj_transpose()),
-                        gko::as<Bj>(bj->conj_transpose()), 0);
+                        gko::as<Bj>(bj->conj_transpose()), 1e-14);
 }
 
 

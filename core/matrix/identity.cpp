@@ -17,7 +17,7 @@ namespace matrix {
 template <typename ValueType>
 void Identity<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    x->copy_from(b);
+    as<Cloneable>(x)->copy_from(as<Cloneable>(b));
 }
 
 
@@ -61,7 +61,7 @@ std::unique_ptr<LinOp> Identity<ValueType>::conj_transpose() const
 template <typename ValueType>
 Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec,
                               size_type size)
-    : EnableLinOp<Identity>(exec, dim<2>{size})
+    : LinOp(exec, dim<2>{size})
 {}
 
 

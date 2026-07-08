@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -56,7 +56,7 @@ namespace batch {
  *
  * @ref BatchLinOp
  */
-class BatchLinOp : public EnableAbstractPolymorphicObject<BatchLinOp> {
+class BatchLinOp : public PolymorphicObject {
 public:
     /**
      * Returns the number of items in the batch operator.
@@ -137,7 +137,7 @@ protected:
      */
     explicit BatchLinOp(std::shared_ptr<const Executor> exec,
                         const batch_dim<2>& batch_size)
-        : EnableAbstractPolymorphicObject<BatchLinOp>(exec), size_{batch_size}
+        : PolymorphicObject(exec), size_{batch_size}
     {}
 
     /**
@@ -220,43 +220,6 @@ public:
 
 
 /**
- * The EnableBatchLinOp mixin can be used to provide sensible default
- * implementations of the majority of the BatchLinOp and PolymorphicObject
- * interface.
- *
- * The goal of the mixin is to facilitate the development of new BatchLinOp, by
- * enabling the implementers to focus on the important parts of their operator,
- * while the library takes care of generating the trivial utility functions.
- * The mixin will provide default implementations for the entire
- * PolymorphicObject interface, including a default implementation of
- * `copy_from` between objects of the new BatchLinOp type.
- *
- * Implementers of new BatchLinOps are required to specify only the following
- * aspects:
- *
- * 1.  Creation of the BatchLinOp: This can be facilitated via either
- *     EnableCreateMethod mixin (used mostly for matrix formats),
- *     or GKO_ENABLE_BATCH_LIN_OP_FACTORY macro (used for operators created from
- *     other operators, like preconditioners and solvers).
- *
- * @tparam ConcreteBatchLinOp  the concrete BatchLinOp which is being
- *                             implemented [CRTP parameter]
- * @tparam PolymorphicBase  parent of ConcreteBatchLinOp in the polymorphic
- *                          hierarchy, has to be a subclass of BatchLinOp
- *
- * @ingroup BatchLinOp
- */
-template <typename ConcreteBatchLinOp, typename PolymorphicBase = BatchLinOp>
-class EnableBatchLinOp
-    : public EnablePolymorphicObject<ConcreteBatchLinOp, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteBatchLinOp> {
-public:
-    using EnablePolymorphicObject<ConcreteBatchLinOp,
-                                  PolymorphicBase>::EnablePolymorphicObject;
-};
-
-
-/**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
  * template parameters to enable a subclass of BatchLinOpFactory.
  *
@@ -296,7 +259,7 @@ using EnableDefaultBatchLinOpFactory =
  * A minimal example of a batch linear operator is the following:
  *
  * ```c++
- * struct MyBatchLinOp : public EnableBatchLinOp<MyBatchLinOp> {
+ * struct MyBatchLinOp : public BatchLinOp {
  *     GKO_ENABLE_BATCH_LIN_OP_FACTORY(MyBatchLinOp, my_parameters, Factory) {
  *         // a factory parameter named "my_value", of type int and default
  *         // value of 5
@@ -305,13 +268,13 @@ using EnableDefaultBatchLinOpFactory =
  *         // and default value {5, 5}
  *         std::pair<int, int> GKO_FACTORY_PARAMETER_VECTOR(my_pair, 5, 5);
  *     };
- *     // constructor needed by EnableBatchLinOp
+ *     // constructor needed by BatchLinOp
  *     explicit MyBatchLinOp(std::shared_ptr<const Executor> exec) {
- *         : EnableBatchLinOp<MyBatchLinOp>(exec) {}
+ *         : BatchLinOp(exec) {}
  *     // constructor needed by the factory
  *     explicit MyBatchLinOp(const Factory *factory,
  *                      std::shared_ptr<const BatchLinOp> matrix)
- *         : EnableBatchLinOp<MyBatchLinOp>(factory->get_executor()),
+ *         : BatchLinOp(factory->get_executor()),
  *                                          matrix->get_size()),
  *           // store factory's parameters locally
  *           my_parameters_{factory->get_parameters()}
@@ -366,8 +329,6 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::batch::EnableDefaultBatchLinOpFactory<               \
               _factory_name, _batch_lin_op, _parameters_name##_type> {       \
-        friend class ::gko::EnablePolymorphicObject<                         \
-            _factory_name, ::gko::batch::BatchLinOpFactory>;                 \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \

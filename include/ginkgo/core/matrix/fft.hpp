@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,17 +42,18 @@ namespace matrix {
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft : public EnableLinOp<Fft>,
+class Fft : public LinOp,
+            public EnableCloneable<Fft>,
             public WritableToMatrixData<std::complex<float>, int32>,
             public WritableToMatrixData<std::complex<float>, int64>,
             public WritableToMatrixData<std::complex<double>, int32>,
             public WritableToMatrixData<std::complex<double>, int64>,
             public Transposable {
-    friend class EnablePolymorphicObject<Fft, LinOp>;
+    friend class EnableCloneable<Fft>;
 
 public:
-    using EnableLinOp<Fft>::convert_to;
-    using EnableLinOp<Fft>::move_to;
+    using EnableCloneable<Fft>::convert_to;
+    using EnableCloneable<Fft>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
@@ -140,17 +141,18 @@ private:
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft2 : public EnableLinOp<Fft2>,
+class Fft2 : public LinOp,
+             public EnableCloneable<Fft2>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnablePolymorphicObject<Fft2, LinOp>;
+    friend class EnableCloneable<Fft2>;
 
 public:
-    using EnableLinOp<Fft2>::convert_to;
-    using EnableLinOp<Fft2>::move_to;
+    using EnableCloneable<Fft2>::convert_to;
+    using EnableCloneable<Fft2>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
@@ -252,17 +254,18 @@ private:
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft3 : public EnableLinOp<Fft3>,
+class Fft3 : public LinOp,
+             public EnableCloneable<Fft3>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnablePolymorphicObject<Fft3, LinOp>;
+    friend class EnableCloneable<Fft3>;
 
 public:
-    using EnableLinOp<Fft3>::convert_to;
-    using EnableLinOp<Fft3>::move_to;
+    using EnableCloneable<Fft3>::convert_to;
+    using EnableCloneable<Fft3>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;

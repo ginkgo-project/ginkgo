@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,11 +30,9 @@ namespace preconditioner {
  * @ingroup precond
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class GaussSeidel
-    : public EnablePolymorphicObject<GaussSeidel<ValueType, IndexType>,
-                                     LinOpFactory>,
-      public EnablePolymorphicAssignment<GaussSeidel<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<GaussSeidel, LinOpFactory>;
+class GaussSeidel : public LinOpFactory,
+                    public EnableCloneable<GaussSeidel<ValueType, IndexType>> {
+    friend class EnableCloneable<GaussSeidel>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -96,8 +94,7 @@ public:
 protected:
     explicit GaussSeidel(std::shared_ptr<const Executor> exec,
                          const parameters_type& params = {})
-        : EnablePolymorphicObject<GaussSeidel, LinOpFactory>(exec),
-          parameters_(params)
+        : LinOpFactory(exec), parameters_(params)
     {}
 
     std::unique_ptr<LinOp> generate_impl(

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -108,9 +108,10 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  * @ingroup LinOp
  */
 template <typename IndexType = int32>
-class Permutation : public EnableLinOp<Permutation<IndexType>>,
+class Permutation : public LinOp,
+                    public EnableCloneable<Permutation<IndexType>>,
                     public WritableToMatrixData<default_precision, IndexType> {
-    friend class EnablePolymorphicObject<Permutation, LinOp>;
+    friend class EnableCloneable<Permutation<IndexType>>;
 
 public:
     // value_type is only available to enable the usage of gko::write

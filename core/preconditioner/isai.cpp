@@ -67,6 +67,7 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
         // copy the matrix, as it will be used to store the inverse
         return {std::move(mtx->clone())};
     }
+
     auto id_power = mtx->clone();
     // accumulates mtx * the remainder from odd powers
     auto acc = mtx->clone();
@@ -271,7 +272,7 @@ Isai<IsaiType, ValueType, IndexType>&
 Isai<IsaiType, ValueType, IndexType>::operator=(const Isai& other)
 {
     if (&other != this) {
-        EnableLinOp<Isai>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         approximate_inverse_ = other.approximate_inverse_;
         parameters_ = other.parameters_;
@@ -289,7 +290,7 @@ Isai<IsaiType, ValueType, IndexType>&
 Isai<IsaiType, ValueType, IndexType>::operator=(Isai&& other)
 {
     if (&other != this) {
-        EnableLinOp<Isai>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         auto exec = this->get_executor();
         approximate_inverse_ = std::move(other.approximate_inverse_);
         parameters_ = std::exchange(other.parameters_, parameters_type{});
@@ -323,7 +324,9 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
 {
     auto is_spd = IsaiType == isai_type::spd;
     if (is_spd) {
-        return this->clone();
+        auto cloned = std::unique_ptr<Isai>(new Isai{this->get_executor()});
+        cloned->operator=(*this);
+        return cloned;
     }
 
     std::unique_ptr<transposed_type> transp{
@@ -342,7 +345,9 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
 {
     auto is_spd = IsaiType == isai_type::spd;
     if (is_spd) {
-        return this->clone();
+        auto cloned = std::unique_ptr<Isai>(new Isai{this->get_executor()});
+        cloned->operator=(*this);
+        return cloned;
     }
 
     std::unique_ptr<transposed_type> transp{

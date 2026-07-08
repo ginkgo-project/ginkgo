@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,11 +33,9 @@ namespace reorder {
  *                    system matrix
  */
 template <typename IndexType = int32>
-class Amd : public EnablePolymorphicObject<Amd<IndexType>, LinOpFactory>,
-            public EnablePolymorphicAssignment<Amd<IndexType>> {
+class Amd : public LinOpFactory {
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<Amd<IndexType>, LinOpFactory>;
     friend class enable_parameters_type<parameters_type, Amd<IndexType>>;
 
     using index_type = IndexType;

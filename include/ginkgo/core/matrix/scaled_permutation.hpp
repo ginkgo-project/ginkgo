@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -34,9 +34,10 @@ namespace matrix {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class ScaledPermutation final
-    : public EnableLinOp<ScaledPermutation<ValueType, IndexType>>,
+    : public LinOp,
+      public EnableCloneable<ScaledPermutation<ValueType, IndexType>>,
       public WritableToMatrixData<ValueType, IndexType> {
-    friend class EnablePolymorphicObject<ScaledPermutation, LinOp>;
+    friend class EnableCloneable<ScaledPermutation>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

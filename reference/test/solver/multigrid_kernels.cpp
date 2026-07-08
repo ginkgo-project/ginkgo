@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,12 +42,12 @@ void assert_same_vector(std::vector<int> v1, std::vector<int> v2)
 }
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyLinOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }
@@ -63,14 +63,14 @@ protected:
     {}
 };
 
-class DummyRestrictOp : public gko::EnableLinOp<DummyRestrictOp>,
+class DummyRestrictOp : public gko::LinOp,
                         public gko::EnableCreateMethod<DummyRestrictOp> {
 public:
     const std::vector<int> get_rstr_step() const { return rstr_step; }
 
     DummyRestrictOp(std::shared_ptr<const gko::Executor> exec,
                     gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyRestrictOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }
@@ -90,14 +90,14 @@ protected:
 };
 
 
-class DummyProlongOp : public gko::EnableLinOp<DummyProlongOp>,
+class DummyProlongOp : public gko::LinOp,
                        public gko::EnableCreateMethod<DummyProlongOp> {
 public:
     const std::vector<int> get_prlg_step() const { return prlg_step; }
 
     DummyProlongOp(std::shared_ptr<const gko::Executor> exec,
                    gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyProlongOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }
@@ -117,15 +117,14 @@ protected:
 
 
 template <typename ValueType>
-class DummyLinOpWithFactory
-    : public gko::EnableLinOp<DummyLinOpWithFactory<ValueType>> {
+class DummyLinOpWithFactory : public gko::LinOp {
 public:
     const std::vector<int> get_step() const { return step; }
 
     bool apply_uses_initial_guess() const override { return true; }
 
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
+        : gko::LinOp(exec)
     {}
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
@@ -134,8 +133,7 @@ public:
 
     DummyLinOpWithFactory(const Factory* factory,
                           std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor(),
-                                                  transpose(op->get_size())),
+        : gko::LinOp(factory->get_executor(), transpose(op->get_size())),
           parameters_{factory->get_parameters()},
           op_{op}
     {}
@@ -165,7 +163,7 @@ protected:
 
 template <typename ValueType>
 class DummyMultigridLevelWithFactory
-    : public gko::EnableLinOp<DummyMultigridLevelWithFactory<ValueType>>,
+    : public gko::LinOp,
       public gko::multigrid::EnableMultigridLevel<ValueType> {
 public:
     const std::vector<int> get_rstr_step() const
@@ -179,7 +177,7 @@ public:
     }
 
     DummyMultigridLevelWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyMultigridLevelWithFactory>(exec)
+        : gko::LinOp(exec)
     {}
 
 
@@ -191,8 +189,7 @@ public:
 protected:
     DummyMultigridLevelWithFactory(const Factory* factory,
                                    std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyMultigridLevelWithFactory>(
-              factory->get_executor(), op->get_size()),
+        : gko::LinOp(factory->get_executor(), op->get_size()),
           gko::multigrid::EnableMultigridLevel<ValueType>(op),
           parameters_{factory->get_parameters()},
           op_{op}

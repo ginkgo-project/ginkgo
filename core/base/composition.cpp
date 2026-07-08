@@ -105,7 +105,7 @@ Composition<ValueType>& Composition<ValueType>::operator=(
     const Composition& other)
 {
     if (&other != this) {
-        EnableLinOp<Composition>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         operators_ = other.operators_;
         // if the operators are on the wrong executor, copy them over
@@ -123,7 +123,7 @@ template <typename ValueType>
 Composition<ValueType>& Composition<ValueType>::operator=(Composition&& other)
 {
     if (&other != this) {
-        EnableLinOp<Composition>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         auto exec = this->get_executor();
         operators_ = std::move(other.operators_);
         // if the operators are on the wrong executor, copy them over

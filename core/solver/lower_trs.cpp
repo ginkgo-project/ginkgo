@@ -52,7 +52,7 @@ LowerTrs<ValueType, IndexType>::parse(
 
 template <typename ValueType, typename IndexType>
 LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
-    : EnableLinOp<LowerTrs>(other.get_executor())
+    : LinOp(other.get_executor())
 {
     *this = other;
 }
@@ -60,7 +60,7 @@ LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
 
 template <typename ValueType, typename IndexType>
 LowerTrs<ValueType, IndexType>::LowerTrs(LowerTrs&& other)
-    : EnableLinOp<LowerTrs>(other.get_executor())
+    : LinOp(other.get_executor())
 {
     *this = std::move(other);
 }
@@ -71,7 +71,7 @@ LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
     const LowerTrs& other)
 {
     if (this != &other) {
-        EnableLinOp<LowerTrs>::operator=(other);
+        LinOp::operator=(other);
         EnableSolverBase<LowerTrs, CsrMatrix>::operator=(other);
         this->parameters_ = other.parameters_;
         this->generate();
@@ -85,7 +85,7 @@ LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
     LowerTrs&& other)
 {
     if (this != &other) {
-        EnableLinOp<LowerTrs>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         EnableSolverBase<LowerTrs, CsrMatrix>::operator=(std::move(other));
         this->parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (this->get_executor() == other.get_executor()) {

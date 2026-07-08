@@ -13,12 +13,12 @@
 #include "core/test/utils.hpp"
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size = {},
                gko::size_type stride = 0)
-        : EnableLinOp<DummyLinOp>(exec, size), stride_{stride}
+        : LinOp(exec, size), stride_{stride}
     {}
 
     gko::size_type get_stride() { return stride_; }
@@ -34,12 +34,12 @@ protected:
 };
 
 
-class DummyLinOp2 : public gko::EnableLinOp<DummyLinOp2>,
+class DummyLinOp2 : public gko::LinOp,
                     public gko::EnableCreateMethod<DummyLinOp2> {
 public:
     DummyLinOp2(std::shared_ptr<const gko::Executor> exec,
                 gko::dim<2> size = {}, gko::size_type stride = 0)
-        : EnableLinOp<DummyLinOp2>(exec, size), stride_{stride}
+        : LinOp(exec, size), stride_{stride}
     {}
 
     gko::size_type get_stride() { return stride_; }

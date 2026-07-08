@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -74,15 +74,11 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  * @tparam IndexType  Type of the indices of all matrices used in this class
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Mc64 final
-    : public EnablePolymorphicObject<Mc64<ValueType, IndexType>, LinOpFactory>,
-      public EnablePolymorphicAssignment<Mc64<ValueType, IndexType>> {
+class Mc64 final : public LinOpFactory {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<Mc64<ValueType, IndexType>,
-                                         LinOpFactory>;
     friend class enable_parameters_type<parameters_type,
                                         Mc64<ValueType, IndexType>>;
 

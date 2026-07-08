@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -101,7 +101,8 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
+class Csr : public LinOp,
+            public EnableCloneable<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>,
@@ -124,7 +125,7 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public EnableAbsoluteComputation<
                 remove_complex<Csr<ValueType, IndexType>>>,
             public ScaledIdentityAddable {
-    friend class EnablePolymorphicObject<Csr, LinOp>;
+    friend class EnableCloneable<Csr>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Diagonal<ValueType>;
@@ -138,8 +139,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Csr>::convert_to;
-    using EnableLinOp<Csr>::move_to;
+    using EnableCloneable<Csr>::convert_to;
+    using EnableCloneable<Csr>::move_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;

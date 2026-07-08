@@ -49,10 +49,7 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Rs : public EnableLinOp<Rs<ValueType, IndexType>>,
-           public EnableMultigridLevel<ValueType> {
-    friend class EnableLinOp<Rs>;
-    friend class EnablePolymorphicObject<Rs, LinOp>;
+class Rs : public LinOp, public EnableMultigridLevel<ValueType> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -102,13 +99,12 @@ protected:
         this->get_composition()->apply(alpha, b, beta, x);
     }
 
-    explicit Rs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Rs>(std::move(exec))
+    explicit Rs(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Rs(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Rs>(factory->get_executor(), system_matrix->get_size()),
+        : LinOp(factory->get_executor(), system_matrix->get_size()),
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix}

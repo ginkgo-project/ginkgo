@@ -45,7 +45,8 @@ namespace matrix {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr final
-    : public EnableBatchLinOp<Csr<ValueType, IndexType>>,
+    : public BatchLinOp,
+      public EnableCloneable<Csr<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>,
 #endif
@@ -53,7 +54,7 @@ class Csr final
       public ConvertibleTo<Csr<next_precision<ValueType, 3>, IndexType>>,
 #endif
       public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>> {
-    friend class EnablePolymorphicObject<Csr, BatchLinOp>;
+    friend class EnableCloneable<Csr>;
     friend class Csr<to_complex<ValueType>, IndexType>;
     friend class Csr<previous_precision<ValueType>, IndexType>;
     static_assert(std::is_same<IndexType, int32>::value,
@@ -61,8 +62,8 @@ class Csr final
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableBatchLinOp<Csr>::convert_to;
-    using EnableBatchLinOp<Csr>::move_to;
+    using EnableCloneable<Csr>::convert_to;
+    using EnableCloneable<Csr>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
@@ -388,7 +389,7 @@ private:
     Csr(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
         array<index_type> row_ptrs)
-        : EnableBatchLinOp<Csr>(exec, size),
+        : BatchLinOp(exec, size),
           values_{exec, std::move(values)},
           col_idxs_{exec, std::move(col_idxs)},
           row_ptrs_{exec, std::move(row_ptrs)}

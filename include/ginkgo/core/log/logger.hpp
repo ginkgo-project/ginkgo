@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,6 +27,8 @@ class LinOpFactory;
 class PolymorphicObject;
 class Operation;
 class stopping_status;
+template <typename T>
+class EnableCloneable;
 
 
 namespace batch {
@@ -784,6 +786,9 @@ public:
  */
 template <typename ConcreteLoggable, typename PolymorphicBase = Loggable>
 class EnableLogging : public PolymorphicBase {
+    template <typename T>
+    friend class gko::EnableCloneable;
+
 public:
     void add_logger(std::shared_ptr<const Logger> logger) override
     {

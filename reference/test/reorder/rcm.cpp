@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,54 +55,6 @@ protected:
 };
 
 TYPED_TEST_SUITE(Rcm, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
-
-
-TYPED_TEST(Rcm, CanBeCleared)
-{
-    this->reorder_op->clear();
-
-    auto reorder_op_perm = this->reorder_op->get_permutation();
-
-    ASSERT_EQ(reorder_op_perm, nullptr);
-}
-
-
-TYPED_TEST(Rcm, CanBeCopied)
-{
-    auto rcm = this->rcm_factory->generate(this->id3_mtx);
-    auto rcm_copy = this->rcm_factory->generate(this->not_id3_mtx);
-
-    rcm_copy->copy_from(rcm);
-
-    ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[0], 2);
-    ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[1], 1);
-    ASSERT_EQ(rcm_copy->get_permutation()->get_const_permutation()[2], 0);
-}
-
-
-TYPED_TEST(Rcm, CanBeMoved)
-{
-    auto rcm = this->rcm_factory->generate(this->id3_mtx);
-    auto rcm_move = this->rcm_factory->generate(this->not_id3_mtx);
-
-    rcm->move_to(rcm_move);
-
-    ASSERT_EQ(rcm_move->get_permutation()->get_const_permutation()[0], 2);
-    ASSERT_EQ(rcm_move->get_permutation()->get_const_permutation()[1], 1);
-    ASSERT_EQ(rcm_move->get_permutation()->get_const_permutation()[2], 0);
-}
-
-
-TYPED_TEST(Rcm, CanBeCloned)
-{
-    auto rcm = this->rcm_factory->generate(this->id3_mtx);
-
-    auto rcm_clone = rcm->clone();
-
-    ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[0], 2);
-    ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[1], 1);
-    ASSERT_EQ(rcm_clone->get_permutation()->get_const_permutation()[2], 0);
-}
 
 
 TYPED_TEST(Rcm, HasSensibleDefaults)

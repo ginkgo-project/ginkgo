@@ -232,13 +232,6 @@ TYPED_TEST(Dense, CanBeCloned)
 }
 
 
-TYPED_TEST(Dense, CanBeCleared)
-{
-    this->mtx->clear();
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(Dense, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
@@ -450,9 +443,9 @@ TYPED_TEST(Dense, CanMakeConstView)
 }
 
 
-class CustomDense : public gko::EnableLinOp<CustomDense, gko::matrix::Dense<>> {
-    friend class gko::EnablePolymorphicObject<CustomDense,
-                                              gko::matrix::Dense<>>;
+class CustomDense : public gko::matrix::Dense<>,
+                    public gko::ConvertibleTo<CustomDense> {
+    friend class gko::matrix::Dense<>;
 
 public:
     static std::unique_ptr<CustomDense> create(
@@ -464,12 +457,39 @@ public:
 
     int get_data() const { return data_; }
 
+    void convert_to(CustomDense* result) const override { *result = *this; }
+
+    void move_to(CustomDense* result) override { *result = std::move(*this); }
+
+    CustomDense& operator=(const CustomDense& other)
+    {
+        if (&other != this) {
+            gko::matrix::Dense<>::operator=(other);
+            data_ = other.data_;
+        }
+        return *this;
+    }
+
+    CustomDense& operator=(CustomDense&& other)
+    {
+        if (&other != this) {
+            gko::matrix::Dense<>::operator=(std::move(other));
+            data_ = std::exchange(other.data_, 0);
+        }
+        return *this;
+    }
+
+protected:
+    [[nodiscard]] std::unique_ptr<Cloneable> clone_impl(
+        std::shared_ptr<const gko::Executor> exec) const override
+    {
+        return create(exec, this->get_size(), this->data_);
+    }
+
 private:
     explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
                          gko::dim<2> size = {}, int data = 0)
-        : gko::EnableLinOp<CustomDense, gko::matrix::Dense<>>(std::move(exec),
-                                                              size),
-          data_(data)
+        : gko::matrix::Dense<>(std::move(exec), size), data_(data)
     {}
 
     std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override
@@ -483,7 +503,18 @@ private:
 };
 
 
-TEST(DenseView, CustomViewKeepsRuntimeType)
+TEST(CustomDense, Clone)
+{
+    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
+                                      gko::dim<2>{3, 4}, 2);
+
+    auto v = gko::share(vector->clone());
+
+    GKO_ASSERT_EQ(gko::as<CustomDense>(v)->get_data(), 2);
+}
+
+
+TEST(CustomDense, CustomViewKeepsRuntimeType)
 {
     auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
                                       gko::dim<2>{3, 4}, 2);

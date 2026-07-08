@@ -545,7 +545,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     // additional residual computation
     // TODO: if already computes the residual outside, the first level may not
     // need this residual computation when no presmoother in the first level.
-    r->copy_from(b);  // n * b
+    as<Cloneable>(r)->copy_from(as<Cloneable>(b));  // n * b
     matrix->apply(neg_one, x, one, r);
 
     // first cycle
@@ -1072,8 +1072,7 @@ void Multigrid::create_state() const
 
 Multigrid::Multigrid(const Multigrid::Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
-    : EnableLinOp<Multigrid>(factory->get_executor(),
-                             transpose(system_matrix->get_size())),
+    : LinOp(factory->get_executor(), transpose(system_matrix->get_size())),
       EnableSolverBase<Multigrid>{std::move(system_matrix)},
       EnableIterativeBase<Multigrid>{
           stop::combine(factory->get_parameters().criteria)},
@@ -1107,9 +1106,7 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
 }
 
 
-Multigrid::Multigrid(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Multigrid>(exec)
-{}
+Multigrid::Multigrid(std::shared_ptr<const Executor> exec) : LinOp(exec) {}
 
 
 int workspace_traits<Multigrid>::num_arrays(const Solver&) { return 1; }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -48,10 +48,7 @@ namespace preconditioner {
  * @ingroup precond
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Sor
-    : public EnablePolymorphicObject<Sor<ValueType, IndexType>, LinOpFactory>,
-      public EnablePolymorphicAssignment<Sor<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<Sor, LinOpFactory>;
+class Sor : public LinOpFactory {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -117,7 +114,7 @@ public:
 protected:
     explicit Sor(std::shared_ptr<const Executor> exec,
                  const parameters_type& params = {})
-        : EnablePolymorphicObject<Sor, LinOpFactory>(exec), parameters_(params)
+        : LinOpFactory(exec), parameters_(params)
     {
         GKO_ASSERT(parameters_.relaxation_factor > 0.0 &&
                    parameters_.relaxation_factor < 2.0);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -93,12 +93,10 @@ private:
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
 class CusparseCsrEx
-    : public gko::EnableLinOp<CusparseCsrEx<ValueType, IndexType>,
-                              CusparseBase>,
+    : public CusparseBase,
       public gko::EnableCreateMethod<CusparseCsrEx<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseCsrEx>;
-    friend class gko::EnablePolymorphicObject<CusparseCsrEx, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -170,7 +168,7 @@ protected:
 
     CusparseCsrEx(std::shared_ptr<const gko::Executor> exec,
                   const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<CusparseCsrEx, CusparseBase>(exec, size),
+        : CusparseBase(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(SPARSELIB_OPERATION_NON_TRANSPOSE),
@@ -237,13 +235,11 @@ template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32,
           cusparseSpMVAlg_t Alg = default_csr_alg>
 class CusparseGenericCsr
-    : public gko::EnableLinOp<CusparseGenericCsr<ValueType, IndexType, Alg>,
-                              CusparseBase>,
+    : public CusparseBase,
       public gko::EnableCreateMethod<
           CusparseGenericCsr<ValueType, IndexType, Alg>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseGenericCsr>;
-    friend class gko::EnablePolymorphicObject<CusparseGenericCsr, CusparseBase>;
 
 public:
     using csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -311,7 +307,7 @@ protected:
 
     CusparseGenericCsr(std::shared_ptr<const gko::Executor> exec,
                        const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<CusparseGenericCsr, CusparseBase>(exec, size),
+        : CusparseBase(exec, size),
           csr_(std::move(
               csr::create(exec, std::make_shared<typename csr::classical>()))),
           trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
@@ -330,12 +326,10 @@ private:
 template <typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
 class CusparseGenericCoo
-    : public gko::EnableLinOp<CusparseGenericCoo<ValueType, IndexType>,
-                              CusparseBase>,
+    : public CusparseBase,
       public gko::EnableCreateMethod<CusparseGenericCoo<ValueType, IndexType>>,
       public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<CusparseGenericCoo>;
-    friend class gko::EnablePolymorphicObject<CusparseGenericCoo, CusparseBase>;
 
 public:
     using coo = gko::matrix::Coo<ValueType, IndexType>;
@@ -403,7 +397,7 @@ protected:
 
     CusparseGenericCoo(std::shared_ptr<const gko::Executor> exec,
                        const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<CusparseGenericCoo, CusparseBase>(exec, size),
+        : CusparseBase(exec, size),
           coo_(std::move(coo::create(exec))),
           trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}

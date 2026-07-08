@@ -162,7 +162,7 @@ template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, size_type num_nonzeros,
                                std::shared_ptr<strategy_type> strategy)
-    : EnableLinOp<Csr>(exec, size),
+    : LinOp(exec, size),
       strategy_(strategy ? strategy->copy() : Csr::make_default_strategy(exec)),
       values_(exec, num_nonzeros),
       col_idxs_(exec, num_nonzeros),
@@ -180,7 +180,7 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                array<index_type> col_idxs,
                                array<index_type> row_ptrs,
                                std::shared_ptr<strategy_type> strategy)
-    : EnableLinOp<Csr>(exec, size),
+    : LinOp(exec, size),
       strategy_(strategy ? strategy->copy() : Csr::make_default_strategy(exec)),
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)},
@@ -198,7 +198,7 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
     const Csr<ValueType, IndexType>& other)
 {
     if (&other != this) {
-        EnableLinOp<Csr>::operator=(other);
+        LinOp::operator=(other);
         // NOTE: as soon as strategies are improved, this can be reverted
         values_ = other.values_;
         col_idxs_ = other.col_idxs_;
@@ -220,7 +220,7 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
     Csr<ValueType, IndexType>&& other)
 {
     if (&other != this) {
-        EnableLinOp<Csr>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         values_ = std::move(other.values_);
         col_idxs_ = std::move(other.col_idxs_);
         row_ptrs_ = std::move(other.row_ptrs_);

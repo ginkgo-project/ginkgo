@@ -26,7 +26,7 @@ namespace matrix {
 template <typename ValueType>
 Identity<ValueType>::Identity(std::shared_ptr<const Executor> exec,
                               const batch_dim<2>& size)
-    : EnableBatchLinOp<Identity<ValueType>>(exec, size)
+    : BatchLinOp(exec, size)
 {
     GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(this->get_size());
 }

@@ -42,7 +42,8 @@ class Csr;
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp
-    : public EnableLinOp<Sellp<ValueType, IndexType>>,
+    : public LinOp,
+      public EnableCloneable<Sellp<ValueType, IndexType>>,
       public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Sellp<next_precision<ValueType, 2>, IndexType>>,
@@ -57,15 +58,15 @@ class Sellp
       public WritableToMatrixData<ValueType, IndexType>,
       public EnableAbsoluteComputation<
           remove_complex<Sellp<ValueType, IndexType>>> {
-    friend class EnablePolymorphicObject<Sellp, LinOp>;
+    friend class EnableCloneable<Sellp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
     friend class Sellp<to_complex<ValueType>, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Sellp>::convert_to;
-    using EnableLinOp<Sellp>::move_to;
+    using EnableCloneable<Sellp>::convert_to;
+    using EnableCloneable<Sellp>::move_to;
     using ConvertibleTo<
         Sellp<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>::move_to;

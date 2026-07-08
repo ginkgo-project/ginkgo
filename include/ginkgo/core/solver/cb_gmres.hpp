@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -93,11 +93,9 @@ enum class storage_precision {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class CbGmres : public EnableLinOp<CbGmres<ValueType>>,
+class CbGmres : public LinOp,
                 public EnablePreconditionedIterativeSolver<ValueType,
                                                            CbGmres<ValueType>> {
-    friend class EnableLinOp<CbGmres>;
-    friend class EnablePolymorphicObject<CbGmres, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -175,13 +173,12 @@ protected:
                     LinOp* x) const override;
 
     explicit CbGmres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<CbGmres>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     explicit CbGmres(const Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<CbGmres>(factory->get_executor(),
-                               transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(), transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

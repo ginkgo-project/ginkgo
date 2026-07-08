@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -89,70 +89,6 @@ TYPED_TEST(BatchCg, FactoryCreatesCorrectSolver)
 
     ASSERT_NE(solver->get_system_matrix(), nullptr);
     ASSERT_EQ(solver->get_system_matrix(), this->mtx);
-}
-
-
-TYPED_TEST(BatchCg, CanBeCopied)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy = this->solver_factory->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->solver);
-
-    ASSERT_EQ(copy->get_common_size(),
-              gko::dim<2>(this->num_rows, this->num_rows));
-    ASSERT_EQ(copy->get_num_batch_items(), this->num_batch_items);
-    auto copy_mtx = gko::as<Solver>(copy.get())->get_system_matrix();
-    const auto copy_batch_mtx = gko::as<const Mtx>(copy_mtx.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), copy_batch_mtx, 0.0);
-}
-
-
-TYPED_TEST(BatchCg, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto move = this->solver_factory->generate(Mtx::create(this->exec));
-
-    move->move_from(this->solver);
-
-    ASSERT_EQ(move->get_common_size(),
-              gko::dim<2>(this->num_rows, this->num_rows));
-    ASSERT_EQ(move->get_num_batch_items(), this->num_batch_items);
-    auto moved_mtx = gko::as<Solver>(move.get())->get_system_matrix();
-    const auto moved_batch_mtx = gko::as<const Mtx>(moved_mtx.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), moved_batch_mtx, 0.0);
-    ASSERT_EQ(gko::as<Solver>(this->solver.get())->get_system_matrix(),
-              nullptr);
-}
-
-
-TYPED_TEST(BatchCg, CanBeCloned)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-
-    auto clone = this->solver->clone();
-
-    ASSERT_EQ(clone->get_common_size(),
-              gko::dim<2>(this->num_rows, this->num_rows));
-    ASSERT_EQ(clone->get_num_batch_items(), this->num_batch_items);
-    auto clone_mtx = gko::as<Solver>(clone.get())->get_system_matrix();
-    const auto clone_batch_mtx = gko::as<const Mtx>(clone_mtx.get());
-    GKO_ASSERT_BATCH_MTX_NEAR(this->mtx.get(), clone_batch_mtx, 0.0);
-}
-
-
-TYPED_TEST(BatchCg, CanBeCleared)
-{
-    using Solver = typename TestFixture::Solver;
-
-    this->solver->clear();
-
-    ASSERT_EQ(this->solver->get_num_batch_items(), 0);
-    auto solver_mtx = gko::as<Solver>(this->solver.get())->get_system_matrix();
-    ASSERT_EQ(solver_mtx, nullptr);
 }
 
 

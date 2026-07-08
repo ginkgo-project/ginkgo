@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -320,7 +320,10 @@ TYPED_TEST(Factorization, ApplyFromCompositionWorks)
     using factorization_type = typename TestFixture::factorization_type;
     using composition_type = typename TestFixture::composition_type;
     auto comp = composition_type::create(this->lower_mtx, this->upper_mtx);
-    auto fact = factorization_type::create_from_composition(comp->clone());
+    auto comp_clone =
+        composition_type::create(this->lower_mtx, this->upper_mtx);
+    auto fact =
+        factorization_type::create_from_composition(std::move(comp_clone));
     auto ref_out = this->output->clone();
 
     fact->apply(this->input, this->output);
@@ -336,7 +339,10 @@ TYPED_TEST(Factorization, ApplyFromCompositionWithDiagonalWorks)
     using composition_type = typename TestFixture::composition_type;
     auto comp = composition_type::create(this->lower_mtx, this->diagonal,
                                          this->upper_mtx);
-    auto fact = factorization_type::create_from_composition(comp->clone());
+    auto comp_clone = composition_type::create(this->lower_mtx, this->diagonal,
+                                               this->upper_mtx);
+    auto fact =
+        factorization_type::create_from_composition(std::move(comp_clone));
     auto ref_out = this->output->clone();
 
     fact->apply(this->input, this->output);
@@ -351,7 +357,10 @@ TYPED_TEST(Factorization, ApplyFromSymmCompositionWorks)
     using factorization_type = typename TestFixture::factorization_type;
     using composition_type = typename TestFixture::composition_type;
     auto comp = composition_type::create(this->lower_mtx, this->upper_mtx);
-    auto fact = factorization_type::create_from_symm_composition(comp->clone());
+    auto comp_clone =
+        composition_type::create(this->lower_mtx, this->upper_mtx);
+    auto fact =
+        factorization_type::create_from_symm_composition(std::move(comp_clone));
     auto ref_out = this->output->clone();
 
     fact->apply(this->input, this->output);
@@ -367,7 +376,10 @@ TYPED_TEST(Factorization, ApplyFromSymmCompositionWithDiagonalWorks)
     using composition_type = typename TestFixture::composition_type;
     auto comp = composition_type::create(this->lower_mtx, this->diagonal,
                                          this->upper_mtx);
-    auto fact = factorization_type::create_from_symm_composition(comp->clone());
+    auto comp_clone = composition_type::create(this->lower_mtx, this->diagonal,
+                                               this->upper_mtx);
+    auto fact =
+        factorization_type::create_from_symm_composition(std::move(comp_clone));
     auto ref_out = this->output->clone();
 
     fact->apply(this->input, this->output);
@@ -382,7 +394,10 @@ TYPED_TEST(Factorization, AdvancedApplyFromCompositionWorks)
     using factorization_type = typename TestFixture::factorization_type;
     using composition_type = typename TestFixture::composition_type;
     auto comp = composition_type::create(this->lower_mtx, this->upper_mtx);
-    auto fact = factorization_type::create_from_composition(comp->clone());
+    auto comp_clone =
+        composition_type::create(this->lower_mtx, this->upper_mtx);
+    auto fact =
+        factorization_type::create_from_composition(std::move(comp_clone));
     auto ref_out = this->output->clone();
 
     fact->apply(this->alpha, this->input, this->beta, this->output);
@@ -398,7 +413,10 @@ TYPED_TEST(Factorization, AdvancedApplyFromCompositionWithDiagonalWorks)
     using composition_type = typename TestFixture::composition_type;
     auto comp = composition_type::create(this->lower_mtx, this->diagonal,
                                          this->upper_mtx);
-    auto fact = factorization_type::create_from_composition(comp->clone());
+    auto comp_clone = composition_type::create(this->lower_mtx, this->diagonal,
+                                               this->upper_mtx);
+    auto fact =
+        factorization_type::create_from_composition(std::move(comp_clone));
     auto ref_out = this->output->clone();
 
     fact->apply(this->alpha, this->input, this->beta, this->output);
@@ -413,7 +431,10 @@ TYPED_TEST(Factorization, AdvancedApplyFromSymmCompositionWorks)
     using factorization_type = typename TestFixture::factorization_type;
     using composition_type = typename TestFixture::composition_type;
     auto comp = composition_type::create(this->lower_mtx, this->upper_mtx);
-    auto fact = factorization_type::create_from_symm_composition(comp->clone());
+    auto comp_clone =
+        composition_type::create(this->lower_mtx, this->upper_mtx);
+    auto fact =
+        factorization_type::create_from_symm_composition(std::move(comp_clone));
     auto ref_out = this->output->clone();
 
     fact->apply(this->alpha, this->input, this->beta, this->output);
@@ -429,7 +450,10 @@ TYPED_TEST(Factorization, AdvancedApplyFromSymmCompositionWithDiagonalWorks)
     using composition_type = typename TestFixture::composition_type;
     auto comp = composition_type::create(this->lower_mtx, this->diagonal,
                                          this->upper_mtx);
-    auto fact = factorization_type::create_from_symm_composition(comp->clone());
+    auto comp_clone = composition_type::create(this->lower_mtx, this->diagonal,
+                                               this->upper_mtx);
+    auto fact =
+        factorization_type::create_from_symm_composition(std::move(comp_clone));
     auto ref_out = this->output->clone();
 
     fact->apply(this->alpha, this->input, this->beta, this->output);

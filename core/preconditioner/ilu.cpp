@@ -100,10 +100,9 @@ std::unique_ptr<LinOp> Ilu<ValueType, ReverseApply, IndexType>::conj_transpose()
 template <typename ValueType, bool ReverseApply, typename IndexType>
 Ilu<ValueType, ReverseApply, IndexType>&
 Ilu<ValueType, ReverseApply, IndexType>::operator=(const Ilu& other)
-
 {
     if (&other != this) {
-        EnableLinOp<Ilu>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         l_solver_ = other.l_solver_;
         u_solver_ = other.u_solver_;
@@ -123,7 +122,7 @@ Ilu<ValueType, ReverseApply, IndexType>::operator=(Ilu&& other)
 
 {
     if (&other != this) {
-        EnableLinOp<Ilu>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         l_solver_ = std::move(other.l_solver_);
         u_solver_ = std::move(other.u_solver_);
@@ -165,13 +164,15 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* b,
             if (!ReverseApply) {
                 l_solver_->apply(dense_b, cache_.intermediate);
                 if (u_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(cache_.intermediate);
+                    dense_x->copy_from(
+                        as<Cloneable>(cache_.intermediate.get()));
                 }
                 u_solver_->apply(cache_.intermediate, dense_x);
             } else {
                 u_solver_->apply(dense_b, cache_.intermediate);
                 if (l_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(cache_.intermediate);
+                    dense_x->copy_from(
+                        as<Cloneable>(cache_.intermediate.get()));
                 }
                 l_solver_->apply(cache_.intermediate, dense_x);
             }
@@ -206,16 +207,14 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* alpha,
 template <typename ValueType, bool ReverseApply, typename IndexType>
 Ilu<ValueType, ReverseApply, IndexType>::Ilu(
     std::shared_ptr<const Executor> exec)
-
-    : EnableLinOp<Ilu>(std::move(exec))
+    : LinOp(std::move(exec))
 {}
 
 
 template <typename ValueType, bool ReverseApply, typename IndexType>
 Ilu<ValueType, ReverseApply, IndexType>::Ilu(
     const Factory* factory, std::shared_ptr<const LinOp> lin_op)
-
-    : EnableLinOp<Ilu>(factory->get_executor(), lin_op->get_size()),
+    : LinOp(factory->get_executor(), lin_op->get_size()),
       parameters_{factory->get_parameters()}
 {
     auto comp =
@@ -247,7 +246,7 @@ Ilu<ValueType, ReverseApply, IndexType>::Ilu(
 
     // If no factories are provided, generate default ones
     if (!parameters_.l_solver_factory) {
-        // when LinOp is LinOp, use LowerTrs as the default one
+        // when not providing l_solver_factory, use LowerTrs as the default one
         l_solver_ = solver::LowerTrs<value_type, index_type>::build()
                         .on(exec)
                         ->generate(l_factor);
@@ -255,7 +254,7 @@ Ilu<ValueType, ReverseApply, IndexType>::Ilu(
         l_solver_ = parameters_.l_solver_factory->generate(l_factor);
     }
     if (!parameters_.u_solver_factory) {
-        // when LinOp is LinOp, use UpperTrs as the default one
+        // when not providing u_solver_factory, use UpperTrs as the default one
         u_solver_ = solver::UpperTrs<value_type, index_type>::build()
                         .on(exec)
                         ->generate(u_factor);
@@ -274,7 +273,7 @@ void Ilu<ValueType, ReverseApply, IndexType>::set_cache_to(const LinOp* b) const
             matrix::Dense<value_type>::create(this->get_executor());
     }
     // Use b as the initial guess for the first triangular solve
-    cache_.intermediate->copy_from(b);
+    as<Cloneable>(cache_.intermediate.get())->copy_from(as<Cloneable>(b));
 }
 
 

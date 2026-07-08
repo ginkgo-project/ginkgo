@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -53,7 +53,7 @@ public:
      */
     void operator()(pointer ptr) const
     {
-        original_->copy_from(ptr);
+        as<Cloneable>(original_)->copy_from(as<Cloneable>(ptr));
         delete ptr;
     }
 

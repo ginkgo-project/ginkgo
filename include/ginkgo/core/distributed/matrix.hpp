@@ -260,7 +260,9 @@ class Vector;
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Matrix
-    : public EnableLinOp<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+    : public LinOp,
+      public EnableCloneable<
+          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
@@ -272,9 +274,10 @@ class Matrix
                                   GlobalIndexType>>,
 #endif
       public DistributedBase {
-    friend class EnablePolymorphicObject<Matrix, LinOp>;
+    friend class EnableCloneable<Matrix>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
+
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
@@ -287,8 +290,8 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableLinOp<Matrix>::convert_to;
-    using EnableLinOp<Matrix>::move_to;
+    using EnableCloneable<Matrix>::convert_to;
+    using EnableCloneable<Matrix>::move_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,

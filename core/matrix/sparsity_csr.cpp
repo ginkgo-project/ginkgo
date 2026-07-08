@@ -83,7 +83,7 @@ SparsityCsr<ValueType, IndexType>& SparsityCsr<ValueType, IndexType>::operator=(
     const SparsityCsr<ValueType, IndexType>& other)
 {
     if (&other != this) {
-        EnableLinOp<SparsityCsr>::operator=(other);
+        LinOp::operator=(other);
         value_ = other.value_;
         col_idxs_ = other.col_idxs_;
         row_ptrs_ = other.row_ptrs_;
@@ -97,7 +97,7 @@ SparsityCsr<ValueType, IndexType>& SparsityCsr<ValueType, IndexType>::operator=(
     SparsityCsr<ValueType, IndexType>&& other)
 {
     if (&other != this) {
-        EnableLinOp<SparsityCsr>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         value_ = other.value_;
         col_idxs_ = std::move(other.col_idxs_);
         row_ptrs_ = std::move(other.row_ptrs_);
@@ -132,7 +132,7 @@ template <typename ValueType, typename IndexType>
 SparsityCsr<ValueType, IndexType>::SparsityCsr(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     size_type num_nonzeros)
-    : EnableLinOp<SparsityCsr>(exec, size),
+    : LinOp(exec, size),
       col_idxs_(exec, num_nonzeros),
       row_ptrs_(exec, size[0] + 1),
       value_(exec, {one<ValueType>()})
@@ -145,7 +145,7 @@ template <typename ValueType, typename IndexType>
 SparsityCsr<ValueType, IndexType>::SparsityCsr(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     array<index_type> col_idxs, array<index_type> row_ptrs, value_type value)
-    : EnableLinOp<SparsityCsr>(exec, size),
+    : LinOp(exec, size),
       col_idxs_{exec, std::move(col_idxs)},
       row_ptrs_{exec, std::move(row_ptrs)},
       value_{exec, {value}}
@@ -157,7 +157,7 @@ SparsityCsr<ValueType, IndexType>::SparsityCsr(
 template <typename ValueType, typename IndexType>
 SparsityCsr<ValueType, IndexType>::SparsityCsr(
     std::shared_ptr<const Executor> exec, std::shared_ptr<const LinOp> matrix)
-    : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
+    : LinOp(exec, matrix->get_size())
 {
     auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
     this->copy_from(tmp_);

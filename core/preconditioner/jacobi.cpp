@@ -100,7 +100,7 @@ Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(
     const Jacobi& other)
 {
     if (&other != this) {
-        EnableLinOp<Jacobi>::operator=(other);
+        LinOp::operator=(other);
         storage_scheme_ = other.storage_scheme_;
         num_blocks_ = other.num_blocks_;
         blocks_ = other.blocks_;
@@ -116,7 +116,7 @@ Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(
     Jacobi&& other)
 {
     if (&other != this) {
-        EnableLinOp<Jacobi>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         // reset size values to 0 in other
         storage_scheme_ =
             std::exchange(other.storage_scheme_,

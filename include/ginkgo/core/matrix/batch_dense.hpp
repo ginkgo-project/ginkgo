@@ -45,7 +45,8 @@ namespace matrix {
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
+class Dense final : public BatchLinOp,
+                    public EnableCloneable<Dense<ValueType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
                     public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
 #endif
@@ -53,14 +54,14 @@ class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
                     public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
 #endif
                     public ConvertibleTo<Dense<next_precision<ValueType>>> {
-    friend class EnablePolymorphicObject<Dense, BatchLinOp>;
+    friend class EnableCloneable<Dense>;
     friend class Dense<to_complex<ValueType>>;
     friend class Dense<previous_precision<ValueType>>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableBatchLinOp<Dense>::convert_to;
-    using EnableBatchLinOp<Dense>::move_to;
+    using EnableCloneable<Dense>::convert_to;
+    using EnableCloneable<Dense>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;

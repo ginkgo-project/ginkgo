@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,9 +42,7 @@ namespace gko {
  *                         the product
  */
 template <typename AbstractProductType, typename ComponentsType>
-class AbstractFactory
-    : public EnableAbstractPolymorphicObject<
-          AbstractFactory<AbstractProductType, ComponentsType>> {
+class AbstractFactory : public PolymorphicObject {
 public:
     using abstract_product_type = AbstractProductType;
     using components_type = ComponentsType;
@@ -81,7 +79,7 @@ protected:
      * @param exec  the executor where the factory should be constructed
      */
     AbstractFactory(std::shared_ptr<const Executor> exec)
-        : EnableAbstractPolymorphicObject<AbstractFactory>(std::move(exec))
+        : PolymorphicObject(std::move(exec))
     {}
 
     /**
@@ -121,12 +119,8 @@ protected:
  */
 template <typename ConcreteFactory, typename ProductType,
           typename ParametersType, typename PolymorphicBase>
-class EnableDefaultFactory
-    : public EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteFactory> {
+class EnableDefaultFactory : public PolymorphicBase {
 public:
-    friend class EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>;
-
     using product_type = ProductType;
     using parameters_type = ParametersType;
     using polymorphic_base = PolymorphicBase;
@@ -176,9 +170,7 @@ protected:
      */
     explicit EnableDefaultFactory(std::shared_ptr<const Executor> exec,
                                   const parameters_type& parameters = {})
-        : EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>(
-              std::move(exec)),
-          parameters_{parameters}
+        : PolymorphicBase(std::move(exec)), parameters_{parameters}
     {}
 
     std::unique_ptr<abstract_product_type> generate_impl(

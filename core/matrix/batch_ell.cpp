@@ -115,7 +115,7 @@ template <typename ValueType, typename IndexType>
 Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                const batch_dim<2>& size,
                                IndexType num_elems_per_row)
-    : EnableBatchLinOp<Ell<ValueType, IndexType>>(exec, size),
+    : BatchLinOp(exec, size),
       num_elems_per_row_(num_elems_per_row == 0 ? size.get_common_size()[1]
                                                 : num_elems_per_row),
       values_(exec, compute_num_elems(size, num_elems_per_row_)),
@@ -129,7 +129,7 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                const IndexType num_elems_per_row,
                                array<value_type> values,
                                array<index_type> col_idxs)
-    : EnableBatchLinOp<Ell>(exec, size),
+    : BatchLinOp(exec, size),
       num_elems_per_row_{num_elems_per_row},
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)}

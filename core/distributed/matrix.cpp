@@ -49,13 +49,13 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const RowGatherer<LocalIndexType>> row_gather_template,
     ptr_param<const LinOp> diag_matrix_template,
     ptr_param<const LinOp> off_diag_matrix_template)
-    : EnableLinOp<Matrix>{exec},
+    : LinOp{exec},
       DistributedBase{row_gather_template->get_communicator()},
-      row_gatherer_{row_gather_template->clone(exec)},
+      row_gatherer_{clone(exec, row_gather_template)},
       imap_{exec},
       one_scalar_{exec, 1.0},
-      diag_mtx_{diag_matrix_template->clone(exec)},
-      off_diag_mtx_{off_diag_matrix_template->clone(exec)}
+      diag_mtx_{clone(exec, diag_matrix_template.get())},
+      off_diag_mtx_{clone(exec, off_diag_matrix_template.get())}
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
@@ -69,7 +69,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
     std::shared_ptr<LinOp> diag_linop)
-    : EnableLinOp<Matrix>{exec},
+    : LinOp{exec},
       DistributedBase{comm},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           exec, mpi::detail::create_default_collective_communicator(comm))},
@@ -87,7 +87,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     index_map<LocalIndexType, GlobalIndexType> imap,
     std::shared_ptr<LinOp> diag_linop, std::shared_ptr<LinOp> off_diag_linop)
-    : EnableLinOp<Matrix>{exec},
+    : LinOp{exec},
       DistributedBase{comm},
       row_gatherer_(RowGatherer<LocalIndexType>::create(
           exec,
@@ -206,9 +206,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->copy_from(this->diag_mtx_);
-    result->off_diag_mtx_->copy_from(this->off_diag_mtx_);
-    result->row_gatherer_->copy_from(this->row_gatherer_);
+    as<Cloneable>(result->diag_mtx_)->copy_from(as<Cloneable>(this->diag_mtx_));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->copy_from(as<Cloneable>(this->off_diag_mtx_));
+    as<Cloneable>(result->row_gatherer_)
+        ->copy_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -221,9 +223,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->move_from(this->diag_mtx_);
-    result->off_diag_mtx_->move_from(this->off_diag_mtx_);
-    result->row_gatherer_->move_from(this->row_gatherer_);
+    as<Cloneable>(result->diag_mtx_)->move_from(as<Cloneable>(this->diag_mtx_));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->move_from(as<Cloneable>(this->off_diag_mtx_));
+    as<Cloneable>(result->row_gatherer_)
+        ->move_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
     this->set_size({});
@@ -238,9 +242,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->copy_from(this->diag_mtx_.get());
-    result->off_diag_mtx_->copy_from(this->off_diag_mtx_.get());
-    result->row_gatherer_->copy_from(this->row_gatherer_);
+    as<Cloneable>(result->diag_mtx_)
+        ->copy_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->copy_from(as<Cloneable>(this->off_diag_mtx_.get()));
+    as<Cloneable>(result->row_gatherer_)
+        ->copy_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
 }
@@ -253,8 +260,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->move_from(this->diag_mtx_.get());
-    result->off_diag_mtx_->move_from(this->off_diag_mtx_.get());
+    as<Cloneable>(result->diag_mtx_)
+        ->move_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->move_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
@@ -271,8 +280,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->copy_from(this->diag_mtx_.get());
-    result->off_diag_mtx_->copy_from(this->off_diag_mtx_.get());
+    as<Cloneable>(result->diag_mtx_)
+        ->copy_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->copy_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->copy_from(this->row_gatherer_);
     result->imap_ = this->imap_;
     result->set_size(this->get_size());
@@ -286,8 +297,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->diag_mtx_->move_from(this->diag_mtx_.get());
-    result->off_diag_mtx_->move_from(this->off_diag_mtx_.get());
+    as<Cloneable>(result->diag_mtx_)
+        ->move_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->move_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
     result->set_size(this->get_size());
@@ -669,8 +682,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
-    : EnableLinOp<Matrix<value_type, local_index_type,
-                         global_index_type>>{other.get_executor()},
+    : LinOp{other.get_executor()},
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
@@ -684,8 +696,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
-    : EnableLinOp<Matrix<value_type, local_index_type,
-                         global_index_type>>{other.get_executor()},
+    : LinOp{other.get_executor()},
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
@@ -705,9 +716,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         GKO_ASSERT_EQ(other.get_communicator().size(),
                       this->get_communicator().size());
         this->set_size(other.get_size());
-        diag_mtx_->copy_from(other.diag_mtx_);
-        off_diag_mtx_->copy_from(other.off_diag_mtx_);
-        row_gatherer_->copy_from(other.row_gatherer_);
+        as<Cloneable>(diag_mtx_)->copy_from(as<Cloneable>(other.diag_mtx_));
+        as<Cloneable>(off_diag_mtx_)
+            ->copy_from(as<Cloneable>(other.off_diag_mtx_));
+        as<Cloneable>(row_gatherer_)
+            ->copy_from(as<Cloneable>(other.row_gatherer_));
         imap_ = other.imap_;
     }
     return *this;
@@ -723,9 +736,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
                       this->get_communicator().size());
         this->set_size(other.get_size());
         other.set_size({});
-        diag_mtx_->move_from(other.diag_mtx_);
-        off_diag_mtx_->move_from(other.off_diag_mtx_);
-        row_gatherer_->move_from(other.row_gatherer_);
+        as<Cloneable>(diag_mtx_)->move_from(as<Cloneable>(other.diag_mtx_));
+        as<Cloneable>(off_diag_mtx_)
+            ->move_from(as<Cloneable>(other.off_diag_mtx_));
+        as<Cloneable>(row_gatherer_)
+            ->move_from(as<Cloneable>(other.row_gatherer_));
         imap_ = std::move(other.imap_);
     }
     return *this;

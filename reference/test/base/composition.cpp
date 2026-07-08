@@ -16,9 +16,8 @@ namespace {
 
 
 template <typename ValueType>
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp<ValueType>>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp<ValueType>> {
-    friend class gko::EnablePolymorphicObject<DummyLinOp, gko::LinOp>;
     friend class gko::EnableCreateMethod<DummyLinOp>;
 
 public:
@@ -34,12 +33,12 @@ protected:
     {}
 
     explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOp>(exec)
+        : gko::LinOp(exec)
     {}
 
     explicit DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                         gko::dim<2> size)
-        : gko::EnableLinOp<DummyLinOp>(exec, size)
+        : gko::LinOp(exec, size)
     {}
 };
 
@@ -75,47 +74,6 @@ protected:
 };
 
 TYPED_TEST_SUITE(Composition, gko::test::ValueTypes, TypenameNameGenerator);
-
-
-TYPED_TEST(Composition, CopiesOnSameExecutor)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto cmp = gko::Composition<TypeParam>::create(this->operators[0],
-                                                   this->operators[1]);
-    auto out = cmp->create_default();
-
-    cmp->convert_to(out);
-
-    ASSERT_EQ(out->get_size(), cmp->get_size());
-    ASSERT_EQ(out->get_executor(), cmp->get_executor());
-    ASSERT_EQ(out->get_operators().size(), cmp->get_operators().size());
-    ASSERT_EQ(out->get_operators().size(), 2);
-    ASSERT_EQ(out->get_operators()[0], cmp->get_operators()[0]);
-    ASSERT_EQ(out->get_operators()[1], cmp->get_operators()[1]);
-}
-
-
-TYPED_TEST(Composition, MovesOnSameExecutor)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto cmp = gko::Composition<TypeParam>::create(this->operators[0],
-                                                   this->operators[1]);
-    auto cmp2 = cmp->clone();
-    auto out = cmp->create_default();
-
-    cmp->move_to(out);
-
-    ASSERT_EQ(out->get_size(), cmp2->get_size());
-    ASSERT_EQ(out->get_executor(), cmp2->get_executor());
-    ASSERT_EQ(out->get_operators().size(), cmp2->get_operators().size());
-    ASSERT_EQ(out->get_operators().size(), 2);
-    ASSERT_EQ(out->get_operators()[0], cmp2->get_operators()[0]);
-    ASSERT_EQ(out->get_operators()[1], cmp2->get_operators()[1]);
-    // empty size, empty operators, same executor
-    ASSERT_EQ(cmp->get_size(), gko::dim<2>{});
-    ASSERT_EQ(cmp->get_executor(), cmp2->get_executor());
-    ASSERT_EQ(cmp->get_operators().size(), 0);
-}
 
 
 TYPED_TEST(Composition, AppliesSingleToVector)

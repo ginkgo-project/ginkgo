@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -157,125 +157,6 @@ TYPED_TEST(Jacobi, GeneratesCorrectStorageScheme)
 }
 
 
-TYPED_TEST(Jacobi, CanBeCloned)
-{
-    auto bj_clone = clone(this->bj);
-
-    this->assert_same_precond(bj_clone, this->bj);
-}
-
-
-TYPED_TEST(Jacobi, CanBeClonedWithAdaptvePrecision)
-{
-    auto bj_clone = clone(this->adaptive_bj);
-    this->assert_same_precond(bj_clone, this->adaptive_bj);
-}
-
-
-TYPED_TEST(Jacobi, CanBeCopied)
-{
-    using Bj = typename TestFixture::Bj;
-    using Mtx = typename TestFixture::Mtx;
-    using index_type = typename TestFixture::index_type;
-    gko::array<index_type> empty(this->exec, 1);
-    empty.get_data()[0] = 0;
-    auto copy = Bj::build()
-                    .with_block_pointers(empty)
-                    .on(this->exec)
-                    ->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->bj);
-
-    this->assert_same_precond(copy, this->bj);
-}
-
-
-TYPED_TEST(Jacobi, CanBeCopiedWithAdaptivePrecision)
-{
-    using Bj = typename TestFixture::Bj;
-    using Mtx = typename TestFixture::Mtx;
-    using index_type = typename TestFixture::index_type;
-    gko::array<index_type> empty(this->exec, 1);
-    empty.get_data()[0] = 0;
-    auto copy = Bj::build()
-                    .with_block_pointers(empty)
-                    .on(this->exec)
-                    ->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->adaptive_bj);
-
-    this->assert_same_precond(copy, this->adaptive_bj);
-}
-
-
-TYPED_TEST(Jacobi, CanBeMoved)
-{
-    using Bj = typename TestFixture::Bj;
-    using Mtx = typename TestFixture::Mtx;
-    using index_type = typename TestFixture::index_type;
-    auto tmp = clone(this->bj);
-    gko::array<index_type> empty(this->exec, 1);
-    empty.get_data()[0] = 0;
-    auto copy = Bj::build()
-                    .with_block_pointers(empty)
-                    .on(this->exec)
-                    ->generate(Mtx::create(this->exec));
-
-    copy->move_from(this->bj);
-
-    this->assert_same_precond(copy.get(), tmp);
-}
-
-
-TYPED_TEST(Jacobi, CanBeMovedWithAdaptivePrecision)
-{
-    using Bj = typename TestFixture::Bj;
-    using Mtx = typename TestFixture::Mtx;
-    using index_type = typename TestFixture::index_type;
-    auto tmp = clone(this->adaptive_bj);
-    gko::array<index_type> empty(this->exec, 1);
-    empty.get_data()[0] = 0;
-    auto copy = Bj::build()
-                    .with_block_pointers(empty)
-                    .on(this->exec)
-                    ->generate(Mtx::create(this->exec));
-
-    copy->move_from(this->adaptive_bj);
-
-    this->assert_same_precond(copy.get(), tmp);
-}
-
-
-TYPED_TEST(Jacobi, CanBeCleared)
-{
-    this->bj->clear();
-
-    ASSERT_EQ(this->bj->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(this->bj->get_num_stored_elements(), 0);
-    ASSERT_EQ(this->bj->get_parameters().max_block_size, 32);
-    ASSERT_EQ(this->bj->get_parameters().block_pointers.get_const_data(),
-              nullptr);
-    ASSERT_EQ(this->bj->get_blocks(), nullptr);
-}
-
-
-TYPED_TEST(Jacobi, CanBeClearedWithAdaptivePrecision)
-{
-    this->adaptive_bj->clear();
-
-    ASSERT_EQ(this->adaptive_bj->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(this->adaptive_bj->get_num_stored_elements(), 0);
-    ASSERT_EQ(this->adaptive_bj->get_parameters().max_block_size, 32);
-    ASSERT_EQ(
-        this->adaptive_bj->get_parameters().block_pointers.get_const_data(),
-        nullptr);
-    ASSERT_EQ(this->adaptive_bj->get_parameters()
-                  .storage_optimization.block_wise.get_const_data(),
-              nullptr);
-    ASSERT_EQ(this->adaptive_bj->get_blocks(), nullptr);
-}
-
-
 TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
 {
     using value_type = typename TestFixture::value_type;
@@ -288,7 +169,7 @@ TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
     auto scalar_j = this->scalar_j_factory->generate(csr);
 
     auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
-    dense_j->copy_from(scalar_j);
+    scalar_j->convert_to(dense_j);
     auto j_val = scalar_j->get_blocks();
 
     for (auto i = 0; i < dense_j->get_size()[0]; ++i) {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -56,58 +56,6 @@ TYPED_TEST(LowerTrs, LowerTrsFactoryCreatesCorrectSolver)
     ASSERT_EQ(this->solver->get_size(), gko::dim<2>(3, 3));
     ASSERT_NE(sys_mtx, nullptr);
     GKO_ASSERT_MTX_NEAR(sys_mtx, this->csr_mtx, 0);
-}
-
-
-TYPED_TEST(LowerTrs, CanBeCopied)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy =
-        Solver::build().on(this->exec)->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->solver);
-    auto copy_mtx = copy->get_system_matrix();
-
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(copy_mtx, this->csr_mtx, 0);
-}
-
-
-TYPED_TEST(LowerTrs, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy =
-        Solver::build().on(this->exec)->generate(Mtx::create(this->exec));
-
-    copy->move_from(this->solver);
-    auto copy_mtx = copy->get_system_matrix();
-
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(copy_mtx, this->csr_mtx, 0);
-}
-
-
-TYPED_TEST(LowerTrs, CanBeCloned)
-{
-    auto clone = this->solver->clone();
-
-    auto clone_mtx = clone->get_system_matrix();
-
-    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    GKO_ASSERT_MTX_NEAR(clone_mtx, this->csr_mtx, 0);
-}
-
-
-TYPED_TEST(LowerTrs, CanBeCleared)
-{
-    this->solver->clear();
-
-    auto solver_mtx = this->solver->get_system_matrix();
-
-    ASSERT_EQ(solver_mtx, nullptr);
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
 }
 
 

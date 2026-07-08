@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -77,18 +77,17 @@ namespace distributed {
  * @ingroup distributed
  */
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Partition : public EnablePolymorphicObject<
-                      Partition<LocalIndexType, GlobalIndexType>>,
-                  public EnablePolymorphicAssignment<
-                      Partition<LocalIndexType, GlobalIndexType>> {
-    friend class EnablePolymorphicObject<Partition>;
+class Partition
+    : public PolymorphicObject,
+      public EnableCloneable<Partition<LocalIndexType, GlobalIndexType>> {
+    friend class EnableCloneable<Partition>;
     static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
                   "GlobalIndexType must be at least as large as "
                   "LocalIndexType");
 
 public:
-    using EnablePolymorphicAssignment<Partition>::convert_to;
-    using EnablePolymorphicAssignment<Partition>::move_to;
+    using EnableCloneable<Partition>::convert_to;
+    using EnableCloneable<Partition>::move_to;
 
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;

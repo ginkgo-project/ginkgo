@@ -94,7 +94,7 @@ template <typename ValueType>
 Ir<ValueType>& Ir<ValueType>::operator=(const Ir& other)
 {
     if (&other != this) {
-        EnableLinOp<Ir>::operator=(other);
+        LinOp::operator=(other);
         EnableSolverBase<Ir>::operator=(other);
         EnableIterativeBase<Ir>::operator=(other);
         this->parameters_ = other.parameters_;
@@ -109,7 +109,7 @@ template <typename ValueType>
 Ir<ValueType>& Ir<ValueType>::operator=(Ir&& other)
 {
     if (&other != this) {
-        EnableLinOp<Ir>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         EnableSolverBase<Ir>::operator=(std::move(other));
         EnableIterativeBase<Ir>::operator=(std::move(other));
         this->parameters_ = std::exchange(other.parameters_, parameters_type{});

@@ -184,14 +184,6 @@ TYPED_TEST(Sellp, CanBeCloned)
 }
 
 
-TYPED_TEST(Sellp, CanBeCleared)
-{
-    this->mtx->clear();
-
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(Sellp, CanCreateDeviceView)
 {
     auto view = this->mtx->get_device_view();

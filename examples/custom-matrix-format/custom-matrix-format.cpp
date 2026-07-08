@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,18 +20,17 @@ void stencil_kernel(std::size_t size, const ValueType* coefs,
 
 
 // A stencil matrix class representing the 3pt stencil linear operator.
-// We include the gko::EnableLinOp mixin which implements the entire LinOp
-// interface, except the two apply_impl methods, which get called inside the
-// default implementation of apply (after argument verification) to perform the
-// actual application of the linear operator. In addition, it includes the
-// implementation of the entire PolymorphicObject interface.
+// We include the gko::LinOp interface, where we need to implement the two
+// apply_impl methods, which get called inside the default implementation of
+// apply (after argument verification) to perform the actual application of the
+// linear operator.
 //
 // It also includes the gko::EnableCreateMethod mixin which provides a default
 // implementation of the static create method. This method will forward all its
 // arguments to the constructor to create the object, and return an
 // std::unique_ptr to the created object.
 template <typename ValueType>
-class StencilMatrix : public gko::EnableLinOp<StencilMatrix<ValueType>>,
+class StencilMatrix : public gko::LinOp,
                       public gko::EnableCreateMethod<StencilMatrix<ValueType>> {
 public:
     // This constructor will be called by the create method. Here we initialize
@@ -39,7 +38,7 @@ public:
     StencilMatrix(std::shared_ptr<const gko::Executor> exec,
                   gko::size_type size = 0, ValueType left = -1.0,
                   ValueType center = 2.0, ValueType right = -1.0)
-        : gko::EnableLinOp<StencilMatrix>(exec, gko::dim<2>{size}),
+        : gko::LinOp(exec, gko::dim<2>{size}),
           coefficients(exec, {left, center, right})
     {}
 

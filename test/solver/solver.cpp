@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -495,7 +495,12 @@ struct test_pair {
     std::shared_ptr<ObjectType> ref;
     std::shared_ptr<ObjectType> dev;
 
-    test_pair(std::unique_ptr<ObjectType> ref_obj,
+    // use template here such that we can use SFINAE here
+    // it only allows the constructor calling clone on Cloneable
+    template <typename T = ObjectType,
+              std::enable_if_t<std::is_base_of_v<gko::Cloneable, ObjectType> &&
+                               std::is_same_v<T, ObjectType>>* = nullptr>
+    test_pair(std::unique_ptr<T> ref_obj,
               std::shared_ptr<const gko::Executor> exec)
         : ref{std::move(ref_obj)}, dev{gko::clone(exec, ref)}
     {}
@@ -679,30 +684,6 @@ protected:
                 FAIL() << e.what();
             }
         };
-        {
-            SCOPED_TRACE("Defaulted solver");
-            guarded_fn(
-                test_pair<SolverType>{Config::build(ref, 0, check_residual)
-                                          .on(ref)
-                                          ->generate(mtx.ref)
-                                          ->create_default(),
-                                      Config::build(exec, 0, check_residual)
-                                          .on(exec)
-                                          ->generate(mtx.dev)
-                                          ->create_default()});
-        }
-        {
-            SCOPED_TRACE("Cleared solver");
-            test_pair<SolverType> pair{Config::build(ref, 0, check_residual)
-                                           .on(ref)
-                                           ->generate(mtx.ref),
-                                       Config::build(exec, 0, check_residual)
-                                           .on(exec)
-                                           ->generate(mtx.dev)};
-            pair.ref->clear();
-            pair.dev->clear();
-            guarded_fn(std::move(pair));
-        }
         /* Disable the test with clone, since cloning is not correctly supported
          * for types that contain factories as members.
          * TODO: reenable when cloning of factories is figured out
@@ -779,16 +760,6 @@ protected:
                                    !gko::is_complex<value_type>()
                                ? 2
                                : 1);
-        // No 0x0 cleared/defaulted solvers, as they would be inconsistent with
-        // `vec`
-        {
-            SCOPED_TRACE("Unpreconditioned solver with 0 iterations via clone");
-            guarded_fn(
-                test_pair<SolverType>{Config::build(ref, nrhs, check_residual)
-                                          .on(ref)
-                                          ->generate(mtx.ref),
-                                      exec});
-        }
         {
             SCOPED_TRACE("Unpreconditioned solver with 0 iterations");
             guarded_fn(
@@ -1104,105 +1075,6 @@ TYPED_TEST(Solver, MoveAssignSameExecutor)
             ASSERT_EQ(Config::get_preconditioner(solver2), precond);
             // moved-from object
             this->assert_empty_state(solver.dev, this->exec);
-        });
-    });
-}
-
-
-TYPED_TEST(Solver, CopyAssignCrossExecutor)
-{
-    using Config = typename TestFixture::Config;
-    using Mtx = typename TestFixture::Mtx;
-    using Precond = typename TestFixture::Precond;
-    this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            auto solver2 = Config::build(this->exec, 0)
-                               .on(this->exec)
-                               ->generate(Mtx::create(this->exec));
-
-            auto& result = (*solver2 = *solver.ref);
-
-            ASSERT_EQ(&result, solver2.get());
-            ASSERT_EQ(solver2->get_size(), solver.ref->get_size());
-            ASSERT_EQ(solver2->get_executor(), this->exec);
-            if (solver.ref->get_system_matrix()) {
-                GKO_ASSERT_MTX_NEAR(
-                    gko::as<Mtx>(solver2->get_system_matrix()),
-                    gko::as<Mtx>(solver.ref->get_system_matrix()), 0.0);
-                // TODO no easy way to compare stopping criteria cross-executor
-                auto precond = Config::get_preconditioner(solver2);
-                if (dynamic_cast<const Precond*>(precond)) {
-                    GKO_ASSERT_MTX_NEAR(
-                        gko::as<Precond>(precond),
-                        gko::as<Precond>(
-                            Config::get_preconditioner(solver.ref)),
-                        0.0);
-                }
-            }
-        });
-    });
-}
-
-
-TYPED_TEST(Solver, MoveAssignCrossExecutor)
-{
-    using Config = typename TestFixture::Config;
-    using Mtx = typename TestFixture::Mtx;
-    using Precond = typename TestFixture::Precond;
-    this->forall_matrix_scenarios([this](auto in_mtx) {
-        this->forall_solver_scenarios(in_mtx, [this](auto solver) {
-            auto solver2 = Config::build(this->exec, 0)
-                               .on(this->exec)
-                               ->generate(Mtx::create(this->exec));
-            auto size = solver.ref->get_size();
-            auto mtx = solver.ref->get_system_matrix();
-            auto precond = Config::get_preconditioner(solver.ref);
-            auto stop = Config::get_stop_criterion_factory(solver.ref);
-
-            auto& result = (*solver2 = std::move(*solver.ref));
-
-            ASSERT_EQ(&result, solver2.get());
-            // moved-to object
-            ASSERT_EQ(solver2->get_size(), size);
-            ASSERT_EQ(solver2->get_executor(), this->exec);
-            if (solver.ref->get_system_matrix()) {
-                GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(solver2->get_system_matrix()),
-                                    gko::as<Mtx>(mtx), 0.0);
-                // TODO no easy way to compare stopping criteria cross-executor
-                auto new_precond = Config::get_preconditioner(solver2);
-                if (dynamic_cast<const Precond*>(new_precond)) {
-                    GKO_ASSERT_MTX_NEAR(gko::as<Precond>(new_precond),
-                                        gko::as<Precond>(precond), 0.0);
-                }
-            }
-            // moved-from object
-            this->assert_empty_state(solver.ref, this->ref);
-        });
-    });
-}
-
-
-TYPED_TEST(Solver, ClearIsEmpty)
-{
-    using Config = typename TestFixture::Config;
-    this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            solver.dev->clear();
-
-            this->assert_empty_state(solver.dev, this->exec);
-        });
-    });
-}
-
-
-TYPED_TEST(Solver, CreateDefaultIsEmpty)
-{
-    using Config = typename TestFixture::Config;
-    this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            auto default_solver = solver.dev->create_default();
-
-            this->assert_empty_state(default_solver, this->exec);
         });
     });
 }

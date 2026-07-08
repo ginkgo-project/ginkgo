@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,8 +37,8 @@ template <typename ValueType, typename IndexType>
 ScaledPermutation<ValueType, IndexType>::ScaledPermutation(
     std::shared_ptr<const Executor> exec, array<value_type> scaling_factors,
     array<index_type> permutation_indices)
-    : EnableLinOp<ScaledPermutation>(
-          exec, dim<2>{scaling_factors.get_size(), scaling_factors.get_size()}),
+    : LinOp(exec,
+            dim<2>{scaling_factors.get_size(), scaling_factors.get_size()}),
       scale_{exec, std::move(scaling_factors)},
       permutation_{exec, std::move(permutation_indices)}
 {

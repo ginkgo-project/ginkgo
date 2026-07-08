@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -65,7 +65,8 @@ class Partition;
  */
 template <typename ValueType = double>
 class Vector
-    : public EnableLinOp<Vector<ValueType>>,
+    : public LinOp,
+      public EnableCloneable<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
@@ -75,7 +76,7 @@ class Vector
 #endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
-    friend class EnablePolymorphicObject<Vector, LinOp>;
+    friend class EnableCloneable<Vector>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;
@@ -83,8 +84,8 @@ class Vector
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableLinOp<Vector>::convert_to;
-    using EnableLinOp<Vector>::move_to;
+    using EnableCloneable<Vector>::convert_to;
+    using EnableCloneable<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 

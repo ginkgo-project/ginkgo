@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,7 +38,8 @@ class Dense;
  */
 template <typename ValueType = default_precision>
 class Diagonal
-    : public EnableLinOp<Diagonal<ValueType>>,
+    : public LinOp,
+      public EnableCloneable<Diagonal<ValueType>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
       public ConvertibleTo<Diagonal<next_precision<ValueType>>>,
@@ -54,15 +55,15 @@ class Diagonal
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public EnableAbsoluteComputation<remove_complex<Diagonal<ValueType>>> {
-    friend class EnablePolymorphicObject<Diagonal, LinOp>;
+    friend class EnableCloneable<Diagonal>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
     friend class Diagonal<to_complex<ValueType>>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableLinOp<Diagonal>::convert_to;
-    using EnableLinOp<Diagonal>::move_to;
+    using EnableCloneable<Diagonal>::convert_to;
+    using EnableCloneable<Diagonal>::move_to;
     using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
     using ConvertibleTo<Csr<ValueType, int32>>::move_to;
     using ConvertibleTo<Csr<ValueType, int64>>::convert_to;

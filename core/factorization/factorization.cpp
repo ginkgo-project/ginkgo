@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,8 +39,18 @@ Factorization<ValueType, IndexType>::unpack() const
     case storage_type::empty:
         GKO_NOT_SUPPORTED(nullptr);
     case storage_type::composition:
-    case storage_type::symm_composition:
-        return this->clone();
+    case storage_type::symm_composition: {
+        // bring the original clone function here
+        auto clone = std::unique_ptr<Factorization>{
+            new Factorization{this->get_executor()}};
+        clone->LinOp::operator=(*this);
+        clone->storage_type_ = storage_type_;
+        // composition clone only copy the pointer when they are on the same
+        // executor
+        clone->factors_ = Composition<ValueType>::create(
+            factors_->get_operators().begin(), factors_->get_operators().end());
+        return clone;
+    }
     case storage_type::combined_lu: {
         // count nonzeros
         array<index_type> l_row_ptrs{exec, size[0] + 1};
@@ -202,7 +212,7 @@ Factorization<ValueType, IndexType>&
 Factorization<ValueType, IndexType>::operator=(const Factorization& fact)
 {
     if (this != &fact) {
-        EnableLinOp<Factorization<ValueType, IndexType>>::operator=(fact);
+        LinOp::operator=(fact);
         storage_type_ = fact.storage_type_;
         *factors_ = *fact.factors_;
     }
@@ -215,13 +225,15 @@ Factorization<ValueType, IndexType>&
 Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
 {
     if (this != &fact) {
-        EnableLinOp<Factorization<ValueType, IndexType>>::operator=(
-            std::move(fact));
+        LinOp::operator=(std::move(fact));
         storage_type_ = std::exchange(fact.storage_type_, storage_type::empty);
-        factors_ =
-            std::exchange(fact.factors_, fact.factors_->create_default());
+        factors_ = std::exchange(
+            fact.factors_,
+            Composition<ValueType>::create(fact.factors_->get_executor()));
         if (factors_->get_executor() != this->get_executor()) {
-            factors_ = factors_->clone(this->get_executor());
+            // It should be failed as Composition is not cloneable currently but
+            // factorization is not clonenable, either.
+            factors_ = clone(this->get_executor(), factors_);
         }
     }
     return *this;
@@ -231,7 +243,7 @@ Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{exec},
+    : LinOp{exec},
       storage_type_{storage_type::empty},
       factors_{Composition<ValueType>::create(exec)}
 {}
@@ -240,8 +252,7 @@ Factorization<ValueType, IndexType>::Factorization(
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::unique_ptr<Composition<ValueType>> factors, storage_type type)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{factors->get_executor(),
-                                                       factors->get_size()},
+    : LinOp{factors->get_executor(), factors->get_size()},
       storage_type_{type},
       factors_{std::move(factors)}
 {}

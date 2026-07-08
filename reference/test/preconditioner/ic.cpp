@@ -157,60 +157,6 @@ TYPED_TEST(Ic, ThrowOnWrongCompositionInput)
 }
 
 
-TYPED_TEST(Ic, CanBeCopied)
-{
-    using ic_prec_type = typename TestFixture::ic_type;
-    using Composition = typename TestFixture::Composition;
-    auto ic = this->ic_pre_factory->generate(this->l_lh_composition);
-    auto before_l_solver = ic->get_l_solver();
-    auto before_lh_solver = ic->get_lh_solver();
-    // The switch up of matrices is intentional, to make sure they are distinct!
-    auto lh_l_composition =
-        gko::share(Composition::create(this->lh_factor, this->l_factor));
-    auto copied =
-        ic_prec_type::build().on(this->exec)->generate(lh_l_composition);
-
-    copied->copy_from(ic);
-
-    ASSERT_EQ(before_l_solver, copied->get_l_solver());
-    ASSERT_EQ(before_lh_solver, copied->get_lh_solver());
-}
-
-
-TYPED_TEST(Ic, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using ic_prec_type = typename TestFixture::ic_type;
-    using Composition = typename TestFixture::Composition;
-    auto ic = this->ic_pre_factory->generate(this->l_lh_composition);
-    auto before_l_solver = ic->get_l_solver();
-    auto before_lh_solver = ic->get_lh_solver();
-    // The switch up of matrices is intentional, to make sure they are distinct!
-    auto lh_l_composition =
-        gko::share(Composition::create(this->lh_factor, this->l_factor));
-    auto moved =
-        ic_prec_type::build().on(this->exec)->generate(lh_l_composition);
-
-    moved->move_from(ic);
-
-    ASSERT_EQ(before_l_solver, moved->get_l_solver());
-    ASSERT_EQ(before_lh_solver, moved->get_lh_solver());
-}
-
-
-TYPED_TEST(Ic, CanBeCloned)
-{
-    auto ic = this->ic_pre_factory->generate(this->l_lh_composition);
-    auto before_l_solver = ic->get_l_solver();
-    auto before_lh_solver = ic->get_lh_solver();
-
-    auto clone = ic->clone();
-
-    ASSERT_EQ(before_l_solver, clone->get_l_solver());
-    ASSERT_EQ(before_lh_solver, clone->get_lh_solver());
-}
-
-
 TYPED_TEST(Ic, CanBeTransposed)
 {
     using Ic = typename TestFixture::ic_type;

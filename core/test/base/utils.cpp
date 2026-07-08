@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -380,11 +380,11 @@ TEST(As, CanCrossCastConstSharedPtr)
 }
 
 
-struct DummyObject : gko::EnablePolymorphicObject<DummyObject>,
-                     gko::EnablePolymorphicAssignment<DummyObject>,
+struct DummyObject : gko::PolymorphicObject,
+                     gko::EnableCloneable<DummyObject>,
                      gko::EnableCreateMethod<DummyObject> {
     DummyObject(std::shared_ptr<const gko::Executor> exec, int value = {})
-        : gko::EnablePolymorphicObject<DummyObject>(exec), data{value}
+        : PolymorphicObject(exec), data{value}
     {}
 
     int data;

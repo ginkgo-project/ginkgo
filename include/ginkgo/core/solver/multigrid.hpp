@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -104,12 +104,10 @@ class MultigridState;
  * @ingroup solvers
  * @ingroup LinOp
  */
-class Multigrid : public EnableLinOp<Multigrid>,
+class Multigrid : public LinOp,
                   public EnableSolverBase<Multigrid>,
                   public EnableIterativeBase<Multigrid>,
                   public EnableApplyWithInitialGuess<Multigrid> {
-    friend class EnableLinOp<Multigrid>;
-    friend class EnablePolymorphicObject<Multigrid, LinOp>;
     friend class EnableApplyWithInitialGuess<Multigrid>;
 
 public:

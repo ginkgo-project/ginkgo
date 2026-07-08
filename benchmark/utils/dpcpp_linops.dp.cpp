@@ -89,14 +89,11 @@ private:
 
 template <bool optimized = false, typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
-class OnemklCsr
-    : public gko::EnableLinOp<OnemklCsr<optimized, ValueType, IndexType>,
-                              OnemklBase>,
-      public gko::EnableCreateMethod<
-          OnemklCsr<optimized, ValueType, IndexType>>,
-      public gko::ReadableFromMatrixData<ValueType, IndexType> {
+class OnemklCsr : public OnemklBase,
+                  public gko::EnableCreateMethod<
+                      OnemklCsr<optimized, ValueType, IndexType>>,
+                  public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<OnemklCsr>;
-    friend class gko::EnablePolymorphicObject<OnemklCsr, OnemklBase>;
 
 public:
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -141,7 +138,7 @@ protected:
 
     OnemklCsr(std::shared_ptr<const gko::Executor> exec,
               const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<OnemklCsr, OnemklBase>(exec, size),
+        : OnemklBase(exec, size),
           csr_(std::move(
               Csr::create(exec, std::make_shared<typename Csr::classical>()))),
           trans_(oneapi::mkl::transpose::nontrans)

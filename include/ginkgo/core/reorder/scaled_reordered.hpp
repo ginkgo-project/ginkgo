@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,10 +41,7 @@ namespace reorder {
  * @tparam IndexType  Type of the indices of all matrices used in this class
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class ScaledReordered
-    : public EnableLinOp<ScaledReordered<ValueType, IndexType>> {
-    friend class EnableLinOp<ScaledReordered, LinOp>;
-    friend class EnablePolymorphicObject<ScaledReordered, LinOp>;
+class ScaledReordered : public LinOp {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -101,14 +98,12 @@ protected:
      * Creates an empty scaled reordered operator (0x0 operator).
      */
     explicit ScaledReordered(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<ScaledReordered>(std::move(exec)),
-          permutation_array_{exec}
+        : LinOp(std::move(exec)), permutation_array_{exec}
     {}
 
     explicit ScaledReordered(const Factory* factory,
                              std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<ScaledReordered>(factory->get_executor(),
-                                       system_matrix->get_size()),
+        : LinOp(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()},
           permutation_array_{factory->get_executor()}
     {
@@ -181,9 +176,9 @@ protected:
             cache_.intermediate =
                 matrix::Dense<value_type>::create(this->get_executor(), size);
         }
-        cache_.inner_b->copy_from(b);
+        cache_.inner_b->copy_from(as<Cloneable>(b));
         if (inner_operator_->apply_uses_initial_guess()) {
-            cache_.inner_x->copy_from(x);
+            cache_.inner_x->copy_from(as<Cloneable>(x));
         }
     }
 

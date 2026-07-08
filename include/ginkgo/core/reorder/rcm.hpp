@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,10 +68,7 @@ enum class starting_strategy { minimum_degree, pseudo_peripheral };
  * @ingroup reorder
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Rcm : public EnablePolymorphicObject<Rcm<ValueType, IndexType>,
-                                           ReorderingBase<IndexType>>,
-            public EnablePolymorphicAssignment<Rcm<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<Rcm, ReorderingBase<IndexType>>;
+class Rcm : public ReorderingBase<IndexType> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -172,11 +169,11 @@ using rcm_starting_strategy = gko::reorder::starting_strategy;
  * @ingroup reorder
  */
 template <typename IndexType = int32>
-class Rcm : public EnablePolymorphicObject<Rcm<IndexType>, LinOpFactory>,
-            public EnablePolymorphicAssignment<Rcm<IndexType>> {
+class Rcm : public LinOpFactory {
+    GKO_ASSERT_SUPPORTED_INDEX_TYPE;
+
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<Rcm<IndexType>, LinOpFactory>;
     friend class enable_parameters_type<parameters_type, Rcm<IndexType>>;
 
     using index_type = IndexType;

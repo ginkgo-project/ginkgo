@@ -347,7 +347,10 @@ TEST_F(Gmres, GmresApplyOneRHSIsEquivalentToRef)
 TEST_F(Gmres, GmresApplyMultipleRHSIsEquivalentToRef)
 {
     using gko::solver::gmres::ortho_method;
-    auto base_params = gko::clone(ref, ref_gmres_factory)->get_parameters();
+    auto base_params = Solver::build().with_criteria(
+        gko::stop::Iteration::build().with_max_iters(246u),
+        gko::stop::ResidualNorm<value_type>::build().with_reduction_factor(
+            value_type{1e-15}));
 
     for (auto ortho :
          {ortho_method::mgs, ortho_method::cgs, ortho_method::cgs2}) {

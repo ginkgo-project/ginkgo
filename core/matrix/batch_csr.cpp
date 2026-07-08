@@ -114,7 +114,7 @@ template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                const batch_dim<2>& size,
                                size_type num_nnz_per_item)
-    : EnableBatchLinOp<Csr<ValueType, IndexType>>(exec, size),
+    : BatchLinOp(exec, size),
       values_(exec, num_nnz_per_item * size.get_num_batch_items()),
       col_idxs_(exec, num_nnz_per_item),
       row_ptrs_(exec, size.get_common_size()[0] + 1)

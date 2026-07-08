@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,13 +10,12 @@ namespace stop {
 
 
 Combined::Combined(std::shared_ptr<const gko::Executor> exec)
-    : EnablePolymorphicObject<Combined, Criterion>(std::move(exec))
+    : Criterion(std::move(exec))
 {}
 
 
 Combined::Combined(const Combined::Factory* factory, const CriterionArgs& args)
-    : EnablePolymorphicObject<Combined, Criterion>(factory->get_executor()),
-      parameters_{factory->get_parameters()}
+    : Criterion(factory->get_executor()), parameters_{factory->get_parameters()}
 {
     for (const auto& f : parameters_.criteria) {
         // Ignore the nullptr from the list

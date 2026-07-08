@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -50,8 +50,8 @@ namespace batch {
  */
 template <typename ValueType = default_precision>
 class MultiVector
-    : public EnablePolymorphicObject<MultiVector<ValueType>>,
-      public EnablePolymorphicAssignment<MultiVector<ValueType>>,
+    : public PolymorphicObject,
+      public EnableCloneable<MultiVector<ValueType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>,
 #endif
@@ -59,14 +59,14 @@ class MultiVector
       public ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>,
 #endif
       public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
-    friend class EnablePolymorphicObject<MultiVector>;
+    friend class EnableCloneable<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<previous_precision<ValueType>>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnablePolymorphicAssignment<MultiVector>::convert_to;
-    using EnablePolymorphicAssignment<MultiVector>::move_to;
+    using EnableCloneable<MultiVector>::convert_to;
+    using EnableCloneable<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
 

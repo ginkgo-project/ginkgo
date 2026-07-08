@@ -114,7 +114,7 @@ class Diagonal;
  *
  * @ref LinOp
  */
-class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
+class LinOp : public PolymorphicObject {
 public:
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
@@ -188,7 +188,7 @@ public:
     LinOp& operator=(LinOp&& other)
     {
         if (this != &other) {
-            EnableAbstractPolymorphicObject<LinOp>::operator=(std::move(other));
+            PolymorphicObject::operator=(std::move(other));
             this->set_size(other.get_size());
             other.set_size({});
         }
@@ -203,7 +203,7 @@ public:
      * which will have size 0x0 and unchanged executor afterwards.
      */
     LinOp(LinOp&& other)
-        : EnableAbstractPolymorphicObject<LinOp>(std::move(other)),
+        : PolymorphicObject(std::move(other)),
           size_{std::exchange(other.size_, dim<2>{})}
     {}
 
@@ -216,7 +216,7 @@ protected:
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
                    const dim<2>& size = dim<2>{})
-        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
+        : PolymorphicObject(exec), size_{size}
     {}
 
     /**
@@ -343,7 +343,7 @@ private:
 class LinOpFactory
     : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
 public:
-    using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
+    using AbstractFactory::AbstractFactory;
 
     std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
     {
@@ -799,54 +799,6 @@ private:
 
 
 /**
- * The EnableLinOp mixin can be used to provide sensible default implementations
- * of the majority of the LinOp and PolymorphicObject interface.
- *
- * The goal of the mixin is to facilitate the development of new LinOp, by
- * enabling the implementers to focus on the important parts of their operator,
- * while the library takes care of generating the trivial utility functions.
- * The mixin will provide default implementations for the entire
- * PolymorphicObject interface, including a default implementation of
- * `copy_from` between objects of the new LinOp type. It will also hide the
- * default LinOp::apply() methods with versions that preserve the static type of
- * the object.
- *
- * Implementers of new LinOps are required to specify only the following
- * aspects:
- *
- * 1.  Creation of the LinOp: This can be facilitated via either
- *     EnableCreateMethod mixin (used mostly for matrix formats),
- *     or GKO_ENABLE_LIN_OP_FACTORY macro (used for operators created from other
- *     operators, like preconditioners and solvers).
- * 2.  Application of the LinOp: Implementers have to override the two
- *     overloads of the LinOp::apply_impl() virtual methods.
- *
- * @note  This mixin can't be used with concrete types that derive from
- *        experimental::distributed::DistributedBase. In that case use
- *        experimental::EnableDistributedLinOp instead.
- *
- * @tparam ConcreteLinOp  the concrete LinOp which is being implemented
- *                        [CRTP parameter]
- * @tparam PolymorphicBase  parent of ConcreteLinOp in the polymorphic
- *                          hierarchy, has to be a subclass of LinOp
- *
- * @ingroup LinOp
- */
-template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
-class EnableLinOp
-    : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteLinOp> {
-public:
-    using EnablePolymorphicObject<ConcreteLinOp,
-                                  PolymorphicBase>::EnablePolymorphicObject;
-    using PolymorphicBase::apply;
-
-protected:
-    GKO_ENABLE_SELF(ConcreteLinOp);
-};
-
-
-/**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
  * template parameters to enable a subclass of LinOpFactory.
  *
@@ -887,7 +839,7 @@ using EnableDefaultLinOpFactory =
  * A minimal example of a linear operator is the following:
  *
  * ```c++
- * struct MyLinOp : public EnableLinOp<MyLinOp> {
+ * struct MyLinOp : public LinOp {
  *     GKO_ENABLE_LIN_OP_FACTORY(MyLinOp, my_parameters, Factory) {
  *         // a factory parameter named "my_value", of type int and default
  *         // value of 5
@@ -896,13 +848,13 @@ using EnableDefaultLinOpFactory =
  *         // and default value {5, 5}
  *         std::pair<int, int> GKO_FACTORY_PARAMETER_VECTOR(my_pair, 5, 5);
  *     };
- *     // constructor needed by EnableLinOp
+ *     // constructor needed by LinOp
  *     explicit MyLinOp(std::shared_ptr<const Executor> exec) {
- *         : EnableLinOp<MyLinOp>(exec) {}
+ *         : LinOp(exec) {}
  *     // constructor needed by the factory
  *     explicit MyLinOp(const Factory *factory,
  *                      std::shared_ptr<const LinOp> matrix)
- *         : EnableLinOp<MyLinOp>(factory->get_executor()), matrix->get_size()),
+ *         : LinOp(factory->get_executor()), matrix->get_size()),
  *           // store factory's parameters locally
  *           my_parameters_{factory->get_parameters()},
  *     {
@@ -955,8 +907,6 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,    \
                                                   _parameters_name##_type> { \
-        friend class ::gko::EnablePolymorphicObject<_factory_name,           \
-                                                    ::gko::LinOpFactory>;    \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \

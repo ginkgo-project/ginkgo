@@ -151,64 +151,6 @@ TYPED_TEST(FixedCoarsening, Generate)
 }
 
 
-TYPED_TEST(FixedCoarsening, CanBeCopied)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
-    auto copy =
-        this->fixed_coarsening_factory->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->mg_level);
-    auto copy_mtx = copy->get_system_matrix();
-    auto copy_coarse = copy->get_coarse_op();
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
-}
-
-
-TYPED_TEST(FixedCoarsening, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
-    auto copy =
-        this->fixed_coarsening_factory->generate(Mtx::create(this->exec));
-
-    copy->move_from(this->mg_level);
-    auto copy_mtx = copy->get_system_matrix();
-    auto copy_coarse = copy->get_coarse_op();
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
-}
-
-
-TYPED_TEST(FixedCoarsening, CanBeCloned)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
-    auto clone = this->mg_level->clone();
-    auto clone_mtx = clone->get_system_matrix();
-    auto clone_coarse = clone->get_coarse_op();
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_coarse), this->coarse, 0.0);
-}
-
-
-TYPED_TEST(FixedCoarsening, CanBeCleared)
-{
-    using MgLevel = typename TestFixture::MgLevel;
-
-    this->mg_level->clear();
-    auto mtx = this->mg_level->get_system_matrix();
-    auto coarse = this->mg_level->get_coarse_op();
-
-    ASSERT_EQ(mtx, nullptr);
-    ASSERT_EQ(coarse, nullptr);
-}
-
-
 TYPED_TEST(FixedCoarsening, CoarseFineRestrictApply)
 {
     auto fixed_coarsening = this->fixed_coarsening_factory->generate(this->mtx);

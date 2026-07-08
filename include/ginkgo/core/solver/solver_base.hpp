@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -770,6 +770,7 @@ public:
     {
         auto exec = self()->get_executor();
         if (new_stop_factory && new_stop_factory->get_executor() != exec) {
+            // no stopping criterion support clone currently though.
             new_stop_factory = gko::clone(exec, new_stop_factory);
         }
         IterativeBase::set_stop_criterion_factory(new_stop_factory);

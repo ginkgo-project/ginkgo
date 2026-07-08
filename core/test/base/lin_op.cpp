@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -70,12 +70,13 @@ struct DummyLogger : gko::log::Logger {
 };
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
+                   public gko::EnableCloneable<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyLinOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
     void access() const { last_access = this->get_executor(); }
@@ -112,9 +113,9 @@ protected:
 };
 
 
-class EnableLinOp : public ::testing::Test {
+class LinOp : public ::testing::Test {
 protected:
-    EnableLinOp()
+    LinOp()
         : ref{gko::ReferenceExecutor::create()},
           ref2{gko::ReferenceExecutor::create()},
           op{DummyLinOp::create(ref2, gko::dim<2>{3, 5})},
@@ -138,7 +139,7 @@ protected:
 };
 
 
-TEST_F(EnableLinOp, CallsApplyImpl)
+TEST_F(LinOp, CallsApplyImpl)
 {
     op->apply(b, x);
 
@@ -146,7 +147,7 @@ TEST_F(EnableLinOp, CallsApplyImpl)
 }
 
 
-TEST_F(EnableLinOp, CallsExtendedApplyImpl)
+TEST_F(LinOp, CallsExtendedApplyImpl)
 {
     op->apply(alpha, b, beta, x);
 
@@ -154,7 +155,7 @@ TEST_F(EnableLinOp, CallsExtendedApplyImpl)
 }
 
 
-TEST_F(EnableLinOp, ApplyFailsOnWrongBSize)
+TEST_F(LinOp, ApplyFailsOnWrongBSize)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
 
@@ -162,7 +163,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongBSize)
 }
 
 
-TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionRows)
+TEST_F(LinOp, ApplyFailsOnWrongSolutionRows)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
 
@@ -170,7 +171,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionRows)
 }
 
 
-TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionColumns)
+TEST_F(LinOp, ApplyFailsOnWrongSolutionColumns)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
 
@@ -178,7 +179,7 @@ TEST_F(EnableLinOp, ApplyFailsOnWrongSolutionColumns)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBSize)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongBSize)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
 
@@ -186,7 +187,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBSize)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionRows)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongSolutionRows)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
 
@@ -194,7 +195,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionRows)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionColumns)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
 
@@ -202,7 +203,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongAlphaDimension)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
 
@@ -210,7 +211,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBetaDimension)
+TEST_F(LinOp, ExtendedApplyFailsOnWrongBetaDimension)
 {
     auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
 
@@ -219,7 +220,7 @@ TEST_F(EnableLinOp, ExtendedApplyFailsOnWrongBetaDimension)
 
 
 // For tests between different memory, check cuda/test/base/lin_op.cu
-TEST_F(EnableLinOp, ApplyDoesNotCopyBetweenSameMemory)
+TEST_F(LinOp, ApplyDoesNotCopyBetweenSameMemory)
 {
     op->apply(b, x);
 
@@ -228,7 +229,7 @@ TEST_F(EnableLinOp, ApplyDoesNotCopyBetweenSameMemory)
 }
 
 
-TEST_F(EnableLinOp, ApplyNoCopyBackBetweenSameMemory)
+TEST_F(LinOp, ApplyNoCopyBackBetweenSameMemory)
 {
     op->apply(b, x);
 
@@ -237,7 +238,7 @@ TEST_F(EnableLinOp, ApplyNoCopyBackBetweenSameMemory)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
+TEST_F(LinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
 {
     op->apply(alpha, b, beta, x);
 
@@ -248,7 +249,7 @@ TEST_F(EnableLinOp, ExtendedApplyDoesNotCopyBetweenSameMemory)
 }
 
 
-TEST_F(EnableLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
+TEST_F(LinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
 {
     op->apply(alpha, b, beta, x);
 
@@ -259,13 +260,13 @@ TEST_F(EnableLinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
 }
 
 
-TEST_F(EnableLinOp, ApplyUsesInitialGuessReturnsFalse)
+TEST_F(LinOp, ApplyUsesInitialGuessReturnsFalse)
 {
     ASSERT_FALSE(op->apply_uses_initial_guess());
 }
 
 
-TEST_F(EnableLinOp, ApplyIsLogged)
+TEST_F(LinOp, ApplyIsLogged)
 {
     auto before_logger = *logger;
 
@@ -278,7 +279,7 @@ TEST_F(EnableLinOp, ApplyIsLogged)
 }
 
 
-TEST_F(EnableLinOp, AdvancedApplyIsLogged)
+TEST_F(LinOp, AdvancedApplyIsLogged)
 {
     auto before_logger = *logger;
 
@@ -292,11 +293,10 @@ TEST_F(EnableLinOp, AdvancedApplyIsLogged)
 
 
 template <typename T = int>
-class DummyLinOpWithFactory
-    : public gko::EnableLinOp<DummyLinOpWithFactory<T>> {
+class DummyLinOpWithFactory : public gko::LinOp {
 public:
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
+        : gko::LinOp(exec)
     {}
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -308,7 +308,7 @@ public:
 
     DummyLinOpWithFactory(const Factory* factory,
                           std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor()),
+        : gko::LinOp(factory->get_executor()),
           parameters_{factory->get_parameters()},
           op_{op}
     {}
@@ -324,9 +324,9 @@ protected:
 };
 
 
-class EnableLinOpFactory : public ::testing::Test {
+class LinOpFactory : public ::testing::Test {
 protected:
-    EnableLinOpFactory()
+    LinOpFactory()
         : ref{gko::ReferenceExecutor::create()},
           logger{std::make_shared<DummyLogger>()}
     {}
@@ -336,7 +336,7 @@ protected:
 };
 
 
-TEST_F(EnableLinOpFactory, CreatesDefaultFactory)
+TEST_F(LinOpFactory, CreatesDefaultFactory)
 {
     auto factory = DummyLinOpWithFactory<>::build().on(ref);
 
@@ -345,7 +345,7 @@ TEST_F(EnableLinOpFactory, CreatesDefaultFactory)
 }
 
 
-TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
+TEST_F(LinOpFactory, CreatesFactoryWithParameters)
 {
     auto factory = DummyLinOpWithFactory<>::build().with_value(7).on(ref);
 
@@ -354,7 +354,7 @@ TEST_F(EnableLinOpFactory, CreatesFactoryWithParameters)
 }
 
 
-TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
+TEST_F(LinOpFactory, PassesParametersToLinOp)
 {
     auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
     auto factory = DummyLinOpWithFactory<>::build().with_value(6).on(ref);
@@ -367,7 +367,7 @@ TEST_F(EnableLinOpFactory, PassesParametersToLinOp)
 }
 
 
-TEST_F(EnableLinOpFactory, FactoryGenerateIsLogged)
+TEST_F(LinOpFactory, FactoryGenerateIsLogged)
 {
     auto before_logger = *logger;
     auto factory = DummyLinOpWithFactory<>::build().on(ref);
@@ -381,7 +381,7 @@ TEST_F(EnableLinOpFactory, FactoryGenerateIsLogged)
 }
 
 
-TEST_F(EnableLinOpFactory, WithLoggersWorksAndPropagates)
+TEST_F(LinOpFactory, WithLoggersWorksAndPropagates)
 {
     auto before_logger = *logger;
     auto factory =
@@ -400,7 +400,7 @@ TEST_F(EnableLinOpFactory, WithLoggersWorksAndPropagates)
 }
 
 
-TEST_F(EnableLinOpFactory, CopiesLinOpToOtherExecutor)
+TEST_F(LinOpFactory, CopiesLinOpToOtherExecutor)
 {
     auto ref2 = gko::ReferenceExecutor::create();
     auto dummy = gko::share(DummyLinOp::create(ref2, gko::dim<2>{3, 5}));
@@ -418,19 +418,19 @@ TEST_F(EnableLinOpFactory, CopiesLinOpToOtherExecutor)
 
 template <typename Type>
 class DummyLinOpWithType
-    : public gko::EnableLinOp<DummyLinOpWithType<Type>>,
+    : public gko::LinOp,
       public gko::EnableCreateMethod<DummyLinOpWithType<Type>>,
       public gko::EnableAbsoluteComputation<
           gko::remove_complex<DummyLinOpWithType<Type>>> {
 public:
     using absolute_type = gko::remove_complex<DummyLinOpWithType>;
     DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOpWithType>(exec)
+        : gko::LinOp(exec)
     {}
 
     DummyLinOpWithType(std::shared_ptr<const gko::Executor> exec,
                        gko::dim<2> size, Type value)
-        : gko::EnableLinOp<DummyLinOpWithType>(exec, size), value_(value)
+        : gko::LinOp(exec, size), value_(value)
     {}
 
     void compute_absolute_inplace() override { value_ = gko::abs(value_); }

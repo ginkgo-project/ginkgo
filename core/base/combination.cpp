@@ -36,7 +36,7 @@ Combination<ValueType>& Combination<ValueType>::operator=(
     const Combination& other)
 {
     if (&other != this) {
-        EnableLinOp<Combination>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         coefficients_ = other.coefficients_;
         operators_ = other.operators_;
@@ -58,7 +58,7 @@ template <typename ValueType>
 Combination<ValueType>& Combination<ValueType>::operator=(Combination&& other)
 {
     if (&other != this) {
-        EnableLinOp<Combination>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         auto exec = this->get_executor();
         coefficients_ = std::move(other.coefficients_);
         operators_ = std::move(other.operators_);
@@ -99,7 +99,8 @@ std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
     transposed->set_size(gko::transpose(this->get_size()));
     // copy coefficients
     for (auto& coef : get_coefficients()) {
-        transposed->coefficients_.push_back(share(coef->clone()));
+        transposed->coefficients_.push_back(
+            share(as<LinOp>(as<Cloneable>(coef)->clone())));
     }
     // transpose operators
     for (auto& op : get_operators()) {

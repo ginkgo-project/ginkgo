@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -153,14 +153,14 @@ std::unique_ptr<BlockOperator> BlockOperator::create(
 
 
 BlockOperator::BlockOperator(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<BlockOperator>(std::move(exec))
+    : LinOp(std::move(exec))
 {}
 
 
 BlockOperator::BlockOperator(
     std::shared_ptr<const Executor> exec,
     std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks)
-    : EnableLinOp<BlockOperator>(exec, compute_global_size(blocks)),
+    : LinOp(exec, compute_global_size(blocks)),
       block_size_(blocks.empty()
                       ? dim<2>{}
                       : dim<2>(blocks.size(), blocks.front().size())),
@@ -246,14 +246,14 @@ void BlockOperator::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 BlockOperator::BlockOperator(const BlockOperator& other)
-    : EnableLinOp<BlockOperator>(other.get_executor())
+    : LinOp(other.get_executor())
 {
     *this = other;
 }
 
 
 BlockOperator::BlockOperator(BlockOperator&& other) noexcept
-    : EnableLinOp<BlockOperator>(other.get_executor())
+    : LinOp(other.get_executor())
 {
     *this = std::move(other);
 }

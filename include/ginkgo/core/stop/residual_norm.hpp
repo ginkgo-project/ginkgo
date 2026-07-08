@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -47,10 +47,7 @@ enum class mode { absolute, initial_resnorm, rhs_norm };
  * @ingroup stop
  */
 template <typename ValueType>
-class ResidualNormBase
-    : public EnablePolymorphicObject<ResidualNormBase<ValueType>, Criterion> {
-    friend class EnablePolymorphicObject<ResidualNormBase<ValueType>,
-                                         Criterion>;
+class ResidualNormBase : public Criterion {
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 protected:
@@ -63,8 +60,7 @@ protected:
                     const Criterion::Updater& updater) override;
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<ResidualNormBase, Criterion>(exec),
-          device_storage_{exec, 2}
+        : Criterion(exec), device_storage_{exec, 2}
     {}
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec,

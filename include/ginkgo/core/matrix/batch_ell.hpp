@@ -50,7 +50,8 @@ namespace matrix {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell final
-    : public EnableBatchLinOp<Ell<ValueType, IndexType>>,
+    : public BatchLinOp,
+      public EnableCloneable<Ell<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Ell<next_precision<ValueType, 2>, IndexType>>,
 #endif
@@ -58,7 +59,7 @@ class Ell final
       public ConvertibleTo<Ell<next_precision<ValueType, 3>, IndexType>>,
 #endif
       public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>> {
-    friend class EnablePolymorphicObject<Ell, BatchLinOp>;
+    friend class EnableCloneable<Ell>;
     friend class Ell<to_complex<ValueType>, IndexType>;
     friend class Ell<previous_precision<ValueType>, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
@@ -66,8 +67,8 @@ class Ell final
                   "IndexType must be a 32 bit integer");
 
 public:
-    using EnableBatchLinOp<Ell>::convert_to;
-    using EnableBatchLinOp<Ell>::move_to;
+    using EnableCloneable<Ell>::convert_to;
+    using EnableCloneable<Ell>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;

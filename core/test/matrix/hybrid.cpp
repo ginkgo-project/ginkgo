@@ -159,14 +159,6 @@ TYPED_TEST(Hybrid, CanBeCloned)
 }
 
 
-TYPED_TEST(Hybrid, CanBeCleared)
-{
-    this->mtx->clear();
-
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(Hybrid, CanBeReadFromMatrixDataAutomatically)
 {
     using Mtx = typename TestFixture::Mtx;
