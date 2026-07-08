@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,12 +29,14 @@ namespace gmres {
 namespace {
 
 
-GKO_REGISTER_OPERATION(initialize, common_gmres::initialize);
-GKO_REGISTER_OPERATION(restart, gmres::restart);
-GKO_REGISTER_OPERATION(hessenberg_qr, common_gmres::hessenberg_qr);
-GKO_REGISTER_OPERATION(solve_krylov, common_gmres::solve_krylov);
-GKO_REGISTER_OPERATION(multi_axpy, gmres::multi_axpy);
-GKO_REGISTER_OPERATION(multi_dot, gmres::multi_dot);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(initialize, common_gmres::initialize);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(restart, gmres::restart);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(hessenberg_qr,
+                                          common_gmres::hessenberg_qr);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(solve_krylov,
+                                          common_gmres::solve_krylov);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(multi_axpy, gmres::multi_axpy);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(multi_dot, gmres::multi_dot);
 
 
 }  // anonymous namespace

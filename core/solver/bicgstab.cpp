@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,11 +24,11 @@ namespace bicgstab {
 namespace {
 
 
-GKO_REGISTER_OPERATION(initialize, bicgstab::initialize);
-GKO_REGISTER_OPERATION(step_1, bicgstab::step_1);
-GKO_REGISTER_OPERATION(step_2, bicgstab::step_2);
-GKO_REGISTER_OPERATION(step_3, bicgstab::step_3);
-GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(initialize, bicgstab::initialize);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(step_1, bicgstab::step_1);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(step_2, bicgstab::step_2);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(step_3, bicgstab::step_3);
+GKO_REGISTER_OPERATION_WITH_WORK_ESTIMATE(finalize, bicgstab::finalize);
 
 
 }  // anonymous namespace
