@@ -153,6 +153,77 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
 
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void separate_diag_off_diag_local_rows(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<LocalIndexType>& row_idxs,
+    const array<GlobalIndexType>& col_idxs, const array<ValueType>& values,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        col_partition,
+    comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& off_diag_row_idxs,
+    array<GlobalIndexType>& off_diag_col_idxs,
+    array<ValueType>& off_diag_values)
+{
+    auto row_ptr = row_idxs.get_const_data();
+    auto col_ptr = col_idxs.get_const_data();
+    auto val_ptr = values.get_const_data();
+    auto col_part_ids = col_partition->get_part_ids();
+    const auto nnz = col_idxs.get_size();
+
+    // per-element: is it diagonal (owned column)?
+    array<bool> is_diag{exec, nnz};
+    array<LocalIndexType> local_cols{exec, nnz};
+#pragma omp parallel for
+    for (size_type i = 0; i < nnz; ++i) {
+        auto range_id = find_range(col_ptr[i], col_partition, size_type{0});
+        bool diag = col_part_ids[range_id] == local_part;
+        is_diag.get_data()[i] = diag;
+        local_cols.get_data()[i] =
+            diag ? map_to_local(col_ptr[i], col_partition, range_id)
+                 : LocalIndexType{};
+    }
+    // exclusive prefix sums give each element its output slot
+    array<size_type> diag_pos{exec, nnz + 1};
+    array<size_type> off_pos{exec, nnz + 1};
+    diag_pos.get_data()[0] = 0;
+    off_pos.get_data()[0] = 0;
+    for (size_type i = 0; i < nnz;
+         ++i) {  // serial scan (nnz-cheap vs the copy)
+        diag_pos.get_data()[i + 1] =
+            diag_pos.get_data()[i] + (is_diag.get_const_data()[i] ? 1 : 0);
+        off_pos.get_data()[i + 1] =
+            off_pos.get_data()[i] + (is_diag.get_const_data()[i] ? 0 : 1);
+    }
+    const auto num_diag = diag_pos.get_const_data()[nnz];
+    const auto num_off = off_pos.get_const_data()[nnz];
+    diag_row_idxs.resize_and_reset(num_diag);
+    diag_col_idxs.resize_and_reset(num_diag);
+    diag_values.resize_and_reset(num_diag);
+    off_diag_row_idxs.resize_and_reset(num_off);
+    off_diag_col_idxs.resize_and_reset(num_off);
+    off_diag_values.resize_and_reset(num_off);
+#pragma omp parallel for
+    for (size_type i = 0; i < nnz; ++i) {
+        if (is_diag.get_const_data()[i]) {
+            auto d = diag_pos.get_const_data()[i];
+            diag_row_idxs.get_data()[d] = row_ptr[i];
+            diag_col_idxs.get_data()[d] = local_cols.get_const_data()[i];
+            diag_values.get_data()[d] = val_ptr[i];
+        } else {
+            auto o = off_pos.get_const_data()[i];
+            off_diag_row_idxs.get_data()[o] = row_ptr[i];
+            off_diag_col_idxs.get_data()[o] = col_ptr[i];
+            off_diag_values.get_data()[o] = val_ptr[i];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG_LOCAL_ROWS);
+
+
 }  // namespace distributed_matrix
 }  // namespace omp
 }  // namespace kernels
