@@ -3,10 +3,12 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <algorithm>
+#include <limits>
 #include <vector>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
@@ -29,6 +31,7 @@ GKO_REGISTER_OPERATION(local_spgemm, csr::spgemm);
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(separate_diag_off_diag_local_rows,
                        distributed_matrix::separate_diag_off_diag_local_rows);
+GKO_REGISTER_OPERATION(compress_columns, distributed_matrix::compress_columns);
 
 
 // Turns a per-rank counts vector into the corresponding exclusive-prefix-sum
@@ -142,8 +145,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(
 {
     const auto* b_ptr = b.get();
     auto* c_ptr = c.get();
-
-    using global_csr = matrix::Csr<ValueType, GlobalIndexType>;
 
     auto exec = this->get_executor();
     auto host = exec->get_master();
@@ -414,36 +415,68 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(
     auto a_remap_local_host = make_temporary_clone(host, &a_remap_local);
     auto a_remap_local_ptr = a_remap_local_host->get_const_data();
 
-    std::vector<GlobalIndexType> a_remap_col_idxs(a_nnz);
+    std::vector<LocalIndexType> a_remap_col_idxs(a_nnz);
     for (size_type k = 0; k < a_nnz; ++k) {
         GKO_ASSERT(a_remap_local_ptr[k] != invalid_index<LocalIndexType>());
-        a_remap_col_idxs[k] =
-            static_cast<GlobalIndexType>(a_remap_local_ptr[k]);
+        a_remap_col_idxs[k] = a_remap_local_ptr[k];
     }
 
-    // Local SpGEMM
-    auto a_remapped = global_csr::create(
-        exec,
-        dim<2>{static_cast<size_type>(a_nrows),
-               static_cast<size_type>(b_aug_nrows)},
-        array<ValueType>(exec, a_vals, a_vals + a_nnz),
-        array<GlobalIndexType>(exec, a_remap_col_idxs.begin(),
-                               a_remap_col_idxs.end()),
-        array<GlobalIndexType>(exec, a_row_ptrs, a_row_ptrs + a_nrows + 1));
+    // The local spgemm runs with LocalIndexType (32-bit) indices, which every
+    // backend supports (rocSPARSE has no 64-bit spgemm). Compress B_augmented's
+    // global columns to a compact local space on the executor;
+    // b_aug_distinct_cols maps each compact index back to its global column for
+    // the reassemble below.
+    array<GlobalIndexType> b_aug_cols_dev(exec, b_aug_col_idxs.begin(),
+                                          b_aug_col_idxs.end());
+    array<LocalIndexType> b_aug_col_local(exec);
+    array<GlobalIndexType> b_aug_distinct_cols(exec);
+    exec->run(make_compress_columns(b_aug_cols_dev, b_aug_col_local,
+                                    b_aug_distinct_cols));
+    const auto num_distinct_cols = b_aug_distinct_cols.get_size();
 
-    auto b_augmented = global_csr::create(
-        exec,
-        dim<2>{static_cast<size_type>(b_aug_nrows),
-               static_cast<size_type>(b_ncols)},
+    // The local product is stored with LocalIndexType row pointers and column
+    // indices, so its nnz and dimensions must fit that type.
+    const auto local_index_max =
+        static_cast<size_type>(std::numeric_limits<LocalIndexType>::max());
+    if (a_nnz > local_index_max ||
+        static_cast<size_type>(b_aug_nnz) > local_index_max ||
+        num_distinct_cols > local_index_max ||
+        static_cast<size_type>(b_aug_nrows) > local_index_max) {
+        throw OverflowError(__FILE__, __LINE__, "LocalIndexType");
+    }
+
+    // Local SpGEMM (LocalIndexType). a_remapped's columns index B_augmented's
+    // rows; B_augmented's columns are the compact column space.
+    std::vector<LocalIndexType> a_row_ptrs_local(a_nrows + 1);
+    for (GlobalIndexType i = 0; i <= a_nrows; ++i) {
+        a_row_ptrs_local[i] = static_cast<LocalIndexType>(a_row_ptrs[i]);
+    }
+    std::vector<LocalIndexType> b_aug_row_ptrs_local(b_aug_row_ptrs.size());
+    for (size_type i = 0; i < b_aug_row_ptrs.size(); ++i) {
+        b_aug_row_ptrs_local[i] =
+            static_cast<LocalIndexType>(b_aug_row_ptrs[i]);
+    }
+
+    using local_csr = matrix::Csr<ValueType, LocalIndexType>;
+    auto a_remapped =
+        local_csr::create(exec,
+                          dim<2>{static_cast<size_type>(a_nrows),
+                                 static_cast<size_type>(b_aug_nrows)},
+                          array<ValueType>(exec, a_vals, a_vals + a_nnz),
+                          array<LocalIndexType>(exec, a_remap_col_idxs.begin(),
+                                                a_remap_col_idxs.end()),
+                          array<LocalIndexType>(exec, a_row_ptrs_local.begin(),
+                                                a_row_ptrs_local.end()));
+
+    auto b_augmented = local_csr::create(
+        exec, dim<2>{static_cast<size_type>(b_aug_nrows), num_distinct_cols},
         array<ValueType>(exec, b_aug_vals.begin(), b_aug_vals.end()),
-        array<GlobalIndexType>(exec, b_aug_col_idxs.begin(),
-                               b_aug_col_idxs.end()),
-        array<GlobalIndexType>(exec, b_aug_row_ptrs.begin(),
-                               b_aug_row_ptrs.end()));
+        std::move(b_aug_col_local),
+        array<LocalIndexType>(exec, b_aug_row_ptrs_local.begin(),
+                              b_aug_row_ptrs_local.end()));
 
-    auto c_local =
-        global_csr::create(exec, dim<2>{static_cast<size_type>(a_nrows),
-                                        static_cast<size_type>(b_ncols)});
+    auto c_local = local_csr::create(
+        exec, dim<2>{static_cast<size_type>(a_nrows), num_distinct_cols});
     if (a_nrows > 0) {
         // The local csr::spgemm requires column-sorted inputs.
         a_remapped->sort_by_column_index();
@@ -453,28 +486,29 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(
     }
 
     // Reassemble the output entirely on the executor. c_local has this rank's
-    // local rows with global columns; separate_diag_off_diag_local_rows splits
-    // it into c's diagonal (local columns) and off-diagonal (remote columns)
-    // blocks, from which we build c's column index map and row gatherer -- all
-    // with device kernels, avoiding any host round-trip of the nonzeros.
+    // local rows with compact columns (indices into b_aug_distinct_cols);
+    // separate_diag_off_diag_local_rows resolves them to global columns and
+    // splits into c's diagonal (local columns) and off-diagonal (remote
+    // columns) blocks, from which we build c's column index map and row
+    // gatherer -- all with device kernels, avoiding any host round-trip.
     auto a_row_partition = this->get_row_partition();
     GKO_ASSERT(a_row_partition != nullptr);
     auto b_col_partition = b_ptr->imap_.get_partition();
     auto c_num_local_rows = c_local->get_size()[0];
     auto c_nnz = c_local->get_num_stored_elements();
 
-    // Per-nonzero local row index (int64 ptrs -> int32 idxs). The split kernel
-    // reads c_local's columns/values read-only, so view them in place rather
-    // than copying.
+    // Per-nonzero local row index. Columns/values are read-only, so view them
+    // in place; col_map turns c_local's compact columns back into global ones.
     array<LocalIndexType> local_rows(exec, c_nnz);
     exec->run(make_convert_ptrs_to_idxs(c_local->get_const_row_ptrs(),
                                         c_num_local_rows,
                                         local_rows.get_data()));
-    auto global_cols = make_array_view(exec, c_nnz, c_local->get_col_idxs());
-    auto global_vals = make_array_view(exec, c_nnz, c_local->get_values());
+    auto compact_cols = make_array_view(exec, c_nnz, c_local->get_col_idxs());
+    auto col_vals = make_array_view(exec, c_nnz, c_local->get_values());
 
     // Split into diagonal (local columns) and off-diagonal (global columns)
-    // COO blocks on the executor, keeping the local rows.
+    // COO blocks on the executor, keeping the local rows. b_aug_distinct_cols
+    // is the compact-to-global column map produced by the compression above.
     array<LocalIndexType> diag_rows(exec);
     array<LocalIndexType> diag_cols(exec);
     array<ValueType> diag_vals(exec);
@@ -483,8 +517,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(
     array<ValueType> off_vals(exec);
     auto b_col_partition_dev = make_temporary_clone(exec, b_col_partition);
     exec->run(make_separate_diag_off_diag_local_rows(
-        local_rows, global_cols, global_vals, b_col_partition_dev.get(), rank,
-        diag_rows, diag_cols, diag_vals, off_rows, off_global_cols, off_vals));
+        local_rows, compact_cols, b_aug_distinct_cols, col_vals,
+        b_col_partition_dev.get(), rank, diag_rows, diag_cols, diag_vals,
+        off_rows, off_global_cols, off_vals));
 
     // C's column index map from the off-diagonal global columns, then map them
     // to non-local indices.

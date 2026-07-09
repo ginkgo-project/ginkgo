@@ -35,20 +35,27 @@ namespace kernels {
         array<ValueType>& off_diag_values)
 
 
-#define GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG_LOCAL_ROWS(                       \
-    ValueType, LocalIndexType, GlobalIndexType)                              \
-    void separate_diag_off_diag_local_rows(                                  \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const array<LocalIndexType>& row_idxs,                               \
-        const array<GlobalIndexType>& col_idxs,                              \
-        const array<ValueType>& values,                                      \
-        const experimental::distributed::Partition<                          \
-            LocalIndexType, GlobalIndexType>* col_partition,                 \
-        comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,    \
-        array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values, \
-        array<LocalIndexType>& off_diag_row_idxs,                            \
-        array<GlobalIndexType>& off_diag_col_idxs,                           \
+#define GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG_LOCAL_ROWS(                         \
+    ValueType, LocalIndexType, GlobalIndexType)                                \
+    void separate_diag_off_diag_local_rows(                                    \
+        std::shared_ptr<const DefaultExecutor> exec,                           \
+        const array<LocalIndexType>& row_idxs,                                 \
+        const array<LocalIndexType>& col_idxs,                                 \
+        const array<GlobalIndexType>& col_map, const array<ValueType>& values, \
+        const experimental::distributed::Partition<                            \
+            LocalIndexType, GlobalIndexType>* col_partition,                   \
+        comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,      \
+        array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,   \
+        array<LocalIndexType>& off_diag_row_idxs,                              \
+        array<GlobalIndexType>& off_diag_col_idxs,                             \
         array<ValueType>& off_diag_values)
+
+
+#define GKO_DECLARE_COMPRESS_COLUMNS(LocalIndexType, GlobalIndexType)  \
+    void compress_columns(std::shared_ptr<const DefaultExecutor> exec, \
+                          const array<GlobalIndexType>& global_cols,   \
+                          array<LocalIndexType>& compact_cols,         \
+                          array<GlobalIndexType>& distinct_cols)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
@@ -60,7 +67,9 @@ namespace kernels {
     template <typename ValueType, typename LocalIndexType,                   \
               typename GlobalIndexType>                                      \
     GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG_LOCAL_ROWS(ValueType, LocalIndexType, \
-                                                  GlobalIndexType)
+                                                  GlobalIndexType);          \
+    template <typename LocalIndexType, typename GlobalIndexType>             \
+    GKO_DECLARE_COMPRESS_COLUMNS(LocalIndexType, GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_matrix,

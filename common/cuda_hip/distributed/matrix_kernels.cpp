@@ -9,6 +9,7 @@
 #include <thrust/distance.h>
 #include <thrust/execution_policy.h>
 #include <thrust/for_each.h>
+#include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/sequence.h>
@@ -219,7 +220,8 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void separate_diag_off_diag_local_rows(
     std::shared_ptr<const DefaultExecutor> exec,
     const array<LocalIndexType>& row_idxs,
-    const array<GlobalIndexType>& col_idxs, const array<ValueType>& values,
+    const array<LocalIndexType>& col_idxs,
+    const array<GlobalIndexType>& col_map, const array<ValueType>& values,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
     comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
@@ -237,12 +239,14 @@ void separate_diag_off_diag_local_rows(
 
     auto policy = thrust_policy(exec);
 
-    // precompute the column range id of each input element
-    auto input_col_idxs = col_idxs.get_const_data();
+    // the input columns are compact indices into col_map; look up each entry's
+    // global column through a permutation iterator, then classify by range.
+    auto global_col_it = thrust::make_permutation_iterator(
+        col_map.get_const_data(), col_idxs.get_const_data());
     array<size_type> col_range_ids{exec, num_input_elements};
     thrust::upper_bound(policy, col_range_bounds + 1,
-                        col_range_bounds + num_col_ranges + 1, input_col_idxs,
-                        input_col_idxs + num_input_elements,
+                        col_range_bounds + num_col_ranges + 1, global_col_it,
+                        global_col_it + num_input_elements,
                         col_range_ids.get_data());
 
     // count number of diag<0> and off-diag<1> elements.
@@ -277,7 +281,7 @@ void separate_diag_off_diag_local_rows(
     using input_type = local_rows_input_type<device_type<ValueType>,
                                              LocalIndexType, GlobalIndexType>;
     auto input_it = thrust::make_zip_iterator(
-        thrust::make_tuple(row_idxs.get_const_data(), col_idxs.get_const_data(),
+        thrust::make_tuple(row_idxs.get_const_data(), global_col_it,
                            as_device_type(values.get_const_data()),
                            col_range_ids.get_const_data()));
 
@@ -326,6 +330,39 @@ void separate_diag_off_diag_local_rows(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG_LOCAL_ROWS);
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+void compress_columns(std::shared_ptr<const DefaultExecutor> exec,
+                      const array<GlobalIndexType>& global_cols,
+                      array<LocalIndexType>& compact_cols,
+                      array<GlobalIndexType>& distinct_cols)
+{
+    const auto n = global_cols.get_size();
+    auto policy = thrust_policy(exec);
+
+    // distinct_cols = sorted unique of the input columns
+    array<GlobalIndexType> sorted{exec, n};
+    thrust::copy_n(policy, global_cols.get_const_data(), n, sorted.get_data());
+    thrust::sort(policy, sorted.get_data(), sorted.get_data() + n);
+    auto sorted_end =
+        thrust::unique(policy, sorted.get_data(), sorted.get_data() + n);
+    const auto num_distinct =
+        static_cast<size_type>(thrust::distance(sorted.get_data(), sorted_end));
+    distinct_cols.resize_and_reset(num_distinct);
+    thrust::copy_n(policy, sorted.get_data(), num_distinct,
+                   distinct_cols.get_data());
+
+    // compact_cols[i] = position of global_cols[i] in distinct_cols
+    compact_cols.resize_and_reset(n);
+    thrust::lower_bound(policy, distinct_cols.get_const_data(),
+                        distinct_cols.get_const_data() + num_distinct,
+                        global_cols.get_const_data(),
+                        global_cols.get_const_data() + n,
+                        compact_cols.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_COMPRESS_COLUMNS);
 
 
 }  // namespace distributed_matrix
