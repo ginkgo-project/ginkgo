@@ -485,6 +485,36 @@ endif()
 # Bundled third party libraries
 add_subdirectory(third_party) # Third-party tools and libraries
 
+# TODO TAE: (accessor-export): when the accessor becomes its own GitHub repo under the
+# ginkgo-project organization, replace this local hookup with a FetchContent
+# import, the same way gtest is imported. Concretely:
+#
+#   1. Delete this `add_subdirectory(accessor)` line from here.
+#   2. Add `add_subdirectory(accessor)` to third_party/CMakeLists.txt.
+#   3. Create third_party/accessor/CMakeLists.txt containing exactly:
+#
+#        message(STATUS "Fetching external accessor")
+#        include(FetchContent)
+#        FetchContent_Declare(
+#            accessor
+#            GIT_REPOSITORY https://github.com/ginkgo-project/accessor.git
+#            GIT_TAG v1.0.0
+#        )
+#        FetchContent_GetProperties(accessor)
+#        if(NOT accessor_POPULATED)
+#            FetchContent_Populate(accessor)
+#            add_subdirectory(
+#                ${accessor_SOURCE_DIR}
+#                ${accessor_BINARY_DIR}
+#                EXCLUDE_FROM_ALL
+#            )
+#        endif()
+#        install(TARGETS ginkgo_accessor EXPORT Ginkgo)
+#
+# The fetched repo provides the `ginkgo_accessor` target and `Ginkgo::accessor`
+# alias, so nothing else in Ginkgo changes.
+add_subdirectory(accessor)
+
 if(MSVC)
     if(BUILD_SHARED_LIBS)
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)

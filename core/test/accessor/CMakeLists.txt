@@ -1,6 +1,7 @@
-# Creates a test that only adds `Ginkgo_SOURCE_DIR` to the include directories
-# to make sure the accessors are truly independent of Ginkgo and can be used
-# as a header-only library.
+# Creates a test that consumes only the standalone `Ginkgo::accessor` target
+# (plus `Ginkgo_SOURCE_DIR` for the shared test helper in this directory), to
+# make sure the accessors are truly independent of Ginkgo and can be used as a
+# header-only library.
 function(create_accessor_test test_name)
     file(
         RELATIVE_PATH
@@ -21,7 +22,7 @@ function(create_accessor_test test_name)
     )
     target_link_libraries(
         "${TEST_TARGET_NAME}"
-        PRIVATE GTest::Main GTest::GTest ${ARGN}
+        PRIVATE Ginkgo::accessor GTest::Main GTest::GTest ${ARGN}
     )
     add_test(
         NAME "${REL_BINARY_DIR}/${test_name}"
