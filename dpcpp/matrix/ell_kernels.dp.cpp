@@ -17,12 +17,12 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "accessor/reduced_row_major.hpp"
-#include "accessor/sycl_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
+#include "dpcpp/base/accessor.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"

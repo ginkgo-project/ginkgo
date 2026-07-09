@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,34 +17,22 @@
 
 
 namespace gko {
-
-
-class half;
-
-class bfloat16;
-
-
-template <typename V>
-class complex;
-
-
 namespace acc {
-namespace detail {
 
 
+/**
+ * Maps a host type `T` to its SYCL device equivalent.
+ *
+ * This is the extension point for reduced-precision or otherwise
+ * device-specific scalar types: specialize it for your own type, e.g.
+ * @code
+ * template <> struct sycl_type<my_half> { using type = sycl::half; };
+ * @endcode
+ * Any type without a specialization maps to itself.
+ */
 template <typename T>
 struct sycl_type {
     using type = T;
-};
-
-template <>
-struct sycl_type<gko::half> {
-    using type = sycl::half;
-};
-
-template <>
-struct sycl_type<gko::bfloat16> {
-    using type = sycl::ext::oneapi::bfloat16;
 };
 
 // Unpack cv and reference / pointer qualifiers
@@ -79,20 +67,6 @@ struct sycl_type<std::complex<T>> {
     using type = std::complex<typename sycl_type<T>::type>;
 };
 
-// handle the complex in gko for half and bfloat16
-template <>
-struct sycl_type<std::complex<gko::half>> {
-    using type = gko::complex<typename sycl_type<gko::half>::type>;
-};
-
-template <>
-struct sycl_type<std::complex<gko::bfloat16>> {
-    using type = gko::complex<typename sycl_type<gko::bfloat16>::type>;
-};
-
-
-}  // namespace detail
-
 
 /**
  * This is an alias for SYCL's equivalent of `T`.
@@ -100,7 +74,7 @@ struct sycl_type<std::complex<gko::bfloat16>> {
  * @tparam T  a type
  */
 template <typename T>
-using sycl_type_t = typename detail::sycl_type<T>::type;
+using sycl_type_t = typename sycl_type<T>::type;
 
 
 /**

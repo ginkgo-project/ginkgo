@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,36 +17,23 @@
 #include "utils.hpp"
 
 
-struct __half;
-
-struct __nv_bfloat16;
-
-
 namespace gko {
-
-
-class half;
-
-class bfloat16;
-
-
 namespace acc {
-namespace detail {
 
 
+/**
+ * Maps a host type `T` to its CUDA device equivalent.
+ *
+ * This is the extension point for reduced-precision or otherwise
+ * device-specific scalar types: specialize it for your own type, e.g.
+ * @code
+ * template <> struct cuda_type<my_half> { using type = __half; };
+ * @endcode
+ * Any type without a specialization maps to itself.
+ */
 template <typename T>
 struct cuda_type {
     using type = T;
-};
-
-template <>
-struct cuda_type<gko::half> {
-    using type = __half;
-};
-
-template <>
-struct cuda_type<gko::bfloat16> {
-    using type = __nv_bfloat16;
 };
 
 // Unpack cv and reference / pointer qualifiers
@@ -83,16 +70,13 @@ struct cuda_type<std::complex<T>> {
 };
 
 
-}  // namespace detail
-
-
 /**
  * This is an alias for CUDA's equivalent of `T`.
  *
  * @tparam T  a type
  */
 template <typename T>
-using cuda_type_t = typename detail::cuda_type<T>::type;
+using cuda_type_t = typename cuda_type<T>::type;
 
 
 /**

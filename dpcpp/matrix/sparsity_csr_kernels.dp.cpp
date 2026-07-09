@@ -12,9 +12,9 @@
 #include <ginkgo/core/base/std_extensions.hpp>
 
 #include "accessor/reduced_row_major.hpp"
-#include "accessor/sycl_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
+#include "dpcpp/base/accessor.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/math.hpp"

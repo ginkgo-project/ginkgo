@@ -17,25 +17,20 @@
 #include "utils.hpp"
 
 
-struct __half;
-
-struct hip_bfloat16;
-
-struct __hip_bfloat16;
-
-
 namespace gko {
-
-
-class half;
-
-class bfloat16;
-
-
 namespace acc {
-namespace detail {
 
 
+/**
+ * Maps a host type `T` to its HIP device equivalent.
+ *
+ * This is the extension point for reduced-precision or otherwise
+ * device-specific scalar types: specialize it for your own type, e.g.
+ * @code
+ * template <> struct hip_type<my_half> { using type = __half; };
+ * @endcode
+ * Any type without a specialization maps to itself.
+ */
 template <typename T>
 struct hip_type {
     using type = T;
@@ -67,16 +62,6 @@ struct hip_type<T&&> {
     using type = typename hip_type<T>::type&&;
 };
 
-template <>
-struct hip_type<gko::half> {
-    using type = __half;
-};
-
-template <>
-struct hip_type<gko::bfloat16> {
-    using type = __hip_bfloat16;
-};
-
 
 // Transform std::complex to thrust::complex
 template <typename T>
@@ -85,16 +70,13 @@ struct hip_type<std::complex<T>> {
 };
 
 
-}  // namespace detail
-
-
 /**
  * This is an alias for HIP's equivalent of `T`.
  *
  * @tparam T  a type
  */
 template <typename T>
-using hip_type_t = typename detail::hip_type<T>::type;
+using hip_type_t = typename hip_type<T>::type;
 
 
 /**

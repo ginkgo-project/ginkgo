@@ -21,7 +21,6 @@
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
-#include "accessor/sycl_helper.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/index_range.hpp"
 #include "core/base/mixed_precision_types.hpp"
@@ -32,6 +31,7 @@
 #include "core/matrix/csr_builder.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
+#include "dpcpp/base/accessor.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/dpct.hpp"

@@ -26,7 +26,7 @@
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 
-#include "accessor/cuda_hip_helper.hpp"
+#include "common/cuda_hip/base/accessor.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/pointer_mode_guard.hpp"
