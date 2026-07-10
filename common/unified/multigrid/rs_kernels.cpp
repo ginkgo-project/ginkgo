@@ -130,18 +130,29 @@ void compute_soc_and_run_rs(
         auto host_exec = exec->get_master();
         const auto nnz = A->get_num_stored_elements();
 
-        // Copy device arrays to host
-        array<IndexType> h_row_ptrs(host_exec, a_row_ptrs, a_row_ptrs + n + 1);
-        array<IndexType> h_col_idxs(host_exec, a_col_idxs, a_col_idxs + nnz);
-        array<bool> h_is_strong(host_exec, is_strong);
-        array<IndexType> h_lambda(host_exec, lambda);
-        array<IndexType> h_cf(host_exec, cf_marker);
+        // alternatives on host, initialise with these pointers first
+        const auto* hr_ptrs = a_row_ptrs;
+        const auto* hc_idxs = a_col_idxs;
+        const auto* h_is_str = is_strong.get_const_data();
+        auto* h_lam = lambda.get_data();
+        auto* h_cf_v = cf_marker.get_data();
 
-        const auto* hr_ptrs = h_row_ptrs.get_const_data();
-        const auto* hc_idxs = h_col_idxs.get_const_data();
-        const auto* h_is_str = h_is_strong.get_const_data();
-        auto* h_lam = h_lambda.get_data();
-        auto* h_cf_v = h_cf.get_data();
+        // Copy device arrays to host if needed
+        if (exec != host_exec) {
+            array<IndexType> h_row_ptrs(host_exec, a_row_ptrs,
+                                        a_row_ptrs + n + 1);
+            array<IndexType> h_col_idxs(host_exec, a_col_idxs,
+                                        a_col_idxs + nnz);
+            array<bool> h_is_strong(host_exec, is_strong);
+            array<IndexType> h_lambda(host_exec, lambda);
+            array<IndexType> h_cf(host_exec, cf_marker);
+
+            hr_ptrs = h_row_ptrs.get_const_data();
+            hc_idxs = h_col_idxs.get_const_data();
+            h_is_str = h_is_strong.get_const_data();
+            h_lam = h_lambda.get_data();
+            h_cf_v = h_cf.get_data();
+        }
 
         while (true) {
             IndexType max_idx = -1;
@@ -171,8 +182,7 @@ void compute_soc_and_run_rs(
         }
 
         // Copy results back to device
-        lambda = array<IndexType>(exec, h_lambda);
-        cf_marker = array<IndexType>(exec, h_cf);
+        cf_marker = array<IndexType>(exec, cf_marker.get_size(), h_cf_v);
         cf = cf_marker.get_data();
     }
 
