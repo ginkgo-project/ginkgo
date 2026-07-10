@@ -701,9 +701,7 @@ public:
      */
     void synchronize() const
     {
-        this->template log<log::Logger::mpi_barrier_started>(nullptr);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Barrier(this->get()));
-        this->template log<log::Logger::mpi_barrier_completed>(nullptr);
     }
 
     /**
@@ -725,15 +723,9 @@ public:
               const int send_tag) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count = static_cast<size_type>(send_count);
-        auto bytes = count * sizeof(SendType);
-        this->template log<log::Logger::mpi_send_started>(
-            exec.get(), destination_rank, count, bytes);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Send(send_buffer, send_count, type_impl<SendType>::get_type(),
                      destination_rank, send_tag, this->get()));
-        this->template log<log::Logger::mpi_send_completed>(
-            exec.get(), destination_rank, count, bytes);
     }
 
     /**
@@ -758,37 +750,10 @@ public:
                    const int destination_rank, const int send_tag) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count = static_cast<size_type>(send_count);
-        auto bytes = count * sizeof(SendType);
-
-        // Install the completion callback before issuing the MPI call so that
-        // any allocation (loggers snapshot, std::function heap storage) can
-        // only fail before the op is in flight, keeping _started/_completed
-        // paired even under bad_alloc. Skip the allocation entirely when no
-        // loggers are attached — the common case — so the non-blocking path
-        // adds no heap traffic.
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, destination_rank, count, bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_send_completed>(
-                            exec.get(), destination_rank, count, bytes);
-                    } catch (...) {
-                        // one logger throwing must not prevent the others
-                        // from observing the completion event.
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_send_started>(
-            exec.get(), destination_rank, count, bytes);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Isend(send_buffer, send_count, type_impl<SendType>::get_type(),
                       destination_rank, send_tag, this->get(), req.get()));
-
         return req;
     }
 
@@ -813,16 +778,10 @@ public:
                 const int recv_tag) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count = static_cast<size_type>(recv_count);
-        auto bytes = count * sizeof(RecvType);
-        this->template log<log::Logger::mpi_recv_started>(
-            exec.get(), source_rank, count, bytes);
         status st;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Recv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
                      source_rank, recv_tag, this->get(), st.get()));
-        this->template log<log::Logger::mpi_recv_completed>(
-            exec.get(), source_rank, count, bytes);
         return st;
     }
 
@@ -847,29 +806,10 @@ public:
                    const int recv_tag) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count = static_cast<size_type>(recv_count);
-        auto bytes = count * sizeof(RecvType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, source_rank, count, bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_recv_completed>(
-                            exec.get(), source_rank, count, bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_recv_started>(
-            exec.get(), source_rank, count, bytes);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Irecv(recv_buffer, recv_count, type_impl<RecvType>::get_type(),
                       source_rank, recv_tag, this->get(), req.get()));
-
         return req;
     }
 
@@ -890,15 +830,9 @@ public:
                    int count, int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count_st = static_cast<size_type>(count);
-        auto bytes = count_st * sizeof(BroadcastType);
-        this->template log<log::Logger::mpi_broadcast_started>(
-            exec.get(), root_rank, count_st, bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Bcast(buffer, count,
                                            type_impl<BroadcastType>::get_type(),
                                            root_rank, this->get()));
-        this->template log<log::Logger::mpi_broadcast_completed>(
-            exec.get(), root_rank, count_st, bytes);
     }
 
     /**
@@ -921,29 +855,10 @@ public:
                         BroadcastType* buffer, int count, int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count_st = static_cast<size_type>(count);
-        auto bytes = count_st * sizeof(BroadcastType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, root_rank, count_st, bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_broadcast_completed>(
-                            exec.get(), root_rank, count_st, bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_broadcast_started>(
-            exec.get(), root_rank, count_st, bytes);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Ibcast(buffer, count, type_impl<BroadcastType>::get_type(),
                        root_rank, this->get(), req.get()));
-
         return req;
     }
 
@@ -967,15 +882,9 @@ public:
                 int count, MPI_Op operation, int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count_st = static_cast<size_type>(count);
-        auto bytes = count_st * sizeof(ReduceType);
-        this->template log<log::Logger::mpi_reduce_started>(
-            exec.get(), root_rank, count_st, bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Reduce(send_buffer, recv_buffer, count,
                                             type_impl<ReduceType>::get_type(),
                                             operation, root_rank, this->get()));
-        this->template log<log::Logger::mpi_reduce_completed>(
-            exec.get(), root_rank, count_st, bytes);
     }
 
     /**
@@ -1000,29 +909,10 @@ public:
                      int count, MPI_Op operation, int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count_st = static_cast<size_type>(count);
-        auto bytes = count_st * sizeof(ReduceType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, root_rank, count_st, bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_reduce_completed>(
-                            exec.get(), root_rank, count_st, bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_reduce_started>(
-            exec.get(), root_rank, count_st, bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ireduce(
             send_buffer, recv_buffer, count, type_impl<ReduceType>::get_type(),
             operation, root_rank, this->get(), req.get()));
-
         return req;
     }
 
@@ -1204,20 +1094,10 @@ public:
                 int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-        this->template log<log::Logger::mpi_gather_started>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Gather(send_buffer, send_count, type_impl<SendType>::get_type(),
                        recv_buffer, recv_count, type_impl<RecvType>::get_type(),
                        root_rank, this->get()));
-        this->template log<log::Logger::mpi_gather_completed>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
     }
 
     /**
@@ -1246,35 +1126,11 @@ public:
                      int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, root_rank, send_count_st,
-                             send_bytes, recv_count_st, recv_bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_gather_completed>(
-                            exec.get(), root_rank, send_count_st, send_bytes,
-                            recv_count_st, recv_bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_gather_started>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Igather(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
             this->get(), req.get()));
-
         return req;
     }
 
@@ -1303,26 +1159,10 @@ public:
                   const int* displacements, int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        size_type recv_count_st = 0;
-        size_type recv_bytes = 0;
-        if (this->rank() == root_rank && recv_counts) {
-            for (int i = 0; i < this->size(); ++i) {
-                recv_count_st += static_cast<size_type>(recv_counts[i]);
-            }
-            recv_bytes = recv_count_st * sizeof(RecvType);
-        }
-        this->template log<log::Logger::mpi_gather_started>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Gatherv(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_counts, displacements,
             type_impl<RecvType>::get_type(), root_rank, this->get()));
-        this->template log<log::Logger::mpi_gather_completed>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
     }
 
     /**
@@ -1352,42 +1192,12 @@ public:
                        const int* displacements, int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        size_type recv_count_st = 0;
-        size_type recv_bytes = 0;
-        if (this->rank() == root_rank && recv_counts) {
-            for (int i = 0; i < this->size(); ++i) {
-                recv_count_st += static_cast<size_type>(recv_counts[i]);
-            }
-            recv_bytes = recv_count_st * sizeof(RecvType);
-        }
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, root_rank, send_count_st,
-                             send_bytes, recv_count_st, recv_bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_gather_completed>(
-                            exec.get(), root_rank, send_count_st, send_bytes,
-                            recv_count_st, recv_bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_gather_started>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Igatherv(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_counts, displacements,
             type_impl<RecvType>::get_type(), root_rank, this->get(),
             req.get()));
-
         return req;
     }
 
@@ -1412,18 +1222,10 @@ public:
                     RecvType* recv_buffer, const int recv_count) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-        this->template log<log::Logger::mpi_all_gather_started>(
-            exec.get(), send_count_st, send_bytes, recv_count_st, recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Allgather(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
             this->get()));
-        this->template log<log::Logger::mpi_all_gather_completed>(
-            exec.get(), send_count_st, send_bytes, recv_count_st, recv_bytes);
     }
 
     /**
@@ -1450,34 +1252,11 @@ public:
                          RecvType* recv_buffer, const int recv_count) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, send_count_st, send_bytes,
-                             recv_count_st, recv_bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_all_gather_completed>(
-                            exec.get(), send_count_st, send_bytes,
-                            recv_count_st, recv_bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_all_gather_started>(
-            exec.get(), send_count_st, send_bytes, recv_count_st, recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iallgather(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
             this->get(), req.get()));
-
         return req;
     }
 
@@ -1503,20 +1282,10 @@ public:
                  int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-        this->template log<log::Logger::mpi_scatter_started>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatter(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
             this->get()));
-        this->template log<log::Logger::mpi_scatter_completed>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
     }
 
     /**
@@ -1544,35 +1313,11 @@ public:
                       int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, root_rank, send_count_st,
-                             send_bytes, recv_count_st, recv_bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_scatter_completed>(
-                            exec.get(), root_rank, send_count_st, send_bytes,
-                            recv_count_st, recv_bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_scatter_started>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscatter(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(), root_rank,
             this->get(), req.get()));
-
         return req;
     }
 
@@ -1601,26 +1346,10 @@ public:
                    const int recv_count, int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        size_type send_count_st = 0;
-        size_type send_bytes = 0;
-        if (this->rank() == root_rank && send_counts) {
-            for (int i = 0; i < this->size(); ++i) {
-                send_count_st += static_cast<size_type>(send_counts[i]);
-            }
-            send_bytes = send_count_st * sizeof(SendType);
-        }
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-        this->template log<log::Logger::mpi_scatter_started>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scatterv(
             send_buffer, send_counts, displacements,
             type_impl<SendType>::get_type(), recv_buffer, recv_count,
             type_impl<RecvType>::get_type(), root_rank, this->get()));
-        this->template log<log::Logger::mpi_scatter_completed>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
     }
 
     /**
@@ -1650,42 +1379,12 @@ public:
                         const int recv_count, int root_rank) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        size_type send_count_st = 0;
-        size_type send_bytes = 0;
-        if (this->rank() == root_rank && send_counts) {
-            for (int i = 0; i < this->size(); ++i) {
-                send_count_st += static_cast<size_type>(send_counts[i]);
-            }
-            send_bytes = send_count_st * sizeof(SendType);
-        }
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, root_rank, send_count_st,
-                             send_bytes, recv_count_st, recv_bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_scatter_completed>(
-                            exec.get(), root_rank, send_count_st, send_bytes,
-                            recv_count_st, recv_bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_scatter_started>(
-            exec.get(), root_rank, send_count_st, send_bytes, recv_count_st,
-            recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Iscatterv(send_buffer, send_counts, displacements,
                           type_impl<SendType>::get_type(), recv_buffer,
                           recv_count, type_impl<RecvType>::get_type(),
                           root_rank, this->get(), req.get()));
-
         return req;
     }
 
@@ -1710,16 +1409,10 @@ public:
                     const int recv_count) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count_st = static_cast<size_type>(recv_count);
-        auto bytes = count_st * sizeof(RecvType);
-        this->template log<log::Logger::mpi_all_to_all_started>(
-            exec.get(), count_st, bytes, count_st, bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
             MPI_IN_PLACE, recv_count, type_impl<RecvType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
             this->get()));
-        this->template log<log::Logger::mpi_all_to_all_completed>(
-            exec.get(), count_st, bytes, count_st, bytes);
     }
 
     /**
@@ -1745,30 +1438,11 @@ public:
                          RecvType* recv_buffer, const int recv_count) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count_st = static_cast<size_type>(recv_count);
-        auto bytes = count_st * sizeof(RecvType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, count_st, bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_all_to_all_completed>(
-                            exec.get(), count_st, bytes, count_st, bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_all_to_all_started>(
-            exec.get(), count_st, bytes, count_st, bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
             MPI_IN_PLACE, recv_count, type_impl<RecvType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
             this->get(), req.get()));
-
         return req;
     }
 
@@ -1794,18 +1468,10 @@ public:
                     RecvType* recv_buffer, const int recv_count) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-        this->template log<log::Logger::mpi_all_to_all_started>(
-            exec.get(), send_count_st, send_bytes, recv_count_st, recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Alltoall(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
             this->get()));
-        this->template log<log::Logger::mpi_all_to_all_completed>(
-            exec.get(), send_count_st, send_bytes, recv_count_st, recv_bytes);
     }
 
     /**
@@ -1832,34 +1498,11 @@ public:
                          RecvType* recv_buffer, const int recv_count) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto send_count_st = static_cast<size_type>(send_count);
-        auto recv_count_st = static_cast<size_type>(recv_count);
-        auto send_bytes = send_count_st * sizeof(SendType);
-        auto recv_bytes = recv_count_st * sizeof(RecvType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, send_count_st, send_bytes,
-                             recv_count_st, recv_bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_all_to_all_completed>(
-                            exec.get(), send_count_st, send_bytes,
-                            recv_count_st, recv_bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_all_to_all_started>(
-            exec.get(), send_count_st, send_bytes, recv_count_st, recv_bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Ialltoall(
             send_buffer, send_count, type_impl<SendType>::get_type(),
             recv_buffer, recv_count, type_impl<RecvType>::get_type(),
             this->get(), req.get()));
-
         return req;
     }
 
@@ -2052,15 +1695,9 @@ public:
               ScanType* recv_buffer, int count, MPI_Op operation) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count_st = static_cast<size_type>(count);
-        auto bytes = count_st * sizeof(ScanType);
-        this->template log<log::Logger::mpi_scan_started>(exec.get(), count_st,
-                                                          bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Scan(send_buffer, recv_buffer, count,
                                           type_impl<ScanType>::get_type(),
                                           operation, this->get()));
-        this->template log<log::Logger::mpi_scan_completed>(exec.get(),
-                                                            count_st, bytes);
     }
 
     /**
@@ -2085,29 +1722,10 @@ public:
                    int count, MPI_Op operation) const
     {
         auto guard = exec->get_scoped_device_id_guard();
-        auto count_st = static_cast<size_type>(count);
-        auto bytes = count_st * sizeof(ScanType);
-
         request req;
-        if (!this->get_loggers().empty()) {
-            auto loggers = this->get_loggers();
-            req.set_on_wait([loggers, exec, count_st, bytes]() {
-                for (auto& logger : loggers) {
-                    try {
-                        logger->on<log::Logger::mpi_scan_completed>(
-                            exec.get(), count_st, bytes);
-                    } catch (...) {
-                    }
-                }
-            });
-        }
-
-        this->template log<log::Logger::mpi_scan_started>(exec.get(), count_st,
-                                                          bytes);
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Iscan(send_buffer, recv_buffer, count,
                                            type_impl<ScanType>::get_type(),
                                            operation, this->get(), req.get()));
-
         return req;
     }
 

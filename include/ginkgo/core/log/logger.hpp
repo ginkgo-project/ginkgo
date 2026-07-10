@@ -561,61 +561,13 @@ public:
     //   *_completed event before releasing the handle.
 
     /**
-     * MPI send started event.
-     *
-     * @param exec  the executor used
-     * @param dest_rank  the destination rank
-     * @param count  the number of elements sent
-     * @param bytes  the number of bytes sent
-     */
-    GKO_LOGGER_REGISTER_EVENT(27, mpi_send_started, const Executor* exec,
-                              const int& dest_rank, const size_type& count,
-                              const size_type& bytes)
-
-    /**
-     * MPI send completed event.
-     *
-     * @param exec  the executor used
-     * @param dest_rank  the destination rank
-     * @param count  the number of elements sent
-     * @param bytes  the number of bytes sent
-     */
-    GKO_LOGGER_REGISTER_EVENT(28, mpi_send_completed, const Executor* exec,
-                              const int& dest_rank, const size_type& count,
-                              const size_type& bytes)
-
-    /**
-     * MPI recv started event.
-     *
-     * @param exec  the executor used
-     * @param src_rank  the source rank
-     * @param count  the number of elements received
-     * @param bytes  the number of bytes received
-     */
-    GKO_LOGGER_REGISTER_EVENT(29, mpi_recv_started, const Executor* exec,
-                              const int& src_rank, const size_type& count,
-                              const size_type& bytes)
-
-    /**
-     * MPI recv completed event.
-     *
-     * @param exec  the executor used
-     * @param src_rank  the source rank
-     * @param count  the number of elements received
-     * @param bytes  the number of bytes received
-     */
-    GKO_LOGGER_REGISTER_EVENT(30, mpi_recv_completed, const Executor* exec,
-                              const int& src_rank, const size_type& count,
-                              const size_type& bytes)
-
-    /**
      * MPI all_reduce started event.
      *
      * @param exec  the executor used
      * @param count  the number of elements reduced
      * @param bytes  the number of bytes reduced
      */
-    GKO_LOGGER_REGISTER_EVENT(31, mpi_all_reduce_started, const Executor* exec,
+    GKO_LOGGER_REGISTER_EVENT(27, mpi_all_reduce_started, const Executor* exec,
                               const size_type& count, const size_type& bytes)
 
     /**
@@ -625,75 +577,39 @@ public:
      * @param count  the number of elements reduced
      * @param bytes  the number of bytes reduced
      */
-    GKO_LOGGER_REGISTER_EVENT(32, mpi_all_reduce_completed,
+    GKO_LOGGER_REGISTER_EVENT(28, mpi_all_reduce_completed,
                               const Executor* exec, const size_type& count,
                               const size_type& bytes)
 
-    GKO_LOGGER_REGISTER_EVENT(33, mpi_broadcast_started, const Executor* exec,
-                              const int& root_rank, const size_type& count,
-                              const size_type& bytes)
-    GKO_LOGGER_REGISTER_EVENT(34, mpi_broadcast_completed, const Executor* exec,
-                              const int& root_rank, const size_type& count,
-                              const size_type& bytes)
-
-    GKO_LOGGER_REGISTER_EVENT(35, mpi_reduce_started, const Executor* exec,
-                              const int& root_rank, const size_type& count,
-                              const size_type& bytes)
-    GKO_LOGGER_REGISTER_EVENT(36, mpi_reduce_completed, const Executor* exec,
-                              const int& root_rank, const size_type& count,
-                              const size_type& bytes)
-
-    GKO_LOGGER_REGISTER_EVENT(37, mpi_gather_started, const Executor* exec,
-                              const int& root_rank, const size_type& send_count,
-                              const size_type& send_bytes,
-                              const size_type& recv_count,
-                              const size_type& recv_bytes)
-    GKO_LOGGER_REGISTER_EVENT(38, mpi_gather_completed, const Executor* exec,
-                              const int& root_rank, const size_type& send_count,
-                              const size_type& send_bytes,
-                              const size_type& recv_count,
-                              const size_type& recv_bytes)
-
-    GKO_LOGGER_REGISTER_EVENT(39, mpi_scatter_started, const Executor* exec,
-                              const int& root_rank, const size_type& send_count,
-                              const size_type& send_bytes,
-                              const size_type& recv_count,
-                              const size_type& recv_bytes)
-    GKO_LOGGER_REGISTER_EVENT(40, mpi_scatter_completed, const Executor* exec,
-                              const int& root_rank, const size_type& send_count,
-                              const size_type& send_bytes,
-                              const size_type& recv_count,
-                              const size_type& recv_bytes)
-
-    GKO_LOGGER_REGISTER_EVENT(41, mpi_all_gather_started, const Executor* exec,
+    /**
+     * MPI all_to_all_v started event.
+     *
+     * @param exec  the executor used
+     * @param send_count  the number of elements sent
+     * @param send_bytes  the number of bytes sent
+     * @param recv_count  the number of elements received
+     * @param recv_bytes  the number of bytes received
+     */
+    GKO_LOGGER_REGISTER_EVENT(29, mpi_all_to_all_started, const Executor* exec,
                               const size_type& send_count,
                               const size_type& send_bytes,
                               const size_type& recv_count,
                               const size_type& recv_bytes)
-    GKO_LOGGER_REGISTER_EVENT(42, mpi_all_gather_completed,
+
+    /**
+     * MPI all_to_all_v completed event.
+     *
+     * @param exec  the executor used
+     * @param send_count  the number of elements sent
+     * @param send_bytes  the number of bytes sent
+     * @param recv_count  the number of elements received
+     * @param recv_bytes  the number of bytes received
+     */
+    GKO_LOGGER_REGISTER_EVENT(30, mpi_all_to_all_completed,
                               const Executor* exec, const size_type& send_count,
                               const size_type& send_bytes,
                               const size_type& recv_count,
                               const size_type& recv_bytes)
-
-    GKO_LOGGER_REGISTER_EVENT(43, mpi_all_to_all_started, const Executor* exec,
-                              const size_type& send_count,
-                              const size_type& send_bytes,
-                              const size_type& recv_count,
-                              const size_type& recv_bytes)
-    GKO_LOGGER_REGISTER_EVENT(44, mpi_all_to_all_completed,
-                              const Executor* exec, const size_type& send_count,
-                              const size_type& send_bytes,
-                              const size_type& recv_count,
-                              const size_type& recv_bytes)
-
-    GKO_LOGGER_REGISTER_EVENT(45, mpi_scan_started, const Executor* exec,
-                              const size_type& count, const size_type& bytes)
-    GKO_LOGGER_REGISTER_EVENT(46, mpi_scan_completed, const Executor* exec,
-                              const size_type& count, const size_type& bytes)
-
-    GKO_LOGGER_REGISTER_EVENT(47, mpi_barrier_started, const Executor* exec)
-    GKO_LOGGER_REGISTER_EVENT(48, mpi_barrier_completed, const Executor* exec)
 
 public:
     static constexpr size_type batch_solver_completed{26};
@@ -824,17 +740,8 @@ public:
      * Bitset Mask which activates all MPI events
      */
     static constexpr mask_type mpi_events_mask =
-        mpi_send_started_mask | mpi_send_completed_mask |
-        mpi_recv_started_mask | mpi_recv_completed_mask |
         mpi_all_reduce_started_mask | mpi_all_reduce_completed_mask |
-        mpi_broadcast_started_mask | mpi_broadcast_completed_mask |
-        mpi_reduce_started_mask | mpi_reduce_completed_mask |
-        mpi_gather_started_mask | mpi_gather_completed_mask |
-        mpi_scatter_started_mask | mpi_scatter_completed_mask |
-        mpi_all_gather_started_mask | mpi_all_gather_completed_mask |
-        mpi_all_to_all_started_mask | mpi_all_to_all_completed_mask |
-        mpi_scan_started_mask | mpi_scan_completed_mask |
-        mpi_barrier_started_mask | mpi_barrier_completed_mask;
+        mpi_all_to_all_started_mask | mpi_all_to_all_completed_mask;
 
     /**
      * Bitset Mask which activates all criterion events

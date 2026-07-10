@@ -23,40 +23,6 @@ public:
         : gko::log::Logger(gko::log::Logger::mpi_events_mask), rank_(rank)
     {}
 
-    void on_mpi_send_started(const gko::Executor* exec, const int& dest_rank,
-                             const gko::size_type& count,
-                             const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Sending " << count << " elements ("
-                  << bytes << " bytes) to Rank " << dest_rank << "..."
-                  << std::endl;
-    }
-
-    void on_mpi_send_completed(const gko::Executor* exec, const int& dest_rank,
-                               const gko::size_type& count,
-                               const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Send to Rank " << dest_rank
-                  << " completed (" << bytes << " bytes)." << std::endl;
-    }
-
-    void on_mpi_recv_started(const gko::Executor* exec, const int& src_rank,
-                             const gko::size_type& count,
-                             const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Receiving " << count
-                  << " elements (" << bytes << " bytes) from Rank " << src_rank
-                  << "..." << std::endl;
-    }
-
-    void on_mpi_recv_completed(const gko::Executor* exec, const int& src_rank,
-                               const gko::size_type& count,
-                               const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Recv from Rank " << src_rank
-                  << " completed (" << bytes << " bytes)." << std::endl;
-    }
-
     void on_mpi_all_reduce_started(const gko::Executor* exec,
                                    const gko::size_type& count,
                                    const gko::size_type& bytes) const override
@@ -73,95 +39,6 @@ public:
                   << " elements (" << bytes << " bytes)." << std::endl;
     }
 
-    void on_mpi_broadcast_started(const gko::Executor* exec,
-                                  const int& root_rank,
-                                  const gko::size_type& count,
-                                  const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Broadcast started from root "
-                  << root_rank << " (" << bytes << " bytes)..." << std::endl;
-    }
-
-    void on_mpi_broadcast_completed(const gko::Executor* exec,
-                                    const int& root_rank,
-                                    const gko::size_type& count,
-                                    const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Broadcast completed (" << bytes
-                  << " bytes)." << std::endl;
-    }
-
-    void on_mpi_reduce_started(const gko::Executor* exec, const int& root_rank,
-                               const gko::size_type& count,
-                               const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Reduce started to root "
-                  << root_rank << " (" << bytes << " bytes)..." << std::endl;
-    }
-
-    void on_mpi_reduce_completed(const gko::Executor* exec,
-                                 const int& root_rank,
-                                 const gko::size_type& count,
-                                 const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Reduce completed (" << bytes
-                  << " bytes)." << std::endl;
-    }
-
-    void on_mpi_gather_started(const gko::Executor* exec, const int& root_rank,
-                               const gko::size_type& send_count,
-                               const gko::size_type& send_bytes,
-                               const gko::size_type& recv_count,
-                               const gko::size_type& recv_bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Gather started to root "
-                  << root_rank << "..." << std::endl;
-    }
-
-    void on_mpi_gather_completed(
-        const gko::Executor* exec, const int& root_rank,
-        const gko::size_type& send_count, const gko::size_type& send_bytes,
-        const gko::size_type& recv_count,
-        const gko::size_type& recv_bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Gather completed." << std::endl;
-    }
-
-    void on_mpi_scatter_started(const gko::Executor* exec, const int& root_rank,
-                                const gko::size_type& send_count,
-                                const gko::size_type& send_bytes,
-                                const gko::size_type& recv_count,
-                                const gko::size_type& recv_bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Scatter started from root "
-                  << root_rank << "..." << std::endl;
-    }
-
-    void on_mpi_scatter_completed(
-        const gko::Executor* exec, const int& root_rank,
-        const gko::size_type& send_count, const gko::size_type& send_bytes,
-        const gko::size_type& recv_count,
-        const gko::size_type& recv_bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Scatter completed." << std::endl;
-    }
-
-    void on_mpi_all_gather_started(
-        const gko::Executor* exec, const gko::size_type& send_count,
-        const gko::size_type& send_bytes, const gko::size_type& recv_count,
-        const gko::size_type& recv_bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] AllGather started..." << std::endl;
-    }
-
-    void on_mpi_all_gather_completed(
-        const gko::Executor* exec, const gko::size_type& send_count,
-        const gko::size_type& send_bytes, const gko::size_type& recv_count,
-        const gko::size_type& recv_bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] AllGather completed." << std::endl;
-    }
-
     void on_mpi_all_to_all_started(
         const gko::Executor* exec, const gko::size_type& send_count,
         const gko::size_type& send_bytes, const gko::size_type& recv_count,
@@ -176,31 +53,6 @@ public:
         const gko::size_type& recv_bytes) const override
     {
         std::cout << "[Rank " << rank_ << "] AllToAll completed." << std::endl;
-    }
-
-    void on_mpi_scan_started(const gko::Executor* exec,
-                             const gko::size_type& count,
-                             const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Scan started (" << bytes
-                  << " bytes)..." << std::endl;
-    }
-
-    void on_mpi_scan_completed(const gko::Executor* exec,
-                               const gko::size_type& count,
-                               const gko::size_type& bytes) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Scan completed." << std::endl;
-    }
-
-    void on_mpi_barrier_started(const gko::Executor* exec) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Barrier started..." << std::endl;
-    }
-
-    void on_mpi_barrier_completed(const gko::Executor* exec) const override
-    {
-        std::cout << "[Rank " << rank_ << "] Barrier completed." << std::endl;
     }
 
 private:
@@ -296,30 +148,6 @@ int main(int argc, char* argv[])
 
     if (rank == 0) {
         std::cout << "Dot product result: " << dot_res->at(0, 0) << std::endl;
-        std::cout << "Starting point-to-point communication (send/recv)..."
-                  << std::endl;
-    }
-
-    // Point-to-point communication
-    if (comm.size() >= 2) {
-        if (rank == 0) {
-            int send_val = 42;
-            comm.send(exec, &send_val, 1, 1, 0);
-
-            int i_send_val = 43;
-            auto req = comm.i_send(exec, &i_send_val, 1, 1, 1);
-            req.wait();
-        } else if (rank == 1) {
-            int recv_val = 0;
-            comm.recv(exec, &recv_val, 1, 0, 0);
-            std::cout << "[Rank 1] Received value: " << recv_val << std::endl;
-
-            int i_recv_val = 0;
-            auto req = comm.i_recv(exec, &i_recv_val, 1, 0, 1);
-            req.wait();
-            std::cout << "[Rank 1] Received non-blocking value: " << i_recv_val
-                      << std::endl;
-        }
     }
 
     return 0;
