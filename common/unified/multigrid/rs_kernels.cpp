@@ -32,12 +32,11 @@ void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
     const auto col_idxs = matrix->get_const_col_idxs();
     const auto values = matrix->get_const_values();
 
-    array<IndexType> d_result(exec, 1);
+    array<bool> d_result(exec, 1);
     run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs, auto values) {
-            bool has_diag = false;
-            bool valid = true;
+            bool has_diag = false, valid = true;
             for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; ++nz) {
                 const auto col = col_idxs[nz];
                 const auto val = real(values[nz]);
@@ -50,19 +49,13 @@ void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
                     if (val > zero<real_t>()) valid = false;
                 }
             }
-            return (valid && has_diag) ? IndexType{1} : IndexType{0};
+            return valid && has_diag;
         },
-        GKO_KERNEL_REDUCE_SUM(IndexType), d_result.get_data(), num_rows,
-        row_ptrs, col_idxs, values);
+        [] GKO_KERNEL(auto a, auto b) { return a && b; },
+        [] GKO_KERNEL(auto a) { return a; }, true, is_m_matrix_array.get_data(),
+        num_rows, row_ptrs, col_idxs, values);
 
-    const IndexType count = get_element(d_result, 0);
-
-    run_kernel(
-        exec,
-        [count, num_rows] GKO_KERNEL(auto tidx, auto is_m_matrix) {
-            is_m_matrix[0] = (count == static_cast<IndexType>(num_rows));
-        },
-        1, is_m_matrix_array.get_data());
+    is_m_matrix_array.get_data()[0] = get_element(d_result, 0);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
