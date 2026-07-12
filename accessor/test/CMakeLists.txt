@@ -10,7 +10,10 @@ include(GoogleTest)
 
 function(accessor_test name)
     add_executable(${name} ${name}.cpp)
-    target_link_libraries(${name} PRIVATE Ginkgo::accessor GTest::gtest_main)
+    target_link_libraries(
+        ${name}
+        PRIVATE MemoryAccessor::accessor GTest::gtest_main
+    )
     gtest_discover_tests(${name})
 endfunction()
 

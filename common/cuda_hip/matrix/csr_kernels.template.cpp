@@ -1977,17 +1977,17 @@ void merge_path_spmv(
     array<arithmetic_type> val_out(exec, grid_num);
 
     const auto a_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+        acc_helper::build_const_rrm_accessor<arithmetic_type>(a);
 
     for (IndexType column_id = 0; column_id < b.size[1]; column_id++) {
         const auto column_span =
             acc::index_span(static_cast<acc::size_type>(column_id),
                             static_cast<acc::size_type>(column_id + 1));
         const auto b_vals =
-            acc::helper::build_const_rrm_accessor<arithmetic_type>(b,
-                                                                   column_span);
+            acc_helper::build_const_rrm_accessor<arithmetic_type>(b,
+                                                                  column_span);
         auto c_vals =
-            acc::helper::build_rrm_accessor<arithmetic_type>(c, column_span);
+            acc_helper::build_rrm_accessor<arithmetic_type>(c, column_span);
         if (!alpha && !beta) {
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
@@ -2120,10 +2120,10 @@ void classical_spmv(
     const auto block = spmv_block_size;
 
     const auto a_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+        acc_helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+        acc_helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc_helper::build_rrm_accessor<arithmetic_type>(c);
     if (!alpha && !beta) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
@@ -2194,10 +2194,10 @@ bool load_balance_spmv(
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b.size[1]);
             const auto a_vals =
-                acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+                acc_helper::build_const_rrm_accessor<arithmetic_type>(a);
             const auto b_vals =
-                acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-            auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+                acc_helper::build_const_rrm_accessor<arithmetic_type>(b);
+            auto c_vals = acc_helper::build_rrm_accessor<arithmetic_type>(c);
             if (alpha) {
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     kernel::abstract_spmv<<<csr_grid, csr_block, 0,

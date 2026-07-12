@@ -29,7 +29,7 @@ struct dummy_accessor {
 
     int operator()(int a, int b, int c) const { return x * a + y * b + c; }
 
-    gko::acc::size_type length(std::size_t dim) const { return sizes[dim]; }
+    acc::size_type length(std::size_t dim) const { return sizes[dim]; }
 
     std::array<std::size_t, 3> sizes;
     mutable int x;
@@ -37,7 +37,7 @@ struct dummy_accessor {
 };
 
 
-using dummy_range = gko::acc::range<dummy_accessor>;
+using dummy_range = acc::range<dummy_accessor>;
 
 
 TEST(Range, CreatesRange)

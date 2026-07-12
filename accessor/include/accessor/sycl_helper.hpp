@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_SYCL_HELPER_HPP_
-#define GKO_ACCESSOR_SYCL_HELPER_HPP_
+#ifndef ACCESSOR_SYCL_HELPER_HPP_
+#define ACCESSOR_SYCL_HELPER_HPP_
 
 
 #include <complex>
@@ -16,7 +16,6 @@
 #include "accessor/utils.hpp"
 
 
-namespace gko {
 namespace acc {
 
 
@@ -114,7 +113,7 @@ as_sycl_type(T val)
  * @return `r` with appropriate types and reinterpreted to SYCL pointers
  */
 template <std::size_t dim, typename Type1, typename Type2>
-GKO_ACC_INLINE auto as_sycl_range(
+MACC_INLINE auto as_sycl_range(
     const range<reduced_row_major<dim, Type1, Type2>>& r)
 {
     return range<
@@ -128,7 +127,7 @@ GKO_ACC_INLINE auto as_sycl_range(
  * @copydoc as_sycl_range()
  */
 template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask>
-GKO_ACC_INLINE auto as_sycl_range(
+MACC_INLINE auto as_sycl_range(
     const range<scaled_reduced_row_major<dim, Type1, Type2, mask>>& r)
 {
     return range<scaled_reduced_row_major<dim, sycl_type_t<Type1>,
@@ -144,7 +143,7 @@ GKO_ACC_INLINE auto as_sycl_range(
  * @copydoc as_sycl_range()
  */
 template <typename T, size_type dim>
-GKO_ACC_INLINE auto as_sycl_range(const range<block_col_major<T, dim>>& r)
+MACC_INLINE auto as_sycl_range(const range<block_col_major<T, dim>>& r)
 {
     return range<block_col_major<sycl_type_t<T>, dim>>(
         r.get_accessor().lengths, as_sycl_type(r.get_accessor().data),
@@ -155,7 +154,7 @@ GKO_ACC_INLINE auto as_sycl_range(const range<block_col_major<T, dim>>& r)
  * @copydoc as_sycl_range()
  */
 template <typename T, size_type dim>
-GKO_ACC_INLINE auto as_sycl_range(const range<row_major<T, dim>>& r)
+MACC_INLINE auto as_sycl_range(const range<row_major<T, dim>>& r)
 {
     return range<block_col_major<sycl_type_t<T>, dim>>(
         r.get_accessor().lengths, as_sycl_type(r.get_accessor().data),
@@ -163,14 +162,13 @@ GKO_ACC_INLINE auto as_sycl_range(const range<row_major<T, dim>>& r)
 }
 
 template <typename AccType>
-GKO_ACC_INLINE auto as_device_range(AccType&& acc)
+MACC_INLINE auto as_device_range(AccType&& acc)
 {
     return as_sycl_range(std::forward<AccType>(acc));
 }
 
 
 }  // namespace acc
-}  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_SYCL_HELPER_HPP_
+#endif  // ACCESSOR_SYCL_HELPER_HPP_

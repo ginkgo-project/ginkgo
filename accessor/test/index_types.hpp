@@ -2,15 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_TEST_INDEX_TYPES_HPP_
-#define GKO_ACCESSOR_TEST_INDEX_TYPES_HPP_
+#ifndef ACCESSOR_TEST_INDEX_TYPES_HPP_
+#define ACCESSOR_TEST_INDEX_TYPES_HPP_
 
 #include <cstdint>
 
 #include <gtest/gtest.h>
 
 
-namespace gko {
 namespace acc {
 namespace test {
 
@@ -21,6 +20,5 @@ using AltIndexTypes =
 
 }  // namespace test
 }  // namespace acc
-}  // namespace gko
 
-#endif  // GKO_ACCESSOR_TEST_INDEX_TYPES_HPP_
+#endif  // ACCESSOR_TEST_INDEX_TYPES_HPP_

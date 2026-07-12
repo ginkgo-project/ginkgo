@@ -20,11 +20,11 @@ namespace {
 
 class RowMajorAccessor : public ::testing::Test {
 protected:
-    using span = gko::acc::index_span;
-    using dim_type = std::array<gko::acc::size_type, 2>;
-    using stride_type = std::array<gko::acc::size_type, 1>;
+    using span = acc::index_span;
+    using dim_type = std::array<acc::size_type, 2>;
+    using stride_type = std::array<acc::size_type, 1>;
 
-    using row_major_int_range = gko::acc::range<gko::acc::row_major<int, 2>>;
+    using row_major_int_range = acc::range<acc::row_major<int, 2>>;
 
     // clang-format off
     int data[9]{
@@ -112,11 +112,10 @@ TEST_F(RowMajorAccessor, CanAssignValues)
 
 class RowMajorAccessor3d : public ::testing::Test {
 protected:
-    using span = gko::acc::index_span;
-    static constexpr gko::acc::size_type dimensionality{3};
+    using span = acc::index_span;
+    static constexpr acc::size_type dimensionality{3};
 
-    using row_major_int_range =
-        gko::acc::range<gko::acc::row_major<int, dimensionality>>;
+    using row_major_int_range = acc::range<acc::row_major<int, dimensionality>>;
 
     // clang-format off
     int data[2 * 3 * 4]{
@@ -129,12 +128,11 @@ protected:
         29, 30, 31, 32
     };
     // clang-format on
-    const std::array<gko::acc::size_type, dimensionality> dim1{{2, 3, 4}};
-    const std::array<gko::acc::size_type, dimensionality> dim2{{2, 2, 3}};
+    const std::array<acc::size_type, dimensionality> dim1{{2, 3, 4}};
+    const std::array<acc::size_type, dimensionality> dim2{{2, 2, 3}};
     row_major_int_range default_r{dim1, data};
     row_major_int_range custom_r{
-        dim2, data,
-        std::array<gko::acc::size_type, dimensionality - 1>{{12, 4}}};
+        dim2, data, std::array<acc::size_type, dimensionality - 1>{{12, 4}}};
 };
 
 
@@ -204,14 +202,13 @@ TEST_F(RowMajorAccessor3d, CanAssignValues)
 template <typename IndexType>
 class RowMajorIndexType : public RowMajorAccessor {};
 
-TYPED_TEST_SUITE(RowMajorIndexType, gko::acc::test::AltIndexTypes);
+TYPED_TEST_SUITE(RowMajorIndexType, acc::test::AltIndexTypes);
 
 TYPED_TEST(RowMajorIndexType, AddressMatchesDefaultIndexType)
 {
-    using alt = gko::acc::row_major<int, 2, TypeParam>;
-    gko::acc::range<alt> r_alt{typename TestFixture::dim_type{{3u, 2u}},
-                               this->data,
-                               typename TestFixture::stride_type{{3u}}};
+    using alt = acc::row_major<int, 2, TypeParam>;
+    acc::range<alt> r_alt{typename TestFixture::dim_type{{3u, 2u}}, this->data,
+                          typename TestFixture::stride_type{{3u}}};
 
     EXPECT_EQ(this->r(0, 0), r_alt(0, 0));
     EXPECT_EQ(this->r(1, 1), r_alt(1, 1));
@@ -224,10 +221,10 @@ TYPED_TEST(RowMajorIndexType, AddressMatchesDefaultIndexType)
 
 TYPED_TEST(RowMajorIndexType, ComputeIndexReturnsIndexType)
 {
-    using size_array = std::array<gko::acc::size_type, 2>;
-    using stride_array = std::array<gko::acc::size_type, 1>;
+    using size_array = std::array<acc::size_type, 2>;
+    using stride_array = std::array<acc::size_type, 1>;
     using result_type =
-        decltype(gko::acc::helper::compute_row_major_index<TypeParam>(
+        decltype(acc::helper::compute_row_major_index<TypeParam>(
             std::declval<size_array>(), std::declval<stride_array>(), 0, 0));
 
     static_assert(std::is_same<result_type, TypeParam>::value,

@@ -30,22 +30,21 @@ protected:
         typename std::tuple_element<1, decltype(ArithmeticStorageType{})>::type;
     // Type for `check_accessor_correctness` to forward the indices
     using t = std::tuple<int, int, int>;
-    using i_span = gko::acc::index_span;
+    using i_span = acc::index_span;
 
     static constexpr ar_type delta{std::numeric_limits<ar_type>::epsilon() *
                                    1e1};
 
-    using accessor =
-        gko::acc::scaled_reduced_row_major<3, ar_type, st_type, 0b0101>;
+    using accessor = acc::scaled_reduced_row_major<3, ar_type, st_type, 0b0101>;
     using const_accessor =
-        gko::acc::scaled_reduced_row_major<3, ar_type, const st_type, 0b0101>;
+        acc::scaled_reduced_row_major<3, ar_type, const st_type, 0b0101>;
 
-    using reduced_storage = gko::acc::range<accessor>;
-    using const_reduced_storage = gko::acc::range<const_accessor>;
+    using reduced_storage = acc::range<accessor>;
+    using const_reduced_storage = acc::range<const_accessor>;
 
-    const std::array<gko::acc::size_type, 3> size{{1u, 4u, 2u}};
-    static constexpr gko::acc::size_type data_elements{8};
-    static constexpr gko::acc::size_type scalar_elements{8};
+    const std::array<acc::size_type, 3> size{{1u, 4u, 2u}};
+    static constexpr acc::size_type data_elements{8};
+    static constexpr acc::size_type scalar_elements{8};
     // clang-format off
     st_type data[8]{
         10, 11,
@@ -57,8 +56,8 @@ protected:
         1., 2., 3., 4., 5., 6., 7., 8.
     };
     // clang-format on
-    const std::array<gko::acc::size_type, 2> storage_stride{{8, 2}};
-    const std::array<gko::acc::size_type, 1> scalar_stride{{2}};
+    const std::array<acc::size_type, 2> storage_stride{{8, 2}};
+    const std::array<acc::size_type, 1> scalar_stride{{2}};
     reduced_storage r{size, data, storage_stride, scalar, scalar_stride};
     const_reduced_storage cr{size, data, scalar};
 
@@ -155,9 +154,9 @@ TYPED_TEST(ScaledReducedStorage3d, CanCreateWithStride)
 {
     using reduced_storage = typename TestFixture::reduced_storage;
     using ar_type = typename TestFixture::ar_type;
-    std::array<gko::acc::size_type, 3> size{{2, 1, 2}};
-    std::array<gko::acc::size_type, 2> stride_storage{{5, 2}};
-    std::array<gko::acc::size_type, 1> stride_scalar{{4}};
+    std::array<acc::size_type, 3> size{{2, 1, 2}};
+    std::array<acc::size_type, 2> stride_storage{{5, 2}};
+    std::array<acc::size_type, 1> stride_scalar{{4}};
 
     reduced_storage range{size, this->data, stride_storage, this->scalar,
                           stride_scalar};
@@ -361,19 +360,19 @@ class ScaledReducedStorageXd : public ::testing::Test {
 protected:
     using ar_type = double;
     using st_type = int;
-    using size_type = gko::acc::size_type;
+    using size_type = acc::size_type;
     static constexpr ar_type delta{0.1};
 
-    using accessor1d = gko::acc::scaled_reduced_row_major<1, ar_type, st_type,
-                                                          1, std::int32_t>;
-    using accessor2d = gko::acc::scaled_reduced_row_major<2, ar_type, st_type,
-                                                          3, std::int32_t>;
+    using accessor1d =
+        acc::scaled_reduced_row_major<1, ar_type, st_type, 1, std::int32_t>;
+    using accessor2d =
+        acc::scaled_reduced_row_major<2, ar_type, st_type, 3, std::int32_t>;
     using const_accessor1d =
-        gko::acc::scaled_reduced_row_major<1, ar_type, const st_type, 1,
-                                           std::int32_t>;
+        acc::scaled_reduced_row_major<1, ar_type, const st_type, 1,
+                                      std::int32_t>;
     using const_accessor2d =
-        gko::acc::scaled_reduced_row_major<2, ar_type, const st_type, 3,
-                                           std::int32_t>;
+        acc::scaled_reduced_row_major<2, ar_type, const st_type, 3,
+                                      std::int32_t>;
     static_assert(std::is_same<const_accessor1d,
                                typename accessor1d::const_accessor>::value,
                   "Const accessors must be the same!");
@@ -381,18 +380,18 @@ protected:
                                typename accessor2d::const_accessor>::value,
                   "Const accessors must be the same!");
 
-    using reduced_storage1d = gko::acc::range<accessor1d>;
-    using reduced_storage2d = gko::acc::range<accessor2d>;
-    using const_reduced_storage2d = gko::acc::range<const_accessor2d>;
-    using const_reduced_storage1d = gko::acc::range<const_accessor1d>;
+    using reduced_storage1d = acc::range<accessor1d>;
+    using reduced_storage2d = acc::range<accessor2d>;
+    using const_reduced_storage2d = acc::range<const_accessor2d>;
+    using const_reduced_storage1d = acc::range<const_accessor1d>;
 
     const std::array<size_type, 0> stride0{{}};
     const std::array<size_type, 1> stride1{{4}};
     const std::array<size_type, 1> stride_sc{{5}};
-    const std::array<gko::acc::size_type, 1> size_1d{{8u}};
-    const std::array<gko::acc::size_type, 2> size_2d{{2u, 2u}};
+    const std::array<acc::size_type, 1> size_1d{{8u}};
+    const std::array<acc::size_type, 2> size_2d{{2u, 2u}};
 
-    static constexpr gko::acc::size_type data_elements{8};
+    static constexpr acc::size_type data_elements{8};
     st_type data[data_elements]{10, 22, 32, 44, 54, 66, 76, -88};
     ar_type scalar[data_elements]{1e0,  5e-1, 1e-1, 5e-2,
                                   1e-2, 5e-3, 1e-3, 5e-4};
@@ -465,21 +464,20 @@ TEST_F(ScaledReducedStorageXd, CanWrite2)
 template <typename IndexType>
 class ScaledReducedStorageXdIndexType : public ScaledReducedStorageXd {};
 
-TYPED_TEST_SUITE(ScaledReducedStorageXdIndexType,
-                 gko::acc::test::AltIndexTypes);
+TYPED_TEST_SUITE(ScaledReducedStorageXdIndexType, acc::test::AltIndexTypes);
 
 TYPED_TEST(ScaledReducedStorageXdIndexType, AddressMatchesDefaultIndexType)
 {
     using ar_type = typename TestFixture::ar_type;
     using st_type = typename TestFixture::st_type;
 
-    using ref_acc = gko::acc::scaled_reduced_row_major<2, ar_type, st_type, 3>;
+    using ref_acc = acc::scaled_reduced_row_major<2, ar_type, st_type, 3>;
     using alt_acc =
-        gko::acc::scaled_reduced_row_major<2, ar_type, st_type, 3, TypeParam>;
-    gko::acc::range<ref_acc> ref{this->size_2d, this->data, this->stride1,
-                                 this->scalar, this->stride_sc};
-    gko::acc::range<alt_acc> alt{this->size_2d, this->data, this->stride1,
-                                 this->scalar, this->stride_sc};
+        acc::scaled_reduced_row_major<2, ar_type, st_type, 3, TypeParam>;
+    acc::range<ref_acc> ref{this->size_2d, this->data, this->stride1,
+                            this->scalar, this->stride_sc};
+    acc::range<alt_acc> alt{this->size_2d, this->data, this->stride1,
+                            this->scalar, this->stride_sc};
 
     EXPECT_EQ(ref(0, 0), alt(0, 0));
     EXPECT_EQ(ref(0, 1), alt(0, 1));
@@ -492,10 +490,10 @@ TYPED_TEST(ScaledReducedStorageXdIndexType, AddressMatchesDefaultIndexType)
 
 TYPED_TEST(ScaledReducedStorageXdIndexType, ComputeIndexReturnsIndexType)
 {
-    using size_array = std::array<gko::acc::size_type, 2>;
-    using stride_array = std::array<gko::acc::size_type, 1>;
+    using size_array = std::array<acc::size_type, 2>;
+    using stride_array = std::array<acc::size_type, 1>;
     using result_type =
-        decltype(gko::acc::helper::compute_row_major_index<TypeParam>(
+        decltype(acc::helper::compute_row_major_index<TypeParam>(
             std::declval<size_array>(), std::declval<stride_array>(), 0, 0));
 
     static_assert(

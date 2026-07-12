@@ -311,11 +311,10 @@ void abstract_spmv(
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
-    using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType,
-                                    IndexType>;
+    using a_accessor = acc::reduced_row_major<1, arithmetic_type,
+                                              const MatrixValueType, IndexType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
     const auto nrows = a.size[0];
     const auto stride = a.stride;
@@ -340,11 +339,11 @@ void abstract_spmv(
                   (shared_half || atomic_half_out)) {
         GKO_KERNEL_NOT_FOUND;
     } else {
-        const auto a_vals = gko::acc::range<a_accessor>(
+        const auto a_vals = acc::range<a_accessor>(
             std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
                 num_stored_elements_per_row * stride)}},
             a.values);
-        const auto b_vals = gko::acc::range<b_accessor>(
+        const auto b_vals = acc::range<b_accessor>(
             std::array<acc::size_type, 2>{
                 {static_cast<acc::size_type>(b.size[0]),
                  static_cast<acc::size_type>(b.size[1])}},
@@ -360,7 +359,7 @@ void abstract_spmv(
                 acc::as_device_range(b_vals), as_device_type(c.values),
                 c.stride);
         } else if (alpha && beta) {
-            const auto alpha_val = gko::acc::range<a_accessor>(
+            const auto alpha_val = acc::range<a_accessor>(
                 std::array<acc::size_type, 1>{1}, alpha->values);
             kernel::spmv<num_thread_per_worker, atomic>(
                 grid_size, block_size, 0, exec->get_queue(), nrows,

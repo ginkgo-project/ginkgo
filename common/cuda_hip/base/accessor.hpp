@@ -21,7 +21,6 @@
 #include "accessor/hip_helper.hpp"
 #endif
 
-namespace gko {
 namespace acc {
 
 
@@ -53,7 +52,6 @@ struct hip_type<gko::bfloat16> {
 
 
 }  // namespace acc
-}  // namespace gko
 
 
 #include "accessor/cuda_hip_helper.hpp"

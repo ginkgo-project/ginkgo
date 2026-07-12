@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_CUDA_HIP_HELPER_HPP_
-#define GKO_ACCESSOR_CUDA_HIP_HELPER_HPP_
+#ifndef ACCESSOR_CUDA_HIP_HELPER_HPP_
+#define ACCESSOR_CUDA_HIP_HELPER_HPP_
 
 
 #include <utility>
@@ -19,12 +19,11 @@
 #endif
 
 
-namespace gko {
 namespace acc {
 
 
 template <typename AccType>
-GKO_ACC_INLINE auto as_device_range(AccType&& acc)
+MACC_INLINE auto as_device_range(AccType&& acc)
 {
 #if defined(__HIPCC__)
     return as_hip_range(std::forward<AccType>(acc));
@@ -35,7 +34,6 @@ GKO_ACC_INLINE auto as_device_range(AccType&& acc)
 
 
 }  // namespace acc
-}  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_CUDA_HIP_HELPER_HPP_
+#endif  // ACCESSOR_CUDA_HIP_HELPER_HPP_

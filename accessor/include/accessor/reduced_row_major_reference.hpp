@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_REDUCED_ROW_MAJOR_REFERENCE_HPP_
-#define GKO_ACCESSOR_REDUCED_ROW_MAJOR_REFERENCE_HPP_
+#ifndef ACCESSOR_REDUCED_ROW_MAJOR_REFERENCE_HPP_
+#define ACCESSOR_REDUCED_ROW_MAJOR_REFERENCE_HPP_
 
 
 #include <cmath>
@@ -14,7 +14,6 @@
 #include "accessor/utils.hpp"
 
 
-namespace gko {
 namespace acc {
 /**
  * This namespace contains reference classes used inside accessors.
@@ -29,7 +28,7 @@ namespace reference_class {
  * conversion between both formats is done with an implicit cast.
  *
  * Copying this reference is disabled, but move construction is possible to
- * allow for an additional layer (like gko::acc::range).
+ * allow for an additional layer (like acc::range).
  * The assignment operator only works for an rvalue reference (&&) to
  * prevent accidentally copying the reference and working on a reference.
  *
@@ -59,33 +58,32 @@ public:
     // Forbid copy construction
     reduced_storage(const reduced_storage&) = delete;
 
-    constexpr explicit GKO_ACC_ATTRIBUTES reduced_storage(
-        storage_type* const GKO_ACC_RESTRICT ptr)
+    constexpr explicit MACC_ATTRIBUTES reduced_storage(
+        storage_type* const MACC_RESTRICT ptr)
         : ptr_{ptr}
     {}
 
-    constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
+    constexpr MACC_ATTRIBUTES operator arithmetic_type() const
     {
-        const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
+        const storage_type* const MACC_RESTRICT r_ptr = ptr_;
         return detail::implicit_explicit_conversion<arithmetic_type>(*r_ptr);
     }
 
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(arithmetic_type val) &&
+    constexpr MACC_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
     {
-        storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
+        storage_type* const MACC_RESTRICT r_ptr = ptr_;
         *r_ptr = detail::implicit_explicit_conversion<storage_type>(val);
         return val;
     }
 
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
+    constexpr MACC_ATTRIBUTES arithmetic_type
     operator=(const reduced_storage& ref) &&
     {
         std::move(*this) = ref.implicit_conversion();
         return *this;
     }
 
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
+    constexpr MACC_ATTRIBUTES arithmetic_type
     operator=(reduced_storage&& ref) && noexcept
     {
         std::move(*this) = ref.implicit_conversion();
@@ -93,9 +91,9 @@ public:
     }
 
 private:
-    storage_type* const GKO_ACC_RESTRICT ptr_;
+    storage_type* const MACC_RESTRICT ptr_;
 
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type implicit_conversion() const
+    constexpr MACC_ATTRIBUTES arithmetic_type implicit_conversion() const
     {
         return *this;
     }
@@ -122,24 +120,24 @@ public:
 
     reduced_storage& operator=(reduced_storage&&) = delete;
 
-    constexpr explicit GKO_ACC_ATTRIBUTES reduced_storage(
-        const storage_type* const GKO_ACC_RESTRICT ptr)
+    constexpr explicit MACC_ATTRIBUTES reduced_storage(
+        const storage_type* const MACC_RESTRICT ptr)
         : ptr_{ptr}
     {}
 
-    constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
+    constexpr MACC_ATTRIBUTES operator arithmetic_type() const
     {
-        const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
+        const storage_type* const MACC_RESTRICT r_ptr = ptr_;
         return detail::implicit_explicit_conversion<arithmetic_type>(*r_ptr);
     }
 
 private:
-    const storage_type* const GKO_ACC_RESTRICT ptr_;
+    const storage_type* const MACC_RESTRICT ptr_;
 };
 
 
 template <typename ArithmeticType, typename StorageType>
-constexpr GKO_ACC_ATTRIBUTES remove_complex_t<ArithmeticType> abs(
+constexpr MACC_ATTRIBUTES remove_complex_t<ArithmeticType> abs(
     const reduced_storage<ArithmeticType, StorageType>& ref)
 {
     using std::abs;
@@ -150,7 +148,6 @@ constexpr GKO_ACC_ATTRIBUTES remove_complex_t<ArithmeticType> abs(
 
 }  // namespace reference_class
 }  // namespace acc
-}  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_REDUCED_ROW_MAJOR_REFERENCE_HPP_
+#endif  // ACCESSOR_REDUCED_ROW_MAJOR_REFERENCE_HPP_

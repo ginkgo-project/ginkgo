@@ -10,7 +10,10 @@ function(ginkgo_default_includes name)
             $<BUILD_INTERFACE:${Ginkgo_SOURCE_DIR}>
             $<INSTALL_INTERFACE:include>
     )
-    target_link_libraries("${name}" PUBLIC $<BUILD_INTERFACE:Ginkgo::accessor>)
+    target_link_libraries(
+        "${name}"
+        PUBLIC $<BUILD_INTERFACE:MemoryAccessor::accessor>
+    )
     if(GINKGO_HAVE_HWLOC)
         target_include_directories(
             "${name}"

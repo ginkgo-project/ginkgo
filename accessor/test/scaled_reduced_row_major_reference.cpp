@@ -27,10 +27,9 @@ public:
     using st_type =
         typename std::tuple_element<1, decltype(ArithmeticStorageType{})>::type;
     using ref_type =
-        gko::acc::reference_class::scaled_reduced_storage<ar_type, st_type>;
+        acc::reference_class::scaled_reduced_storage<ar_type, st_type>;
     using const_ref_type =
-        gko::acc::reference_class::scaled_reduced_storage<ar_type,
-                                                          const st_type>;
+        acc::reference_class::scaled_reduced_storage<ar_type, const st_type>;
 
 protected:
     ScaledReducedRowMajorReference() : scalar{2}, storage{8} {}
@@ -394,8 +393,7 @@ TYPED_TEST(ScaledReducedRowMajorReference, Abs)
     auto res1 = abs(this->get_ref());
     auto res2 = abs(this->get_const_ref());
     // Since unsigned types are also used in the test:
-    if (std::is_signed<ar_type>::value ||
-        gko::acc::is_complex<ar_type>::value) {
+    if (std::is_signed<ar_type>::value || acc::is_complex<ar_type>::value) {
         this->get_ref() = -expected_res;
     }
     auto res3 = abs(this->get_ref());
@@ -409,7 +407,7 @@ TYPED_TEST(ScaledReducedRowMajorReference, Abs)
 TYPED_TEST(ScaledReducedRowMajorReference, Real)
 {
     using ar_type = typename TestFixture::ar_type;
-    using gko::acc::real;  // required by some compilers, so ADL works properly
+    using acc::real;  // required by some compilers, so ADL works properly
     const auto expected_res = this->get_conv_storage();
 
     auto res1 = real(this->get_ref());
@@ -423,7 +421,7 @@ TYPED_TEST(ScaledReducedRowMajorReference, Real)
 TYPED_TEST(ScaledReducedRowMajorReference, Imag)
 {
     using ar_type = typename TestFixture::ar_type;
-    using gko::acc::imag;  // required by some compilers, so ADL works properly
+    using acc::imag;  // required by some compilers, so ADL works properly
     const ar_type expected_res{0};
 
     auto res1 = imag(this->get_ref());
@@ -437,7 +435,7 @@ TYPED_TEST(ScaledReducedRowMajorReference, Imag)
 TYPED_TEST(ScaledReducedRowMajorReference, Conj)
 {
     using ar_type = typename TestFixture::ar_type;
-    using gko::acc::conj;  // required by some compilers, so ADL works properly
+    using acc::conj;  // required by some compilers, so ADL works properly
     const auto expected_res = this->get_conv_storage();
 
     auto res1 = conj(this->get_ref());
@@ -451,16 +449,15 @@ TYPED_TEST(ScaledReducedRowMajorReference, Conj)
 TYPED_TEST(ScaledReducedRowMajorReference, squared_norm)
 {
     using ar_type = typename TestFixture::ar_type;
-    using gko::acc::squared_norm;  // required by some compilers, so ADL works
-                                   // properly
+    using acc::squared_norm;  // required by some compilers, so ADL works
+                              // properly
     const auto expected_res =
         this->get_conv_storage() * this->get_conv_storage();
 
     auto res1 = squared_norm(this->get_ref());
     auto res2 = squared_norm(this->get_const_ref());
     // Since unsigned types are also used in the test:
-    if (std::is_signed<ar_type>::value ||
-        gko::acc::is_complex<ar_type>::value) {
+    if (std::is_signed<ar_type>::value || acc::is_complex<ar_type>::value) {
         this->get_ref() = -this->get_ref();
     }
     auto res3 = squared_norm(this->get_ref());

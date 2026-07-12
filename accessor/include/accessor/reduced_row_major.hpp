@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_REDUCED_ROW_MAJOR_HPP_
-#define GKO_ACCESSOR_REDUCED_ROW_MAJOR_HPP_
+#ifndef ACCESSOR_REDUCED_ROW_MAJOR_HPP_
+#define ACCESSOR_REDUCED_ROW_MAJOR_HPP_
 
 
 #include <array>
@@ -19,7 +19,6 @@
 #include "accessor/utils.hpp"
 
 
-namespace gko {
 /**
  * @brief The accessor namespace.
  *
@@ -81,9 +80,9 @@ protected:
      * @param storage  pointer to the block of memory containing the storage
      * @param stride  stride array used for memory accesses
      */
-    constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
-                                                   storage_type* storage,
-                                                   storage_stride_type stride)
+    constexpr MACC_ATTRIBUTES reduced_row_major(dim_type size,
+                                                storage_type* storage,
+                                                storage_stride_type stride)
         : size_(size), storage_{storage}, stride_(stride)
     {}
 
@@ -97,9 +96,9 @@ protected:
      * @param strides  strides used for memory accesses
      */
     template <typename... Strides>
-    constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
-                                                   storage_type* storage,
-                                                   Strides&&... strides)
+    constexpr MACC_ATTRIBUTES reduced_row_major(dim_type size,
+                                                storage_type* storage,
+                                                Strides&&... strides)
         : reduced_row_major{
               size, storage,
               storage_stride_type{{std::forward<Strides>(strides)...}}}
@@ -115,8 +114,8 @@ protected:
      * @param storage  pointer to the block of memory containing the storage
      * @param size  multidimensional size of the memory
      */
-    constexpr GKO_ACC_ATTRIBUTES reduced_row_major(dim_type size,
-                                                   storage_type* storage)
+    constexpr MACC_ATTRIBUTES reduced_row_major(dim_type size,
+                                                storage_type* storage)
         : reduced_row_major{
               size, storage,
               helper::compute_default_row_major_stride_array(size)}
@@ -125,7 +124,7 @@ protected:
     /**
      * Creates an empty accessor (pointing nowhere with an empty size)
      */
-    constexpr GKO_ACC_ATTRIBUTES reduced_row_major()
+    constexpr MACC_ATTRIBUTES reduced_row_major()
         : reduced_row_major{{0, 0, 0}, nullptr}
     {}
 
@@ -136,7 +135,7 @@ public:
      *
      * @returns  a reduced_row_major major range which is read-only.
      */
-    constexpr GKO_ACC_ATTRIBUTES range<const_accessor> to_const() const
+    constexpr MACC_ATTRIBUTES range<const_accessor> to_const() const
     {
         return range<const_accessor>{size_, storage_, stride_};
     }
@@ -148,7 +147,7 @@ public:
      *
      * @returns  length in dimension `dimension`
      */
-    constexpr GKO_ACC_ATTRIBUTES size_type length(size_type dimension) const
+    constexpr MACC_ATTRIBUTES size_type length(size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
     }
@@ -163,7 +162,7 @@ public:
      *           is const), or a reference if the accessor is non-const
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+    constexpr MACC_ATTRIBUTES std::enable_if_t<
         are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
     operator()(Indices&&... indices) const
@@ -180,7 +179,7 @@ public:
      * @returns a sub-range for the given spans.
      */
     template <typename... SpanTypes>
-    constexpr GKO_ACC_ATTRIBUTES
+    constexpr MACC_ATTRIBUTES
         std::enable_if_t<helper::are_index_span_compatible<SpanTypes...>::value,
                          range<reduced_row_major>>
         operator()(SpanTypes... spans) const
@@ -204,10 +203,10 @@ public:
      *           is const), or an address if the accessor is non-const
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+    constexpr MACC_ATTRIBUTES std::enable_if_t<
         are_all_integral<Indices...>::value,
-        std::conditional_t<is_const, const storage_type * GKO_ACC_RESTRICT,
-                           storage_type * GKO_ACC_RESTRICT>>
+        std::conditional_t<is_const, const storage_type * MACC_RESTRICT,
+                           storage_type * MACC_RESTRICT>>
     get_storage_address(Indices&&... indices) const
     {
         return storage_ + compute_index(std::forward<Indices>(indices)...);
@@ -218,14 +217,14 @@ public:
      *
      * @returns the size of the accessor
      */
-    constexpr GKO_ACC_ATTRIBUTES dim_type get_size() const { return size_; }
+    constexpr MACC_ATTRIBUTES dim_type get_size() const { return size_; }
 
     /**
      * Returns a pointer to a stride array of size dimensionality - 1
      *
      * @returns returns a pointer to a stride array of size dimensionality - 1
      */
-    GKO_ACC_ATTRIBUTES
+    MACC_ATTRIBUTES
     constexpr const storage_stride_type& get_stride() const { return stride_; }
 
     /**
@@ -233,7 +232,7 @@ public:
      *
      * @returns the pointer to the storage data
      */
-    constexpr GKO_ACC_ATTRIBUTES storage_type* get_stored_data() const
+    constexpr MACC_ATTRIBUTES storage_type* get_stored_data() const
     {
         return storage_;
     }
@@ -243,14 +242,14 @@ public:
      *
      * @returns a const pointer to the storage data
      */
-    constexpr GKO_ACC_ATTRIBUTES const storage_type* get_const_storage() const
+    constexpr MACC_ATTRIBUTES const storage_type* get_const_storage() const
     {
         return storage_;
     }
 
 protected:
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES index_type
+    constexpr MACC_ATTRIBUTES index_type
     compute_index(Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
@@ -267,7 +266,6 @@ private:
 
 
 }  // namespace acc
-}  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_REDUCED_ROW_MAJOR_HPP_
+#endif  // ACCESSOR_REDUCED_ROW_MAJOR_HPP_

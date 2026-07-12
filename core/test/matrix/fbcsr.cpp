@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -67,11 +67,10 @@ protected:
         const index_type nbrows = bm->get_num_block_rows();
         const int bs = bm->get_block_size();
         const auto nbnz = bm->get_num_stored_blocks();
-        gko::acc::range<gko::acc::block_col_major<const value_type, 3>> fbvals(
-            std::array<gko::acc::size_type, 3>{
-                static_cast<gko::acc::size_type>(nbnz),
-                static_cast<gko::acc::size_type>(bs),
-                static_cast<gko::acc::size_type>(bs)},
+        acc::range<acc::block_col_major<const value_type, 3>> fbvals(
+            std::array<acc::size_type, 3>{static_cast<acc::size_type>(nbnz),
+                                          static_cast<acc::size_type>(bs),
+                                          static_cast<acc::size_type>(bs)},
             bm->get_const_values());
 
         for (index_type ibrow = 0; ibrow < nbrows; ibrow++) {

@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_UTILS_HPP_
-#define GKO_ACCESSOR_UTILS_HPP_
+#ifndef ACCESSOR_UTILS_HPP_
+#define ACCESSOR_UTILS_HPP_
 
 
 #include <cassert>
@@ -18,13 +18,13 @@
 
 
 #if defined(__CUDACC__) || defined(__HIPCC__)
-#define GKO_ACC_ATTRIBUTES __host__ __device__
-#define GKO_ACC_INLINE __forceinline__
-#define GKO_ACC_RESTRICT __restrict__
+#define MACC_ATTRIBUTES __host__ __device__
+#define MACC_INLINE __forceinline__
+#define MACC_RESTRICT __restrict__
 #else
-#define GKO_ACC_ATTRIBUTES
-#define GKO_ACC_INLINE inline
-#define GKO_ACC_RESTRICT
+#define MACC_ATTRIBUTES
+#define MACC_INLINE inline
+#define MACC_RESTRICT
 #endif  // defined(__CUDACC__) || defined(__HIPCC__)
 
 
@@ -32,11 +32,11 @@
     defined(__HIP_DEVICE_COMPILE__)
 
 #ifdef NDEBUG
-#define GKO_ACC_ASSERT(condition) ((void)0)
+#define MACC_ASSERT(condition) ((void)0)
 #else  // NDEBUG
 // Poor man's assertions on GPUs for MACs. They won't terminate the program
 // but will at least print something on the screen
-#define GKO_ACC_ASSERT(condition)                                           \
+#define MACC_ASSERT(condition)                                              \
     ((condition)                                                            \
          ? ((void)0)                                                        \
          : ((void)printf("%s: %d: %s: Assertion `" #condition "' failed\n", \
@@ -47,13 +47,12 @@
        // defined(__HIP_DEVICE_COMPILE__)
 
 // Handle assertions normally on other systems
-#define GKO_ACC_ASSERT(condition) assert(condition)
+#define MACC_ASSERT(condition) assert(condition)
 
 #endif  // (defined(__CUDA_ARCH__) && defined(__APPLE__)) ||
         // defined(__HIP_DEVICE_COMPILE__)
 
 
-namespace gko {
 namespace acc {
 namespace xstd {
 
@@ -186,7 +185,7 @@ struct has_arithmetic_type<Ref, std::void_t<typename Ref::arithmetic_type>>
  * 3. Otherwise, it will return `ref` itself.
  */
 template <typename Ref>
-constexpr GKO_ACC_ATTRIBUTES
+constexpr MACC_ATTRIBUTES
     std::enable_if_t<has_to_arithmetic_type<Ref>::value,
                      typename has_to_arithmetic_type<Ref>::type>
     to_arithmetic_type(const Ref& ref)
@@ -195,7 +194,7 @@ constexpr GKO_ACC_ATTRIBUTES
 }
 
 template <typename Ref>
-constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+constexpr MACC_ATTRIBUTES std::enable_if_t<
     !has_to_arithmetic_type<Ref>::value && has_arithmetic_type<Ref>::value,
     typename Ref::arithmetic_type>
 to_arithmetic_type(const Ref& ref)
@@ -204,7 +203,7 @@ to_arithmetic_type(const Ref& ref)
 }
 
 template <typename Ref>
-constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+constexpr MACC_ATTRIBUTES std::enable_if_t<
     !has_to_arithmetic_type<Ref>::value && !has_arithmetic_type<Ref>::value,
     Ref>
 to_arithmetic_type(const Ref& ref)
@@ -221,7 +220,7 @@ to_arithmetic_type(const Ref& ref)
  */
 template <typename OutType>
 struct test_for_implicit_cast {
-    constexpr GKO_ACC_ATTRIBUTES test_for_implicit_cast(const OutType&) {}
+    constexpr MACC_ATTRIBUTES test_for_implicit_cast(const OutType&) {}
 };
 
 
@@ -249,7 +248,7 @@ struct has_implicit_cast<OutType, InType,
  * otherwise, a `static_cast` is used.
  */
 template <typename OutType, typename InType>
-constexpr GKO_ACC_ATTRIBUTES
+constexpr MACC_ATTRIBUTES
     std::enable_if_t<has_implicit_cast<OutType, InType>::value, OutType>
     implicit_explicit_conversion(const InType& in)
 {
@@ -257,7 +256,7 @@ constexpr GKO_ACC_ATTRIBUTES
 }
 
 template <typename OutType, typename InType>
-constexpr GKO_ACC_ATTRIBUTES
+constexpr MACC_ATTRIBUTES
     std::enable_if_t<!has_implicit_cast<OutType, InType>::value, OutType>
     implicit_explicit_conversion(const InType& in)
 {
@@ -267,7 +266,6 @@ constexpr GKO_ACC_ATTRIBUTES
 
 }  // namespace detail
 }  // namespace acc
-}  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_UTILS_HPP_
+#endif  // ACCESSOR_UTILS_HPP_

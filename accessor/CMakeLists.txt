@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
-project(GinkgoAccessor VERSION 1.0.0 LANGUAGES CXX)
+project(MemoryAccessor VERSION 1.0.0 LANGUAGES CXX)
 
-add_library(ginkgo_accessor INTERFACE)
-add_library(Ginkgo::accessor ALIAS ginkgo_accessor)
+add_library(memory_accessor INTERFACE)
+add_library(MemoryAccessor::accessor ALIAS memory_accessor)
 
-target_compile_features(ginkgo_accessor INTERFACE cxx_std_17)
+target_compile_features(memory_accessor INTERFACE cxx_std_17)
 
 target_include_directories(
-    ginkgo_accessor
+    memory_accessor
     INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
@@ -23,5 +23,5 @@ endif()
 # GitHub repo. It belongs to Ginkgo (it references Ginkgo's `Ginkgo` export set,
 # which the standalone accessor repo must not know about), so it moves into the
 # FetchContent wrapper ginkgo/third_party/accessor/CMakeLists.txt, right after
-# the fetched `ginkgo_accessor` target becomes available.
-install(TARGETS ginkgo_accessor EXPORT Ginkgo)
+# the fetched `memory_accessor` target becomes available.
+install(TARGETS memory_accessor EXPORT Ginkgo)

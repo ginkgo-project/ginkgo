@@ -193,9 +193,9 @@ void classical_spmv(
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using input_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
     using output_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
+        acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
 
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() *
@@ -206,12 +206,12 @@ void classical_spmv(
     const dim3 grid(gridx, b.size[1]);
     const auto block = spmv_block_size;
 
-    const auto b_vals = gko::acc::range<input_accessor>(
+    const auto b_vals = acc::range<input_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
         b.values,
         std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
-    auto c_vals = gko::acc::range<output_accessor>(
+    auto c_vals = acc::range<output_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(c.size[0]),
                                        static_cast<acc::size_type>(c.size[1])}},
         c.values,

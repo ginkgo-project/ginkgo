@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_RANGE_HPP_
-#define GKO_ACCESSOR_RANGE_HPP_
+#ifndef ACCESSOR_RANGE_HPP_
+#define ACCESSOR_RANGE_HPP_
 
 
 #include <utility>
@@ -11,7 +11,6 @@
 #include "accessor/utils.hpp"
 
 
-namespace gko {
 namespace acc {
 
 
@@ -68,7 +67,7 @@ public:
               std::enable_if_t<
                   !check_if_same<range, std::decay_t<AccessorParams>...>::value,
                   int> = 0>
-    GKO_ACC_ATTRIBUTES constexpr explicit range(AccessorParams&&... args)
+    MACC_ATTRIBUTES constexpr explicit range(AccessorParams&&... args)
         : accessor_{std::forward<AccessorParams>(args)...}
     {}
 
@@ -88,7 +87,7 @@ public:
      *         given index_spans.
      */
     template <typename... DimensionTypes>
-    GKO_ACC_ATTRIBUTES constexpr auto operator()(DimensionTypes&&... dimensions)
+    MACC_ATTRIBUTES constexpr auto operator()(DimensionTypes&&... dimensions)
         const -> decltype(std::declval<accessor>()(
             std::forward<DimensionTypes>(dimensions)...))
     {
@@ -104,7 +103,7 @@ public:
      *
      * @return  the length of the `dimension`-th dimension of the range
      */
-    GKO_ACC_ATTRIBUTES constexpr size_type length(size_type dimension) const
+    MACC_ATTRIBUTES constexpr size_type length(size_type dimension) const
     {
         return accessor_.length(dimension);
     }
@@ -116,7 +115,7 @@ public:
      *
      * @return pointer to the accessor
      */
-    GKO_ACC_ATTRIBUTES constexpr const accessor* operator->() const noexcept
+    MACC_ATTRIBUTES constexpr const accessor* operator->() const noexcept
     {
         return &accessor_;
     }
@@ -126,7 +125,7 @@ public:
      *
      * @return reference to the accessor
      */
-    GKO_ACC_ATTRIBUTES constexpr const accessor& get_accessor() const noexcept
+    MACC_ATTRIBUTES constexpr const accessor& get_accessor() const noexcept
     {
         return accessor_;
     }
@@ -137,6 +136,5 @@ private:
 
 
 }  // namespace acc
-}  // namespace gko
 
-#endif  // GKO_ACCESSOR_RANGE_HPP_
+#endif  // ACCESSOR_RANGE_HPP_

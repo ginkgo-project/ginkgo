@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_ROW_MAJOR_HPP_
-#define GKO_ACCESSOR_ROW_MAJOR_HPP_
+#ifndef ACCESSOR_ROW_MAJOR_HPP_
+#define ACCESSOR_ROW_MAJOR_HPP_
 
 #include <array>
 #include <cinttypes>
@@ -13,7 +13,6 @@
 #include "accessor/utils.hpp"
 
 
-namespace gko {
 namespace acc {
 
 
@@ -75,9 +74,9 @@ protected:
      *                `x_1 * stride_1 + x_2 * stride_2 * ... + x_n`
      *                points to the element at (x_1, x_2, ..., x_n))
      */
-    constexpr GKO_ACC_ATTRIBUTES explicit row_major(length_type size,
-                                                    data_type data,
-                                                    stride_type stride)
+    constexpr MACC_ATTRIBUTES explicit row_major(length_type size,
+                                                 data_type data,
+                                                 stride_type stride)
         : lengths(size), data{data}, stride(stride)
     {}
 
@@ -88,8 +87,8 @@ protected:
      * @param lengths size / length of the accesses of each dimension
      * @param data  pointer to the block of memory containing the data
      */
-    constexpr GKO_ACC_ATTRIBUTES explicit row_major(length_type size,
-                                                    data_type data)
+    constexpr MACC_ATTRIBUTES explicit row_major(length_type size,
+                                                 data_type data)
         : row_major{size, data,
                     helper::compute_default_row_major_stride_array(size)}
     {}
@@ -101,7 +100,7 @@ public:
      *
      * @returns  a row major range which is read-only.
      */
-    constexpr GKO_ACC_ATTRIBUTES range<const_accessor> to_const() const
+    constexpr MACC_ATTRIBUTES range<const_accessor> to_const() const
     {
         // TODO Remove this functionality all together (if requested)
         return range<const_accessor>(lengths, data, stride);
@@ -116,7 +115,7 @@ public:
      * @return data element at (indices...)
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES
+    constexpr MACC_ATTRIBUTES
         std::enable_if_t<are_all_integral<Indices...>::value, value_type&>
         operator()(Indices&&... indices) const
     {
@@ -133,7 +132,7 @@ public:
      * @return sub-range spanning the given spans
      */
     template <typename... SpanTypes>
-    constexpr GKO_ACC_ATTRIBUTES
+    constexpr MACC_ATTRIBUTES
         std::enable_if_t<helper::are_index_span_compatible<SpanTypes...>::value,
                          range<row_major>>
         operator()(SpanTypes... spans) const
@@ -154,7 +153,7 @@ public:
      *
      * @return length in dimension `dimension`
      */
-    constexpr GKO_ACC_ATTRIBUTES size_type length(size_type dimension) const
+    constexpr MACC_ATTRIBUTES size_type length(size_type dimension) const
     {
         return lengths[dimension];
     }
@@ -178,6 +177,5 @@ public:
 
 
 }  // namespace acc
-}  // namespace gko
 
-#endif  // GKO_ACCESSOR_ROW_MAJOR_HPP_
+#endif  // ACCESSOR_ROW_MAJOR_HPP_

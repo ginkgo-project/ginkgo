@@ -18,7 +18,6 @@
 #include "dpcpp/base/complex.hpp"
 
 
-namespace gko {
 namespace acc {
 
 
@@ -44,7 +43,6 @@ struct sycl_type<std::complex<gko::bfloat16>> {
 
 
 }  // namespace acc
-}  // namespace gko
 
 
 #endif  // GKO_DPCPP_BASE_ACCESSOR_HPP_

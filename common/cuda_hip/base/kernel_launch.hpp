@@ -22,22 +22,22 @@ namespace GKO_DEVICE_NAMESPACE {
 
 
 template <typename AccessorType>
-struct to_device_type_impl<gko::acc::range<AccessorType>&> {
-    using type = std::decay_t<decltype(gko::acc::as_device_range(
-        std::declval<gko::acc::range<AccessorType>>()))>;
-    static type map_to_device(gko::acc::range<AccessorType>& range)
+struct to_device_type_impl<acc::range<AccessorType>&> {
+    using type = std::decay_t<decltype(acc::as_device_range(
+        std::declval<acc::range<AccessorType>>()))>;
+    static type map_to_device(acc::range<AccessorType>& range)
     {
-        return gko::acc::as_device_range(range);
+        return acc::as_device_range(range);
     }
 };
 
 template <typename AccessorType>
-struct to_device_type_impl<const gko::acc::range<AccessorType>&> {
-    using type = std::decay_t<decltype(gko::acc::as_device_range(
-        std::declval<gko::acc::range<AccessorType>>()))>;
-    static type map_to_device(const gko::acc::range<AccessorType>& range)
+struct to_device_type_impl<const acc::range<AccessorType>&> {
+    using type = std::decay_t<decltype(acc::as_device_range(
+        std::declval<acc::range<AccessorType>>()))>;
+    static type map_to_device(const acc::range<AccessorType>& range)
     {
-        return gko::acc::as_device_range(range);
+        return acc::as_device_range(range);
     }
 };
 

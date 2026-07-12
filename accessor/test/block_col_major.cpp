@@ -21,11 +21,11 @@ namespace {
 template <typename IndexType>
 class BlockColMajorAccessor3d : public ::testing::Test {
 protected:
-    using span = gko::acc::index_span;
-    static constexpr gko::acc::size_type dimensionality{3};
+    using span = acc::index_span;
+    static constexpr acc::size_type dimensionality{3};
 
-    using blk_col_major_range = gko::acc::range<
-        gko::acc::block_col_major<int, dimensionality, IndexType>>;
+    using blk_col_major_range =
+        acc::range<acc::block_col_major<int, dimensionality, IndexType>>;
 
     // clang-format off
     int data[2 * 3 * 4]{
@@ -50,22 +50,21 @@ protected:
         */
     };
     // clang-format on
-    const std::array<gko::acc::size_type, dimensionality> dim1{{2, 3, 4}};
-    const std::array<gko::acc::size_type, dimensionality> dim2{{2, 2, 3}};
+    const std::array<acc::size_type, dimensionality> dim1{{2, 3, 4}};
+    const std::array<acc::size_type, dimensionality> dim2{{2, 2, 3}};
     blk_col_major_range default_r{dim1, data};
     blk_col_major_range custom_r{
-        dim2, data,
-        std::array<gko::acc::size_type, dimensionality - 1>{{12, 3}}};
+        dim2, data, std::array<acc::size_type, dimensionality - 1>{{12, 3}}};
 };
 
 
-TYPED_TEST_SUITE(BlockColMajorAccessor3d, gko::acc::test::AltIndexTypes);
+TYPED_TEST_SUITE(BlockColMajorAccessor3d, acc::test::AltIndexTypes);
 
 
 TYPED_TEST(BlockColMajorAccessor3d, ComputesCorrectStride)
 {
     auto range_stride = this->default_r.get_accessor().stride;
-    auto check_stride = std::array<gko::acc::size_type, 2>{{12, 3}};
+    auto check_stride = std::array<acc::size_type, 2>{{12, 3}};
 
     ASSERT_EQ(range_stride, check_stride);
 }
@@ -132,10 +131,10 @@ TYPED_TEST(BlockColMajorAccessor3d, CanCreateColumnVector)
 
 TYPED_TEST(BlockColMajorAccessor3d, ComputeIndexReturnsIndexType)
 {
-    using size_array = std::array<gko::acc::size_type, 3>;
-    using stride_array = std::array<gko::acc::size_type, 2>;
+    using size_array = std::array<acc::size_type, 3>;
+    using stride_array = std::array<acc::size_type, 2>;
     using result_type =
-        decltype(gko::acc::helper::blk_col_major::compute_index<TypeParam>(
+        decltype(acc::helper::blk_col_major::compute_index<TypeParam>(
             std::declval<size_array>(), std::declval<stride_array>(), 0, 0, 0));
 
     static_assert(std::is_same<result_type, TypeParam>::value,

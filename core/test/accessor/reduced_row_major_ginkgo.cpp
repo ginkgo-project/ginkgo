@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,22 +33,21 @@ protected:
         typename std::tuple_element<0, decltype(ArithmeticStorageType{})>::type;
     using st_type =
         typename std::tuple_element<1, decltype(ArithmeticStorageType{})>::type;
-    using rcar_type = gko::acc::remove_complex_t<ar_type>;
+    using rcar_type = acc::remove_complex_t<ar_type>;
     static const rcar_type delta;
 
     // Type for `check_accessor_correctness` to forward the indices
     using t = std::tuple<int, int, int>;
-    using i_span = gko::acc::index_span;
+    using i_span = acc::index_span;
 
-    using accessor = gko::acc::reduced_row_major<3, ar_type, st_type>;
-    using const_accessor =
-        gko::acc::reduced_row_major<3, ar_type, const st_type>;
+    using accessor = acc::reduced_row_major<3, ar_type, st_type>;
+    using const_accessor = acc::reduced_row_major<3, ar_type, const st_type>;
 
-    using reduced_storage = gko::acc::range<accessor>;
-    using const_reduced_storage = gko::acc::range<const_accessor>;
+    using reduced_storage = acc::range<accessor>;
+    using const_reduced_storage = acc::range<const_accessor>;
 
-    const std::array<gko::acc::size_type, 3> size{{4u, 3u, 2u}};
-    static constexpr gko::acc::size_type data_elements{4 * 3 * 2};
+    const std::array<acc::size_type, 3> size{{4u, 3u, 2u}};
+    static constexpr acc::size_type data_elements{4 * 3 * 2};
     // clang-format off
     st_type data[data_elements] {
         // 0, y, z
@@ -119,8 +118,7 @@ template <typename T>
 const typename ReducedStorage3d<T>::rcar_type ReducedStorage3d<T>::delta =
     std::is_same<ar_type, st_type>::value
         ? 0
-        : std::numeric_limits<gko::acc::remove_complex_t<st_type>>::epsilon() *
-              1e1;
+        : std::numeric_limits<acc::remove_complex_t<st_type>>::epsilon() * 1e1;
 
 using ReducedStorage3dTypes =
     ::testing::Types<std::tuple<double, double>, std::tuple<double, float>,
@@ -195,8 +193,8 @@ TYPED_TEST(ReducedStorage3d, CanCreateWithStride)
 {
     using reduced_storage = typename TestFixture::reduced_storage;
     using ar_type = typename TestFixture::ar_type;
-    auto size = std::array<gko::acc::size_type, 3>{{2, 2, 2}};
-    auto stride = std::array<gko::acc::size_type, 2>{{12, 2}};
+    auto size = std::array<acc::size_type, 3>{{2, 2, 2}};
+    auto stride = std::array<acc::size_type, 2>{{12, 2}};
 
     auto range = reduced_storage{size, this->data, stride};
     range(1, 1, 0) = ar_type{2.};

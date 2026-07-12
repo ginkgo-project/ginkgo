@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_SCALED_REDUCED_ROW_MAJOR_REFERENCE_HPP_
-#define GKO_ACCESSOR_SCALED_REDUCED_ROW_MAJOR_REFERENCE_HPP_
+#ifndef ACCESSOR_SCALED_REDUCED_ROW_MAJOR_REFERENCE_HPP_
+#define ACCESSOR_SCALED_REDUCED_ROW_MAJOR_REFERENCE_HPP_
 
 
 #include <type_traits>
@@ -13,7 +13,6 @@
 #include "accessor/utils.hpp"
 
 
-namespace gko {
 namespace acc {
 /**
  * This namespace contains reference classes used inside accessors.
@@ -31,7 +30,7 @@ namespace reference_class {
  * scalar before casting to the StorageType).
  *
  * Copying this reference is disabled, but move construction is possible to
- * allow for an additional layer (like gko::acc::range).
+ * allow for an additional layer (like acc::range).
  * The assignment operator only works for an rvalue reference (&&) to
  * prevent accidentally copying and working on the reference.
  *
@@ -60,34 +59,33 @@ public:
     // Forbid copy construction
     scaled_reduced_storage(const scaled_reduced_storage&) = delete;
 
-    constexpr explicit GKO_ACC_ATTRIBUTES scaled_reduced_storage(
-        storage_type* const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
+    constexpr explicit MACC_ATTRIBUTES scaled_reduced_storage(
+        storage_type* const MACC_RESTRICT ptr, arithmetic_type scalar)
         : ptr_{ptr}, scalar_{scalar}
     {}
 
-    constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
+    constexpr MACC_ATTRIBUTES operator arithmetic_type() const
     {
-        const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
+        const storage_type* const MACC_RESTRICT r_ptr = ptr_;
         return detail::implicit_explicit_conversion<arithmetic_type>(*r_ptr) *
                scalar_;
     }
 
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
-    operator=(arithmetic_type val) &&
+    constexpr MACC_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
     {
-        storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
+        storage_type* const MACC_RESTRICT r_ptr = ptr_;
         *r_ptr = val / scalar_;
         return val;
     }
 
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
+    constexpr MACC_ATTRIBUTES arithmetic_type
     operator=(const scaled_reduced_storage& ref) &&
     {
         std::move(*this) = ref.implicit_conversion();
         return *this;
     }
 
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
+    constexpr MACC_ATTRIBUTES arithmetic_type
     operator=(scaled_reduced_storage&& ref) && noexcept
     {
         std::move(*this) = ref.implicit_conversion();
@@ -95,10 +93,10 @@ public:
     }
 
 private:
-    storage_type* const GKO_ACC_RESTRICT ptr_;
+    storage_type* const MACC_RESTRICT ptr_;
     const arithmetic_type scalar_;
 
-    constexpr GKO_ACC_ATTRIBUTES arithmetic_type implicit_conversion() const
+    constexpr MACC_ATTRIBUTES arithmetic_type implicit_conversion() const
     {
         return *this;
     }
@@ -126,20 +124,20 @@ public:
 
     scaled_reduced_storage& operator=(scaled_reduced_storage&&) = delete;
 
-    constexpr explicit GKO_ACC_ATTRIBUTES scaled_reduced_storage(
-        const storage_type* const GKO_ACC_RESTRICT ptr, arithmetic_type scalar)
+    constexpr explicit MACC_ATTRIBUTES scaled_reduced_storage(
+        const storage_type* const MACC_RESTRICT ptr, arithmetic_type scalar)
         : ptr_{ptr}, scalar_{scalar}
     {}
 
-    constexpr GKO_ACC_ATTRIBUTES operator arithmetic_type() const
+    constexpr MACC_ATTRIBUTES operator arithmetic_type() const
     {
-        const storage_type* const GKO_ACC_RESTRICT r_ptr = ptr_;
+        const storage_type* const MACC_RESTRICT r_ptr = ptr_;
         return detail::implicit_explicit_conversion<arithmetic_type>(*r_ptr) *
                scalar_;
     }
 
 private:
-    const storage_type* const GKO_ACC_RESTRICT ptr_;
+    const storage_type* const MACC_RESTRICT ptr_;
     const arithmetic_type scalar_;
 };
 
@@ -156,7 +154,6 @@ constexpr remove_complex_t<ArithmeticType> abs(
 
 }  // namespace reference_class
 }  // namespace acc
-}  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_SCALED_REDUCED_ROW_MAJOR_REFERENCE_HPP_
+#endif  // ACCESSOR_SCALED_REDUCED_ROW_MAJOR_REFERENCE_HPP_

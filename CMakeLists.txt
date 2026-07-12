@@ -515,9 +515,9 @@ add_subdirectory(third_party) # Third-party tools and libraries
 #                EXCLUDE_FROM_ALL
 #            )
 #        endif()
-#        install(TARGETS ginkgo_accessor EXPORT Ginkgo)
+#        install(TARGETS memory_accessor EXPORT Ginkgo)
 #
-# The fetched repo provides the `ginkgo_accessor` target and `Ginkgo::accessor`
+# The fetched repo provides the `memory_accessor` target and `MemoryAccessor::accessor`
 # alias, so nothing else in Ginkgo changes.
 add_subdirectory(accessor)
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -97,12 +97,10 @@ TEST_F(BlockMatrixGenerator, OutputHasCorrectSparsityPattern)
 
 TEST_F(BlockMatrixGenerator, ComplexOutputIsRowDiagonalDominantWhenRequested)
 {
-    using Dbv_t =
-        gko::acc::range<gko::acc::block_col_major<const value_type, 3>>;
+    using Dbv_t = acc::range<acc::block_col_major<const value_type, 3>>;
     const auto nbnz = cbmtx->get_num_stored_blocks();
-    const Dbv_t vals(
-        gko::to_std_array<gko::acc::size_type>(nbnz, blk_sz, blk_sz),
-        cbmtx->get_const_values());
+    const Dbv_t vals(gko::to_std_array<acc::size_type>(nbnz, blk_sz, blk_sz),
+                     cbmtx->get_const_values());
     const int* const row_ptrs = cbmtx->get_const_row_ptrs();
     const int* const col_idxs = cbmtx->get_const_col_idxs();
 

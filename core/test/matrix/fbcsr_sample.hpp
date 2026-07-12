@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -78,11 +78,10 @@ public:
         c[2] = 0;
         c[3] = 2;
 
-        gko::acc::range<gko::acc::block_col_major<value_type, 3>> vals(
-            std::array<gko::acc::size_type, 3>{
-                static_cast<gko::acc::size_type>(nbnz),
-                static_cast<gko::acc::size_type>(bs),
-                static_cast<gko::acc::size_type>(bs)},
+        acc::range<acc::block_col_major<value_type, 3>> vals(
+            std::array<acc::size_type, 3>{static_cast<acc::size_type>(nbnz),
+                                          static_cast<acc::size_type>(bs),
+                                          static_cast<acc::size_type>(bs)},
             v);
 
         if (mtx->get_size()[0] % bs != 0) {

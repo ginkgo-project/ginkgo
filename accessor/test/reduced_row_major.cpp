@@ -28,18 +28,16 @@ class ReducedStorageXd : public ::testing::Test {
 protected:
     using ar_type = double;
     using st_type = float;
-    using size_type = gko::acc::size_type;
+    using size_type = acc::size_type;
     static constexpr ar_type delta{std::numeric_limits<st_type>::epsilon() *
                                    1e1};
 
-    using accessor1d =
-        gko::acc::reduced_row_major<1, ar_type, st_type, IndexType>;
-    using accessor2d =
-        gko::acc::reduced_row_major<2, ar_type, st_type, IndexType>;
+    using accessor1d = acc::reduced_row_major<1, ar_type, st_type, IndexType>;
+    using accessor2d = acc::reduced_row_major<2, ar_type, st_type, IndexType>;
     using const_accessor1d =
-        gko::acc::reduced_row_major<1, ar_type, const st_type, IndexType>;
+        acc::reduced_row_major<1, ar_type, const st_type, IndexType>;
     using const_accessor2d =
-        gko::acc::reduced_row_major<2, ar_type, const st_type, IndexType>;
+        acc::reduced_row_major<2, ar_type, const st_type, IndexType>;
     static_assert(std::is_same<const_accessor1d,
                                typename accessor1d::const_accessor>::value,
                   "Const accessors must be the same!");
@@ -47,10 +45,10 @@ protected:
                                typename accessor2d::const_accessor>::value,
                   "Const accessors must be the same!");
 
-    using reduced_storage1d = gko::acc::range<accessor1d>;
-    using reduced_storage2d = gko::acc::range<accessor2d>;
-    using const_reduced_storage2d = gko::acc::range<const_accessor2d>;
-    using const_reduced_storage1d = gko::acc::range<const_accessor1d>;
+    using reduced_storage1d = acc::range<accessor1d>;
+    using reduced_storage2d = acc::range<accessor2d>;
+    using const_reduced_storage2d = acc::range<const_accessor2d>;
+    using const_reduced_storage1d = acc::range<const_accessor1d>;
 
     const std::array<size_type, 0> stride0{{}};
     const std::array<size_type, 1> stride1{{4}};
@@ -86,7 +84,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(ReducedStorageXd, gko::acc::test::AltIndexTypes);
+TYPED_TEST_SUITE(ReducedStorageXd, acc::test::AltIndexTypes);
 
 
 TYPED_TEST(ReducedStorageXd, CanRead)
@@ -118,10 +116,10 @@ TYPED_TEST(ReducedStorageXd, CanWrite2)
 
 TYPED_TEST(ReducedStorageXd, ComputeIndexReturnsIndexType)
 {
-    using size_array = std::array<gko::acc::size_type, 2>;
-    using stride_array = std::array<gko::acc::size_type, 1>;
+    using size_array = std::array<acc::size_type, 2>;
+    using stride_array = std::array<acc::size_type, 1>;
     using result_type =
-        decltype(gko::acc::helper::compute_row_major_index<TypeParam>(
+        decltype(acc::helper::compute_row_major_index<TypeParam>(
             std::declval<size_array>(), std::declval<stride_array>(), 0, 0));
 
     static_assert(std::is_same<result_type, TypeParam>::value,

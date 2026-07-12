@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_REFERENCE_HELPER_HPP_
-#define GKO_ACCESSOR_REFERENCE_HELPER_HPP_
+#ifndef ACCESSOR_REFERENCE_HELPER_HPP_
+#define ACCESSOR_REFERENCE_HELPER_HPP_
 
 
 #include <type_traits>
@@ -18,16 +18,15 @@
 // operators.
 #if defined(__NVCOMPILER) && defined(ACC_NONLITERAL_ARITHMETIC_TYPE)
 
-#define GKO_ACC_ENABLE_REFERENCE_CONSTEXPR
+#define MACC_ENABLE_REFERENCE_CONSTEXPR
 
 #else
 
-#define GKO_ACC_ENABLE_REFERENCE_CONSTEXPR constexpr
+#define MACC_ENABLE_REFERENCE_CONSTEXPR constexpr
 
 #endif
 
 
-namespace gko {
 namespace acc {
 /**
  * This namespace is not part of the public interface and can change without
@@ -64,90 +63,87 @@ struct enable_reference_operators {
      * Mixin).
      * This function is also used to detect if a proxy object is used or not.
      */
-    constexpr GKO_ACC_ATTRIBUTES GKO_ACC_INLINE arithmetic_type
+    constexpr MACC_ATTRIBUTES MACC_INLINE arithmetic_type
     to_arithmetic_type() const
     {
         return *static_cast<const Reference*>(this);
     }
 
-#define GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(_op)                 \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
-        GKO_ACC_ATTRIBUTES arithmetic_type                              \
+#define MACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(_op)                    \
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES  \
+        arithmetic_type                                                 \
         operator _op(const Reference& ref1, const Reference& ref2)      \
     {                                                                   \
         return ref1.to_arithmetic_type() _op ref2.to_arithmetic_type(); \
     }                                                                   \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
-        GKO_ACC_ATTRIBUTES arithmetic_type                              \
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES  \
+        arithmetic_type                                                 \
         operator _op(const Reference& ref, const arithmetic_type& a)    \
     {                                                                   \
         return ref.to_arithmetic_type() _op a;                          \
     }                                                                   \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
-        GKO_ACC_ATTRIBUTES arithmetic_type                              \
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES  \
+        arithmetic_type                                                 \
         operator _op(const arithmetic_type& a, const Reference& ref)    \
     {                                                                   \
         return a _op ref.to_arithmetic_type();                          \
     }
 
-    GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(*)
-    GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(/)
-    GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(+)
-    GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(-)
-#undef GKO_ACC_REFERENCE_BINARY_OPERATOR_OVERLOAD
+    MACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(*)
+    MACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(/)
+    MACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(+)
+    MACC_REFERENCE_BINARY_OPERATOR_OVERLOAD(-)
+#undef MACC_REFERENCE_BINARY_OPERATOR_OVERLOAD
 
-#define GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(_oper, _op)          \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE                \
-        GKO_ACC_ATTRIBUTES arithmetic_type                                  \
+#define MACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(_oper, _op)             \
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES      \
+        arithmetic_type                                                     \
         _oper(Reference&& ref1, const Reference& ref2)                      \
     {                                                                       \
         return std::move(ref1) =                                            \
                    ref1.to_arithmetic_type() _op ref2.to_arithmetic_type(); \
     }                                                                       \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE                \
-        GKO_ACC_ATTRIBUTES arithmetic_type                                  \
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES      \
+        arithmetic_type                                                     \
         _oper(Reference&& ref, const arithmetic_type& a)                    \
     {                                                                       \
         return std::move(ref) = ref.to_arithmetic_type() _op a;             \
     }
 
-    GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator*=, *)
-    GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator/=, /)
-    GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator+=, +)
-    GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator-=, -)
-#undef GKO_ACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD
+    MACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator*=, *)
+    MACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator/=, /)
+    MACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator+=, +)
+    MACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD(operator-=, -)
+#undef MACC_REFERENCE_ASSIGNMENT_OPERATOR_OVERLOAD
 
-#define GKO_ACC_REFERENCE_COMPARISON_OPERATOR_OVERLOAD(_op)             \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
-        GKO_ACC_ATTRIBUTES bool                                         \
-        operator _op(const Reference& ref1, const Reference& ref2)      \
-    {                                                                   \
-        return ref1.to_arithmetic_type() _op ref2.to_arithmetic_type(); \
-    }                                                                   \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
-        GKO_ACC_ATTRIBUTES bool                                         \
-        operator _op(const Reference& ref, const arithmetic_type& a)    \
-    {                                                                   \
-        return ref.to_arithmetic_type() _op a;                          \
-    }                                                                   \
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE            \
-        GKO_ACC_ATTRIBUTES bool                                         \
-        operator _op(const arithmetic_type& a, const Reference& ref)    \
-    {                                                                   \
-        return a _op ref.to_arithmetic_type();                          \
+#define MACC_REFERENCE_COMPARISON_OPERATOR_OVERLOAD(_op)                    \
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES bool \
+    operator _op(const Reference& ref1, const Reference& ref2)              \
+    {                                                                       \
+        return ref1.to_arithmetic_type() _op ref2.to_arithmetic_type();     \
+    }                                                                       \
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES bool \
+    operator _op(const Reference& ref, const arithmetic_type& a)            \
+    {                                                                       \
+        return ref.to_arithmetic_type() _op a;                              \
+    }                                                                       \
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES bool \
+    operator _op(const arithmetic_type& a, const Reference& ref)            \
+    {                                                                       \
+        return a _op ref.to_arithmetic_type();                              \
     }
 
-    GKO_ACC_REFERENCE_COMPARISON_OPERATOR_OVERLOAD(==)
-#undef GKO_ACC_REFERENCE_COMPARISON_OPERATOR_OVERLOAD
+    MACC_REFERENCE_COMPARISON_OPERATOR_OVERLOAD(==)
+#undef MACC_REFERENCE_COMPARISON_OPERATOR_OVERLOAD
 
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE GKO_ACC_ATTRIBUTES
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES
         arithmetic_type
         operator-(const Reference& ref)
     {
         return -ref.to_arithmetic_type();
     }
 
-    friend GKO_ACC_ENABLE_REFERENCE_CONSTEXPR GKO_ACC_INLINE GKO_ACC_ATTRIBUTES
+    friend MACC_ENABLE_REFERENCE_CONSTEXPR MACC_INLINE MACC_ATTRIBUTES
         arithmetic_type
         operator+(const Reference& ref)
     {
@@ -156,12 +152,11 @@ struct enable_reference_operators {
 };
 
 // There is no more need for this macro in this file
-#undef GKO_ACC_ENABLE_REFERENCE_CONSTEXPR
+#undef MACC_ENABLE_REFERENCE_CONSTEXPR
 
 
 }  // namespace detail
 }  // namespace acc
-}  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_REFERENCE_HELPER_HPP_
+#endif  // ACCESSOR_REFERENCE_HELPER_HPP_

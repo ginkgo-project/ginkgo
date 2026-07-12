@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_SCALED_REDUCED_ROW_MAJOR_HPP_
-#define GKO_ACCESSOR_SCALED_REDUCED_ROW_MAJOR_HPP_
+#ifndef ACCESSOR_SCALED_REDUCED_ROW_MAJOR_HPP_
+#define ACCESSOR_SCALED_REDUCED_ROW_MAJOR_HPP_
 
 
 #include <array>
@@ -18,7 +18,6 @@
 #include "accessor/utils.hpp"
 
 
-namespace gko {
 /**
  * @brief The accessor namespace.
  *
@@ -54,12 +53,12 @@ struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
      * @returns the written value.
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES scalar_type
+    constexpr MACC_ATTRIBUTES scalar_type
     write_scalar_masked(scalar_type value, Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == Dimensionality,
                       "Number of indices must match dimensionality!");
-        scalar_type* GKO_ACC_RESTRICT rest_scalar = self()->scalar_;
+        scalar_type* MACC_RESTRICT rest_scalar = self()->scalar_;
         return rest_scalar[self()->compute_mask_scalar_index(
                    std::forward<Indices>(indices)...)] = value;
     }
@@ -76,17 +75,17 @@ struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
      * @returns the written value.
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES scalar_type
+    constexpr MACC_ATTRIBUTES scalar_type
     write_scalar_direct(scalar_type value, Indices&&... indices) const
     {
-        scalar_type* GKO_ACC_RESTRICT rest_scalar = self()->scalar_;
+        scalar_type* MACC_RESTRICT rest_scalar = self()->scalar_;
         return rest_scalar[self()->compute_direct_scalar_index(
                    std::forward<Indices>(indices)...)] = value;
     }
 
 
 private:
-    constexpr GKO_ACC_ATTRIBUTES const Accessor* self() const
+    constexpr MACC_ATTRIBUTES const Accessor* self() const
     {
         return static_cast<const Accessor*>(this);
     }
@@ -189,7 +188,7 @@ protected:
      *                values.
      * @param scalar_stride  stride array used for memory accesses to scalar
      */
-    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(
+    constexpr MACC_ATTRIBUTES scaled_reduced_row_major(
         dim_type size, storage_type* storage,
         storage_stride_type storage_stride, scalar_type* scalar,
         scalar_stride_type scalar_stride)
@@ -211,7 +210,7 @@ protected:
      * @param scalar  pointer to the block of memory containing the scalar
      *                values.
      */
-    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(
+    constexpr MACC_ATTRIBUTES scaled_reduced_row_major(
         dim_type size, storage_type* storage, storage_stride_type stride,
         scalar_type* scalar)
         : scaled_reduced_row_major{
@@ -229,9 +228,9 @@ protected:
      * @param scalar  pointer to the block of memory containing the scalar
      *                values.
      */
-    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major(dim_type size,
-                                                          storage_type* storage,
-                                                          scalar_type* scalar)
+    constexpr MACC_ATTRIBUTES scaled_reduced_row_major(dim_type size,
+                                                       storage_type* storage,
+                                                       scalar_type* scalar)
         : scaled_reduced_row_major{
               size, storage,
               helper::compute_default_row_major_stride_array(size), scalar}
@@ -240,7 +239,7 @@ protected:
     /**
      * Creates an empty accessor (pointing nowhere with an empty size)
      */
-    constexpr GKO_ACC_ATTRIBUTES scaled_reduced_row_major()
+    constexpr MACC_ATTRIBUTES scaled_reduced_row_major()
         : scaled_reduced_row_major{{0, 0, 0}, nullptr, nullptr}
     {}
 
@@ -251,7 +250,7 @@ public:
      *
      * @returns  a scaled_reduced_row_major major range which is read-only.
      */
-    constexpr GKO_ACC_ATTRIBUTES range<const_accessor> to_const() const
+    constexpr MACC_ATTRIBUTES range<const_accessor> to_const() const
     {
         return range<const_accessor>{size_, storage_, storage_stride_, scalar_,
                                      scalar_stride_};
@@ -266,10 +265,10 @@ public:
      * @returns the scalar value at the given indices.
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES scalar_type
+    constexpr MACC_ATTRIBUTES scalar_type
     read_scalar_masked(Indices&&... indices) const
     {
-        const arithmetic_type* GKO_ACC_RESTRICT rest_scalar = scalar_;
+        const arithmetic_type* MACC_RESTRICT rest_scalar = scalar_;
         return rest_scalar[compute_mask_scalar_index(
             std::forward<Indices>(indices)...)];
     }
@@ -284,10 +283,10 @@ public:
      * @returns the scalar value at the given indices.
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES scalar_type
+    constexpr MACC_ATTRIBUTES scalar_type
     read_scalar_direct(Indices&&... indices) const
     {
-        const arithmetic_type* GKO_ACC_RESTRICT rest_scalar = scalar_;
+        const arithmetic_type* MACC_RESTRICT rest_scalar = scalar_;
         return rest_scalar[compute_direct_scalar_index(
             std::forward<Indices>(indices)...)];
     }
@@ -299,7 +298,7 @@ public:
      *
      * @returns length in dimension `dimension`
      */
-    constexpr GKO_ACC_ATTRIBUTES size_type length(size_type dimension) const
+    constexpr MACC_ATTRIBUTES size_type length(size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
     }
@@ -314,7 +313,7 @@ public:
      *           is const), or a reference if the accessor is non-const
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES std::enable_if_t<
+    constexpr MACC_ATTRIBUTES std::enable_if_t<
         are_all_integral<Indices...>::value,
         std::conditional_t<is_const, arithmetic_type, reference_type>>
     operator()(Indices... indices) const
@@ -331,7 +330,7 @@ public:
      * @returns a sub-range for the given spans.
      */
     template <typename... SpanTypes>
-    constexpr GKO_ACC_ATTRIBUTES
+    constexpr MACC_ATTRIBUTES
         std::enable_if_t<helper::are_index_span_compatible<SpanTypes...>::value,
                          range<scaled_reduced_row_major>>
         operator()(SpanTypes... spans) const
@@ -352,7 +351,7 @@ public:
      *
      * @returns the size of the accessor
      */
-    constexpr GKO_ACC_ATTRIBUTES dim_type get_size() const { return size_; }
+    constexpr MACC_ATTRIBUTES dim_type get_size() const { return size_; }
 
     /**
      * Returns a const reference to the storage stride array of size
@@ -361,7 +360,7 @@ public:
      * @returns a const reference to the storage stride array of size
      *          dimensionality - 1
      */
-    constexpr GKO_ACC_ATTRIBUTES const storage_stride_type& get_storage_stride()
+    constexpr MACC_ATTRIBUTES const storage_stride_type& get_storage_stride()
         const
     {
         return storage_stride_;
@@ -372,7 +371,7 @@ public:
      *
      * @returns a const reference to the scalar stride array
      */
-    constexpr GKO_ACC_ATTRIBUTES const scalar_stride_type& get_scalar_stride()
+    constexpr MACC_ATTRIBUTES const scalar_stride_type& get_scalar_stride()
         const
     {
         return scalar_stride_;
@@ -383,7 +382,7 @@ public:
      *
      * @returns the pointer to the storage data
      */
-    constexpr GKO_ACC_ATTRIBUTES storage_type* get_stored_data() const
+    constexpr MACC_ATTRIBUTES storage_type* get_stored_data() const
     {
         return storage_;
     }
@@ -393,7 +392,7 @@ public:
      *
      * @returns a const pointer to the storage data
      */
-    constexpr GKO_ACC_ATTRIBUTES const storage_type* get_const_storage() const
+    constexpr MACC_ATTRIBUTES const storage_type* get_const_storage() const
     {
         return storage_;
     }
@@ -403,7 +402,7 @@ public:
      *
      * @returns the pointer to the scalar data
      */
-    constexpr GKO_ACC_ATTRIBUTES scalar_type* get_scalar() const
+    constexpr MACC_ATTRIBUTES scalar_type* get_scalar() const
     {
         return scalar_;
     }
@@ -413,14 +412,14 @@ public:
      *
      * @returns a const pointer to the scalar data
      */
-    constexpr GKO_ACC_ATTRIBUTES const scalar_type* get_const_scalar() const
+    constexpr MACC_ATTRIBUTES const scalar_type* get_const_scalar() const
     {
         return scalar_;
     }
 
 protected:
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES size_type
+    constexpr MACC_ATTRIBUTES size_type
     compute_index(Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
@@ -430,7 +429,7 @@ protected:
     }
 
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES size_type
+    constexpr MACC_ATTRIBUTES size_type
     compute_mask_scalar_index(Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
@@ -441,7 +440,7 @@ protected:
     }
 
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES size_type
+    constexpr MACC_ATTRIBUTES size_type
     compute_direct_scalar_index(Indices&&... indices) const
     {
         static_assert(
@@ -463,7 +462,6 @@ private:
 
 
 }  // namespace acc
-}  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_SCALED_REDUCED_ROW_MAJOR_HPP_
+#endif  // ACCESSOR_SCALED_REDUCED_ROW_MAJOR_HPP_

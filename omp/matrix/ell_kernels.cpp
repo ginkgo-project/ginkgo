@@ -38,19 +38,18 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
     GKO_ASSERT(b.size[1] == num_rhs);
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
-    using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType,
-                                    IndexType>;
+    using a_accessor = acc::reduced_row_major<1, arithmetic_type,
+                                              const MatrixValueType, IndexType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
-    const auto a_vals = gko::acc::range<a_accessor>(
+    const auto a_vals = acc::range<a_accessor>(
         std::array<acc::size_type, 1>{
             static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
         a.values);
-    const auto b_vals = gko::acc::range<b_accessor>(
+    const auto b_vals = acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
         b.values,
@@ -88,19 +87,18 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
     GKO_ASSERT(b.size[1] > block_size);
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
-    using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType,
-                                    IndexType>;
+    using a_accessor = acc::reduced_row_major<1, arithmetic_type,
+                                              const MatrixValueType, IndexType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
-    const auto a_vals = gko::acc::range<a_accessor>(
+    const auto a_vals = acc::range<a_accessor>(
         std::array<acc::size_type, 1>{
             static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
         a.values);
-    const auto b_vals = gko::acc::range<b_accessor>(
+    const auto b_vals = acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
                                        static_cast<acc::size_type>(b.size[1])}},
         b.values,

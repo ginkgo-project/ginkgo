@@ -2,13 +2,12 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_ACCESSOR_INDEX_SPAN_HPP_
-#define GKO_ACCESSOR_INDEX_SPAN_HPP_
+#ifndef ACCESSOR_INDEX_SPAN_HPP_
+#define ACCESSOR_INDEX_SPAN_HPP_
 
 #include "accessor/utils.hpp"
 
 
-namespace gko {
 namespace acc {
 
 
@@ -38,8 +37,8 @@ struct index_span {
      * @param end  the end (exclusive) of the index_span
      *
      */
-    GKO_ACC_ATTRIBUTES constexpr index_span(size_type begin,
-                                            size_type end) noexcept
+    MACC_ATTRIBUTES constexpr index_span(size_type begin,
+                                         size_type end) noexcept
         : begin{begin}, end{end}
     {}
 
@@ -50,7 +49,7 @@ struct index_span {
      *
      * @param point  the point which the index_span represents
      */
-    GKO_ACC_ATTRIBUTES constexpr index_span(size_type point) noexcept
+    MACC_ATTRIBUTES constexpr index_span(size_type point) noexcept
         : index_span{point, point + 1}
     {}
 
@@ -59,40 +58,40 @@ struct index_span {
      *
      * @returns true iff `this->begin < this->end`
      */
-    GKO_ACC_ATTRIBUTES constexpr bool is_valid() const { return begin < end; }
+    MACC_ATTRIBUTES constexpr bool is_valid() const { return begin < end; }
 
-    friend GKO_ACC_ATTRIBUTES constexpr bool operator<(const index_span& first,
-                                                       const index_span& second)
+    friend MACC_ATTRIBUTES constexpr bool operator<(const index_span& first,
+                                                    const index_span& second)
     {
         return first.end < second.begin;
     }
 
-    friend GKO_ACC_ATTRIBUTES constexpr bool operator<=(
-        const index_span& first, const index_span& second)
+    friend MACC_ATTRIBUTES constexpr bool operator<=(const index_span& first,
+                                                     const index_span& second)
     {
         return first.end <= second.begin;
     }
 
-    friend GKO_ACC_ATTRIBUTES constexpr bool operator>(const index_span& first,
-                                                       const index_span& second)
+    friend MACC_ATTRIBUTES constexpr bool operator>(const index_span& first,
+                                                    const index_span& second)
     {
         return second < first;
     }
 
-    friend GKO_ACC_ATTRIBUTES constexpr bool operator>=(
-        const index_span& first, const index_span& second)
+    friend MACC_ATTRIBUTES constexpr bool operator>=(const index_span& first,
+                                                     const index_span& second)
     {
         return second <= first;
     }
 
-    friend GKO_ACC_ATTRIBUTES constexpr bool operator==(
-        const index_span& first, const index_span& second)
+    friend MACC_ATTRIBUTES constexpr bool operator==(const index_span& first,
+                                                     const index_span& second)
     {
         return first.begin == second.begin && first.end == second.end;
     }
 
-    friend GKO_ACC_ATTRIBUTES constexpr bool operator!=(
-        const index_span& first, const index_span& second)
+    friend MACC_ATTRIBUTES constexpr bool operator!=(const index_span& first,
+                                                     const index_span& second)
     {
         return !(first == second);
     }
@@ -103,7 +102,6 @@ struct index_span {
 
 
 }  // namespace acc
-}  // namespace gko
 
 
-#endif  // GKO_ACCESSOR_INDEX_SPAN_HPP_
+#endif  // ACCESSOR_INDEX_SPAN_HPP_

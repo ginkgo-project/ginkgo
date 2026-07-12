@@ -31,7 +31,7 @@ TYPED_TEST(RealMath, Real)
     using value_type = typename TestFixture::value_type;
     value_type val{3};
 
-    ASSERT_EQ(gko::acc::real(val), val);
+    ASSERT_EQ(acc::real(val), val);
 }
 
 
@@ -40,7 +40,7 @@ TYPED_TEST(RealMath, Imag)
     using value_type = typename TestFixture::value_type;
     value_type val{3};
 
-    ASSERT_EQ(gko::acc::imag(val), value_type{});
+    ASSERT_EQ(acc::imag(val), value_type{});
 }
 
 
@@ -49,7 +49,7 @@ TYPED_TEST(RealMath, Conj)
     using value_type = typename TestFixture::value_type;
     value_type val{3};
 
-    ASSERT_EQ(gko::acc::conj(val), val);
+    ASSERT_EQ(acc::conj(val), val);
 }
 
 
@@ -59,7 +59,7 @@ TYPED_TEST(RealMath, SquaredNorm)
     value_type val{3};
     value_type expected{3 * 3};
 
-    ASSERT_EQ(gko::acc::squared_norm(val), expected);
+    ASSERT_EQ(acc::squared_norm(val), expected);
 }
 
 
@@ -85,7 +85,7 @@ TYPED_TEST(ComplexMath, Real)
     real_type i{-2};
     value_type val{r, i};
 
-    ASSERT_EQ(gko::acc::real(val), r);
+    ASSERT_EQ(acc::real(val), r);
 }
 
 
@@ -97,7 +97,7 @@ TYPED_TEST(ComplexMath, Imag)
     real_type i{-2};
     value_type val{r, i};
 
-    ASSERT_EQ(gko::acc::imag(val), i);
+    ASSERT_EQ(acc::imag(val), i);
 }
 
 
@@ -110,7 +110,7 @@ TYPED_TEST(ComplexMath, Conj)
     value_type val{r, i};
     value_type expected{r, -i};
 
-    ASSERT_EQ(gko::acc::conj(val), expected);
+    ASSERT_EQ(acc::conj(val), expected);
 }
 
 
@@ -123,7 +123,7 @@ TYPED_TEST(ComplexMath, SquaredNorm)
     value_type val{r, i};
     real_type expected{13};
 
-    ASSERT_EQ(gko::acc::squared_norm(val), expected);
+    ASSERT_EQ(acc::squared_norm(val), expected);
 }
 
 
