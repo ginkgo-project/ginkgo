@@ -180,16 +180,17 @@ namespace detail {
  * compute(stride, tuple(x1, x2, x3, x4))
  * -> x1 * stride[1] + x2 * stride[2] + x4    (x3 skipped since bit not set)
  */
-template <
-    typename IndexType, std::uint64_t mask, std::size_t set_bits_processed,
-    std::size_t stride_size, std::size_t dim_idx, std::size_t total_dim,
-    // Determine if the bit in the mask is set for dim_idx
-    // If the end is reached (dim_idx == total_dim), set it to false in
-    // order to only need one specialization
-    bool mask_set = (dim_idx < total_dim)
-                        ? static_cast<bool>(mask&(std::uint64_t{1}
-                                                  << (total_dim - 1 - dim_idx)))
-                        : false>
+template <typename IndexType, std::uint64_t mask,
+          std::size_t set_bits_processed, std::size_t stride_size,
+          std::size_t dim_idx, std::size_t total_dim,
+          // Determine if the bit in the mask is set for dim_idx
+          // If the end is reached (dim_idx == total_dim), set it to false in
+          // order to only need one specialization
+          bool mask_set =
+              (dim_idx < total_dim)
+                  ? static_cast<bool>(
+                        mask & (std::uint64_t{1} << (total_dim - 1 - dim_idx)))
+                  : false>
 struct row_major_masked_helper_s {};
 
 
@@ -312,7 +313,7 @@ struct row_major_masked_helper_s<IndexType, mask, 0, stride_size, dim_idx,
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
         // If it is the last set dimension, there is no need for a stride
-        return MACC_ASSERT(first < size[dim_idx]),
+        return MACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
                first * (set_bits_processed == stride_size
                             ? 1
                             : stride[set_bits_processed]) +
@@ -739,7 +740,7 @@ default_stride_array_impl(const std::array<ValueType, N>& size, Args&&... args)
 {
     return default_stride_array_impl<iter + 1>(
         size, std::forward<Args>(args)...,
-        detail::mult_dim_upwards<size_type, iter>(size));
+        detail::mult_dim_upwards<ValueType, iter>(size));
 }
 
 template <typename ValueType, std::size_t dimensions>

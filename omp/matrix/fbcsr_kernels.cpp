@@ -50,8 +50,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        avalues{to_std_array<acc::size_type>(nbnz, bs, bs),
-                a->get_const_values()};
+        avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
@@ -96,8 +95,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
     const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        avalues{to_std_array<acc::size_type>(nbnz, bs, bs),
-                a->get_const_values()};
+        avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {

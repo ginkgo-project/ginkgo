@@ -41,8 +41,8 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
     const auto a_vals = acc::range<a_accessor>(
-        std::array<acc::size_type, 1>{
-            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
+        typename a_accessor::dim_type{
+            {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
         a.values);
     const auto b_vals = acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
@@ -88,8 +88,8 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
     const auto a_vals = acc::range<a_accessor>(
-        std::array<acc::size_type, 1>{
-            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
+        typename a_accessor::dim_type{
+            {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
         a.values);
     const auto b_vals = acc::range<b_accessor>(
         std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),

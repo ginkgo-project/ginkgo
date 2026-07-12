@@ -103,7 +103,7 @@ public:
      *
      * @return  the length of the `dimension`-th dimension of the range
      */
-    MACC_ATTRIBUTES constexpr size_type length(size_type dimension) const
+    MACC_ATTRIBUTES constexpr auto length(size_type dimension) const
     {
         return accessor_.length(dimension);
     }

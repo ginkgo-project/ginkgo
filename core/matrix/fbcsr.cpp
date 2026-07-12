@@ -22,6 +22,7 @@
 
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/fbcsr_kernels.hpp"
@@ -320,9 +321,7 @@ void Fbcsr<ValueType, IndexType>::write(mat_data& data) const
 
     const size_type nbnz = tmp->get_num_stored_blocks();
     const acc::range<acc::block_col_major<const value_type, 3, IndexType>>
-        vblocks(std::array<acc::size_type, 3>{static_cast<acc::size_type>(nbnz),
-                                              static_cast<acc::size_type>(bs_),
-                                              static_cast<acc::size_type>(bs_)},
+        vblocks(to_std_array<IndexType>(nbnz, bs_, bs_),
                 tmp->values_.get_const_data());
 
     for (size_type brow = 0; brow < tmp->get_num_block_rows(); ++brow) {

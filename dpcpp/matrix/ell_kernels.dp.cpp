@@ -340,8 +340,8 @@ void abstract_spmv(
         GKO_KERNEL_NOT_FOUND;
     } else {
         const auto a_vals = acc::range<a_accessor>(
-            std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
-                num_stored_elements_per_row * stride)}},
+            typename a_accessor::dim_type{
+                {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
             a.values);
         const auto b_vals = acc::range<b_accessor>(
             std::array<acc::size_type, 2>{
@@ -360,7 +360,7 @@ void abstract_spmv(
                 c.stride);
         } else if (alpha && beta) {
             const auto alpha_val = acc::range<a_accessor>(
-                std::array<acc::size_type, 1>{1}, alpha->values);
+                typename a_accessor::dim_type{{1}}, alpha->values);
             kernel::spmv<num_thread_per_worker, atomic>(
                 grid_size, block_size, 0, exec->get_queue(), nrows,
                 num_worker_per_row, acc::as_device_range(alpha_val),

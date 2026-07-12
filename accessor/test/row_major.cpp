@@ -207,8 +207,8 @@ TYPED_TEST_SUITE(RowMajorIndexType, acc::test::AltIndexTypes);
 TYPED_TEST(RowMajorIndexType, AddressMatchesDefaultIndexType)
 {
     using alt = acc::row_major<int, 2, TypeParam>;
-    acc::range<alt> r_alt{typename TestFixture::dim_type{{3u, 2u}}, this->data,
-                          typename TestFixture::stride_type{{3u}}};
+    acc::range<alt> r_alt{typename alt::length_type{{3, 2}}, this->data,
+                          typename alt::stride_type{{3}}};
 
     EXPECT_EQ(this->r(0, 0), r_alt(0, 0));
     EXPECT_EQ(this->r(1, 1), r_alt(1, 1));

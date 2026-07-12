@@ -32,8 +32,8 @@ protected:
         7.0, 8.0
     };
     // clang-format on
-    std::array<acc::size_type, 2> size{{4, 2}};
-    std::array<acc::size_type, 1> stride{{2}};
+    std::array<IndexType, 2> size{{4, 2}};
+    std::array<IndexType, 1> stride{{2}};
 };
 
 TYPED_TEST_SUITE(SyclHelper, acc::test::AltIndexTypes);

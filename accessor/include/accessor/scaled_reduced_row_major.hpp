@@ -123,6 +123,9 @@ private:
  *                     indices (x1, x2, x3, x4, x5), (x1, x2, x3, x5) are
  *                     considered for the scalar, making the scalar itself 4d.
  *
+ * @tparam IndexType  Type used for computing the flat storage index and for
+ *                    storing the sizes and strides
+ *
  * @note  This class only manages the accesses and not the memory itself.
  */
 template <std::size_t Dimensionality, typename ArithmeticType,
@@ -137,6 +140,7 @@ class scaled_reduced_row_major
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
+    using index_type = IndexType;
     static constexpr auto dimensionality = Dimensionality;
     static constexpr auto scalar_mask = ScalarMask;
     static constexpr bool is_const{std::is_const<storage_type>::value};
@@ -166,16 +170,15 @@ protected:
     static constexpr std::size_t scalar_stride_dim{
         scalar_dim == 0 ? 0 : (scalar_dim - 1)};
 
-    using dim_type = std::array<size_type, dimensionality>;
-    using storage_stride_type = std::array<size_type, dimensionality - 1>;
-    using scalar_stride_type = std::array<size_type, scalar_stride_dim>;
+public:
+    using dim_type = std::array<index_type, dimensionality>;
+    using storage_stride_type = std::array<index_type, dimensionality - 1>;
+    using scalar_stride_type = std::array<index_type, scalar_stride_dim>;
+
+protected:
     using reference_type =
         reference_class::scaled_reduced_storage<arithmetic_type, StorageType>;
 
-private:
-    using index_type = IndexType;
-
-protected:
     /**
      * Creates the accessor for an already allocated storage space with a
      * stride. The first stride is used for computing the index for the first
@@ -240,7 +243,7 @@ protected:
      * Creates an empty accessor (pointing nowhere with an empty size)
      */
     constexpr MACC_ATTRIBUTES scaled_reduced_row_major()
-        : scaled_reduced_row_major{{0, 0, 0}, nullptr, nullptr}
+        : scaled_reduced_row_major{dim_type{}, nullptr, nullptr}
     {}
 
 public:
@@ -298,7 +301,7 @@ public:
      *
      * @returns length in dimension `dimension`
      */
-    constexpr MACC_ATTRIBUTES size_type length(size_type dimension) const
+    constexpr MACC_ATTRIBUTES index_type length(size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
     }
@@ -337,8 +340,8 @@ public:
     {
         return helper::validate_index_spans(size_, spans...),
                range<scaled_reduced_row_major>{
-                   dim_type{
-                       (index_span{spans}.end - index_span{spans}.begin)...},
+                   dim_type{static_cast<index_type>(
+                       index_span{spans}.end - index_span{spans}.begin)...},
                    storage_ + compute_index((index_span{spans}.begin)...),
                    storage_stride_,
                    scalar_ +
@@ -419,7 +422,7 @@ public:
 
 protected:
     template <typename... Indices>
-    constexpr MACC_ATTRIBUTES size_type
+    constexpr MACC_ATTRIBUTES index_type
     compute_index(Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
@@ -429,7 +432,7 @@ protected:
     }
 
     template <typename... Indices>
-    constexpr MACC_ATTRIBUTES size_type
+    constexpr MACC_ATTRIBUTES index_type
     compute_mask_scalar_index(Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == dimensionality,
@@ -440,7 +443,7 @@ protected:
     }
 
     template <typename... Indices>
-    constexpr MACC_ATTRIBUTES size_type
+    constexpr MACC_ATTRIBUTES index_type
     compute_direct_scalar_index(Indices&&... indices) const
     {
         static_assert(

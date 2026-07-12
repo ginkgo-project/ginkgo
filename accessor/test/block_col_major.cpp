@@ -50,11 +50,11 @@ protected:
         */
     };
     // clang-format on
-    const std::array<acc::size_type, dimensionality> dim1{{2, 3, 4}};
-    const std::array<acc::size_type, dimensionality> dim2{{2, 2, 3}};
+    const std::array<IndexType, dimensionality> dim1{{2, 3, 4}};
+    const std::array<IndexType, dimensionality> dim2{{2, 2, 3}};
     blk_col_major_range default_r{dim1, data};
     blk_col_major_range custom_r{
-        dim2, data, std::array<acc::size_type, dimensionality - 1>{{12, 3}}};
+        dim2, data, std::array<IndexType, dimensionality - 1>{{12, 3}}};
 };
 
 
@@ -64,7 +64,7 @@ TYPED_TEST_SUITE(BlockColMajorAccessor3d, acc::test::AltIndexTypes);
 TYPED_TEST(BlockColMajorAccessor3d, ComputesCorrectStride)
 {
     auto range_stride = this->default_r.get_accessor().stride;
-    auto check_stride = std::array<acc::size_type, 2>{{12, 3}};
+    auto check_stride = std::array<TypeParam, 2>{{12, 3}};
 
     ASSERT_EQ(range_stride, check_stride);
 }

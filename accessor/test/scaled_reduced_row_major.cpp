@@ -360,7 +360,8 @@ class ScaledReducedStorageXd : public ::testing::Test {
 protected:
     using ar_type = double;
     using st_type = int;
-    using size_type = acc::size_type;
+    // must match the accessors' index type below
+    using size_type = std::int32_t;
     static constexpr ar_type delta{0.1};
 
     using accessor1d =
@@ -388,8 +389,8 @@ protected:
     const std::array<size_type, 0> stride0{{}};
     const std::array<size_type, 1> stride1{{4}};
     const std::array<size_type, 1> stride_sc{{5}};
-    const std::array<acc::size_type, 1> size_1d{{8u}};
-    const std::array<acc::size_type, 2> size_2d{{2u, 2u}};
+    const std::array<size_type, 1> size_1d{{8u}};
+    const std::array<size_type, 2> size_2d{{2u, 2u}};
 
     static constexpr acc::size_type data_elements{8};
     st_type data[data_elements]{10, 22, 32, 44, 54, 66, 76, -88};
@@ -474,10 +475,14 @@ TYPED_TEST(ScaledReducedStorageXdIndexType, AddressMatchesDefaultIndexType)
     using ref_acc = acc::scaled_reduced_row_major<2, ar_type, st_type, 3>;
     using alt_acc =
         acc::scaled_reduced_row_major<2, ar_type, st_type, 3, TypeParam>;
-    acc::range<ref_acc> ref{this->size_2d, this->data, this->stride1,
-                            this->scalar, this->stride_sc};
-    acc::range<alt_acc> alt{this->size_2d, this->data, this->stride1,
-                            this->scalar, this->stride_sc};
+    acc::range<ref_acc> ref{typename ref_acc::dim_type{{2, 2}}, this->data,
+                            typename ref_acc::storage_stride_type{{4}},
+                            this->scalar,
+                            typename ref_acc::scalar_stride_type{{5}}};
+    acc::range<alt_acc> alt{typename alt_acc::dim_type{{2, 2}}, this->data,
+                            typename alt_acc::storage_stride_type{{4}},
+                            this->scalar,
+                            typename alt_acc::scalar_stride_type{{5}}};
 
     EXPECT_EQ(ref(0, 0), alt(0, 0));
     EXPECT_EQ(ref(0, 1), alt(0, 1));

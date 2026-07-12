@@ -82,9 +82,11 @@ template <typename ArthType, typename ValueType, typename IndexType>
 auto build_rrm_accessor(matrix::Csr<ValueType, IndexType>* input)
 {
     using accessor = acc::reduced_row_major<1, ArthType, ValueType, IndexType>;
+    // the number of stored elements always fits IndexType, since the matrix
+    // row pointers are of that type
     return acc::range<accessor>(
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input->get_num_stored_elements())}},
+        typename accessor::dim_type{
+            {static_cast<IndexType>(input->get_num_stored_elements())}},
         input->get_values());
 }
 
@@ -94,9 +96,11 @@ auto build_const_rrm_accessor(const matrix::Csr<ValueType, IndexType>* input)
 {
     using accessor =
         acc::reduced_row_major<1, ArthType, const ValueType, IndexType>;
+    // the number of stored elements always fits IndexType, since the matrix
+    // row pointers are of that type
     return acc::range<accessor>(
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input->get_num_stored_elements())}},
+        typename accessor::dim_type{
+            {static_cast<IndexType>(input->get_num_stored_elements())}},
         input->get_const_values());
 }
 

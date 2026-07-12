@@ -28,7 +28,7 @@ class ReducedStorageXd : public ::testing::Test {
 protected:
     using ar_type = double;
     using st_type = float;
-    using size_type = acc::size_type;
+    using size_type = IndexType;
     static constexpr ar_type delta{std::numeric_limits<st_type>::epsilon() *
                                    1e1};
 
