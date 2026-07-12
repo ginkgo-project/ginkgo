@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,9 +9,9 @@
 #include <cmath>
 #include <type_traits>
 
-#include "math.hpp"
-#include "reference_helper.hpp"
-#include "utils.hpp"
+#include "accessor/math.hpp"
+#include "accessor/reference_helper.hpp"
+#include "accessor/utils.hpp"
 
 
 namespace gko {

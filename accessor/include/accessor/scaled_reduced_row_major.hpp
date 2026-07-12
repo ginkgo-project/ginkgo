@@ -11,11 +11,11 @@
 #include <type_traits>
 #include <utility>
 
-#include "accessor_helper.hpp"
-#include "index_span.hpp"
-#include "range.hpp"
-#include "scaled_reduced_row_major_reference.hpp"
-#include "utils.hpp"
+#include "accessor/accessor_helper.hpp"
+#include "accessor/index_span.hpp"
+#include "accessor/range.hpp"
+#include "accessor/scaled_reduced_row_major_reference.hpp"
+#include "accessor/utils.hpp"
 
 
 namespace gko {

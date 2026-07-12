@@ -9,11 +9,11 @@
 #include <complex>
 #include <type_traits>
 
-#include "block_col_major.hpp"
-#include "reduced_row_major.hpp"
-#include "row_major.hpp"
-#include "scaled_reduced_row_major.hpp"
-#include "utils.hpp"
+#include "accessor/block_col_major.hpp"
+#include "accessor/reduced_row_major.hpp"
+#include "accessor/row_major.hpp"
+#include "accessor/scaled_reduced_row_major.hpp"
+#include "accessor/utils.hpp"
 
 
 namespace gko {

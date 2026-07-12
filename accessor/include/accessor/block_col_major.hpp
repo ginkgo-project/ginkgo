@@ -8,9 +8,9 @@
 #include <array>
 #include <cinttypes>
 
-#include "accessor_helper.hpp"
-#include "range.hpp"
-#include "utils.hpp"
+#include "accessor/accessor_helper.hpp"
+#include "accessor/range.hpp"
+#include "accessor/utils.hpp"
 
 
 namespace gko {

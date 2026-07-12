@@ -1,11 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_ACCESSOR_INDEX_SPAN_HPP_
 #define GKO_ACCESSOR_INDEX_SPAN_HPP_
 
-#include "utils.hpp"
+#include "accessor/utils.hpp"
 
 
 namespace gko {
