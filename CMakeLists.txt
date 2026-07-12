@@ -96,12 +96,6 @@ if(MSVC OR MINGW)
     )
 endif()
 
-# Used to drop constexpr from accessor's reference operators on NVC++ (which rejects
-# constexpr functions returning a non-literal type).
-if(GINKGO_ENABLE_HALF OR GINKGO_ENABLE_BFLOAT16)
-    add_compile_definitions(ACC_NONLITERAL_ARITHMETIC_TYPE)
-endif()
-
 option(
     GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt"
@@ -520,6 +514,42 @@ add_subdirectory(third_party) # Third-party tools and libraries
 # The fetched repo provides the `memory_accessor` target and `MemoryAccessor::accessor`
 # alias, so nothing else in Ginkgo changes.
 add_subdirectory(accessor)
+
+# Drops constexpr from the accessor's reference operators on NVC++ (which
+# rejects constexpr functions returning a non-literal type like half).
+#
+# TODO TAE: (accessor-export): once the accessor is its own GitHub repo, let the
+# library own this knob instead of Ginkgo modifying its target. Concretely:
+#
+#   1. In the accessor repo's CMakeLists.txt, after the `memory_accessor`
+#      target is created, add:
+#
+#        option(
+#            MACC_NONLITERAL_ARITHMETIC_TYPE
+#            "Drop constexpr from the reference operators, for compilers that reject constexpr functions returning a non-literal arithmetic type (e.g. NVC++ with a half type)"
+#            OFF
+#        )
+#        if(MACC_NONLITERAL_ARITHMETIC_TYPE)
+#            target_compile_definitions(
+#                memory_accessor
+#                INTERFACE MACC_NONLITERAL_ARITHMETIC_TYPE
+#            )
+#        endif()
+#
+#   2. Replace the block below with the following, placed BEFORE the
+#      FetchContent import of the accessor (CMP0077 is NEW there, so the plain
+#      variable pre-seeds the option):
+#
+#        if(GINKGO_ENABLE_HALF OR GINKGO_ENABLE_BFLOAT16)
+#            set(MACC_NONLITERAL_ARITHMETIC_TYPE ON)
+#        endif()
+#
+if(GINKGO_ENABLE_HALF OR GINKGO_ENABLE_BFLOAT16)
+    target_compile_definitions(
+        memory_accessor
+        INTERFACE MACC_NONLITERAL_ARITHMETIC_TYPE
+    )
+endif()
 
 if(MSVC)
     if(BUILD_SHARED_LIBS)
