@@ -25,6 +25,24 @@
 #ifndef GKO_COMPILING_DPCPP
 
 
+#ifdef GKO_COMPILING_HIP
+#define SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type)                        \
+    if (sizeof(local_index_type) > 4) {                                      \
+        GTEST_SKIP() << "distributed spgemm with 64-bit local indices is "   \
+                        "unsupported on HIP (rocSPARSE has no 64-bit "       \
+                        "spgemm)";                                           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#else
+#define SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type)                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#endif
+
+
 template <typename ValueLocalGlobalIndexType>
 class DistSpgemm : public CommonMpiTestFixture {
 protected:
@@ -109,6 +127,8 @@ TYPED_TEST(DistSpgemm, IdentityTimesMatrixIsMatrix)
     // Half-precision types lack the range for reliable SpGEMM
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
+    using local_index_type = typename TestFixture::local_index_type;
+    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type n = 6;
     auto nprocs = this->comm.size();
@@ -159,6 +179,8 @@ TYPED_TEST(DistSpgemm, MatrixTimesIdentityIsMatrix)
     using global_index_type = typename TestFixture::global_index_type;
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
+    using local_index_type = typename TestFixture::local_index_type;
+    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type n = 6;
     auto nprocs = this->comm.size();
@@ -210,6 +232,8 @@ TYPED_TEST(DistSpgemm, RandomSparseMatchesSequential)
     using global_index_type = typename TestFixture::global_index_type;
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
+    using local_index_type = typename TestFixture::local_index_type;
+    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type n = 12;
     auto nprocs = this->comm.size();
@@ -294,6 +318,8 @@ TYPED_TEST(DistSpgemm, NonSquareMismatchedPartitions)
     using global_index_type = typename TestFixture::global_index_type;
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
+    using local_index_type = typename TestFixture::local_index_type;
+    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type m = 6;   // A rows
     const gko::size_type k = 9;   // A cols = B rows
@@ -388,6 +414,8 @@ TYPED_TEST(DistSpgemm, NonContiguousInnerPartitionMatchesSequential)
     using global_index_type = typename TestFixture::global_index_type;
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
+    using local_index_type = typename TestFixture::local_index_type;
+    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type m = 6;  // A rows
     const gko::size_type k = 9;  // A cols = B rows (shared inner dimension)
@@ -492,6 +520,8 @@ TYPED_TEST(DistSpgemm, EmptyLocalRowsMatchesSequential)
     using global_index_type = typename TestFixture::global_index_type;
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
+    using local_index_type = typename TestFixture::local_index_type;
+    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type m = 6;  // A rows (= C rows)
     const gko::size_type k = 8;  // A cols = B rows (shared inner dimension)
