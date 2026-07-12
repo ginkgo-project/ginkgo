@@ -96,6 +96,12 @@ if(MSVC OR MINGW)
     )
 endif()
 
+# Used to drop constexpr from accessor's reference operators on NVC++ (which rejects
+# constexpr functions returning a non-literal type).
+if(GINKGO_ENABLE_HALF OR GINKGO_ENABLE_BFLOAT16)
+    add_compile_definitions(ACC_NONLITERAL_ARITHMETIC_TYPE)
+endif()
+
 option(
     GINKGO_SKIP_DEPENDENCY_UPDATE
     "Do not update dependencies each time the project is rebuilt"

@@ -12,8 +12,11 @@
 #include "accessor/utils.hpp"
 
 
-// NVC++ disallow a constexpr function has a nonliteral return type like half
-#if defined(__NVCOMPILER) && (GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16)
+// NVC++ disallows a constexpr function with a nonliteral return type like half.
+// A consumer that may instantiate the accessor with such a type under NVC++
+// defines ACC_NONLITERAL_ARITHMETIC_TYPE to drop constexpr from the reference
+// operators.
+#if defined(__NVCOMPILER) && defined(ACC_NONLITERAL_ARITHMETIC_TYPE)
 
 #define GKO_ACC_ENABLE_REFERENCE_CONSTEXPR
 
