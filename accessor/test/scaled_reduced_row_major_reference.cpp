@@ -468,4 +468,29 @@ TYPED_TEST(ScaledReducedRowMajorReference, squared_norm)
 }
 
 
+// Storage type whose conversion from the arithmetic type is explicit-only,
+// like many half-precision / quantized types.
+struct explicit_storage {
+    float value;
+    explicit_storage() = default;
+    explicit constexpr explicit_storage(double v) : value{static_cast<float>(v)}
+    {}
+    constexpr operator double() const { return value; }
+};
+
+
+TEST(ScaledReducedRowMajorReferenceConversion, WritesExplicitOnlyStorageType)
+{
+    using ref_type =
+        acc::reference_class::scaled_reduced_storage<double, explicit_storage>;
+    explicit_storage storage{1.0};
+    const double scalar{2.0};
+
+    ref_type{&storage, scalar} = 6.0;
+
+    EXPECT_EQ(storage.value, 3.0f);
+    EXPECT_EQ(double(ref_type{&storage, scalar}), 6.0);
+}
+
+
 }  // namespace

@@ -159,7 +159,7 @@ MACC_INLINE auto as_sycl_range(
 template <typename T, size_type dim, typename IndexType>
 MACC_INLINE auto as_sycl_range(const range<row_major<T, dim, IndexType>>& r)
 {
-    return range<block_col_major<sycl_type_t<T>, dim, IndexType>>(
+    return range<row_major<sycl_type_t<T>, dim, IndexType>>(
         r.get_accessor().lengths, as_sycl_type(r.get_accessor().data),
         r.get_accessor().stride);
 }

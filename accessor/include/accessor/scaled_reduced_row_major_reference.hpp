@@ -74,7 +74,8 @@ public:
     constexpr MACC_ATTRIBUTES arithmetic_type operator=(arithmetic_type val) &&
     {
         storage_type* const MACC_RESTRICT r_ptr = ptr_;
-        *r_ptr = val / scalar_;
+        *r_ptr =
+            detail::implicit_explicit_conversion<storage_type>(val / scalar_);
         return val;
     }
 
@@ -143,7 +144,7 @@ private:
 
 
 template <typename ArithmeticType, typename StorageType>
-constexpr remove_complex_t<ArithmeticType> abs(
+constexpr MACC_ATTRIBUTES remove_complex_t<ArithmeticType> abs(
     const scaled_reduced_storage<ArithmeticType, StorageType>& ref)
 {
     using std::abs;
