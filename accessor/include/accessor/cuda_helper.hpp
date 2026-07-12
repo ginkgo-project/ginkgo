@@ -114,12 +114,12 @@ as_cuda_type(T val)
  *
  * @return `r` with appropriate types and reinterpreted to CUDA pointers
  */
-template <std::size_t dim, typename Type1, typename Type2>
+template <std::size_t dim, typename Type1, typename Type2, typename IndexType>
 MACC_INLINE auto as_cuda_range(
-    const range<reduced_row_major<dim, Type1, Type2>>& r)
+    const range<reduced_row_major<dim, Type1, Type2, IndexType>>& r)
 {
-    return range<
-        reduced_row_major<dim, cuda_type_t<Type1>, cuda_type_t<Type2>>>(
+    return range<reduced_row_major<dim, cuda_type_t<Type1>, cuda_type_t<Type2>,
+                                   IndexType>>(
         r.get_accessor().get_size(),
         as_cuda_type(r.get_accessor().get_stored_data()),
         r.get_accessor().get_stride());
@@ -128,12 +128,14 @@ MACC_INLINE auto as_cuda_range(
 /**
  * @copydoc as_cuda_range()
  */
-template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask>
+template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask,
+          typename IndexType>
 MACC_INLINE auto as_cuda_range(
-    const range<scaled_reduced_row_major<dim, Type1, Type2, mask>>& r)
+    const range<scaled_reduced_row_major<dim, Type1, Type2, mask, IndexType>>&
+        r)
 {
     return range<scaled_reduced_row_major<dim, cuda_type_t<Type1>,
-                                          cuda_type_t<Type2>, mask>>(
+                                          cuda_type_t<Type2>, mask, IndexType>>(
         r.get_accessor().get_size(),
         as_cuda_type(r.get_accessor().get_stored_data()),
         r.get_accessor().get_storage_stride(),
@@ -144,10 +146,11 @@ MACC_INLINE auto as_cuda_range(
 /**
  * @copydoc as_cuda_range()
  */
-template <typename T, size_type dim>
-MACC_INLINE auto as_cuda_range(const range<block_col_major<T, dim>>& r)
+template <typename T, std::size_t dim, typename IndexType>
+MACC_INLINE auto as_cuda_range(
+    const range<block_col_major<T, dim, IndexType>>& r)
 {
-    return range<block_col_major<cuda_type_t<T>, dim>>(
+    return range<block_col_major<cuda_type_t<T>, dim, IndexType>>(
         r.get_accessor().lengths, as_cuda_type(r.get_accessor().data),
         r.get_accessor().stride);
 }
@@ -155,10 +158,10 @@ MACC_INLINE auto as_cuda_range(const range<block_col_major<T, dim>>& r)
 /**
  * @copydoc as_cuda_range()
  */
-template <typename T, size_type dim>
-MACC_INLINE auto as_cuda_range(const range<row_major<T, dim>>& r)
+template <typename T, size_type dim, typename IndexType>
+MACC_INLINE auto as_cuda_range(const range<row_major<T, dim, IndexType>>& r)
 {
-    return range<block_col_major<cuda_type_t<T>, dim>>(
+    return range<block_col_major<cuda_type_t<T>, dim, IndexType>>(
         r.get_accessor().lengths, as_cuda_type(r.get_accessor().data),
         r.get_accessor().stride);
 }
