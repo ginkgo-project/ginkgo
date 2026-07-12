@@ -15,7 +15,7 @@
 
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
-#include "core/test/accessor/utils.hpp"
+#include "index_types.hpp"
 
 
 namespace {
