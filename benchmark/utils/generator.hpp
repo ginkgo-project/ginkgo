@@ -163,6 +163,10 @@ struct DefaultSystemGenerator {
 
 #if GINKGO_BUILD_MPI
 
+DEFINE_string(
+    collective, "dense",
+    "The type of collective communicator to be used. Either dense or neighbor");
+
 
 template <typename LocalGeneratorType>
 struct DistributedDefaultSystemGenerator {
@@ -259,13 +263,30 @@ struct DistributedDefaultSystemGenerator {
         auto diag_mat = formats::matrix_type_factory.at(formats[0])(exec);
         auto off_diag_mat = formats::matrix_type_factory.at(formats[1])(exec);
 
+        std::shared_ptr<gko::experimental::mpi::CollectiveCommunicator>
+            coll_comm;
+        if (FLAGS_collective == "dense") {
+            coll_comm =
+                std::make_shared<gko::experimental::mpi::DenseCommunicator>(
+                    comm);
+        } else if (FLAGS_collective == "neighbor") {
+            coll_comm = std::make_shared<
+                gko::experimental::mpi::NeighborhoodCommunicator>(comm);
+        } else {
+            throw std::runtime_error{"Invalid collective communicator type " +
+                                     FLAGS_collective};
+        }
+        auto row_gatherer = gko::share(
+            gko::experimental::distributed::RowGatherer<itype>::create(
+                exec, coll_comm));
+
         auto storage_logger = std::make_shared<StorageLogger>();
         if (spmv_case) {
             exec->add_logger(storage_logger);
         }
 
         auto dist_mat = dist_mtx<etype, itype, global_itype>::create(
-            exec, comm, diag_mat, off_diag_mat);
+            exec, row_gatherer, diag_mat, off_diag_mat);
         dist_mat->read_distributed(data, part);
 
         if (spmv_case) {
