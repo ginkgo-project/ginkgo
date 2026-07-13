@@ -15,6 +15,7 @@
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/null_space.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -820,9 +821,38 @@ public:
         : EnablePreconditionedIterativeSolver{
               system_matrix, stop::combine(params.criteria),
               generate_preconditioner(system_matrix, params)}
-    {}
+    {
+        nullspace_ = cast_nullspace(params.nullspace);
+        left_nullspace_ = cast_nullspace(params.left_nullspace);
+    }
+
+    /**
+     * @return the right nullspace \( N(A) \), or nullptr if none was set.
+     */
+    std::shared_ptr<const NullSpace<ValueType>> get_nullspace() const
+    {
+        return nullspace_;
+    }
+
+    /**
+     * @return the left nullspace \( N(A^H) \) (the complement of
+     *         \( \mathrm{range}(A) \)), or nullptr if none was set.
+     */
+    std::shared_ptr<const NullSpace<ValueType>> get_left_nullspace() const
+    {
+        return left_nullspace_;
+    }
 
 private:
+    static std::shared_ptr<const NullSpace<ValueType>> cast_nullspace(
+        std::shared_ptr<const LinOp> ns)
+    {
+        if (!ns) {
+            return nullptr;
+        }
+        return gko::as<const NullSpace<ValueType>>(ns);
+    }
+
     template <typename FactoryParameters>
     static std::shared_ptr<const LinOp> generate_preconditioner(
         std::shared_ptr<const LinOp> system_matrix,
@@ -837,6 +867,9 @@ private:
                 system_matrix->get_executor(), system_matrix->get_size());
         }
     }
+
+    std::shared_ptr<const NullSpace<ValueType>> nullspace_{};
+    std::shared_ptr<const NullSpace<ValueType>> left_nullspace_{};
 };
 
 
@@ -867,6 +900,25 @@ struct enable_preconditioned_iterative_solver_factory_parameters
      */
     std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
         generated_preconditioner, nullptr);
+
+    /**
+     * Right nullspace \( N(A) \) of the (singular) system matrix. When set, the
+     * solver removes the \( N(A) \) component from the iterate, converging to
+     * the minimum-norm solution. A NullSpace is itself a LinOp, so it
+     * type-erases here. By default, none.
+     */
+    std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(nullspace,
+                                                              nullptr);
+
+    /**
+     * Left nullspace \( N(A^H) \) -- the orthogonal complement of
+     * \( \mathrm{range}(A) \). When set, the solver projects the residual onto
+     * \( \mathrm{range}(A) \) to make the RHS consistent (least-squares solve
+     * of inconsistent systems). For symmetric problems \( N(A) = N(A^H) \);
+     * pass the same object to both. By default, none.
+     */
+    std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(left_nullspace,
+                                                              nullptr);
 };
 
 
