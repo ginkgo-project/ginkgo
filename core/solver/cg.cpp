@@ -128,6 +128,16 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         prev_rho->get_device_view(), rho->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // Nullspace handling: minimum-norm initial guess + consistent residual.
+    // A annihilates N(A), so projecting x does not change the residual r
+    // computed above; projecting r by the left nullspace makes it consistent
+    // (equivalent to a consistent right-hand side).
+    if (auto nullspace = this->get_nullspace()) {
+        nullspace->project(dense_x);
+    }
+    if (auto left_nullspace = this->get_left_nullspace()) {
+        left_nullspace->project(r);
+    }
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -145,6 +155,11 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     while (true) {
         // z = preconditioner * r
         this->get_preconditioner()->apply(r, z);
+        // Keep every search direction orthogonal to N(A) by projecting the
+        // preconditioned residual after each preconditioner apply.
+        if (auto nullspace = this->get_nullspace()) {
+            nullspace->project(z);
+        }
         // rho = dot(r, z)
         r->compute_conj_dot(z, rho, reduction_tmp);
 
