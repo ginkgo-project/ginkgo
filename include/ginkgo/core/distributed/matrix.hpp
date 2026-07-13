@@ -418,7 +418,10 @@ public:
      * Writes the locally stored matrix data into a matrix_data structure using
      * global row and column indices.
      *
-     * @param data  the matrix_data structure
+     * @param data  the output matrix_data
+     * e
+     * @note this currently assume the row index mapping is equal to the column
+     * index mapping
      */
     void write(matrix_data<value_type, global_index_type>& data) const override;
 
@@ -753,7 +756,6 @@ protected:
 
 private:
     std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;
-    index_map<local_index_type, global_index_type> row_map_;
     index_map<local_index_type, global_index_type> imap_;
     gko::detail::ScalarCache one_scalar_;
     detail::GenericVectorCache recv_buffer_;
