@@ -140,6 +140,20 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const RowGatherer<LocalIndexType>> row_gatherer_template,
+    ptr_param<const LinOp> diag_matrix_template,
+    ptr_param<const LinOp> off_diag_matrix_template)
+{
+    return std::unique_ptr<Matrix>{new Matrix{exec, row_gatherer_template,
+                                              diag_matrix_template,
+                                              off_diag_matrix_template}};
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
     std::shared_ptr<LinOp> diag_linop)
 {

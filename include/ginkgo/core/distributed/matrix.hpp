@@ -634,6 +634,32 @@ public:
         ptr_param<const LinOp> off_diag_matrix_template);
 
     /**
+     * Creates an empty distributed matrix with specified types for the
+     * diagonal matrix and the off-diagonal matrix.
+     *
+     * @note It internally clones the passed in diag_matrix_template and
+     *       off_diag_matrix_template. Therefore, those LinOps should be empty.
+     *
+     * @param exec  Executor associated with this matrix.
+     * @param row_gatherer_template  A template for the used row gather
+     *                               operation. This is only used to create
+     *                               a new row gatherer during the
+     *                               read_distributed.
+     * @param diag_matrix_template  the diagonal matrix will be constructed
+     *                              with the same runtime type.
+     * @param off_diag_matrix_template  the off-diagonal matrix will be
+     *                                  constructed with the same runtime type.
+     *
+     * @return A smart pointer to the newly created matrix.
+     */
+    static std::unique_ptr<Matrix> create(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<const RowGatherer<LocalIndexType>>
+            row_gatherer_template,
+        ptr_param<const LinOp> diag_matrix_template,
+        ptr_param<const LinOp> off_diag_matrix_template);
+
+    /**
      * Creates a diag-only distributed matrix with existent LinOp
      *
      * @note It use the input to build up the distributed matrix
