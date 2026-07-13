@@ -822,6 +822,14 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
 }
 
 
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::get_row_partition() const
+{
+    return row_partition_;
+}
+
+
 #define GKO_DECLARE_DISTRIBUTED_MATRIX(ValueType, LocalIndexType, \
                                        GlobalIndexType)           \
     class Matrix<ValueType, LocalIndexType, GlobalIndexType>

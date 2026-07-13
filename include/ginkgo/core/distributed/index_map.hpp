@@ -171,10 +171,7 @@ public:
     /**
      * \brief get the partition associated with this index map.
      */
-    std::shared_ptr<const partition_type> get_partition() const
-    {
-        return partition_;
-    }
+    std::shared_ptr<const partition_type> get_partition() const;
 
     /**
      * \brief get the associated executor.
