@@ -19,6 +19,14 @@ set(config_source
     log/stream.cpp
     log/tau.cpp
     log/vtune.cpp
+    matrix/batch_csr.cpp
+    matrix/batch_dense.cpp
+    matrix/batch_ell.cpp
+    matrix/batch_identity.cpp
+    base/batch_multi_vector.cpp
+    preconditioner/batch_jacobi.cpp
+    solver/batch_bicgstab.cpp
+    solver/batch_cg.cpp
 )
 if(GINKGO_BUILD_MPI)
     list(APPEND config_source config/schwarz_config.cpp)
@@ -40,7 +48,6 @@ target_sources(
         ../third_party/SuiteSparse/wrapper32.cpp
         ../third_party/SuiteSparse/wrapper64.cpp
         base/array.cpp
-        base/batch_multi_vector.cpp
         base/block_operator.cpp
         base/combination.cpp
         base/composition.cpp
@@ -75,10 +82,6 @@ target_sources(
         factorization/par_ilut.cpp
         factorization/symbolic.cpp
         log/logger.cpp
-        matrix/batch_csr.cpp
-        matrix/batch_dense.cpp
-        matrix/batch_ell.cpp
-        matrix/batch_identity.cpp
         matrix/coo.cpp
         matrix/csr.cpp
         matrix/csr_lookup.cpp
@@ -97,7 +100,6 @@ target_sources(
         multigrid/fixed_coarsening.cpp
         multigrid/pgm.cpp
         multigrid/rs.cpp
-        preconditioner/batch_jacobi.cpp
         preconditioner/gauss_seidel.cpp
         preconditioner/ic.cpp
         preconditioner/ilu.cpp
@@ -108,8 +110,6 @@ target_sources(
         reorder/mc64.cpp
         reorder/rcm.cpp
         reorder/scaled_reordered.cpp
-        solver/batch_bicgstab.cpp
-        solver/batch_cg.cpp
         solver/bicg.cpp
         solver/bicgstab.cpp
         solver/cb_gmres.cpp
