@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <numeric>
 #include <vector>
 
 #include <ginkgo/core/base/array.hpp>
@@ -38,14 +39,20 @@ GKO_REGISTER_OPERATION(compress_columns, distributed_matrix::compress_columns);
 // offsets vector (as used for all_to_all_v send/recv displacement arrays).
 std::vector<int> counts_to_offsets(const std::vector<int>& counts)
 {
-    std::vector<int> offsets(counts.size(), 0);
-    for (std::size_t r = 1; r < counts.size(); ++r) {
-        offsets[r] = offsets[r - 1] + counts[r - 1];
-    }
+    std::vector<int> offsets(counts.size());
+    std::exclusive_scan(counts.begin(), counts.end(), offsets.begin(), 0);
     return offsets;
 }
 
 
+// Merges the diagonal (local_mtx) and off-diagonal (non_local_mtx) Csr blocks
+// of one operand into a single Csr whose column indices are global, using the
+// operand's index map to map both blocks' local columns back to global ones.
+// The returned matrix is created on `exec`.
+//
+// Note: within each row the merged entries are not sorted by column index (the
+// off-diagonal columns may lie left or right of the diagonal ones); callers
+// that require column-sorted input must sort the result themselves.
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<matrix::Csr<ValueType, GlobalIndexType>> merge_to_global_csr(
     std::shared_ptr<const Executor> exec, const LinOp* local_mtx,
@@ -140,7 +147,7 @@ std::unique_ptr<matrix::Csr<ValueType, GlobalIndexType>> merge_to_global_csr(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     ptr_param<const Matrix> b, ptr_param<Matrix> c) const
 {
     const auto* b_ptr = b.get();
@@ -153,24 +160,27 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(
     auto nprocs = comm.size();
 
     GKO_ASSERT(this->get_row_partition() != nullptr);
+    GKO_ASSERT(b_ptr->get_row_partition() != nullptr);
     GKO_ASSERT_CONFORMANT(this, b_ptr);
 
-    if (b_ptr->get_row_partition()) {
-        auto a_col_partition = this->imap_.get_partition();
-        auto b_row_partition_check = b_ptr->get_row_partition();
+    // A's column partition must equal B's row partition. The common case is
+    // that they are the same partition object; only otherwise do we compare
+    // range bounds and owners.
+    auto a_col_partition = this->imap_.get_partition();
+    auto b_row_partition = b_ptr->get_row_partition();
+    if (a_col_partition != b_row_partition) {
         auto a_col_partition_host = a_col_partition->clone(host);
-        auto b_row_partition_host_check = b_row_partition_check->clone(host);
-        bool partitions_match =
-            a_col_partition_host->get_size() ==
-                b_row_partition_host_check->get_size() &&
-            a_col_partition_host->get_num_ranges() ==
-                b_row_partition_host_check->get_num_ranges();
+        auto b_row_partition_host = b_row_partition->clone(host);
+        bool partitions_match = a_col_partition_host->get_size() ==
+                                    b_row_partition_host->get_size() &&
+                                a_col_partition_host->get_num_ranges() ==
+                                    b_row_partition_host->get_num_ranges();
         if (partitions_match) {
             auto num_ranges = a_col_partition_host->get_num_ranges();
             auto a_bounds = a_col_partition_host->get_range_bounds();
-            auto b_bounds = b_row_partition_host_check->get_range_bounds();
+            auto b_bounds = b_row_partition_host->get_range_bounds();
             auto a_ids = a_col_partition_host->get_part_ids();
-            auto b_ids = b_row_partition_host_check->get_part_ids();
+            auto b_ids = b_row_partition_host->get_part_ids();
             for (size_type r = 0; r < num_ranges && partitions_match; ++r) {
                 partitions_match = partitions_match &&
                                    a_bounds[r] == b_bounds[r] &&
@@ -372,9 +382,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(
             static_cast<GlobalIndexType>(recv_nnz_counts[i]);
     }
     // Prefix-sum the remote-row counts into offsets.
-    for (GlobalIndexType row = b_local_nrows; row < b_aug_nrows; ++row) {
-        b_aug_row_ptrs[row + 1] += b_aug_row_ptrs[row];
-    }
+    std::partial_sum(b_aug_row_ptrs.begin() + b_local_nrows,
+                     b_aug_row_ptrs.end(),
+                     b_aug_row_ptrs.begin() + b_local_nrows);
 
     auto b_aug_nnz = b_aug_row_ptrs[b_aug_nrows];
     std::vector<GlobalIndexType> b_aug_col_idxs(b_aug_nnz);
@@ -554,12 +564,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(
 }
 
 
-#define GKO_DECLARE_DISTRIBUTED_MATRIX_SPGEMM(ValueType, LocalIndexType, \
-                                              GlobalIndexType)           \
-    void Matrix<ValueType, LocalIndexType, GlobalIndexType>::spgemm(     \
+#define GKO_DECLARE_DISTRIBUTED_MATRIX_MULTIPLY(ValueType, LocalIndexType, \
+                                                GlobalIndexType)           \
+    void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(     \
         ptr_param<const Matrix> b, ptr_param<Matrix> c) const
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_DISTRIBUTED_MATRIX_SPGEMM);
+    GKO_DECLARE_DISTRIBUTED_MATRIX_MULTIPLY);
 
 
 }  // namespace distributed

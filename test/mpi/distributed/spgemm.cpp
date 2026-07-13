@@ -144,7 +144,7 @@ TYPED_TEST(DistSpgemm, IdentityTimesMatrixIsMatrix)
     a_mat->read_distributed(tridiag_data, partition);
 
     auto c_mat = dist_mtx::create(this->exec, this->comm);
-    identity->spgemm(a_mat, c_mat);
+    identity->multiply(a_mat, c_mat);
 
     // Verify via SpMV: C*x should equal A*x for a random x
     auto x_data =
@@ -196,7 +196,7 @@ TYPED_TEST(DistSpgemm, MatrixTimesIdentityIsMatrix)
     a_mat->read_distributed(tridiag_data, partition);
 
     auto c_mat = dist_mtx::create(this->exec, this->comm);
-    a_mat->spgemm(identity, c_mat);
+    a_mat->multiply(identity, c_mat);
 
     // Verify via SpMV: C*x should equal A*x for a random x
     auto x_data =
@@ -262,7 +262,7 @@ TYPED_TEST(DistSpgemm, RandomSparseMatchesSequential)
     b_dist->read_distributed(b_data, partition);
 
     auto c_mat = dist_mtx::create(this->exec, this->comm);
-    a_dist->spgemm(b_dist, c_mat);
+    a_dist->multiply(b_dist, c_mat);
 
     // Verify via SpMV comparison
     auto x_data =
@@ -355,7 +355,7 @@ TYPED_TEST(DistSpgemm, NonSquareMismatchedPartitions)
     b_dist->read_distributed(b_data, b_row_part, b_col_part);
 
     auto c_mat = dist_mtx::create(this->exec, this->comm);
-    a_dist->spgemm(b_dist, c_mat);
+    a_dist->multiply(b_dist, c_mat);
 
     // Result dimensions: m x n
     ASSERT_EQ(c_mat->get_size()[0], m);
@@ -454,7 +454,7 @@ TYPED_TEST(DistSpgemm, NonContiguousInnerPartitionMatchesSequential)
     b_dist->read_distributed(b_data, inner_part, b_col_part);
 
     auto c_mat = dist_mtx::create(this->exec, this->comm);
-    a_dist->spgemm(b_dist, c_mat);
+    a_dist->multiply(b_dist, c_mat);
 
     ASSERT_EQ(c_mat->get_size()[0], m);
     ASSERT_EQ(c_mat->get_size()[1], n);
@@ -563,7 +563,7 @@ TYPED_TEST(DistSpgemm, EmptyLocalRowsMatchesSequential)
     }
 
     auto c_mat = dist_mtx::create(this->exec, this->comm);
-    a_dist->spgemm(b_dist, c_mat);
+    a_dist->multiply(b_dist, c_mat);
 
     ASSERT_EQ(c_mat->get_size()[0], m);
     ASSERT_EQ(c_mat->get_size()[1], n);
