@@ -6,6 +6,7 @@ on:
       - 'main'
       - 'develop'
       - 'release/**'
+      - 'workaround_msvc_symbol_limit'
     tags:
       - '**'
   pull_request:

@@ -8,6 +8,17 @@ set(config_source
     config/preconditioner_isai_config.cpp
     config/registry.cpp
     config/solver_config.cpp
+    log/batch_logger.cpp
+    log/convergence.cpp
+    log/performance_hint.cpp
+    log/profiler_hook.cpp
+    log/profiler_hook_summary.cpp
+    log/profiler_hook_summary_writer.cpp
+    log/record.cpp
+    log/solver_progress.cpp
+    log/stream.cpp
+    log/tau.cpp
+    log/vtune.cpp
 )
 if(GINKGO_BUILD_MPI)
     list(APPEND config_source config/schwarz_config.cpp)
@@ -63,18 +74,7 @@ target_sources(
         factorization/par_ilu.cpp
         factorization/par_ilut.cpp
         factorization/symbolic.cpp
-        log/batch_logger.cpp
-        log/convergence.cpp
         log/logger.cpp
-        log/performance_hint.cpp
-        log/profiler_hook.cpp
-        log/profiler_hook_summary.cpp
-        log/profiler_hook_summary_writer.cpp
-        log/record.cpp
-        log/solver_progress.cpp
-        log/stream.cpp
-        log/tau.cpp
-        log/vtune.cpp
         matrix/batch_csr.cpp
         matrix/batch_dense.cpp
         matrix/batch_ell.cpp
