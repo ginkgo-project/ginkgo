@@ -27,6 +27,12 @@ set(config_source
     preconditioner/batch_jacobi.cpp
     solver/batch_bicgstab.cpp
     solver/batch_cg.cpp
+    reorder/amd.cpp
+    reorder/mc64.cpp
+    reorder/rcm.cpp
+    multigrid/fixed_coarsening.cpp
+    multigrid/pgm.cpp
+    multigrid/rs.cpp
 )
 if(GINKGO_BUILD_MPI)
     list(APPEND config_source config/schwarz_config.cpp)
@@ -97,18 +103,12 @@ target_sources(
         matrix/scaled_permutation.cpp
         matrix/sellp.cpp
         matrix/sparsity_csr.cpp
-        multigrid/fixed_coarsening.cpp
-        multigrid/pgm.cpp
-        multigrid/rs.cpp
         preconditioner/gauss_seidel.cpp
         preconditioner/ic.cpp
         preconditioner/ilu.cpp
         preconditioner/isai.cpp
         preconditioner/jacobi.cpp
         preconditioner/sor.cpp
-        reorder/amd.cpp
-        reorder/mc64.cpp
-        reorder/rcm.cpp
         reorder/scaled_reordered.cpp
         solver/bicg.cpp
         solver/bicgstab.cpp
