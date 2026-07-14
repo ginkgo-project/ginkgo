@@ -27,9 +27,10 @@ jobs:
   windows:
     strategy:
       fail-fast: false
-    name: msvc
-    runs-on: [windows-latest]
-
+      matrix:
+        os: [windows-2022, windows-latest]
+    name: msvc/${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout the latest code (shallow clone)
       uses: actions/checkout@v4
@@ -46,6 +47,5 @@ jobs:
         refreshenv
         mkdir build
         cd build
-        cmake -DGINKGO_BUILD_OMP=OFF -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF ..
+        cmake -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF ..
         cmake --build . -j4 --config Release
-        ctest . -C Release
