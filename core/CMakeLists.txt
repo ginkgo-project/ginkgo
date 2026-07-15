@@ -215,6 +215,7 @@ set_target_properties(
     ${ginkgo_core}
     PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
 )
+target_compile_definitions(${ginkgo_core} PRIVATE ginkgo_EXPORTS)
 ginkgo_default_includes(${ginkgo_core})
 ginkgo_install_library(${ginkgo_core})
 

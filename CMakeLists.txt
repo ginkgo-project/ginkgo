@@ -561,7 +561,7 @@ if(GINKGO_BUILD_TESTS)
 endif()
 
 # Non core directories and targets
-add_subdirectory(extensions)
+# add_subdirectory(extensions)
 
 if(GINKGO_BUILD_EXAMPLES)
     add_subdirectory(examples)

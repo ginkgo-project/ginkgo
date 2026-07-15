@@ -18,7 +18,7 @@ namespace gko {
  * Provides generic allocation and deallocation functionality to be used by an
  * Executor.
  */
-class GINKGO_EXPORT Allocator {
+class Allocator {
 public:
     virtual ~Allocator() = default;
 

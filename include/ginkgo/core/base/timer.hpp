@@ -78,7 +78,7 @@ private:
  * auto elapsed = timer->difference(begin, end);
  * ```
  */
-class GINKGO_EXPORT Timer {
+class Timer {
 public:
     virtual ~Timer() = default;
 
@@ -86,7 +86,7 @@ public:
      * Returns a newly created time point.
      * Time points may only be used with the timer they were created with.
      */
-    time_point create_time_point();
+    GINKGO_EXPORT time_point create_time_point();
 
     /**
      * Records a time point at the current time.
@@ -107,7 +107,8 @@ public:
      * @param end  the second time point (later)
      * @return the difference between the time points in nanoseconds.
      */
-    std::chrono::nanoseconds difference(time_point& start, time_point& stop);
+    GINKGO_EXPORT std::chrono::nanoseconds difference(time_point& start,
+                                                      time_point& stop);
 
     /**
      * Computes the difference between the two time points in nanoseconds.
@@ -134,7 +135,7 @@ public:
      *         CudaExecutor, HipTimer for HipExecutor or DpcppTimer for
      *         DpcppExecutor.
      */
-    static std::unique_ptr<Timer> create_for_executor(
+    GINKGO_EXPORT static std::unique_ptr<Timer> create_for_executor(
         std::shared_ptr<const Executor> exec);
 
 protected:
@@ -164,7 +165,7 @@ protected:
  * @note When using a CudaExecutor with a custom stream, make sure that the
  *       stream's lifetime is longer than the lifetime of this timer.
  */
-class GINKGO_EXPORT CudaTimer : public Timer {
+class CudaTimer : public Timer {
 public:
     void record(time_point& time) override;
 
@@ -190,7 +191,7 @@ private:
  * @note When using a HipExecutor with a custom stream, make sure that the
  *       stream's lifetime is longer than the lifetime of this timer.
  */
-class GINKGO_EXPORT HipTimer : public Timer {
+class HipTimer : public Timer {
 public:
     void record(time_point& time) override;
 
@@ -211,7 +212,7 @@ private:
 
 
 /** A timer using kernels for timing on a DpcppExecutor in profiling mode. */
-class GINKGO_EXPORT DpcppTimer : public Timer {
+class DpcppTimer : public Timer {
 public:
     void record(time_point& time) override;
 

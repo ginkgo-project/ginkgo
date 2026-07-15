@@ -87,7 +87,7 @@ private:
 
     parameters_type parameters_;
 
-    std::vector<std::unique_ptr<Criterion>> criteria_{};
+    std::vector<std::shared_ptr<Criterion>> criteria_{};
 };
 
 

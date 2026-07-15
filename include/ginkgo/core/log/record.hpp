@@ -219,46 +219,46 @@ public:
      * Struct storing the actually logged data
      */
     struct logged_data {
-        std::deque<std::unique_ptr<executor_data>> allocation_started;
-        std::deque<std::unique_ptr<executor_data>> allocation_completed;
-        std::deque<std::unique_ptr<executor_data>> free_started;
-        std::deque<std::unique_ptr<executor_data>> free_completed;
-        std::deque<std::unique_ptr<std::tuple<executor_data, executor_data>>>
+        std::deque<std::shared_ptr<executor_data>> allocation_started;
+        std::deque<std::shared_ptr<executor_data>> allocation_completed;
+        std::deque<std::shared_ptr<executor_data>> free_started;
+        std::deque<std::shared_ptr<executor_data>> free_completed;
+        std::deque<std::shared_ptr<std::tuple<executor_data, executor_data>>>
             copy_started;
-        std::deque<std::unique_ptr<std::tuple<executor_data, executor_data>>>
+        std::deque<std::shared_ptr<std::tuple<executor_data, executor_data>>>
             copy_completed;
 
-        std::deque<std::unique_ptr<operation_data>> operation_launched;
-        std::deque<std::unique_ptr<operation_data>> operation_completed;
+        std::deque<std::shared_ptr<operation_data>> operation_launched;
+        std::deque<std::shared_ptr<operation_data>> operation_completed;
 
-        std::deque<std::unique_ptr<polymorphic_object_data>>
+        std::deque<std::shared_ptr<polymorphic_object_data>>
             polymorphic_object_create_started;
-        std::deque<std::unique_ptr<polymorphic_object_data>>
+        std::deque<std::shared_ptr<polymorphic_object_data>>
             polymorphic_object_create_completed;
-        std::deque<std::unique_ptr<polymorphic_object_data>>
+        std::deque<std::shared_ptr<polymorphic_object_data>>
             polymorphic_object_copy_started;
-        std::deque<std::unique_ptr<polymorphic_object_data>>
+        std::deque<std::shared_ptr<polymorphic_object_data>>
             polymorphic_object_copy_completed;
-        std::deque<std::unique_ptr<polymorphic_object_data>>
+        std::deque<std::shared_ptr<polymorphic_object_data>>
             polymorphic_object_move_started;
-        std::deque<std::unique_ptr<polymorphic_object_data>>
+        std::deque<std::shared_ptr<polymorphic_object_data>>
             polymorphic_object_move_completed;
-        std::deque<std::unique_ptr<polymorphic_object_data>>
+        std::deque<std::shared_ptr<polymorphic_object_data>>
             polymorphic_object_deleted;
 
-        std::deque<std::unique_ptr<linop_data>> linop_apply_started;
-        std::deque<std::unique_ptr<linop_data>> linop_apply_completed;
-        std::deque<std::unique_ptr<linop_data>> linop_advanced_apply_started;
-        std::deque<std::unique_ptr<linop_data>> linop_advanced_apply_completed;
-        std::deque<std::unique_ptr<linop_factory_data>>
+        std::deque<std::shared_ptr<linop_data>> linop_apply_started;
+        std::deque<std::shared_ptr<linop_data>> linop_apply_completed;
+        std::deque<std::shared_ptr<linop_data>> linop_advanced_apply_started;
+        std::deque<std::shared_ptr<linop_data>> linop_advanced_apply_completed;
+        std::deque<std::shared_ptr<linop_factory_data>>
             linop_factory_generate_started;
-        std::deque<std::unique_ptr<linop_factory_data>>
+        std::deque<std::shared_ptr<linop_factory_data>>
             linop_factory_generate_completed;
 
-        std::deque<std::unique_ptr<criterion_data>> criterion_check_started;
-        std::deque<std::unique_ptr<criterion_data>> criterion_check_completed;
+        std::deque<std::shared_ptr<criterion_data>> criterion_check_started;
+        std::deque<std::shared_ptr<criterion_data>> criterion_check_completed;
 
-        std::deque<std::unique_ptr<iteration_complete_data>>
+        std::deque<std::shared_ptr<iteration_complete_data>>
             iteration_completed;
     };
 
