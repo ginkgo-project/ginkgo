@@ -165,6 +165,7 @@ public:
     {
         sycl::group_barrier(static_cast<const sycl::sub_group&>(*this));
     }
+
 #define GKO_BIND_SHFL(ShflOpName, ShflOp)                                      \
     template <typename ValueType, typename SelectorType>                       \
     __dpct_inline__ ValueType ShflOpName(ValueType var, SelectorType selector) \
