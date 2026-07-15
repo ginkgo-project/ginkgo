@@ -784,7 +784,7 @@ void check_unsorted(const IndexType* __restrict__ row_ptrs,
     }
 
     // fail early
-    if (bool(sh_flag)) {
+    if (static_cast<bool>(sh_flag)) {
         for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1] - 1; ++nz) {
             if (col_idxs[nz] > col_idxs[nz + 1]) {
                 *flag = false;
