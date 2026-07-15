@@ -2,14 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/matrix/multivector.hpp>
+#include <ginkgo/core/base/multivector.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 namespace gko {
 
 
 MultiVector::MultiVector(std::shared_ptr<const Executor> exec,
                          const dim<2>& size)
-    : EnableAbstractPolymorphicObject<MultiVector, LinOp>(std::move(exec), size)
+    : LinOp(std::move(exec), size)
 {}
 
 
@@ -43,6 +44,48 @@ std::unique_ptr<MultiVector> MultiVector::create_with_type_of(
 {
     return other->create_generic_with_type_of_impl(std::move(exec), global_size,
                                                    local_size, stride);
+}
+
+
+std::unique_ptr<MultiVector> MultiVector::clone(
+    std::shared_ptr<const Executor> exec) const
+{
+    return std::unique_ptr<MultiVector>(
+        as<MultiVector>(this->clone_impl(std::move(exec)).release()));
+}
+
+
+std::unique_ptr<MultiVector> MultiVector::clone() const
+{
+    return std::unique_ptr<MultiVector>(
+        as<MultiVector>(this->clone_impl(this->get_executor()).release()));
+}
+
+
+MultiVector* MultiVector::copy_from(ptr_param<const MultiVector> other)
+{
+    return as<MultiVector>(this->copy_from_impl(other.get()));
+}
+
+
+MultiVector* MultiVector::move_from(ptr_param<MultiVector> other)
+{
+    return as<MultiVector>(this->move_from_impl(other.get()));
+}
+
+
+std::unique_ptr<MultiVector> MultiVector::create_default(
+    std::shared_ptr<const Executor> exec) const
+{
+    return std::unique_ptr<MultiVector>(
+        as<MultiVector>(this->create_default_impl(std::move(exec)).release()));
+}
+
+
+std::unique_ptr<MultiVector> MultiVector::create_default() const
+{
+    return std::unique_ptr<MultiVector>(as<MultiVector>(
+        this->create_default_impl(this->get_executor()).release()));
 }
 
 

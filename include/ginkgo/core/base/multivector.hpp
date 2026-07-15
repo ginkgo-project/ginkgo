@@ -77,7 +77,7 @@ struct vector_traits<ConcreteType<ValueType, Args...>> {
 };
 
 
-class MultiVector : public EnableAbstractPolymorphicObject<MultiVector, LinOp> {
+class MultiVector : public LinOp, public Cloneable {
 public:
     [[nodiscard]] static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other);
@@ -95,6 +95,20 @@ public:
         ptr_param<const MultiVector> other,
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride);
+
+    [[nodiscard]] std::unique_ptr<MultiVector> clone(
+        std::shared_ptr<const Executor> exec) const;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> clone() const;
+
+    MultiVector* copy_from(ptr_param<const MultiVector> other);
+
+    MultiVector* move_from(ptr_param<MultiVector> other);
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_default(
+        std::shared_ptr<const Executor> exec) const;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_default() const;
 
     [[nodiscard]] std::unique_ptr<MultiVector> compute_absolute() const;
 
@@ -265,9 +279,8 @@ protected:
 
 
 template <typename ConcreteType>
-class EnableMultiVector
-    : public EnablePolymorphicObject<ConcreteType, MultiVector>,
-      public EnablePolymorphicAssignment<ConcreteType> {
+class EnableMultiVector : public MultiVector,
+                          public ConvertibleTo<ConcreteType> {
 public:
     using traits = vector_traits<ConcreteType>;
     using value_type = typename traits::value_type;
@@ -275,6 +288,10 @@ public:
     using absolute_type = typename traits::absolute_type;
     using real_type = typename traits::real_type;
     using complex_type = typename traits::complex_type;
+    using result_type = ConcreteType;
+
+    using ConvertibleTo<result_type>::convert_to;
+    using ConvertibleTo<result_type>::move_to;
 
     [[nodiscard]] static std::unique_ptr<ConcreteType> create_with_config_of(
         ptr_param<const ConcreteType> other);
@@ -292,6 +309,20 @@ public:
         ptr_param<const ConcreteType> other,
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
         const dim<2>& local_size, size_type stride);
+
+    [[nodiscard]] std::unique_ptr<ConcreteType> clone(
+        std::shared_ptr<const Executor> exec) const;
+
+    [[nodiscard]] std::unique_ptr<ConcreteType> clone() const;
+
+    ConcreteType* copy_from(ptr_param<const ConcreteType> other);
+
+    ConcreteType* move_from(ptr_param<ConcreteType> other);
+
+    [[nodiscard]] std::unique_ptr<ConcreteType> create_default();
+
+    [[nodiscard]] std::unique_ptr<ConcreteType> create_default(
+        std::shared_ptr<const Executor> exec);
 
     [[nodiscard]] std::unique_ptr<ConcreteType> create_subview(
         local_span rows, local_span columns);
@@ -325,9 +356,28 @@ public:
 
     void get_imag(ptr_param<real_type> output) const;
 
+    void convert_to(result_type* result) const override;
+
+    void move_to(result_type* result) override;
+
 protected:
+    Cloneable* copy_from_impl(const Cloneable* other) override;
+
+    Cloneable* move_from_impl(Cloneable* other) override;
+
+    [[nodiscard]] std::unique_ptr<Cloneable> clone_impl(
+        std::shared_ptr<const Executor> exec) const override;
+
+    [[nodiscard]] std::unique_ptr<Cloneable> clone_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<Cloneable> create_default_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<Cloneable> create_default_impl(
+        std::shared_ptr<const Executor> exec) const override;
+
     EnableMultiVector(std::shared_ptr<const Executor> exec, dim<2> size = {})
-        : EnablePolymorphicObject<ConcreteType, MultiVector>(exec, size)
+        : MultiVector(exec, size)
     {}
 
     // Concretized function calls
@@ -420,6 +470,8 @@ protected:
 
     virtual void compute_norm1_impl(matrix::Dense<absolute_value_type>* result,
                                     array<char>& tmp) const = 0;
+
+    GKO_ENABLE_SELF(ConcreteType);
 
 private:
     [[nodiscard]] std::unique_ptr<MultiVector>
@@ -552,6 +604,51 @@ EnableMultiVector<ConcreteType>::create_with_type_of(
 
 
 template <typename ConcreteType>
+std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::clone(
+    std::shared_ptr<const Executor> exec) const
+{
+    return as<ConcreteType>(this->clone_impl(std::move(exec)));
+}
+
+
+template <typename ConcreteType>
+std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::clone() const
+{
+    return as<ConcreteType>(this->clone_impl());
+}
+
+
+template <typename ConcreteType>
+ConcreteType* EnableMultiVector<ConcreteType>::copy_from(
+    ptr_param<const ConcreteType> other)
+{
+    return as<ConcreteType>(this->copy_from_impl(other.get()));
+}
+
+
+template <typename ConcreteType>
+ConcreteType* EnableMultiVector<ConcreteType>::move_from(
+    ptr_param<ConcreteType> other)
+{
+    return as<ConcreteType>(this->move_from_impl(other.get()));
+}
+
+
+template <typename ConcreteType>
+std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::create_default()
+{
+    return as<ConcreteType>(this->create_default_impl());
+}
+
+template <typename ConcreteType>
+std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::create_default(
+    std::shared_ptr<const Executor> exec)
+{
+    return as<ConcreteType>(this->create_default_impl(std::move(exec)));
+}
+
+
+template <typename ConcreteType>
 std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::create_subview(
     local_span rows, local_span columns)
 {
@@ -666,6 +763,88 @@ void EnableMultiVector<ConcreteType>::get_imag(
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     this->get_imag_impl(output.get());
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::convert_to(result_type* result) const
+{
+    *result = *self();
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::move_to(result_type* result)
+{
+    *result = std::move(*self());
+}
+
+
+template <typename ConcreteType>
+Cloneable* EnableMultiVector<ConcreteType>::copy_from_impl(
+    const Cloneable* other)
+{
+    self()->template log<log::Logger::polymorphic_object_copy_started>(
+        self()->get_executor().get(),
+        dynamic_cast<const PolymorphicObject*>(other),
+        dynamic_cast<const PolymorphicObject*>(this));
+    as<ConvertibleTo<ConcreteType>>(other)->convert_to(self());
+    self()->template log<log::Logger::polymorphic_object_copy_completed>(
+        self()->get_executor().get(),
+        dynamic_cast<const PolymorphicObject*>(other),
+        dynamic_cast<const PolymorphicObject*>(this));
+    return this;
+}
+
+
+template <typename ConcreteType>
+Cloneable* EnableMultiVector<ConcreteType>::move_from_impl(Cloneable* other)
+{
+    self()->template log<log::Logger::polymorphic_object_move_started>(
+        self()->get_executor().get(),
+        dynamic_cast<const PolymorphicObject*>(other),
+        dynamic_cast<const PolymorphicObject*>(this));
+    as<ConvertibleTo<ConcreteType>>(other)->move_to(self());
+    self()->template log<log::Logger::polymorphic_object_move_completed>(
+        self()->get_executor().get(),
+        dynamic_cast<const PolymorphicObject*>(other),
+        dynamic_cast<const PolymorphicObject*>(this));
+    return this;
+}
+
+
+template <typename ConcreteType>
+std::unique_ptr<Cloneable> EnableMultiVector<ConcreteType>::clone_impl(
+    std::shared_ptr<const Executor> exec) const
+{
+    auto result = this->create_default_impl(exec);
+    result->copy_from(this);
+    return result;
+}
+
+
+template <typename ConcreteType>
+std::unique_ptr<Cloneable> EnableMultiVector<ConcreteType>::clone_impl() const
+{
+    auto result = this->create_default_impl();
+    result->copy_from(this);
+    return result;
+}
+
+
+template <typename ConcreteType>
+std::unique_ptr<Cloneable>
+EnableMultiVector<ConcreteType>::create_default_impl() const
+{
+    return this->create_with_type_of_impl(this->get_executor(), {}, {}, 0);
+}
+
+
+template <typename ConcreteType>
+std::unique_ptr<Cloneable> EnableMultiVector<ConcreteType>::create_default_impl(
+    std::shared_ptr<const Executor> exec) const
+{
+    return this->create_with_type_of_impl(exec, {}, {}, 0);
 }
 
 
