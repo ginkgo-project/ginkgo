@@ -144,25 +144,80 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
                                                      GlobalIndexType>(
         exec, partition, local_part, non_owning_row_idxs);
 
-    GlobalIndexType local_num_rows =
+    GlobalIndexType full_local_num_rows =
         map_.get_local_size() + map_.get_non_local_size();
     auto local_col_idxs = map_.map_to_local(
         arrays.col_idxs, gko::experimental::distributed::index_space::combined);
     auto local_row_idxs = map_.map_to_local(
         arrays.row_idxs, gko::experimental::distributed::index_space::combined);
 
-    // Construct the local diagonal block.
-    device_matrix_data<value_type, local_index_type> local_data{
+    // Active local DOFs = those referenced by this rank's entries; DOFs
+    // without local contributions are excluded from the local matrix and
+    // the broken space.
+    device_matrix_data<value_type, local_index_type> full_local_data{
         exec,
-        dim<2>{static_cast<size_type>(local_num_rows),
-               static_cast<size_type>(local_num_rows)},
+        dim<2>{static_cast<size_type>(full_local_num_rows),
+               static_cast<size_type>(full_local_num_rows)},
         local_row_idxs, local_col_idxs, arrays.values};
-    local_data.sort_row_major();
-    // as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
-    //     ->read(std::move(local_data));
+    full_local_data.sort_row_major();
+    auto host_data = full_local_data.copy_to_host();
+    std::vector<bool> row_active(full_local_num_rows, false);
+    std::vector<bool> col_active(full_local_num_rows, false);
+    for (auto entry : host_data.nonzeros) {
+        row_active[entry.row] = true;
+        col_active[entry.column] = true;
+    }
+    array<LocalIndexType> host_active{exec->get_master()};
+    array<LocalIndexType> old_to_new{exec->get_master(),
+                                     static_cast<size_type>(
+                                         full_local_num_rows)};
+    {
+        std::vector<LocalIndexType> active;
+        active.reserve(full_local_num_rows);
+        for (GlobalIndexType i = 0; i < full_local_num_rows; i++) {
+            old_to_new.get_data()[i] = invalid_index<LocalIndexType>();
+            if (row_active[i] || col_active[i]) {
+                old_to_new.get_data()[i] =
+                    static_cast<LocalIndexType>(active.size());
+                active.push_back(static_cast<LocalIndexType>(i));
+            }
+        }
+        host_active = array<LocalIndexType>(exec->get_master(), active.begin(),
+                                            active.end());
+    }
+    GlobalIndexType local_num_rows = host_active.get_size();
 
-    // Gather local sizes from all ranks and build the partition in the enriched
-    // space.
+    // Remap entries into the compressed active numbering.
+    for (auto& entry : host_data.nonzeros) {
+        entry.row = old_to_new.get_const_data()[entry.row];
+        entry.column = old_to_new.get_const_data()[entry.column];
+    }
+    // DOFs that appear only as columns (structurally nonsymmetric input)
+    // still have empty rows: keep the legacy unit-diagonal padding for
+    // exactly those, so local solvers remain well defined. For structurally
+    // symmetric data this loop adds nothing.
+    array<ValueType> prolongate_values{exec->get_master(),
+                                       static_cast<size_type>(local_num_rows)};
+    prolongate_values.fill(one<ValueType>());
+    for (GlobalIndexType i = 0; i < full_local_num_rows; i++) {
+        if (col_active[i] && !row_active[i]) {
+            auto new_idx = old_to_new.get_const_data()[i];
+            host_data.nonzeros.emplace_back(new_idx, new_idx,
+                                            one<ValueType>());
+            prolongate_values.get_data()[new_idx] = zero<ValueType>();
+        }
+    }
+    host_data.size = dim<2>{static_cast<size_type>(local_num_rows),
+                            static_cast<size_type>(local_num_rows)};
+    host_data.sort_row_major();
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
+        ->read(std::move(host_data));
+
+    active_idxs_ = host_active;
+    active_idxs_.set_executor(exec);
+
+    // Gather ACTIVE local sizes from all ranks and build the partition in the
+    // enriched (broken) space.
     array<GlobalIndexType> range_bounds{exec->get_master(), num_parts + 1};
     comm.all_gather(exec->get_master(), &local_num_rows, 1,
                     range_bounds.get_data(), 1);
@@ -173,7 +228,7 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
         share(Partition<LocalIndexType, GlobalIndexType>::build_from_contiguous(
             exec, range_bounds));
 
-    // Build the restricion and prolongation operators.
+    // Build the restriction and prolongation operators over the active DOFs.
     array<GlobalIndexType> remote_idxs{exec, 0};
     auto enriched_map =
         gko::experimental::distributed::index_map<LocalIndexType,
@@ -184,7 +239,7 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     exec->run(dd_matrix::make_fill_seq_array(
         local_idxs.get_data(), static_cast<size_type>(local_num_rows)));
     auto restrict_col_idxs =
-        map_.map_to_global(local_idxs, index_space::combined);
+        map_.map_to_global(active_idxs_, index_space::combined);
     auto restrict_row_idxs =
         enriched_map.map_to_global(local_idxs, index_space::combined);
     array<ValueType> restrict_values{exec,
@@ -192,30 +247,8 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     auto prolongate_col_idxs =
         enriched_map.map_to_global(local_idxs, index_space::combined);
     auto prolongate_row_idxs =
-        map_.map_to_global(local_idxs, index_space::combined);
-    array<ValueType> prolongate_values{exec,
-                                       static_cast<size_type>(local_num_rows)};
+        map_.map_to_global(active_idxs_, index_space::combined);
     restrict_values.fill(one<ValueType>());
-    prolongate_values.fill(one<ValueType>());
-
-    // restrict_values.fill(zero<ValueType>());
-    prolongate_values.fill(zero<ValueType>());
-    restrict_values.set_executor(exec->get_master());
-    prolongate_values.set_executor(exec->get_master());
-    auto host_data = local_data.copy_to_host();
-    for (auto entry : host_data.nonzeros) {
-        // restrict_values.get_data()[entry.row] = one<ValueType>();
-        prolongate_values.get_data()[entry.row] = one<ValueType>();
-    }
-    for (size_t i = 0; i < local_num_rows; i++) {
-        if (prolongate_values.get_const_data()[i] == zero<ValueType>()) {
-            host_data.nonzeros.emplace_back(i, i, one<ValueType>());
-        }
-    }
-    host_data.sort_row_major();
-    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
-        ->read(std::move(host_data));
-    restrict_values.set_executor(exec);
     prolongate_values.set_executor(exec);
 
     device_matrix_data<ValueType, GlobalIndexType> restrict_data{

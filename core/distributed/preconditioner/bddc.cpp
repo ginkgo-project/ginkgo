@@ -123,8 +123,11 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
 
     array<LocalIndexType> local_idxs{exec, n_local_rows};
     std::iota(local_idxs.get_data(), local_idxs.get_data() + n_local_rows, 0);
+    // local matrix rows are the ACTIVE local DOFs of the DdMatrix; translate
+    // through the active index set before mapping to global indices.
     auto global_idxs = system_matrix->get_map().map_to_global(
-        local_idxs, gko::experimental::distributed::index_space::combined);
+        system_matrix->get_active_idxs(),
+        gko::experimental::distributed::index_space::combined);
 
     auto local_buffer = gko::matrix::Dense<remove_complex<ValueType>>::create(
         exec, dim<2>{n_local_rows, width});
@@ -595,9 +598,25 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         auto local_idxs = imap.map_to_local(
             idxs, gko::experimental::distributed::index_space::combined);
         local_idxs.set_executor(host_exec);
+        // translate map-local indices to local matrix rows (active DOFs)
+        auto host_active = dd_system_matrix->get_active_idxs();
+        host_active.set_executor(host_exec);
+        auto full_local_size = dd_system_matrix->get_map().get_local_size() +
+                               dd_system_matrix->get_map().get_non_local_size();
+        array<LocalIndexType> map_to_active{
+            host_exec, static_cast<size_type>(full_local_size)};
+        map_to_active.fill(invalid_index<LocalIndexType>());
+        for (size_type j = 0; j < host_active.get_size(); j++) {
+            map_to_active.get_data()[host_active.get_const_data()[j]] =
+                static_cast<LocalIndexType>(j);
+        }
         i = 0;
         for (auto entry : parameters_.tags) {
-            tags.get_data()[local_idxs.get_const_data()[i]] = entry.second;
+            auto active_idx = map_to_active.get_const_data()
+                                  [local_idxs.get_const_data()[i]];
+            if (active_idx != invalid_index<LocalIndexType>()) {
+                tags.get_data()[active_idx] = entry.second;
+            }
             i++;
         }
     } else {
@@ -662,9 +681,20 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     LL_scal_3 = gko::initialize<local_vec>({one<ValueType>()}, exec);
 
     if (multilevel) {
-        // Interface output
+        // Interface output. permutation_array holds LOCAL MATRIX indices;
+        // translate through the active set before mapping to global.
+        auto host_active = dd_system_matrix->get_active_idxs();
+        host_active.set_executor(host_exec);
+        auto host_perm = permutation_array;
+        host_perm.set_executor(host_exec);
+        array<LocalIndexType> perm_map_idxs{host_exec, host_perm.get_size()};
+        for (size_type i = 0; i < host_perm.get_size(); i++) {
+            perm_map_idxs.get_data()[i] =
+                host_active.get_const_data()[host_perm.get_const_data()[i]];
+        }
+        perm_map_idxs.set_executor(exec);
         auto g_perm = dd_system_matrix->get_map().map_to_global(
-            permutation_array,
+            perm_map_idxs,
             gko::experimental::distributed::index_space::combined);
         g_perm.set_executor(host_exec);
         std::ofstream out{"IF_" + std::to_string(comm.rank()) + ".txt"};
@@ -816,7 +846,14 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 ? is_direct_factory(parameters_.inner_solver.get())
                 : local_is_direct;
 
-        if (parameters_.constant_nullspace) {
+        // Deflate the constant only around INEXACT solvers (per block): for
+        // exact solves the deflation is an algebraic no-op, and for a direct
+        // solve of the (singular) Neumann block A_LL the normalization
+        // 1^T A_LL 1 ~ 0 makes the deflation coefficients blow up (0/0) and
+        // the preconditioner diverges. Conversely, an inexact interior solve
+        // WITHOUT the deflation scatters the near-null constant direction
+        // and the preconditioned spectrum grows a huge outlier pair.
+        if (parameters_.constant_nullspace && !inner_is_direct) {
             II_nsp_1 = local_vec::create(exec, dim<2>{A_II->get_size()[0], 1});
             II_nsp_2 = clone(II_nsp_1);
             II_scal_1 = gko::initialize<local_vec>({one<ValueType>()}, exec);
@@ -825,6 +862,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             II_nsp_1->fill(one<ValueType>());
             A_II->apply(II_nsp_1, II_nsp_2);
             II_nsp_1->compute_dot(II_nsp_2, II_scal_1);
+            std::cout << "RANK " << comm.rank() << ", II NSP: " << II_scal_1->at(0,0) << std::endl;
             if (parameters_.reordering) {
                 inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
                     exec, inner_solver_, II_nsp_1, II_nsp_2, II_scal_1,
@@ -832,22 +870,6 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             } else {
                 inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
                     exec, inner_solver_, II_nsp_1, II_nsp_2, II_scal_1);
-            }
-
-            LL_nsp_1 = local_vec::create(exec, dim<2>{A_LL->get_size()[0], 1});
-            LL_nsp_2 = clone(LL_nsp_1);
-            LL_scal_1 = gko::initialize<local_vec>({one<ValueType>()}, exec);
-            LL_scal_2 = clone(LL_scal_1);
-            LL_nsp_1->fill(one<ValueType>());
-            A_LL->apply(LL_nsp_1, LL_nsp_2);
-            LL_nsp_1->compute_dot(LL_nsp_2, LL_scal_1);
-            if (parameters_.reordering) {
-                local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
-                    exec, local_solver_, LL_nsp_1, LL_nsp_2, LL_scal_1,
-                    reorder_LL_);
-            } else {
-                local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
-                    exec, local_solver_, LL_nsp_1, LL_nsp_2, LL_scal_1);
             }
         } else {
             if (parameters_.reordering) {
@@ -858,6 +880,25 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
                     exec, inner_solver_);
             }
+        }
+        if (parameters_.constant_nullspace && !local_is_direct) {
+            LL_nsp_1 = local_vec::create(exec, dim<2>{A_LL->get_size()[0], 1});
+            LL_nsp_2 = clone(LL_nsp_1);
+            LL_scal_1 = gko::initialize<local_vec>({one<ValueType>()}, exec);
+            LL_scal_2 = clone(LL_scal_1);
+            LL_nsp_1->fill(one<ValueType>());
+            A_LL->apply(LL_nsp_1, LL_nsp_2);
+            LL_nsp_1->compute_dot(LL_nsp_2, LL_scal_1);
+            std::cout << "RANK " << comm.rank() << ", LL NSP: " << LL_scal_1->at(0,0) << std::endl;
+            if (parameters_.reordering) {
+                local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, local_solver_, LL_nsp_1, LL_nsp_2, LL_scal_1,
+                    reorder_LL_);
+            } else {
+                local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
+                    exec, local_solver_, LL_nsp_1, LL_nsp_2, LL_scal_1);
+            }
+        } else {
             if (parameters_.reordering) {
                 local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
                     exec, local_solver_, nullptr, nullptr, nullptr,
@@ -888,11 +929,13 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 std::default_random_engine());
             auto condest_rhs_II = local_vec::create(exec);
             condest_rhs_II->read(condest_II_data);
-            if (parameters_.constant_nullspace) {
+            if (parameters_.constant_nullspace && !inner_is_direct) {
                 condest_rhs_II->compute_dot(II_nsp_1, II_scal_3);
                 II_scal_3->inv_scale(II_scal_1);
                 II_scal_3->scale(neg_one_);
                 condest_rhs_II->add_scaled(II_scal_3, II_nsp_2);
+            }
+            if (parameters_.constant_nullspace && !local_is_direct) {
                 condest_rhs_LL->compute_dot(LL_nsp_1, LL_scal_3);
                 LL_scal_3->inv_scale(LL_scal_1);
                 LL_scal_3->scale(neg_one_);
@@ -915,10 +958,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 auto eigs_LL =
                     share(local_vec::create(host_exec, dim<2>{2, 1}));
                 condest_LL->condest(condest_rhs_LL.get(), eigs_LL.get());
-                if (abs(eigs_LL->at(1, 0)) > 0.0) {
-                    as<NSPSolver<ValueType, LocalIndexType>>(local_solver_)
-                        ->add_scaling(one<ValueType>() / eigs_LL->at(1, 0));
-                }
+                // if (abs(eigs_LL->at(1, 0)) > 0.0) {
+                //     as<NSPSolver<ValueType, LocalIndexType>>(local_solver_)
+                //         ->add_scaling(one<ValueType>() / eigs_LL->at(1, 0));
+                // }
                 std::cout << "RANK " << comm.rank()
                           << ": LL LAMBDA MIN: " << eigs_LL->at(0, 0)
                           << ", LAMBDA MAX: " << eigs_LL->at(1, 0) << std::endl;
@@ -940,10 +983,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 auto eigs_II =
                     share(local_vec::create(host_exec, dim<2>{2, 1}));
                 condest_II->condest(condest_rhs_II.get(), eigs_II.get());
-                if (abs(eigs_II->at(1, 0)) > 0.0) {
-                    as<NSPSolver<ValueType, LocalIndexType>>(inner_solver_)
-                        ->add_scaling(one<ValueType>() / eigs_II->at(1, 0));
-                }
+                // if (abs(eigs_II->at(1, 0)) > 0.0) {
+                //     as<NSPSolver<ValueType, LocalIndexType>>(inner_solver_)
+                //         ->add_scaling(one<ValueType>() / eigs_II->at(1, 0));
+                // }
                 std::cout << "RANK " << comm.rank()
                           << ": II LAMBDA MIN: " << eigs_II->at(0, 0)
                           << ", LAMBDA MAX: " << eigs_II->at(1, 0) << std::endl;
@@ -1518,6 +1561,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         } else if (parameters_.scaling == scaling_type::deluxe) {
             permutation_array.set_executor(host_exec);
             interface_sizes.set_executor(host_exec);
+            auto host_active_idxs = dd_system_matrix->get_active_idxs();
+            host_active_idxs.set_executor(host_exec);
             auto host_diag = clone(host_exec, local_buf_2_);
             gko::matrix_data<ValueType, LocalIndexType> weight_data(
                 gko::dim<2>{local_size, local_size});
@@ -1584,8 +1629,11 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                     auto sol_col = share(sol->create_submatrix(
                         span{0, n_inner_idxs}, span{j, j + 1}));
                     inner_solver_->apply(rhs, sol_col);
+                    // permutation_array holds LOCAL MATRIX indices; translate
+                    // through the active set for the global mapping below.
                     local_idxs.get_data()[j] =
-                        permutation_array.get_const_data()[start + j];
+                        host_active_idxs.get_const_data()
+                            [permutation_array.get_const_data()[start + j]];
                 }
                 local_idxs.set_executor(exec);
                 auto idxs = dd_system_matrix->get_map().map_to_global(

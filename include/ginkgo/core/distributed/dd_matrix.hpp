@@ -375,6 +375,22 @@ public:
     }
 
     /**
+     * Returns the active local indices of the local matrix.
+     *
+     * Local DOFs that are not referenced by any entry of this rank's input
+     * data (e.g. DOFs of ghost cells whose integrals are assembled on a
+     * neighboring rank) are excluded from the local matrix and the broken
+     * (enriched) space. This array maps each row of the local matrix to the
+     * corresponding local index of the index map returned by get_map(), so
+     * global indices of local matrix rows are obtained via
+     * get_map().map_to_global(get_active_idxs(), index_space::combined).
+     */
+    const array<local_index_type>& get_active_idxs() const
+    {
+        return active_idxs_;
+    }
+
+    /**
      * Attaches a null-space to this matrix.
      *
      * The null-space is stored on the matrix and can be used by solvers to
@@ -456,6 +472,7 @@ private:
     std::shared_ptr<global_matrix_type> prolongation_;
     gko::experimental::distributed::index_map<LocalIndexType, GlobalIndexType>
         map_;
+    array<local_index_type> active_idxs_;
     std::shared_ptr<const global_vector_type> null_space_;
     mutable gko::detail::DenseCache<value_type> nsp_dot_buffer_;
 };
