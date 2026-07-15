@@ -481,7 +481,7 @@ build/icpx202421/gpu-fp32/release/shared:
     ENABLE_HALF: "OFF"
     ENABLE_BFLOAT16: "OFF"
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
-    MODULE_LOAD: "cmake/3.28.6 intel-oneapi-compilers/2024.2.1 intel-oneapi-dpl/2022.6.1 intel-oneapi-tbb/2021.13.1 intel-oneapi-mkl/2024.2.1"
+    MODULE_LOAD: "cmake/3.31.6 intel-oneapi-compilers/2024.2.1 intel-oneapi-dpl/2022.6.1 intel-oneapi-tbb/2021.13.1 intel-oneapi-mkl/2024.2.1"
 
 build/icpx202521/gpu/release/shared:
   extends:
