@@ -18,11 +18,10 @@
 #include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/precision.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
-
-#include "precision.hpp"
 
 
 namespace gko {
@@ -34,6 +33,9 @@ class Diagonal;
 
 
 }  // namespace matrix
+
+
+class MultiVector;
 
 
 /**

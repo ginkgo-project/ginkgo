@@ -10,8 +10,11 @@ namespace gko {
 
 MultiVector::MultiVector(std::shared_ptr<const Executor> exec,
                          const dim<2>& size, precision p)
-    : LinOp(std::move(exec), size, p)
+    : PolymorphicObject(std::move(exec)), size_(size), precision_(p)
 {}
+
+
+void MultiVector::set_size(const dim<2>& value) noexcept { size_ = value; }
 
 
 std::unique_ptr<MultiVector> MultiVector::create_with_config_of(
@@ -438,6 +441,46 @@ detail::temporary_conversion<const MultiVector> MultiVector::as_precision(
     ptr_param<const LinOp> p) const
 {
     return this->as_precision_impl(p->get_precision());
+}
+
+
+precision MultiVector::get_precision() const noexcept { return precision_; }
+
+
+dim<2> MultiVector::get_size() const noexcept { return size_; }
+
+
+MultiVector::MultiVector(const MultiVector& other)
+    : EnableAbstractPolymorphicObject(other),
+      size_(other.size_),
+      precision_(other.precision_)
+{}
+
+
+MultiVector::MultiVector(MultiVector&& other)
+    : EnableAbstractPolymorphicObject(std::move(other)),
+      size_(std::exchange(other.size_, {})),
+      precision_(other.precision_)
+{}
+
+
+MultiVector& MultiVector::operator=(const MultiVector& other)
+{
+    if (this != &other) {
+        EnableAbstractPolymorphicObject::operator=(other);
+        size_ = other.size_;
+    }
+    return *this;
+}
+
+
+MultiVector& MultiVector::operator=(MultiVector&& other)
+{
+    if (this != &other) {
+        EnableAbstractPolymorphicObject::operator=(std::move(other));
+        size_ = std::exchange(other.size_, {});
+    }
+    return *this;
 }
 
 

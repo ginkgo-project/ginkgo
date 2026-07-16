@@ -8,7 +8,6 @@
 #include <variant>
 
 #include <ginkgo/config.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision.hpp>
 #include <ginkgo/core/base/range.hpp>
@@ -105,7 +104,7 @@ struct vector_traits<ConcreteType<ValueType, Args...>> {
 };
 
 
-class MultiVector : public LinOp, public Cloneable {
+class MultiVector : public PolymorphicObject, public Cloneable {
 public:
     template <typename ValueType>
     using device_view = matrix::view::dense<ValueType>;
@@ -251,6 +250,20 @@ public:
     [[nodiscard]] detail::temporary_conversion<const MultiVector> as_precision(
         ptr_param<const LinOp> p) const;
 
+    [[nodiscard]] precision get_precision() const noexcept;
+
+    [[nodiscard]] dim<2> get_size() const noexcept;
+
+    MultiVector(const MultiVector& other);
+
+    MultiVector(MultiVector&& other);
+
+    // Preserves executor and precision on both objects
+    MultiVector& operator=(const MultiVector& other);
+
+    // Preserves executor and precision on both objects
+    MultiVector& operator=(MultiVector&& other);
+
 protected:
     explicit MultiVector(std::shared_ptr<const Executor> exec,
                          const dim<2>& size = dim<2>{},
@@ -375,6 +388,12 @@ protected:
 
     [[nodiscard]] virtual gko::detail::temporary_conversion<const MultiVector>
     as_precision_impl(precision p) const = 0;
+
+    void set_size(const dim<2>& value) noexcept;
+
+private:
+    dim<2> size_;
+    precision precision_;
 };
 
 
