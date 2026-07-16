@@ -90,7 +90,7 @@ Coo<ValueType, IndexType>::create_const(
 template <typename ValueType, typename IndexType>
 Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, size_type num_nonzeros)
-    : LinOp(exec, size),
+    : LinOp(exec, size, type_to_precision<ValueType>),
       values_(exec, num_nonzeros),
       col_idxs_(exec, num_nonzeros),
       row_idxs_(exec, num_nonzeros)
@@ -102,7 +102,7 @@ Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, array<value_type> values,
                                array<index_type> col_idxs,
                                array<index_type> row_idxs)
-    : LinOp(exec, size),
+    : LinOp(exec, size, type_to_precision<ValueType>),
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)},
       row_idxs_{exec, std::move(row_idxs)}

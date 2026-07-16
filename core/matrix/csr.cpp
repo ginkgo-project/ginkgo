@@ -277,7 +277,7 @@ template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, size_type num_nonzeros,
                                csr::spmv_strategy strategy)
-    : LinOp(exec, size),
+    : LinOp(exec, size, type_to_precision<ValueType>),
       strategy_(strategy),
       values_(exec, num_nonzeros),
       col_idxs_(exec, num_nonzeros),
@@ -295,7 +295,7 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                array<index_type> col_idxs,
                                array<index_type> row_ptrs,
                                csr::spmv_strategy strategy)
-    : LinOp(exec, size),
+    : LinOp(exec, size, type_to_precision<ValueType>),
       strategy_(strategy),
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)},

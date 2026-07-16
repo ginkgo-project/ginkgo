@@ -106,7 +106,7 @@ Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
                                      size_type num_stored_elements_per_row,
                                      size_type stride, size_type num_nonzeros,
                                      std::shared_ptr<strategy_type> strategy)
-    : LinOp(exec, size),
+    : LinOp(exec, size, type_to_precision<ValueType>),
       ell_(ell_type::create(exec, size, num_stored_elements_per_row, stride)),
       coo_(coo_type::create(exec, size, num_nonzeros)),
       strategy_(strategy ? std::move(strategy) : std::make_shared<automatic>())

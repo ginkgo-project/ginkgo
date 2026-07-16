@@ -97,56 +97,10 @@ protected:
     /**
      * Creates an empty scaled reordered operator (0x0 operator).
      */
-    explicit ScaledReordered(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec)), permutation_array_{exec}
-    {}
+    explicit ScaledReordered(std::shared_ptr<const Executor> exec);
 
     explicit ScaledReordered(const Factory* factory,
-                             std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(), system_matrix->get_size()),
-          parameters_{factory->get_parameters()},
-          permutation_array_{factory->get_executor()}
-    {
-        // For now only support square matrices.
-        GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
-
-        auto exec = this->get_executor();
-
-        system_matrix_ = gko::clone(exec, system_matrix);
-
-        // Scale the system matrix if scaling coefficients are provided
-        if (parameters_.row_scaling) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.row_scaling,
-                                        system_matrix_);
-            row_scaling_ = parameters_.row_scaling;
-            row_scaling_->apply(system_matrix_, system_matrix_);
-        }
-        if (parameters_.col_scaling) {
-            GKO_ASSERT_EQUAL_DIMENSIONS(parameters_.col_scaling,
-                                        system_matrix_);
-            col_scaling_ = parameters_.col_scaling;
-            col_scaling_->rapply(system_matrix_, system_matrix_);
-        }
-
-        // If a reordering factory is provided, generate the reordering and
-        // permute the system matrix accordingly.
-        if (parameters_.reordering) {
-            auto reordering = parameters_.reordering->generate(system_matrix_);
-            permutation_array_ = reordering->get_permutation_array();
-            system_matrix_ = as<Permutable<index_type>>(system_matrix_)
-                                 ->permute(&permutation_array_);
-        }
-
-        // Generate the inner operator with the scaled and reordered system
-        // matrix. If none is provided, use the Identity.
-        if (parameters_.inner_operator) {
-            inner_operator_ =
-                parameters_.inner_operator->generate(system_matrix_);
-        } else {
-            inner_operator_ = gko::matrix::Identity<value_type>::create(
-                exec, this->get_size()[0]);
-        }
-    }
+                             std::shared_ptr<const LinOp> system_matrix);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 

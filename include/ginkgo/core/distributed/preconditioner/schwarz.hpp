@@ -168,7 +168,7 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Schwarz(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
+        : LinOp(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
     {}
 
     /**
@@ -181,7 +181,8 @@ protected:
     explicit Schwarz(const Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(system_matrix->get_size()),
+                type_to_precision<ValueType>),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix}
     {

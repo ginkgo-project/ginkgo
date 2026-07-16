@@ -857,7 +857,8 @@ using EnableDefaultLinOpFactory =
  *     // constructor needed by the factory
  *     explicit MyLinOp(const Factory *factory,
  *                      std::shared_ptr<const LinOp> matrix)
- *         : LinOp(factory->get_executor()), matrix->get_size()),
+ *         : LinOp(factory->get_executor()), matrix->get_size(),
+ *                 precision::float64),
  *           // store factory's parameters locally
  *           my_parameters_{factory->get_parameters()},
  *     {

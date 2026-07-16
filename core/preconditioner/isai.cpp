@@ -120,6 +120,49 @@ Isai<IsaiType, ValueType, IndexType>::parse(
     return params;
 }
 
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>::Isai(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+
+    : LinOp(factory->get_executor(), system_matrix->get_size(),
+            type_to_precision<ValueType>),
+      parameters_{factory->get_parameters()}
+{
+    const auto skip_sorting = parameters_.skip_sorting;
+    const auto power = parameters_.sparsity_power;
+    const auto excess_limit = parameters_.excess_limit;
+    generate_inverse(system_matrix, skip_sorting, power, excess_limit,
+                     static_cast<remove_complex<value_type>>(
+                         parameters_.excess_solver_reduction));
+    if (IsaiType == isai_type::spd) {
+        auto inv = share(as<Csr>(approximate_inverse_));
+        auto inv_transp = share(inv->conj_transpose());
+        approximate_inverse_ = Composition<ValueType>::create(inv_transp, inv);
+    }
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+void Isai<IsaiType, ValueType, IndexType>::apply_impl(const LinOp* b,
+                                                      LinOp* x) const
+
+{
+    approximate_inverse_->apply(b, x);
+}
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+void Isai<IsaiType, ValueType, IndexType>::apply_impl(const LinOp* alpha,
+                                                      const LinOp* b,
+                                                      const LinOp* beta,
+                                                      LinOp* x) const
+
+{
+    approximate_inverse_->apply(alpha, b, beta, x);
+}
+
+
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     std::shared_ptr<const LinOp> input, bool skip_sorting, int power,
@@ -358,6 +401,12 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
 
     return std::move(transp);
 }
+
+
+template <isai_type IsaiType, typename ValueType, typename IndexType>
+Isai<IsaiType, ValueType, IndexType>::Isai(std::shared_ptr<const Executor> exec)
+    : LinOp(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
+{}
 
 
 #define GKO_DECLARE_LOWER_ISAI(ValueType, IndexType) \

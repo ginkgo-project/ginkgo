@@ -673,6 +673,27 @@ int workspace_traits<Gmres<ValueType>>::num_arrays(const Solver&)
 
 
 template <typename ValueType>
+Gmres<ValueType>::Gmres(std::shared_ptr<const Executor> exec)
+    : LinOp(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType>
+Gmres<ValueType>::Gmres(const Factory* factory,
+                        std::shared_ptr<const LinOp> system_matrix)
+    : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size()),
+            type_to_precision<ValueType>),
+      EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{
+    if (!parameters_.krylov_dim) {
+        parameters_.krylov_dim = gmres_default_krylov_dim;
+    }
+}
+
+
+template <typename ValueType>
 int workspace_traits<Gmres<ValueType>>::num_vectors(const Solver&)
 {
     return 16;

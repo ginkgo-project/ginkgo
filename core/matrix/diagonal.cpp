@@ -369,14 +369,16 @@ Diagonal<ValueType>::compute_absolute() const
 template <typename ValueType>
 Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
                               size_type size)
-    : LinOp(exec, dim<2>{size}), values_(exec, size)
+    : LinOp(exec, dim<2>{size}, type_to_precision<ValueType>),
+      values_(exec, size)
 {}
 
 
 template <typename ValueType>
 Diagonal<ValueType>::Diagonal(std::shared_ptr<const Executor> exec,
                               const size_type size, array<value_type> values)
-    : LinOp(exec, dim<2>(size)), values_{exec, std::move(values)}
+    : LinOp(exec, dim<2>(size), type_to_precision<ValueType>),
+      values_{exec, std::move(values)}
 {
     GKO_ENSURE_COMPATIBLE_BOUNDS(size, values_.get_size());
 }

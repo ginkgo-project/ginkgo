@@ -186,7 +186,9 @@ void Fft::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
 
 
 Fft::Fft(std::shared_ptr<const Executor> exec, size_type size, bool inverse)
-    : LinOp(exec, dim<2>{size}), buffer_{exec}, inverse_{inverse}
+    : LinOp(exec, dim<2>{size}, precision::any),
+      buffer_{exec},
+      inverse_{inverse}
 {}
 
 
@@ -305,7 +307,7 @@ std::unique_ptr<Fft2> Fft2::create(std::shared_ptr<const Executor> exec,
 
 Fft2::Fft2(std::shared_ptr<const Executor> exec, size_type size1,
            size_type size2, bool inverse)
-    : LinOp(exec, dim<2>{size1 * size2}),
+    : LinOp(exec, dim<2>{size1 * size2}, precision::any),
       buffer_{exec},
       fft_size_{size1, size2},
       inverse_{inverse}
@@ -418,7 +420,7 @@ std::unique_ptr<Fft3> Fft3::create(std::shared_ptr<const Executor> exec,
 
 Fft3::Fft3(std::shared_ptr<const Executor> exec, size_type size1,
            size_type size2, size_type size3, bool inverse)
-    : LinOp(exec, dim<2>{size1 * size2 * size3}),
+    : LinOp(exec, dim<2>{size1 * size2 * size3}, precision::any),
       buffer_{exec},
       fft_size_{size1, size2, size3},
       inverse_{inverse}

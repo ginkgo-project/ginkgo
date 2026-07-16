@@ -1072,7 +1072,8 @@ void Multigrid::create_state() const
 
 Multigrid::Multigrid(const Multigrid::Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
-    : LinOp(factory->get_executor(), transpose(system_matrix->get_size())),
+    : LinOp(factory->get_executor(), transpose(system_matrix->get_size()),
+            precision::any),
       EnableSolverBase<Multigrid>{std::move(system_matrix)},
       EnableIterativeBase<Multigrid>{
           stop::combine(factory->get_parameters().criteria)},
@@ -1106,7 +1107,9 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
 }
 
 
-Multigrid::Multigrid(std::shared_ptr<const Executor> exec) : LinOp(exec) {}
+Multigrid::Multigrid(std::shared_ptr<const Executor> exec)
+    : LinOp(exec, dim<2>{}, precision::any)
+{}
 
 
 int workspace_traits<Multigrid>::num_arrays(const Solver&) { return 1; }

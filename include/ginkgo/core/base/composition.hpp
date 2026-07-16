@@ -113,7 +113,7 @@ protected:
      * @param exec  Executor associated to the composition
      */
     explicit Composition(std::shared_ptr<const Executor> exec)
-        : LinOp(exec), storage_{exec}
+        : LinOp(exec, dim<2>{}, type_to_precision<ValueType>), storage_{exec}
     {}
 
     /**
@@ -129,13 +129,12 @@ protected:
               typename = std::void_t<
                   typename std::iterator_traits<Iterator>::iterator_category>>
     explicit Composition(Iterator begin, Iterator end)
-        : LinOp([&] {
+        : Composition([&] {
               if (begin == end) {
                   throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
               }
               return (*begin)->get_executor();
-          }()),
-          storage_{this->get_executor()}
+          }())
     {
         for (auto it = begin; it != end; ++it) {
             add_operators(*it);

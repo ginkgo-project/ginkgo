@@ -313,6 +313,23 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
 
 
 template <typename ValueType>
+Idr<ValueType>::Idr(std::shared_ptr<const Executor> exec)
+    : LinOp(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType>
+Idr<ValueType>::Idr(const Factory* factory,
+                    std::shared_ptr<const LinOp> system_matrix)
+    : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size()),
+            type_to_precision<ValueType>),
+      EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
+          std::move(system_matrix), factory->get_parameters()},
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 void Idr<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (!this->get_system_matrix()) {

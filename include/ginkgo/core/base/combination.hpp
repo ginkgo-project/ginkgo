@@ -117,7 +117,9 @@ protected:
      *
      * @param exec  Executor associated to the linear combination
      */
-    explicit Combination(std::shared_ptr<const Executor> exec) : LinOp(exec) {}
+    explicit Combination(std::shared_ptr<const Executor> exec)
+        : LinOp(exec, dim<2>{}, type_to_precision<ValueType>)
+    {}
 
     /**
      * Creates a linear combination of operators using the specified list of
@@ -143,7 +145,7 @@ protected:
                          CoefficientIterator coefficient_end,
                          OperatorIterator operator_begin,
                          OperatorIterator operator_end)
-        : LinOp([&] {
+        : Combination([&] {
               if (operator_begin == operator_end) {
                   throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
               }

@@ -72,14 +72,15 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
 
 template <typename ValueType>
 Chebyshev<ValueType>::Chebyshev(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
+    : LinOp(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
 {}
 
 
 template <typename ValueType>
 Chebyshev<ValueType>::Chebyshev(const Factory* factory,
                                 std::shared_ptr<const LinOp> system_matrix)
-    : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size())),
+    : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size()),
+            type_to_precision<ValueType>),
       EnablePreconditionedIterativeSolver<ValueType, Chebyshev<ValueType>>{
           std::move(system_matrix), factory->get_parameters()},
       parameters_{factory->get_parameters()}

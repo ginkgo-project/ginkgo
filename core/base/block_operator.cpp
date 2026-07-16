@@ -153,14 +153,14 @@ std::unique_ptr<BlockOperator> BlockOperator::create(
 
 
 BlockOperator::BlockOperator(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
+    : LinOp(std::move(exec), dim<2>{}, precision::any)
 {}
 
 
 BlockOperator::BlockOperator(
     std::shared_ptr<const Executor> exec,
     std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks)
-    : LinOp(exec, compute_global_size(blocks)),
+    : LinOp(exec, compute_global_size(blocks), precision::any),
       block_size_(blocks.empty()
                       ? dim<2>{}
                       : dim<2>(blocks.size(), blocks.front().size())),
@@ -246,14 +246,14 @@ void BlockOperator::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 BlockOperator::BlockOperator(const BlockOperator& other)
-    : LinOp(other.get_executor())
+    : LinOp(other.get_executor(), dim<2>{}, precision::any)
 {
     *this = other;
 }
 
 
 BlockOperator::BlockOperator(BlockOperator&& other) noexcept
-    : LinOp(other.get_executor())
+    : LinOp(other.get_executor(), dim<2>{}, precision::any)
 {
     *this = std::move(other);
 }

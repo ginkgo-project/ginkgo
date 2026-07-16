@@ -220,31 +220,10 @@ protected:
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
 
-    explicit Ir(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
-    {}
+    explicit Ir(std::shared_ptr<const Executor> exec);
 
     explicit Ir(const Factory* factory,
-                std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
-          EnableSolverBase<Ir>{std::move(system_matrix)},
-          EnableIterativeBase<Ir>{
-              stop::combine(factory->get_parameters().criteria)},
-          parameters_{factory->get_parameters()}
-    {
-        if (parameters_.generated_solver) {
-            this->set_solver(parameters_.generated_solver);
-        } else if (parameters_.solver) {
-            this->set_solver(
-                parameters_.solver->generate(this->get_system_matrix()));
-        } else {
-            this->set_solver(matrix::Identity<ValueType>::create(
-                this->get_executor(), this->get_size()[0]));
-        }
-        this->set_default_initial_guess(parameters_.default_initial_guess);
-        relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
-            {parameters_.relaxation_factor}, this->get_executor());
-    }
+                std::shared_ptr<const LinOp> system_matrix);
 
 private:
     std::shared_ptr<const LinOp> solver_{};

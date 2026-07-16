@@ -53,7 +53,7 @@ UpperTrs<ValueType, IndexType>::parse(
 
 template <typename ValueType, typename IndexType>
 UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
-    : LinOp(other.get_executor())
+    : LinOp(other.get_executor(), dim<2>{}, type_to_precision<ValueType>)
 {
     *this = other;
 }
@@ -61,7 +61,7 @@ UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
 
 template <typename ValueType, typename IndexType>
 UpperTrs<ValueType, IndexType>::UpperTrs(UpperTrs&& other)
-    : LinOp(other.get_executor())
+    : LinOp(other.get_executor(), dim<2>{}, type_to_precision<ValueType>)
 {
     *this = std::move(other);
 }
@@ -130,6 +130,26 @@ void UpperTrs<ValueType, IndexType>::generate()
             this->get_parameters().unit_diagonal, parameters_.algorithm,
             parameters_.num_rhs));
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+UpperTrs<ValueType, IndexType>::UpperTrs(std::shared_ptr<const Executor> exec)
+    : LinOp(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
+{}
+
+
+template <typename ValueType, typename IndexType>
+UpperTrs<ValueType, IndexType>::UpperTrs(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size()),
+            type_to_precision<ValueType>),
+      EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
+          copy_and_convert_to<CsrMatrix>(factory->get_executor(),
+                                         system_matrix)},
+      parameters_{factory->get_parameters()}
+{
+    this->generate();
 }
 
 

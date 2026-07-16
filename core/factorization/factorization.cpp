@@ -243,7 +243,7 @@ Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::shared_ptr<const Executor> exec)
-    : LinOp{exec},
+    : LinOp{exec, dim<2>{}, type_to_precision<ValueType>},
       storage_type_{storage_type::empty},
       factors_{Composition<ValueType>::create(exec)}
 {}
@@ -252,7 +252,8 @@ Factorization<ValueType, IndexType>::Factorization(
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::unique_ptr<Composition<ValueType>> factors, storage_type type)
-    : LinOp{factors->get_executor(), factors->get_size()},
+    : LinOp{factors->get_executor(), factors->get_size(),
+            type_to_precision<ValueType>},
       storage_type_{type},
       factors_{std::move(factors)}
 {}

@@ -105,18 +105,10 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Bicgstab(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
-    {}
+    explicit Bicgstab(std::shared_ptr<const Executor> exec);
 
     explicit Bicgstab(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Bicgstab<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()}
-    {}
+                      std::shared_ptr<const LinOp> system_matrix);
 };
 
 

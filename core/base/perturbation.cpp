@@ -68,7 +68,7 @@ Perturbation<ValueType>::Perturbation(Perturbation&& other)
 
 template <typename ValueType>
 Perturbation<ValueType>::Perturbation(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
+    : LinOp(std::move(exec), dim<2>{}, type_to_precision<ValueType>)
 {}
 
 
@@ -87,7 +87,8 @@ template <typename ValueType>
 Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
                                       std::shared_ptr<const LinOp> basis,
                                       std::shared_ptr<const LinOp> projector)
-    : LinOp(basis->get_executor(), gko::dim<2>{basis->get_size()[0]}),
+    : LinOp(basis->get_executor(), gko::dim<2>{basis->get_size()[0]},
+            type_to_precision<ValueType>),
       basis_{std::move(basis)},
       projector_{std::move(projector)},
       scalar_{std::move(scalar)}

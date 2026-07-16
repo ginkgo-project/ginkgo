@@ -150,22 +150,10 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Gmres(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
-    {}
+    explicit Gmres(std::shared_ptr<const Executor> exec);
 
     explicit Gmres(const Factory* factory,
-                   std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
-          EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
-          parameters_{factory->get_parameters()}
-    {
-        if (!parameters_.krylov_dim) {
-            parameters_.krylov_dim = gmres_default_krylov_dim;
-        }
-    }
+                   std::shared_ptr<const LinOp> system_matrix);
 };
 
 
