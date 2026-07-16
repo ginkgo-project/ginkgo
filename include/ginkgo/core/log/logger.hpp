@@ -24,6 +24,7 @@ class array;
 class Executor;
 class LinOp;
 class LinOpFactory;
+class MultiVector;
 class PolymorphicObject;
 class Operation;
 class stopping_status;
@@ -274,7 +275,7 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(13, linop_apply_started, const LinOp* A,
-                              const LinOp* b, const LinOp* x)
+                              const MultiVector* b, const MultiVector* x)
 
     /**
      * LinOp's apply completed event.
@@ -284,7 +285,7 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(14, linop_apply_completed, const LinOp* A,
-                              const LinOp* b, const LinOp* x)
+                              const MultiVector* b, const MultiVector* x)
 
     /**
      * LinOp's advanced apply started event.
@@ -296,8 +297,8 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(15, linop_advanced_apply_started, const LinOp* A,
-                              const LinOp* alpha, const LinOp* b,
-                              const LinOp* beta, const LinOp* x)
+                              const MultiVector* alpha, const MultiVector* b,
+                              const MultiVector* beta, const MultiVector* x)
 
     /**
      * LinOp's advanced apply completed event.
@@ -309,8 +310,9 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(16, linop_advanced_apply_completed,
-                              const LinOp* A, const LinOp* alpha,
-                              const LinOp* b, const LinOp* beta, const LinOp* x)
+                              const LinOp* A, const MultiVector* alpha,
+                              const MultiVector* b, const MultiVector* beta,
+                              const MultiVector* x)
 
     /**
      * LinOp Factory's generate started event.
@@ -347,8 +349,8 @@ public:                                                              \
      */
     GKO_LOGGER_REGISTER_EVENT(19, criterion_check_started,
                               const stop::Criterion* criterion,
-                              const size_type& it, const LinOp* r,
-                              const LinOp* tau, const LinOp* x,
+                              const size_type& it, const MultiVector* r,
+                              const MultiVector* tau, const MultiVector* x,
                               const uint8& stopping_id,
                               const bool& set_finalized)
 
@@ -374,10 +376,10 @@ public:                                                              \
      */
     GKO_LOGGER_REGISTER_EVENT(
         20, criterion_check_completed, const stop::Criterion* criterion,
-        const size_type& it, const LinOp* r, const LinOp* tau, const LinOp* x,
-        const uint8& stopping_id, const bool& set_finalized,
-        const array<stopping_status>* status, const bool& one_changed,
-        const bool& all_converged)
+        const size_type& it, const MultiVector* r, const MultiVector* tau,
+        const MultiVector* x, const uint8& stopping_id,
+        const bool& set_finalized, const array<stopping_status>* status,
+        const bool& one_changed, const bool& all_converged)
 protected:
     /**
      * stop::Criterion's check completed event. Parameters are the Criterion,
@@ -397,8 +399,9 @@ protected:
      * @param all_converged  whether all right hand sides are converged
      */
     virtual void on_criterion_check_completed(
-        const stop::Criterion* criterion, const size_type& it, const LinOp* r,
-        const LinOp* tau, const LinOp* implicit_tau_sq, const LinOp* x,
+        const stop::Criterion* criterion, const size_type& it,
+        const MultiVector* r, const MultiVector* tau,
+        const MultiVector* implicit_tau_sq, const MultiVector* x,
         const uint8& stopping_id, const bool& set_finalized,
         const array<stopping_status>* status, const bool& one_changed,
         const bool& all_converged) const
@@ -438,8 +441,9 @@ protected:
         "Please use the version with the additional stopping "
         "information.")
     virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
-                                       const LinOp* r, const LinOp* x = nullptr,
-                                       const LinOp* tau = nullptr) const
+                                       const MultiVector* r,
+                                       const MultiVector* x = nullptr,
+                                       const MultiVector* tau = nullptr) const
     {}
 
     /**
@@ -459,9 +463,10 @@ protected:
         "Please use the version with the additional stopping "
         "information.")
     virtual void on_iteration_complete(const LinOp* solver, const size_type& it,
-                                       const LinOp* r, const LinOp* x,
-                                       const LinOp* tau,
-                                       const LinOp* implicit_tau_sq) const
+                                       const MultiVector* r,
+                                       const MultiVector* x,
+                                       const MultiVector* tau,
+                                       const MultiVector* implicit_tau_sq) const
     {
         GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
         this->on_iteration_complete(solver, it, r, x, tau);
@@ -483,12 +488,11 @@ protected:
      * @param stopped  whether all right hand sides have stopped (invalid if
      *                 status is not provided)
      */
-    virtual void on_iteration_complete(const LinOp* solver, const LinOp* b,
-                                       const LinOp* x, const size_type& it,
-                                       const LinOp* r, const LinOp* tau,
-                                       const LinOp* implicit_tau_sq,
-                                       const array<stopping_status>* status,
-                                       bool stopped) const
+    virtual void on_iteration_complete(
+        const LinOp* solver, const MultiVector* b, const MultiVector* x,
+        const size_type& it, const MultiVector* r, const MultiVector* tau,
+        const MultiVector* implicit_tau_sq,
+        const array<stopping_status>* status, bool stopped) const
     {
         GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
         this->on_iteration_complete(solver, it, r, x, tau, implicit_tau_sq);

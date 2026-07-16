@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -90,19 +90,23 @@ public:
         const Executor* exec, const PolymorphicObject* po) const override;
 
     /* LinOp events */
-    void on_linop_apply_started(const LinOp* A, const LinOp* b,
-                                const LinOp* x) const override;
+    void on_linop_apply_started(const LinOp* A, const MultiVector* b,
+                                const MultiVector* x) const override;
 
-    void on_linop_apply_completed(const LinOp* A, const LinOp* b,
-                                  const LinOp* x) const override;
+    void on_linop_apply_completed(const LinOp* A, const MultiVector* b,
+                                  const MultiVector* x) const override;
 
-    void on_linop_advanced_apply_started(const LinOp* A, const LinOp* alpha,
-                                         const LinOp* b, const LinOp* beta,
-                                         const LinOp* x) const override;
+    void on_linop_advanced_apply_started(const LinOp* A,
+                                         const MultiVector* alpha,
+                                         const MultiVector* b,
+                                         const MultiVector* beta,
+                                         const MultiVector* x) const override;
 
-    void on_linop_advanced_apply_completed(const LinOp* A, const LinOp* alpha,
-                                           const LinOp* b, const LinOp* beta,
-                                           const LinOp* x) const override;
+    void on_linop_advanced_apply_completed(const LinOp* A,
+                                           const MultiVector* alpha,
+                                           const MultiVector* b,
+                                           const MultiVector* beta,
+                                           const MultiVector* x) const override;
 
     /* LinOpFactory events */
     void on_linop_factory_generate_started(const LinOpFactory* factory,
@@ -115,25 +119,26 @@ public:
     /* Criterion events */
     void on_criterion_check_started(const stop::Criterion* criterion,
                                     const size_type& num_iterations,
-                                    const LinOp* residual,
-                                    const LinOp* residual_norm,
-                                    const LinOp* solution,
+                                    const MultiVector* residual,
+                                    const MultiVector* residual_norm,
+                                    const MultiVector* solution,
                                     const uint8& stopping_id,
                                     const bool& set_finalized) const override;
 
     void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* residual_norm,
-        const LinOp* solution, const uint8& stopping_id,
+        const MultiVector* residual, const MultiVector* residual_norm,
+        const MultiVector* solution, const uint8& stopping_id,
         const bool& set_finalized, const array<stopping_status>* status,
         const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
-    void on_iteration_complete(const LinOp* solver, const LinOp* b,
-                               const LinOp* x, const size_type& num_iterations,
-                               const LinOp* residual,
-                               const LinOp* residual_norm,
-                               const LinOp* implicit_resnorm_sq,
+    void on_iteration_complete(const LinOp* solver, const MultiVector* b,
+                               const MultiVector* x,
+                               const size_type& num_iterations,
+                               const MultiVector* residual,
+                               const MultiVector* residual_norm,
+                               const MultiVector* implicit_resnorm_sq,
                                const array<stopping_status>* status,
                                bool stopped) const override;
 
@@ -142,17 +147,18 @@ public:
         "information.")
     void on_iteration_complete(const LinOp* solver,
                                const size_type& num_iterations,
-                               const LinOp* residual, const LinOp* solution,
-                               const LinOp* residual_norm) const override;
+                               const MultiVector* residual,
+                               const MultiVector* solution,
+                               const MultiVector* residual_norm) const override;
 
     GKO_DEPRECATED(
         "Please use the version with the additional stopping "
         "information.")
     void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution,
-        const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm) const override;
+        const MultiVector* residual, const MultiVector* solution,
+        const MultiVector* residual_norm,
+        const MultiVector* implicit_sq_residual_norm) const override;
 
     /**
      * Creates a Stream logger. This dynamically allocates the memory,

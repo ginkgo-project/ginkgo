@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,7 +25,7 @@ namespace log {
 namespace {
 
 
-bool is_dense(const LinOp* value)
+bool is_dense(const MultiVector* value)
 {
     using conv_to_double = ConvertibleTo<matrix::Dense<double>>;
     using conv_to_complex = ConvertibleTo<matrix::Dense<std::complex<double>>>;
@@ -39,17 +39,17 @@ class SolverProgressPrint : public SolverProgress {
 
 public:
     /* Internal solver events */
-    void on_linop_apply_started(const LinOp* solver, const LinOp* in,
-                                const LinOp* out) const override
+    void on_linop_apply_started(const LinOp* solver, const MultiVector* in,
+                                const MultiVector* out) const override
     {
         printed_header_ = false;
     }
 
     void on_iteration_complete(
-        const LinOp* solver, const LinOp* right_hand_side,
-        const LinOp* solution, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm,
+        const LinOp* solver, const MultiVector* right_hand_side,
+        const MultiVector* solution, const size_type& num_iterations,
+        const MultiVector* residual, const MultiVector* residual_norm,
+        const MultiVector* implicit_sq_residual_norm,
         const array<stopping_status>* status, bool stopped) const override
     {
         using solver_base = solver::detail::SolverBaseLinOp;
@@ -105,8 +105,9 @@ public:
         "information.")
     void on_iteration_complete(const LinOp* solver,
                                const size_type& num_iterations,
-                               const LinOp* residual, const LinOp* solution,
-                               const LinOp* residual_norm) const override
+                               const MultiVector* residual,
+                               const MultiVector* solution,
+                               const MultiVector* residual_norm) const override
     {
         on_iteration_complete(solver, nullptr, solution, num_iterations,
                               residual, residual_norm, nullptr, nullptr, false);
@@ -117,9 +118,9 @@ public:
         "information.")
     void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution,
-        const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm) const override
+        const MultiVector* residual, const MultiVector* solution,
+        const MultiVector* residual_norm,
+        const MultiVector* implicit_sq_residual_norm) const override
     {
         on_iteration_complete(solver, nullptr, solution, num_iterations,
                               residual, residual_norm,
@@ -127,7 +128,7 @@ public:
     }
 
 private:
-    void print_scalar(const LinOp* value, std::ostream& stream) const
+    void print_scalar(const MultiVector* value, std::ostream& stream) const
     {
         if (separator_) {
             stream << separator_;
@@ -176,8 +177,8 @@ class SolverProgressStore : public SolverProgress {
 
 public:
     /* Internal solver events */
-    void on_linop_apply_started(const LinOp* solver, const LinOp* in,
-                                const LinOp* out) const override
+    void on_linop_apply_started(const LinOp* solver, const MultiVector* in,
+                                const MultiVector* out) const override
     {
         using solver_base = solver::detail::SolverBaseLinOp;
         auto dynamic_type = name_demangling::get_dynamic_type(*solver);
@@ -188,10 +189,10 @@ public:
     }
 
     void on_iteration_complete(
-        const LinOp* solver, const LinOp* right_hand_side,
-        const LinOp* solution, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm,
+        const LinOp* solver, const MultiVector* right_hand_side,
+        const MultiVector* solution, const size_type& num_iterations,
+        const MultiVector* residual, const MultiVector* residual_norm,
+        const MultiVector* implicit_sq_residual_norm,
         const array<stopping_status>* status, bool stopped) const override
     {
         using solver_base = solver::detail::SolverBaseLinOp;
@@ -214,8 +215,9 @@ public:
         "information.")
     void on_iteration_complete(const LinOp* solver,
                                const size_type& num_iterations,
-                               const LinOp* residual, const LinOp* solution,
-                               const LinOp* residual_norm) const override
+                               const MultiVector* residual,
+                               const MultiVector* solution,
+                               const MultiVector* residual_norm) const override
     {
         on_iteration_complete(solver, nullptr, solution, num_iterations,
                               residual, residual_norm, nullptr, nullptr, false);
@@ -226,9 +228,9 @@ public:
         "information.")
     void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution,
-        const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm) const override
+        const MultiVector* residual, const MultiVector* solution,
+        const MultiVector* residual_norm,
+        const MultiVector* implicit_sq_residual_norm) const override
     {
         on_iteration_complete(solver, nullptr, solution, num_iterations,
                               residual, residual_norm,
@@ -236,28 +238,36 @@ public:
     }
 
 private:
-    void store_vector(const LinOp* value, const std::string& name) const
+    template <typename... TryTypes, typename T>
+    void store_generic(const T* value, const std::string& name) const
     {
         const auto filename =
             output_file_prefix_ + "_" + name + (binary_ ? ".bin" : ".mtx");
         if (!value) {
             return;
         }
-        // putting Dense first here causes gko::write to use dense output
-        run<gko::matrix::Dense<double>, gko::matrix::Dense<float>,
-            gko::matrix::Dense<std::complex<double>>,
-            gko::matrix::Dense<std::complex<float>>,
+        run<TryTypes...>(value, [&](auto vector) {
+            std::ofstream output{
+                filename,
+                binary_ ? (std::ios::out | std::ios::binary) : std::ios::out};
+            if (binary_) {
+                gko::write_binary(output, vector);
+            } else {
+                gko::write(output, vector);
+            }
+        });
+    }
+
+    void store_vector(const LinOp* value, const std::string& name) const
+    {
+        store_generic<
 #if GINKGO_ENABLE_HALF
-            gko::matrix::Dense<gko::float16>,
-            gko::matrix::Dense<std::complex<gko::float16>>,
             gko::WritableToMatrixData<gko::float16, int32>,
             gko::WritableToMatrixData<std::complex<gko::float16>, int32>,
             gko::WritableToMatrixData<gko::float16, int64>,
             gko::WritableToMatrixData<std::complex<gko::float16>, int64>,
 #endif
 #if GINKGO_ENABLE_BFLOAT16
-            gko::matrix::Dense<gko::bfloat16>,
-            gko::matrix::Dense<std::complex<gko::bfloat16>>,
             gko::WritableToMatrixData<gko::bfloat16, int32>,
             gko::WritableToMatrixData<std::complex<gko::bfloat16>, int32>,
             gko::WritableToMatrixData<gko::bfloat16, int64>,
@@ -271,20 +281,26 @@ private:
             gko::WritableToMatrixData<double, int64>,
             gko::WritableToMatrixData<float, int64>,
             gko::WritableToMatrixData<std::complex<double>, int64>,
-            gko::WritableToMatrixData<std::complex<float>, int64>>(
-            value, [&](auto vector) {
-                std::ofstream output{
-                    filename, binary_ ? (std::ios::out | std::ios::binary)
-                                      : std::ios::out};
-                if (binary_) {
-                    gko::write_binary(output, vector);
-                } else {
-                    gko::write(output, vector);
-                }
-            });
+            gko::WritableToMatrixData<std::complex<float>, int64>>(value, name);
     }
 
-    void store_vector(const LinOp* value, size_type iteration,
+    void store_vector(const MultiVector* value, const std::string& name) const
+    {
+        store_generic<
+#if GINKGO_ENABLE_HALF
+            gko::matrix::Dense<gko::float16>,
+            gko::matrix::Dense<std::complex<gko::float16>>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+            gko::matrix::Dense<gko::bfloat16>,
+            gko::matrix::Dense<std::complex<gko::bfloat16>>,
+#endif
+            gko::matrix::Dense<double>, gko::matrix::Dense<float>,
+            gko::matrix::Dense<std::complex<double>>,
+            gko::matrix::Dense<std::complex<float>>>(value, name);
+    }
+
+    void store_vector(const MultiVector* value, size_type iteration,
                       const std::string& name) const
     {
         store_vector(value, std::to_string(iteration) + "_" + name);

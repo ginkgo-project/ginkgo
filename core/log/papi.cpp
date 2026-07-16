@@ -148,38 +148,36 @@ void Papi<ValueType>::on_polymorphic_object_deleted(
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_linop_apply_started(const LinOp* A, const LinOp* b,
-                                             const LinOp* x) const
+void Papi<ValueType>::on_linop_apply_started(const LinOp* A,
+                                             const MultiVector* b,
+                                             const MultiVector* x) const
 {
     linop_apply_started.get_counter(A) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_linop_apply_completed(const LinOp* A, const LinOp* b,
-                                               const LinOp* x) const
+void Papi<ValueType>::on_linop_apply_completed(const LinOp* A,
+                                               const MultiVector* b,
+                                               const MultiVector* x) const
 {
     linop_apply_completed.get_counter(A) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_linop_advanced_apply_started(const LinOp* A,
-                                                      const LinOp* alpha,
-                                                      const LinOp* b,
-                                                      const LinOp* beta,
-                                                      const LinOp* x) const
+void Papi<ValueType>::on_linop_advanced_apply_started(
+    const LinOp* A, const MultiVector* alpha, const MultiVector* b,
+    const MultiVector* beta, const MultiVector* x) const
 {
     linop_advanced_apply_started.get_counter(A) += 1;
 }
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_linop_advanced_apply_completed(const LinOp* A,
-                                                        const LinOp* alpha,
-                                                        const LinOp* b,
-                                                        const LinOp* beta,
-                                                        const LinOp* x) const
+void Papi<ValueType>::on_linop_advanced_apply_completed(
+    const LinOp* A, const MultiVector* alpha, const MultiVector* b,
+    const MultiVector* beta, const MultiVector* x) const
 {
     linop_advanced_apply_completed.get_counter(A) += 1;
 }
@@ -204,10 +202,10 @@ void Papi<ValueType>::on_linop_factory_generate_completed(
 template <typename ValueType>
 void Papi<ValueType>::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
-    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
-    const uint8& stoppingId, const bool& setFinalized,
-    const array<stopping_status>* status, const bool& oneChanged,
-    const bool& converged) const
+    const MultiVector* residual, const MultiVector* residual_norm,
+    const MultiVector* solution, const uint8& stoppingId,
+    const bool& setFinalized, const array<stopping_status>* status,
+    const bool& oneChanged, const bool& converged) const
 {
     using Vector = matrix::Dense<ValueType>;
     double residual_norm_d = 0.0;
@@ -244,9 +242,9 @@ void Papi<ValueType>::on_criterion_check_completed(
 
 template <typename ValueType>
 void Papi<ValueType>::on_iteration_complete(
-    const LinOp* solver, const LinOp* b, const LinOp* solution,
-    const size_type& num_iterations, const LinOp* residual,
-    const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
+    const LinOp* solver, const MultiVector* b, const MultiVector* solution,
+    const size_type& num_iterations, const MultiVector* residual,
+    const MultiVector* residual_norm, const MultiVector* implicit_resnorm_sq,
     const array<stopping_status>* status, bool stopped) const
 {
     iteration_complete.get_counter(solver) = num_iterations;
@@ -254,11 +252,10 @@ void Papi<ValueType>::on_iteration_complete(
 
 
 template <typename ValueType>
-void Papi<ValueType>::on_iteration_complete(const LinOp* solver,
-                                            const size_type& num_iterations,
-                                            const LinOp* residual,
-                                            const LinOp* solution,
-                                            const LinOp* residual_norm) const
+void Papi<ValueType>::on_iteration_complete(
+    const LinOp* solver, const size_type& num_iterations,
+    const MultiVector* residual, const MultiVector* solution,
+    const MultiVector* residual_norm) const
 {
     this->on_iteration_complete(solver, nullptr, solution, num_iterations,
                                 residual, residual_norm, nullptr, nullptr,
@@ -268,9 +265,10 @@ void Papi<ValueType>::on_iteration_complete(const LinOp* solver,
 
 template <typename ValueType>
 void Papi<ValueType>::on_iteration_complete(
-    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
-    const LinOp* solution, const LinOp* residual_norm,
-    const LinOp* implicit_sq_residual_norm) const
+    const LinOp* solver, const size_type& num_iterations,
+    const MultiVector* residual, const MultiVector* solution,
+    const MultiVector* residual_norm,
+    const MultiVector* implicit_sq_residual_norm) const
 {
     this->on_iteration_complete(solver, nullptr, solution, num_iterations,
                                 residual, residual_norm,
