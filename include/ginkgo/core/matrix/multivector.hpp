@@ -359,38 +359,48 @@ protected:
 
     virtual void get_imag_impl(real_type* result) const = 0;
 
-    virtual void add_scaled_impl(any_const_dense_t alpha,
+    virtual void fill_impl(value_type value) = 0;
+
+    virtual void scale_impl(const Dense<value_type>* alpha) = 0;
+
+    virtual void inv_scale_impl(const Dense<value_type>* alpha) = 0;
+
+    virtual void add_scaled_impl(const Dense<value_type>* alpha,
                                  const ConcreteType* b) = 0;
 
-    virtual void sub_scaled_impl(any_const_dense_t alpha,
+    virtual void sub_scaled_impl(const Dense<value_type>* alpha,
                                  const ConcreteType* b) = 0;
 
     virtual void compute_dot_impl(const ConcreteType* b,
-                                  ConcreteType* result) const = 0;
+                                  Dense<value_type>* result) const = 0;
 
-    virtual void compute_dot_impl(const ConcreteType* b, ConcreteType* result,
+    virtual void compute_dot_impl(const ConcreteType* b,
+                                  Dense<value_type>* result,
                                   array<char>& tmp) const = 0;
 
     virtual void compute_conj_dot_impl(const ConcreteType* b,
-                                       ConcreteType* result) const = 0;
+                                       Dense<value_type>* result) const = 0;
 
     virtual void compute_conj_dot_impl(const ConcreteType* b,
-                                       ConcreteType* result,
+                                       Dense<value_type>* result,
                                        array<char>& tmp) const = 0;
 
-    virtual void compute_norm2_impl(absolute_type* result) const = 0;
+    virtual void compute_norm2_impl(
+        Dense<absolute_value_type>* result) const = 0;
 
-    virtual void compute_norm2_impl(absolute_type* result,
+    virtual void compute_norm2_impl(Dense<absolute_value_type>* result,
                                     array<char>& tmp) const = 0;
 
-    virtual void compute_squared_norm2_impl(absolute_type* result) const = 0;
+    virtual void compute_squared_norm2_impl(
+        Dense<absolute_value_type>* result) const = 0;
 
-    virtual void compute_squared_norm2_impl(absolute_type* result,
+    virtual void compute_squared_norm2_impl(Dense<absolute_value_type>* result,
                                             array<char>& tmp) const = 0;
 
-    virtual void compute_norm1_impl(absolute_type* result) const = 0;
+    virtual void compute_norm1_impl(
+        Dense<absolute_value_type>* result) const = 0;
 
-    virtual void compute_norm1_impl(absolute_type* result,
+    virtual void compute_norm1_impl(Dense<absolute_value_type>* result,
                                     array<char>& tmp) const = 0;
 
 private:
@@ -440,6 +450,12 @@ private:
         const final;
 
     void get_imag_generic_impl(MultiVector* result) const final;
+
+    void fill_impl(any_value_t value) override final;
+
+    void scale_impl(any_const_dense_t alpha) override final;
+
+    void inv_scale_impl(any_const_dense_t alpha) override final;
 
     void add_scaled_impl(any_const_dense_t alpha, const MultiVector* b) final;
 
@@ -769,6 +785,53 @@ void EnableMultiVector<ConcreteType>::get_imag_generic_impl(
     this->get_imag_impl(as<absolute_type>(result));
 }
 
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::fill_impl(any_value_t value)
+{
+    std::visit(
+        [this](auto value_v) {
+            using snd_value_type = std::decay_t<decltype(value_v)>;
+            if constexpr (std::is_same_v<value_type, snd_value_type>) {
+                this->fill_impl(value_v);
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        },
+        value);
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::scale_impl(any_const_dense_t alpha)
+{
+    std::visit(
+        [this](auto alpha_v) {
+            using alpha_type = std::decay_t<decltype(alpha_v)>;
+            if constexpr (std::is_same_v<alpha_type, Dense<value_type>>) {
+                this->scale_impl(alpha_v);
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        },
+        alpha);
+}
+
+
+template <typename ConcreteType>
+void EnableMultiVector<ConcreteType>::inv_scale_impl(any_const_dense_t alpha)
+{
+    std::visit(
+        [this](auto alpha_v) {
+            using alpha_type = std::decay_t<decltype(alpha_v)>;
+            if constexpr (std::is_same_v<alpha_type, Dense<value_type>>) {
+                this->inv_scale_impl(alpha_v);
+            } else {
+                GKO_NOT_IMPLEMENTED;
+            }
+        },
+        alpha);
+}
 
 template <typename ConcreteType>
 void EnableMultiVector<ConcreteType>::add_scaled_impl(any_const_dense_t alpha,
