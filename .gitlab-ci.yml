@@ -642,7 +642,7 @@ iwyu:
 # Code analysis, coverage and reporting tool
 # For short living branches or PRs, try to detect an open PR
 sonarqube_cov_:
-  stage: code_quality
+  stage: build
   extends:
     - .default_variables
     - .full_test_short_lived_condition
@@ -670,6 +670,7 @@ sonarqube_cov_:
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
       -DGINKGO_SONARQUBE_TEST=ON
     - sonar-scanner -Dsonar.token=${SONARQUBE_LOGIN}
+      -Dsonar.verbose=true
       -Dsonar.projectKey="ginkgo-project_ginkgo"
       -Dsonar.organization="ginkgo-project"
       -Dsonar.host.url="https://sonarcloud.io"

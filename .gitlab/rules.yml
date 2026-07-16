@@ -34,7 +34,7 @@
   rules:
     - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"  || $CI_COMMIT_TAG
       when: never
-    - if: $RUN_CI_TAG && $STATUS_CONTEXT == "full"
+    - if: $RUN_CI_TAG && $STATUS_CONTEXT == null
   dependencies: []
 
 
