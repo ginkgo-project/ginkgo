@@ -87,40 +87,34 @@ class SparsityCsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Dense
-    : public EnableMultiVector<Dense<ValueType>>,
-      public ConvertibleTo<Dense<next_precision<ValueType>>>,
+class Dense : public EnableMultiVector<Dense<ValueType>>,
+              public ConvertibleTo<Dense<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
+              public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
+              public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
 #endif
-      public ConvertibleTo<Coo<ValueType, int32>>,
-      public ConvertibleTo<Coo<ValueType, int64>>,
-      public ConvertibleTo<Csr<ValueType, int32>>,
-      public ConvertibleTo<Csr<ValueType, int64>>,
-      public ConvertibleTo<Ell<ValueType, int32>>,
-      public ConvertibleTo<Ell<ValueType, int64>>,
-      public ConvertibleTo<Fbcsr<ValueType, int32>>,
-      public ConvertibleTo<Fbcsr<ValueType, int64>>,
-      public ConvertibleTo<Hybrid<ValueType, int32>>,
-      public ConvertibleTo<Hybrid<ValueType, int64>>,
-      public ConvertibleTo<Sellp<ValueType, int32>>,
-      public ConvertibleTo<Sellp<ValueType, int64>>,
-      public ConvertibleTo<SparsityCsr<ValueType, int32>>,
-      public ConvertibleTo<SparsityCsr<ValueType, int64>>,
-      public DiagonalExtractable<ValueType>,
-      public ReadableFromMatrixData<ValueType, int32>,
-      public ReadableFromMatrixData<ValueType, int64>,
-      public WritableToMatrixData<ValueType, int32>,
-      public WritableToMatrixData<ValueType, int64>,
-      public Transposable,
-      public Permutable<int32>,
-      public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
-      public ScaledIdentityAddable {
-    friend class EnableCloneable<Dense>;
+              public ConvertibleTo<Coo<ValueType, int32>>,
+              public ConvertibleTo<Coo<ValueType, int64>>,
+              public ConvertibleTo<Csr<ValueType, int32>>,
+              public ConvertibleTo<Csr<ValueType, int64>>,
+              public ConvertibleTo<Ell<ValueType, int32>>,
+              public ConvertibleTo<Ell<ValueType, int64>>,
+              public ConvertibleTo<Fbcsr<ValueType, int32>>,
+              public ConvertibleTo<Fbcsr<ValueType, int64>>,
+              public ConvertibleTo<Hybrid<ValueType, int32>>,
+              public ConvertibleTo<Hybrid<ValueType, int64>>,
+              public ConvertibleTo<Sellp<ValueType, int32>>,
+              public ConvertibleTo<Sellp<ValueType, int64>>,
+              public ConvertibleTo<SparsityCsr<ValueType, int32>>,
+              public ConvertibleTo<SparsityCsr<ValueType, int64>>,
+              public DiagonalExtractable<ValueType>,
+              public ReadableFromMatrixData<ValueType, int32>,
+              public ReadableFromMatrixData<ValueType, int64>,
+              public WritableToMatrixData<ValueType, int32>,
+              public WritableToMatrixData<ValueType, int64>,
+              public ScaledIdentityAddable {
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
@@ -295,9 +289,9 @@ public:
 
     void write(mat_data32& data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    std::unique_ptr<Dense> transpose() const;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    std::unique_ptr<Dense> conj_transpose() const;
 
     /**
      * Writes the transposed matrix into the given output matrix.
@@ -490,11 +484,11 @@ public:
             column_permutation,
         ptr_param<Dense> output, bool invert = false) const;
 
-    std::unique_ptr<LinOp> permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<Dense> permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<Dense> permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the symmetrically permuted matrix into the given output matrix.
@@ -514,11 +508,11 @@ public:
     void permute(const array<int64>* permutation_indices,
                  ptr_param<Dense> output) const;
 
-    std::unique_ptr<LinOp> inverse_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<Dense> inverse_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> inverse_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<Dense> inverse_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the inverse symmetrically permuted matrix into the given output
@@ -539,11 +533,11 @@ public:
     void inverse_permute(const array<int64>* permutation_indices,
                          ptr_param<Dense> output) const;
 
-    std::unique_ptr<LinOp> row_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<Dense> row_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> row_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<Dense> row_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the row-permuted matrix into the given output matrix.
@@ -593,13 +587,13 @@ public:
      *                        matrix and `gather_indices->get_size()` rows.
      */
     void row_gather(const array<int32>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<MultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const array<int32>*, LinOp*) const
      */
     void row_gather(const array<int64>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<MultiVector> row_collection) const;
 
     /**
      * Copies the given rows from this matrix into `row_collection` with scaling
@@ -614,25 +608,25 @@ public:
      *             It must have the same number of columns as this
      *             matrix and `gather_indices->get_size()` rows.
      */
-    void row_gather(ptr_param<const LinOp> alpha,
+    void row_gather(ptr_param<const MultiVector> alpha,
                     const array<int32>* gather_indices,
-                    ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<const MultiVector> beta,
+                    ptr_param<MultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const LinOp*, const array<int32>*, const LinOp*,
      * LinOp*) const
      */
-    void row_gather(ptr_param<const LinOp> alpha,
+    void row_gather(ptr_param<const MultiVector> alpha,
                     const array<int64>* gather_indices,
-                    ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<const MultiVector> beta,
+                    ptr_param<MultiVector> row_collection) const;
 
-    std::unique_ptr<LinOp> column_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<Dense> column_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> column_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<Dense> column_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the column-permuted matrix into the given output matrix.
@@ -652,11 +646,11 @@ public:
     void column_permute(const array<int64>* permutation_indices,
                         ptr_param<Dense> output) const;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<Dense> inverse_row_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<Dense> inverse_row_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the inverse row-permuted matrix into the given output matrix.
@@ -676,11 +670,11 @@ public:
     void inverse_row_permute(const array<int64>* permutation_indices,
                              ptr_param<Dense> output) const;
 
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<Dense> inverse_column_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<Dense> inverse_column_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the inverse column-permuted matrix into the given output matrix.
@@ -814,7 +808,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_mean(ptr_param<LinOp> result) const;
+    void compute_mean(ptr_param<MultiVector> result) const;
 
     /**
      * Computes the column-wise arithmetic mean of this matrix.
@@ -826,7 +820,7 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
+    void compute_mean(ptr_param<MultiVector> result, array<char>& tmp) const;
 
     template <typename OtherValueType>
     [[nodiscard]] gko::detail::temporary_conversion<Dense<OtherValueType>>
@@ -1019,7 +1013,7 @@ protected:
     /**
      * @copydoc compute_mean(LinOp*) const
      */
-    virtual void compute_mean_impl(LinOp* result) const;
+    virtual void compute_mean_impl(MultiVector* result) const;
 
     /**
      * Resizes the matrix to the given size.
@@ -1030,11 +1024,6 @@ protected:
      * @param new_size  the new matrix dimensions
      */
     void resize(gko::dim<2> new_size);
-
-    void apply_impl(const LinOp* b, LinOp* x) const override;
-
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
