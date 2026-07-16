@@ -128,18 +128,7 @@ public:
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
      */
-    void apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
-    {
-        this->template log<log::Logger::linop_apply_started>(this, b.get(),
-                                                             x.get());
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b.get(),
-                                                               x.get());
-    }
-
+    void apply(ptr_param<const MultiVector> b, ptr_param<MultiVector> x) const;
 
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
@@ -149,21 +138,10 @@ public:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    void apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-               ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
-    {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-    }
+    void apply(ptr_param<const MultiVector> alpha,
+               ptr_param<const MultiVector> b,
+               ptr_param<const MultiVector> beta,
+               ptr_param<MultiVector> x) const;
 
     /**
      * Returns the size of the operator.
@@ -181,7 +159,7 @@ public:
      */
     virtual bool apply_uses_initial_guess() const { return false; }
 
-    [[nodiscard]] precision get_precision() const noexcept;
+    [[nodiscard]] precision get_precision() const noexcept { return value_t_; }
 
     /** Copy-assigns a LinOp. Preserves the executor and copies the size. */
     LinOp& operator=(const LinOp&) = default;
@@ -191,15 +169,7 @@ public:
      * The moved-from object has size 0x0 afterwards, but its executor is
      * unchanged.
      */
-    LinOp& operator=(LinOp&& other)
-    {
-        if (this != &other) {
-            PolymorphicObject::operator=(std::move(other));
-            this->set_size(other.get_size());
-            other.set_size({});
-        }
-        return *this;
-    }
+    LinOp& operator=(LinOp&& other);
 
     /** Copy-constructs a LinOp. Inherits executor and size from the input. */
     LinOp(const LinOp&) = default;
@@ -226,7 +196,7 @@ protected:
      *
      * @param value  the new size of the operator
      */
-    void set_size(const dim<2>& value) noexcept { size_ = value; }
+    void set_size(const dim<2>& value) noexcept;
 
     void set_precision(precision p) noexcept;
 
@@ -239,7 +209,7 @@ protected:
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
      */
-    virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
+    virtual void apply_impl(const MultiVector* b, MultiVector* x) const = 0;
 
     /**
      * Implementers of LinOp should override this function instead
@@ -250,8 +220,8 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    virtual void apply_impl(const LinOp* alpha, const LinOp* b,
-                            const LinOp* beta, LinOp* x) const = 0;
+    virtual void apply_impl(const MultiVector* alpha, const MultiVector* b,
+                            const MultiVector* beta, MultiVector* x) const = 0;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -260,12 +230,13 @@ protected:
      * @param b  vector(s) on which the operator is applied
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp* b, const LinOp* x) const
-    {
-        GKO_ASSERT_CONFORMANT(this, b);
-        GKO_ASSERT_EQUAL_ROWS(this, x);
-        GKO_ASSERT_EQUAL_COLS(b, x);
-    }
+    void validate_application_parameters(const MultiVector* b,
+                                         const MultiVector* x) const;
+
+    /**
+     * @copydoc validate_application_parameters
+     */
+    void validate_application_parameters(const LinOp* b, const LinOp* x) const;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -276,14 +247,10 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp* alpha, const LinOp* b,
-                                         const LinOp* beta,
-                                         const LinOp* x) const
-    {
-        this->validate_application_parameters(b, x);
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
-    }
+    void validate_application_parameters(const MultiVector* alpha,
+                                         const MultiVector* b,
+                                         const MultiVector* beta,
+                                         const MultiVector* x) const;
 
 private:
     dim<2> size_{};
