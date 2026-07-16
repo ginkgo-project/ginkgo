@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,8 @@
 #define GKO_CORE_BASE_UTILS_HPP_
 
 
+#include <cstdint>
+#include <limits>
 #include <memory>
 #include <type_traits>
 
@@ -200,6 +202,21 @@ template <typename T, typename... Args>
 constexpr std::array<T, sizeof...(Args)> to_std_array(Args&&... args)
 {
     return {static_cast<T>(args)...};
+}
+
+
+/**
+ * Checks if the given non-negative value is representable in IndexType.
+ *
+ * @tparam IndexType  The index type to check against.
+ *
+ * @param value  The value to check.
+ */
+template <typename IndexType>
+constexpr bool fits_index_type(std::uint64_t value)
+{
+    return value <=
+           static_cast<std::uint64_t>(std::numeric_limits<IndexType>::max());
 }
 
 

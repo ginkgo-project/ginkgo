@@ -11,6 +11,7 @@
 
 #include "accessor/index_span.hpp"
 #include "accessor/reduced_row_major.hpp"
+#include "core/base/utils.hpp"
 
 
 namespace gko {
@@ -23,6 +24,7 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input)
 {
     using accessor =
         gko::acc::reduced_row_major<2, ArthType, ValueType, IndexType>;
+    GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
     return range<accessor>(
         typename accessor::dim_type{{static_cast<IndexType>(input.size[0]),
                                      static_cast<IndexType>(input.size[1])}},
@@ -38,6 +40,7 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input,
     using accessor =
         gko::acc::reduced_row_major<2, ArthType, ValueType, IndexType>;
     assert(column_span.is_valid());
+    GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
     return range<accessor>(
         typename accessor::dim_type{
             {static_cast<IndexType>(input.size[0]),
@@ -55,6 +58,7 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input)
 {
     using accessor =
         gko::acc::reduced_row_major<2, ArthType, const ValueType, IndexType>;
+    GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
     return range<accessor>(
         typename accessor::dim_type{{static_cast<IndexType>(input.size[0]),
                                      static_cast<IndexType>(input.size[1])}},
@@ -70,6 +74,7 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input,
     using accessor =
         gko::acc::reduced_row_major<2, ArthType, const ValueType, IndexType>;
     assert(column_span.is_valid());
+    GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
     return range<accessor>(
         typename accessor::dim_type{
             {static_cast<IndexType>(input.size[0]),
