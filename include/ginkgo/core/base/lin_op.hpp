@@ -17,6 +17,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/multivector.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -24,11 +25,6 @@
 
 
 namespace gko {
-
-
-class AbstractMultiVector;
-
-
 namespace matrix {
 
 
@@ -128,8 +124,12 @@ public:
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
+     *
+     * @throws DimensionMismatch if the dimensions of b and x are not compatible
+     *                           with this operator
      */
-    void apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
+    void apply(ptr_param<const AbstractMultiVector> b,
+               ptr_param<AbstractMultiVector> x) const
     {
         this->template log<log::Logger::linop_apply_started>(this, b.get(),
                                                              x.get());
@@ -141,17 +141,27 @@ public:
                                                                x.get());
     }
 
-
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
+     *
+     * @note If b or x contains NaNs/Infs, then the result can also contain
+     *       NaNs/Infs even if alpha|beta == 0. This can occur if x is
+     *       uninitialized. Some implementations may remove the NaNs/Infs if the
+     *       corresponding scalars are zero.
      *
      * @param alpha  scaling of the result of op(b)
      * @param b  vector(s) on which the operator is applied
      * @param beta  scaling of the input x
      * @param x  output vector(s)
+     *
+     * @throws DimensionMismatch if the dimensions of b and x are not compatible
+     *                           with this operator
+     * @throws NotSupported if alpha and beta are not a 1x1 matrix::MultiVector
      */
-    void apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-               ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
+    void apply(ptr_param<const AbstractMultiVector> alpha,
+               ptr_param<const AbstractMultiVector> b,
+               ptr_param<const AbstractMultiVector> beta,
+               ptr_param<AbstractMultiVector> x) const
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha.get(), b.get(), beta.get(), x.get());
@@ -233,26 +243,33 @@ protected:
 
     /**
      * Implementers of LinOp should override this function instead
-     * of apply(const LinOp *, LinOp *).
+     * of apply(const AbstractMultiVector *, AbstractMultiVector *).
      *
      * Performs the operation x = op(b), where op is this linear operator.
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
      */
-    virtual void apply_impl(const LinOp* b, LinOp* x) const = 0;
+    virtual void apply_impl(const AbstractMultiVector* b,
+                            AbstractMultiVector* x) const = 0;
 
     /**
      * Implementers of LinOp should override this function instead
-     * of apply(const LinOp *, const LinOp *, const LinOp *, LinOp *).
+     * of apply(const AbstractMultiVector *, const AbstractMultiVector *,
+     * const AbstractMultiVector *, AbstractMultiVector *).
+     *
+     * A default implementation is provided for this function, based on
+     * apply_impl(const AbstractMultiVector*, AbstractMultiVector*).
      *
      * @param alpha  scaling of the result of op(b)
      * @param b  vector(s) on which the operator is applied
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    virtual void apply_impl(const LinOp* alpha, const LinOp* b,
-                            const LinOp* beta, LinOp* x) const = 0;
+    virtual void apply_impl(const AbstractMultiVector* alpha,
+                            const AbstractMultiVector* b,
+                            const AbstractMultiVector* beta,
+                            AbstractMultiVector* x) const = 0;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -260,6 +277,12 @@ protected:
      *
      * @param b  vector(s) on which the operator is applied
      * @param x  output vector(s)
+     */
+    void validate_application_parameters(const AbstractMultiVector* b,
+                                         const AbstractMultiVector* x) const;
+
+    /**
+     * @copydoc validate_application_parameters
      */
     void validate_application_parameters(const LinOp* b, const LinOp* x) const
     {
@@ -277,9 +300,10 @@ protected:
      * @param beta  scaling of the input x
      * @param x  output vector(s)
      */
-    void validate_application_parameters(const LinOp* alpha, const LinOp* b,
-                                         const LinOp* beta,
-                                         const LinOp* x) const
+    void validate_application_parameters(const AbstractMultiVector* alpha,
+                                         const AbstractMultiVector* b,
+                                         const AbstractMultiVector* beta,
+                                         const AbstractMultiVector* x) const
     {
         this->validate_application_parameters(b, x);
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));

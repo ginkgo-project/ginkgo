@@ -13,6 +13,16 @@
 namespace gko {
 
 
+void LinOp::validate_application_parameters(const AbstractMultiVector* b,
+                                            const AbstractMultiVector* x) const
+
+{
+    GKO_ASSERT_CONFORMANT(this, b);
+    GKO_ASSERT_EQUAL_ROWS(this, x);
+    GKO_ASSERT_EQUAL_COLS(b, x);
+}
+
+
 void ScaledIdentityAddable::add_scaled_identity(
     ptr_param<const AbstractMultiVector> a,
     ptr_param<const AbstractMultiVector> b)
