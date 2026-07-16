@@ -9,8 +9,8 @@ namespace gko {
 
 
 MultiVector::MultiVector(std::shared_ptr<const Executor> exec,
-                         const dim<2>& size)
-    : LinOp(std::move(exec), size)
+                         const dim<2>& size, precision p)
+    : LinOp(std::move(exec), size, p)
 {}
 
 
