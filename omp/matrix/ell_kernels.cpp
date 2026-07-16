@@ -15,6 +15,7 @@
 
 #include "accessor/reduced_row_major.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/utils.hpp"
 
 
 namespace gko {
@@ -47,6 +48,9 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
 
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
+    GKO_ASSERT(
+        fits_index_type<IndexType>(num_stored_elements_per_row * stride));
+    GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
     const auto a_vals = gko::acc::range<a_accessor>(
         typename a_accessor::dim_type{
             {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
@@ -99,6 +103,9 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
 
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
+    GKO_ASSERT(
+        fits_index_type<IndexType>(num_stored_elements_per_row * stride));
+    GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
     const auto a_vals = gko::acc::range<a_accessor>(
         typename a_accessor::dim_type{
             {static_cast<IndexType>(num_stored_elements_per_row * stride)}},

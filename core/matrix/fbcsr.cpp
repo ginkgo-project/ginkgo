@@ -320,6 +320,7 @@ void Fbcsr<ValueType, IndexType>::write(mat_data& data) const
     data = {tmp->get_size(), {}};
 
     const size_type nbnz = tmp->get_num_stored_blocks();
+    GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs_ * bs_));
     const acc::range<acc::block_col_major<const value_type, 3, IndexType>>
         vblocks(to_std_array<IndexType>(nbnz, bs_, bs_),
                 tmp->values_.get_const_data());

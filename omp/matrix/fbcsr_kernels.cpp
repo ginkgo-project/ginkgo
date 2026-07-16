@@ -49,6 +49,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     const size_type nbnz = a->get_num_stored_blocks();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
+    GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
     const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
         avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
 
@@ -94,6 +95,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto col_idxs = a->get_const_col_idxs();
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
+    GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
     const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
         avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
 
@@ -195,6 +197,7 @@ void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
     const auto nbnz = source->get_num_stored_blocks();
     auto row_ptrs = source->get_const_row_ptrs();
     auto col_idxs = source->get_const_col_idxs();
+    GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
     const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
         values{to_std_array<IndexType>(nbnz, bs, bs),
                source->get_const_values()};
@@ -231,6 +234,8 @@ void convert_to_csr(const std::shared_ptr<const OmpExecutor> exec,
     const auto row_ptrs = result->get_row_ptrs();
     const auto col_idxs = result->get_col_idxs();
     const auto vals = result->get_values();
+    GKO_ASSERT(fits_index_type<IndexType>(
+        static_cast<size_type>(block_row_ptrs[nbrows]) * bs * bs));
     auto sizes = gko::to_std_array<IndexType>(block_row_ptrs[nbrows], bs, bs);
     const auto block_vals =
         acc::range<acc::block_col_major<const ValueType, 3, IndexType>>(
@@ -274,6 +279,8 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
                             IndexType* const col_ptrs,
                             ValueType* const csc_vals, UnaryOperator op)
 {
+    GKO_ASSERT(fits_index_type<IndexType>(
+        static_cast<size_type>(row_ptrs[num_blk_rows]) * blksz * blksz));
     auto sizes =
         gko::to_std_array<IndexType>(row_ptrs[num_blk_rows], blksz, blksz);
     const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
@@ -452,6 +459,8 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 
     assert(diag->get_size()[0] == nbdim_min * bs);
 
+    GKO_ASSERT(fits_index_type<IndexType>(
+        static_cast<size_type>(row_ptrs[nbrows]) * bs * bs));
     const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
         vblocks(gko::to_std_array<IndexType>(row_ptrs[nbrows], bs, bs), values);
 

@@ -24,6 +24,7 @@
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -208,6 +209,8 @@ void classical_spmv(
     const dim3 grid(gridx, b.size[1]);
     const auto block = spmv_block_size;
 
+    GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
+    GKO_ASSERT(fits_index_type<IndexType>(c.size[0] * c.stride));
     const auto b_vals = gko::acc::range<input_accessor>(
         typename input_accessor::dim_type{{static_cast<IndexType>(b.size[0]),
                                            static_cast<IndexType>(b.size[1])}},

@@ -26,6 +26,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -289,6 +290,9 @@ void abstract_spmv(
     } else
 #endif
     {
+        GKO_ASSERT(
+            fits_index_type<IndexType>(num_stored_elements_per_row * stride));
+        GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
         const auto a_vals = acc::range<a_accessor>(
             typename a_accessor::dim_type{
                 {static_cast<IndexType>(num_stored_elements_per_row * stride)}},

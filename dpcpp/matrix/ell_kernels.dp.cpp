@@ -19,6 +19,7 @@
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/sycl_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -341,6 +342,9 @@ void abstract_spmv(
                   (shared_half || atomic_half_out)) {
         GKO_KERNEL_NOT_FOUND;
     } else {
+        GKO_ASSERT(
+            fits_index_type<IndexType>(num_stored_elements_per_row * stride));
+        GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
         const auto a_vals = gko::acc::range<a_accessor>(
             typename a_accessor::dim_type{
                 {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
