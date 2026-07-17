@@ -1,0 +1,58 @@
+name: Sonarcloud
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'develop'
+      - 'release/**'
+      - 'codecov_action'
+    tags:
+      - '**'
+  pull_request:
+    types: [opened,synchronize]
+    paths-ignore:
+      - 'doc/**'
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  sonarcloud:
+    strategy:
+      fail-fast: false
+    name: sonarcloud
+    runs-on: [ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Install Build Wrapper
+      uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v8.2.1
+      env:
+        SONAR_HOST_URL: https://sonarcloud.io
+    - name: Debug over SSH (tmate)
+      uses: mxschmitt/action-tmate@v3.5
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+      with:
+        limit-access-to-actor: true
+    - name: configure
+      run: |
+        ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE -DGINKGO_SONARQUBE_TEST=ON
+
+    - name: SonarQube Scan
+      uses: SonarSource/sonarqube-scan-action@v8.2.1
+      env:
+        SONAR_TOKEN: ${{ secrets.SONARQUBE_LOGIN }}
+      with:
+        args: >
+          --define "sonar.branch.name=${{ github.ref_name }}"
+        
