@@ -99,13 +99,13 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     }
 
     // Add explicit diagonal zero elements if they are missing
-    {
-        // TODO: it always run make_srow even if the matrix is not changed
-        auto mtx_builder =
-            matrix::CsrBuilder<ValueType, IndexType>(local_system_matrix);
-        exec->run(
-            ic_factorization::make_add_diagonal_elements(&mtx_builder, false));
-    }
+
+    // TODO: it always run make_srow even if the matrix is not changed
+    exec->run(ic_factorization::make_add_diagonal_elements(
+        std::make_unique<matrix::CsrBuilder<ValueType, IndexType>>(
+            local_system_matrix)
+            .get(),
+        false));
     std::shared_ptr<const matrix_type> ic;
     // Compute IC factorization
     if (parameters_.algorithm == incomplete_algorithm::syncfree ||

@@ -45,13 +45,13 @@ protected:
         std::string file_name(gko::matrices::location_ani4_mtx);
         auto input_file = std::ifstream(file_name, std::ios::in);
         auto mtx_temp = gko::read<Csr>(input_file, ref);
-        {
-            auto builder =
-                gko::matrix::CsrBuilder<value_type, index_type>(mtx_temp);
-            // Make sure there are diagonal elements present
-            gko::kernels::reference::factorization::add_diagonal_elements(
-                ref, &builder, false);
-        }
+        // Make sure there are diagonal elements present
+        gko::kernels::reference::factorization::add_diagonal_elements(
+            ref,
+            std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
+                mtx_temp)
+                .get(),
+            false);
         auto dmtx_temp = gko::clone(exec, mtx_temp);
         mtx = gko::give(mtx_temp);
         dmtx = gko::give(dmtx_temp);
@@ -159,13 +159,17 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
     using index_type = typename TestFixture::index_type;
     auto mtx = this->template gen_mtx<Csr>(600, 600);
     auto dmtx = gko::clone(this->exec, mtx);
-    auto builder = gko::matrix::CsrBuilder<value_type, index_type>(mtx);
-    auto dbuilder = gko::matrix::CsrBuilder<value_type, index_type>(dmtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, &builder, true);
+        this->ref,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(mtx)
+            .get(),
+        true);
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
-        this->exec, &dbuilder, true);
+        this->exec,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(dmtx)
+            .get(),
+        true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.);
@@ -179,13 +183,17 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsortedEquivalentToRef)
     using index_type = typename TestFixture::index_type;
     auto mtx = this->gen_unsorted_mtx(600, 600);
     auto dmtx = gko::clone(this->exec, mtx);
-    auto builder = gko::matrix::CsrBuilder<value_type, index_type>(mtx);
-    auto dbuilder = gko::matrix::CsrBuilder<value_type, index_type>(dmtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, &builder, false);
+        this->ref,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(mtx)
+            .get(),
+        false);
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
-        this->exec, &dbuilder, false);
+        this->exec,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(dmtx)
+            .get(),
+        false);
 
     ASSERT_FALSE(mtx->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.);
@@ -200,13 +208,17 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquareEquivalentToRef)
     using index_type = typename TestFixture::index_type;
     auto mtx = this->template gen_mtx<Csr>(600, 500);
     auto dmtx = gko::clone(this->exec, mtx);
-    auto builder = gko::matrix::CsrBuilder<value_type, index_type>(mtx);
-    auto dbuilder = gko::matrix::CsrBuilder<value_type, index_type>(dmtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, &builder, true);
+        this->ref,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(mtx)
+            .get(),
+        true);
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
-        this->exec, &dbuilder, true);
+        this->exec,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(dmtx)
+            .get(),
+        true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.);

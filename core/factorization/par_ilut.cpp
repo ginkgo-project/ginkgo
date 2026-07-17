@@ -262,19 +262,13 @@ ParIlut<ValueType, IndexType>::generate_l_u(
 template <typename ValueType, typename IndexType>
 void ParIlutState<ValueType, IndexType>::iterate()
 {
-    {
-        auto builder = CsrBuilder(lu);
-        // compute L * U
-        exec->run(make_spgemm(l.get(), u.get(), &builder));
-    }
-
-    {
-        auto l_new_builder = CsrBuilder(l_new);
-        auto u_new_builder = CsrBuilder(u_new);
-        // add new candidates to L' and U' factors
-        exec->run(make_add_candidates(lu.get(), system_matrix, l.get(), u.get(),
-                                      &l_new_builder, &u_new_builder));
-    }
+    // compute L * U
+    exec->run(
+        make_spgemm(l.get(), u.get(), std::make_unique<CsrBuilder>(lu).get()));
+    // add new candidates to L' and U' factors
+    exec->run(make_add_candidates(lu.get(), system_matrix, l.get(), u.get(),
+                                  std::make_unique<CsrBuilder>(l_new).get(),
+                                  std::make_unique<CsrBuilder>(u_new).get()));
 
     // update U'(CSC), L'(COO), U'(COO) sizes and pointers
     {
@@ -325,15 +319,13 @@ void ParIlutState<ValueType, IndexType>::iterate()
     remove_complex<ValueType> u_threshold{};
     CooMatrix* null_coo = nullptr;
     if (use_approx_select) {
-        auto l_builder = CsrBuilder(l);
-        auto u_csc_builder = CsrBuilder(u_csc);
         // remove approximately smallest candidates from L' and U'^T
-        exec->run(make_threshold_filter_approx(l_new.get(), l_filter_rank,
-                                               selection_tmp, l_threshold,
-                                               &l_builder, l_coo.get()));
-        exec->run(make_threshold_filter_approx(u_new_csc.get(), u_filter_rank,
-                                               selection_tmp, u_threshold,
-                                               &u_csc_builder, null_coo));
+        exec->run(make_threshold_filter_approx(
+            l_new.get(), l_filter_rank, selection_tmp, l_threshold,
+            std::make_unique<CsrBuilder>(l).get(), l_coo.get()));
+        exec->run(make_threshold_filter_approx(
+            u_new_csc.get(), u_filter_rank, selection_tmp, u_threshold,
+            std::make_unique<CsrBuilder>(u_csc).get(), null_coo));
     } else {
         // select threshold to remove smallest candidates
         exec->run(make_threshold_select(l_new.get(), l_filter_rank,
@@ -343,20 +335,18 @@ void ParIlutState<ValueType, IndexType>::iterate()
                                         selection_tmp, selection_tmp2,
                                         u_threshold));
 
-        auto l_builder = CsrBuilder(l);
-        auto u_csc_builder = CsrBuilder(u_csc);
         // remove smallest candidates from L' and U'^T
-        exec->run(make_threshold_filter(l_new.get(), l_threshold, &l_builder,
+        exec->run(make_threshold_filter(l_new.get(), l_threshold,
+                                        std::make_unique<CsrBuilder>(l).get(),
                                         l_coo.get(), true));
-        exec->run(make_threshold_filter(u_new_csc.get(), u_threshold,
-                                        &u_csc_builder, null_coo, true));
+        exec->run(make_threshold_filter(
+            u_new_csc.get(), u_threshold,
+            std::make_unique<CsrBuilder>(u_csc).get(), null_coo, true));
     }
-    {
-        auto builder = CsrBuilder(u);
-        // remove smallest candidates from U'
-        exec->run(make_threshold_filter(u_new.get(), u_threshold, &builder,
-                                        u_coo.get(), false));
-    }
+    // remove smallest candidates from U'
+    exec->run(make_threshold_filter(u_new.get(), u_threshold,
+                                    std::make_unique<CsrBuilder>(u).get(),
+                                    u_coo.get(), false));
     // execute asynchronous iteration
     exec->run(make_compute_l_u_factors(
         system_matrix, l.get(), l_coo->get_const_device_view(), u.get(),

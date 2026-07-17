@@ -91,14 +91,14 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
         csr_system_matrix->sort_by_column_index();
     }
 
-    {
-        // TODO: it always run make_srow even if the matrix is not changed
-        auto mtx_builder =
-            matrix::CsrBuilder<ValueType, IndexType>(csr_system_matrix);
-        // Add explicit diagonal zero elements if they are missing
-        exec->run(par_ic_factorization::make_add_diagonal_elements(&mtx_builder,
-                                                                   true));
-    }
+    // TODO: it always run make_srow even if the matrix is not changed
+    // Add explicit diagonal zero elements if they are missing
+    exec->run(par_ic_factorization::make_add_diagonal_elements(
+        std::make_unique<matrix::CsrBuilder<ValueType, IndexType>>(
+            csr_system_matrix)
+            .get(),
+        true));
+
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
     array<IndexType> l_row_ptrs{exec, number_rows + 1};

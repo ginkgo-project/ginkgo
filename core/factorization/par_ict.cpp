@@ -233,18 +233,12 @@ ParIct<ValueType, IndexType>::generate_l_lt(
 template <typename ValueType, typename IndexType>
 void ParIctState<ValueType, IndexType>::iterate()
 {
-    {
-        auto builder = CsrBuilder(llh);
-        // compute L * L^H
-        exec->run(make_spgemm(l.get(), lh.get(), &builder));
-    }
-
-    {
-        auto builder = CsrBuilder(l_new);
-        // add new candidates to L' factor
-        exec->run(
-            make_add_candidates(llh.get(), system_matrix, l.get(), &builder));
-    }
+    // compute L * L^H
+    exec->run(make_spgemm(l.get(), lh.get(),
+                          std::make_unique<CsrBuilder>(llh).get()));
+    // add new candidates to L' factor
+    exec->run(make_add_candidates(llh.get(), system_matrix, l.get(),
+                                  std::make_unique<CsrBuilder>(l_new).get()));
 
     // update L(COO), L'^H sizes and pointers
     {
@@ -274,20 +268,19 @@ void ParIctState<ValueType, IndexType>::iterate()
     auto l_filter_rank = std::max<IndexType>(0, l_nnz - l_nnz_limit - 1);
     if (use_approx_select) {
         remove_complex<ValueType> tmp{};
-        auto builder = CsrBuilder(l);
         // remove approximately smallest candidates
-        exec->run(make_threshold_filter_approx(l_new.get(), l_filter_rank,
-                                               selection_tmp, tmp, &builder,
-                                               l_coo.get()));
+        exec->run(make_threshold_filter_approx(
+            l_new.get(), l_filter_rank, selection_tmp, tmp,
+            std::make_unique<CsrBuilder>(l).get(), l_coo.get()));
     } else {
         // select threshold to remove smallest candidates
         remove_complex<ValueType> l_threshold{};
         exec->run(make_threshold_select(l_new.get(), l_filter_rank,
                                         selection_tmp, selection_tmp2,
                                         l_threshold));
-        auto builder = CsrBuilder(l);
         // remove smallest candidates
-        exec->run(make_threshold_filter(l_new.get(), l_threshold, &builder,
+        exec->run(make_threshold_filter(l_new.get(), l_threshold,
+                                        std::make_unique<CsrBuilder>(l).get(),
                                         l_coo.get(), true));
     }
 
@@ -298,11 +291,11 @@ void ParIctState<ValueType, IndexType>::iterate()
     // convert L to L^H
     {
         auto l_nnz = l->get_num_stored_elements();
-        CsrBuilder lt_builder{lh};
-        lt_builder.get_col_idx_array().resize_and_reset(l_nnz);
-        lt_builder.get_value_array().resize_and_reset(l_nnz);
+        CsrBuilder lh_builder{lh};
+        lh_builder.get_col_idx_array().resize_and_reset(l_nnz);
+        lh_builder.get_value_array().resize_and_reset(l_nnz);
+        exec->run(make_csr_conj_transpose(l.get(), lh.get()));
     }
-    exec->run(make_csr_conj_transpose(l.get(), lh.get()));
 }
 
 

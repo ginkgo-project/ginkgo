@@ -381,14 +381,13 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             // Because we change the matrix value, we clone it to avoid
             // overwriting to the original matrix.
             auto changed_mtx = share(csr_mtx->clone());
-            {
-                // TODO: it always run make_srow even if the matrix is not
-                // changed
-                auto mtx_builder =
-                    matrix::CsrBuilder<ValueType, IndexType>(changed_mtx);
-                exec->run(
-                    jacobi::make_add_diagonal_elements(&mtx_builder, true));
-            }
+            // TODO: it always run make_srow even if the matrix is not
+            // changed
+            exec->run(jacobi::make_add_diagonal_elements(
+                std::make_unique<matrix::CsrBuilder<ValueType, IndexType>>(
+                    changed_mtx)
+                    .get(),
+                true));
             // block_pointers has larger size than actual num_blocks_
             exec->run(jacobi::make_block_l1(
                 num_blocks_, parameters_.block_pointers, changed_mtx.get()));

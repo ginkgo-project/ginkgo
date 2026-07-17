@@ -194,10 +194,13 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)
                     gko::array<index_type>{this->ref, {0, 1, 2}},
                     gko::array<index_type>{this->ref, {0, 1, 2, 3}});
     auto empty_mtx = this->empty_csr->clone();
-    auto builder = gko::matrix::CsrBuilder<value_type, index_type>(empty_mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, &builder, true);
+        this->ref,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
+            empty_mtx)
+            .get(),
+        true);
 
     GKO_ASSERT_MTX_NEAR(empty_mtx, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(empty_mtx, expected_mtx);
@@ -216,10 +219,13 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare)
         gko::array<value_type>{this->ref, {0., 1., 0., 1., 1., 1., 1., 1., 1.}},
         gko::array<index_type>{this->ref, {0, 0, 1, 0, 1, 2, 0, 1, 2}},
         gko::array<index_type>{this->ref, {0, 1, 3, 6, 9}});
-    auto builder = gko::matrix::CsrBuilder<value_type, index_type>(matrix);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, &builder, true);
+        this->ref,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
+            matrix)
+            .get(),
+        true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -237,10 +243,13 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare2)
                     gko::array<value_type>{this->ref, {1., 1., 0.}},
                     gko::array<index_type>{this->ref, {0, 0, 1}},
                     gko::array<index_type>{this->ref, {0, 1, 3}});
-    auto builder = gko::matrix::CsrBuilder<value_type, index_type>(matrix);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, &builder, true);
+        this->ref,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
+            matrix)
+            .get(),
+        true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -268,10 +277,13 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsorted)
         gko::array<value_type>{this->ref, {1., 2., 3., 1., 0., 3., 1., 2., 0.}},
         gko::array<index_type>{this->ref, {0, 1, 2, 0, 1, 2, 0, 1, 2}},
         gko::array<index_type>{this->ref, {0, 3, 6, 9}});
-    auto builder = gko::matrix::CsrBuilder<value_type, index_type>(matrix);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, &builder, false);
+        this->ref,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
+            matrix)
+            .get(),
+        false);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -308,9 +320,12 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
     using index_type = typename TestFixture::index_type;
     using Csr = typename TestFixture::Csr;
     auto empty_mtx = this->empty_csr->clone();
-    auto builder = gko::matrix::CsrBuilder<value_type, index_type>(empty_mtx);
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, &builder, true);
+        this->ref,
+        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
+            empty_mtx)
+            .get(),
+        true);
     auto empty_mtx_l_expected = Csr::create(this->ref);
     this->identity->convert_to(empty_mtx_l_expected);
     auto empty_mtx_u_expected = Csr::create(this->ref);
