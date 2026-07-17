@@ -465,8 +465,7 @@ void Csr<ValueType, IndexType>::make_srow()
             ceildiv(nnz, warp_size), static_cast<int64_t>(nwarps * multiple)));
     };
 
-    if (strategy_ == csr::spmv_strategy::load_balance ||
-        strategy_ == csr::spmv_strategy::automatic) {
+    if (this->get_actual_strategy() == csr::spmv_strategy::load_balance) {
         srow_size = load_balance_size(this->get_num_stored_elements());
     }
     srow_.resize_and_reset(srow_size);
