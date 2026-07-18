@@ -478,6 +478,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::write(
     matrix_data<value_type, global_index_type>& data) const
 {
+    GKO_ASSERT_IS_SQUARE_MATRIX(this);
     auto local_data = matrix_data<value_type, local_index_type>{};
     auto non_local_data = matrix_data<value_type, local_index_type>{};
     as<WritableToMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
