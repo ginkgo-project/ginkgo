@@ -70,7 +70,7 @@ protected:
           comm(gko::experimental::mpi::communicator(MPI_COMM_WORLD))
     {}
 
-    void SetUp() override {}
+    void SetUp() override { ASSERT_EQ(this->comm.size(), 3); }
 
     template <typename F>
     void forall_matrix_types(F&& f)
@@ -424,30 +424,43 @@ TYPED_TEST(MatrixBuilder, WritesMatrixDataWithNonUniformPartition)
     auto local = local_mtx_type::create(this->ref);
     auto non_local = local_mtx_type::create(this->ref);
     gko::matrix_data<value_type, local_index_type> local_data{local_dim, {}};
+    gko::matrix_data<value_type, local_index_type> non_local_data{
+        gko::dim<2>{local_dim[0], 1}, {}};
     gko::matrix_data<value_type, global_index_type> expected{gko::dim<2>{6, 6},
                                                              {}};
+    auto remote_cols = gko::array<global_index_type>{this->ref};
     if (rank == 0) {
         local_data.nonzeros = {{0, 0, value_type{1.0f}},
                                {1, 0, value_type{2.0f}}};
+        non_local_data.nonzeros = {{0, 0, value_type{3.0f}}};
+        remote_cols =
+            gko::array<global_index_type>{this->ref, {global_index_type{4}}};
         expected.nonzeros = {{1, 1, value_type{1.0f}},
+                             {1, 4, value_type{3.0f}},
                              {3, 1, value_type{2.0f}}};
     } else if (rank == 1) {
         local_data.nonzeros = {{0, 0, value_type{1.0f}}};
-        expected.nonzeros = {{4, 4, value_type{1.0f}}};
+        non_local_data.nonzeros = {{0, 0, value_type{2.0f}}};
+        remote_cols =
+            gko::array<global_index_type>{this->ref, {global_index_type{0}}};
+        expected.nonzeros = {{4, 0, value_type{2.0f}},
+                             {4, 4, value_type{1.0f}}};
     } else {
         local_data.nonzeros = {{0, 0, value_type{1.0f}},
                                {1, 0, value_type{2.0f}},
                                {2, 1, value_type{3.0f}}};
+        non_local_data.nonzeros = {{0, 0, value_type{4.0f}}};
+        remote_cols =
+            gko::array<global_index_type>{this->ref, {global_index_type{1}}};
         expected.nonzeros = {{0, 0, value_type{1.0f}},
+                             {0, 1, value_type{4.0f}},
                              {2, 0, value_type{2.0f}},
                              {5, 2, value_type{3.0f}}};
     }
     local->read(local_data);
-    non_local->read(gko::matrix_data<value_type, local_index_type>{
-        gko::dim<2>{local_dim[0], 0}, {}});
+    non_local->read(non_local_data);
     expected.sort_row_major();
 
-    auto remote_cols = gko::array<global_index_type>{this->ref};
     auto imap = map_type{this->ref, partition, rank, remote_cols};
     auto matrix = dist_mtx_type::create(this->ref, this->comm, std::move(imap),
                                         std::move(local), std::move(non_local));
@@ -549,6 +562,36 @@ TYPED_TEST(MatrixBuilder, WritesMatrixDataFromLocalOnlyConstructor)
     for (gko::size_type i = 0; i < expected.nonzeros.size(); ++i) {
         EXPECT_EQ(written.nonzeros[i], expected.nonzeros[i]);
     }
+}
+
+
+TYPED_TEST(MatrixBuilder, ThrowsWhenWritingRectangularMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_mtx_type = gko::matrix::Csr<value_type, local_index_type>;
+    using writable_type =
+        gko::WritableToMatrixData<value_type, global_index_type>;
+    const auto local_size =
+        static_cast<local_index_type>(this->comm.rank() + 1);
+    const auto global_size = static_cast<global_index_type>(
+        ((1 + this->comm.size()) * this->comm.size()) / 2);
+    auto local = local_mtx_type::create(this->ref);
+    local->read(gko::matrix_data<value_type, local_index_type>{
+        gko::dim<2>{static_cast<gko::size_type>(local_size),
+                    static_cast<gko::size_type>(local_size)},
+        {{0, 0, value_type{1.0f}}}});
+    auto matrix = dist_mtx_type::create(
+        this->ref, this->comm,
+        gko::dim<2>{static_cast<gko::size_type>(global_size),
+                    static_cast<gko::size_type>(global_size + 1)},
+        std::move(local));
+    gko::matrix_data<value_type, global_index_type> written;
+
+    ASSERT_THROW(gko::as<writable_type>(matrix.get())->write(written),
+                 gko::DimensionMismatch);
 }
 
 
