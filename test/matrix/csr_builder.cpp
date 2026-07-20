@@ -57,18 +57,9 @@ protected:
 
 TEST_F(CsrBuilder, SrowIsCorrectFromLoadBalance)
 {
-    auto mtx = Mtx::create(exec, gko::matrix::csr::spmv_strategy::load_balance);
+    auto mtx = Mtx::create(exec);
     mtx->move_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 1));
-    int warp_size = 0;
-    if (auto dexec = std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
-        warp_size = dexec->get_warp_size();
-    } else if (auto dexec =
-                   std::dynamic_pointer_cast<const gko::HipExecutor>(exec)) {
-        warp_size = dexec->get_warp_size();
-    } else if (auto dexec =
-                   std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
-        warp_size = 32;
-    }
+    mtx->set_strategy(gko::matrix::csr::spmv_strategy::load_balance);
     const auto srow_size = mtx->get_num_srow_elements();
     auto srow_view = gko::make_array_view(exec, srow_size, mtx->get_srow());
     Arr original_srow(exec);
