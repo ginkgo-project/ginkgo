@@ -664,13 +664,11 @@ sonarqube_cov_:
           -Dsonar.pullrequest.base=${target_branch}
           -Dsonar.pullrequest.key=${PR_ID}";
       else
-        sonar_branching="-Dsonar.branch.name=${CI_COMMIT_REF_NAME}
-        -Dsonar.branch.target=develop";
+        sonar_branching="-Dsonar.branch.name=${CI_COMMIT_REF_NAME}"
       fi
     - ctest -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=COVERAGE
       -DGINKGO_SONARQUBE_TEST=ON
     - sonar-scanner -Dsonar.token=${SONARQUBE_LOGIN}
-      -Dsonar.verbose=true
       -Dsonar.projectKey="ginkgo-project_ginkgo"
       -Dsonar.organization="ginkgo-project"
       -Dsonar.host.url="https://sonarcloud.io"
