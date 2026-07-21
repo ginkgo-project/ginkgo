@@ -264,6 +264,7 @@ void ParIlutState<ValueType, IndexType>::iterate()
 {
     // compute L * U
     exec->run(make_spgemm(l.get(), u.get(), make_builder_unique_ptr(lu).get()));
+
     // add new candidates to L' and U' factors
     exec->run(make_add_candidates(lu.get(), system_matrix, l.get(), u.get(),
                                   make_builder_unique_ptr(l_new).get(),
@@ -346,6 +347,7 @@ void ParIlutState<ValueType, IndexType>::iterate()
     exec->run(make_threshold_filter(u_new.get(), u_threshold,
                                     make_builder_unique_ptr(u).get(),
                                     u_coo.get(), false));
+
     // execute asynchronous iteration
     exec->run(make_compute_l_u_factors(
         system_matrix, l.get(), l_coo->get_const_device_view(), u.get(),

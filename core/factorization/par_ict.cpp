@@ -236,6 +236,7 @@ void ParIctState<ValueType, IndexType>::iterate()
     // compute L * L^H
     exec->run(
         make_spgemm(l.get(), lh.get(), make_builder_unique_ptr(llh).get()));
+
     // add new candidates to L' factor
     exec->run(make_add_candidates(llh.get(), system_matrix, l.get(),
                                   make_builder_unique_ptr(l_new).get()));
