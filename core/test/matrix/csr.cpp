@@ -42,8 +42,8 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
-        // need set strategy after filling the data, but the automatic
-        // strategy has nothing on reference.
+        // When changing the sparsity, we need set strategy to trigger
+        // recomputation on srow.
         mtx->set_strategy(mtx->get_strategy());
     }
 
@@ -160,6 +160,33 @@ TYPED_TEST(Csr, CanBeCreatedFromExistingConstData)
 
 
 GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
+TYPED_TEST(Csr, DeprecatedStrategyReturnCorrectEnum)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto automatical_strategy =
+        std::make_shared<typename Mtx::automatical>(this->exec);
+    auto classical_strategy = std::make_shared<typename Mtx::classical>();
+    auto merge_path_strategy = std::make_shared<typename Mtx::merge_path>();
+    auto load_balance_strategy =
+        std::make_shared<typename Mtx::load_balance>(this->exec);
+    auto sparselib_strategy = std::make_shared<typename Mtx::sparselib>();
+    auto cusparse_strategy = std::make_shared<typename Mtx::cusparse>();
+
+    ASSERT_EQ(automatical_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::automatic);
+    ASSERT_EQ(classical_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::classical);
+    ASSERT_EQ(merge_path_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::merge_path);
+    ASSERT_EQ(load_balance_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+    ASSERT_EQ(sparselib_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::sparselib);
+    ASSERT_EQ(cusparse_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::sparselib);
+}
 
 
 TYPED_TEST(Csr, CanBeCreatedFromDeprecatedStrategy)

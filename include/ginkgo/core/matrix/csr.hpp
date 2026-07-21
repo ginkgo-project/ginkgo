@@ -204,47 +204,79 @@ public:
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Csr>;
 
-    class [[deprecated(
-        "please use enum "
-        "gko::matrix::csr::spmv_strategy::<strategy>")]] strategy_type
-    {
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::<strategy>")
+        strategy_type {
     public:
         virtual ~strategy_type() = default;
+
+        // return the corresponding enum in incoming release
+        virtual csr::spmv_strategy get_enum() const = 0;
     };
 
-    class [[deprecated(
-        "please use enum "
-        "gko::matrix::csr::spmv_strategy::classical")]] classical
-        : public strategy_type{};
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::classical") classical
+        : public strategy_type {
+    public:
+        csr::spmv_strategy get_enum() const override
+        {
+            return csr::spmv_strategy::classical;
+        }
+    };
 
-    class [[deprecated(
-        "please use enum "
-        "gko::matrix::csr::spmv_strategy::merge_path")]] merge_path
-        : public strategy_type{};
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::merge_path")
+        merge_path : public strategy_type {
+    public:
+        csr::spmv_strategy get_enum() const override
+        {
+            return csr::spmv_strategy::merge_path;
+        }
+    };
 
-    class [[deprecated(
-        "please use enum "
-        "gko::matrix::csr::spmv_strategy::sparselib")]] cusparse
-        : public strategy_type{};
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::sparselib") cusparse
+        : public strategy_type {
+    public:
+        csr::spmv_strategy get_enum() const override
+        {
+            return csr::spmv_strategy::sparselib;
+        }
+    };
 
-    class [[deprecated(
-        "please use enum "
-        "gko::matrix::csr::spmv_strategy::sparselib")]] sparselib
-        : public strategy_type{};
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::sparselib") sparselib
+        : public strategy_type {
+    public:
+        csr::spmv_strategy get_enum() const override
+        {
+            return csr::spmv_strategy::sparselib;
+        }
+    };
 
-    class [[deprecated(
-        "please use enum "
-        "gko::matrix::csr::spmv_strategy::load_balance")]] load_balance
-        : public strategy_type{
-            public : load_balance(std::shared_ptr<const Executor>){}
-        };
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::load_balance")
+        load_balance : public strategy_type {
+    public:
+        load_balance(std::shared_ptr<const Executor>) {}
 
-    class [[deprecated(
-        "please use enum "
-        "gko::matrix::csr::spmv_strategy::automatic")]] automatical
-        : public strategy_type{
-            public : automatical(std::shared_ptr<const Executor>){}
-        };
+        csr::spmv_strategy get_enum() const override
+        {
+            return csr::spmv_strategy::load_balance;
+        }
+    };
+
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::automatic")
+        automatical : public strategy_type {
+    public:
+        automatical(std::shared_ptr<const Executor>) {}
+
+        csr::spmv_strategy get_enum() const override
+        {
+            return csr::spmv_strategy::automatic;
+        }
+    };
 
 
     friend class Csr<previous_precision<ValueType>, IndexType>;

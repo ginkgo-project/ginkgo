@@ -224,21 +224,10 @@ template <typename Csr>
 csr::spmv_strategy get_strategy_enum(
     std::shared_ptr<typename Csr::strategy_type> strategy)
 {
-    if (strategy == nullptr ||
-        std::dynamic_pointer_cast<typename Csr::automatical>(strategy)) {
-        return csr::spmv_strategy::automatic;
-    } else if (std::dynamic_pointer_cast<typename Csr::classical>(strategy)) {
-        return csr::spmv_strategy::classical;
-    } else if (std::dynamic_pointer_cast<typename Csr::merge_path>(strategy)) {
-        return csr::spmv_strategy::merge_path;
-    } else if (std::dynamic_pointer_cast<typename Csr::load_balance>(
-                   strategy)) {
-        return csr::spmv_strategy::load_balance;
-    } else if (std::dynamic_pointer_cast<typename Csr::sparselib>(strategy) ||
-               std::dynamic_pointer_cast<typename Csr::cusparse>(strategy)) {
-        return csr::spmv_strategy::sparselib;
+    if (strategy) {
+        return strategy->get_enum();
     } else {
-        GKO_NOT_SUPPORTED(strategy);
+        return csr::spmv_strategy::automatic;
     }
 }
 
