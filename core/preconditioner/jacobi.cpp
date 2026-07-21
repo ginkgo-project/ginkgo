@@ -391,7 +391,6 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             // block_pointers has larger size than actual num_blocks_
             exec->run(jacobi::make_block_l1(
                 num_blocks_, parameters_.block_pointers, changed_mtx.get()));
-            changed_mtx->set_strategy(changed_mtx->get_strategy());
             csr_mtx = changed_mtx;
         }
         const auto all_block_opt =
