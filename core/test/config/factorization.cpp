@@ -31,13 +31,6 @@ using namespace gko::config;
 using Sparsity = gko::matrix::SparsityCsr<float, int>;
 
 
-inline void check_strategy(gko::matrix::csr::spmv_strategy res,
-                           gko::matrix::csr::spmv_strategy ans)
-{
-    ASSERT_EQ(res, ans);
-}
-
-
 template <typename ChangedType, typename DefaultType>
 struct FactorizationConfigTest {
     using changed_type = ChangedType;
@@ -79,7 +72,7 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
         auto res_param = gko::as<AnswerType>(result)->get_parameters();
         auto ans_param = answer->get_parameters();
 
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
         ASSERT_EQ(res_param.both_factors, ans_param.both_factors);
         ASSERT_EQ(res_param.algorithm, ans_param.algorithm);
@@ -115,8 +108,8 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, int>,
         auto res_param = gko::as<AnswerType>(result)->get_parameters();
         auto ans_param = answer->get_parameters();
 
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
-        check_strategy(res_param.u_strategy, ans_param.u_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.u_strategy, ans_param.u_strategy);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
         ASSERT_EQ(res_param.algorithm, ans_param.algorithm);
     }
@@ -220,7 +213,7 @@ struct ParIc : FactorizationConfigTest<gko::factorization::ParIc<float, int>,
 
         ASSERT_EQ(res_param.iterations, ans_param.iterations);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.both_factors, ans_param.both_factors);
     }
 };
@@ -256,8 +249,8 @@ struct ParIlu
 
         ASSERT_EQ(res_param.iterations, ans_param.iterations);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
-        check_strategy(res_param.u_strategy, ans_param.u_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.u_strategy, ans_param.u_strategy);
     }
 };
 
@@ -298,12 +291,12 @@ struct ParIct
 
         ASSERT_EQ(res_param.iterations, ans_param.iterations);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.approximate_select, ans_param.approximate_select);
         ASSERT_EQ(res_param.deterministic_sample,
                   ans_param.deterministic_sample);
         ASSERT_EQ(res_param.fill_in_limit, ans_param.fill_in_limit);
-        check_strategy(res_param.lt_strategy, ans_param.lt_strategy);
+        ASSERT_EQ(res_param.lt_strategy, ans_param.lt_strategy);
     }
 };
 
@@ -344,12 +337,12 @@ struct ParIlut
 
         ASSERT_EQ(res_param.iterations, ans_param.iterations);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.approximate_select, ans_param.approximate_select);
         ASSERT_EQ(res_param.deterministic_sample,
                   ans_param.deterministic_sample);
         ASSERT_EQ(res_param.fill_in_limit, ans_param.fill_in_limit);
-        check_strategy(res_param.u_strategy, ans_param.u_strategy);
+        ASSERT_EQ(res_param.u_strategy, ans_param.u_strategy);
     }
 };
 
