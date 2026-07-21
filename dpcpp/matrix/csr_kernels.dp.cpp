@@ -1438,8 +1438,12 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
 #if INTEL_MKL_VERSION >= 20240000
             *exec->get_queue(),
 #endif
-            mat_handle, IndexType(a->get_size()[0]),
-            IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
+            mat_handle, static_cast<IndexType>(a->get_size()[0]),
+            static_cast<IndexType>(a->get_size()[1]),
+#if INTEL_MKL_VERSION >= 20250300
+            static_cast<std::int64_t>(a->get_num_stored_elements()),
+#endif
+            oneapi::mkl::index_base::zero,
             const_cast<IndexType*>(a->get_const_row_ptrs()),
             const_cast<IndexType*>(a->get_const_col_idxs()),
             const_cast<ValueType*>(a->get_const_values()));
