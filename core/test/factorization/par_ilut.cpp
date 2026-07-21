@@ -85,7 +85,7 @@ TYPED_TEST(ParIlut, SetFillIn)
 
 TYPED_TEST(ParIlut, SetLStrategy)
 {
-    auto strategy = gko::matrix::csr::spmv_strategy::classical;
+    auto strategy = gko::matrix::csr::spmv_strategy::load_balance;
 
     auto factory =
         TestFixture::ilut_factory_type::build().with_l_strategy(strategy).on(
@@ -97,7 +97,7 @@ TYPED_TEST(ParIlut, SetLStrategy)
 
 TYPED_TEST(ParIlut, SetUStrategy)
 {
-    auto strategy = gko::matrix::csr::spmv_strategy::classical;
+    auto strategy = gko::matrix::csr::spmv_strategy::load_balance;
 
     auto factory =
         TestFixture::ilut_factory_type::build().with_u_strategy(strategy).on(
@@ -105,6 +105,31 @@ TYPED_TEST(ParIlut, SetUStrategy)
 
     ASSERT_EQ(factory->get_parameters().u_strategy, strategy);
 }
+
+
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
+TYPED_TEST(ParIlut, SetStrategyDeprecated)
+{
+    using matrix_type = typename TestFixture::ilut_factory_type::matrix_type;
+    auto l_strategy =
+        std::make_shared<typename matrix_type::load_balance>(this->ref);
+    auto u_strategy = std::make_shared<typename matrix_type::sparselib>();
+
+    auto factory = TestFixture::ilut_factory_type::build()
+                       .with_l_strategy(l_strategy)
+                       .with_u_strategy(u_strategy)
+                       .on(this->ref);
+
+    ASSERT_EQ(factory->get_parameters().l_strategy,
+              gko::matrix::csr::spmv_strategy::load_balance);
+    ASSERT_EQ(factory->get_parameters().u_strategy,
+              gko::matrix::csr::spmv_strategy::sparselib);
+}
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 TYPED_TEST(ParIlut, SetDefaults)
@@ -125,8 +150,8 @@ TYPED_TEST(ParIlut, SetDefaults)
 
 TYPED_TEST(ParIlut, SetEverything)
 {
-    auto strategy = gko::matrix::csr::spmv_strategy::classical;
-    auto strategy2 = gko::matrix::csr::spmv_strategy::classical;
+    auto l_strategy = gko::matrix::csr::spmv_strategy::load_balance;
+    auto u_strategy = gko::matrix::csr::spmv_strategy::sparselib;
 
     auto factory = TestFixture::ilut_factory_type::build()
                        .with_iterations(7u)
@@ -134,8 +159,8 @@ TYPED_TEST(ParIlut, SetEverything)
                        .with_approximate_select(false)
                        .with_deterministic_sample(true)
                        .with_fill_in_limit(1.2)
-                       .with_l_strategy(strategy)
-                       .with_u_strategy(strategy2)
+                       .with_l_strategy(l_strategy)
+                       .with_u_strategy(u_strategy)
                        .on(this->ref);
 
     ASSERT_EQ(factory->get_parameters().iterations, 7u);
@@ -143,8 +168,8 @@ TYPED_TEST(ParIlut, SetEverything)
     ASSERT_EQ(factory->get_parameters().approximate_select, false);
     ASSERT_EQ(factory->get_parameters().deterministic_sample, true);
     ASSERT_EQ(factory->get_parameters().fill_in_limit, 1.2);
-    ASSERT_EQ(factory->get_parameters().l_strategy, strategy);
-    ASSERT_EQ(factory->get_parameters().u_strategy, strategy2);
+    ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
+    ASSERT_EQ(factory->get_parameters().u_strategy, u_strategy);
 }
 
 

@@ -83,7 +83,7 @@ TYPED_TEST(ParIct, SetFillIn)
 
 TYPED_TEST(ParIct, SetLStrategy)
 {
-    auto strategy = gko::matrix::csr::spmv_strategy::classical;
+    auto strategy = gko::matrix::csr::spmv_strategy::load_balance;
 
     auto factory =
         TestFixture::ict_factory_type::build().with_l_strategy(strategy).on(
@@ -91,6 +91,27 @@ TYPED_TEST(ParIct, SetLStrategy)
 
     ASSERT_EQ(factory->get_parameters().l_strategy, strategy);
 }
+
+
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
+TYPED_TEST(ParIct, SetLStrategyDeprecated)
+{
+    auto strategy = std::make_shared<
+        typename TestFixture::ict_factory_type::matrix_type::load_balance>(
+        this->ref);
+
+    auto factory =
+        TestFixture::ict_factory_type::build().with_l_strategy(strategy).on(
+            this->ref);
+
+    ASSERT_EQ(factory->get_parameters().l_strategy,
+              gko::matrix::csr::spmv_strategy::load_balance);
+}
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 TYPED_TEST(ParIct, SetDefaults)
@@ -109,7 +130,7 @@ TYPED_TEST(ParIct, SetDefaults)
 
 TYPED_TEST(ParIct, SetEverything)
 {
-    auto strategy = gko::matrix::csr::spmv_strategy::classical;
+    auto strategy = gko::matrix::csr::spmv_strategy::load_balance;
 
     auto factory = TestFixture::ict_factory_type::build()
                        .with_iterations(7u)

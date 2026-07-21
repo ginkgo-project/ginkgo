@@ -5,43 +5,30 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/factorization/par_ilu.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
 
 #include "core/test/utils.hpp"
 
 
-namespace {
-
-
 template <typename ValueIndexType>
-class ParIlu : public ::testing::Test {
+class Ilu : public ::testing::Test {
 public:
     using value_type =
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using ilu_factory_type = gko::factorization::ParIlu<value_type, index_type>;
+    using ilu_factory_type = gko::factorization::Ilu<value_type, index_type>;
 
 protected:
-    ParIlu() : ref(gko::ReferenceExecutor::create()) {}
+    Ilu() : ref(gko::ReferenceExecutor::create()) {}
 
     std::shared_ptr<const gko::ReferenceExecutor> ref;
 };
 
-TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
+TYPED_TEST_SUITE(Ilu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
-TYPED_TEST(ParIlu, SetIterations)
-{
-    auto factory =
-        TestFixture::ilu_factory_type::build().with_iterations(5u).on(
-            this->ref);
-
-    ASSERT_EQ(factory->get_parameters().iterations, 5u);
-}
-
-
-TYPED_TEST(ParIlu, SetSkip)
+TYPED_TEST(Ilu, SetSkip)
 {
     auto factory =
         TestFixture::ilu_factory_type::build().with_skip_sorting(true).on(
@@ -51,7 +38,7 @@ TYPED_TEST(ParIlu, SetSkip)
 }
 
 
-TYPED_TEST(ParIlu, SetLStrategy)
+TYPED_TEST(Ilu, SetLStrategy)
 {
     auto strategy = gko::matrix::csr::spmv_strategy::load_balance;
 
@@ -63,7 +50,7 @@ TYPED_TEST(ParIlu, SetLStrategy)
 }
 
 
-TYPED_TEST(ParIlu, SetUStrategy)
+TYPED_TEST(Ilu, SetUStrategy)
 {
     auto strategy = gko::matrix::csr::spmv_strategy::load_balance;
 
@@ -78,7 +65,7 @@ TYPED_TEST(ParIlu, SetUStrategy)
 GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
-TYPED_TEST(ParIlu, SetStrategyDeprecated)
+TYPED_TEST(Ilu, SetStrategyDeprecated)
 {
     using matrix_type = typename TestFixture::ilu_factory_type::matrix_type;
     auto l_strategy =
@@ -100,36 +87,48 @@ TYPED_TEST(ParIlu, SetStrategyDeprecated)
 GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
-TYPED_TEST(ParIlu, SetDefaults)
+TYPED_TEST(Ilu, SetAlgorithm)
+{
+    auto factory =
+        TestFixture::ilu_factory_type::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(this->ref);
+
+    ASSERT_EQ(factory->get_parameters().algorithm,
+              gko::factorization::incomplete_algorithm::syncfree);
+}
+
+
+TYPED_TEST(Ilu, SetDefaults)
 {
     auto factory = TestFixture::ilu_factory_type::build().on(this->ref);
 
-    ASSERT_EQ(factory->get_parameters().iterations, 0u);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(factory->get_parameters().l_strategy,
               gko::matrix::csr::spmv_strategy::classical);
     ASSERT_EQ(factory->get_parameters().u_strategy,
               gko::matrix::csr::spmv_strategy::classical);
+    ASSERT_EQ(factory->get_parameters().algorithm,
+              gko::factorization::incomplete_algorithm::sparselib);
 }
 
 
-TYPED_TEST(ParIlu, SetEverything)
+TYPED_TEST(Ilu, SetEverything)
 {
     auto l_strategy = gko::matrix::csr::spmv_strategy::load_balance;
     auto u_strategy = gko::matrix::csr::spmv_strategy::sparselib;
 
-    auto factory = TestFixture::ilu_factory_type::build()
-                       .with_iterations(7u)
-                       .with_skip_sorting(false)
-                       .with_l_strategy(l_strategy)
-                       .with_u_strategy(u_strategy)
-                       .on(this->ref);
+    auto factory =
+        TestFixture::ilu_factory_type::build()
+            .with_skip_sorting(false)
+            .with_l_strategy(l_strategy)
+            .with_u_strategy(u_strategy)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(this->ref);
 
-    ASSERT_EQ(factory->get_parameters().iterations, 7u);
     ASSERT_EQ(factory->get_parameters().skip_sorting, false);
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
     ASSERT_EQ(factory->get_parameters().u_strategy, u_strategy);
+    ASSERT_EQ(factory->get_parameters().algorithm,
+              gko::factorization::incomplete_algorithm::syncfree);
 }
-
-
-}  // namespace

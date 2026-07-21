@@ -180,15 +180,59 @@ public:
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        matrix::csr::spmv_strategy GKO_FACTORY_PARAMETER_SCALAR(
-            l_strategy, matrix::csr::spmv_strategy::classical);
+        GKO_DEPRECATED("use matrix::csr::spmv_strategy instead")
+        parameters_type& with_l_strategy(
+            std::shared_ptr<typename matrix_type::strategy_type> value)
+        {
+            if (value) {
+                this->l_strategy = value->get_enum();
+            } else {
+                this->l_strategy = matrix::csr::spmv_strategy::classical;
+            }
+            return *this;
+        }
+
+        /**
+         * Strategy which will be used by the L matrix. The default value is
+         * `classical`.
+         */
+        parameters_type& with_l_strategy(matrix::csr::spmv_strategy value)
+        {
+            this->l_strategy = value;
+            return *this;
+        }
+
+        matrix::csr::spmv_strategy l_strategy{
+            matrix::csr::spmv_strategy::classical};
 
         /**
          * Strategy which will be used by the U matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        matrix::csr::spmv_strategy GKO_FACTORY_PARAMETER_SCALAR(
-            u_strategy, matrix::csr::spmv_strategy::classical);
+        GKO_DEPRECATED("use matrix::csr::spmv_strategy instead")
+        parameters_type& with_u_strategy(
+            std::shared_ptr<typename matrix_type::strategy_type> value)
+        {
+            if (value) {
+                this->u_strategy = value->get_enum();
+            } else {
+                this->u_strategy = matrix::csr::spmv_strategy::classical;
+            }
+            return *this;
+        }
+
+        /**
+         * Strategy which will be used by the U matrix. The default value is
+         * `classical`.
+         */
+        parameters_type& with_u_strategy(matrix::csr::spmv_strategy value)
+        {
+            this->u_strategy = value;
+            return *this;
+        }
+
+        matrix::csr::spmv_strategy u_strategy{
+            matrix::csr::spmv_strategy::classical};
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlut, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
