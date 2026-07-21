@@ -94,10 +94,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     // TODO: it always run make_srow even if the matrix is not changed
     // Add explicit diagonal zero elements if they are missing
     exec->run(par_ilu_factorization::make_add_diagonal_elements(
-        std::make_unique<matrix::CsrBuilder<ValueType, IndexType>>(
-            csr_system_matrix)
-            .get(),
-        true));
+        matrix::make_builder_unique_ptr(csr_system_matrix).get(), true));
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
     array<IndexType> l_row_ptrs{exec, number_rows + 1};

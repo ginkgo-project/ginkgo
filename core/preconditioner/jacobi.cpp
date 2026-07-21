@@ -384,10 +384,7 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             // TODO: it always run make_srow even if the matrix is not
             // changed
             exec->run(jacobi::make_add_diagonal_elements(
-                std::make_unique<matrix::CsrBuilder<ValueType, IndexType>>(
-                    changed_mtx)
-                    .get(),
-                true));
+                matrix::make_builder_unique_ptr(changed_mtx).get(), true));
             // block_pointers has larger size than actual num_blocks_
             exec->run(jacobi::make_block_l1(
                 num_blocks_, parameters_.block_pointers, changed_mtx.get()));

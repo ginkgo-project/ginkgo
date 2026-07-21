@@ -6,6 +6,9 @@
 #define GKO_CORE_MATRIX_CSR_BUILDER_HPP_
 
 
+#include <memory>
+
+#include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 
@@ -60,6 +63,29 @@ public:
 private:
     Csr<ValueType, IndexType>* matrix_;
 };
+
+
+// helper function to make CsrBuilder unique_ptr from Csr
+template <typename ValueType, typename IndexType>
+std::unique_ptr<CsrBuilder<ValueType, IndexType>> make_builder_unique_ptr(
+    Csr<ValueType, IndexType>* ptr)
+{
+    return std::make_unique<CsrBuilder<ValueType, IndexType>>(ptr);
+}
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<CsrBuilder<ValueType, IndexType>> make_builder_unique_ptr(
+    const std::shared_ptr<Csr<ValueType, IndexType>>& ptr)
+{
+    return make_builder_unique_ptr(ptr.get());
+}
+
+template <typename ValueType, typename IndexType, typename Deleter>
+std::unique_ptr<CsrBuilder<ValueType, IndexType>> make_builder_unique_ptr(
+    const std::unique_ptr<Csr<ValueType, IndexType>, Deleter>& ptr)
+{
+    return make_builder_unique_ptr(ptr.get());
+}
 
 
 }  // namespace matrix

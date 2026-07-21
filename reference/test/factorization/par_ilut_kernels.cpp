@@ -340,10 +340,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCoo)
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
         this->ref, this->mtx1.get(), 0.0,
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-            res_mtx)
-            .get(),
-        null_coo, true);
+        gko::matrix::make_builder_unique_ptr(res_mtx).get(), null_coo, true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(this->mtx1, res_mtx);
     GKO_ASSERT_MTX_NEAR(this->mtx1, res_mtx, 0);
@@ -426,10 +423,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCoo)
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
         this->ref, this->mtx1.get(), rank, tmp, threshold,
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-            res_mtx)
-            .get(),
-        null_coo);
+        gko::matrix::make_builder_unique_ptr(res_mtx).get(), null_coo);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(this->mtx1, res_mtx);
     GKO_ASSERT_MTX_NEAR(this->mtx1, res_mtx, 0);
@@ -478,12 +472,8 @@ TYPED_TEST(ParIlut, KernelAddCandidates)
     gko::kernels::reference::par_ilut_factorization::add_candidates(
         this->ref, this->mtx_lu.get(), this->mtx_system.get(),
         this->mtx_l.get(), this->mtx_u.get(),
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-            res_mtx_l)
-            .get(),
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-            res_mtx_u)
-            .get());
+        gko::matrix::make_builder_unique_ptr(res_mtx_l).get(),
+        gko::matrix::make_builder_unique_ptr(res_mtx_u).get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, this->mtx_l_add_expect);
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_u, this->mtx_u_add_expect);

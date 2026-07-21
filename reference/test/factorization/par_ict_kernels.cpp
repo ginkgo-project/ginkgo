@@ -185,9 +185,7 @@ TYPED_TEST(ParIct, KernelAddCandidates)
     gko::kernels::reference::par_ict_factorization::add_candidates(
         this->ref, this->mtx_llh.get(), this->mtx_system.get(),
         this->mtx_l.get(),
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-            res_mtx_l)
-            .get());
+        gko::matrix::make_builder_unique_ptr(res_mtx_l).get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, this->mtx_l_add_expect);
     GKO_ASSERT_MTX_NEAR(res_mtx_l, this->mtx_l_add_expect, this->tol);

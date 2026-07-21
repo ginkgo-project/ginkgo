@@ -385,8 +385,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(csr::make_spgemm(
-            this, b_csr,
-            std::make_unique<CsrBuilder<ValueType, IndexType>>(x_csr).get()));
+            this, b_csr, make_builder_unique_ptr(x_csr).get()));
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
@@ -511,7 +510,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         this->get_executor()->run(csr::make_advanced_spgemm(
             as<Dense<ValueType>>(alpha)->get_const_device_view(), this, b_csr,
             as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
-            std::make_unique<CsrBuilder<ValueType, IndexType>>(x_csr).get()));
+            make_builder_unique_ptr(x_csr).get()));
     } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
         auto x_csr = as<TCsr>(x);
@@ -519,7 +518,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         this->get_executor()->run(csr::make_spgeam(
             as<Dense<ValueType>>(alpha)->get_const_device_view(), this,
             as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
-            std::make_unique<CsrBuilder<ValueType, IndexType>>(x_csr).get()));
+            make_builder_unique_ptr(x_csr).get()));
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this, alpha, beta](auto dense_b, auto dense_x) {
@@ -886,9 +885,8 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::multiply(
     auto exec = this->get_executor();
     auto local_other = make_temporary_clone(exec, other);
     auto result = Csr::create(exec, result_size);
-    exec->run(csr::make_spgemm(
-        this, local_other.get(),
-        std::make_unique<CsrBuilder<ValueType, IndexType>>(result).get()));
+    exec->run(csr::make_spgemm(this, local_other.get(),
+                               make_builder_unique_ptr(result).get()));
     return result;
 }
 
@@ -968,9 +966,8 @@ Csr<ValueType, IndexType>::multiply_reuse(ptr_param<const Csr> other) const
     auto local_other = make_temporary_clone(exec, other);
     auto result = Csr::create(exec, result_size);
     {
-        exec->run(csr::make_spgemm(
-            this, local_other.get(),
-            std::make_unique<CsrBuilder<ValueType, IndexType>>(result).get()));
+        exec->run(csr::make_spgemm(this, local_other.get(),
+                                   make_builder_unique_ptr(result).get()));
     }
     auto lookup = csr::build_lookup(result.get());
     auto reuse_info = multiply_reuse_info{
@@ -1006,7 +1003,7 @@ Csr<ValueType, IndexType>::multiply_add(
     exec->run(csr::make_advanced_spgemm(
         local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
         local_scale_add->get_const_device_view(), local_mtx_add.get(),
-        std::make_unique<CsrBuilder<ValueType, IndexType>>(result).get()));
+        make_builder_unique_ptr(result).get()));
     return result;
 }
 
@@ -1110,7 +1107,7 @@ Csr<ValueType, IndexType>::multiply_add_reuse(
     exec->run(csr::make_advanced_spgemm(
         local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
         local_scale_add->get_const_device_view(), local_mtx_add.get(),
-        std::make_unique<CsrBuilder<ValueType, IndexType>>(result).get()));
+        make_builder_unique_ptr(result).get()));
     auto lookup = csr::build_lookup(result.get());
     auto reuse_info = multiply_add_reuse_info{
         std::make_unique<typename multiply_add_reuse_info::lookup_data>(
@@ -1138,10 +1135,10 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::scale_add(
     auto local_scale_other = make_temporary_clone(exec, scale_other);
     auto local_mtx_other = make_temporary_clone(exec, mtx_other);
     auto result = Csr::create(exec, this->get_size());
-    exec->run(csr::make_spgeam(
-        local_scale_this->get_const_device_view(), this,
-        local_scale_other->get_const_device_view(), local_mtx_other.get(),
-        std::make_unique<CsrBuilder<ValueType, IndexType>>(result).get()));
+    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
+                               local_scale_other->get_const_device_view(),
+                               local_mtx_other.get(),
+                               make_builder_unique_ptr(result).get()));
     return result;
 }
 
@@ -1233,10 +1230,10 @@ Csr<ValueType, IndexType>::add_scale_reuse(
     auto local_scale_other = make_temporary_clone(exec, scale_other);
     auto local_mtx_other = make_temporary_clone(exec, mtx_other);
     auto result = Csr::create(exec, this->get_size());
-    exec->run(csr::make_spgeam(
-        local_scale_this->get_const_device_view(), this,
-        local_scale_other->get_const_device_view(), local_mtx_other.get(),
-        std::make_unique<CsrBuilder<ValueType, IndexType>>(result).get()));
+    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
+                               local_scale_other->get_const_device_view(),
+                               local_mtx_other.get(),
+                               make_builder_unique_ptr(result).get()));
     return std::make_pair(
         std::move(result),
         scale_add_reuse_info{

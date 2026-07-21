@@ -234,11 +234,11 @@ template <typename ValueType, typename IndexType>
 void ParIctState<ValueType, IndexType>::iterate()
 {
     // compute L * L^H
-    exec->run(make_spgemm(l.get(), lh.get(),
-                          std::make_unique<CsrBuilder>(llh).get()));
+    exec->run(
+        make_spgemm(l.get(), lh.get(), make_builder_unique_ptr(llh).get()));
     // add new candidates to L' factor
     exec->run(make_add_candidates(llh.get(), system_matrix, l.get(),
-                                  std::make_unique<CsrBuilder>(l_new).get()));
+                                  make_builder_unique_ptr(l_new).get()));
 
     // update L(COO), L'^H sizes and pointers
     {
@@ -271,7 +271,7 @@ void ParIctState<ValueType, IndexType>::iterate()
         // remove approximately smallest candidates
         exec->run(make_threshold_filter_approx(
             l_new.get(), l_filter_rank, selection_tmp, tmp,
-            std::make_unique<CsrBuilder>(l).get(), l_coo.get()));
+            make_builder_unique_ptr(l).get(), l_coo.get()));
     } else {
         // select threshold to remove smallest candidates
         remove_complex<ValueType> l_threshold{};
@@ -280,7 +280,7 @@ void ParIctState<ValueType, IndexType>::iterate()
                                         l_threshold));
         // remove smallest candidates
         exec->run(make_threshold_filter(l_new.get(), l_threshold,
-                                        std::make_unique<CsrBuilder>(l).get(),
+                                        make_builder_unique_ptr(l).get(),
                                         l_coo.get(), true));
     }
 

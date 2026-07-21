@@ -162,18 +162,12 @@ protected:
 
         gko::kernels::reference::par_ilut_factorization::threshold_filter(
             ref, local_mtx.get(), threshold,
-            std::make_unique<gko::matrix::CsrBuilder<typename Mtx::value_type,
-                                                     typename Mtx::index_type>>(
-                res)
-                .get(),
-            res_coo.get(), lower);
+            gko::matrix::make_builder_unique_ptr(res).get(), res_coo.get(),
+            lower);
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
-            threshold_filter(
-                exec, local_dmtx.get(), threshold,
-                std::make_unique<gko::matrix::CsrBuilder<
-                    typename Mtx::value_type, typename Mtx::index_type>>(dres)
-                    .get(),
-                dres_coo.get(), lower);
+            threshold_filter(exec, local_dmtx.get(), threshold,
+                             gko::matrix::make_builder_unique_ptr(dres).get(),
+                             dres_coo.get(), lower);
 
         GKO_ASSERT_MTX_NEAR(res, dres, 0);
         GKO_ASSERT_MTX_EQ_SPARSITY(res, dres);
@@ -205,16 +199,11 @@ protected:
         gko::kernels::reference::par_ilut_factorization::
             threshold_filter_approx(
                 ref, mtx.get(), rank, tmp, threshold,
-                std::make_unique<gko::matrix::CsrBuilder<
-                    typename Mtx::value_type, typename Mtx::index_type>>(res)
-                    .get(),
-                res_coo.get());
+                gko::matrix::make_builder_unique_ptr(res).get(), res_coo.get());
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
             threshold_filter_approx(
                 exec, dmtx.get(), rank, dtmp, dthreshold,
-                std::make_unique<gko::matrix::CsrBuilder<
-                    typename Mtx::value_type, typename Mtx::index_type>>(dres)
-                    .get(),
+                gko::matrix::make_builder_unique_ptr(dres).get(),
                 dres_coo.get());
 
         GKO_ASSERT_MTX_NEAR(res, dres, 0);
@@ -313,16 +302,11 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCooIsEquivalentToRef)
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
         this->ref, this->mtx_l.get(), 0.5,
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(res)
-            .get(),
-        null_coo, true);
+        gko::matrix::make_builder_unique_ptr(res).get(), null_coo, true);
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
-        threshold_filter(
-            this->exec, this->dmtx_l.get(), 0.5,
-            std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-                dres)
-                .get(),
-            null_coo, true);
+        threshold_filter(this->exec, this->dmtx_l.get(), 0.5,
+                         gko::matrix::make_builder_unique_ptr(dres).get(),
+                         null_coo, true);
 
     GKO_ASSERT_MTX_NEAR(res, dres, 0);
     GKO_ASSERT_MTX_EQ_SPARSITY(res, dres);
@@ -390,16 +374,11 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
         this->ref, this->mtx_l.get(), rank, tmp, threshold,
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(res)
-            .get(),
-        null_coo);
+        gko::matrix::make_builder_unique_ptr(res).get(), null_coo);
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
         threshold_filter_approx(
             this->exec, this->dmtx_l.get(), rank, dtmp, dthreshold,
-            std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-                dres)
-                .get(),
-            null_coo);
+            gko::matrix::make_builder_unique_ptr(dres).get(), null_coo);
 
     GKO_ASSERT_MTX_NEAR(res, dres, 0);
     GKO_ASSERT_MTX_EQ_SPARSITY(res, dres);
@@ -484,21 +463,13 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
     gko::kernels::reference::par_ilut_factorization::add_candidates(
         this->ref, mtx_lu.get(), this->mtx_square.get(), this->mtx_l2.get(),
         this->mtx_u.get(),
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-            res_mtx_l)
-            .get(),
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-            res_mtx_u)
-            .get());
+        gko::matrix::make_builder_unique_ptr(res_mtx_l).get(),
+        gko::matrix::make_builder_unique_ptr(res_mtx_u).get());
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::add_candidates(
         this->exec, dmtx_lu.get(), this->dmtx_square.get(), this->dmtx_l2.get(),
         this->dmtx_u.get(),
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-            dres_mtx_l)
-            .get(),
-        std::make_unique<gko::matrix::CsrBuilder<value_type, index_type>>(
-            dres_mtx_u)
-            .get());
+        gko::matrix::make_builder_unique_ptr(dres_mtx_l).get(),
+        gko::matrix::make_builder_unique_ptr(dres_mtx_u).get());
 
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_l, dres_mtx_l);
     GKO_ASSERT_MTX_EQ_SPARSITY(res_mtx_u, dres_mtx_u);

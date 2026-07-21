@@ -97,10 +97,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     // TODO: it always run make_srow even if the matrix is not changed
     // Add explicit diagonal zero elements if they are missing
     exec->run(ilu_factorization::make_add_diagonal_elements(
-        std::make_unique<matrix::CsrBuilder<ValueType, IndexType>>(
-            local_system_matrix)
-            .get(),
-        false));
+        matrix::make_builder_unique_ptr(local_system_matrix).get(), false));
     std::shared_ptr<const matrix_type> ilu;
     // Compute ILU factorization
     if (parameters_.algorithm == incomplete_algorithm::syncfree ||

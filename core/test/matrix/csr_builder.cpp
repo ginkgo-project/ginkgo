@@ -50,3 +50,44 @@ TYPED_TEST(CsrBuilder, ReturnsCorrectArrays)
     ASSERT_EQ(builder_values, ref_values);
     ASSERT_EQ(builder_mtx, this->mtx.get());
 }
+
+
+TYPED_TEST(CsrBuilder, HelperFunctionOnUniquePtrReturnCorrect)
+{
+    auto ref_col_idxs = this->mtx->get_col_idxs();
+    auto ref_values = this->mtx->get_values();
+
+    auto builder = gko::matrix::make_builder_unique_ptr(this->mtx);
+
+    ASSERT_EQ(builder->get_col_idx_array().get_data(), ref_col_idxs);
+    ASSERT_EQ(builder->get_value_array().get_data(), ref_values);
+    ASSERT_EQ(builder->get_matrix(), this->mtx.get());
+}
+
+
+TYPED_TEST(CsrBuilder, HelperFunctionOnSharedPtrReturnCorrect)
+{
+    auto ref_mtx = gko::share(this->mtx->clone());
+    auto ref_col_idxs = ref_mtx->get_col_idxs();
+    auto ref_values = ref_mtx->get_values();
+
+    auto builder = gko::matrix::make_builder_unique_ptr(ref_mtx);
+
+    ASSERT_EQ(builder->get_col_idx_array().get_data(), ref_col_idxs);
+    ASSERT_EQ(builder->get_value_array().get_data(), ref_values);
+    ASSERT_EQ(builder->get_matrix(), ref_mtx.get());
+}
+
+
+TYPED_TEST(CsrBuilder, HelperFunctionOnPlainPtrReturnCorrect)
+{
+    auto ref_col_idxs = this->mtx->get_col_idxs();
+    auto ref_values = this->mtx->get_values();
+    auto ref_mtx = this->mtx.get();
+
+    auto builder = gko::matrix::make_builder_unique_ptr(ref_mtx);
+
+    ASSERT_EQ(builder->get_col_idx_array().get_data(), ref_col_idxs);
+    ASSERT_EQ(builder->get_value_array().get_data(), ref_values);
+    ASSERT_EQ(builder->get_matrix(), ref_mtx);
+}
