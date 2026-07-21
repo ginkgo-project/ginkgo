@@ -51,8 +51,13 @@ struct OneMklSolveStruct : gko::solver::SolveStruct {
         diag = unit_diag ? oneapi::mkl::diag::unit : oneapi::mkl::diag::nonunit;
         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
         oneapi::mkl::sparse::set_csr_data(
-            *exec->get_queue(), mat_handle, IndexType(matrix->get_size()[0]),
-            IndexType(matrix->get_size()[1]), oneapi::mkl::index_base::zero,
+            *exec->get_queue(), mat_handle,
+            static_cast<IndexType>(matrix->get_size()[0]),
+            static_cast<IndexType>(matrix->get_size()[1]),
+#if INTEL_MKL_VERSION >= 20250300
+            static_cast<std::int64_t>(matrix->get_num_stored_elements()),
+#endif
+            oneapi::mkl::index_base::zero,
             const_cast<IndexType*>(matrix->get_const_row_ptrs()),
             const_cast<IndexType*>(matrix->get_const_col_idxs()),
             const_cast<ValueType*>(matrix->get_const_values()));
