@@ -173,30 +173,6 @@ public:
                                                value_type{1});
 
         /**
-         * Scale correction mode (matches OpenFOAM GAMGSolverScale.C::scale).
-         *
-         * A Rayleigh-quotient step length alpha is computed and one
-         * inner-solver step is applied as a correction.
-         *
-         * - none (default): plain Richardson, fixed relaxation_factor
-         * - forward: solve for δ = omega·M⁻¹(r), then Rayleigh-correct δ
-         *       alpha = (δ·r)/(δ·Aδ);  δ = alpha·δ + solver(r − alpha·Aδ)
-         *       x += δ
-         * - backward: Rayleigh-correct r as initial guess, then apply solver
-         *       alpha = (r·r)/(r·Ar);  r* = alpha·r + solver(r − alpha·Ar)
-         *       x += omega·solver(r, init=r*)
-         *
-         * backward matches OpenFOAM's GAMGSolver::scale(), which is called at
-         * the finest level on the V-cycle correction before it is added to
-         * the solution x (GAMGSolverSolve.C::Vcycle, lines 438-456).
-         *
-         * @see https://doi.org/10.1145/3712285.3759807 for a generalization
-         *      of this correction approach.
-         */
-        scale_correction_mode GKO_FACTORY_PARAMETER_SCALAR(
-            scale_correction, scale_correction_mode::none);
-
-        /**
          * Default initial guess mode. The available options are under
          * initial_guess_mode.
          */
@@ -304,14 +280,6 @@ struct workspace_traits<Ir<ValueType>> {
     constexpr static int one = 2;
     // constant -1.0 scalar
     constexpr static int minus_one = 3;
-    // A*x product for scale correction
-    constexpr static int acf = 4;
-    // scaled residual b - alpha*Ax for scale correction
-    constexpr static int r_scaled = 5;
-    // alpha = (x·b)/(x·Ax) scalar for scale correction
-    constexpr static int alpha = 6;
-    // denominator x·Ax scalar for scale correction
-    constexpr static int denom = 7;
 
     // stopping status array
     constexpr static int stop = 0;

@@ -40,7 +40,8 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     config::config_check_decorator config_check(config);
     if (auto& obj = config_check.get("criteria")) {
         params.with_criteria(
-            config::parse_or_get_criteria(obj, context, td_for_child));
+            config::parse_or_get_factory_vector<const stop::CriterionFactory>(
+                obj, context, td_for_child));
     }
     if (auto& obj = config_check.get("solver")) {
         params.with_solver(config::parse_or_get_factory<const LinOpFactory>(
@@ -56,10 +57,6 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
     if (auto& obj = config_check.get("default_initial_guess")) {
         params.with_default_initial_guess(
             config::get_value<solver::initial_guess_mode>(obj));
-    }
-    if (auto& obj = config_check.get("scale_correction")) {
-        params.with_scale_correction(
-            config::get_value<scale_correction_mode>(obj));
     }
 
     return params;
@@ -197,6 +194,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                      VectorType* dense_x,
                                      initial_guess_mode guess) const
 {
+    using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Ir>;
 
     auto exec = this->get_executor();
@@ -207,11 +205,6 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     GKO_SOLVER_ONE_MINUS_ONE();
 
-    GKO_SOLVER_VECTOR(acf, dense_b);
-    GKO_SOLVER_VECTOR(r_scaled, dense_b);
-    GKO_SOLVER_SCALAR(alpha, dense_b);
-    GKO_SOLVER_SCALAR(denom, dense_b);
-
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
     exec->run(ir::make_initialize(stop_status));
@@ -219,7 +212,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         residual->copy_from(dense_b);
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
     }
-    // zero input: residual is dense_b
+    // zero input the residual is dense_b
     const VectorType* residual_ptr =
         guess == initial_guess_mode::zero ? dense_b : residual;
 
@@ -227,36 +220,6 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
         residual_ptr);
-
-    // Matches the OpenFOAM GAMGSolver::scale function:
-    //   acf   = A * x
-    //   alpha = (x·b) / (x·acf)              [Rayleigh-quotient step length]
-    //   x     = alpha*x + solver(b - alpha*acf)  [scale + 1 inner-solver step]
-    auto apply_scale_correction = [&](VectorType* x, const VectorType* b) {
-        // acf = A * x
-        this->get_system_matrix()->apply(x, acf);
-
-        // alpha = (x·b) / (x·Ax); skip if x·Ax = 0 (e.g., x = 0)
-        x->compute_dot(b, alpha);    // alpha = x·b
-        x->compute_dot(acf, denom);  // denom = x·Ax
-        if (exec->copy_val_to_host(denom->get_const_values()) ==
-            zero<ValueType>()) {
-            return;
-        }
-        alpha->inv_scale(denom);  // alpha = (x·b)/(x·Ax)
-
-        // r_scaled = b - alpha * Ax
-        r_scaled->copy_from(b);
-        acf->scale(alpha);                      // acf = alpha * Ax
-        r_scaled->add_scaled(neg_one_op, acf);  // r_scaled = b - alpha*Ax
-
-        // 1 inner-solver step as correction: acf = solver(r_scaled)
-        solver_->apply(r_scaled, acf);
-
-        // x = alpha*x + solver(b - alpha*Ax)
-        x->scale(alpha);
-        x->add_scaled(one_op, acf);
-    };
 
     int iter = -1;
     while (true) {
@@ -277,34 +240,17 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
             break;
         }
 
+        if (solver_->apply_uses_initial_guess()) {
+            // Use the inner solver to solve
+            // A * inner_solution = residual
+            // with residual as initial guess.
+            inner_solution->copy_from(residual_ptr);
+            solver_->apply(residual_ptr, inner_solution);
 
-        if (parameters_.scale_correction == scale_correction_mode::forward) {
-            // forward: δ = omega * M⁻¹(r), then Rayleigh correction on δ
-            // Zero δ so the 2-arg apply is additive (avoids
-            // prepare_initial_guess zeroing x for zero-initial-guess solvers
-            // such as multigrid).
-            inner_solution->fill(zero<ValueType>());
-            solver_->apply(residual_ptr, inner_solution);
-            inner_solution->scale(relaxation_factor_);
-            //   alpha = (δ·r)/(δ·Aδ);  δ = alpha·δ + solver(r − alpha·Aδ)
-            apply_scale_correction(inner_solution, residual_ptr);
-            dense_x->add_scaled(one_op, inner_solution);
-        } else if (parameters_.scale_correction ==
-                   scale_correction_mode::backward) {
-            // backward: scale-correct r as initial guess, then apply solver
-            // Matches OpenFOAM GAMGSolver::scale():
-            //   alpha = (r·r)/(r·Ar);  r* = alpha·r + solver(r − alpha·Ar)
-            inner_solution->copy_from(residual_ptr);
-            apply_scale_correction(inner_solution, residual_ptr);
-            solver_->apply(residual_ptr, inner_solution);
-            dense_x->add_scaled(relaxation_factor_, inner_solution);
-        } else if (solver_->apply_uses_initial_guess()) {
-            // inner solver needs an initial guess: use the residual
-            inner_solution->copy_from(residual_ptr);
-            solver_->apply(residual_ptr, inner_solution);
+            // x = x + relaxation_factor * inner_solution
             dense_x->add_scaled(relaxation_factor_, inner_solution);
         } else {
-            // plain Richardson: x = x + relaxation_factor * solver(r)
+            // x = x + relaxation_factor * A \ residual
             solver_->apply(relaxation_factor_, residual_ptr, one_op, dense_x);
         }
     }
@@ -350,7 +296,7 @@ int workspace_traits<Ir<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Ir<ValueType>>::num_vectors(const Solver&)
 {
-    return 8;
+    return 4;
 }
 
 
@@ -359,8 +305,10 @@ std::vector<std::string> workspace_traits<Ir<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "residual", "inner_solution", "one",   "minus_one",
-        "acf",      "r_scaled",       "alpha", "denom",
+        "residual",
+        "inner_solution",
+        "one",
+        "minus_one",
     };
 }
 
@@ -376,14 +324,14 @@ std::vector<std::string> workspace_traits<Ir<ValueType>>::array_names(
 template <typename ValueType>
 std::vector<int> workspace_traits<Ir<ValueType>>::scalars(const Solver&)
 {
-    return {alpha, denom};
+    return {};
 }
 
 
 template <typename ValueType>
 std::vector<int> workspace_traits<Ir<ValueType>>::vectors(const Solver&)
 {
-    return {residual, inner_solution, acf, r_scaled};
+    return {residual, inner_solution};
 }
 
 
