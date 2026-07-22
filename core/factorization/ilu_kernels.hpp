@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,9 +25,9 @@ namespace kernels {
                        matrix::Csr<ValueType, IndexType>* system_matrix)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)   \
     template <typename ValueType, typename IndexType> \
-    GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL(ValueType, IndexType)
+    _export_macro GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ilu_factorization,

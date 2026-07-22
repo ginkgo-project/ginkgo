@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,11 +35,13 @@ namespace kernels {
         gko::factorization::elimination_forest<IndexType>& forest)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    template <typename IndexType>                                    \
-    GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE(IndexType); \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                     \
+    template <typename IndexType>                                       \
+    _export_macro GKO_DECLARE_ELIMINATION_FOREST_COMPUTE_SKELETON_TREE( \
+        IndexType);                                                     \
+    template <typename ValueType, typename IndexType>                   \
+    _export_macro GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, \
+                                                             IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(elimination_forest,

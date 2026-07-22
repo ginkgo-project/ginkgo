@@ -35,12 +35,12 @@ namespace kernels {
         array<ValueType>& off_diag_values)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                     \
     using comm_index_type = experimental::distributed::comm_index_type; \
     template <typename ValueType, typename LocalIndexType,              \
               typename GlobalIndexType>                                 \
-    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG(ValueType, LocalIndexType,       \
-                                       GlobalIndexType)
+    _export_macro GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG(                   \
+        ValueType, LocalIndexType, GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_matrix,

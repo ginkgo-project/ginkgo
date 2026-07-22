@@ -65,19 +65,24 @@ namespace kernels {
                                  matrix::Csr<ValueType, IndexType>* m_out,    \
                                  matrix::Coo<ValueType, IndexType>* m_out_coo)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    constexpr auto sampleselect_searchtree_height = 8;                    \
-    constexpr auto sampleselect_oversampling = 4;                         \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                          \
+    constexpr auto sampleselect_searchtree_height = 8;                       \
+    constexpr auto sampleselect_oversampling = 4;                            \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL(ValueType,      \
+                                                             IndexType);     \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL(ValueType,  \
+                                                                 IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_PAR_ILUT_THRESHOLD_SELECT_KERNEL(ValueType,    \
+                                                               IndexType);   \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL(ValueType,    \
+                                                               IndexType);   \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL(       \
+        ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(par_ilut_factorization,

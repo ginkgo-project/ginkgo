@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -63,22 +63,25 @@ namespace kernels {
         bool& valid)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType,      \
-                                                           IndexType);     \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType,    \
-                                                             IndexType);   \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(ValueType,      \
-                                                           IndexType);     \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                           \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(     \
+        ValueType, IndexType);                                                \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(   \
+        ValueType, IndexType);                                                \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_INITIALIZE_L_U_KERNEL(ValueType,  \
+                                                                  IndexType); \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_KERNEL(     \
+        ValueType, IndexType);                                                \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_INITIALIZE_L_KERNEL(ValueType,    \
+                                                                IndexType);   \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_FACTORIZATION_SYMBOLIC_VALIDATE_KERNEL(         \
+        ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(factorization,

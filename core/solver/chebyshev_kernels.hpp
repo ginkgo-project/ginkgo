@@ -36,11 +36,11 @@ namespace chebyshev {
                 matrix::view::dense<ValueType> update_sol,         \
                 matrix::view::dense<ValueType> output)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                     \
-    template <typename ValueType>                        \
-    GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType); \
-    template <typename ValueType>                        \
-    GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                    \
+    template <typename ValueType>                                      \
+    _export_macro GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType); \
+    template <typename ValueType>                                      \
+    _export_macro GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType)
 
 
 }  // namespace chebyshev

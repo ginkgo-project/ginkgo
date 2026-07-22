@@ -47,13 +47,13 @@ namespace gcr {
                 const stopping_status* stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES              \
-    template <typename ValueType>                 \
-    GKO_DECLARE_GCR_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                 \
-    GKO_DECLARE_GCR_RESTART_KERNEL(ValueType);    \
-    template <typename ValueType>                 \
-    GKO_DECLARE_GCR_STEP_1_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)             \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_GCR_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_GCR_RESTART_KERNEL(ValueType);    \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_GCR_STEP_1_KERNEL(ValueType)
 
 
 }  // namespace gcr

@@ -144,15 +144,16 @@ namespace kernels {
         const array<size_type>& final_iter_nums)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                            \
-    template <typename ValueType>                               \
-    GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType);          \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType, Accessor3d)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                           \
+    template <typename ValueType>                                             \
+    _export_macro GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType);          \
+    template <typename ValueType, typename Accessor3d>                        \
+    _export_macro GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d); \
+    template <typename ValueType, typename Accessor3d>                        \
+    _export_macro GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(ValueType, Accessor3d); \
+    template <typename ValueType, typename Accessor3d>                        \
+    _export_macro GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType,         \
+                                                           Accessor3d)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cb_gmres, GKO_DECLARE_ALL_AS_TEMPLATES);

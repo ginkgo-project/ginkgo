@@ -46,13 +46,13 @@ namespace multigrid {
                            const ValueType rel_tol, bool& is_stop)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                       \
-    template <typename ValueType>                          \
-    GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL(ValueType); \
-    template <typename ValueType>                          \
-    GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL(ValueType); \
-    template <typename ValueType>                          \
-    GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                      \
+    template <typename ValueType>                                        \
+    _export_macro GKO_DECLARE_MULTIGRID_KCYCLE_STEP_1_KERNEL(ValueType); \
+    template <typename ValueType>                                        \
+    _export_macro GKO_DECLARE_MULTIGRID_KCYCLE_STEP_2_KERNEL(ValueType); \
+    template <typename ValueType>                                        \
+    _export_macro GKO_DECLARE_MULTIGRID_KCYCLE_CHECK_STOP_KERNEL(ValueType)
 
 
 }  // namespace multigrid

@@ -34,13 +34,16 @@ namespace kernels {
                          array<IndexType>& range_offsets)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
-    template <typename GlobalIndexType>                                      \
-    GKO_DECLARE_PARTITION_HELPERS_SORT_BY_RANGE_START(GlobalIndexType);      \
-    template <typename GlobalIndexType>                                      \
-    GKO_DECLARE_PARTITION_HELPERS_CHECK_CONSECUTIVE_RANGES(GlobalIndexType); \
-    template <typename GlobalIndexType>                                      \
-    GKO_DECLARE_PARTITION_HELPERS_COMPRESS_RANGES(GlobalIndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                       \
+    template <typename GlobalIndexType>                                   \
+    _export_macro GKO_DECLARE_PARTITION_HELPERS_SORT_BY_RANGE_START(      \
+        GlobalIndexType);                                                 \
+    template <typename GlobalIndexType>                                   \
+    _export_macro GKO_DECLARE_PARTITION_HELPERS_CHECK_CONSECUTIVE_RANGES( \
+        GlobalIndexType);                                                 \
+    template <typename GlobalIndexType>                                   \
+    _export_macro GKO_DECLARE_PARTITION_HELPERS_COMPRESS_RANGES(          \
+        GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(partition_helpers,

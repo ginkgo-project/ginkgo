@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -99,13 +99,16 @@ namespace kernels {
         experimental::distributed::index_space is, array<_gtype>& global_idxs)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    template <typename LocalIndexType, typename GlobalIndexType>          \
-    GKO_DECLARE_INDEX_MAP_BUILD_MAPPING(LocalIndexType, GlobalIndexType); \
-    template <typename LocalIndexType, typename GlobalIndexType>          \
-    GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL(LocalIndexType, GlobalIndexType);  \
-    template <typename LocalIndexType, typename GlobalIndexType>          \
-    GKO_DECLARE_INDEX_MAP_MAP_TO_GLOBAL(LocalIndexType, GlobalIndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                     \
+    template <typename LocalIndexType, typename GlobalIndexType>        \
+    _export_macro GKO_DECLARE_INDEX_MAP_BUILD_MAPPING(LocalIndexType,   \
+                                                      GlobalIndexType); \
+    template <typename LocalIndexType, typename GlobalIndexType>        \
+    _export_macro GKO_DECLARE_INDEX_MAP_MAP_TO_LOCAL(LocalIndexType,    \
+                                                     GlobalIndexType);  \
+    template <typename LocalIndexType, typename GlobalIndexType>        \
+    _export_macro GKO_DECLARE_INDEX_MAP_MAP_TO_GLOBAL(LocalIndexType,   \
+                                                      GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(index_map,

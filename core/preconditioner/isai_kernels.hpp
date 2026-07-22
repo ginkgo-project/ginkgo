@@ -54,18 +54,23 @@ namespace kernels {
         matrix::Csr<ValueType, IndexType>* inverse, size_type e_start,        \
         size_type e_end)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    constexpr int row_size_limit = 32;                                      \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    constexpr int row_size_limit = 32;                                         \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ISAI_GENERATE_TRI_INVERSE_KERNEL(ValueType,      \
+                                                               IndexType);     \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ISAI_GENERATE_GENERAL_INVERSE_KERNEL(ValueType,  \
+                                                                   IndexType); \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ISAI_GENERATE_EXCESS_SYSTEM_KERNEL(ValueType,    \
+                                                                 IndexType);   \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL(ValueType,     \
+                                                                IndexType);    \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType,   \
+                                                                  IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(isai, GKO_DECLARE_ALL_AS_TEMPLATES);

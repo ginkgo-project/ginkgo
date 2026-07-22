@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -175,9 +175,10 @@ storage_config compute_shared_storage(const int available_shared_mem,
     GKO_DECLARE_BATCH_CG_APPLY_KERNEL(_vtype, _matrix<_vtype>, _precond<_vtype>)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
     template <typename ValueType, typename BatchMatrixType, typename PrecType> \
-    GKO_DECLARE_BATCH_CG_APPLY_KERNEL(ValueType, BatchMatrixType, PrecType)
+    _export_macro GKO_DECLARE_BATCH_CG_APPLY_KERNEL(ValueType,                 \
+                                                    BatchMatrixType, PrecType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_cg, GKO_DECLARE_ALL_AS_TEMPLATES);

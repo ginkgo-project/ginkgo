@@ -30,12 +30,12 @@ namespace kernels {
         comm_index_type local_part, matrix::view::dense<ValueType> local_mtx)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    using comm_index_type = experimental::distributed::comm_index_type;   \
-    template <typename ValueType, typename LocalIndexType,                \
-              typename GlobalIndexType>                                   \
-    GKO_DECLARE_DISTRIBUTED_VECTOR_BUILD_LOCAL(ValueType, LocalIndexType, \
-                                               GlobalIndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                     \
+    using comm_index_type = experimental::distributed::comm_index_type; \
+    template <typename ValueType, typename LocalIndexType,              \
+              typename GlobalIndexType>                                 \
+    _export_macro GKO_DECLARE_DISTRIBUTED_VECTOR_BUILD_LOCAL(           \
+        ValueType, LocalIndexType, GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_vector,

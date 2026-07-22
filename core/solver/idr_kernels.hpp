@@ -71,17 +71,17 @@ namespace idr {
         const array<stopping_status>& stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES              \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_INITIALIZE_KERNEL(ValueType); \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_STEP_1_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_STEP_2_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_STEP_3_KERNEL(ValueType);     \
-    template <typename ValueType>                 \
-    GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)             \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_INITIALIZE_KERNEL(ValueType); \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_STEP_1_KERNEL(ValueType);     \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_STEP_2_KERNEL(ValueType);     \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_STEP_3_KERNEL(ValueType);     \
+    template <typename ValueType>                               \
+    _export_macro GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL(ValueType)
 
 
 }  // namespace idr

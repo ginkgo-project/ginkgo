@@ -10,6 +10,8 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/base/kernel_declaration.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -35,58 +37,16 @@ namespace kernels {
               array<char>& buffer)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES    \
-    template <typename ValueType>       \
-    GKO_DECLARE_FFT_KERNEL(ValueType);  \
-    template <typename ValueType>       \
-    GKO_DECLARE_FFT2_KERNEL(ValueType); \
-    template <typename ValueType>       \
-    GKO_DECLARE_FFT3_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)   \
+    template <typename ValueType>                     \
+    _export_macro GKO_DECLARE_FFT_KERNEL(ValueType);  \
+    template <typename ValueType>                     \
+    _export_macro GKO_DECLARE_FFT2_KERNEL(ValueType); \
+    template <typename ValueType>                     \
+    _export_macro GKO_DECLARE_FFT3_KERNEL(ValueType)
 
 
-namespace omp {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace omp
-
-
-namespace cuda {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace cuda
-
-
-namespace reference {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace reference
-
-
-namespace hip {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace fft {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace fft
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(fft, GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES

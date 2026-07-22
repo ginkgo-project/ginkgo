@@ -40,13 +40,15 @@ namespace kernels {
         matrix::Csr<ValueType, IndexType>* result)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
-    GKO_DECLARE_HYBRID_COMPUTE_ROW_NNZ;                                  \
-    GKO_DECLARE_HYBRID_COMPUTE_COO_ROW_PTRS_KERNEL;                      \
-    template <typename ValueType, typename IndexType>                    \
-    GKO_DECLARE_HYBRID_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                    \
-    GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                         \
+    _export_macro GKO_DECLARE_HYBRID_COMPUTE_ROW_NNZ;                       \
+    _export_macro GKO_DECLARE_HYBRID_COMPUTE_COO_ROW_PTRS_KERNEL;           \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_HYBRID_FILL_IN_MATRIX_DATA_KERNEL(ValueType,  \
+                                                                IndexType); \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_HYBRID_CONVERT_TO_CSR_KERNEL(ValueType,       \
+                                                           IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(hybrid, GKO_DECLARE_ALL_AS_TEMPLATES);

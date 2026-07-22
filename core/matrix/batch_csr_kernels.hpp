@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -46,15 +46,18 @@ namespace kernels {
                              batch::matrix::Csr<_vtype, _itype>* mat)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BATCH_CSR_SIMPLE_APPLY_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BATCH_CSR_ADVANCED_APPLY_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BATCH_CSR_SCALE_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                  \
-    GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                           \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_BATCH_CSR_SIMPLE_APPLY_KERNEL(ValueType,        \
+                                                            IndexType);       \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_BATCH_CSR_ADVANCED_APPLY_KERNEL(ValueType,      \
+                                                              IndexType);     \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_BATCH_CSR_SCALE_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_BATCH_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, \
+                                                                   IndexType)
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(batch_csr,
                                         GKO_DECLARE_ALL_AS_TEMPLATES);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,8 @@
 
 
 #include <memory>
+
+#include <ginkgo/export_reference.hpp>
 
 
 namespace gko {
@@ -83,7 +85,8 @@ public:
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id_guard(const ReferenceExecutor* exec, int device_id);
+    GKO_REFERENCE_EXPORT scoped_device_id_guard(const ReferenceExecutor* exec,
+                                                int device_id);
 
     /**
      * Create a scoped device id from an OmpExecutor.

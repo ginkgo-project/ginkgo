@@ -33,11 +33,12 @@ namespace kernels {
         matrix::Csr<ValueType, IndexType>* u_factor)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                             \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>            \
-    GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L_U(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L_U(ValueType,           \
+                                                          IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(sor, GKO_DECLARE_ALL_AS_TEMPLATES);

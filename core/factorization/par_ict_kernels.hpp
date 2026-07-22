@@ -36,11 +36,13 @@ namespace kernels {
         matrix::Csr<ValueType, IndexType>* l,                           \
         matrix::view::coo<const ValueType, const IndexType> l_coo)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                 \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                \
-    GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                     \
+    template <typename ValueType, typename IndexType>                   \
+    _export_macro GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL(ValueType,  \
+                                                            IndexType); \
+    template <typename ValueType, typename IndexType>                   \
+    _export_macro GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType,  \
+                                                            IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(par_ict_factorization,

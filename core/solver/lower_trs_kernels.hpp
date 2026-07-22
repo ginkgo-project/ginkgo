@@ -46,12 +46,12 @@ namespace lower_trs {
                matrix::view::dense<ValueType> x)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL;    \
-    template <typename ValueType, typename IndexType>         \
-    GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>         \
-    GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                         \
+    _export_macro GKO_DECLARE_LOWER_TRS_SHOULD_PERFORM_TRANSPOSE_KERNEL;    \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(ValueType, IndexType)
 
 
 }  // namespace lower_trs

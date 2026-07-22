@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/export_reference.hpp>
 
 
 namespace gko {
@@ -199,7 +200,7 @@ private:
 
     static version get_core_version() noexcept;
 
-    static version get_reference_version() noexcept;
+    static GKO_REFERENCE_EXPORT version get_reference_version() noexcept;
 
     static version get_omp_version() noexcept;
 

@@ -22,25 +22,24 @@ namespace kernels {
 namespace overhead {
 
 
-#define GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(_type, _num)            \
-    static volatile std::uintptr_t val_operation_##_num = 0;          \
-    template <typename _type>                                         \
-    void operation##_num(std::shared_ptr<const DefaultExecutor> exec, \
-                         const matrix::Dense<_type>* b,               \
-                         matrix::Dense<_type>* x)                     \
-    {                                                                 \
-        val_operation_##_num = reinterpret_cast<std::uintptr_t>(x);   \
-    }
-
-
-#define GKO_DECLARE_ALL                                                      \
-    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 1)                      \
-    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 2)                      \
-    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 3)                      \
-    GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 4)                      \
+#define GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(_type, _num)                   \
+    static volatile std::uintptr_t val_operation_##_num = 0;                 \
+    template <typename _type>                                                \
+    void operation##_num(std::shared_ptr<const DefaultExecutor> exec,        \
+                         const matrix::Dense<_type>* b,                      \
+                         matrix::Dense<_type>* x)                            \
+    {                                                                        \
+        val_operation_##_num = reinterpret_cast<std::uintptr_t>(x);          \
+    }                                                                        \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
+#define GKO_DECLARE_ALL(_export_macro)                                 \
+    _export_macro GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 1); \
+    _export_macro GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 2); \
+    _export_macro GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 3); \
+    _export_macro GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(ValueType, 4)
 
 
 }  // namespace overhead

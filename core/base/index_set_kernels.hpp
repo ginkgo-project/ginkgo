@@ -54,17 +54,17 @@ namespace kernels {
         const bool is_sorted)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                           \
-    template <typename IndexType>                              \
-    GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL(IndexType);  \
-    template <typename IndexType>                              \
-    GKO_DECLARE_INDEX_SET_TO_GLOBAL_INDICES_KERNEL(IndexType); \
-    template <typename IndexType>                              \
-    GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType);          \
-    template <typename IndexType>                              \
-    GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType);   \
-    template <typename IndexType>                              \
-    GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                          \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_INDEX_SET_COMPUTE_VALIDITY_KERNEL(IndexType);  \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_INDEX_SET_TO_GLOBAL_INDICES_KERNEL(IndexType); \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_INDEX_SET_POPULATE_KERNEL(IndexType);          \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_INDEX_SET_GLOBAL_TO_LOCAL_KERNEL(IndexType);   \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_INDEX_SET_LOCAL_TO_GLOBAL_KERNEL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(idx_set, GKO_DECLARE_ALL_AS_TEMPLATES);

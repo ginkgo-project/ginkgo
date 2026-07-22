@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -43,13 +43,13 @@ namespace kernels {
                                size_type* sizes)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                         \
-    template <typename IndexType, typename RowPtrType>       \
-    GKO_DECLARE_CONVERT_PTRS_TO_IDXS(IndexType, RowPtrType); \
-    template <typename IndexType, typename RowPtrType>       \
-    GKO_DECLARE_CONVERT_IDXS_TO_PTRS(IndexType, RowPtrType); \
-    template <typename RowPtrType>                           \
-    GKO_DECLARE_CONVERT_PTRS_TO_SIZES(RowPtrType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                        \
+    template <typename IndexType, typename RowPtrType>                     \
+    _export_macro GKO_DECLARE_CONVERT_PTRS_TO_IDXS(IndexType, RowPtrType); \
+    template <typename IndexType, typename RowPtrType>                     \
+    _export_macro GKO_DECLARE_CONVERT_IDXS_TO_PTRS(IndexType, RowPtrType); \
+    template <typename RowPtrType>                                         \
+    _export_macro GKO_DECLARE_CONVERT_PTRS_TO_SIZES(RowPtrType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,

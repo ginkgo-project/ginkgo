@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,11 +36,13 @@ namespace kernels {
         device_range_minimum_query_superblocks<IndexType>& superblocks)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    template <typename IndexType>                                           \
-    GKO_DECLARE_RANGE_MINIMUM_QUERY_COMPUTE_LOOKUP_SMALL_KERNEL(IndexType); \
-    template <typename IndexType>                                           \
-    GKO_DECLARE_RANGE_MINIMUM_QUERY_COMPUTE_LOOKUP_LARGE_KERNEL(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename IndexType>                                              \
+    _export_macro GKO_DECLARE_RANGE_MINIMUM_QUERY_COMPUTE_LOOKUP_SMALL_KERNEL( \
+        IndexType);                                                            \
+    template <typename IndexType>                                              \
+    _export_macro GKO_DECLARE_RANGE_MINIMUM_QUERY_COMPUTE_LOOKUP_LARGE_KERNEL( \
+        IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(range_minimum_query,

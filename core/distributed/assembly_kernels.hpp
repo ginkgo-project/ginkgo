@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,15 +44,16 @@ namespace kernels {
         array<GlobalIndexType>& send_col_idxs, array<ValueType>& send_values)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
-    using comm_index_type = experimental::distributed::comm_index_type; \
-    template <typename ValueType, typename LocalIndexType,              \
-              typename GlobalIndexType>                                 \
-    GKO_DECLARE_COUNT_NON_OWNING_ENTRIES(ValueType, LocalIndexType,     \
-                                         GlobalIndexType);              \
-    template <typename ValueType, typename LocalIndexType,              \
-              typename GlobalIndexType>                                 \
-    GKO_DECLARE_FILL_SEND_BUFFERS(ValueType, LocalIndexType, GlobalIndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                        \
+    using comm_index_type = experimental::distributed::comm_index_type;    \
+    template <typename ValueType, typename LocalIndexType,                 \
+              typename GlobalIndexType>                                    \
+    _export_macro GKO_DECLARE_COUNT_NON_OWNING_ENTRIES(                    \
+        ValueType, LocalIndexType, GlobalIndexType);                       \
+    template <typename ValueType, typename LocalIndexType,                 \
+              typename GlobalIndexType>                                    \
+    _export_macro GKO_DECLARE_FILL_SEND_BUFFERS(ValueType, LocalIndexType, \
+                                                GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(assembly, GKO_DECLARE_ALL_AS_TEMPLATES);

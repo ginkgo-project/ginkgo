@@ -12,6 +12,8 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
+#include "core/base/kernel_declaration.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -28,9 +30,9 @@ namespace residual_norm {
                        bool* one_changed)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename ValueType>    \
-    GKO_DECLARE_RESIDUAL_NORM_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro) \
+    template <typename ValueType>                   \
+    _export_macro GKO_DECLARE_RESIDUAL_NORM_KERNEL(ValueType)
 
 
 }  // namespace residual_norm
@@ -49,92 +51,19 @@ namespace implicit_residual_norm {
         array<bool>& device_storage, bool* all_converged, bool* one_changed)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES2 \
-    template <typename ValueType>     \
-    GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES2(_export_macro) \
+    template <typename ValueType>                    \
+    _export_macro GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL(ValueType)
 
 
 }  // namespace implicit_residual_norm
 
 
-namespace omp {
-namespace residual_norm {
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(residual_norm,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
 
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace omp
-
-
-namespace cuda {
-namespace residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace cuda
-
-
-namespace reference {
-namespace residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace reference
-
-
-namespace hip {
-namespace residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace hip
-
-
-namespace dpcpp {
-namespace residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES;
-
-}  // namespace residual_norm
-
-
-namespace implicit_residual_norm {
-
-GKO_DECLARE_ALL_AS_TEMPLATES2;
-
-}  // namespace implicit_residual_norm
-}  // namespace dpcpp
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(implicit_residual_norm,
+                                        GKO_DECLARE_ALL_AS_TEMPLATES2);
 
 
 #undef GKO_DECLARE_ALL_AS_TEMPLATES
