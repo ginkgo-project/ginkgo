@@ -400,6 +400,17 @@ public:
          * step with the configured pre_smoother.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(scale_correction, false);
+
+        /**
+         * When scale_correction is enabled, also apply the *pre-smooth*
+         * (downward pass) Rayleigh scaling described above. When false, only
+         * the post-smooth (coarse-correction) scaling is applied -- this is the
+         * "post-only" mode, which in practice captures nearly all of the
+         * benefit at half the extra work. Has no effect when scale_correction
+         * is false. Enabled by default so that scale_correction alone
+         * reproduces the full OpenFOAM-style pre+post behavior.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(scale_correction_pre_smooth, true);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
