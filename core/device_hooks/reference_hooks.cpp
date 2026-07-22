@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,5 +27,7 @@ scoped_device_id_guard::scoped_device_id_guard(const ReferenceExecutor* exec,
 
 
 #define GKO_HOOK_MODULE reference
+#define GKO_EXPORT_HOOK GKO_REFERENCE_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
+#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE

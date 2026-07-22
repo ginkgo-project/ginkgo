@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,7 +9,9 @@
 #include <chrono>
 
 #include <ginkgo/core/base/executor.hpp>
-
+#include <ginkgo/export_cuda.hpp>
+#include <ginkgo/export_dpcpp.hpp>
+#include <ginkgo/export_hip.hpp>
 
 namespace gko {
 
@@ -163,7 +165,7 @@ protected:
  * @note When using a CudaExecutor with a custom stream, make sure that the
  *       stream's lifetime is longer than the lifetime of this timer.
  */
-class CudaTimer : public Timer {
+class GKO_CUDA_EXPORT CudaTimer : public Timer {
 public:
     void record(time_point& time) override;
 
@@ -189,7 +191,7 @@ private:
  * @note When using a HipExecutor with a custom stream, make sure that the
  *       stream's lifetime is longer than the lifetime of this timer.
  */
-class HipTimer : public Timer {
+class GKO_HIP_EXPORT HipTimer : public Timer {
 public:
     void record(time_point& time) override;
 
@@ -210,7 +212,7 @@ private:
 
 
 /** A timer using kernels for timing on a DpcppExecutor in profiling mode. */
-class DpcppTimer : public Timer {
+class GKO_DPCPP_EXPORT DpcppTimer : public Timer {
 public:
     void record(time_point& time) override;
 

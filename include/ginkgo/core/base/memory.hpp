@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,8 @@
 
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/export_cuda.hpp>
+#include <ginkgo/export_hip.hpp>
 
 
 namespace gko {
@@ -99,7 +101,7 @@ public:
 /**
  * Allocator using cudaMalloc.
  */
-class CudaAllocator : public CudaAllocatorBase {
+class GKO_CUDA_EXPORT CudaAllocator : public CudaAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 
@@ -110,7 +112,7 @@ public:
 /*
  * Allocator using cudaMallocAsync.
  */
-class CudaAsyncAllocator : public CudaAllocatorBase {
+class GKO_CUDA_EXPORT CudaAsyncAllocator : public CudaAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 
@@ -128,7 +130,8 @@ private:
 /*
  * Allocator using cudaMallocManaged
  */
-class CudaUnifiedAllocator : public CudaAllocatorBase, public CpuAllocatorBase {
+class GKO_CUDA_EXPORT CudaUnifiedAllocator : public CudaAllocatorBase,
+                                             public CpuAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 
@@ -150,7 +153,8 @@ private:
 /*
  * Allocator using cudaHostMalloc.
  */
-class CudaHostAllocator : public CudaAllocatorBase, public CpuAllocatorBase {
+class GKO_CUDA_EXPORT CudaHostAllocator : public CudaAllocatorBase,
+                                          public CpuAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 
@@ -169,7 +173,7 @@ private:
 /*
  * Allocator using hipMalloc.
  */
-class HipAllocator : public HipAllocatorBase {
+class GKO_HIP_EXPORT HipAllocator : public HipAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 
@@ -180,7 +184,7 @@ public:
 /*
  * Allocator using hipMallocAsync.
  */
-class HipAsyncAllocator : public HipAllocatorBase {
+class GKO_HIP_EXPORT HipAsyncAllocator : public HipAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 
@@ -200,7 +204,8 @@ private:
 /*
  * Allocator using hipMallocManaged
  */
-class HipUnifiedAllocator : public HipAllocatorBase, public CpuAllocatorBase {
+class GKO_HIP_EXPORT HipUnifiedAllocator : public HipAllocatorBase,
+                                           public CpuAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 
@@ -223,7 +228,8 @@ private:
 /*
  * Allocator using hipHostAlloc.
  */
-class HipHostAllocator : public HipAllocatorBase, public CpuAllocatorBase {
+class GKO_HIP_EXPORT HipHostAllocator : public HipAllocatorBase,
+                                        public CpuAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 

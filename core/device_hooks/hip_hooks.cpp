@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -104,8 +104,10 @@ void HipExecutor::populate_exec_info(const machine_topology* mach_topo)
 }
 
 
-void OmpExecutor::raw_copy_to(const HipExecutor*, size_type num_bytes,
-                              const void* src_ptr, void* dest_ptr) const
+void GKO_HIP_EXPORT OmpExecutor::raw_copy_to(const HipExecutor*,
+                                             size_type num_bytes,
+                                             const void* src_ptr,
+                                             void* dest_ptr) const
     GKO_NOT_COMPILED(hip);
 
 
@@ -234,7 +236,8 @@ namespace hip {
 void reset_device(int device_id) GKO_NOT_COMPILED(hip);
 
 
-void destroy_event(GKO_HIP_EVENT_STRUCT* event) GKO_NOT_COMPILED(hip);
+GKO_HIP_EXPORT void destroy_event(GKO_HIP_EVENT_STRUCT* event)
+    GKO_NOT_COMPILED(hip);
 
 
 }  // namespace hip
@@ -244,10 +247,12 @@ void destroy_event(GKO_HIP_EVENT_STRUCT* event) GKO_NOT_COMPILED(hip);
 namespace log {
 
 
-void begin_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(hip);
+GKO_HIP_EXPORT void begin_roctx(const char*, profile_event_category)
+    GKO_NOT_COMPILED(hip);
 
 
-void end_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(hip);
+GKO_HIP_EXPORT void end_roctx(const char*, profile_event_category)
+    GKO_NOT_COMPILED(hip);
 
 
 }  // namespace log
@@ -255,5 +260,7 @@ void end_roctx(const char*, profile_event_category) GKO_NOT_COMPILED(hip);
 
 
 #define GKO_HOOK_MODULE hip
+#define GKO_EXPORT_HOOK GKO_HIP_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
+#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE

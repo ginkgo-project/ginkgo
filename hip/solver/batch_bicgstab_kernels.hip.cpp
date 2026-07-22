@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -177,7 +177,7 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER_BASE(
-    GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL_WRAPPER);
+    GKO_HIP_EXPORT GKO_DECLARE_BATCH_BICGSTAB_APPLY_KERNEL_WRAPPER);
 
 
 }  // namespace batch_bicgstab

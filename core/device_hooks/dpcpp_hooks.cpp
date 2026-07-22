@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,12 +39,15 @@ void DpcppExecutor::populate_exec_info(const machine_topology* mach_topo)
 }
 
 
-void OmpExecutor::raw_copy_to(const DpcppExecutor*, size_type num_bytes,
-                              const void* src_ptr, void* dest_ptr) const
+GKO_DPCPP_EXPORT void OmpExecutor::raw_copy_to(const DpcppExecutor*,
+                                               size_type num_bytes,
+                                               const void* src_ptr,
+                                               void* dest_ptr) const
     GKO_NOT_COMPILED(dpcpp);
 
 
-bool OmpExecutor::verify_memory_to(const DpcppExecutor* dest_exec) const
+GKO_DPCPP_EXPORT bool OmpExecutor::verify_memory_to(
+    const DpcppExecutor* dest_exec) const
 {
     // Dummy check
     auto dev_type = dest_exec->get_device_type();
@@ -124,7 +127,7 @@ namespace kernels {
 namespace dpcpp {
 
 
-void destroy_event(sycl::event* event) GKO_NOT_COMPILED(dpcpp);
+GKO_DPCPP_EXPORT void destroy_event(sycl::event* event) GKO_NOT_COMPILED(dpcpp);
 
 
 }  // namespace dpcpp
@@ -153,5 +156,7 @@ std::chrono::nanoseconds DpcppTimer::difference_async(const time_point& start,
 
 
 #define GKO_HOOK_MODULE dpcpp
+#define GKO_EXPORT_HOOK GKO_DPCPP_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
+#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE

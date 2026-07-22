@@ -400,7 +400,8 @@ void restart(std::shared_ptr<const OmpExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_OMP_EXPORT GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
 
 
 template <typename ValueType, typename Accessor3d>
@@ -434,7 +435,8 @@ void arnoldi(std::shared_ptr<const OmpExecutor> exec,
                                  stop_status.get_const_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_OMP_EXPORT GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
 
 
 template <typename ValueType, typename ConstAccessor3d>
@@ -453,7 +455,7 @@ void solve_krylov(std::shared_ptr<const OmpExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
-    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
+    GKO_OMP_EXPORT GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
 
 
 }  // namespace cb_gmres
