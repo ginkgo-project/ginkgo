@@ -616,7 +616,7 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         {
             // r temporarily holds r_scaled = b − sf * Aδ
             as<VectorType>(acf)->scale(alpha_dense);  // acf = sf * Aδ
-            r->copy_from(b);
+            as<Cloneable>(r)->copy_from(as<Cloneable>(b));
             as<VectorType>(r)->add_scaled(neg_one, acf);  // r = b − sf*Aδ
 
             // dp = smoother(r_scaled) starting from zero
