@@ -419,9 +419,9 @@ public:
      * global row and column indices.
      *
      * @param data  the output matrix_data
-     * e
+     *
      * @note this currently assume the row index mapping is equal to the column
-     * index mapping
+     *       index mapping
      */
     void write(matrix_data<value_type, global_index_type>& data) const override;
 
