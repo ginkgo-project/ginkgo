@@ -160,3 +160,14 @@ endif()
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
+
+generate_export_header(
+    ginkgo_hip
+    EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_hip.hpp"
+    BASE_NAME "GKO_HIP"
+    INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_HIP_HPP_"
+)
+set_target_properties(
+    ginkgo_hip
+    PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+)

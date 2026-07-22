@@ -8,6 +8,10 @@
 
 #include <memory>
 
+#include <ginkgo/export_cuda.hpp>
+#include <ginkgo/export_dpcpp.hpp>
+#include <ginkgo/export_hip.hpp>
+#include <ginkgo/export_omp.hpp>
 #include <ginkgo/export_reference.hpp>
 
 
@@ -96,7 +100,8 @@ public:
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id_guard(const OmpExecutor* exec, int device_id);
+    GKO_OMP_EXPORT scoped_device_id_guard(const OmpExecutor* exec,
+                                          int device_id);
 
     /**
      * Create a scoped device id from an CudaExecutor.
@@ -106,7 +111,8 @@ public:
      * @param exec  Not used.
      * @param device_id  The device id to use within the scope.
      */
-    scoped_device_id_guard(const CudaExecutor* exec, int device_id);
+    GKO_CUDA_EXPORT scoped_device_id_guard(const CudaExecutor* exec,
+                                           int device_id);
 
     /**
      * Create a scoped device id from an HipExecutor.
@@ -116,7 +122,8 @@ public:
      * @param exec  Not used.
      * @param device_id  The device id to use within the scope.
      */
-    scoped_device_id_guard(const HipExecutor* exec, int device_id);
+    GKO_HIP_EXPORT scoped_device_id_guard(const HipExecutor* exec,
+                                          int device_id);
 
     /**
      * Create a scoped device id from an DpcppExecutor.
@@ -126,7 +133,8 @@ public:
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id_guard(const DpcppExecutor* exec, int device_id);
+    GKO_DPCPP_EXPORT scoped_device_id_guard(const DpcppExecutor* exec,
+                                            int device_id);
 
     scoped_device_id_guard() = default;
 

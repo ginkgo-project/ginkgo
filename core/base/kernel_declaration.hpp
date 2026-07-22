@@ -5,6 +5,10 @@
 #ifndef GKO_CORE_BASE_KERNEL_DECLARATION_HPP_
 #define GKO_CORE_BASE_KERNEL_DECLARATION_HPP_
 
+#include <ginkgo/export_cuda.hpp>
+#include <ginkgo/export_dpcpp.hpp>
+#include <ginkgo/export_hip.hpp>
+#include <ginkgo/export_omp.hpp>
 #include <ginkgo/export_reference.hpp>
 
 // clang-format off
@@ -12,12 +16,12 @@
                                                                              \
     namespace omp {                                                          \
     namespace _kernel_namespace {                                            \
-    __VA_ARGS__();                                                           \
+    __VA_ARGS__(GKO_OMP_EXPORT);                                             \
     }                                                                        \
     }                                                                        \
     namespace cuda {                                                         \
     namespace _kernel_namespace {                                            \
-    __VA_ARGS__();                                                           \
+    __VA_ARGS__(GKO_CUDA_EXPORT);                                            \
     }                                                                        \
     }                                                                        \
     namespace reference {                                                    \
@@ -27,12 +31,12 @@
     }                                                                        \
     namespace hip {                                                          \
     namespace _kernel_namespace {                                            \
-    __VA_ARGS__();                                                           \
+    __VA_ARGS__(GKO_HIP_EXPORT);                                             \
     }                                                                        \
     }                                                                        \
     namespace dpcpp {                                                        \
     namespace _kernel_namespace {                                            \
-    __VA_ARGS__();                                                           \
+    __VA_ARGS__(GKO_DPCPP_EXPORT);                                           \
     }                                                                        \
     }                                                                        \
     static_assert(true,                                                      \

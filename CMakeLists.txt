@@ -529,7 +529,7 @@ configure_file(
     ${Ginkgo_BINARY_DIR}/include/ginkgo/extensions/kokkos/config.hpp
     @ONLY
 )
-
+include(GenerateExportHeader)
 # Ginkgo core libraries
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries

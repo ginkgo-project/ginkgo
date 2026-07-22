@@ -4,6 +4,17 @@ if(NOT GINKGO_BUILD_CUDA)
     ginkgo_compile_features(ginkgo_cuda)
     ginkgo_default_includes(ginkgo_cuda)
     ginkgo_install_library(ginkgo_cuda)
+
+    generate_export_header(
+        ginkgo_cuda
+        EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_cuda.hpp"
+        BASE_NAME "GKO_CUDA"
+        INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_CUDA_HPP_"
+    )
+    set_target_properties(
+        ginkgo_cuda
+        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+    )
 endif()
 
 if(NOT GINKGO_BUILD_SYCL)
@@ -16,6 +27,17 @@ if(NOT GINKGO_BUILD_SYCL)
     ginkgo_compile_features(ginkgo_dpcpp)
     ginkgo_default_includes(ginkgo_dpcpp)
     ginkgo_install_library(ginkgo_dpcpp)
+
+    generate_export_header(
+        ginkgo_dpcpp
+        EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_dpcpp.hpp"
+        BASE_NAME "GKO_DPCPP"
+        INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_DPCPP_HPP_"
+    )
+    set_target_properties(
+        ginkgo_dpcpp
+        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+    )
 endif()
 
 if(NOT GINKGO_BUILD_HIP)
@@ -24,6 +46,17 @@ if(NOT GINKGO_BUILD_HIP)
     ginkgo_compile_features(ginkgo_hip)
     ginkgo_default_includes(ginkgo_hip)
     ginkgo_install_library(ginkgo_hip)
+
+    generate_export_header(
+        ginkgo_hip
+        EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_hip.hpp"
+        BASE_NAME "GKO_HIP"
+        INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_HIP_HPP_"
+    )
+    set_target_properties(
+        ginkgo_hip
+        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+    )
 endif()
 
 if(NOT GINKGO_BUILD_OMP)
@@ -35,6 +68,17 @@ if(NOT GINKGO_BUILD_OMP)
     target_link_libraries(ginkgo_omp PUBLIC ginkgo_device)
     ginkgo_default_includes(ginkgo_omp)
     ginkgo_install_library(ginkgo_omp)
+
+    generate_export_header(
+        ginkgo_omp
+        EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_omp.hpp"
+        BASE_NAME "GKO_OMP"
+        INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_OMP_HPP_"
+    )
+    set_target_properties(
+        ginkgo_omp
+        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+    )
 endif()
 
 if(NOT GINKGO_BUILD_REFERENCE)
@@ -48,4 +92,16 @@ if(NOT GINKGO_BUILD_REFERENCE)
     ginkgo_compile_features(ginkgo_reference)
     ginkgo_default_includes(ginkgo_reference)
     ginkgo_install_library(ginkgo_reference)
+
+    generate_export_header(
+        ginkgo_reference
+        EXPORT_FILE_NAME
+            "${Ginkgo_BINARY_DIR}/include/ginkgo/export_reference.hpp"
+        BASE_NAME "GKO_REFERENCE"
+        INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_REFERENCE_HPP_"
+    )
+    set_target_properties(
+        ginkgo_reference
+        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+    )
 endif()

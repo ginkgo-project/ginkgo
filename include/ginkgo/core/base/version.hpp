@@ -10,6 +10,10 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/export_cuda.hpp>
+#include <ginkgo/export_dpcpp.hpp>
+#include <ginkgo/export_hip.hpp>
+#include <ginkgo/export_omp.hpp>
 #include <ginkgo/export_reference.hpp>
 
 
@@ -202,13 +206,13 @@ private:
 
     static GKO_REFERENCE_EXPORT version get_reference_version() noexcept;
 
-    static version get_omp_version() noexcept;
+    static GKO_OMP_EXPORT version get_omp_version() noexcept;
 
-    static version get_cuda_version() noexcept;
+    static GKO_CUDA_EXPORT version get_cuda_version() noexcept;
 
-    static version get_hip_version() noexcept;
+    static GKO_HIP_EXPORT version get_hip_version() noexcept;
 
-    static version get_dpcpp_version() noexcept;
+    static GKO_DPCPP_EXPORT version get_dpcpp_version() noexcept;
 
     version_info()
         : header_version{get_header_version()},
