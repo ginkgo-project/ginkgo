@@ -260,7 +260,11 @@ if(MSVC)
     # MSVC has macro for min/max, it leads C2589 issue with CUDA 13.2.
     # We disable it by -DNOMINMAX
     # similar issue: https://stackoverflow.com/questions/1825904/error-c2589-on-stdnumeric-limitsdoublemin
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive-")
+    # After CMake 4.1, they do not add several flags for MSVC. (see Other Changes section in https://cmake.org/cmake/help/v4.1/release/4.1.html)
+    # `/Zc:inline` is required in Ginkgo to reduce the symbol significantly, so we add it back here.
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive- /Zc:inline"
+    )
 endif()
 if(MINGW OR CYGWIN)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
