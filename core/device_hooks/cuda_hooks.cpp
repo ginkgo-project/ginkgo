@@ -263,7 +263,5 @@ GKO_CUDA_EXPORT void end_nvtx(const char*, profile_event_category)
 
 
 #define GKO_HOOK_MODULE cuda
-#define GKO_EXPORT_HOOK GKO_CUDA_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE

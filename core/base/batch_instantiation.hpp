@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2024 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -40,7 +40,7 @@ namespace batch {
  *               value type, the second by the matrix, and the third by the
  *               preconditioner.
  *
- * @note the second and third arguments only accept the base type.s
+ * @note the second and third arguments only accept the base types.
  */
 #define GKO_INSTANTIATE_FOR_BATCH_VALUE_MATRIX_PRECONDITIONER_BASE(...) \
     GKO_CALL(GKO_BATCH_INSTANTIATE_MATRIX,                              \

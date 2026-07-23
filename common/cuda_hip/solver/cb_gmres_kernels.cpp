@@ -24,6 +24,7 @@
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/array_access.hpp"
+#include "core/base/export_hook.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
@@ -712,7 +713,8 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_EXPORT_HOOK GKO_DECLARE_CB_GMRES_RESTART_KERNEL);
 
 
 template <typename ValueType, typename Accessor3dim>
@@ -957,7 +959,8 @@ void arnoldi(std::shared_ptr<const DefaultExecutor> exec,
                     residual_norm, residual_norm_collection, iter, stop_status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(
+    GKO_EXPORT_HOOK GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
 
 
 template <typename ValueType>
@@ -1036,7 +1039,7 @@ void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
-    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
+    GKO_EXPORT_HOOK GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL);
 
 
 }  // namespace cb_gmres

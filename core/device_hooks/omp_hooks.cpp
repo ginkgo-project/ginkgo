@@ -34,7 +34,5 @@ int OmpExecutor::get_num_omp_threads() { return 1; }
 
 
 #define GKO_HOOK_MODULE omp
-#define GKO_EXPORT_HOOK GKO_OMP_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE

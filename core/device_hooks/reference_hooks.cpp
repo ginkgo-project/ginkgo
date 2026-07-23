@@ -27,7 +27,5 @@ scoped_device_id_guard::scoped_device_id_guard(const ReferenceExecutor* exec,
 
 
 #define GKO_HOOK_MODULE reference
-#define GKO_EXPORT_HOOK GKO_REFERENCE_EXPORT
 #include "core/device_hooks/common_kernels.inc.cpp"
-#undef GKO_EXPORT_HOOK
 #undef GKO_HOOK_MODULE
