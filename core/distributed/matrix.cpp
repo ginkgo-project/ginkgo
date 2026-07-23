@@ -479,18 +479,17 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::write(
     matrix_data<value_type, global_index_type>& data) const
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(this);
-    auto local_data = matrix_data<value_type, local_index_type>{};
-    auto non_local_data = matrix_data<value_type, local_index_type>{};
-    as<WritableToMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
-        ->write(local_data);
-    as<WritableToMatrixData<ValueType, LocalIndexType>>(this->non_local_mtx_)
-        ->write(non_local_data);
+    auto diag_data = matrix_data<value_type, local_index_type>{};
+    auto off_diag_data = matrix_data<value_type, local_index_type>{};
+    as<WritableToMatrixData<ValueType, LocalIndexType>>(this->diag_mtx_)
+        ->write(diag_data);
+    as<WritableToMatrixData<ValueType, LocalIndexType>>(this->off_diag_mtx_)
+        ->write(off_diag_data);
 
     data = {this->get_size(), {}};
     auto exec = this->get_executor();
-    append_global_matrix_data(exec, local_data, imap_, index_space::local,
-                              data);
-    append_global_matrix_data(exec, non_local_data, imap_,
+    append_global_matrix_data(exec, diag_data, imap_, index_space::local, data);
+    append_global_matrix_data(exec, off_diag_data, imap_,
                               index_space::non_local, data);
     data.sort_row_major();
 }
