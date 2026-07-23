@@ -18,9 +18,9 @@ endif()
 # To make ginkgo still be the major library, we make the original to ginkgo_core in MSVC/shared
 # TODO: should think another way to solve it like dllexport or def file
 set(ginkgo_core "ginkgo")
-if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
-    set(ginkgo_core "ginkgo_core")
-endif()
+# if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
+# set(ginkgo_core "ginkgo_core")
+# endif()
 
 add_library(${ginkgo_core} "")
 target_sources(
@@ -161,27 +161,27 @@ if(GINKGO_BUILD_MPI)
 endif()
 
 # MSVC or CLANG/msys2 with shared: make ginkgo be the major library
-if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
-    add_library(ginkgo "")
-    target_sources(ginkgo PRIVATE ${config_source})
-    ginkgo_compile_features(ginkgo)
-    ginkgo_default_includes(ginkgo)
-    ginkgo_install_library(ginkgo)
-    if(GINKGO_CHECK_CIRCULAR_DEPS)
-        ginkgo_check_headers(ginkgo "")
-    endif()
-else()
-    target_sources(${ginkgo_core} PRIVATE ${config_source})
-endif()
+# if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
+#     add_library(ginkgo "")
+#     target_sources(ginkgo PRIVATE ${config_source})
+#     ginkgo_compile_features(ginkgo)
+#     ginkgo_default_includes(ginkgo)
+#     ginkgo_install_library(ginkgo)
+#     if(GINKGO_CHECK_CIRCULAR_DEPS)
+#         ginkgo_check_headers(ginkgo "")
+#     endif()
+# else()
+target_sources(${ginkgo_core} PRIVATE ${config_source})
+# endif()
 
 ginkgo_compile_features(${ginkgo_core})
 
 # add a namespace alias so Ginkgo can always be included as Ginkgo::ginkgo
 # regardless of whether it is installed or added as a subdirectory
 add_library(Ginkgo::ginkgo ALIAS ginkgo)
-if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
-    target_link_libraries(ginkgo PUBLIC ${ginkgo_core})
-endif()
+# if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
+#     target_link_libraries(ginkgo PUBLIC ${ginkgo_core})
+# endif()
 target_link_libraries(
     ${ginkgo_core}
     PUBLIC
