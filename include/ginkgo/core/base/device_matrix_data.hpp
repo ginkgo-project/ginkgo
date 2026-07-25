@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -51,8 +52,9 @@ public:
      * @param size  the matrix dimensions
      * @param num_entries  the number of entries to be stored
      */
-    explicit device_matrix_data(std::shared_ptr<const Executor> exec,
-                                dim<2> size = {}, size_type num_entries = 0);
+    GKO_EXPORT explicit device_matrix_data(std::shared_ptr<const Executor> exec,
+                                           dim<2> size = {},
+                                           size_type num_entries = 0);
 
     /**
      * Initializes a device_matrix_data object by copying an existing object on
@@ -62,8 +64,8 @@ public:
      * @param data  the device_matrix data object to copy, potentially stored on
      * another executor.
      */
-    device_matrix_data(std::shared_ptr<const Executor> exec,
-                       const device_matrix_data& data);
+    GKO_EXPORT device_matrix_data(std::shared_ptr<const Executor> exec,
+                                  const device_matrix_data& data);
 
     /**
      * Initializes a new device_matrix_data object from existing data.
@@ -73,9 +75,10 @@ public:
      * @param col_idxs  the array containing the matrix column indices
      * @param row_idxs  the array containing the matrix row indices
      */
-    device_matrix_data(std::shared_ptr<const Executor> exec, dim<2> size,
-                       array<index_type> row_idxs, array<index_type> col_idxs,
-                       array<value_type> values);
+    GKO_EXPORT device_matrix_data(std::shared_ptr<const Executor> exec,
+                                  dim<2> size, array<index_type> row_idxs,
+                                  array<index_type> col_idxs,
+                                  array<value_type> values);
 
     /**
      * @copydoc device_matrix_data(std::shared_ptr<const Executor>, dim<2>,
@@ -102,7 +105,7 @@ public:
      *
      * @return a matrix_data object with the same dimensions and entries.
      */
-    host_type copy_to_host() const;
+    GKO_EXPORT host_type copy_to_host() const;
 
     /**
      * Creates a device_matrix_data object from the given host data on the given
@@ -113,34 +116,34 @@ public:
      * @return  a device_matrix_data object with the same size and entries as
      *          `data` copied to the device executor.
      */
-    static device_matrix_data create_from_host(
+    GKO_EXPORT static device_matrix_data create_from_host(
         std::shared_ptr<const Executor> exec, const host_type& data);
 
     /**
      * Fills the matrix entries with zeros
      */
-    void fill_zero();
+    GKO_EXPORT void fill_zero();
 
     /**
      * Sorts the matrix entries in row-major order
      * This means that they will be sorted by row index first, and then by
      * column index inside each row.
      */
-    void sort_row_major();
+    GKO_EXPORT void sort_row_major();
 
     /**
      * Removes all zero entries from the storage.
      * This does not modify the storage if there are no zero entries, and keeps
      * the relative order of nonzero entries otherwise.
      */
-    void remove_zeros();
+    GKO_EXPORT void remove_zeros();
 
     /**
      * Sums up all duplicate entries pointing to the same non-zero location.
      * The output will be sorted in row-major order, and it will only reallocate
      * if duplicates exist.
      */
-    void sum_duplicates();
+    GKO_EXPORT void sum_duplicates();
 
     /**
      * Returns the executor used to store the device_matrix_data entries.
@@ -231,7 +234,7 @@ public:
      *
      * @param new_num_entries  the new number of stored matrix entries.
      */
-    void resize_and_reset(size_type new_num_entries);
+    GKO_EXPORT void resize_and_reset(size_type new_num_entries);
 
     /**
      * Resizes the matrix and internal storage to the given dimensions.
@@ -240,7 +243,8 @@ public:
      * @param new_size  the new matrix dimensions.
      * @param new_num_entries  the new number of stored matrix entries.
      */
-    void resize_and_reset(dim<2> new_size, size_type new_num_entries);
+    GKO_EXPORT void resize_and_reset(dim<2> new_size,
+                                     size_type new_num_entries);
 
     /**
      * Stores the internal arrays of a device_matrix_data object.
@@ -257,7 +261,7 @@ public:
      *
      * @return a struct containing the internal arrays.
      */
-    arrays empty_out();
+    GKO_EXPORT arrays empty_out();
 
 private:
     dim<2> size_;

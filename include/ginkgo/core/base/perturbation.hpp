@@ -10,6 +10,7 @@
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -75,13 +76,13 @@ public:
         return scalar_;
     }
 
-    Perturbation& operator=(const Perturbation& other);
+    GKO_EXPORT Perturbation& operator=(const Perturbation& other);
 
-    Perturbation& operator=(Perturbation&& other);
+    GKO_EXPORT Perturbation& operator=(Perturbation&& other);
 
-    Perturbation(const Perturbation& other);
+    GKO_EXPORT Perturbation(const Perturbation& other);
 
-    Perturbation(Perturbation&& other);
+    GKO_EXPORT Perturbation(Perturbation&& other);
 
     /**
      * Creates an empty perturbation operator (0x0 operator).
@@ -90,7 +91,7 @@ public:
      *
      * @return A smart pointer to the newly created perturbation.
      */
-    static std::unique_ptr<Perturbation> create(
+    GKO_EXPORT static std::unique_ptr<Perturbation> create(
         std::shared_ptr<const Executor> exec);
 
     /**
@@ -103,7 +104,7 @@ public:
      *
      * @return A smart pointer to the newly created perturbation.
      */
-    static std::unique_ptr<Perturbation> create(
+    GKO_EXPORT static std::unique_ptr<Perturbation> create(
         std::shared_ptr<const LinOp> scalar,
         std::shared_ptr<const LinOp> basis);
 
@@ -116,24 +117,24 @@ public:
      *
      * @return A smart pointer to the newly created perturbation.
      */
-    static std::unique_ptr<Perturbation> create(
+    GKO_EXPORT static std::unique_ptr<Perturbation> create(
         std::shared_ptr<const LinOp> scalar, std::shared_ptr<const LinOp> basis,
         std::shared_ptr<const LinOp> projector);
 
 protected:
-    explicit Perturbation(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT explicit Perturbation(std::shared_ptr<const Executor> exec);
 
-    explicit Perturbation(std::shared_ptr<const LinOp> scalar,
-                          std::shared_ptr<const LinOp> basis);
+    GKO_EXPORT explicit Perturbation(std::shared_ptr<const LinOp> scalar,
+                                     std::shared_ptr<const LinOp> basis);
 
-    explicit Perturbation(std::shared_ptr<const LinOp> scalar,
-                          std::shared_ptr<const LinOp> basis,
-                          std::shared_ptr<const LinOp> projector);
+    GKO_EXPORT explicit Perturbation(std::shared_ptr<const LinOp> scalar,
+                                     std::shared_ptr<const LinOp> basis,
+                                     std::shared_ptr<const LinOp> projector);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
     /**
      * Validates the dimensions of the `scalar`, `basis` and `projector`

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -341,7 +341,7 @@ struct lookup_data {
 
 
 template <typename ValueType, typename IndexType>
-lookup_data<IndexType> build_lookup(
+GKO_EXPORT lookup_data<IndexType> build_lookup(
     const Csr<ValueType, IndexType>* mtx,
     sparsity_type allowed_sparsity = sparsity_type::full |
                                      sparsity_type::bitmap |

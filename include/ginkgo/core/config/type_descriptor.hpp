@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <string>
 
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/export.hpp>
 
 namespace gko {
 namespace config {
@@ -49,30 +50,31 @@ public:
      * @note there is no way to call the constructor with explicit template, so
      * we create another free function to handle it.
      */
-    explicit type_descriptor(std::string value_typestr = "float64",
-                             std::string index_typestr = "int32",
-                             std::string global_index_typestr = "int64");
+    GKO_EXPORT explicit type_descriptor(
+        std::string value_typestr = "float64",
+        std::string index_typestr = "int32",
+        std::string global_index_typestr = "int64");
 
     /**
      * Get the value type string.
      */
-    const std::string& get_value_typestr() const;
+    GKO_EXPORT const std::string& get_value_typestr() const;
 
     /**
      * Get the index type string
      */
-    const std::string& get_index_typestr() const;
+    GKO_EXPORT const std::string& get_index_typestr() const;
 
     /**
      * Get the local index type string, which gives the same result as
      * get_index_typestr()
      */
-    const std::string& get_local_index_typestr() const;
+    GKO_EXPORT const std::string& get_local_index_typestr() const;
 
     /**
      * Get the global index type string
      */
-    const std::string& get_global_index_typestr() const;
+    GKO_EXPORT const std::string& get_global_index_typestr() const;
 
 private:
     std::string value_typestr_;
@@ -91,7 +93,7 @@ private:
  */
 template <typename ValueType = double, typename IndexType = int32,
           typename GlobalIndexType = int64>
-type_descriptor make_type_descriptor();
+GKO_EXPORT type_descriptor make_type_descriptor();
 
 
 }  // namespace config

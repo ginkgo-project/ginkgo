@@ -19,6 +19,7 @@
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/collective_communicator.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -206,7 +207,7 @@ public:
     /*
      * Create method for an empty RowGatherer.
      */
-    static std::unique_ptr<RowGatherer> create(
+    GKO_EXPORT static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
     /*
@@ -225,7 +226,7 @@ public:
      *   imap);
      * ```
      */
-    static std::unique_ptr<RowGatherer> create(
+    GKO_EXPORT static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template);
 

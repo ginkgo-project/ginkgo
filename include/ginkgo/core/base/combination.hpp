@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -60,15 +61,15 @@ public:
         return operators_;
     }
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Copy-assigns a Combination. The executor is not modified, and the
      * wrapped LinOps are only being cloned if they are on a different executor.
      */
-    Combination& operator=(const Combination&);
+    GKO_EXPORT Combination& operator=(const Combination&);
 
     /**
      * Move-assigns a Combination. The executor is not modified, and the
@@ -76,20 +77,20 @@ public:
      * otherwise they share ownership. The moved-from object is empty (0x0 LinOp
      * without operators) afterwards.
      */
-    Combination& operator=(Combination&&);
+    GKO_EXPORT Combination& operator=(Combination&&);
 
     /**
      * Copy-constructs a Combination. This inherits the executor of the input
      * Combination and all of its operators with shared ownership.
      */
-    Combination(const Combination&);
+    GKO_EXPORT Combination(const Combination&);
 
     /**
      * Move-constructs a Combination. This inherits the executor of the input
      * Combination and all of its operators. The moved-from object is empty (0x0
      * LinOp without operators) afterwards.
      */
-    Combination(Combination&&);
+    GKO_EXPORT Combination(Combination&&);
 
 protected:
     void add_operators() {}
@@ -181,10 +182,10 @@ protected:
                       std::forward<Rest>(rest)...);
     }
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     std::vector<std::shared_ptr<const LinOp>> coefficients_;

@@ -18,6 +18,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -70,18 +71,21 @@ public:
     using absolute_type = remove_complex<Dense>;
     using complex_type = to_complex<Dense>;
 
-    void convert_to(Dense<next_precision<ValueType>>* result) const override;
+    GKO_EXPORT void convert_to(
+        Dense<next_precision<ValueType>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType>>* result) override;
+    GKO_EXPORT void move_to(Dense<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Dense<previous_precision<ValueType, 2>>;
     using ConvertibleTo<Dense<next_precision<ValueType, 2>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType, 2>>>::move_to;
 
-    void convert_to(Dense<next_precision<ValueType, 2>>* result) const override;
+    GKO_EXPORT void convert_to(
+        Dense<next_precision<ValueType, 2>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType, 2>>* result) override;
+    GKO_EXPORT void move_to(
+        Dense<next_precision<ValueType, 2>>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
@@ -89,9 +93,11 @@ public:
     using ConvertibleTo<Dense<next_precision<ValueType, 3>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType, 3>>>::move_to;
 
-    void convert_to(Dense<next_precision<ValueType, 3>>* result) const override;
+    GKO_EXPORT void convert_to(
+        Dense<next_precision<ValueType, 3>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType, 3>>* result) override;
+    GKO_EXPORT void move_to(
+        Dense<next_precision<ValueType, 3>>* result) override;
 #endif
 
     /**
@@ -104,12 +110,13 @@ public:
      * @return  a gko::matrix::Dense object with the data from the batch item
      * at the given index.
      */
-    std::unique_ptr<unbatch_type> create_view_for_item(size_type item_id);
+    GKO_EXPORT std::unique_ptr<unbatch_type> create_view_for_item(
+        size_type item_id);
 
     /**
      * @copydoc create_view_for_item(size_type)
      */
-    std::unique_ptr<const unbatch_type> create_const_view_for_item(
+    GKO_EXPORT std::unique_ptr<const unbatch_type> create_const_view_for_item(
         size_type item_id) const;
 
     /**
@@ -258,7 +265,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Dense> create(
+    GKO_EXPORT static std::unique_ptr<Dense> create(
         std::shared_ptr<const Executor> exec,
         const batch_dim<2>& size = batch_dim<2>{});
 
@@ -276,9 +283,9 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         const batch_dim<2>& size,
-                                         array<value_type> values);
+    GKO_EXPORT static std::unique_ptr<Dense> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        array<value_type> values);
 
     /**
      * @copydoc std::unique_ptr<Dense> create(std::shared_ptr<const Executor>,
@@ -309,7 +316,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<const Dense> create_const(
+    GKO_EXPORT static std::unique_ptr<const Dense> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
@@ -320,8 +327,8 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    void apply(ptr_param<const MultiVector<value_type>> b,
-               ptr_param<MultiVector<value_type>> x);
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<MultiVector<value_type>> x);
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
@@ -333,26 +340,26 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    void apply(ptr_param<const MultiVector<value_type>> alpha,
-               ptr_param<const MultiVector<value_type>> b,
-               ptr_param<const MultiVector<value_type>> beta,
-               ptr_param<MultiVector<value_type>> x);
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> alpha,
+                          ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<const MultiVector<value_type>> beta,
+                          ptr_param<MultiVector<value_type>> x);
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
-    void apply(ptr_param<const MultiVector<value_type>> b,
-               ptr_param<MultiVector<value_type>> x) const;
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, const
      * MultiVector<value_type>*, const MultiVector<value_type>*,
      * MultiVector<value_type>*)
      */
-    void apply(ptr_param<const MultiVector<value_type>> alpha,
-               ptr_param<const MultiVector<value_type>> b,
-               ptr_param<const MultiVector<value_type>> beta,
-               ptr_param<MultiVector<value_type>> x) const;
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> alpha,
+                          ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<const MultiVector<value_type>> beta,
+                          ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * Performs in-place row and column scaling for this matrix.
@@ -360,8 +367,8 @@ public:
      * @param row_scale  the row scalars
      * @param col_scale  the column scalars
      */
-    void scale(const array<value_type>& row_scale,
-               const array<value_type>& col_scale);
+    GKO_EXPORT void scale(const array<value_type>& row_scale,
+                          const array<value_type>& col_scale);
 
     /**
      * Performs the operation this = alpha*this + b.
@@ -371,8 +378,9 @@ public:
      *
      * @note Performs the operation in-place for this batch matrix
      */
-    void scale_add(ptr_param<const MultiVector<value_type>> alpha,
-                   ptr_param<const batch::matrix::Dense<value_type>> b);
+    GKO_EXPORT void scale_add(
+        ptr_param<const MultiVector<value_type>> alpha,
+        ptr_param<const batch::matrix::Dense<value_type>> b);
 
     /**
      * Performs the operation this = alpha*I + beta*this.
@@ -382,8 +390,9 @@ public:
      *
      * @note Performs the operation in-place for this batch matrix
      */
-    void add_scaled_identity(ptr_param<const MultiVector<value_type>> alpha,
-                             ptr_param<const MultiVector<value_type>> beta);
+    GKO_EXPORT void add_scaled_identity(
+        ptr_param<const MultiVector<value_type>> alpha,
+        ptr_param<const MultiVector<value_type>> beta);
 
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
@@ -392,19 +401,19 @@ private:
                size.get_common_size()[1];
     }
 
-    Dense(std::shared_ptr<const Executor> exec,
-          const batch_dim<2>& size = batch_dim<2>{});
+    GKO_EXPORT Dense(std::shared_ptr<const Executor> exec,
+                     const batch_dim<2>& size = batch_dim<2>{});
 
-    Dense(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-          array<value_type> values);
+    GKO_EXPORT Dense(std::shared_ptr<const Executor> exec,
+                     const batch_dim<2>& size, array<value_type> values);
 
-    void apply_impl(const MultiVector<value_type>* b,
-                    MultiVector<value_type>* x) const;
+    GKO_EXPORT void apply_impl(const MultiVector<value_type>* b,
+                               MultiVector<value_type>* x) const;
 
-    void apply_impl(const MultiVector<value_type>* alpha,
-                    const MultiVector<value_type>* b,
-                    const MultiVector<value_type>* beta,
-                    MultiVector<value_type>* x) const;
+    GKO_EXPORT void apply_impl(const MultiVector<value_type>* alpha,
+                               const MultiVector<value_type>* b,
+                               const MultiVector<value_type>* beta,
+                               MultiVector<value_type>* x) const;
 
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept

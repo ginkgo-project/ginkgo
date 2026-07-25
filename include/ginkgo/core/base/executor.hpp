@@ -25,6 +25,9 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
+#include <ginkgo/export_cuda.hpp>
+#include <ginkgo/export_dpcpp.hpp>
+#include <ginkgo/export_hip.hpp>
 
 
 namespace gko {
@@ -255,7 +258,7 @@ class ExecutorBase;
  *
  * @ingroup Executor
  */
-class Operation {
+class GKO_EXPORT_CLASS Operation {
 public:
 #define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
     virtual void run(std::shared_ptr<const _type>) const
@@ -1417,7 +1420,7 @@ public:
         return this->get_exec_info().num_pu_per_cu;
     }
 
-    static int get_num_omp_threads();
+    GKO_OMP_EXPORT static int get_num_omp_threads();
 
     scoped_device_id_guard get_scoped_device_id_guard() const override;
 
@@ -1565,7 +1568,7 @@ public:
         "  std::shared_ptr<CudaAllocatorBase> alloc,"
         "  CUstream_st* stream);"
         "instead")
-    static std::shared_ptr<CudaExecutor> create(
+    GKO_CUDA_EXPORT static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master, bool device_reset,
         allocation_mode alloc_mode = default_cuda_alloc_mode,
         CUstream_st* stream = nullptr);
@@ -1579,21 +1582,23 @@ public:
      * @param alloc  the allocator to use for device memory allocations.
      * @param stream  the stream to execute operations on.
      */
-    static std::shared_ptr<CudaExecutor> create(
+    GKO_CUDA_EXPORT static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         std::shared_ptr<CudaAllocatorBase> alloc =
             std::make_shared<CudaAllocator>(),
         CUstream_st* stream = nullptr);
 
-    std::shared_ptr<Executor> get_master() noexcept override;
+    GKO_CUDA_EXPORT std::shared_ptr<Executor> get_master() noexcept override;
 
-    std::shared_ptr<const Executor> get_master() const noexcept override;
+    GKO_CUDA_EXPORT std::shared_ptr<const Executor> get_master()
+        const noexcept override;
 
-    void synchronize() const override;
+    GKO_CUDA_EXPORT void synchronize() const override;
 
-    scoped_device_id_guard get_scoped_device_id_guard() const override;
+    GKO_CUDA_EXPORT scoped_device_id_guard
+    get_scoped_device_id_guard() const override;
 
-    std::string get_description() const override;
+    GKO_CUDA_EXPORT std::string get_description() const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1606,7 +1611,7 @@ public:
     /**
      * Get the number of devices present on the system.
      */
-    static int get_num_devices();
+    GKO_CUDA_EXPORT static int get_num_devices();
 
     /**
      * Get the number of warps per SM of this executor.
@@ -1806,26 +1811,28 @@ public:
         "device_reset is deprecated entirely, call hipDeviceReset directly. "
         "alloc_mode was replaced by the Allocator type "
         "hierarchy.")
-    static std::shared_ptr<HipExecutor> create(
+    GKO_HIP_EXPORT static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master, bool device_reset,
         allocation_mode alloc_mode = default_hip_alloc_mode,
         GKO_HIP_STREAM_STRUCT* stream = nullptr);
 
-    static std::shared_ptr<HipExecutor> create(
+    GKO_HIP_EXPORT static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         std::shared_ptr<HipAllocatorBase> alloc =
             std::make_shared<HipAllocator>(),
         GKO_HIP_STREAM_STRUCT* stream = nullptr);
 
-    std::shared_ptr<Executor> get_master() noexcept override;
+    GKO_HIP_EXPORT std::shared_ptr<Executor> get_master() noexcept override;
 
-    std::shared_ptr<const Executor> get_master() const noexcept override;
+    GKO_HIP_EXPORT std::shared_ptr<const Executor> get_master()
+        const noexcept override;
 
-    void synchronize() const override;
+    GKO_HIP_EXPORT void synchronize() const override;
 
-    scoped_device_id_guard get_scoped_device_id_guard() const override;
+    GKO_HIP_EXPORT scoped_device_id_guard
+    get_scoped_device_id_guard() const override;
 
-    std::string get_description() const override;
+    GKO_HIP_EXPORT std::string get_description() const override;
 
     /**
      * Get the HIP device id of the device associated to this executor.
@@ -1838,7 +1845,7 @@ public:
     /**
      * Get the number of devices present on the system.
      */
-    static int get_num_devices();
+    GKO_HIP_EXPORT static int get_num_devices();
 
     /**
      * Get the number of warps per SM of this executor.
@@ -2017,20 +2024,22 @@ public:
      * @param device_type  a string representing the type of device to consider
      *                     (accelerator, cpu, gpu or all).
      */
-    static std::shared_ptr<DpcppExecutor> create(
+    GKO_DPCPP_EXPORT static std::shared_ptr<DpcppExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         std::string device_type = "all",
         dpcpp_queue_property property = dpcpp_queue_property::in_order);
 
-    std::shared_ptr<Executor> get_master() noexcept override;
+    GKO_DPCPP_EXPORT std::shared_ptr<Executor> get_master() noexcept override;
 
-    std::shared_ptr<const Executor> get_master() const noexcept override;
+    GKO_DPCPP_EXPORT std::shared_ptr<const Executor> get_master()
+        const noexcept override;
 
-    void synchronize() const override;
+    GKO_DPCPP_EXPORT void synchronize() const override;
 
-    scoped_device_id_guard get_scoped_device_id_guard() const override;
+    GKO_DPCPP_EXPORT scoped_device_id_guard
+    get_scoped_device_id_guard() const override;
 
-    std::string get_description() const override;
+    GKO_DPCPP_EXPORT std::string get_description() const override;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.
@@ -2051,7 +2060,7 @@ public:
      *
      * @return the number of devices present on the system
      */
-    static int get_num_devices(std::string device_type);
+    GKO_DPCPP_EXPORT static int get_num_devices(std::string device_type);
 
     /**
      * Get the available subgroup sizes for this device.

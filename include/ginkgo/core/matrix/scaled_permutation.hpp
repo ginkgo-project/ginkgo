@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -90,7 +91,7 @@ public:
      *         of the permutation and scaling factors of this
      *         ScaledPermutation.
      */
-    std::unique_ptr<ScaledPermutation> compute_inverse() const;
+    GKO_EXPORT std::unique_ptr<ScaledPermutation> compute_inverse() const;
 
     /**
      * Composes this scaled permutation with another scaled permutation. This
@@ -100,10 +101,11 @@ public:
      * @param other  the other permutation
      * @return the combined permutation
      */
-    std::unique_ptr<ScaledPermutation> compose(
+    GKO_EXPORT std::unique_ptr<ScaledPermutation> compose(
         ptr_param<const ScaledPermutation> other) const;
 
-    void write(gko::matrix_data<value_type, index_type>& data) const override;
+    GKO_EXPORT void write(
+        gko::matrix_data<value_type, index_type>& data) const override;
 
     /**
      * Creates an uninitialized ScaledPermutation matrix.
@@ -113,7 +115,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<ScaledPermutation> create(
+    GKO_EXPORT static std::unique_ptr<ScaledPermutation> create(
         std::shared_ptr<const Executor> exec, size_type size = 0);
 
     /**
@@ -124,7 +126,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<ScaledPermutation> create(
+    GKO_EXPORT static std::unique_ptr<ScaledPermutation> create(
         ptr_param<const Permutation<IndexType>> permutation);
 
     /**
@@ -136,7 +138,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<ScaledPermutation> create(
+    GKO_EXPORT static std::unique_ptr<ScaledPermutation> create(
         std::shared_ptr<const Executor> exec, array<value_type> scaling_factors,
         array<index_type> permutation_indices);
 
@@ -151,22 +153,23 @@ public:
      *          (if it resides on the same executor as the matrix) or a copy of
      *          the arrays on the correct executor.
      */
-    static std::unique_ptr<const ScaledPermutation> create_const(
+    GKO_EXPORT static std::unique_ptr<const ScaledPermutation> create_const(
         std::shared_ptr<const Executor> exec,
         gko::detail::const_array_view<value_type>&& scale,
         gko::detail::const_array_view<index_type>&& perm_idxs);
 
 private:
-    ScaledPermutation(std::shared_ptr<const Executor> exec, size_type size = 0);
+    GKO_EXPORT ScaledPermutation(std::shared_ptr<const Executor> exec,
+                                 size_type size = 0);
 
-    ScaledPermutation(std::shared_ptr<const Executor> exec,
-                      array<value_type> scaling_factors,
-                      array<index_type> permutation_indices);
+    GKO_EXPORT ScaledPermutation(std::shared_ptr<const Executor> exec,
+                                 array<value_type> scaling_factors,
+                                 array<index_type> permutation_indices);
 
-    void apply_impl(const LinOp* in, LinOp* out) const override;
+    GKO_EXPORT void apply_impl(const LinOp* in, LinOp* out) const override;
 
-    void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
-                    LinOp* out) const override;
+    GKO_EXPORT void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
+                               LinOp* out) const override;
 
     array<value_type> scale_;
     array<index_type> permutation_;

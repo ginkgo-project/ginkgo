@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -71,17 +72,17 @@ public:
      *       need to be cast to Permutation again to access its indices.
      *       It is only necessary because smart pointers aren't covariant.
      */
-    std::unique_ptr<permutation_type> generate(
+    GKO_EXPORT std::unique_ptr<permutation_type> generate(
         std::shared_ptr<const LinOp> system_matrix) const;
 
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
 
 protected:
-    explicit Amd(std::shared_ptr<const Executor> exec,
-                 const parameters_type& params = {});
+    GKO_EXPORT explicit Amd(std::shared_ptr<const Executor> exec,
+                            const parameters_type& params = {});
 
-    std::unique_ptr<LinOp> generate_impl(
+    GKO_EXPORT std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> system_matrix) const override;
 
     parameters_type parameters_;

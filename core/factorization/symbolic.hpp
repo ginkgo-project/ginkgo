@@ -1,8 +1,9 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/export.hpp>
 
 #include "core/factorization/elimination_forest.hpp"
 
@@ -20,7 +21,7 @@ namespace factorization {
  * @param forest  the elimination forest of the input matrix
  */
 template <typename ValueType, typename IndexType>
-void symbolic_cholesky(
+GKO_EXPORT void symbolic_cholesky(
     const matrix::Csr<ValueType, IndexType>* mtx, bool symmetrize,
     std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,
     std::unique_ptr<elimination_forest<IndexType>>& forest);
@@ -36,7 +37,7 @@ void symbolic_cholesky(
  * @param forest  the elimination forest of the input matrix
  */
 template <typename ValueType, typename IndexType>
-void symbolic_cholesky_device(
+GKO_EXPORT void symbolic_cholesky_device(
     const matrix::Csr<ValueType, IndexType>* mtx, bool symmetrize,
     std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors,
     std::unique_ptr<elimination_forest<IndexType>>& forest);
@@ -53,8 +54,9 @@ void symbolic_cholesky_device(
  * @param factors  the output factors stored in a combined pattern
  */
 template <typename ValueType, typename IndexType>
-void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
-                 std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
+GKO_EXPORT void symbolic_lu(
+    const matrix::Csr<ValueType, IndexType>* mtx,
+    std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
 
 /**
  * Computes the symbolic LU factorization of the given, nearly symmetric matrix.
@@ -69,7 +71,7 @@ void symbolic_lu(const matrix::Csr<ValueType, IndexType>* mtx,
  * @param factors  the output factors stored in a combined pattern
  */
 template <typename ValueType, typename IndexType>
-void symbolic_lu_near_symm(
+GKO_EXPORT void symbolic_lu_near_symm(
     const matrix::Csr<ValueType, IndexType>* mtx,
     std::unique_ptr<matrix::Csr<ValueType, IndexType>>& factors);
 

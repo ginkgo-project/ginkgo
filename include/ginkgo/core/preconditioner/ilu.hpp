@@ -25,6 +25,7 @@
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -109,7 +110,7 @@ public:
          * accepts the factory from the same concrete solver type. When
          * LSolverTypeOrValueType is a value type, it accepts any LinOpFactory.
          */
-        parameters_type& with_l_solver(
+        GKO_EXPORT parameters_type& with_l_solver(
             deferred_factory_parameter<const LinOpFactory> solver);
 
         /**
@@ -190,9 +191,9 @@ public:
      */
     std::shared_ptr<const LinOp> get_u_solver() const { return u_solver_; }
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Copy-assigns an ILU preconditioner. Preserves the executor,
@@ -223,14 +224,15 @@ public:
     Ilu(Ilu&& other);
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
-    explicit Ilu(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT explicit Ilu(std::shared_ptr<const Executor> exec);
 
-    explicit Ilu(const Factory* factory, std::shared_ptr<const LinOp> lin_op);
+    GKO_EXPORT explicit Ilu(const Factory* factory,
+                            std::shared_ptr<const LinOp> lin_op);
 
     /**
      * Prepares the intermediate vector for the solve by creating it and

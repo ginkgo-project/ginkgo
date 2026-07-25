@@ -118,17 +118,17 @@ public:
      *       need to be cast to ScaledPermutation again to access its indices.
      *       It is only necessary because smart pointers aren't covariant.
      */
-    std::unique_ptr<result_type> generate(
+    GKO_EXPORT std::unique_ptr<result_type> generate(
         std::shared_ptr<const LinOp> system_matrix) const;
 
     /** Creates a new parameter_type to set up the factory. */
     static parameters_type build() { return {}; }
 
 private:
-    explicit Mc64(std::shared_ptr<const Executor> exec,
-                  const parameters_type& params = {});
+    GKO_EXPORT explicit Mc64(std::shared_ptr<const Executor> exec,
+                             const parameters_type& params = {});
 
-    std::unique_ptr<LinOp> generate_impl(
+    GKO_EXPORT std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> system_matrix) const override;
 
     parameters_type parameters_;

@@ -15,6 +15,7 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/incomplete_factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -150,7 +151,7 @@ protected:
         }
     }
 
-    std::unique_ptr<Composition<ValueType>> generate(
+    GKO_EXPORT std::unique_ptr<Composition<ValueType>> generate(
         const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
         bool both_factors) const;
 };

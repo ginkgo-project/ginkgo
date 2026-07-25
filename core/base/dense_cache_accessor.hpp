@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -23,7 +24,8 @@ namespace detail {
 class GenericDenseCacheAccessor {
 public:
     // access to the workspace
-    static const array<char>& get_workspace(const GenericDenseCache& cache);
+    GKO_EXPORT static const array<char>& get_workspace(
+        const GenericDenseCache& cache);
 };
 
 
@@ -31,14 +33,15 @@ public:
 class ScalarCacheAccessor {
 public:
     // access to the executor
-    static std::shared_ptr<const Executor> get_executor(
+    GKO_EXPORT static std::shared_ptr<const Executor> get_executor(
         const ScalarCache& cache);
 
     // access to the value
-    static double get_value(const ScalarCache& cache);
+    GKO_EXPORT static double get_value(const ScalarCache& cache);
 
     // access to the scalars
-    static const std::map<std::string, std::shared_ptr<const gko::LinOp>>&
+    GKO_EXPORT static const std::map<std::string,
+                                     std::shared_ptr<const gko::LinOp>>&
     get_scalars(const ScalarCache& cache);
 };
 

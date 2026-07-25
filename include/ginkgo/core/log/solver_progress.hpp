@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <memory>
 
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -33,8 +34,9 @@ public:
      * @param precision  the number of digits of precision to print
      * @param column_width  the number of characters an output column is wide
      */
-    static std::shared_ptr<SolverProgress> create_scalar_table_writer(
-        std::ostream& output, int precision = 6, int column_width = 12);
+    GKO_EXPORT static std::shared_ptr<SolverProgress>
+    create_scalar_table_writer(std::ostream& output, int precision = 6,
+                               int column_width = 12);
 
 
     /**
@@ -47,7 +49,7 @@ public:
      * @param precision  the number of digits of precision to print
      * @param separator  the character separating columns from each other
      */
-    static std::shared_ptr<SolverProgress> create_scalar_csv_writer(
+    GKO_EXPORT static std::shared_ptr<SolverProgress> create_scalar_csv_writer(
         std::ostream& output, int precision = 6, char separator = ',');
 
 
@@ -65,7 +67,7 @@ public:
      *                (lossless), if false write data in the MatrixMarket format
      *                (potentially lossy)
      */
-    static std::shared_ptr<SolverProgress> create_vector_storage(
+    GKO_EXPORT static std::shared_ptr<SolverProgress> create_vector_storage(
         std::string output_file_prefix = "solver_", bool binary = false);
 };
 

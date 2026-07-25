@@ -19,6 +19,7 @@
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -90,9 +91,9 @@ public:
     using value_type = ValueType;
     using transposed_type = Ir<ValueType>;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
@@ -117,7 +118,7 @@ public:
      *
      * @param new_solver  the new inner solver
      */
-    void set_solver(std::shared_ptr<const LinOp> new_solver);
+    GKO_EXPORT void set_solver(std::shared_ptr<const LinOp> new_solver);
 
     /**
      * Copy-assigns an IR solver. Preserves the executor, shallow-copies inner
@@ -125,7 +126,7 @@ public:
      * clones inner solver, stopping criterion and system matrix onto this
      * executor.
      */
-    Ir& operator=(const Ir&);
+    GKO_EXPORT Ir& operator=(const Ir&);
 
     /**
      * Move-assigns an IR solver. Preserves the executor, moves inner solver,
@@ -134,7 +135,7 @@ public:
      * The moved-from object is empty (0x0 and nullptr inner solver, stopping
      * criterion and system matrix)
      */
-    Ir& operator=(Ir&&);
+    GKO_EXPORT Ir& operator=(Ir&&);
 
     /**
      * Copy-constructs an IR solver. Inherits the executor, shallow-copies inner
@@ -201,21 +202,21 @@ public:
                                      config::make_type_descriptor<ValueType>());
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
     template <typename VectorType>
     void apply_dense_impl(const VectorType* b, VectorType* x,
                           initial_guess_mode guess) const;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
-    void apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
-                                       initial_guess_mode guess) const override;
+    GKO_EXPORT void apply_with_initial_guess_impl(
+        const LinOp* b, LinOp* x, initial_guess_mode guess) const override;
 
-    void apply_with_initial_guess_impl(const LinOp* alpha, const LinOp* b,
-                                       const LinOp* beta, LinOp* x,
-                                       initial_guess_mode guess) const override;
+    GKO_EXPORT void apply_with_initial_guess_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        initial_guess_mode guess) const override;
 
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
@@ -260,17 +261,17 @@ template <typename ValueType>
 struct workspace_traits<Ir<ValueType>> {
     using Solver = Ir<ValueType>;
     // number of vectors used by this workspace
-    static int num_vectors(const Solver&);
+    GKO_EXPORT static int num_vectors(const Solver&);
     // number of arrays used by this workspace
-    static int num_arrays(const Solver&);
+    GKO_EXPORT static int num_arrays(const Solver&);
     // array containing the num_vectors names for the workspace vectors
-    static std::vector<std::string> op_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> op_names(const Solver&);
     // array containing the num_arrays names for the workspace vectors
-    static std::vector<std::string> array_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> array_names(const Solver&);
     // array containing all varying scalar vectors (independent of problem size)
-    static std::vector<int> scalars(const Solver&);
+    GKO_EXPORT static std::vector<int> scalars(const Solver&);
     // array containing all varying vectors (dependent on problem size)
-    static std::vector<int> vectors(const Solver&);
+    GKO_EXPORT static std::vector<int> vectors(const Solver&);
 
     // residual vector
     constexpr static int residual = 0;

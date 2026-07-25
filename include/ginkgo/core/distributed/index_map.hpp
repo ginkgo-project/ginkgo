@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,7 +8,7 @@
 
 #include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
-
+#include <ginkgo/export.hpp>
 
 namespace gko {
 namespace experimental {
@@ -79,8 +79,9 @@ public:
      * \return  the mapped local indices. Any global index that is not in the
      *          specified index space is mapped to invalid_index.
      */
-    array<LocalIndexType> map_to_local(const array<GlobalIndexType>& global_ids,
-                                       index_space index_space_v) const;
+    GKO_EXPORT array<LocalIndexType> map_to_local(
+        const array<GlobalIndexType>& global_ids,
+        index_space index_space_v) const;
 
 
     /**
@@ -93,24 +94,24 @@ public:
      * @return  the mapped global indices. Any local index that is not in the
      *          specified index space is mapped to invalid_index
      */
-    array<GlobalIndexType> map_to_global(
+    GKO_EXPORT array<GlobalIndexType> map_to_global(
         const array<LocalIndexType>& local_idxs,
         index_space index_space_v) const;
 
     /**
      * \brief get size of the global index space
      */
-    size_type get_global_size() const;
+    GKO_EXPORT size_type get_global_size() const;
 
     /**
      * \brief get size of index_space::local
      */
-    size_type get_local_size() const;
+    GKO_EXPORT size_type get_local_size() const;
 
     /**
      * \brief get size of index_space::non_local
      */
-    size_type get_non_local_size() const;
+    GKO_EXPORT size_type get_non_local_size() const;
 
     /**
      * \brief Creates a new index map.
@@ -124,22 +125,23 @@ public:
      * \param recv_connections  the global indices that are not owned by this
      *                          rank, but accessed by it
      */
-    index_map(std::shared_ptr<const Executor> exec,
-              std::shared_ptr<const partition_type> partition,
-              comm_index_type rank,
-              const array<GlobalIndexType>& recv_connections);
+    GKO_EXPORT index_map(std::shared_ptr<const Executor> exec,
+                         std::shared_ptr<const partition_type> partition,
+                         comm_index_type rank,
+                         const array<GlobalIndexType>& recv_connections);
 
     /**
      * \brief Creates an empty index map.
      */
-    index_map(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT index_map(std::shared_ptr<const Executor> exec);
 
     /**
      * \brief get the index set $R_k$ for this rank.
      *
      * The indices are ordered by their owning rank and global index.
      */
-    const segmented_array<GlobalIndexType>& get_remote_global_idxs() const;
+    GKO_EXPORT const segmented_array<GlobalIndexType>& get_remote_global_idxs()
+        const;
 
     /**
      * \brief get the index set $R_k$, but mapped to their respective local
@@ -155,7 +157,8 @@ public:
      * R_{k,j}$. The set $R_{k,j}$ can then be mapped by $l_j$ to get the local
      * indices wrt. part $j$. The indices here are mapped by $l_j$.
      */
-    const segmented_array<LocalIndexType>& get_remote_local_idxs() const;
+    GKO_EXPORT const segmented_array<LocalIndexType>& get_remote_local_idxs()
+        const;
 
     /**
      * \brief get the rank ids which contain indices accessed by this rank.
@@ -163,20 +166,20 @@ public:
      * The order matches the order of the sets in get_remote_global_idxs and
      * get_remote_local_idxs.
      */
-    const array<comm_index_type>& get_remote_target_ids() const;
+    GKO_EXPORT const array<comm_index_type>& get_remote_target_ids() const;
 
     /**
      * \brief get the associated executor.
      */
-    std::shared_ptr<const Executor> get_executor() const;
+    GKO_EXPORT std::shared_ptr<const Executor> get_executor() const;
 
-    index_map(const index_map& other);
+    GKO_EXPORT index_map(const index_map& other);
 
-    index_map(index_map&& other) noexcept;
+    GKO_EXPORT index_map(index_map&& other) noexcept;
 
-    index_map& operator=(const index_map& other);
+    GKO_EXPORT index_map& operator=(const index_map& other);
 
-    index_map& operator=(index_map&& other);
+    GKO_EXPORT index_map& operator=(index_map&& other);
 
 private:
     std::shared_ptr<const Executor> exec_;

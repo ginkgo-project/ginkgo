@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2024 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/export.hpp>
 
 #include "core/base/index_range.hpp"
 #include "core/base/intrinsics.hpp"
@@ -695,13 +696,13 @@ public:
      *
      * @param data  the value array
      */
-    range_minimum_query(array<IndexType> data);
+    GKO_EXPORT range_minimum_query(array<IndexType> data);
 
     /**
      * Returns the device_range_minimum_query view for the data, for use in
      * kernels.
      */
-    view_type get() const;
+    GKO_EXPORT view_type get() const;
 
 private:
     index_type num_blocks_;

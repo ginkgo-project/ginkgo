@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -701,10 +702,11 @@ public:
 
     friend class Csr<previous_precision<ValueType>, IndexType>;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Csr<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Csr<next_precision<ValueType>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Csr<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Csr<previous_precision<ValueType, 2>, IndexType>;
@@ -712,10 +714,11 @@ public:
         Csr<next_precision<ValueType, 2>, IndexType>>::convert_to;
     using ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Csr<next_precision<ValueType, 2>, IndexType>* result) const override;
 
-    void move_to(Csr<next_precision<ValueType, 2>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Csr<next_precision<ValueType, 2>, IndexType>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
@@ -724,51 +727,58 @@ public:
         Csr<next_precision<ValueType, 3>, IndexType>>::convert_to;
     using ConvertibleTo<Csr<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Csr<next_precision<ValueType, 3>, IndexType>* result) const override;
 
-    void move_to(Csr<next_precision<ValueType, 3>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Csr<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(Dense<ValueType>* other) const override;
+    GKO_EXPORT void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    GKO_EXPORT void move_to(Dense<ValueType>* other) override;
 
-    void convert_to(Coo<ValueType, IndexType>* result) const override;
+    GKO_EXPORT void convert_to(
+        Coo<ValueType, IndexType>* result) const override;
 
-    void move_to(Coo<ValueType, IndexType>* result) override;
+    GKO_EXPORT void move_to(Coo<ValueType, IndexType>* result) override;
 
-    void convert_to(Ell<ValueType, IndexType>* result) const override;
+    GKO_EXPORT void convert_to(
+        Ell<ValueType, IndexType>* result) const override;
 
-    void move_to(Ell<ValueType, IndexType>* result) override;
+    GKO_EXPORT void move_to(Ell<ValueType, IndexType>* result) override;
 
-    void convert_to(Fbcsr<ValueType, IndexType>* result) const override;
+    GKO_EXPORT void convert_to(
+        Fbcsr<ValueType, IndexType>* result) const override;
 
-    void move_to(Fbcsr<ValueType, IndexType>* result) override;
+    GKO_EXPORT void move_to(Fbcsr<ValueType, IndexType>* result) override;
 
-    void convert_to(Hybrid<ValueType, IndexType>* result) const override;
+    GKO_EXPORT void convert_to(
+        Hybrid<ValueType, IndexType>* result) const override;
 
-    void move_to(Hybrid<ValueType, IndexType>* result) override;
+    GKO_EXPORT void move_to(Hybrid<ValueType, IndexType>* result) override;
 
-    void convert_to(Sellp<ValueType, IndexType>* result) const override;
+    GKO_EXPORT void convert_to(
+        Sellp<ValueType, IndexType>* result) const override;
 
-    void move_to(Sellp<ValueType, IndexType>* result) override;
+    GKO_EXPORT void move_to(Sellp<ValueType, IndexType>* result) override;
 
-    void convert_to(SparsityCsr<ValueType, IndexType>* result) const override;
+    GKO_EXPORT void convert_to(
+        SparsityCsr<ValueType, IndexType>* result) const override;
 
-    void move_to(SparsityCsr<ValueType, IndexType>* result) override;
+    GKO_EXPORT void move_to(SparsityCsr<ValueType, IndexType>* result) override;
 
-    void read(const mat_data& data) override;
+    GKO_EXPORT void read(const mat_data& data) override;
 
-    void read(const device_mat_data& data) override;
+    GKO_EXPORT void read(const device_mat_data& data) override;
 
-    void read(device_mat_data&& data) override;
+    GKO_EXPORT void read(device_mat_data&& data) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Class describing the internal lookup structures created by
@@ -779,25 +789,27 @@ public:
         friend class Csr;
 
     public:
-        explicit multiply_reuse_info();
+        GKO_EXPORT explicit multiply_reuse_info();
 
-        ~multiply_reuse_info();
+        GKO_EXPORT ~multiply_reuse_info();
 
         multiply_reuse_info(const multiply_reuse_info&) = delete;
 
-        multiply_reuse_info(multiply_reuse_info&&) noexcept;
+        GKO_EXPORT multiply_reuse_info(multiply_reuse_info&&) noexcept;
 
         multiply_reuse_info& operator=(const multiply_reuse_info&) = delete;
 
-        multiply_reuse_info& operator=(multiply_reuse_info&&) noexcept;
+        GKO_EXPORT multiply_reuse_info& operator=(
+            multiply_reuse_info&&) noexcept;
 
         /**
          * Recomputes the sparse matrix-matrix product `out = mtx1 * mtx2` when
          * only the values of mtx1 and mtx2 changed, but the sparsity patterns
          * of mtx1, mtx2 and out are unchanged.
          */
-        void update_values(ptr_param<const Csr> mtx1, ptr_param<const Csr> mtx2,
-                           ptr_param<Csr> out) const;
+        GKO_EXPORT void update_values(ptr_param<const Csr> mtx1,
+                                      ptr_param<const Csr> mtx2,
+                                      ptr_param<Csr> out) const;
 
     private:
         struct lookup_data;
@@ -817,7 +829,7 @@ public:
      * @return  the product of the two matrices, stored on the same executor as
      *          this matrix.
      */
-    std::unique_ptr<Csr> multiply(ptr_param<const Csr> other) const;
+    GKO_EXPORT std::unique_ptr<Csr> multiply(ptr_param<const Csr> other) const;
 
     /**
      * Computes the sparse matrix product `this * other` on the executor of this
@@ -835,8 +847,8 @@ public:
      *          the same executor as this matrix, and a multiply_reuse_info
      *          object allowing value updates to the output matrix.
      */
-    std::pair<std::unique_ptr<Csr>, multiply_reuse_info> multiply_reuse(
-        ptr_param<const Csr> other) const;
+    GKO_EXPORT std::pair<std::unique_ptr<Csr>, multiply_reuse_info>
+    multiply_reuse(ptr_param<const Csr> other) const;
 
     /**
      * Class describing the internal lookup structures created by
@@ -847,18 +859,19 @@ public:
         friend class Csr;
 
     public:
-        explicit multiply_add_reuse_info();
+        GKO_EXPORT explicit multiply_add_reuse_info();
 
-        ~multiply_add_reuse_info();
+        GKO_EXPORT ~multiply_add_reuse_info();
 
         multiply_add_reuse_info(const multiply_add_reuse_info&) = delete;
 
-        multiply_add_reuse_info(multiply_add_reuse_info&&) noexcept;
+        GKO_EXPORT multiply_add_reuse_info(multiply_add_reuse_info&&) noexcept;
 
         multiply_add_reuse_info& operator=(const multiply_add_reuse_info&) =
             delete;
 
-        multiply_add_reuse_info& operator=(multiply_add_reuse_info&&) noexcept;
+        GKO_EXPORT multiply_add_reuse_info& operator=(
+            multiply_add_reuse_info&&) noexcept;
 
         /**
          * Recomputes the sparse matrix-matrix product
@@ -867,12 +880,12 @@ public:
          * but the sparsity patterns of mtx, mtx_mult, mtx_add and out are
          * unchanged.
          */
-        void update_values(ptr_param<const Csr> mtx,
-                           ptr_param<const Dense<value_type>> scale_mult,
-                           ptr_param<const Csr> mtx_mult,
-                           ptr_param<const Dense<value_type>> scale_add,
-                           ptr_param<const Csr> mtx_add,
-                           ptr_param<Csr> out) const;
+        GKO_EXPORT void update_values(
+            ptr_param<const Csr> mtx,
+            ptr_param<const Dense<value_type>> scale_mult,
+            ptr_param<const Csr> mtx_mult,
+            ptr_param<const Dense<value_type>> scale_add,
+            ptr_param<const Csr> mtx_add, ptr_param<Csr> out) const;
 
     private:
         struct lookup_data;
@@ -897,7 +910,7 @@ public:
      * @return  the result of the computation, stored on the same executor as
      *          this matrix.
      */
-    std::unique_ptr<Csr> multiply_add(
+    GKO_EXPORT std::unique_ptr<Csr> multiply_add(
         ptr_param<const Dense<value_type>> scale_mult,
         ptr_param<const Csr> mtx_mult,
         ptr_param<const Dense<value_type>> scale_add,
@@ -924,11 +937,11 @@ public:
      *          the same executor as this matrix, and a multiply_add_reuse_info
      *          object allowing value updates to the output matrix.
      */
-    std::pair<std::unique_ptr<Csr>, multiply_add_reuse_info> multiply_add_reuse(
-        ptr_param<const Dense<value_type>> scale_mult,
-        ptr_param<const Csr> mtx_mult,
-        ptr_param<const Dense<value_type>> scale_add,
-        ptr_param<const Csr> mtx_add) const;
+    GKO_EXPORT std::pair<std::unique_ptr<Csr>, multiply_add_reuse_info>
+    multiply_add_reuse(ptr_param<const Dense<value_type>> scale_mult,
+                       ptr_param<const Csr> mtx_mult,
+                       ptr_param<const Dense<value_type>> scale_add,
+                       ptr_param<const Csr> mtx_add) const;
 
     /**
      * Class describing the internal lookup structures created by
@@ -939,17 +952,18 @@ public:
         friend class Csr;
 
     public:
-        explicit scale_add_reuse_info();
+        GKO_EXPORT explicit scale_add_reuse_info();
 
-        ~scale_add_reuse_info();
+        GKO_EXPORT ~scale_add_reuse_info();
 
         scale_add_reuse_info(const scale_add_reuse_info&) = delete;
 
-        scale_add_reuse_info(scale_add_reuse_info&&) noexcept;
+        GKO_EXPORT scale_add_reuse_info(scale_add_reuse_info&&) noexcept;
 
         scale_add_reuse_info& operator=(const scale_add_reuse_info&) = delete;
 
-        scale_add_reuse_info& operator=(scale_add_reuse_info&&) noexcept;
+        GKO_EXPORT scale_add_reuse_info& operator=(
+            scale_add_reuse_info&&) noexcept;
 
         /**
          * Recomputes the sparse matrix-matrix sum
@@ -957,10 +971,11 @@ public:
          * mtx1, scale1, mtx2, scale2 changed, but the sparsity patterns of
          * mtx1, mtx2 and out are unchanged.
          */
-        void update_values(ptr_param<const Dense<value_type>> scale1,
-                           ptr_param<const Csr> mtx1,
-                           ptr_param<const Dense<value_type>> scale2,
-                           ptr_param<const Csr> mtx2, ptr_param<Csr> out) const;
+        GKO_EXPORT void update_values(ptr_param<const Dense<value_type>> scale1,
+                                      ptr_param<const Csr> mtx1,
+                                      ptr_param<const Dense<value_type>> scale2,
+                                      ptr_param<const Csr> mtx2,
+                                      ptr_param<Csr> out) const;
 
     private:
         struct lookup_data;
@@ -984,7 +999,7 @@ public:
      * @return  the result of the computation, stored on the same executor as
      *          this matrix.
      */
-    std::unique_ptr<Csr> scale_add(
+    GKO_EXPORT std::unique_ptr<Csr> scale_add(
         ptr_param<const Dense<value_type>> scale_this,
         ptr_param<const Dense<value_type>> scale_other,
         ptr_param<const Csr> mtx_other) const;
@@ -1010,10 +1025,10 @@ public:
      *          the same executor as this matrix, and a scale_add_reuse_info
      *          object allowing value updates to the output matrix.
      */
-    std::pair<std::unique_ptr<Csr>, scale_add_reuse_info> add_scale_reuse(
-        ptr_param<const Dense<value_type>> scale_this,
-        ptr_param<const Dense<value_type>> scale_other,
-        ptr_param<const Csr> mtx_other) const;
+    GKO_EXPORT std::pair<std::unique_ptr<Csr>, scale_add_reuse_info>
+    add_scale_reuse(ptr_param<const Dense<value_type>> scale_this,
+                    ptr_param<const Dense<value_type>> scale_other,
+                    ptr_param<const Csr> mtx_other) const;
 
     /**
      * A struct describing a transformation of the matrix that reorders the
@@ -1021,10 +1036,10 @@ public:
      */
     struct permuting_reuse_info {
         /** Creates an empty reuse info. */
-        explicit permuting_reuse_info();
+        GKO_EXPORT explicit permuting_reuse_info();
 
         /** Creates a reuse info structure from its value permutation. */
-        explicit permuting_reuse_info(
+        GKO_EXPORT explicit permuting_reuse_info(
             std::unique_ptr<Permutation<index_type>> value_permutation);
 
         /**
@@ -1034,8 +1049,8 @@ public:
          * Internally, this permutes the input value vector into the output
          * value vector.
          */
-        void update_values(ptr_param<const Csr> input,
-                           ptr_param<Csr> output) const;
+        GKO_EXPORT void update_values(ptr_param<const Csr> input,
+                                      ptr_param<Csr> output) const;
 
         std::unique_ptr<Permutation<IndexType>> value_permutation;
     };
@@ -1052,8 +1067,8 @@ public:
      *         struct that can be used to update values in the transposed
      *         matrix.
      */
-    std::pair<std::unique_ptr<Csr>, permuting_reuse_info> transpose_reuse()
-        const;
+    GKO_EXPORT std::pair<std::unique_ptr<Csr>, permuting_reuse_info>
+    transpose_reuse() const;
 
     /**
      * Creates a permuted copy $A'$ of this matrix $A$ with the given
@@ -1069,7 +1084,7 @@ public:
      *              permuted.
      * @return  The permuted matrix.
      */
-    std::unique_ptr<Csr> permute(
+    GKO_EXPORT std::unique_ptr<Csr> permute(
         ptr_param<const Permutation<index_type>> permutation,
         permute_mode mode = permute_mode::symmetric) const;
 
@@ -1086,7 +1101,7 @@ public:
      *                uses their inverses $P^{-1}, Q^{-1}$
      * @return  The permuted matrix.
      */
-    std::unique_ptr<Csr> permute(
+    GKO_EXPORT std::unique_ptr<Csr> permute(
         ptr_param<const Permutation<index_type>> row_permutation,
         ptr_param<const Permutation<index_type>> column_permutation,
         bool invert = false) const;
@@ -1111,9 +1126,9 @@ public:
      * @return an std::pair consisting of the permuted matrix and the reuse info
      *         that can be used to update values in the permuted matrix.
      */
-    std::pair<std::unique_ptr<Csr>, permuting_reuse_info> permute_reuse(
-        ptr_param<const Permutation<index_type>> permutation,
-        permute_mode mode = permute_mode::symmetric) const;
+    GKO_EXPORT std::pair<std::unique_ptr<Csr>, permuting_reuse_info>
+    permute_reuse(ptr_param<const Permutation<index_type>> permutation,
+                  permute_mode mode = permute_mode::symmetric) const;
 
     /**
      * Computes the operations necessary to propagate changed values from a
@@ -1133,10 +1148,10 @@ public:
      * @return an std::pair consisting of the permuted matrix and the reuse info
      *         that can be used to update values in the permuted matrix.
      */
-    std::pair<std::unique_ptr<Csr>, permuting_reuse_info> permute_reuse(
-        ptr_param<const Permutation<index_type>> row_permutation,
-        ptr_param<const Permutation<index_type>> column_permutation,
-        bool invert = false) const;
+    GKO_EXPORT std::pair<std::unique_ptr<Csr>, permuting_reuse_info>
+    permute_reuse(ptr_param<const Permutation<index_type>> row_permutation,
+                  ptr_param<const Permutation<index_type>> column_permutation,
+                  bool invert = false) const;
 
     /**
      * Creates a scaled and permuted copy of this matrix.
@@ -1147,7 +1162,7 @@ public:
      * @param mode  The permutation mode.
      * @return The permuted matrix.
      */
-    std::unique_ptr<Csr> scale_permute(
+    GKO_EXPORT std::unique_ptr<Csr> scale_permute(
         ptr_param<const ScaledPermutation<value_type, index_type>> permutation,
         permute_mode = permute_mode::symmetric) const;
 
@@ -1163,41 +1178,42 @@ public:
      *                uses their inverses $P^{-1}, Q^{-1}$
      * @return The permuted matrix.
      */
-    std::unique_ptr<Csr> scale_permute(
+    GKO_EXPORT std::unique_ptr<Csr> scale_permute(
         ptr_param<const ScaledPermutation<value_type, index_type>>
             row_permutation,
         ptr_param<const ScaledPermutation<value_type, index_type>>
             column_permutation,
         bool invert = false) const;
 
-    std::unique_ptr<LinOp> permute(
+    GKO_EXPORT std::unique_ptr<LinOp> permute(
         const array<IndexType>* permutation_indices) const override;
 
-    std::unique_ptr<LinOp> inverse_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> inverse_permute(
         const array<IndexType>* inverse_permutation_indices) const override;
 
-    std::unique_ptr<LinOp> row_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> row_permute(
         const array<IndexType>* permutation_indices) const override;
 
-    std::unique_ptr<LinOp> column_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> column_permute(
         const array<IndexType>* permutation_indices) const override;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> inverse_row_permute(
         const array<IndexType>* inverse_permutation_indices) const override;
 
-    std::unique_ptr<LinOp> inverse_column_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> inverse_column_permute(
         const array<IndexType>* inverse_permutation_indices) const override;
 
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+    GKO_EXPORT std::unique_ptr<Diagonal<ValueType>> extract_diagonal()
+        const override;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    GKO_EXPORT std::unique_ptr<absolute_type> compute_absolute() const override;
 
-    void compute_absolute_inplace() override;
+    GKO_EXPORT void compute_absolute_inplace() override;
 
     /**
      * Sorts all (value, col_idx) pairs in each row by column index
      */
-    void sort_by_column_index();
+    GKO_EXPORT void sort_by_column_index();
 
     /*
      * Tests if all row entry pairs (value, col_idx) are sorted by column index
@@ -1205,7 +1221,7 @@ public:
      * @returns True if all row entry pairs (value, col_idx) are sorted by
      *          column index
      */
-    bool is_sorted_by_column_index() const;
+    GKO_EXPORT bool is_sorted_by_column_index() const;
 
     /**
      * Returns the values of the matrix.
@@ -1230,13 +1246,14 @@ public:
      * Creates a Dense view of the value array of this matrix as a column
      * vector of dimensions nnz x 1.
      */
-    std::unique_ptr<Dense<ValueType>> create_value_view();
+    GKO_EXPORT std::unique_ptr<Dense<ValueType>> create_value_view();
 
     /**
      * Creates a const Dense view of the value array of this matrix as a column
      * vector of dimensions nnz x 1.
      */
-    std::unique_ptr<const Dense<ValueType>> create_const_value_view() const;
+    GKO_EXPORT std::unique_ptr<const Dense<ValueType>> create_const_value_view()
+        const;
 
     /**
      * Returns the column indexes of the matrix.
@@ -1369,8 +1386,9 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
-                                       std::shared_ptr<strategy_type> strategy);
+    GKO_EXPORT static std::unique_ptr<Csr> create(
+        std::shared_ptr<const Executor> exec,
+        std::shared_ptr<strategy_type> strategy);
 
     /**
      * Creates an uninitialized CSR matrix of the specified size.
@@ -1383,7 +1401,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Csr> create(
+    GKO_EXPORT static std::unique_ptr<Csr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size = {},
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy = nullptr);
@@ -1407,7 +1425,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Csr> create(
+    GKO_EXPORT static std::unique_ptr<Csr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
         array<index_type> row_ptrs,
@@ -1448,7 +1466,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<const Csr> create_const(
+    GKO_EXPORT static std::unique_ptr<const Csr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
@@ -1467,7 +1485,7 @@ public:
      *          columns of this matrix as specified by the index sets.
      * @note This is not a view but creates a new, separate CSR matrix.
      */
-    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+    GKO_EXPORT std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
         const index_set<IndexType>& row_index_set,
         const index_set<IndexType>& column_index_set) const;
 
@@ -1482,47 +1500,47 @@ public:
      *          columns of this matrix as specified by the index sets.
      * @note This is not a view but creates a new, separate CSR matrix.
      */
-    std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
+    GKO_EXPORT std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
         const span& row_span, const span& column_span) const;
 
     /**
      * Copy-assigns a Csr matrix. Preserves executor, copies everything else.
      */
-    Csr& operator=(const Csr&);
+    GKO_EXPORT Csr& operator=(const Csr&);
 
     /**
      * Move-assigns a Csr matrix. Preserves executor, moves the data and leaves
      * the moved-from object in an empty state (0x0 LinOp with unchanged
      * executor and strategy, no nonzeros and valid row pointers).
      */
-    Csr& operator=(Csr&&);
+    GKO_EXPORT Csr& operator=(Csr&&);
 
     /**
      * Copy-constructs a Csr matrix. Inherits executor, strategy and data.
      */
-    Csr(const Csr&);
+    GKO_EXPORT Csr(const Csr&);
 
     /**
      * Move-constructs a Csr matrix. Inherits executor and strategy, moves the
      * data and leaves the moved-from object in an empty state (0x0 LinOp with
      * unchanged executor and strategy, no nonzeros and valid row pointers).
      */
-    Csr(Csr&&);
+    GKO_EXPORT Csr(Csr&&);
 
 protected:
-    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
-        size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = nullptr);
+    GKO_EXPORT Csr(std::shared_ptr<const Executor> exec,
+                   const dim<2>& size = {}, size_type num_nonzeros = {},
+                   std::shared_ptr<strategy_type> strategy = nullptr);
 
-    Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        array<value_type> values, array<index_type> col_idxs,
-        array<index_type> row_ptrs,
-        std::shared_ptr<strategy_type> strategy = nullptr);
+    GKO_EXPORT Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                   array<value_type> values, array<index_type> col_idxs,
+                   array<index_type> row_ptrs,
+                   std::shared_ptr<strategy_type> strategy = nullptr);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
     // TODO: This provides some more sane settings. Please fix this!
     static std::shared_ptr<strategy_type> make_default_strategy(

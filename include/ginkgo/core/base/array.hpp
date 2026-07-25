@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +17,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -36,8 +37,9 @@ namespace detail {
  * to `TargetType` stored at `dst`.
  */
 template <typename SourceType, typename TargetType>
-void convert_data(std::shared_ptr<const Executor> exec, size_type size,
-                  const SourceType* src, TargetType* dst);
+GKO_EXPORT void convert_data(std::shared_ptr<const Executor> exec,
+                             size_type size, const SourceType* src,
+                             TargetType* dst);
 
 
 /**
@@ -660,7 +662,7 @@ public:
      *
      * @param value the value to be filled
      */
-    void fill(const value_type value);
+    GKO_EXPORT void fill(const value_type value);
 
     /**
      * Returns the number of elements in the array.
@@ -769,8 +771,8 @@ using Array GKO_DEPRECATED("please use array") = array<ValueType>;
  * @return the reduced value
  */
 template <typename ValueType>
-ValueType reduce_add(const array<ValueType>& input_arr,
-                     const ValueType init_val = 0);
+GKO_EXPORT ValueType reduce_add(const array<ValueType>& input_arr,
+                                const ValueType init_val = 0);
 
 /**
  * Reduce (sum) the values in the array
@@ -783,7 +785,8 @@ ValueType reduce_add(const array<ValueType>& input_arr,
  *                 initial value for the reduce.
  */
 template <typename ValueType>
-void reduce_add(const array<ValueType>& input_arr, array<ValueType>& result);
+GKO_EXPORT void reduce_add(const array<ValueType>& input_arr,
+                           array<ValueType>& result);
 
 
 /**

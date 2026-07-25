@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -23,7 +24,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Iteration : public Criterion {
+class GKO_EXPORT_CLASS Iteration : public Criterion {
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -42,9 +43,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    bool check_impl(uint8 stoppingId, bool setFinalized,
-                    array<stopping_status>* stop_status, bool* one_changed,
-                    const Updater& updater) override;
+    GKO_EXPORT bool check_impl(uint8 stoppingId, bool setFinalized,
+                               array<stopping_status>* stop_status,
+                               bool* one_changed,
+                               const Updater& updater) override;
 
     explicit Iteration(std::shared_ptr<const gko::Executor> exec)
         : Criterion(std::move(exec))
@@ -77,7 +79,8 @@ protected:
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<const Iteration::Factory> max_iters(size_type count);
+GKO_EXPORT deferred_factory_parameter<const Iteration::Factory> max_iters(
+    size_type count);
 
 
 /**
@@ -105,7 +108,7 @@ deferred_factory_parameter<const Iteration::Factory> max_iters(size_type count);
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<const CriterionFactory> min_iters(
+GKO_EXPORT deferred_factory_parameter<const CriterionFactory> min_iters(
     size_type count,
     deferred_factory_parameter<const CriterionFactory> criterion);
 

@@ -64,12 +64,12 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 private:
-    explicit Cg(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT explicit Cg(std::shared_ptr<const Executor> exec);
 
-    explicit Cg(const Factory* factory,
-                std::shared_ptr<const BatchLinOp> system_matrix);
+    GKO_EXPORT explicit Cg(const Factory* factory,
+                           std::shared_ptr<const BatchLinOp> system_matrix);
 
-    void solver_apply(
+    GKO_EXPORT void solver_apply(
         const MultiVector<ValueType>* b, MultiVector<ValueType>* x,
         log::detail::log_data<real_type>* log_data) const override;
 };

@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -87,10 +88,11 @@ public:
 
     friend class Sellp<previous_precision<ValueType>, IndexType>;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Sellp<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Sellp<next_precision<ValueType>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Sellp<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Sellp<previous_precision<ValueType, 2>, IndexType>;
@@ -99,10 +101,10 @@ public:
     using ConvertibleTo<
         Sellp<next_precision<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Sellp<next_precision<ValueType, 2>, IndexType>* result) const override;
 
-    void move_to(
+    GKO_EXPORT void move_to(
         Sellp<next_precision<ValueType, 2>, IndexType>* result) override;
 #endif
 
@@ -113,34 +115,35 @@ public:
     using ConvertibleTo<
         Sellp<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Sellp<next_precision<ValueType, 3>, IndexType>* result) const override;
 
-    void move_to(
+    GKO_EXPORT void move_to(
         Sellp<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(Dense<ValueType>* other) const override;
+    GKO_EXPORT void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    GKO_EXPORT void move_to(Dense<ValueType>* other) override;
 
-    void convert_to(Csr<ValueType, IndexType>* other) const override;
+    GKO_EXPORT void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType>* other) override;
+    GKO_EXPORT void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void read(const mat_data& data) override;
+    GKO_EXPORT void read(const mat_data& data) override;
 
-    void read(const device_mat_data& data) override;
+    GKO_EXPORT void read(const device_mat_data& data) override;
 
-    void read(device_mat_data&& data) override;
+    GKO_EXPORT void read(device_mat_data&& data) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+    GKO_EXPORT std::unique_ptr<Diagonal<ValueType>> extract_diagonal()
+        const override;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    GKO_EXPORT std::unique_ptr<absolute_type> compute_absolute() const override;
 
-    void compute_absolute_inplace() override;
+    GKO_EXPORT void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the matrix.
@@ -312,10 +315,10 @@ public:
     }
 
     /** get the non-owning device view */
-    device_view get_device_view();
+    GKO_EXPORT device_view get_device_view();
 
     /** get the const non-owning device view */
-    const_device_view get_const_device_view() const;
+    GKO_EXPORT const_device_view get_const_device_view() const;
 
     /**
      * Creates an uninitialized Sellp matrix of the specified size.
@@ -327,9 +330,9 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Sellp> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size = {},
-                                         size_type total_cols = 0);
+    GKO_EXPORT static std::unique_ptr<Sellp> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type total_cols = 0);
 
     /**
      * Creates an uninitialized Sellp matrix of the specified size.
@@ -343,49 +346,48 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Sellp> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size,
-                                         size_type slice_size,
-                                         size_type stride_factor,
-                                         size_type total_cols);
+    GKO_EXPORT static std::unique_ptr<Sellp> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        size_type slice_size, size_type stride_factor, size_type total_cols);
 
     /**
      * Copy-assigns a Sellp matrix. Preserves the executor, copies the data and
      * parameters.
      */
-    Sellp& operator=(const Sellp&);
+    GKO_EXPORT Sellp& operator=(const Sellp&);
 
     /**
      * Move-assigns a Sellp matrix. Preserves the executor, moves the data and
      * parameters. The moved-from object is empty (0x0 with valid slice_sets and
      * unchanged parameters).
      */
-    Sellp& operator=(Sellp&&);
+    GKO_EXPORT Sellp& operator=(Sellp&&);
 
     /**
      * Copy-assigns a Sellp matrix. Inherits the executor, copies the data and
      * parameters.
      */
-    Sellp(const Sellp&);
+    GKO_EXPORT Sellp(const Sellp&);
 
     /**
      * Move-assigns a Sellp matrix. Inherits the executor, moves the data and
      * parameters. The moved-from object is empty (0x0 with valid slice_sets and
      * unchanged parameters).
      */
-    Sellp(Sellp&&);
+    GKO_EXPORT Sellp(Sellp&&);
 
 protected:
-    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
-          size_type total_cols = {});
+    GKO_EXPORT Sellp(std::shared_ptr<const Executor> exec,
+                     const dim<2>& size = {}, size_type total_cols = {});
 
-    Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type slice_size, size_type stride_factor, size_type total_cols);
+    GKO_EXPORT Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                     size_type slice_size, size_type stride_factor,
+                     size_type total_cols);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
     size_type linearize_index(size_type row, size_type slice_set,
                               size_type col) const noexcept

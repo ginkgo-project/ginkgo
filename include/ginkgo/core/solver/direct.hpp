@@ -12,6 +12,7 @@
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -44,9 +45,9 @@ public:
         factorization::Factorization<value_type, index_type>;
     using transposed_type = Direct;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     class Factory;
 
@@ -96,14 +97,15 @@ public:
     Direct& operator=(Direct&&);
 
 protected:
-    explicit Direct(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT explicit Direct(std::shared_ptr<const Executor> exec);
 
-    Direct(const Factory* factory, std::shared_ptr<const LinOp> system_matrix);
+    GKO_EXPORT Direct(const Factory* factory,
+                      std::shared_ptr<const LinOp> system_matrix);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     using lower_type = gko::solver::LowerTrs<value_type, index_type>;
@@ -126,17 +128,17 @@ struct workspace_traits<
     gko::experimental::solver::Direct<ValueType, IndexType>> {
     using Solver = gko::experimental::solver::Direct<ValueType, IndexType>;
     // number of vectors used by this workspace
-    static int num_vectors(const Solver&);
+    GKO_EXPORT static int num_vectors(const Solver&);
     // number of arrays used by this workspace
-    static int num_arrays(const Solver&);
+    GKO_EXPORT static int num_arrays(const Solver&);
     // array containing the num_vectors names for the workspace vectors
-    static std::vector<std::string> op_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> op_names(const Solver&);
     // array containing the num_arrays names for the workspace vectors
-    static std::vector<std::string> array_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> array_names(const Solver&);
     // array containing all varying scalar vectors (independent of problem size)
-    static std::vector<int> scalars(const Solver&);
+    GKO_EXPORT static std::vector<int> scalars(const Solver&);
     // array containing all varying vectors (dependent on problem size)
-    static std::vector<int> vectors(const Solver&);
+    GKO_EXPORT static std::vector<int> vectors(const Solver&);
 
     // intermediate vector
     constexpr static int intermediate = 0;

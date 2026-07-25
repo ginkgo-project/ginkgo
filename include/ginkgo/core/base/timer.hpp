@@ -9,9 +9,11 @@
 #include <chrono>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/export.hpp>
 #include <ginkgo/export_cuda.hpp>
 #include <ginkgo/export_dpcpp.hpp>
 #include <ginkgo/export_hip.hpp>
+
 
 namespace gko {
 
@@ -21,11 +23,11 @@ namespace gko {
  */
 class time_point {
 public:
-    ~time_point();
+    GKO_EXPORT ~time_point();
 
-    time_point(time_point&&);
+    GKO_EXPORT time_point(time_point&&);
 
-    time_point& operator=(time_point&&);
+    GKO_EXPORT time_point& operator=(time_point&&);
 
     time_point(const time_point&) = delete;
 
@@ -87,7 +89,7 @@ public:
      * Returns a newly created time point.
      * Time points may only be used with the timer they were created with.
      */
-    time_point create_time_point();
+    GKO_EXPORT time_point create_time_point();
 
     /**
      * Records a time point at the current time.
@@ -108,7 +110,8 @@ public:
      * @param end  the second time point (later)
      * @return the difference between the time points in nanoseconds.
      */
-    std::chrono::nanoseconds difference(time_point& start, time_point& stop);
+    GKO_EXPORT std::chrono::nanoseconds difference(time_point& start,
+                                                   time_point& stop);
 
     /**
      * Computes the difference between the two time points in nanoseconds.
@@ -135,7 +138,7 @@ public:
      *         CudaExecutor, HipTimer for HipExecutor or DpcppTimer for
      *         DpcppExecutor.
      */
-    static std::unique_ptr<Timer> create_for_executor(
+    GKO_EXPORT static std::unique_ptr<Timer> create_for_executor(
         std::shared_ptr<const Executor> exec);
 
 protected:
@@ -145,7 +148,7 @@ protected:
 
 
 /** A timer using std::chrono::steady_clock for timing. */
-class CpuTimer : public Timer {
+class GKO_EXPORT CpuTimer : public Timer {
 public:
     void record(time_point& time) override;
 

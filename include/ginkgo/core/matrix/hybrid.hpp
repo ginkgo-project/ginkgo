@@ -13,6 +13,7 @@
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -366,10 +367,11 @@ public:
 
     friend class Hybrid<previous_precision<ValueType>, IndexType>;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Hybrid<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Hybrid<next_precision<ValueType>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Hybrid<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Hybrid<previous_precision<ValueType, 2>, IndexType>;
@@ -378,10 +380,10 @@ public:
     using ConvertibleTo<
         Hybrid<next_precision<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Hybrid<next_precision<ValueType, 2>, IndexType>* result) const override;
 
-    void move_to(
+    GKO_EXPORT void move_to(
         Hybrid<next_precision<ValueType, 2>, IndexType>* result) override;
 #endif
 
@@ -392,34 +394,35 @@ public:
     using ConvertibleTo<
         Hybrid<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Hybrid<next_precision<ValueType, 3>, IndexType>* result) const override;
 
-    void move_to(
+    GKO_EXPORT void move_to(
         Hybrid<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(Dense<ValueType>* other) const override;
+    GKO_EXPORT void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    GKO_EXPORT void move_to(Dense<ValueType>* other) override;
 
-    void convert_to(Csr<ValueType, IndexType>* other) const override;
+    GKO_EXPORT void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType>* other) override;
+    GKO_EXPORT void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void read(const mat_data& data) override;
+    GKO_EXPORT void read(const mat_data& data) override;
 
-    void read(const device_mat_data& data) override;
+    GKO_EXPORT void read(const device_mat_data& data) override;
 
-    void read(device_mat_data&& data) override;
+    GKO_EXPORT void read(device_mat_data&& data) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+    GKO_EXPORT std::unique_ptr<Diagonal<ValueType>> extract_diagonal()
+        const override;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    GKO_EXPORT std::unique_ptr<absolute_type> compute_absolute() const override;
 
-    void compute_absolute_inplace() override;
+    GKO_EXPORT void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the ell part.
@@ -643,21 +646,22 @@ public:
      * @return the strategy
      */
     template <typename HybType>
-    std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
+    GKO_EXPORT std::shared_ptr<typename HybType::strategy_type> get_strategy()
+        const;
 
     /**
      * Returns a non-owning device view of this matrix.
      *
      * @return a device view of this matrix.
      */
-    device_view get_device_view();
+    GKO_EXPORT device_view get_device_view();
 
     /**
      * Returns a non-owning const device view of this matrix.
      *
      * @return a const device view of this matrix.
      */
-    const_device_view get_const_device_view() const;
+    GKO_EXPORT const_device_view get_const_device_view() const;
 
     /**
      * Creates an uninitialized Hybrid matrix of specified method.
@@ -669,7 +673,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Hybrid> create(
+    GKO_EXPORT static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<strategy_type> strategy =
             std::make_shared<automatic>());
@@ -685,7 +689,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Hybrid> create(
+    GKO_EXPORT static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         std::shared_ptr<strategy_type> strategy =
             std::make_shared<automatic>());
@@ -702,7 +706,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Hybrid> create(
+    GKO_EXPORT static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type num_stored_elements_per_row,
         std::shared_ptr<strategy_type> strategy =
@@ -720,7 +724,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Hybrid> create(
+    GKO_EXPORT static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type num_stored_elements_per_row, size_type stride,
         std::shared_ptr<strategy_type> strategy);
@@ -738,7 +742,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Hybrid> create(
+    GKO_EXPORT static std::unique_ptr<Hybrid> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type num_stored_elements_per_row, size_type stride,
         size_type num_nonzeros = {},
@@ -749,34 +753,35 @@ public:
      * Copy-assigns a Hybrid matrix. Preserves the executor, copy-assigns the
      * Ell and Coo matrices.
      */
-    Hybrid& operator=(const Hybrid&);
+    GKO_EXPORT Hybrid& operator=(const Hybrid&);
 
     /**
      * Move-assigns a Hybrid matrix. Preserves the executor, move-assigns the
      * Ell and Coo matrices. The moved-from matrix is empty (0x0 with empty
      * Ell/Coo matrices).
      */
-    Hybrid& operator=(Hybrid&&);
+    GKO_EXPORT Hybrid& operator=(Hybrid&&);
 
     /**
      * Copy-assigns a Hybrid matrix. Inherits the executor, copies the Ell and
      * Coo matrices.
      */
-    Hybrid(const Hybrid&);
+    GKO_EXPORT Hybrid(const Hybrid&);
 
     /**
      * Move-assigns a Hybrid matrix. Inherits the executor, moves the Ell and
      * Coo matrices. The moved-from matrix is empty (0x0 with empty Ell/Coo
      * matrices).
      */
-    Hybrid(Hybrid&&);
+    GKO_EXPORT Hybrid(Hybrid&&);
 
 protected:
-    Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
-           size_type num_stored_elements_per_row = 0, size_type stride = 0,
-           size_type num_nonzeros = 0,
-           std::shared_ptr<strategy_type> strategy =
-               std::make_shared<automatic>());
+    GKO_EXPORT Hybrid(std::shared_ptr<const Executor> exec,
+                      const dim<2>& size = {},
+                      size_type num_stored_elements_per_row = 0,
+                      size_type stride = 0, size_type num_nonzeros = 0,
+                      std::shared_ptr<strategy_type> strategy =
+                          std::make_shared<automatic>());
 
     /**
      * Resizes the matrix to the given dimensions and storage sizes.
@@ -788,12 +793,13 @@ protected:
      * @see Ell::resize(dim<2>, size_type)
      * @see Coo::resize(dim<2>, size_type)
      */
-    void resize(dim<2> new_size, size_type ell_row_nnz, size_type coo_nnz);
+    GKO_EXPORT void resize(dim<2> new_size, size_type ell_row_nnz,
+                           size_type coo_nnz);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     std::unique_ptr<ell_type> ell_;

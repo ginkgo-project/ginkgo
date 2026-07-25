@@ -10,12 +10,12 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/export.hpp>
 #include <ginkgo/export_cuda.hpp>
 #include <ginkgo/export_dpcpp.hpp>
 #include <ginkgo/export_hip.hpp>
 #include <ginkgo/export_omp.hpp>
 #include <ginkgo/export_reference.hpp>
-
 
 namespace gko {
 
@@ -202,7 +202,7 @@ private:
                        GKO_VERSION_TAG};
     }
 
-    static version get_core_version() noexcept;
+    static GKO_EXPORT version get_core_version() noexcept;
 
     static GKO_REFERENCE_EXPORT version get_reference_version() noexcept;
 
@@ -234,7 +234,8 @@ private:
  *
  * @return os
  */
-std::ostream& operator<<(std::ostream& os, const version_info& ver_info);
+GKO_EXPORT std::ostream& operator<<(std::ostream& os,
+                                    const version_info& ver_info);
 
 
 }  // namespace gko

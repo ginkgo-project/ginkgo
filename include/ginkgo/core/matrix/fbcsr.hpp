@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -156,10 +157,11 @@ public:
 
     friend class Fbcsr<previous_precision<ValueType>, IndexType>;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Fbcsr<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Fbcsr<next_precision<ValueType>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Fbcsr<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Fbcsr<previous_precision<ValueType, 2>, IndexType>;
@@ -168,10 +170,10 @@ public:
     using ConvertibleTo<
         Fbcsr<next_precision<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Fbcsr<next_precision<ValueType, 2>, IndexType>* result) const override;
 
-    void move_to(
+    GKO_EXPORT void move_to(
         Fbcsr<next_precision<ValueType, 2>, IndexType>* result) override;
 #endif
 
@@ -182,16 +184,16 @@ public:
     using ConvertibleTo<
         Fbcsr<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Fbcsr<next_precision<ValueType, 3>, IndexType>* result) const override;
 
-    void move_to(
+    GKO_EXPORT void move_to(
         Fbcsr<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(Dense<ValueType>* other) const override;
+    GKO_EXPORT void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    GKO_EXPORT void move_to(Dense<ValueType>* other) override;
 
     /**
      * Converts the matrix to CSR format
@@ -199,9 +201,10 @@ public:
      * @note Any explicit zeros in the original matrix are retained
      * in the converted result.
      */
-    void convert_to(Csr<ValueType, IndexType>* result) const override;
+    GKO_EXPORT void convert_to(
+        Csr<ValueType, IndexType>* result) const override;
 
-    void move_to(Csr<ValueType, IndexType>* result) override;
+    GKO_EXPORT void move_to(Csr<ValueType, IndexType>* result) override;
 
     /**
      * Get the block sparsity pattern in CSR-like format
@@ -209,9 +212,10 @@ public:
      * @note The actual non-zero values are never copied;
      * the result always has a value array of size 1 with the value 1.
      */
-    void convert_to(SparsityCsr<ValueType, IndexType>* result) const override;
+    GKO_EXPORT void convert_to(
+        SparsityCsr<ValueType, IndexType>* result) const override;
 
-    void move_to(SparsityCsr<ValueType, IndexType>* result) override;
+    GKO_EXPORT void move_to(SparsityCsr<ValueType, IndexType>* result) override;
 
     /**
      * Reads a @ref matrix_data into Fbcsr format.
@@ -219,29 +223,30 @@ public:
      *
      * @warning Unlike Csr::read, here explicit non-zeros are NOT dropped.
      */
-    void read(const mat_data& data) override;
+    GKO_EXPORT void read(const mat_data& data) override;
 
-    void read(const device_mat_data& data) override;
+    GKO_EXPORT void read(const device_mat_data& data) override;
 
-    void read(device_mat_data&& data) override;
+    GKO_EXPORT void read(device_mat_data&& data) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+    GKO_EXPORT std::unique_ptr<Diagonal<ValueType>> extract_diagonal()
+        const override;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    GKO_EXPORT std::unique_ptr<absolute_type> compute_absolute() const override;
 
-    void compute_absolute_inplace() override;
+    GKO_EXPORT void compute_absolute_inplace() override;
 
     /**
      * Sorts the values blocks and block-column indices in each row
      * by column index
      */
-    void sort_by_column_index();
+    GKO_EXPORT void sort_by_column_index();
 
     /**
      * Tests if all row entry pairs (value, col_idx) are sorted by column index
@@ -249,7 +254,7 @@ public:
      * @returns True if all row entry pairs (value, col_idx) are sorted by
      *          column index
      */
-    bool is_sorted_by_column_index() const;
+    GKO_EXPORT bool is_sorted_by_column_index() const;
 
     /**
      * @return The values of the matrix.
@@ -348,8 +353,8 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor> exec,
-                                         int block_size = 1);
+    GKO_EXPORT static std::unique_ptr<Fbcsr> create(
+        std::shared_ptr<const Executor> exec, int block_size = 1);
 
     /**
      * Creates an uninitialized FBCSR matrix of the specified size.
@@ -362,10 +367,9 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size,
-                                         size_type num_nonzeros,
-                                         int block_size);
+    GKO_EXPORT static std::unique_ptr<Fbcsr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        size_type num_nonzeros, int block_size);
 
     /**
      * Creates a FBCSR matrix from already allocated (and initialized) row
@@ -387,11 +391,10 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size, int block_size,
-                                         array<value_type> values,
-                                         array<index_type> col_idxs,
-                                         array<index_type> row_ptrs);
+    GKO_EXPORT static std::unique_ptr<Fbcsr> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        int block_size, array<value_type> values, array<index_type> col_idxs,
+        array<index_type> row_ptrs);
 
     /**
      * @copydoc std::unique_ptr<Fbcsr> create(std::shared_ptr<const Executor>,
@@ -403,7 +406,7 @@ public:
     GKO_DEPRECATED(
         "explicitly construct the gko::array argument instead of passing "
         "initializer lists")
-    static std::unique_ptr<Fbcsr> create(
+    GKO_EXPORT static std::unique_ptr<Fbcsr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         int block_size, std::initializer_list<InputValueType> values,
         std::initializer_list<InputColumnIndexType> col_idxs,
@@ -429,7 +432,7 @@ public:
      *          (if they reside on the same executor as the matrix) or a copy of
      *          the arrays on the correct executor.
      */
-    static std::unique_ptr<const Fbcsr> create_const(
+    GKO_EXPORT static std::unique_ptr<const Fbcsr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size, int blocksize,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
@@ -439,41 +442,41 @@ public:
      * Copy-assigns an Fbcsr matrix. Preserves the executor, copies data and
      * block size from the input.
      */
-    Fbcsr& operator=(const Fbcsr&);
+    GKO_EXPORT Fbcsr& operator=(const Fbcsr&);
 
     /**
      * Move-assigns an Fbcsr matrix. Preserves the executor, moves the data over
      * preserving size and stride. Leaves the moved-from object in an empty
      * state (0x0 with no nonzeros, but valid row pointers).
      */
-    Fbcsr& operator=(Fbcsr&&);
+    GKO_EXPORT Fbcsr& operator=(Fbcsr&&);
 
     /**
      * Copy-constructs an Ell matrix. Inherits executor and data.
      */
-    Fbcsr(const Fbcsr&);
+    GKO_EXPORT Fbcsr(const Fbcsr&);
 
     /**
      * Move-constructs an Fbcsr matrix. Inherits executor and data. The
      * moved-from object is empty (0x0 with no nonzeros, but valid row
      * pointers).
      */
-    Fbcsr(Fbcsr&&);
+    GKO_EXPORT Fbcsr(Fbcsr&&);
 
 protected:
-    Fbcsr(std::shared_ptr<const Executor> exec, int block_size = 1);
+    GKO_EXPORT Fbcsr(std::shared_ptr<const Executor> exec, int block_size = 1);
 
-    Fbcsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          size_type num_nonzeros, int block_size);
+    GKO_EXPORT Fbcsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                     size_type num_nonzeros, int block_size);
 
-    Fbcsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          int block_size, array<value_type> values, array<index_type> col_idxs,
-          array<index_type> row_ptrs);
+    GKO_EXPORT Fbcsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                     int block_size, array<value_type> values,
+                     array<index_type> col_idxs, array<index_type> row_ptrs);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     int bs_;                      ///< Block size

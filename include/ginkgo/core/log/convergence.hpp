@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -38,14 +39,14 @@ class Convergence : public Logger {
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    void on_criterion_check_completed(
+    GKO_EXPORT void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
         const LinOp* residual, const LinOp* residual_norm,
         const LinOp* solution, const uint8& stopping_id,
         const bool& set_finalized, const array<stopping_status>* status,
         const bool& one_changed, const bool& all_stopped) const override;
 
-    void on_criterion_check_completed(
+    GKO_EXPORT void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
         const LinOp* residual, const LinOp* residual_norm,
         const LinOp* implicit_sq_resnorm, const LinOp* solution,
@@ -53,13 +54,11 @@ public:
         const array<stopping_status>* status, const bool& one_changed,
         const bool& all_stopped) const override;
 
-    void on_iteration_complete(const LinOp* solver, const LinOp* b,
-                               const LinOp* x, const size_type& num_iterations,
-                               const LinOp* residual,
-                               const LinOp* residual_norm,
-                               const LinOp* implicit_resnorm_sq,
-                               const array<stopping_status>* status,
-                               bool stopped) const override;
+    GKO_EXPORT void on_iteration_complete(
+        const LinOp* solver, const LinOp* b, const LinOp* x,
+        const size_type& num_iterations, const LinOp* residual,
+        const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
+        const array<stopping_status>* status, bool stopped) const override;
 
     /**
      * Creates a convergence logger. This dynamically allocates the memory,

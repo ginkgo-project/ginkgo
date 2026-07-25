@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/export.hpp>
 #include <ginkgo/export_cuda.hpp>
 #include <ginkgo/export_hip.hpp>
 
@@ -90,7 +91,7 @@ protected:
 /**
  * Allocator using new/delete.
  */
-class CpuAllocator : public CpuAllocatorBase {
+class GKO_EXPORT CpuAllocator : public CpuAllocatorBase {
 public:
     void* allocate(size_type num_bytes) override;
 

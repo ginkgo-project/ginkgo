@@ -25,6 +25,7 @@
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -175,9 +176,9 @@ public:
      */
     std::shared_ptr<const LinOp> get_lh_solver() const { return lh_solver_; }
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Copy-assigns an IC preconditioner. Preserves the executor,
@@ -208,14 +209,15 @@ public:
     Ic(Ic&& other);
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
-    explicit Ic(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT explicit Ic(std::shared_ptr<const Executor> exec);
 
-    explicit Ic(const Factory* factory, std::shared_ptr<const LinOp> lin_op);
+    GKO_EXPORT explicit Ic(const Factory* factory,
+                           std::shared_ptr<const LinOp> lin_op);
 
     /**
      * Prepares the intermediate vector for the solve by creating it and

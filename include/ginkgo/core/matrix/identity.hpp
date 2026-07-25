@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -45,9 +46,9 @@ public:
     using value_type = ValueType;
     using transposed_type = Identity<ValueType>;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Creates an Identity matrix of the specified size.
@@ -55,7 +56,7 @@ public:
      * @param size  size of the matrix (must be square)
      */
     GKO_DEPRECATED("use the version taking a size_type instead of dim<2>")
-    static std::unique_ptr<Identity> create(
+    GKO_EXPORT static std::unique_ptr<Identity> create(
         std::shared_ptr<const Executor> exec, dim<2> size);
 
     /**
@@ -63,16 +64,17 @@ public:
      *
      * @param size  size of the matrix
      */
-    static std::unique_ptr<Identity> create(
+    GKO_EXPORT static std::unique_ptr<Identity> create(
         std::shared_ptr<const Executor> exec, size_type size = 0);
 
 protected:
-    explicit Identity(std::shared_ptr<const Executor> exec, size_type size = 0);
+    GKO_EXPORT explicit Identity(std::shared_ptr<const Executor> exec,
+                                 size_type size = 0);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 };
 
 
@@ -100,7 +102,7 @@ public:
      *
      * @return a unique pointer to the newly created factory
      */
-    static std::unique_ptr<IdentityFactory> create(
+    GKO_EXPORT static std::unique_ptr<IdentityFactory> create(
         std::shared_ptr<const Executor> exec)
     {
         return std::unique_ptr<IdentityFactory>(
@@ -108,7 +110,7 @@ public:
     }
 
 protected:
-    std::unique_ptr<LinOp> generate_impl(
+    GKO_EXPORT std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> base) const override;
 
     IdentityFactory(std::shared_ptr<const Executor> exec) : LinOpFactory(exec)

@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -96,10 +97,11 @@ public:
 
     friend class Coo<previous_precision<ValueType>, IndexType>;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Coo<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Coo<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Coo<previous_precision<ValueType, 2>, IndexType>;
@@ -107,10 +109,11 @@ public:
         Coo<next_precision<ValueType, 2>, IndexType>>::convert_to;
     using ConvertibleTo<Coo<next_precision<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Coo<next_precision<ValueType, 2>, IndexType>* result) const override;
 
-    void move_to(Coo<next_precision<ValueType, 2>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Coo<next_precision<ValueType, 2>, IndexType>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
@@ -119,37 +122,39 @@ public:
         Coo<next_precision<ValueType, 3>, IndexType>>::convert_to;
     using ConvertibleTo<Coo<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Coo<next_precision<ValueType, 3>, IndexType>* result) const override;
 
-    void move_to(Coo<next_precision<ValueType, 3>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Coo<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(Csr<ValueType, IndexType>* other) const override;
+    GKO_EXPORT void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType>* other) override;
+    GKO_EXPORT void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void convert_to(Dense<ValueType>* other) const override;
+    GKO_EXPORT void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    GKO_EXPORT void move_to(Dense<ValueType>* other) override;
 
-    void read(const mat_data& data) override;
+    GKO_EXPORT void read(const mat_data& data) override;
 
-    void read(const device_mat_data& data) override;
+    GKO_EXPORT void read(const device_mat_data& data) override;
 
-    void read(device_mat_data&& data) override;
+    GKO_EXPORT void read(device_mat_data&& data) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+    GKO_EXPORT std::unique_ptr<Diagonal<ValueType>> extract_diagonal()
+        const override;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    GKO_EXPORT std::unique_ptr<absolute_type> compute_absolute() const override;
 
-    void compute_absolute_inplace() override;
+    GKO_EXPORT void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the matrix.
@@ -223,14 +228,14 @@ public:
      *
      * @return a device view of this matrix.
      */
-    device_view get_device_view();
+    GKO_EXPORT device_view get_device_view();
 
     /**
      * Returns a non-owning const device view of this matrix.
      *
      * @return a const device view of this matrix.
      */
-    const_device_view get_const_device_view() const;
+    GKO_EXPORT const_device_view get_const_device_view() const;
 
     /**
      * Applies Coo matrix axpy to a vector (or a sequence of vectors).
@@ -242,12 +247,12 @@ public:
      *
      * @return this
      */
-    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x);
+    GKO_EXPORT void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x);
 
     /**
      * @copydoc apply2(cost LinOp *, LinOp *)
      */
-    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
+    GKO_EXPORT void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
 
     /**
      * Performs the operation x = alpha * Coo * b + x.
@@ -258,14 +263,14 @@ public:
      *
      * @return this
      */
-    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                ptr_param<LinOp> x);
+    GKO_EXPORT void apply2(ptr_param<const LinOp> alpha,
+                           ptr_param<const LinOp> b, ptr_param<LinOp> x);
 
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                ptr_param<LinOp> x) const;
+    GKO_EXPORT void apply2(ptr_param<const LinOp> alpha,
+                           ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
 
     /**
      * Creates an uninitialized COO matrix of the specified size.
@@ -276,9 +281,9 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Coo> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size = dim<2>{},
-                                       size_type num_nonzeros = {});
+    GKO_EXPORT static std::unique_ptr<Coo> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
+        size_type num_nonzeros = {});
 
     /**
      * Creates a COO matrix from already allocated (and initialized) row
@@ -300,11 +305,10 @@ public:
      *         (if they reside on the same executor as the matrix) or a copy of
      *         these arrays on the correct executor.
      */
-    static std::unique_ptr<Coo> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size,
-                                       array<value_type> values,
-                                       array<index_type> col_idxs,
-                                       array<index_type> row_idxs);
+    GKO_EXPORT static std::unique_ptr<Coo> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<value_type> values, array<index_type> col_idxs,
+        array<index_type> row_idxs);
 
     /**
      * @copydoc std::unique_ptr<Coo> create(std::shared_ptr<const Executor>,
@@ -339,19 +343,19 @@ public:
      *         (if they reside on the same executor as the matrix) or a copy of
      *         these arrays on the correct executor.
      */
-    static std::unique_ptr<const Coo> create_const(
+    GKO_EXPORT static std::unique_ptr<const Coo> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         gko::detail::const_array_view<IndexType>&& row_idxs);
 
 protected:
-    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
-        size_type num_nonzeros = {});
+    GKO_EXPORT Coo(std::shared_ptr<const Executor> exec,
+                   const dim<2>& size = dim<2>{}, size_type num_nonzeros = {});
 
-    Coo(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        array<value_type> values, array<index_type> col_idxs,
-        array<index_type> row_idxs);
+    GKO_EXPORT Coo(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                   array<value_type> values, array<index_type> col_idxs,
+                   array<index_type> row_idxs);
 
     /**
      * Resizes the matrix and associated storage to the given sizes.
@@ -360,16 +364,17 @@ protected:
      * @param new_size  the new matrix dimensions.
      * @param nnz  the new number of nonzeros.
      */
-    void resize(dim<2> new_size, size_type nnz);
+    GKO_EXPORT void resize(dim<2> new_size, size_type nnz);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
-    void apply2_impl(const LinOp* b, LinOp* x) const;
+    GKO_EXPORT void apply2_impl(const LinOp* b, LinOp* x) const;
 
-    void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
+    GKO_EXPORT void apply2_impl(const LinOp* alpha, const LinOp* b,
+                                LinOp* x) const;
 
 private:
     array<value_type> values_;

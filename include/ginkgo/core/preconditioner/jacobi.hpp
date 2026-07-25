@@ -13,6 +13,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -264,41 +265,42 @@ public:
         return blocks_.get_size();
     }
 
-    void convert_to(matrix::Dense<value_type>* result) const override;
+    GKO_EXPORT void convert_to(
+        matrix::Dense<value_type>* result) const override;
 
-    void move_to(matrix::Dense<value_type>* result) override;
+    GKO_EXPORT void move_to(matrix::Dense<value_type>* result) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Copy-assigns a Jacobi preconditioner. Preserves executor, copies all
      * data and parameters.
      */
-    Jacobi& operator=(const Jacobi& other);
+    GKO_EXPORT Jacobi& operator=(const Jacobi& other);
 
     /**
      * Move-assigns a Jacobi preconditioner. Preserves executor, moves all data
      * and parameters. The moved-from object will be empty (0x0 and default
      * parameters).
      */
-    Jacobi& operator=(Jacobi&& other);
+    GKO_EXPORT Jacobi& operator=(Jacobi&& other);
 
     /**
      * Copy-constructs a Jacobi preconditioner. Inherits executor, copies all
      * data and parameters.
      */
-    Jacobi(const Jacobi& other);
+    GKO_EXPORT Jacobi(const Jacobi& other);
 
     /**
      * Move-assigns a Jacobi preconditioner. Inherits executor, moves all data
      * and parameters. The moved-from object will be empty (0x0 and default
      * parameters).
      */
-    Jacobi(Jacobi&& other);
+    GKO_EXPORT Jacobi(Jacobi&& other);
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -624,7 +626,7 @@ protected:
      *                      skipped (therefore, marking that it is already
      *                      sorted)
      */
-    void generate(const LinOp* system_matrix, bool skip_sorting);
+    GKO_EXPORT void generate(const LinOp* system_matrix, bool skip_sorting);
 
     /**
      * Detects the diagonal blocks and allocates the memory needed to store the
@@ -635,10 +637,10 @@ protected:
      */
     void detect_blocks(const matrix::Csr<ValueType, IndexType>* system_matrix);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     block_interleaved_storage_scheme<index_type> storage_scheme_{};

@@ -15,6 +15,7 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/incomplete_factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -163,7 +164,7 @@ protected:
      * @return  A Composition, containing the incomplete LU factors for the
      *          given system_matrix (first element is L, then U)
      */
-    std::unique_ptr<Composition<ValueType>> generate_l_u(
+    GKO_EXPORT std::unique_ptr<Composition<ValueType>> generate_l_u(
         const std::shared_ptr<const LinOp>& system_matrix,
         bool skip_sorting) const;
 };

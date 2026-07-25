@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -81,23 +82,26 @@ public:
 
     friend class Diagonal<previous_precision<ValueType>>;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
-    void convert_to(Diagonal<next_precision<ValueType>>* result) const override;
+    GKO_EXPORT void convert_to(
+        Diagonal<next_precision<ValueType>>* result) const override;
 
-    void move_to(Diagonal<next_precision<ValueType>>* result) override;
+    GKO_EXPORT void move_to(
+        Diagonal<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Diagonal<previous_precision<ValueType, 2>>;
     using ConvertibleTo<Diagonal<next_precision<ValueType, 2>>>::convert_to;
     using ConvertibleTo<Diagonal<next_precision<ValueType, 2>>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Diagonal<next_precision<ValueType, 2>>* result) const override;
 
-    void move_to(Diagonal<next_precision<ValueType, 2>>* result) override;
+    GKO_EXPORT void move_to(
+        Diagonal<next_precision<ValueType, 2>>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
@@ -105,23 +109,24 @@ public:
     using ConvertibleTo<Diagonal<next_precision<ValueType, 3>>>::convert_to;
     using ConvertibleTo<Diagonal<next_precision<ValueType, 3>>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Diagonal<next_precision<ValueType, 3>>* result) const override;
 
-    void move_to(Diagonal<next_precision<ValueType, 3>>* result) override;
+    GKO_EXPORT void move_to(
+        Diagonal<next_precision<ValueType, 3>>* result) override;
 #endif
 
-    void convert_to(Csr<ValueType, int32>* result) const override;
+    GKO_EXPORT void convert_to(Csr<ValueType, int32>* result) const override;
 
-    void move_to(Csr<ValueType, int32>* result) override;
+    GKO_EXPORT void move_to(Csr<ValueType, int32>* result) override;
 
-    void convert_to(Csr<ValueType, int64>* result) const override;
+    GKO_EXPORT void convert_to(Csr<ValueType, int64>* result) const override;
 
-    void move_to(Csr<ValueType, int64>* result) override;
+    GKO_EXPORT void move_to(Csr<ValueType, int64>* result) override;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    GKO_EXPORT std::unique_ptr<absolute_type> compute_absolute() const override;
 
-    void compute_absolute_inplace() override;
+    GKO_EXPORT void compute_absolute_inplace() override;
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -176,21 +181,21 @@ public:
         this->inverse_apply_impl(b.get(), x.get());
     }
 
-    void read(const mat_data& data) override;
+    GKO_EXPORT void read(const mat_data& data) override;
 
-    void read(const mat_data32& data) override;
+    GKO_EXPORT void read(const mat_data32& data) override;
 
-    void read(const device_mat_data& data) override;
+    GKO_EXPORT void read(const device_mat_data& data) override;
 
-    void read(const device_mat_data32& data) override;
+    GKO_EXPORT void read(const device_mat_data32& data) override;
 
-    void read(device_mat_data&& data) override;
+    GKO_EXPORT void read(device_mat_data&& data) override;
 
-    void read(device_mat_data32&& data) override;
+    GKO_EXPORT void read(device_mat_data32&& data) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    void write(mat_data32& data) const override;
+    GKO_EXPORT void write(mat_data32& data) const override;
 
     /**
      * Creates an Diagonal matrix of the specified size.
@@ -200,7 +205,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Diagonal> create(
+    GKO_EXPORT static std::unique_ptr<Diagonal> create(
         std::shared_ptr<const Executor> exec, size_type size = 0);
 
     /**
@@ -217,7 +222,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Diagonal> create(
+    GKO_EXPORT static std::unique_ptr<Diagonal> create(
         std::shared_ptr<const Executor> exec, const size_type size,
         array<value_type> values);
 
@@ -246,24 +251,25 @@ public:
      *          (if it resides on the same executor as the matrix) or a copy of
      *          the array on the correct executor.
      */
-    static std::unique_ptr<const Diagonal> create_const(
+    GKO_EXPORT static std::unique_ptr<const Diagonal> create_const(
         std::shared_ptr<const Executor> exec, size_type size,
         gko::detail::const_array_view<ValueType>&& values);
 
 protected:
-    Diagonal(std::shared_ptr<const Executor> exec, size_type size = 0);
+    GKO_EXPORT Diagonal(std::shared_ptr<const Executor> exec,
+                        size_type size = 0);
 
-    Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
-             array<value_type> values);
+    GKO_EXPORT Diagonal(std::shared_ptr<const Executor> exec,
+                        const size_type size, array<value_type> values);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
-    void rapply_impl(const LinOp* b, LinOp* x) const;
+    GKO_EXPORT void rapply_impl(const LinOp* b, LinOp* x) const;
 
-    void inverse_apply_impl(const LinOp* b, LinOp* x) const;
+    GKO_EXPORT void inverse_apply_impl(const LinOp* b, LinOp* x) const;
 
 private:
     array<value_type> values_;

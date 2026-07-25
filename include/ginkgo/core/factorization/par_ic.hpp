@@ -173,7 +173,7 @@ protected:
         }
     }
 
-    std::unique_ptr<Composition<ValueType>> generate(
+    GKO_EXPORT std::unique_ptr<Composition<ValueType>> generate(
         const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
         bool both_factors) const;
 };

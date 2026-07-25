@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -30,7 +31,7 @@ namespace detail {
  * @note Supports only single rhs
  */
 template <typename ValueType>
-struct log_data final {
+struct GKO_EXPORT log_data final {
     using real_type = remove_complex<ValueType>;
     using index_type = int;
 
@@ -75,7 +76,7 @@ public:
     using index_type = int;
     using mask_type = gko::log::Logger::mask_type;
 
-    void on_batch_solver_completed(
+    GKO_EXPORT void on_batch_solver_completed(
         const array<index_type>& iteration_count,
         const array<real_type>& residual_norm) const override;
 

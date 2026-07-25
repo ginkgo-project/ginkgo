@@ -18,6 +18,7 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -74,7 +75,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<RowGatherer> create(
+    GKO_EXPORT static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size = {});
 
     /**
@@ -91,7 +92,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<RowGatherer> create(
+    GKO_EXPORT static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<index_type> row_idxs);
 
@@ -105,20 +106,21 @@ public:
      *          (if they reside on the same executor as the matrix) or a copy of
      *          the arrays on the correct executor.
      */
-    static std::unique_ptr<const RowGatherer> create_const(
+    GKO_EXPORT static std::unique_ptr<const RowGatherer> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<IndexType>&& row_idxs);
 
 protected:
-    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size = {});
+    GKO_EXPORT RowGatherer(std::shared_ptr<const Executor> exec,
+                           const dim<2>& size = {});
 
-    RowGatherer(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                array<index_type> row_idxs);
+    GKO_EXPORT RowGatherer(std::shared_ptr<const Executor> exec,
+                           const dim<2>& size, array<index_type> row_idxs);
 
-    void apply_impl(const LinOp* in, LinOp* out) const override;
+    GKO_EXPORT void apply_impl(const LinOp* in, LinOp* out) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* in, const LinOp* beta,
-                    LinOp* out) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* in,
+                               const LinOp* beta, LinOp* out) const override;
 
 private:
     gko::array<index_type> row_idxs_;

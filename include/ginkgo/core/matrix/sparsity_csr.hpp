@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -76,25 +77,26 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
 
-    void convert_to(Csr<ValueType, IndexType>* result) const override;
+    GKO_EXPORT void convert_to(
+        Csr<ValueType, IndexType>* result) const override;
 
-    void move_to(Csr<ValueType, IndexType>* result) override;
+    GKO_EXPORT void move_to(Csr<ValueType, IndexType>* result) override;
 
-    void convert_to(Dense<ValueType>* result) const override;
+    GKO_EXPORT void convert_to(Dense<ValueType>* result) const override;
 
-    void move_to(Dense<ValueType>* result) override;
+    GKO_EXPORT void move_to(Dense<ValueType>* result) override;
 
-    void read(const mat_data& data) override;
+    GKO_EXPORT void read(const mat_data& data) override;
 
-    void read(const device_mat_data& data) override;
+    GKO_EXPORT void read(const device_mat_data& data) override;
 
-    void read(device_mat_data&& data) override;
+    GKO_EXPORT void read(device_mat_data&& data) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Transforms the sparsity matrix to an adjacency matrix. As the adjacency
@@ -105,19 +107,19 @@ public:
      * the diagonal ones removed. This is mainly used for the
      * reordering/partitioning as taken in by graph libraries such as METIS.
      */
-    std::unique_ptr<SparsityCsr> to_adjacency_matrix() const;
+    GKO_EXPORT std::unique_ptr<SparsityCsr> to_adjacency_matrix() const;
 
     /**
      * Sorts each row by column index
      */
-    void sort_by_column_index();
+    GKO_EXPORT void sort_by_column_index();
 
     /*
      * Tests if all col_idxs are sorted by column index
      *
      * @returns True if all col_idxs are sorted.
      */
-    bool is_sorted_by_column_index() const;
+    GKO_EXPORT bool is_sorted_by_column_index() const;
 
     /**
      * Returns the column indices of the matrix.
@@ -190,7 +192,7 @@ public:
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
      */
-    static std::unique_ptr<SparsityCsr> create(
+    GKO_EXPORT static std::unique_ptr<SparsityCsr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
         size_type num_nonzeros = {});
 
@@ -213,7 +215,7 @@ public:
      *       created, and the original array data will not be used in the
      *       matrix.
      */
-    static std::unique_ptr<SparsityCsr> create(
+    GKO_EXPORT static std::unique_ptr<SparsityCsr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<index_type> col_idxs, array<index_type> row_ptrs,
         value_type value = one<ValueType>());
@@ -227,7 +229,7 @@ public:
     GKO_DEPRECATED(
         "explicitly construct the gko::array argument instead of passing "
         "initializer lists")
-    static std::unique_ptr<SparsityCsr> create(
+    GKO_EXPORT static std::unique_ptr<SparsityCsr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         std::initializer_list<ColIndexType> col_idxs,
         std::initializer_list<RowPtrType> row_ptrs,
@@ -244,7 +246,7 @@ public:
      * @param exec  Executor associated to the matrix
      * @param matrix The input matrix
      */
-    static std::unique_ptr<SparsityCsr> create(
+    GKO_EXPORT static std::unique_ptr<SparsityCsr> create(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const LinOp> matrix);
 
@@ -261,7 +263,7 @@ public:
      *          (if they reside on the same executor as the matrix) or a copy of
      *          these arrays on the correct executor.
      */
-    static std::unique_ptr<const SparsityCsr> create_const(
+    GKO_EXPORT static std::unique_ptr<const SparsityCsr> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         gko::detail::const_array_view<IndexType>&& row_ptrs,
@@ -278,43 +280,45 @@ public:
      * Copy-assigns a SparsityCsr matrix. Preserves executor, copies everything
      * else.
      */
-    SparsityCsr& operator=(const SparsityCsr&);
+    GKO_EXPORT SparsityCsr& operator=(const SparsityCsr&);
 
     /**
      * Move-assigns a SparsityCsr matrix. Preserves executor, moves the data and
      * leaves the moved-from object in an empty state (0x0 LinOp with unchanged
      * executor, no nonzeros and valid row pointers).
      */
-    SparsityCsr& operator=(SparsityCsr&&);
+    GKO_EXPORT SparsityCsr& operator=(SparsityCsr&&);
 
     /**
      * Copy-constructs a SparsityCsr matrix. Inherits executor, strategy and
      * data.
      */
-    SparsityCsr(const SparsityCsr&);
+    GKO_EXPORT SparsityCsr(const SparsityCsr&);
 
     /**
      * Move-constructs a SparsityCsr matrix. Inherits executor, moves the data
      * and leaves the moved-from object in an empty state (0x0 LinOp with
      * unchanged executor, no nonzeros and valid row pointers).
      */
-    SparsityCsr(SparsityCsr&&);
+    GKO_EXPORT SparsityCsr(SparsityCsr&&);
 
 protected:
-    SparsityCsr(std::shared_ptr<const Executor> exec,
-                const dim<2>& size = dim<2>{}, size_type num_nonzeros = {});
+    GKO_EXPORT SparsityCsr(std::shared_ptr<const Executor> exec,
+                           const dim<2>& size = dim<2>{},
+                           size_type num_nonzeros = {});
 
-    SparsityCsr(std::shared_ptr<const Executor> exec, const dim<2>& size,
-                array<index_type> col_idxs, array<index_type> row_ptrs,
-                value_type value = one<ValueType>());
+    GKO_EXPORT SparsityCsr(std::shared_ptr<const Executor> exec,
+                           const dim<2>& size, array<index_type> col_idxs,
+                           array<index_type> row_ptrs,
+                           value_type value = one<ValueType>());
 
-    SparsityCsr(std::shared_ptr<const Executor> exec,
-                std::shared_ptr<const LinOp> matrix);
+    GKO_EXPORT SparsityCsr(std::shared_ptr<const Executor> exec,
+                           std::shared_ptr<const LinOp> matrix);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     array<index_type> col_idxs_;

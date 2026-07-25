@@ -19,6 +19,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -82,23 +83,25 @@ public:
      *
      * @param other  The other multi-vector whose configuration needs to copied.
      */
-    static std::unique_ptr<MultiVector> create_with_config_of(
+    GKO_EXPORT static std::unique_ptr<MultiVector> create_with_config_of(
         ptr_param<const MultiVector> other);
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         MultiVector<next_precision<ValueType>>* result) const override;
 
-    void move_to(MultiVector<next_precision<ValueType>>* result) override;
+    GKO_EXPORT void move_to(
+        MultiVector<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class MultiVector<previous_precision<ValueType, 2>>;
     using ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         MultiVector<next_precision<ValueType, 2>>* result) const override;
 
-    void move_to(MultiVector<next_precision<ValueType, 2>>* result) override;
+    GKO_EXPORT void move_to(
+        MultiVector<next_precision<ValueType, 2>>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
@@ -106,10 +109,11 @@ public:
     using ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         MultiVector<next_precision<ValueType, 3>>* result) const override;
 
-    void move_to(MultiVector<next_precision<ValueType, 3>>* result) override;
+    GKO_EXPORT void move_to(
+        MultiVector<next_precision<ValueType, 3>>* result) override;
 #endif
 
     /**
@@ -122,12 +126,13 @@ public:
      * @return  a matrix::Dense object with the data from the batch item at the
      *          given index.
      */
-    std::unique_ptr<unbatch_type> create_view_for_item(size_type item_id);
+    GKO_EXPORT std::unique_ptr<unbatch_type> create_view_for_item(
+        size_type item_id);
 
     /**
      * @copydoc create_view_for_item(size_type)
      */
-    std::unique_ptr<const unbatch_type> create_const_view_for_item(
+    GKO_EXPORT std::unique_ptr<const unbatch_type> create_const_view_for_item(
         size_type item_id) const;
 
     /**
@@ -293,7 +298,7 @@ public:
      *      If it is a MultiVector of the same size as this, then an element
      *      wise scaling is performed.
      */
-    void scale(ptr_param<const MultiVector<ValueType>> alpha);
+    GKO_EXPORT void scale(ptr_param<const MultiVector<ValueType>> alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the vector (aka: BLAS axpy).
@@ -307,8 +312,8 @@ public:
      *      i-th element of alpha (the number of columns of alpha has to match
      *      the number of columns of the multi-vector).
      */
-    void add_scaled(ptr_param<const MultiVector<ValueType>> alpha,
-                    ptr_param<const MultiVector<ValueType>> b);
+    GKO_EXPORT void add_scaled(ptr_param<const MultiVector<ValueType>> alpha,
+                               ptr_param<const MultiVector<ValueType>> b);
 
     /**
      * Computes the column-wise dot product of each multi-vector in this batch
@@ -318,8 +323,8 @@ public:
      * @param result  a MultiVector row vector, used to store the dot
      * product
      */
-    void compute_dot(ptr_param<const MultiVector<ValueType>> b,
-                     ptr_param<MultiVector<ValueType>> result) const;
+    GKO_EXPORT void compute_dot(ptr_param<const MultiVector<ValueType>> b,
+                                ptr_param<MultiVector<ValueType>> result) const;
 
     /**
      * Computes the column-wise conjugate dot product of each multi-vector in
@@ -331,8 +336,9 @@ public:
      *                product (the number of column in the vector must match the
      *                number of columns of this)
      */
-    void compute_conj_dot(ptr_param<const MultiVector<ValueType>> b,
-                          ptr_param<MultiVector<ValueType>> result) const;
+    GKO_EXPORT void compute_conj_dot(
+        ptr_param<const MultiVector<ValueType>> b,
+        ptr_param<MultiVector<ValueType>> result) const;
 
     /**
      * Computes the Euclidean (L^2) norm of each multi-vector in this batch.
@@ -341,7 +347,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(
+    GKO_EXPORT void compute_norm2(
         ptr_param<MultiVector<remove_complex<ValueType>>> result) const;
 
     /**
@@ -353,7 +359,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<MultiVector> create(
+    GKO_EXPORT static std::unique_ptr<MultiVector> create(
         std::shared_ptr<const Executor> exec,
         const batch_dim<2>& size = batch_dim<2>{});
 
@@ -369,7 +375,7 @@ public:
      *       the wrong executor, an internal copy will be created, and the
      *       original array data will not be used in the vector.
      */
-    static std::unique_ptr<MultiVector> create(
+    GKO_EXPORT static std::unique_ptr<MultiVector> create(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
         array<value_type> values);
 
@@ -401,7 +407,7 @@ public:
      * array (if it resides on the same executor as the vector) or a copy of the
      * array on the correct executor.
      */
-    static std::unique_ptr<const MultiVector> create_const(
+    GKO_EXPORT static std::unique_ptr<const MultiVector> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         gko::detail::const_array_view<ValueType>&& values);
 
@@ -410,7 +416,7 @@ public:
      *
      * @param value  the value to be filled
      */
-    void fill(ValueType value);
+    GKO_EXPORT void fill(ValueType value);
 
 private:
     inline size_type compute_num_elems(const batch_dim<2>& size)
@@ -427,11 +433,11 @@ protected:
      */
     void set_size(const batch_dim<2>& value) noexcept;
 
-    MultiVector(std::shared_ptr<const Executor> exec,
-                const batch_dim<2>& size = batch_dim<2>{});
+    GKO_EXPORT MultiVector(std::shared_ptr<const Executor> exec,
+                           const batch_dim<2>& size = batch_dim<2>{});
 
-    MultiVector(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-                array<value_type> values);
+    GKO_EXPORT MultiVector(std::shared_ptr<const Executor> exec,
+                           const batch_dim<2>& size, array<value_type> values);
 
     /**
      * Creates a MultiVector with the same configuration as the
@@ -440,7 +446,7 @@ protected:
      * @returns a MultiVector with the same configuration as the
      * caller.
      */
-    std::unique_ptr<MultiVector> create_with_same_config() const;
+    GKO_EXPORT std::unique_ptr<MultiVector> create_with_same_config() const;
 
     size_type linearize_index(size_type batch, size_type row,
                               size_type col) const noexcept

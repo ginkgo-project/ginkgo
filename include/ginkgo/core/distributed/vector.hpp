@@ -17,6 +17,7 @@
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -101,7 +102,7 @@ public:
      *
      * @param other  The other vector whose configuration needs to copied.
      */
-    static std::unique_ptr<Vector> create_with_config_of(
+    GKO_EXPORT static std::unique_ptr<Vector> create_with_config_of(
         ptr_param<const Vector> other);
 
 
@@ -116,7 +117,7 @@ public:
      *
      * @returns an empty Vector with the type of other.
      */
-    static std::unique_ptr<Vector> create_with_type_of(
+    GKO_EXPORT static std::unique_ptr<Vector> create_with_type_of(
         ptr_param<const Vector> other, std::shared_ptr<const Executor> exec);
 
     /**
@@ -131,7 +132,7 @@ public:
      *
      * @returns a Vector of specified size with the type of other.
      */
-    static std::unique_ptr<Vector> create_with_type_of(
+    GKO_EXPORT static std::unique_ptr<Vector> create_with_type_of(
         ptr_param<const Vector> other, std::shared_ptr<const Executor> exec,
         const dim<2>& global_size, const dim<2>& local_size, size_type stride);
 
@@ -149,14 +150,17 @@ public:
      * @param data  The device_matrix_data structure
      * @param partition  The global row partition
      */
-    void read_distributed(const device_matrix_data<ValueType, int64>& data,
-                          ptr_param<const Partition<int64, int64>> partition);
+    GKO_EXPORT void read_distributed(
+        const device_matrix_data<ValueType, int64>& data,
+        ptr_param<const Partition<int64, int64>> partition);
 
-    void read_distributed(const device_matrix_data<ValueType, int64>& data,
-                          ptr_param<const Partition<int32, int64>> partition);
+    GKO_EXPORT void read_distributed(
+        const device_matrix_data<ValueType, int64>& data,
+        ptr_param<const Partition<int32, int64>> partition);
 
-    void read_distributed(const device_matrix_data<ValueType, int32>& data,
-                          ptr_param<const Partition<int32, int32>> partition);
+    GKO_EXPORT void read_distributed(
+        const device_matrix_data<ValueType, int32>& data,
+        ptr_param<const Partition<int32, int32>> partition);
 
     /**
      * Reads a vector from the matrix_data structure and a global row
@@ -167,87 +171,95 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    void read_distributed(const matrix_data<ValueType, int64>& data,
-                          ptr_param<const Partition<int64, int64>> partition);
+    GKO_EXPORT void read_distributed(
+        const matrix_data<ValueType, int64>& data,
+        ptr_param<const Partition<int64, int64>> partition);
 
-    void read_distributed(const matrix_data<ValueType, int64>& data,
-                          ptr_param<const Partition<int32, int64>> partition);
+    GKO_EXPORT void read_distributed(
+        const matrix_data<ValueType, int64>& data,
+        ptr_param<const Partition<int32, int64>> partition);
 
-    void read_distributed(const matrix_data<ValueType, int32>& data,
-                          ptr_param<const Partition<int32, int32>> partition);
+    GKO_EXPORT void read_distributed(
+        const matrix_data<ValueType, int32>& data,
+        ptr_param<const Partition<int32, int32>> partition);
 
-    void convert_to(Vector<next_precision<ValueType>>* result) const override;
+    GKO_EXPORT void convert_to(
+        Vector<next_precision<ValueType>>* result) const override;
 
-    void move_to(Vector<next_precision<ValueType>>* result) override;
+    GKO_EXPORT void move_to(Vector<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Vector<previous_precision<ValueType, 2>>;
     using ConvertibleTo<Vector<next_precision<ValueType, 2>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType, 2>>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Vector<next_precision<ValueType, 2>>* result) const override;
 
-    void move_to(Vector<next_precision<ValueType, 2>>* result) override;
+    GKO_EXPORT void move_to(
+        Vector<next_precision<ValueType, 2>>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
     friend class Vector<previous_precision<ValueType, 3>>;
-    using ConvertibleTo<Vector<next_precision<ValueType, 3>>>::convert_to;
-    using ConvertibleTo<Vector<next_precision<ValueType, 3>>>::move_to;
+    GKO_EXPORT using ConvertibleTo<
+        Vector<next_precision<ValueType, 3>>>::convert_to;
+    GKO_EXPORT using ConvertibleTo<
+        Vector<next_precision<ValueType, 3>>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Vector<next_precision<ValueType, 3>>* result) const override;
 
-    void move_to(Vector<next_precision<ValueType, 3>>* result) override;
+    GKO_EXPORT void move_to(
+        Vector<next_precision<ValueType, 3>>* result) override;
 #endif
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    GKO_EXPORT std::unique_ptr<absolute_type> compute_absolute() const override;
 
-    void compute_absolute_inplace() override;
+    GKO_EXPORT void compute_absolute_inplace() override;
 
     /**
      * Creates a complex copy of the original vectors. If the original vectors
      * were real, the imaginary part of the result will be zero.
      */
-    std::unique_ptr<complex_type> make_complex() const;
+    GKO_EXPORT std::unique_ptr<complex_type> make_complex() const;
 
     /**
      * Writes a complex copy of the original vectors to given complex vectors.
      * If the original vectors were real, the imaginary part of the result will
      * be zero.
      */
-    void make_complex(ptr_param<complex_type> result) const;
+    GKO_EXPORT void make_complex(ptr_param<complex_type> result) const;
 
     /**
      * Creates new real vectors and extracts the real part of the original
      * vectors into that.
      */
-    std::unique_ptr<real_type> get_real() const;
+    GKO_EXPORT std::unique_ptr<real_type> get_real() const;
 
     /**
      * Extracts the real part of the original vectors into given real vectors.
      */
-    void get_real(ptr_param<real_type> result) const;
+    GKO_EXPORT void get_real(ptr_param<real_type> result) const;
 
     /**
      * Creates new real vectors and extracts the imaginary part of the
      * original vectors into that.
      */
-    std::unique_ptr<real_type> get_imag() const;
+    GKO_EXPORT std::unique_ptr<real_type> get_imag() const;
 
     /**
      * Extracts the imaginary part of the original vectors into given real
      * vectors.
      */
-    void get_imag(ptr_param<real_type> result) const;
+    GKO_EXPORT void get_imag(ptr_param<real_type> result) const;
 
     /**
      * Fill the distributed vectors with a given value.
      *
      * @param value  the value to be filled
      */
-    void fill(ValueType value);
+    GKO_EXPORT void fill(ValueType value);
 
     /**
      * Scales the vectors with a scalar (aka: BLAS scal).
@@ -258,7 +270,7 @@ public:
      *               element of alpha (the number of columns of alpha has to
      *               match the number of vectors).
      */
-    void scale(ptr_param<const LinOp> alpha);
+    GKO_EXPORT void scale(ptr_param<const LinOp> alpha);
 
     /**
      * Scales the vectors with the inverse of a scalar.
@@ -269,7 +281,7 @@ public:
      *               of the i-th element of alpha (the number of columns of
      *               alpha has to match the number of vectors).
      */
-    void inv_scale(ptr_param<const LinOp> alpha);
+    GKO_EXPORT void inv_scale(ptr_param<const LinOp> alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the vectors (aka: BLAS axpy).
@@ -280,7 +292,8 @@ public:
      * columns of alpha has to match the number of vectors).
      * @param b  a (multi-)vector of the same dimension as this
      */
-    void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
+    GKO_EXPORT void add_scaled(ptr_param<const LinOp> alpha,
+                               ptr_param<const LinOp> b);
 
     /**
      * Subtracts `b` scaled by `alpha` from the vectors (aka: BLAS axpy).
@@ -290,7 +303,8 @@ public:
      * vector of b is scaled with the i-th element of alpha (the number of c
      * @param b  a (multi-)vector of the same dimension as this
      */
-    void sub_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
+    GKO_EXPORT void sub_scaled(ptr_param<const LinOp> alpha,
+                               ptr_param<const LinOp> b);
 
     /**
      * Computes the column-wise dot product of this (multi-)vector and `b` using
@@ -301,7 +315,8 @@ public:
      *                (the number of column in result must match the number
      *                of columns of this)
      */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_dot(ptr_param<const LinOp> b,
+                                ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise dot product of this (multi-)vector and `b` using
@@ -315,8 +330,9 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                     array<char>& tmp) const;
+    GKO_EXPORT void compute_dot(ptr_param<const LinOp> b,
+                                ptr_param<LinOp> result,
+                                array<char>& tmp) const;
 
     /**
      * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
@@ -327,8 +343,8 @@ public:
      *                (the number of column in result must match the number
      *                of columns of this)
      */
-    void compute_conj_dot(ptr_param<const LinOp> b,
-                          ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_conj_dot(ptr_param<const LinOp> b,
+                                     ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
@@ -342,8 +358,9 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_conj_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                          array<char>& tmp) const;
+    GKO_EXPORT void compute_conj_dot(ptr_param<const LinOp> b,
+                                     ptr_param<LinOp> result,
+                                     array<char>& tmp) const;
 
     /**
      * Computes the square of the column-wise Euclidean ($L^2$) norm of this
@@ -353,7 +370,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_squared_norm2(ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_squared_norm2(ptr_param<LinOp> result) const;
 
     /**
      * Computes the square of the column-wise Euclidean ($L^2$) norm of this
@@ -366,7 +383,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
+    GKO_EXPORT void compute_squared_norm2(ptr_param<LinOp> result,
+                                          array<char>& tmp) const;
 
     /**
      * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
@@ -376,7 +394,7 @@ public:
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
-    void compute_norm2(ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_norm2(ptr_param<LinOp> result) const;
 
     /**
      * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
@@ -389,7 +407,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
+    GKO_EXPORT void compute_norm2(ptr_param<LinOp> result,
+                                  array<char>& tmp) const;
 
     /**
      * Computes the column-wise (L^1) norm of this (multi-)vector.
@@ -398,7 +417,7 @@ public:
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
-    void compute_norm1(ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_norm1(ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise (L^1) norm of this (multi-)vector using a global
@@ -411,7 +430,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
+    GKO_EXPORT void compute_norm1(ptr_param<LinOp> result,
+                                  array<char>& tmp) const;
 
     /**
      * Computes the column-wise mean of this (multi-)vector using a global
@@ -421,7 +441,7 @@ public:
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
-    void compute_mean(ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_mean(ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise arithmetic mean of this (multi-)vector using a
@@ -434,7 +454,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
+    GKO_EXPORT void compute_mean(ptr_param<LinOp> result,
+                                 array<char>& tmp) const;
 
     /**
      * Returns a single element of the multi-vector.
@@ -446,12 +467,12 @@ public:
      * is stored at (e.g. trying to call this method on a GPU multi-vector from
      *        the OMP results in a runtime error)
      */
-    value_type& at_local(size_type row, size_type col) noexcept;
+    GKO_EXPORT value_type& at_local(size_type row, size_type col) noexcept;
 
     /**
      * @copydoc Vector::at(size_type, size_type)
      */
-    value_type at_local(size_type row, size_type col) const noexcept;
+    GKO_EXPORT value_type at_local(size_type row, size_type col) const noexcept;
 
     /**
      * Returns a single element of the multi-vector.
@@ -467,19 +488,19 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    ValueType& at_local(size_type idx) noexcept;
+    GKO_EXPORT ValueType& at_local(size_type idx) noexcept;
 
     /**
      * @copydoc Vector::at(size_type)
      */
-    ValueType at_local(size_type idx) const noexcept;
+    GKO_EXPORT ValueType at_local(size_type idx) const noexcept;
 
     /**
      * Returns a pointer to the array of local values of the multi-vector.
      *
      * @return the pointer to the array of local values
      */
-    value_type* get_local_values();
+    GKO_EXPORT value_type* get_local_values();
 
     /**
      * @copydoc get_local_values()
@@ -488,14 +509,14 @@ public:
      *       significantly more memory efficient than the non-constant version,
      *       so always prefer this version.
      */
-    const value_type* get_const_local_values() const;
+    GKO_EXPORT const value_type* get_const_local_values() const;
 
     /**
      * Direct (read) access to the underlying local local_vector_type vectors.
      *
      * @return a constant pointer to the underlying local_vector_type vectors
      */
-    const local_vector_type* get_local_vector() const;
+    GKO_EXPORT const local_vector_type* get_local_vector() const;
 
     /**
      * Create a real view of the (potentially) complex original multi-vector.
@@ -504,12 +525,12 @@ public:
      * real with a reinterpret_cast with twice the number of columns and
      * double the stride.
      */
-    std::unique_ptr<const real_type> create_real_view() const;
+    GKO_EXPORT std::unique_ptr<const real_type> create_real_view() const;
 
     /**
      * @copydoc create_real_view
      */
-    std::unique_ptr<real_type> create_real_view();
+    GKO_EXPORT std::unique_ptr<real_type> create_real_view();
 
     /**
      * Creates a view of a submatrix of this vector.
@@ -520,11 +541,14 @@ public:
      *
      * @return A view of a submatrix.
      */
-    std::unique_ptr<Vector> create_submatrix(local_span rows,
-                                             local_span columns,
-                                             dim<2> global_size);
+    GKO_EXPORT std::unique_ptr<Vector> create_submatrix(local_span rows,
+                                                        local_span columns,
+                                                        dim<2> global_size);
 
-    size_type get_stride() const noexcept { return local_.get_stride(); }
+    GKO_EXPORT size_type get_stride() const noexcept
+    {
+        return local_.get_stride();
+    }
 
     /**
      * Creates an empty distributed vector with a specified size
@@ -537,10 +561,9 @@ public:
      *
      * @return A smart pointer to the newly created vector.
      */
-    static std::unique_ptr<Vector> create(std::shared_ptr<const Executor> exec,
-                                          mpi::communicator comm,
-                                          dim<2> global_size, dim<2> local_size,
-                                          size_type stride);
+    GKO_EXPORT static std::unique_ptr<Vector> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> global_size, dim<2> local_size, size_type stride);
 
     /**
      * Creates an empty distributed vector with a specified size
@@ -553,10 +576,9 @@ public:
      *
      * @return A smart pointer to the newly created vector.
      */
-    static std::unique_ptr<Vector> create(std::shared_ptr<const Executor> exec,
-                                          mpi::communicator comm,
-                                          dim<2> global_size = {},
-                                          dim<2> local_size = {});
+    GKO_EXPORT static std::unique_ptr<Vector> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> global_size = {}, dim<2> local_size = {});
 
     /**
      * Creates a distributed vector from local vectors with a specified size.
@@ -575,7 +597,7 @@ public:
      *
      * @return A smart pointer to the newly created vector.
      */
-    static std::unique_ptr<Vector> create(
+    GKO_EXPORT static std::unique_ptr<Vector> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         dim<2> global_size, std::unique_ptr<local_vector_type> local_vector);
 
@@ -597,7 +619,7 @@ public:
      *
      * @return A smart pointer to the newly created vector.
      */
-    static std::unique_ptr<Vector> create(
+    GKO_EXPORT static std::unique_ptr<Vector> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         std::unique_ptr<local_vector_type> local_vector);
 
@@ -613,7 +635,7 @@ public:
      *
      * @return A smart pointer to the newly created vector.
      */
-    static std::unique_ptr<const Vector> create_const(
+    GKO_EXPORT static std::unique_ptr<const Vector> create_const(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         dim<2> global_size,
         std::unique_ptr<const local_vector_type> local_vector);
@@ -630,7 +652,7 @@ public:
      *
      * @return A smart pointer to the newly created vector.
      */
-    static std::unique_ptr<const Vector> create_const(
+    GKO_EXPORT static std::unique_ptr<const Vector> create_const(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         std::unique_ptr<const local_vector_type> local_vector);
 
@@ -648,17 +670,17 @@ protected:
     Vector(std::shared_ptr<const Executor> exec, mpi::communicator comm,
            std::unique_ptr<local_vector_type> local_vector);
 
-    void resize(dim<2> global_size, dim<2> local_size);
+    GKO_EXPORT void resize(dim<2> global_size, dim<2> local_size);
 
     template <typename LocalIndexType, typename GlobalIndexType>
-    void read_distributed_impl(
+    GKO_EXPORT void read_distributed_impl(
         const device_matrix_data<ValueType, GlobalIndexType>& data,
         const Partition<LocalIndexType, GlobalIndexType>* partition);
 
-    void apply_impl(const LinOp*, LinOp*) const override;
+    GKO_EXPORT void apply_impl(const LinOp*, LinOp*) const override;
 
-    void apply_impl(const LinOp*, const LinOp*, const LinOp*,
-                    LinOp*) const override;
+    GKO_EXPORT void apply_impl(const LinOp*, const LinOp*, const LinOp*,
+                               LinOp*) const override;
 
     /**
      * Creates a distributed vector with the same size and stride as the callers

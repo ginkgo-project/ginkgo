@@ -80,7 +80,7 @@ public:
      *       to be cast to Factorization again to access its factors.
      *       It is only necessary because smart pointers aren't covariant.
      */
-    std::unique_ptr<composition_type> generate(
+    GKO_EXPORT std::unique_ptr<composition_type> generate(
         std::shared_ptr<const LinOp> system_matrix) const;
 
     /** Creates a new parameter_type to set up the factory. */
@@ -97,7 +97,7 @@ protected:
         : LinOpFactory(exec), parameters_(params)
     {}
 
-    std::unique_ptr<LinOp> generate_impl(
+    GKO_EXPORT std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> system_matrix) const override;
 
 private:

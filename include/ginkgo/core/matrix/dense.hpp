@@ -19,6 +19,7 @@
 #include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -289,18 +290,21 @@ public:
 
     friend class Dense<previous_precision<ValueType>>;
 
-    void convert_to(Dense<next_precision<ValueType>>* result) const override;
+    GKO_EXPORT void convert_to(
+        Dense<next_precision<ValueType>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType>>* result) override;
+    GKO_EXPORT void move_to(Dense<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Dense<previous_precision<ValueType, 2>>;
     using ConvertibleTo<Dense<next_precision<ValueType, 2>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType, 2>>>::move_to;
 
-    void convert_to(Dense<next_precision<ValueType, 2>>* result) const override;
+    GKO_EXPORT void convert_to(
+        Dense<next_precision<ValueType, 2>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType, 2>>* result) override;
+    GKO_EXPORT void move_to(
+        Dense<next_precision<ValueType, 2>>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
@@ -308,86 +312,90 @@ public:
     using ConvertibleTo<Dense<next_precision<ValueType, 3>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType, 3>>>::move_to;
 
-    void convert_to(Dense<next_precision<ValueType, 3>>* result) const override;
+    GKO_EXPORT void convert_to(
+        Dense<next_precision<ValueType, 3>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType, 3>>* result) override;
+    GKO_EXPORT void move_to(
+        Dense<next_precision<ValueType, 3>>* result) override;
 #endif
 
-    void convert_to(Coo<ValueType, int32>* result) const override;
+    GKO_EXPORT void convert_to(Coo<ValueType, int32>* result) const override;
 
-    void move_to(Coo<ValueType, int32>* result) override;
+    GKO_EXPORT void move_to(Coo<ValueType, int32>* result) override;
 
-    void convert_to(Coo<ValueType, int64>* result) const override;
+    GKO_EXPORT void convert_to(Coo<ValueType, int64>* result) const override;
 
-    void move_to(Coo<ValueType, int64>* result) override;
+    GKO_EXPORT void move_to(Coo<ValueType, int64>* result) override;
 
-    void convert_to(Csr<ValueType, int32>* result) const override;
+    GKO_EXPORT void convert_to(Csr<ValueType, int32>* result) const override;
 
-    void move_to(Csr<ValueType, int32>* result) override;
+    GKO_EXPORT void move_to(Csr<ValueType, int32>* result) override;
 
-    void convert_to(Csr<ValueType, int64>* result) const override;
+    GKO_EXPORT void convert_to(Csr<ValueType, int64>* result) const override;
 
-    void move_to(Csr<ValueType, int64>* result) override;
+    GKO_EXPORT void move_to(Csr<ValueType, int64>* result) override;
 
-    void convert_to(Ell<ValueType, int32>* result) const override;
+    GKO_EXPORT void convert_to(Ell<ValueType, int32>* result) const override;
 
-    void move_to(Ell<ValueType, int32>* result) override;
+    GKO_EXPORT void move_to(Ell<ValueType, int32>* result) override;
 
-    void convert_to(Ell<ValueType, int64>* result) const override;
+    GKO_EXPORT void convert_to(Ell<ValueType, int64>* result) const override;
 
-    void move_to(Ell<ValueType, int64>* result) override;
+    GKO_EXPORT void move_to(Ell<ValueType, int64>* result) override;
 
-    void convert_to(Fbcsr<ValueType, int32>* result) const override;
+    GKO_EXPORT void convert_to(Fbcsr<ValueType, int32>* result) const override;
 
-    void move_to(Fbcsr<ValueType, int32>* result) override;
+    GKO_EXPORT void move_to(Fbcsr<ValueType, int32>* result) override;
 
-    void convert_to(Fbcsr<ValueType, int64>* result) const override;
+    GKO_EXPORT void convert_to(Fbcsr<ValueType, int64>* result) const override;
 
-    void move_to(Fbcsr<ValueType, int64>* result) override;
+    GKO_EXPORT void move_to(Fbcsr<ValueType, int64>* result) override;
 
-    void convert_to(Hybrid<ValueType, int32>* result) const override;
+    GKO_EXPORT void convert_to(Hybrid<ValueType, int32>* result) const override;
 
-    void move_to(Hybrid<ValueType, int32>* result) override;
+    GKO_EXPORT void move_to(Hybrid<ValueType, int32>* result) override;
 
-    void convert_to(Hybrid<ValueType, int64>* result) const override;
+    GKO_EXPORT void convert_to(Hybrid<ValueType, int64>* result) const override;
 
-    void move_to(Hybrid<ValueType, int64>* result) override;
+    GKO_EXPORT void move_to(Hybrid<ValueType, int64>* result) override;
 
-    void convert_to(Sellp<ValueType, int32>* result) const override;
+    GKO_EXPORT void convert_to(Sellp<ValueType, int32>* result) const override;
 
-    void move_to(Sellp<ValueType, int32>* result) override;
+    GKO_EXPORT void move_to(Sellp<ValueType, int32>* result) override;
 
-    void convert_to(Sellp<ValueType, int64>* result) const override;
+    GKO_EXPORT void convert_to(Sellp<ValueType, int64>* result) const override;
 
-    void move_to(Sellp<ValueType, int64>* result) override;
+    GKO_EXPORT void move_to(Sellp<ValueType, int64>* result) override;
 
-    void convert_to(SparsityCsr<ValueType, int32>* result) const override;
+    GKO_EXPORT void convert_to(
+        SparsityCsr<ValueType, int32>* result) const override;
 
-    void move_to(SparsityCsr<ValueType, int32>* result) override;
+    GKO_EXPORT void move_to(SparsityCsr<ValueType, int32>* result) override;
 
-    void convert_to(SparsityCsr<ValueType, int64>* result) const override;
+    GKO_EXPORT void convert_to(
+        SparsityCsr<ValueType, int64>* result) const override;
 
-    void move_to(SparsityCsr<ValueType, int64>* result) override;
+    GKO_EXPORT void move_to(SparsityCsr<ValueType, int64>* result) override;
 
-    void read(const mat_data& data) override;
+    GKO_EXPORT void read(const mat_data& data) override;
 
-    void read(const mat_data32& data) override;
+    GKO_EXPORT void read(const mat_data32& data) override;
 
-    void read(const device_mat_data& data) override;
+    GKO_EXPORT void read(const device_mat_data& data) override;
 
-    void read(const device_mat_data32& data) override;
+    GKO_EXPORT void read(const device_mat_data32& data) override;
 
-    void read(device_mat_data&& data) override;
+    GKO_EXPORT void read(device_mat_data&& data) override;
 
-    void read(device_mat_data32&& data) override;
+    GKO_EXPORT void read(device_mat_data32&& data) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    void write(mat_data32& data) const override;
+    GKO_EXPORT void write(mat_data32& data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Writes the transposed matrix into the given output matrix.
@@ -395,7 +403,7 @@ public:
      * @param output  The output matrix. It must have the dimensions
      *                `gko::transpose(this->get_size())`
      */
-    void transpose(ptr_param<Dense> output) const;
+    GKO_EXPORT void transpose(ptr_param<Dense> output) const;
 
     /**
      * Writes the conjugate-transposed matrix into the given output matrix.
@@ -403,14 +411,14 @@ public:
      * @param output  The output matrix. It must have the dimensions
      *                `gko::transpose(this->get_size())`
      */
-    void conj_transpose(ptr_param<Dense> output) const;
+    GKO_EXPORT void conj_transpose(ptr_param<Dense> output) const;
 
     /**
      * Fill the dense matrix with a given value.
      *
      * @param value  the value to be filled
      */
-    void fill(const ValueType value);
+    GKO_EXPORT void fill(const ValueType value);
 
     /**
      * Creates a permuted copy $A'$ of this matrix $A$ with the given
@@ -426,14 +434,14 @@ public:
      *              permuted.
      * @return  The permuted matrix.
      */
-    std::unique_ptr<Dense> permute(
+    GKO_EXPORT std::unique_ptr<Dense> permute(
         ptr_param<const Permutation<int32>> permutation,
         permute_mode mode = permute_mode::symmetric) const;
 
     /**
      * @copydoc permute(ptr_param<const Permutation<int32>>, permute_mode)
      */
-    std::unique_ptr<Dense> permute(
+    GKO_EXPORT std::unique_ptr<Dense> permute(
         ptr_param<const Permutation<int64>> permutation,
         permute_mode mode = permute_mode::symmetric) const;
 
@@ -442,15 +450,15 @@ public:
      * that writes the permuted copy into an existing Dense matrix.
      * @param output  the output matrix.
      */
-    void permute(ptr_param<const Permutation<int32>> permutation,
-                 ptr_param<Dense> output, permute_mode mode) const;
+    GKO_EXPORT void permute(ptr_param<const Permutation<int32>> permutation,
+                            ptr_param<Dense> output, permute_mode mode) const;
 
     /**
      * @copydoc permute(ptr_param<const Permutation<int32>>, ptr_param<Dense>,
      * permute_mode)
      */
-    void permute(ptr_param<const Permutation<int64>> permutation,
-                 ptr_param<Dense> output, permute_mode mode) const;
+    GKO_EXPORT void permute(ptr_param<const Permutation<int64>> permutation,
+                            ptr_param<Dense> output, permute_mode mode) const;
 
     /**
      * Creates a non-symmetrically permuted copy $A'$ of this matrix $A$ with
@@ -465,7 +473,7 @@ public:
      *                uses their inverses $P^{-1}, Q^{-1}$
      * @return  The permuted matrix.
      */
-    std::unique_ptr<Dense> permute(
+    GKO_EXPORT std::unique_ptr<Dense> permute(
         ptr_param<const Permutation<int32>> row_permutation,
         ptr_param<const Permutation<int32>> column_permutation,
         bool invert = false) const;
@@ -474,7 +482,7 @@ public:
      * @copydoc permute(ptr_param<const Permutation<int32>>, ptr_param<const
      * Permutation<int32>>, permute_mode)
      */
-    std::unique_ptr<Dense> permute(
+    GKO_EXPORT std::unique_ptr<Dense> permute(
         ptr_param<const Permutation<int64>> row_permutation,
         ptr_param<const Permutation<int64>> column_permutation,
         bool invert = false) const;
@@ -485,17 +493,19 @@ public:
      * existing Dense matrix.
      * @param output  the output matrix.
      */
-    void permute(ptr_param<const Permutation<int32>> row_permutation,
-                 ptr_param<const Permutation<int32>> column_permutation,
-                 ptr_param<Dense> output, bool invert = false) const;
+    GKO_EXPORT void permute(
+        ptr_param<const Permutation<int32>> row_permutation,
+        ptr_param<const Permutation<int32>> column_permutation,
+        ptr_param<Dense> output, bool invert = false) const;
 
     /**
      * @copydoc permute(ptr_param<const Permutation<int32>>, ptr_param<const
      * Permutation<int32>>, ptr_param<Dense>, permute_mode)
      */
-    void permute(ptr_param<const Permutation<int64>> row_permutation,
-                 ptr_param<const Permutation<int64>> column_permutation,
-                 ptr_param<Dense> output, bool invert = false) const;
+    GKO_EXPORT void permute(
+        ptr_param<const Permutation<int64>> row_permutation,
+        ptr_param<const Permutation<int64>> column_permutation,
+        ptr_param<Dense> output, bool invert = false) const;
 
     /**
      * Creates a scaled and permuted copy of this matrix.
@@ -506,7 +516,7 @@ public:
      * @param mode  The permutation mode.
      * @return The permuted matrix.
      */
-    std::unique_ptr<Dense> scale_permute(
+    GKO_EXPORT std::unique_ptr<Dense> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> permutation,
         permute_mode mode = permute_mode::symmetric) const;
 
@@ -514,7 +524,7 @@ public:
      * @copydoc scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, permute_mode)
      */
-    std::unique_ptr<Dense> scale_permute(
+    GKO_EXPORT std::unique_ptr<Dense> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> permutation,
         permute_mode mode = permute_mode::symmetric) const;
 
@@ -524,7 +534,7 @@ public:
      * existing Dense matrix.
      * @param output  the output matrix.
      */
-    void scale_permute(
+    GKO_EXPORT void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> permutation,
         ptr_param<Dense> output, permute_mode mode) const;
 
@@ -532,7 +542,7 @@ public:
      * @copydoc scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, ptr_param<Dense>, permute_mode)
      */
-    void scale_permute(
+    GKO_EXPORT void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> permutation,
         ptr_param<Dense> output, permute_mode mode) const;
 
@@ -548,7 +558,7 @@ public:
      *                uses their inverses $P^{-1}, Q^{-1}$
      * @return The permuted matrix.
      */
-    std::unique_ptr<Dense> scale_permute(
+    GKO_EXPORT std::unique_ptr<Dense> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int32>>
             column_permutation,
@@ -558,7 +568,7 @@ public:
      * @copydoc scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, ptr_param<const ScaledPermutation<value_type, int32>>, bool)
      */
-    std::unique_ptr<Dense> scale_permute(
+    GKO_EXPORT std::unique_ptr<Dense> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int64>>
             column_permutation,
@@ -570,7 +580,7 @@ public:
      * that writes the permuted copy into an existing Dense matrix.
      * @param output  the output matrix.
      */
-    void scale_permute(
+    GKO_EXPORT void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int32>>
             column_permutation,
@@ -581,16 +591,16 @@ public:
      * int32>>, ptr_param<const ScaledPermutation<value_type, int32>>,
      * ptr_param<Dense>, bool)
      */
-    void scale_permute(
+    GKO_EXPORT void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int64>>
             column_permutation,
         ptr_param<Dense> output, bool invert = false) const;
 
-    std::unique_ptr<LinOp> permute(
+    GKO_EXPORT std::unique_ptr<LinOp> permute(
         const array<int32>* permutation_indices) const override;
 
-    std::unique_ptr<LinOp> permute(
+    GKO_EXPORT std::unique_ptr<LinOp> permute(
         const array<int64>* permutation_indices) const override;
 
     /**
@@ -602,19 +612,19 @@ public:
      *                `this->get_size()`
      * @see Dense::permute(const array<int32>*)
      */
-    void permute(const array<int32>* permutation_indices,
-                 ptr_param<Dense> output) const;
+    GKO_EXPORT void permute(const array<int32>* permutation_indices,
+                            ptr_param<Dense> output) const;
 
     /**
      * @copydoc Dense::permute(const array<int32>*, Dense*)
      */
-    void permute(const array<int64>* permutation_indices,
-                 ptr_param<Dense> output) const;
+    GKO_EXPORT void permute(const array<int64>* permutation_indices,
+                            ptr_param<Dense> output) const;
 
-    std::unique_ptr<LinOp> inverse_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> inverse_permute(
         const array<int32>* permutation_indices) const override;
 
-    std::unique_ptr<LinOp> inverse_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> inverse_permute(
         const array<int64>* permutation_indices) const override;
 
     /**
@@ -627,19 +637,19 @@ public:
      *                `this->get_size()`
      * @see Dense::inverse_permute(const array<int32>*)
      */
-    void inverse_permute(const array<int32>* permutation_indices,
-                         ptr_param<Dense> output) const;
+    GKO_EXPORT void inverse_permute(const array<int32>* permutation_indices,
+                                    ptr_param<Dense> output) const;
 
     /**
      * @copydoc Dense::inverse_permute(const array<int32>*, Dense*)
      */
-    void inverse_permute(const array<int64>* permutation_indices,
-                         ptr_param<Dense> output) const;
+    GKO_EXPORT void inverse_permute(const array<int64>* permutation_indices,
+                                    ptr_param<Dense> output) const;
 
-    std::unique_ptr<LinOp> row_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> row_permute(
         const array<int32>* permutation_indices) const override;
 
-    std::unique_ptr<LinOp> row_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> row_permute(
         const array<int64>* permutation_indices) const override;
 
     /**
@@ -651,14 +661,14 @@ public:
      *                `this->get_size()`
      * @see Dense::row_permute(const array<int32>*)
      */
-    void row_permute(const array<int32>* permutation_indices,
-                     ptr_param<Dense> output) const;
+    GKO_EXPORT void row_permute(const array<int32>* permutation_indices,
+                                ptr_param<Dense> output) const;
 
     /**
      * @copydoc Dense::row_permute(const array<int32>*, Dense*)
      */
-    void row_permute(const array<int64>* permutation_indices,
-                     ptr_param<Dense> output) const;
+    GKO_EXPORT void row_permute(const array<int64>* permutation_indices,
+                                ptr_param<Dense> output) const;
 
     /**
      * Create a Dense matrix consisting of the given rows from this matrix.
@@ -670,12 +680,14 @@ public:
      *          the gathered rows from this matrix:
      *          `output(i,j) = input(gather_indices(i), j)`
      */
-    std::unique_ptr<Dense> row_gather(const array<int32>* gather_indices) const;
+    GKO_EXPORT std::unique_ptr<Dense> row_gather(
+        const array<int32>* gather_indices) const;
 
     /**
      * @copydoc row_gather(const array<int32>*) const
      */
-    std::unique_ptr<Dense> row_gather(const array<int64>* gather_indices) const;
+    GKO_EXPORT std::unique_ptr<Dense> row_gather(
+        const array<int64>* gather_indices) const;
 
     /**
      * Copies the given rows from this matrix into `row_collection`
@@ -689,14 +701,14 @@ public:
      *                        It must have the same number of columns as this
      *                        matrix and `gather_indices->get_size()` rows.
      */
-    void row_gather(const array<int32>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+    GKO_EXPORT void row_gather(const array<int32>* gather_indices,
+                               ptr_param<LinOp> row_collection) const;
 
     /**
      * @copydoc row_gather(const array<int32>*, LinOp*) const
      */
-    void row_gather(const array<int64>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+    GKO_EXPORT void row_gather(const array<int64>* gather_indices,
+                               ptr_param<LinOp> row_collection) const;
 
     /**
      * Copies the given rows from this matrix into `row_collection` with scaling
@@ -711,24 +723,24 @@ public:
      *             It must have the same number of columns as this
      *             matrix and `gather_indices->get_size()` rows.
      */
-    void row_gather(ptr_param<const LinOp> alpha,
-                    const array<int32>* gather_indices,
-                    ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+    GKO_EXPORT void row_gather(ptr_param<const LinOp> alpha,
+                               const array<int32>* gather_indices,
+                               ptr_param<const LinOp> beta,
+                               ptr_param<LinOp> row_collection) const;
 
     /**
      * @copydoc row_gather(const LinOp*, const array<int32>*, const LinOp*,
      * LinOp*) const
      */
-    void row_gather(ptr_param<const LinOp> alpha,
-                    const array<int64>* gather_indices,
-                    ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+    GKO_EXPORT void row_gather(ptr_param<const LinOp> alpha,
+                               const array<int64>* gather_indices,
+                               ptr_param<const LinOp> beta,
+                               ptr_param<LinOp> row_collection) const;
 
-    std::unique_ptr<LinOp> column_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> column_permute(
         const array<int32>* permutation_indices) const override;
 
-    std::unique_ptr<LinOp> column_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> column_permute(
         const array<int64>* permutation_indices) const override;
 
     /**
@@ -740,19 +752,19 @@ public:
      *                `this->get_size()`
      * @see Dense::column_permute(const array<int32>*)
      */
-    void column_permute(const array<int32>* permutation_indices,
-                        ptr_param<Dense> output) const;
+    GKO_EXPORT void column_permute(const array<int32>* permutation_indices,
+                                   ptr_param<Dense> output) const;
 
     /**
      * @copydoc Dense::column_permute(const array<int32>*, Dense*)
      */
-    void column_permute(const array<int64>* permutation_indices,
-                        ptr_param<Dense> output) const;
+    GKO_EXPORT void column_permute(const array<int64>* permutation_indices,
+                                   ptr_param<Dense> output) const;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> inverse_row_permute(
         const array<int32>* permutation_indices) const override;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> inverse_row_permute(
         const array<int64>* permutation_indices) const override;
 
     /**
@@ -764,19 +776,19 @@ public:
      *                `this->get_size()`
      * @see Dense::inverse_row_permute(const array<int32>*)
      */
-    void inverse_row_permute(const array<int32>* permutation_indices,
-                             ptr_param<Dense> output) const;
+    GKO_EXPORT void inverse_row_permute(const array<int32>* permutation_indices,
+                                        ptr_param<Dense> output) const;
 
     /**
      * @copydoc Dense::inverse_row_permute(const array<int32>*, Dense*)
      */
-    void inverse_row_permute(const array<int64>* permutation_indices,
-                             ptr_param<Dense> output) const;
+    GKO_EXPORT void inverse_row_permute(const array<int64>* permutation_indices,
+                                        ptr_param<Dense> output) const;
 
-    std::unique_ptr<LinOp> inverse_column_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> inverse_column_permute(
         const array<int32>* permutation_indices) const override;
 
-    std::unique_ptr<LinOp> inverse_column_permute(
+    GKO_EXPORT std::unique_ptr<LinOp> inverse_column_permute(
         const array<int64>* permutation_indices) const override;
 
     /**
@@ -788,16 +800,17 @@ public:
      *                `this->get_size()`
      * @see Dense::inverse_column_permute(const array<int32>*)
      */
-    void inverse_column_permute(const array<int32>* permutation_indices,
-                                ptr_param<Dense> output) const;
+    GKO_EXPORT void inverse_column_permute(
+        const array<int32>* permutation_indices, ptr_param<Dense> output) const;
 
     /**
      * @copydoc Dense::inverse_column_permute(const array<int32>*, Dense*)
      */
-    void inverse_column_permute(const array<int64>* permutation_indices,
-                                ptr_param<Dense> output) const;
+    GKO_EXPORT void inverse_column_permute(
+        const array<int64>* permutation_indices, ptr_param<Dense> output) const;
 
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+    GKO_EXPORT std::unique_ptr<Diagonal<ValueType>> extract_diagonal()
+        const override;
 
     /**
      * Writes the diagonal of this matrix into an existing diagonal matrix.
@@ -806,9 +819,10 @@ public:
      *                matrix's diagonal.
      * @see Dense::extract_diagonal()
      */
-    void extract_diagonal(ptr_param<Diagonal<ValueType>> output) const;
+    GKO_EXPORT void extract_diagonal(
+        ptr_param<Diagonal<ValueType>> output) const;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    GKO_EXPORT std::unique_ptr<absolute_type> compute_absolute() const override;
 
     /**
      * Writes the absolute values of this matrix into an existing matrix.
@@ -817,45 +831,45 @@ public:
      *                matrix.
      * @see Dense::compute_absolute()
      */
-    void compute_absolute(ptr_param<absolute_type> output) const;
+    GKO_EXPORT void compute_absolute(ptr_param<absolute_type> output) const;
 
-    void compute_absolute_inplace() override;
+    GKO_EXPORT void compute_absolute_inplace() override;
 
     /**
      * Creates a complex copy of the original matrix. If the original matrix
      * was real, the imaginary part of the result will be zero.
      */
-    std::unique_ptr<complex_type> make_complex() const;
+    GKO_EXPORT std::unique_ptr<complex_type> make_complex() const;
 
     /**
      * Writes a complex copy of the original matrix to a given complex matrix.
      * If the original matrix was real, the imaginary part of the result will
      * be zero.
      */
-    void make_complex(ptr_param<complex_type> result) const;
+    GKO_EXPORT void make_complex(ptr_param<complex_type> result) const;
 
     /**
      * Creates a new real matrix and extracts the real part of the original
      * matrix into that.
      */
-    std::unique_ptr<real_type> get_real() const;
+    GKO_EXPORT std::unique_ptr<real_type> get_real() const;
 
     /**
      * Extracts the real part of the original matrix into a given real matrix.
      */
-    void get_real(ptr_param<real_type> result) const;
+    GKO_EXPORT void get_real(ptr_param<real_type> result) const;
 
     /**
      * Creates a new real matrix and extracts the imaginary part of the
      * original matrix into that.
      */
-    std::unique_ptr<real_type> get_imag() const;
+    GKO_EXPORT std::unique_ptr<real_type> get_imag() const;
 
     /**
      * Extracts the imaginary part of the original matrix into a given real
      * matrix.
      */
-    void get_imag(ptr_param<real_type> result) const;
+    GKO_EXPORT void get_imag(ptr_param<real_type> result) const;
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -893,9 +907,9 @@ public:
         return values_.get_size();
     }
 
-    device_view get_device_view();
+    GKO_EXPORT device_view get_device_view();
 
-    const_device_view get_const_device_view() const;
+    GKO_EXPORT const_device_view get_const_device_view() const;
 
     /**
      * Returns a single element of the matrix.
@@ -956,7 +970,7 @@ public:
      *               element of alpha (the number of columns of alpha has to
      *               match the number of columns of the matrix).
      */
-    void scale(ptr_param<const LinOp> alpha);
+    GKO_EXPORT void scale(ptr_param<const LinOp> alpha);
 
     /**
      * Scales the matrix with the inverse of a scalar.
@@ -967,7 +981,7 @@ public:
      *               of the i-th element of alpha (the number of columns of
      *               alpha has to match the number of columns of the matrix).
      */
-    void inv_scale(ptr_param<const LinOp> alpha);
+    GKO_EXPORT void inv_scale(ptr_param<const LinOp> alpha);
 
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
@@ -979,7 +993,8 @@ public:
      *               match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
-    void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
+    GKO_EXPORT void add_scaled(ptr_param<const LinOp> alpha,
+                               ptr_param<const LinOp> b);
 
     /**
      * Subtracts `b` scaled by `alpha` from the matrix (aka: BLAS axpy).
@@ -991,7 +1006,8 @@ public:
      *               match the number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      */
-    void sub_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
+    GKO_EXPORT void sub_scaled(ptr_param<const LinOp> alpha,
+                               ptr_param<const LinOp> b);
 
     /**
      * Computes the column-wise dot product of this matrix and `b`.
@@ -1001,7 +1017,8 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_dot(ptr_param<const LinOp> b,
+                                ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise dot product of this matrix and `b`.
@@ -1014,8 +1031,9 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                     array<char>& tmp) const;
+    GKO_EXPORT void compute_dot(ptr_param<const LinOp> b,
+                                ptr_param<LinOp> result,
+                                array<char>& tmp) const;
 
     /**
      * Computes the column-wise dot product of `conj(this matrix)` and `b`.
@@ -1025,8 +1043,8 @@ public:
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
-    void compute_conj_dot(ptr_param<const LinOp> b,
-                          ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_conj_dot(ptr_param<const LinOp> b,
+                                     ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise dot product of `conj(this matrix)` and `b`.
@@ -1039,8 +1057,9 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_conj_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                          array<char>& tmp) const;
+    GKO_EXPORT void compute_conj_dot(ptr_param<const LinOp> b,
+                                     ptr_param<LinOp> result,
+                                     array<char>& tmp) const;
 
     /**
      * Computes the column-wise Euclidean (L^2) norm of this matrix.
@@ -1049,7 +1068,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm2(ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_norm2(ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise Euclidean (L^2) norm of this matrix.
@@ -1061,7 +1080,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
+    GKO_EXPORT void compute_norm2(ptr_param<LinOp> result,
+                                  array<char>& tmp) const;
 
     /**
      * Computes the column-wise (L^1) norm of this matrix.
@@ -1070,7 +1090,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_norm1(ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_norm1(ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise (L^1) norm of this matrix.
@@ -1082,7 +1102,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
+    GKO_EXPORT void compute_norm1(ptr_param<LinOp> result,
+                                  array<char>& tmp) const;
 
     /**
      * Computes the square of the column-wise Euclidean (L^2) norm of this
@@ -1092,7 +1113,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_squared_norm2(ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_squared_norm2(ptr_param<LinOp> result) const;
 
     /**
      * Computes the square of the column-wise Euclidean (L^2) norm of this
@@ -1105,7 +1126,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
+    GKO_EXPORT void compute_squared_norm2(ptr_param<LinOp> result,
+                                          array<char>& tmp) const;
 
     /**
      * Computes the column-wise arithmetic mean of this matrix.
@@ -1114,7 +1136,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_mean(ptr_param<LinOp> result) const;
+    GKO_EXPORT void compute_mean(ptr_param<LinOp> result) const;
 
     /**
      * Computes the column-wise arithmetic mean of this matrix.
@@ -1126,7 +1148,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
+    GKO_EXPORT void compute_mean(ptr_param<LinOp> result,
+                                 array<char>& tmp) const;
 
     /**
      * Create a submatrix from the original matrix.
@@ -1182,12 +1205,12 @@ public:
      * real with a reinterpret_cast with twice the number of columns and
      * double the stride.
      */
-    std::unique_ptr<real_type> create_real_view();
+    GKO_EXPORT std::unique_ptr<real_type> create_real_view();
 
     /**
      * @copydoc create_real_view()
      */
-    std::unique_ptr<const real_type> create_real_view() const;
+    GKO_EXPORT std::unique_ptr<const real_type> create_real_view() const;
 
     /**
      * Creates an uninitialized Dense matrix of the specified size.
@@ -1201,9 +1224,9 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size = {},
-                                         size_type stride = 0);
+    GKO_EXPORT static std::unique_ptr<Dense> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type stride = 0);
 
     /**
      * Creates a Dense matrix from an already allocated (and initialized) array.
@@ -1221,10 +1244,9 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size,
-                                         array<value_type> values,
-                                         size_type stride);
+    GKO_EXPORT static std::unique_ptr<Dense> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<value_type> values, size_type stride);
 
     /**
      * @copydoc std::unique_ptr<Dense> create(std::shared_ptr<const Executor>,
@@ -1253,7 +1275,7 @@ public:
      *          (if it resides on the same executor as the matrix) or a copy of
      *          the array on the correct executor.
      */
-    static std::unique_ptr<const Dense> create_const(
+    GKO_EXPORT static std::unique_ptr<const Dense> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values, size_type stride);
 
@@ -1262,33 +1284,33 @@ public:
      * matrix with minimal stride if the dimensions don't match, then copies the
      * data over, ignoring padding.
      */
-    Dense& operator=(const Dense&);
+    GKO_EXPORT Dense& operator=(const Dense&);
 
     /**
      * Move-assigns a Dense matrix. Preserves the executor, moves the data over
      * preserving size and stride. Leaves the moved-from object in an empty
      * state (0x0 with empty Array).
      */
-    Dense& operator=(Dense&&);
+    GKO_EXPORT Dense& operator=(Dense&&);
 
     /**
      * Copy-constructs a Dense matrix. Inherits executor and dimensions, but
      * copies data without padding.
      */
-    Dense(const Dense&);
+    GKO_EXPORT Dense(const Dense&);
 
     /**
      * Move-constructs a Dense matrix. Inherits executor, dimensions and data
      * with padding. The moved-from object is empty (0x0 with empty Array).
      */
-    Dense(Dense&&);
+    GKO_EXPORT Dense(Dense&&);
 
 protected:
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
-          size_type stride = 0);
+    GKO_EXPORT Dense(std::shared_ptr<const Executor> exec,
+                     const dim<2>& size = {}, size_type stride = 0);
 
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          array<value_type> values, size_type stride);
+    GKO_EXPORT Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                     array<value_type> values, size_type stride);
 
     /**
      * Creates a Dense matrix with the same size and stride as the callers
@@ -1375,7 +1397,7 @@ protected:
      * @deprecated  This function will be removed in the future,
      *              we will instead always use Ginkgo's implementation.
      */
-    virtual void scale_impl(const LinOp* alpha);
+    GKO_EXPORT virtual void scale_impl(const LinOp* alpha);
 
     /**
      * @copydoc inv_scale(const LinOp *)
@@ -1383,7 +1405,7 @@ protected:
      * @deprecated  This function will be removed in the future,
      *              we will instead always use Ginkgo's implementation.
      */
-    virtual void inv_scale_impl(const LinOp* alpha);
+    GKO_EXPORT virtual void inv_scale_impl(const LinOp* alpha);
 
     /**
      * @copydoc add_scaled(const LinOp *, const LinOp *)
@@ -1391,7 +1413,7 @@ protected:
      * @deprecated  This function will be removed in the future,
      *              we will instead always use Ginkgo's implementation.
      */
-    virtual void add_scaled_impl(const LinOp* alpha, const LinOp* b);
+    GKO_EXPORT virtual void add_scaled_impl(const LinOp* alpha, const LinOp* b);
 
     /**
      * @copydoc sub_scaled(const LinOp *, const LinOp *)
@@ -1399,7 +1421,7 @@ protected:
      * @deprecated  This function will be removed in the future,
      *              we will instead always use Ginkgo's implementation.
      */
-    virtual void sub_scaled_impl(const LinOp* alpha, const LinOp* b);
+    GKO_EXPORT virtual void sub_scaled_impl(const LinOp* alpha, const LinOp* b);
 
     /**
      * @copydoc compute_dot(const LinOp*, LinOp*) const
@@ -1407,7 +1429,8 @@ protected:
      * @deprecated  This function will be removed in the future,
      *              we will instead always use Ginkgo's implementation.
      */
-    virtual void compute_dot_impl(const LinOp* b, LinOp* result) const;
+    GKO_EXPORT virtual void compute_dot_impl(const LinOp* b,
+                                             LinOp* result) const;
 
     /**
      * @copydoc compute_conj_dot(const LinOp*, LinOp*) const
@@ -1415,7 +1438,8 @@ protected:
      * @deprecated  This function will be removed in the future,
      *              we will instead always use Ginkgo's implementation.
      */
-    virtual void compute_conj_dot_impl(const LinOp* b, LinOp* result) const;
+    GKO_EXPORT virtual void compute_conj_dot_impl(const LinOp* b,
+                                                  LinOp* result) const;
 
     /**
      * @copydoc compute_norm2(LinOp*) const
@@ -1423,7 +1447,7 @@ protected:
      * @deprecated  This function will be removed in the future,
      *              we will instead always use Ginkgo's implementation.
      */
-    virtual void compute_norm2_impl(LinOp* result) const;
+    GKO_EXPORT virtual void compute_norm2_impl(LinOp* result) const;
 
     /**
      * @copydoc compute_norm1(LinOp*) const
@@ -1431,7 +1455,7 @@ protected:
      * @deprecated  This function will be removed in the future,
      *              we will instead always use Ginkgo's implementation.
      */
-    virtual void compute_norm1_impl(LinOp* result) const;
+    GKO_EXPORT virtual void compute_norm1_impl(LinOp* result) const;
 
     /**
      * @copydoc compute_squared_norm2(LinOp*) const
@@ -1439,12 +1463,12 @@ protected:
      * @deprecated  This function will be removed in the future,
      *              we will instead always use Ginkgo's implementation.
      */
-    virtual void compute_squared_norm2_impl(LinOp* result) const;
+    GKO_EXPORT virtual void compute_squared_norm2_impl(LinOp* result) const;
 
     /**
      * @copydoc compute_mean(LinOp*) const
      */
-    virtual void compute_mean_impl(LinOp* result) const;
+    GKO_EXPORT virtual void compute_mean_impl(LinOp* result) const;
 
     /**
      * Resizes the matrix to the given size.
@@ -1463,13 +1487,13 @@ protected:
      *        instead of create_submatrix(const span, const span, const
      *        size_type).
      */
-    virtual std::unique_ptr<Dense> create_submatrix_impl(
+    GKO_EXPORT virtual std::unique_ptr<Dense> create_submatrix_impl(
         const span& rows, const span& columns, const size_type stride);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
@@ -1516,7 +1540,8 @@ private:
     size_type stride_;
     array<value_type> values_;
 
-    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
+    GKO_EXPORT void add_scaled_identity_impl(const LinOp* a,
+                                             const LinOp* b) override;
 };
 
 

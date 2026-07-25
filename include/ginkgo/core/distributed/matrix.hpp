@@ -20,6 +20,7 @@
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/row_gatherer.hpp>
 #include <ginkgo/core/distributed/vector_cache.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -297,11 +298,12 @@ public:
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::move_to;
 
-    void convert_to(Matrix<next_precision<value_type>, local_index_type,
-                           global_index_type>* result) const override;
+    GKO_EXPORT void convert_to(
+        Matrix<next_precision<value_type>, local_index_type, global_index_type>*
+            result) const override;
 
-    void move_to(Matrix<next_precision<value_type>, local_index_type,
-                        global_index_type>* result) override;
+    GKO_EXPORT void move_to(Matrix<next_precision<value_type>, local_index_type,
+                                   global_index_type>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Matrix<previous_precision<ValueType, 2>, LocalIndexType,
@@ -311,11 +313,13 @@ public:
     using ConvertibleTo<Matrix<next_precision<value_type, 2>, local_index_type,
                                global_index_type>>::move_to;
 
-    void convert_to(Matrix<next_precision<value_type, 2>, local_index_type,
-                           global_index_type>* result) const override;
+    GKO_EXPORT void convert_to(
+        Matrix<next_precision<value_type, 2>, local_index_type,
+               global_index_type>* result) const override;
 
-    void move_to(Matrix<next_precision<value_type, 2>, local_index_type,
-                        global_index_type>* result) override;
+    GKO_EXPORT void move_to(
+        Matrix<next_precision<value_type, 2>, local_index_type,
+               global_index_type>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
@@ -326,11 +330,13 @@ public:
     using ConvertibleTo<Matrix<next_precision<value_type, 3>, local_index_type,
                                global_index_type>>::move_to;
 
-    void convert_to(Matrix<next_precision<value_type, 3>, local_index_type,
-                           global_index_type>* result) const override;
+    GKO_EXPORT void convert_to(
+        Matrix<next_precision<value_type, 3>, local_index_type,
+               global_index_type>* result) const override;
 
-    void move_to(Matrix<next_precision<value_type, 3>, local_index_type,
-                        global_index_type>* result) override;
+    GKO_EXPORT void move_to(
+        Matrix<next_precision<value_type, 3>, local_index_type,
+               global_index_type>* result) override;
 #endif
     /**
      * Reads a square matrix from the device_matrix_data structure and a global
@@ -349,7 +355,7 @@ public:
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
-    void read_distributed(
+    GKO_EXPORT void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition,
@@ -364,7 +370,7 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    void read_distributed(
+    GKO_EXPORT void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             partition,
@@ -388,7 +394,7 @@ public:
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
-    void read_distributed(
+    GKO_EXPORT void read_distributed(
         const device_matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
@@ -405,7 +411,7 @@ public:
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
      */
-    void read_distributed(
+    GKO_EXPORT void read_distributed(
         const matrix_data<value_type, global_index_type>& data,
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             row_partition,
@@ -497,8 +503,8 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
-                                          mpi::communicator comm);
+    GKO_EXPORT static std::unique_ptr<Matrix> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
     /**
      * Creates an empty distributed matrix with a specified implementation of
@@ -513,7 +519,7 @@ public:
      * @return A smart pointer to the newly created matrix.
      *
      */
-    static std::unique_ptr<Matrix> create(
+    GKO_EXPORT static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const RowGatherer<LocalIndexType>>
             row_gatherer_template);
@@ -611,7 +617,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Matrix> create(
+    GKO_EXPORT static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         ptr_param<const LinOp> matrix_template);
 
@@ -631,7 +637,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Matrix> create(
+    GKO_EXPORT static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         ptr_param<const LinOp> diag_matrix_template,
         ptr_param<const LinOp> off_diag_matrix_template);
@@ -648,9 +654,9 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
-                                          mpi::communicator comm, dim<2> size,
-                                          std::shared_ptr<LinOp> diag_linop);
+    GKO_EXPORT static std::unique_ptr<Matrix> create(
+        std::shared_ptr<const Executor> exec, mpi::communicator comm,
+        dim<2> size, std::shared_ptr<LinOp> diag_linop);
 
     /**
      * Creates distributed matrix with existent diagonal and off-diagonal LinOp
@@ -693,7 +699,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Matrix> create(
+    GKO_EXPORT static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         index_map<local_index_type, global_index_type> imap,
         std::shared_ptr<LinOp> diag_linop,
@@ -706,7 +712,8 @@ public:
      *
      * @param scaling_factors  The vector containing the scaling factors.
      */
-    void col_scale(ptr_param<const global_vector_type> scaling_factors);
+    GKO_EXPORT void col_scale(
+        ptr_param<const global_vector_type> scaling_factors);
 
     /**
      * Scales the rows of the matrix by the respective entries of the vector.
@@ -715,7 +722,8 @@ public:
      *
      * @param scaling_factors  The vector containing the scaling factors.
      */
-    void row_scale(ptr_param<const global_vector_type> scaling_factors);
+    GKO_EXPORT void row_scale(
+        ptr_param<const global_vector_type> scaling_factors);
 
 protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
@@ -737,10 +745,10 @@ protected:
                     std::shared_ptr<LinOp> diag_linop,
                     std::shared_ptr<LinOp> off_diag_linop);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;

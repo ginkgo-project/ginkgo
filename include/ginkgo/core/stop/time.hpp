@@ -10,6 +10,7 @@
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
+#include <ginkgo/export.hpp>
 
 
 namespace gko {
@@ -21,7 +22,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Time : public Criterion {
+class GKO_EXPORT_CLASS Time : public Criterion {
 public:
     using clock = std::chrono::steady_clock;
 
@@ -37,9 +38,9 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    bool check_impl(uint8 stoppingId, bool setFinalized,
-                    array<stopping_status>* stop_status, bool* one_changed,
-                    const Updater&) override;
+    GKO_EXPORT bool check_impl(uint8 stoppingId, bool setFinalized,
+                               array<stopping_status>* stop_status,
+                               bool* one_changed, const Updater&) override;
 
     explicit Time(std::shared_ptr<const gko::Executor> exec)
         : Criterion(std::move(exec)), time_limit_{}, start_{}
@@ -87,7 +88,7 @@ private:
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<Time::Factory> time_limit(
+GKO_EXPORT deferred_factory_parameter<Time::Factory> time_limit(
     std::chrono::nanoseconds duration);
 
 

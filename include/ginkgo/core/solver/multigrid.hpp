@@ -399,17 +399,17 @@ public:
                                      config::make_type_descriptor<>());
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
-    void apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
-                                       initial_guess_mode guess) const override;
+    GKO_EXPORT void apply_with_initial_guess_impl(
+        const LinOp* b, LinOp* x, initial_guess_mode guess) const override;
 
-    void apply_with_initial_guess_impl(const LinOp* alpha, const LinOp* b,
-                                       const LinOp* beta, LinOp* x,
-                                       initial_guess_mode guess) const override;
+    GKO_EXPORT void apply_with_initial_guess_impl(
+        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        initial_guess_mode guess) const override;
 
     template <typename VectorType>
     void apply_dense_impl(const VectorType* b, VectorType* x,
@@ -421,10 +421,10 @@ protected:
      */
     void generate();
 
-    explicit Multigrid(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT explicit Multigrid(std::shared_ptr<const Executor> exec);
 
-    explicit Multigrid(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix);
+    GKO_EXPORT explicit Multigrid(const Factory* factory,
+                                  std::shared_ptr<const LinOp> system_matrix);
 
     /**
      * validate checks the given parameters are valid or not.
@@ -487,17 +487,17 @@ template <>
 struct workspace_traits<Multigrid> {
     using Solver = Multigrid;
     // number of vectors used by this workspace
-    static int num_vectors(const Solver&);
+    GKO_EXPORT static int num_vectors(const Solver&);
     // number of arrays used by this workspace
-    static int num_arrays(const Solver&);
+    GKO_EXPORT static int num_arrays(const Solver&);
     // array containing the num_vectors names for the workspace vectors
-    static std::vector<std::string> op_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> op_names(const Solver&);
     // array containing the num_arrays names for the workspace vectors
-    static std::vector<std::string> array_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> array_names(const Solver&);
     // array containing all varying scalar vectors (independent of problem size)
-    static std::vector<int> scalars(const Solver&);
+    GKO_EXPORT static std::vector<int> scalars(const Solver&);
     // array containing all varying vectors (dependent on problem size)
-    static std::vector<int> vectors(const Solver&);
+    GKO_EXPORT static std::vector<int> vectors(const Solver&);
 
     // stopping status array
     constexpr static int stop = 0;
