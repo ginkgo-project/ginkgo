@@ -263,7 +263,7 @@ if(MSVC)
     # After CMake 4.1, they do not add several flags for MSVC. (see Other Changes section in https://cmake.org/cmake/help/v4.1/release/4.1.html)
     # `/Zc:inline` is required in Ginkgo to reduce the symbol significantly, so we add it back here.
     set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive- /Zc:inline"
+        "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive- /Zc:inline /EHsc"
     )
 endif()
 if(MINGW OR CYGWIN)

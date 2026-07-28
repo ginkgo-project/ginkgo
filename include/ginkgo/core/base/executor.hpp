@@ -28,6 +28,8 @@
 #include <ginkgo/export_cuda.hpp>
 #include <ginkgo/export_dpcpp.hpp>
 #include <ginkgo/export_hip.hpp>
+#include <ginkgo/export_omp.hpp>
+#include <ginkgo/export_reference.hpp>
 
 
 namespace gko {
@@ -1439,7 +1441,18 @@ protected:
 
     void raw_free(void* ptr) const noexcept override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    GKO_OMP_EXPORT void raw_copy_to(const OmpExecutor* dest_exec,
+                                    size_type n_bytes, const void* src_ptr,
+                                    void* dest_ptr) const override;
+    GKO_HIP_EXPORT void raw_copy_to(const HipExecutor* dest_exec,
+                                    size_type n_bytes, const void* src_ptr,
+                                    void* dest_ptr) const override;
+    GKO_DPCPP_EXPORT void raw_copy_to(const DpcppExecutor* dest_exec,
+                                      size_type n_bytes, const void* src_ptr,
+                                      void* dest_ptr) const override;
+    GKO_CUDA_EXPORT void raw_copy_to(const CudaExecutor* dest_exec,
+                                     size_type n_bytes, const void* src_ptr,
+                                     void* dest_ptr) const override;
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, true);
 
@@ -1449,7 +1462,8 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
-    bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
+    GKO_DPCPP_EXPORT bool verify_memory_to(
+        const DpcppExecutor* dest_exec) const override;
 
     std::shared_ptr<CpuAllocatorBase> alloc_;
 };

@@ -7,61 +7,61 @@
 
 
 // GKO_EXPORT_HOOK should only be used in the source files for backends.
+#define GKO_EXPORT_HOOK
+
+// #ifdef ginkgo_reference_EXPORTS
 
 
-#ifdef ginkgo_reference_EXPORTS
+// #include <ginkgo/export_reference.hpp>
+
+// #define GKO_EXPORT_HOOK GKO_REFERENCE_EXPORT
 
 
-#include <ginkgo/export_reference.hpp>
-
-#define GKO_EXPORT_HOOK GKO_REFERENCE_EXPORT
+// #endif
 
 
-#endif
+// #ifdef ginkgo_omp_EXPORTS
 
 
-#ifdef ginkgo_omp_EXPORTS
+// #include <ginkgo/export_omp.hpp>
+
+// #define GKO_EXPORT_HOOK GKO_OMP_EXPORT
 
 
-#include <ginkgo/export_omp.hpp>
-
-#define GKO_EXPORT_HOOK GKO_OMP_EXPORT
+// #endif
 
 
-#endif
+// #ifdef ginkgo_cuda_EXPORTS
 
 
-#ifdef ginkgo_cuda_EXPORTS
+// #include <ginkgo/export_cuda.hpp>
+
+// #define GKO_EXPORT_HOOK GKO_CUDA_EXPORT
 
 
-#include <ginkgo/export_cuda.hpp>
-
-#define GKO_EXPORT_HOOK GKO_CUDA_EXPORT
+// #endif
 
 
-#endif
+// #ifdef ginkgo_hip_EXPORTS
 
 
-#ifdef ginkgo_hip_EXPORTS
+// #include <ginkgo/export_hip.hpp>
+
+// #define GKO_EXPORT_HOOK GKO_HIP_EXPORT
 
 
-#include <ginkgo/export_hip.hpp>
-
-#define GKO_EXPORT_HOOK GKO_HIP_EXPORT
+// #endif
 
 
-#endif
+// #ifdef ginkgo_dpcpp_EXPORTS
 
 
-#ifdef ginkgo_dpcpp_EXPORTS
+// #include <ginkgo/export_dpcpp.hpp>
+
+// #define GKO_EXPORT_HOOK GKO_DPCPP_EXPORT
 
 
-#include <ginkgo/export_dpcpp.hpp>
-
-#define GKO_EXPORT_HOOK GKO_DPCPP_EXPORT
-
-
-#endif
+// #endif
 
 
 #endif  // GKO_CORE_BASE_EXPORT_HOOK_HPP_
