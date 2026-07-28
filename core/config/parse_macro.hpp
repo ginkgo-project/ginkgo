@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 
+#include "core/base/export_hook.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/config/type_descriptor_helper.hpp"
@@ -18,7 +19,7 @@
 // for value_type only
 #define GKO_PARSE_VALUE_TYPE_(_type, _configurator, _value_type_list)        \
     template <>                                                              \
-    deferred_factory_parameter<gko::LinOpFactory>                            \
+    GKO_EXPORT_HOOK deferred_factory_parameter<gko::LinOpFactory>            \
     parse<gko::config::LinOpFactoryType::_type>(                             \
         const gko::config::pnode& config,                                    \
         const gko::config::registry& context,                                \
@@ -44,7 +45,7 @@
 #define GKO_PARSE_VALUE_AND_INDEX_TYPE_(_type, _configurator,                 \
                                         _value_type_list)                     \
     template <>                                                               \
-    deferred_factory_parameter<gko::LinOpFactory>                             \
+    GKO_EXPORT_HOOK deferred_factory_parameter<gko::LinOpFactory>             \
     parse<gko::config::LinOpFactoryType::_type>(                              \
         const gko::config::pnode& config,                                     \
         const gko::config::registry& context,                                 \

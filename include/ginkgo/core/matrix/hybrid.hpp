@@ -646,8 +646,7 @@ public:
      * @return the strategy
      */
     template <typename HybType>
-    GKO_EXPORT std::shared_ptr<typename HybType::strategy_type> get_strategy()
-        const;
+    std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
 
     /**
      * Returns a non-owning device view of this matrix.

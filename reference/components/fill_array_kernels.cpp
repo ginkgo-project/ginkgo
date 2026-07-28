@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,12 +22,12 @@ void fill_array(std::shared_ptr<const DefaultExecutor> exec, ValueType* array,
 }
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_FILL_ARRAY_KERNEL);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(char);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(uint16);
-template GKO_DECLARE_FILL_ARRAY_KERNEL(uint32);
+template GKO_EXPORT_HOOK GKO_DECLARE_FILL_ARRAY_KERNEL(bool);
+template GKO_EXPORT_HOOK GKO_DECLARE_FILL_ARRAY_KERNEL(char);
+template GKO_EXPORT_HOOK GKO_DECLARE_FILL_ARRAY_KERNEL(uint16);
+template GKO_EXPORT_HOOK GKO_DECLARE_FILL_ARRAY_KERNEL(uint32);
 #ifndef GKO_SIZE_T_IS_UINT64_T
-template GKO_DECLARE_FILL_ARRAY_KERNEL(uint64);
+template GKO_EXPORT_HOOK GKO_DECLARE_FILL_ARRAY_KERNEL(uint64);
 #endif
 
 

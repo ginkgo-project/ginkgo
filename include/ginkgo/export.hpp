@@ -7,7 +7,11 @@
 
 #include <ginkgo/export_.hpp>
 
+#ifdef _MSC_VER
+#define GKO_EXPORT_CLASS
+#else
 #define GKO_EXPORT_CLASS GKO_EXPORT
+#endif
 
 
 #endif  // GKO_PUBLIC_EXPORT_HPP_

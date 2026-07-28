@@ -229,7 +229,7 @@ public:
     GKO_DEPRECATED(
         "explicitly construct the gko::array argument instead of passing "
         "initializer lists")
-    GKO_EXPORT static std::unique_ptr<SparsityCsr> create(
+    static std::unique_ptr<SparsityCsr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         std::initializer_list<ColIndexType> col_idxs,
         std::initializer_list<RowPtrType> row_ptrs,

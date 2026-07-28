@@ -491,7 +491,7 @@ add_subdirectory(third_party) # Third-party tools and libraries
 
 if(MSVC)
     if(BUILD_SHARED_LIBS)
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
     else()
         set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
     endif()

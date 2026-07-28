@@ -307,8 +307,8 @@ public:
      * ProfilerHook::create_nested_summary() to a ASCII table in Markdown
      * format.
      */
-    class GKO_EXPORT_CLASS TableSummaryWriter : public SummaryWriter,
-                                                public NestedSummaryWriter {
+    class GKO_EXPORT TableSummaryWriter : public SummaryWriter,
+                                          public NestedSummaryWriter {
     public:
         /**
          * Constructs a writer on an output stream.

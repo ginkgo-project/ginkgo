@@ -227,7 +227,7 @@ struct criterion_data {
  * parameter, consider implementing a specific logger for this. In addition, it
  * is advised to tune the history size in order to control memory overhead.
  */
-class GKO_EXPORT Record : public Logger {
+class GKO_EXPORT_CLASS Record : public Logger {
 public:
     /**
      * Struct storing the actually logged data

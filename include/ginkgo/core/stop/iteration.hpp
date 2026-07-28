@@ -24,7 +24,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class GKO_EXPORT_CLASS Iteration : public Criterion {
+class GKO_EXPORT Iteration : public Criterion {
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -43,10 +43,9 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    GKO_EXPORT bool check_impl(uint8 stoppingId, bool setFinalized,
-                               array<stopping_status>* stop_status,
-                               bool* one_changed,
-                               const Updater& updater) override;
+    bool check_impl(uint8 stoppingId, bool setFinalized,
+                    array<stopping_status>* stop_status, bool* one_changed,
+                    const Updater& updater) override;
 
     explicit Iteration(std::shared_ptr<const gko::Executor> exec)
         : Criterion(std::move(exec))

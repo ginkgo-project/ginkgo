@@ -92,12 +92,12 @@ ValueType reduce_add(const array<ValueType>& input_arr,
     void array<ValueType>::fill(const ValueType value)
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
-template GKO_DECLARE_ARRAY_FILL(bool);
-template GKO_DECLARE_ARRAY_FILL(char);
-template GKO_DECLARE_ARRAY_FILL(uint16);
-template GKO_DECLARE_ARRAY_FILL(uint32);
+template GKO_EXPORT_HOOK GKO_DECLARE_ARRAY_FILL(bool);
+template GKO_EXPORT_HOOK GKO_DECLARE_ARRAY_FILL(char);
+template GKO_EXPORT_HOOK GKO_DECLARE_ARRAY_FILL(uint16);
+template GKO_EXPORT_HOOK GKO_DECLARE_ARRAY_FILL(uint32);
 #ifndef GKO_SIZE_T_IS_UINT64_T
-template GKO_DECLARE_ARRAY_FILL(uint64);
+template GKO_EXPORT_HOOK GKO_DECLARE_ARRAY_FILL(uint64);
 #endif
 
 

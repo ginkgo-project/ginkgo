@@ -335,8 +335,8 @@ protected:
         *this = std::move(other);
     }
 
-    GKO_EXPORT void apply_impl(const MultiVector<ValueType>* b,
-                               MultiVector<ValueType>* x) const
+    void apply_impl(const MultiVector<ValueType>* b,
+                    MultiVector<ValueType>* x) const
     {
         auto exec = this->get_executor();
         if (b->get_common_size()[1] > 1) {
@@ -352,10 +352,10 @@ protected:
             log_data_->iter_counts, log_data_->res_norms);
     }
 
-    GKO_EXPORT void apply_impl(const MultiVector<ValueType>* alpha,
-                               const MultiVector<ValueType>* b,
-                               const MultiVector<ValueType>* beta,
-                               MultiVector<ValueType>* x) const
+    void apply_impl(const MultiVector<ValueType>* alpha,
+                    const MultiVector<ValueType>* b,
+                    const MultiVector<ValueType>* beta,
+                    MultiVector<ValueType>* x) const
     {
         auto x_clone = x->clone();
         this->apply(b, x_clone.get());

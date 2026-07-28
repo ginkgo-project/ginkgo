@@ -406,7 +406,7 @@ public:
     GKO_DEPRECATED(
         "explicitly construct the gko::array argument instead of passing "
         "initializer lists")
-    GKO_EXPORT static std::unique_ptr<Fbcsr> create(
+    static std::unique_ptr<Fbcsr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         int block_size, std::initializer_list<InputValueType> values,
         std::initializer_list<InputColumnIndexType> col_idxs,

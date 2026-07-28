@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -65,8 +65,12 @@ void sparselib_ilu(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
+
+#define GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL_EXPORT(_vtype, _itype) \
+    GKO_REFERENCE_EXPORT GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL(_vtype, _itype)
+
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL);
+    GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL_EXPORT);
 
 
 }  // namespace ilu_factorization

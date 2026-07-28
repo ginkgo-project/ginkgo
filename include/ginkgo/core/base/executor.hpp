@@ -260,7 +260,7 @@ class ExecutorBase;
  *
  * @ingroup Executor
  */
-class GKO_EXPORT_CLASS Operation {
+class GKO_EXPORT Operation {
 public:
 #define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
     virtual void run(std::shared_ptr<const _type>) const
@@ -1406,11 +1406,12 @@ public:
         return std::shared_ptr<OmpExecutor>(new OmpExecutor(std::move(alloc)));
     }
 
-    std::shared_ptr<Executor> get_master() noexcept override;
+    GKO_OMP_EXPORT std::shared_ptr<Executor> get_master() noexcept override;
 
-    std::shared_ptr<const Executor> get_master() const noexcept override;
+    GKO_OMP_EXPORT std::shared_ptr<const Executor> get_master()
+        const noexcept override;
 
-    void synchronize() const override;
+    GKO_OMP_EXPORT void synchronize() const override;
 
     int get_num_cores() const
     {
@@ -1424,9 +1425,10 @@ public:
 
     GKO_OMP_EXPORT static int get_num_omp_threads();
 
-    scoped_device_id_guard get_scoped_device_id_guard() const override;
+    GKO_OMP_EXPORT scoped_device_id_guard
+    get_scoped_device_id_guard() const override;
 
-    std::string get_description() const override;
+    GKO_OMP_EXPORT std::string get_description() const override;
 
 protected:
     OmpExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
@@ -1435,11 +1437,12 @@ protected:
         this->OmpExecutor::populate_exec_info(machine_topology::get_instance());
     }
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    GKO_OMP_EXPORT void populate_exec_info(
+        const machine_topology* mach_topo) override;
 
-    void* raw_alloc(size_type size) const override;
+    GKO_OMP_EXPORT void* raw_alloc(size_type size) const override;
 
-    void raw_free(void* ptr) const noexcept override;
+    GKO_OMP_EXPORT void raw_free(void* ptr) const noexcept override;
 
     GKO_OMP_EXPORT void raw_copy_to(const OmpExecutor* dest_exec,
                                     size_type n_bytes, const void* src_ptr,

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,6 +20,8 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/half.hpp>
+
+#include "core/base/export_hook.hpp"
 
 
 #ifdef __HIPCC__
@@ -432,18 +434,18 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(_macro) \
-    template _macro(float);                                          \
+    template GKO_EXPORT_HOOK _macro(float);                          \
     template <>                                                      \
-    _macro(double) GKO_NOT_IMPLEMENTED
+    GKO_EXPORT_HOOK _macro(double) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(_macro) \
-    template _macro(float);                                          \
-    template _macro(double)
+    template GKO_EXPORT_HOOK _macro(float);                          \
+    template GKO_EXPORT_HOOK _macro(double)
 #endif
 
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(_macro) \
-    GKO_ADAPT_HF(template _macro(float16));                     \
-    GKO_ADAPT_BF(template _macro(bfloat16));                    \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16));     \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16));    \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(_macro)
 
 
@@ -458,21 +460,21 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(_macro); \
-    template _macro(std::complex<float>);                         \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>);         \
     template <>                                                   \
-    _macro(std::complex<double>) GKO_NOT_IMPLEMENTED
+    GKO_EXPORT_HOOK _macro(std::complex<double>) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(_macro); \
-    template _macro(std::complex<float>);                         \
-    template _macro(std::complex<double>)
+    template GKO_EXPORT_HOOK _macro(std::complex<float>);         \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>)
 #endif
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)        \
-    GKO_ADAPT_HF(template _macro(float16));                \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>));  \
-    GKO_ADAPT_BF(template _macro(bfloat16));               \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>)); \
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro)                        \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16));                \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float16>));  \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16));               \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>)); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(_macro)
 
 
@@ -495,21 +497,23 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS_BASE(_macro, \
                                                                    ...)    \
-    template GKO_INDIRECT(_macro(float, __VA_ARGS__));                     \
+    template GKO_INDIRECT(GKO_EXPORT_HOOK _macro(float, __VA_ARGS__));     \
     template <>                                                            \
-    GKO_INDIRECT(_macro(double, __VA_ARGS__))                              \
+    GKO_INDIRECT(GKO_EXPORT_HOOK _macro(double, __VA_ARGS__))              \
     GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS_BASE(_macro, \
                                                                    ...)    \
-    template GKO_INDIRECT(_macro(float, __VA_ARGS__));                     \
-    template GKO_INDIRECT(_macro(double, __VA_ARGS__))
+    template GKO_INDIRECT(GKO_EXPORT_HOOK _macro(float, __VA_ARGS__));     \
+    template GKO_INDIRECT(GKO_EXPORT_HOOK _macro(double, __VA_ARGS__))
 #endif
 
-#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro, ...) \
-    GKO_INDIRECT(GKO_ADAPT_HF(template _macro(float16, __VA_ARGS__)));     \
-    GKO_INDIRECT(GKO_ADAPT_BF(template _macro(bfloat16, __VA_ARGS__)));    \
-    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS_BASE(_macro,     \
+#define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS(_macro, ...)     \
+    GKO_INDIRECT(                                                              \
+        GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, __VA_ARGS__)));  \
+    GKO_INDIRECT(                                                              \
+        GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, __VA_ARGS__))); \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS_BASE(_macro,         \
                                                                __VA_ARGS__)
 
 
@@ -527,25 +531,30 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS_BASE(_macro, ...)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS_BASE(_macro,       \
                                                                __VA_ARGS__); \
-    template GKO_INDIRECT(_macro(std::complex<float>, __VA_ARGS__));         \
+    template GKO_INDIRECT(                                                   \
+        GKO_EXPORT_HOOK _macro(std::complex<float>, __VA_ARGS__));           \
     template <>                                                              \
-    GKO_INDIRECT(_macro(std::complex<double>, __VA_ARGS__))                  \
+    GKO_INDIRECT(GKO_EXPORT_HOOK _macro(std::complex<double>, __VA_ARGS__))  \
     GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS_BASE(_macro, ...)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_VARGS_BASE(_macro,       \
                                                                __VA_ARGS__); \
-    template GKO_INDIRECT(_macro(std::complex<float>, __VA_ARGS__));         \
-    template GKO_INDIRECT(_macro(std::complex<double>, __VA_ARGS__))
+    template GKO_INDIRECT(                                                   \
+        GKO_EXPORT_HOOK _macro(std::complex<float>, __VA_ARGS__));           \
+    template GKO_INDIRECT(                                                   \
+        GKO_EXPORT_HOOK _macro(std::complex<double>, __VA_ARGS__))
 #endif
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(_macro, ...)               \
-    GKO_INDIRECT(GKO_ADAPT_HF(template _macro(float16, __VA_ARGS__)));       \
-    GKO_INDIRECT(                                                            \
-        GKO_ADAPT_HF(template _macro(std::complex<float16>, __VA_ARGS__)));  \
-    GKO_INDIRECT(GKO_ADAPT_BF(template _macro(bfloat16, __VA_ARGS__)));      \
-    GKO_INDIRECT(                                                            \
-        GKO_ADAPT_BF(template _macro(std::complex<bfloat16>, __VA_ARGS__))); \
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS(_macro, ...)                 \
+    GKO_INDIRECT(                                                              \
+        GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, __VA_ARGS__)));  \
+    GKO_INDIRECT(GKO_ADAPT_HF(                                                 \
+        template GKO_EXPORT_HOOK _macro(std::complex<float16>, __VA_ARGS__))); \
+    GKO_INDIRECT(                                                              \
+        GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, __VA_ARGS__))); \
+    GKO_INDIRECT(GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(                 \
+        std::complex<bfloat16>, __VA_ARGS__)));                                \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_VARGS_BASE(_macro, __VA_ARGS__)
 
 
@@ -560,36 +569,40 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                value and scalar type, respectively.
  */
 #if GINKGO_DPCPP_SINGLE_MODE
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE_BASE(_macro)         \
-    template _macro(float, float);                                          \
-    template <>                                                             \
-    _macro(double, double) GKO_NOT_IMPLEMENTED;                             \
-    template _macro(std::complex<float>, std::complex<float>);              \
-    template <>                                                             \
-    _macro(std::complex<double>, std::complex<double>) GKO_NOT_IMPLEMENTED; \
-    template _macro(std::complex<float>, float);                            \
-    template <>                                                             \
-    _macro(std::complex<double>, double) GKO_NOT_IMPLEMENTED;
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE_BASE(_macro)            \
+    template GKO_EXPORT_HOOK _macro(float, float);                             \
+    template <>                                                                \
+    GKO_EXPORT_HOOK _macro(double, double) GKO_NOT_IMPLEMENTED;                \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, std::complex<float>); \
+    template <>                                                                \
+    GKO_EXPORT_HOOK _macro(std::complex<double>, std::complex<double>)         \
+        GKO_NOT_IMPLEMENTED;                                                   \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, float);               \
+    template <>                                                                \
+    GKO_EXPORT_HOOK _macro(std::complex<double>, double) GKO_NOT_IMPLEMENTED;
 #else
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE_BASE(_macro) \
-    template _macro(float, float);                                  \
-    template _macro(double, double);                                \
-    template _macro(std::complex<float>, std::complex<float>);      \
-    template _macro(std::complex<double>, std::complex<double>);    \
-    template _macro(std::complex<float>, float);                    \
-    template _macro(std::complex<double>, double)
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE_BASE(_macro)            \
+    template GKO_EXPORT_HOOK _macro(float, float);                             \
+    template GKO_EXPORT_HOOK _macro(double, double);                           \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, std::complex<float>); \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>,                      \
+                                    std::complex<double>);                     \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, float);               \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, double)
 #endif
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)            \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE_BASE(_macro);          \
-    GKO_ADAPT_HF(template _macro(float16, float16));                      \
-    GKO_ADAPT_HF(                                                         \
-        template _macro(std::complex<float16>, std::complex<float16>));   \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, float16));        \
-    GKO_ADAPT_BF(template _macro(bfloat16, bfloat16));                    \
-    GKO_ADAPT_BF(                                                         \
-        template _macro(std::complex<bfloat16>, std::complex<bfloat16>)); \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>, bfloat16))
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(_macro)             \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE_BASE(_macro);           \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, float16));       \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float16>,    \
+                                                 std::complex<float16>));  \
+    GKO_ADAPT_HF(                                                          \
+        template GKO_EXPORT_HOOK _macro(std::complex<float16>, float16));  \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, bfloat16));     \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>,   \
+                                                 std::complex<bfloat16>)); \
+    GKO_ADAPT_BF(                                                          \
+        template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>, bfloat16))
 
 
 /**
@@ -601,8 +614,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                value type.
  */
 #define GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro) \
-    template _macro(int32);                         \
-    template _macro(int64)
+    template GKO_EXPORT_HOOK _macro(int32);         \
+    template GKO_EXPORT_HOOK _macro(int64)
 
 
 /**
@@ -616,47 +629,49 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  */
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(_macro) \
-    template _macro(float, int32);                                             \
+    template GKO_EXPORT_HOOK _macro(float, int32);                             \
     template <>                                                                \
-    _macro(double, int32) GKO_NOT_IMPLEMENTED;                                 \
-    template _macro(float, int64);                                             \
+    GKO_EXPORT_HOOK _macro(double, int32) GKO_NOT_IMPLEMENTED;                 \
+    template GKO_EXPORT_HOOK _macro(float, int64);                             \
     template <>                                                                \
-    _macro(double, int64) GKO_NOT_IMPLEMENTED
+    GKO_EXPORT_HOOK _macro(double, int64) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(_macro) \
-    template _macro(float, int32);                                             \
-    template _macro(double, int32);                                            \
-    template _macro(float, int64);                                             \
-    template _macro(double, int64)
+    template GKO_EXPORT_HOOK _macro(float, int32);                             \
+    template GKO_EXPORT_HOOK _macro(double, int32);                            \
+    template GKO_EXPORT_HOOK _macro(float, int64);                             \
+    template GKO_EXPORT_HOOK _macro(double, int64)
 #endif
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(_macro) \
-    GKO_ADAPT_HF(template _macro(float16, int32));                        \
-    GKO_ADAPT_HF(template _macro(float16, int64));                        \
-    GKO_ADAPT_BF(template _macro(bfloat16, int32));                       \
-    GKO_ADAPT_BF(template _macro(bfloat16, int64));                       \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int32));        \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int64));        \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int32));       \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int64));       \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(_macro)
 
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_BASE(_macro) \
-    template _macro(float, int32);                                 \
+    template GKO_EXPORT_HOOK _macro(float, int32);                 \
     template <>                                                    \
-    _macro(double, int32) GKO_NOT_IMPLEMENTED;                     \
-    template _macro(std::complex<float>, int32);                   \
+    GKO_EXPORT_HOOK _macro(double, int32) GKO_NOT_IMPLEMENTED;     \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int32);   \
     template <>                                                    \
-    _macro(std::complex<double>, int32) GKO_NOT_IMPLEMENTED
+    GKO_EXPORT_HOOK _macro(std::complex<double>, int32) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_BASE(_macro) \
-    template _macro(float, int32);                                 \
-    template _macro(double, int32);                                \
-    template _macro(std::complex<float>, int32);                   \
-    template _macro(std::complex<double>, int32)
+    template GKO_EXPORT_HOOK _macro(float, int32);                 \
+    template GKO_EXPORT_HOOK _macro(double, int32);                \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int32);   \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, int32)
 #endif
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(_macro)     \
-    GKO_ADAPT_HF(template _macro(float16, int32));                \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, int32));  \
-    GKO_ADAPT_BF(template _macro(bfloat16, int32));               \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>, int32)); \
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE(_macro)            \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int32));       \
+    GKO_ADAPT_HF(                                                        \
+        template GKO_EXPORT_HOOK _macro(std::complex<float16>, int32));  \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int32));      \
+    GKO_ADAPT_BF(                                                        \
+        template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>, int32)); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INT32_TYPE_BASE(_macro)
 
 
@@ -669,32 +684,36 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                value and index types.
  */
 #if GINKGO_DPCPP_SINGLE_MODE
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(_macro)          \
-    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(_macro); \
-    template _macro(std::complex<float>, int32);                            \
-    template <>                                                             \
-    _macro(std::complex<double>, int32) GKO_NOT_IMPLEMENTED;                \
-    template _macro(std::complex<float>, int64);                            \
-    template <>                                                             \
-    _macro(std::complex<double>, int64) GKO_NOT_IMPLEMENTED
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(_macro)           \
+    GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(_macro);  \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int32);             \
+    template <>                                                              \
+    GKO_EXPORT_HOOK _macro(std::complex<double>, int32) GKO_NOT_IMPLEMENTED; \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int64);             \
+    template <>                                                              \
+    GKO_EXPORT_HOOK _macro(std::complex<double>, int64) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(_macro)          \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE_BASE(_macro); \
-    template _macro(std::complex<float>, int32);                            \
-    template _macro(std::complex<double>, int32);                           \
-    template _macro(std::complex<float>, int64);                            \
-    template _macro(std::complex<double>, int64)
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int32);            \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, int32);           \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int64);            \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, int64)
 #endif
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)     \
-    GKO_ADAPT_HF(template _macro(float16, int32));                \
-    GKO_ADAPT_HF(template _macro(float16, int64));                \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, int32));  \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, int64));  \
-    GKO_ADAPT_BF(template _macro(bfloat16, int32));               \
-    GKO_ADAPT_BF(template _macro(bfloat16, int64));               \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>, int32)); \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>, int64)); \
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro)            \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int32));       \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int64));       \
+    GKO_ADAPT_HF(                                                        \
+        template GKO_EXPORT_HOOK _macro(std::complex<float16>, int32));  \
+    GKO_ADAPT_HF(                                                        \
+        template GKO_EXPORT_HOOK _macro(std::complex<float16>, int64));  \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int32));      \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int64));      \
+    GKO_ADAPT_BF(                                                        \
+        template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>, int32)); \
+    GKO_ADAPT_BF(                                                        \
+        template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>, int64)); \
     GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE_BASE(_macro)
 
 
@@ -710,34 +729,34 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #if GINKGO_DPCPP_SINGLE_MODE
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE( \
     _macro)                                                                          \
-    template _macro(float, int32, int32);                                            \
-    template _macro(float, int32, int64);                                            \
-    template _macro(float, int64, int64);                                            \
+    template GKO_EXPORT_HOOK _macro(float, int32, int32);                            \
+    template GKO_EXPORT_HOOK _macro(float, int32, int64);                            \
+    template GKO_EXPORT_HOOK _macro(float, int64, int64);                            \
     template <>                                                                      \
-    _macro(double, int32, int32) GKO_NOT_IMPLEMENTED;                                \
+    GKO_EXPORT_HOOK _macro(double, int32, int32) GKO_NOT_IMPLEMENTED;                \
     template <>                                                                      \
-    _macro(double, int32, int64) GKO_NOT_IMPLEMENTED;                                \
+    GKO_EXPORT_HOOK _macro(double, int32, int64) GKO_NOT_IMPLEMENTED;                \
     template <>                                                                      \
-    _macro(double, int64, int64) GKO_NOT_IMPLEMENTED
+    GKO_EXPORT_HOOK _macro(double, int64, int64) GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE( \
     _macro)                                                                          \
-    template _macro(float, int32, int32);                                            \
-    template _macro(float, int32, int64);                                            \
-    template _macro(float, int64, int64);                                            \
-    template _macro(double, int32, int32);                                           \
-    template _macro(double, int32, int64);                                           \
-    template _macro(double, int64, int64)
+    template GKO_EXPORT_HOOK _macro(float, int32, int32);                            \
+    template GKO_EXPORT_HOOK _macro(float, int32, int64);                            \
+    template GKO_EXPORT_HOOK _macro(float, int64, int64);                            \
+    template GKO_EXPORT_HOOK _macro(double, int32, int32);                           \
+    template GKO_EXPORT_HOOK _macro(double, int32, int64);                           \
+    template GKO_EXPORT_HOOK _macro(double, int64, int64)
 #endif
 
 #define GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(  \
     _macro)                                                                      \
-    GKO_ADAPT_HF(template _macro(float16, int32, int32));                        \
-    GKO_ADAPT_HF(template _macro(float16, int32, int64));                        \
-    GKO_ADAPT_HF(template _macro(float16, int64, int64));                        \
-    GKO_ADAPT_BF(template _macro(bfloat16, int32, int32));                       \
-    GKO_ADAPT_BF(template _macro(bfloat16, int32, int64));                       \
-    GKO_ADAPT_BF(template _macro(bfloat16, int64, int64));                       \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int32, int32));        \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int32, int64));        \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int64, int64));        \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int32, int32));       \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int32, int64));       \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int64, int64));       \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE( \
         _macro)
 
@@ -755,64 +774,76 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     _macro)                                                                      \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE( \
         _macro);                                                                 \
-    template _macro(std::complex<float>, int32, int32);                          \
-    template _macro(std::complex<float>, int32, int64);                          \
-    template _macro(std::complex<float>, int64, int64);                          \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int32, int32);          \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int32, int64);          \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int64, int64);          \
     template <>                                                                  \
-    _macro(std::complex<double>, int32, int32) GKO_NOT_IMPLEMENTED;              \
+    GKO_EXPORT_HOOK _macro(std::complex<double>, int32, int32)                   \
+        GKO_NOT_IMPLEMENTED;                                                     \
     template <>                                                                  \
-    _macro(std::complex<double>, int32, int64) GKO_NOT_IMPLEMENTED;              \
+    GKO_EXPORT_HOOK _macro(std::complex<double>, int32, int64)                   \
+        GKO_NOT_IMPLEMENTED;                                                     \
     template <>                                                                  \
-    _macro(std::complex<double>, int64, int64) GKO_NOT_IMPLEMENTED
+    GKO_EXPORT_HOOK _macro(std::complex<double>, int64, int64)                   \
+        GKO_NOT_IMPLEMENTED
 #else
 #define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(         \
     _macro)                                                                      \
     GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE( \
         _macro);                                                                 \
-    template _macro(std::complex<float>, int32, int32);                          \
-    template _macro(std::complex<float>, int32, int64);                          \
-    template _macro(std::complex<float>, int64, int64);                          \
-    template _macro(std::complex<double>, int32, int32);                         \
-    template _macro(std::complex<double>, int32, int64);                         \
-    template _macro(std::complex<double>, int64, int64)
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int32, int32);          \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int32, int64);          \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, int64, int64);          \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, int32, int32);         \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, int32, int64);         \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, int64, int64)
 #endif
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)   \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(_macro); \
-    GKO_ADAPT_HF(template _macro(float16, int32, int32));                    \
-    GKO_ADAPT_HF(template _macro(float16, int32, int64));                    \
-    GKO_ADAPT_HF(template _macro(float16, int64, int64));                    \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, int32, int32));      \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, int32, int64));      \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, int64, int64));      \
-    GKO_ADAPT_BF(template _macro(bfloat16, int32, int32));                   \
-    GKO_ADAPT_BF(template _macro(bfloat16, int32, int64));                   \
-    GKO_ADAPT_BF(template _macro(bfloat16, int64, int64));                   \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>, int32, int32));     \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>, int32, int64));     \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>, int64, int64))
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(_macro)     \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(_macro);   \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int32, int32));      \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int32, int64));      \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, int64, int64));      \
+    GKO_ADAPT_HF(                                                              \
+        template GKO_EXPORT_HOOK _macro(std::complex<float16>, int32, int32)); \
+    GKO_ADAPT_HF(                                                              \
+        template GKO_EXPORT_HOOK _macro(std::complex<float16>, int32, int64)); \
+    GKO_ADAPT_HF(                                                              \
+        template GKO_EXPORT_HOOK _macro(std::complex<float16>, int64, int64)); \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int32, int32));     \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int32, int64));     \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, int64, int64));     \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>,       \
+                                                 int32, int32));               \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>,       \
+                                                 int32, int64));               \
+    GKO_ADAPT_BF(                                                              \
+        template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>, int64, int64))
 
 
 #if GINKGO_DPCPP_SINGLE_MODE
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro)             \
-    template <>                                                            \
-    _macro(float, double) GKO_NOT_IMPLEMENTED;                             \
-    template <>                                                            \
-    _macro(double, float) GKO_NOT_IMPLEMENTED;                             \
-    template <>                                                            \
-    _macro(std::complex<float>, std::complex<double>) GKO_NOT_IMPLEMENTED; \
-    template <>                                                            \
-    _macro(std::complex<double>, std::complex<float>) GKO_NOT_IMPLEMENTED
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro)        \
+    template <>                                                       \
+    GKO_EXPORT_HOOK _macro(float, double) GKO_NOT_IMPLEMENTED;        \
+    template <>                                                       \
+    GKO_EXPORT_HOOK _macro(double, float) GKO_NOT_IMPLEMENTED;        \
+    template <>                                                       \
+    GKO_EXPORT_HOOK _macro(std::complex<float>, std::complex<double>) \
+        GKO_NOT_IMPLEMENTED;                                          \
+    template <>                                                       \
+    GKO_EXPORT_HOOK _macro(std::complex<double>, std::complex<float>) \
+        GKO_NOT_IMPLEMENTED
 
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY_BASE(_macro) \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro);            \
-    template _macro(float, float);                                     \
-    template <>                                                        \
-    _macro(double, double) GKO_NOT_IMPLEMENTED;                        \
-    template _macro(std::complex<float>, std::complex<float>);         \
-    template <>                                                        \
-    _macro(std::complex<double>, std::complex<double>) GKO_NOT_IMPLEMENTED
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY_BASE(_macro)         \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro);                    \
+    template GKO_EXPORT_HOOK _macro(float, float);                             \
+    template <>                                                                \
+    GKO_EXPORT_HOOK _macro(double, double) GKO_NOT_IMPLEMENTED;                \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, std::complex<float>); \
+    template <>                                                                \
+    GKO_EXPORT_HOOK _macro(std::complex<double>, std::complex<double>)         \
+        GKO_NOT_IMPLEMENTED
 #else
 /**
  * Instantiates a template for each value type conversion pair compiled by
@@ -823,11 +854,12 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments `src` and `dst`, which
  *                are replaced by the source and destination value type.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro)  \
-    template _macro(float, double);                             \
-    template _macro(double, float);                             \
-    template _macro(std::complex<float>, std::complex<double>); \
-    template _macro(std::complex<double>, std::complex<float>)
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro) \
+    template GKO_EXPORT_HOOK _macro(float, double);            \
+    template GKO_EXPORT_HOOK _macro(double, float);            \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>,       \
+                                    std::complex<double>);     \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, std::complex<float>)
 
 
 /**
@@ -839,90 +871,102 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments `src` and `dst`, which
  *                are replaced by the source and destination value type.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY_BASE(_macro) \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro);            \
-    template _macro(float, float);                                     \
-    template _macro(double, double);                                   \
-    template _macro(std::complex<float>, std::complex<float>);         \
-    template _macro(std::complex<double>, std::complex<double>)
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY_BASE(_macro)         \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro);                    \
+    template GKO_EXPORT_HOOK _macro(float, float);                             \
+    template GKO_EXPORT_HOOK _macro(double, double);                           \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, std::complex<float>); \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, std::complex<double>)
 #endif
 
 #if GINKGO_DPCPP_SINGLE_MODE
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                      \
-    GKO_ADAPT_HF(template <> _macro(float16, double) GKO_NOT_IMPLEMENTED);     \
-    GKO_ADAPT_HF(template <> _macro(double, float16) GKO_NOT_IMPLEMENTED);     \
-    GKO_ADAPT_HF(template _macro(float, float16));                             \
-    GKO_ADAPT_HF(template _macro(float16, float));                             \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, std::complex<float>)); \
-    GKO_ADAPT_HF(template <> _macro(                                           \
-        std::complex<float16>, std::complex<double>) GKO_NOT_IMPLEMENTED);     \
-    GKO_ADAPT_HF(template _macro(std::complex<float>, std::complex<float16>)); \
-    GKO_ADAPT_HF(template <> _macro(                                           \
-        std::complex<double>, std::complex<float16>) GKO_NOT_IMPLEMENTED);     \
-    GKO_ADAPT_BF(template <> _macro(bfloat16, double) GKO_NOT_IMPLEMENTED);    \
-    GKO_ADAPT_BF(template <> _macro(double, bfloat16) GKO_NOT_IMPLEMENTED);    \
-    GKO_ADAPT_BF(template _macro(float, bfloat16));                            \
-    GKO_ADAPT_BF(template _macro(bfloat16, float));                            \
-    GKO_ADAPT_BF(                                                              \
-        template _macro(std::complex<bfloat16>, std::complex<float>));         \
-    GKO_ADAPT_BF(template <> _macro(                                           \
-        std::complex<bfloat16>, std::complex<double>) GKO_NOT_IMPLEMENTED);    \
-    GKO_ADAPT_BF(                                                              \
-        template _macro(std::complex<float>, std::complex<bfloat16>));         \
-    GKO_ADAPT_BF(template <> _macro(                                           \
-        std::complex<double>, std::complex<bfloat16>) GKO_NOT_IMPLEMENTED);    \
-    GKO_ADAPT_BF(GKO_ADAPT_HF(template _macro(bfloat16, float16)));            \
-    GKO_ADAPT_HF(GKO_ADAPT_BF(template _macro(float16, bfloat16)));            \
-    GKO_ADAPT_BF(GKO_ADAPT_HF(                                                 \
-        template _macro(std::complex<bfloat16>, std::complex<float16>)));      \
-    GKO_ADAPT_HF(GKO_ADAPT_BF(                                                 \
-        template _macro(std::complex<float16>, std::complex<bfloat16>)));      \
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                   \
+    GKO_ADAPT_HF(template <> GKO_EXPORT_HOOK _macro(float16, double)        \
+                     GKO_NOT_IMPLEMENTED);                                  \
+    GKO_ADAPT_HF(template <> GKO_EXPORT_HOOK _macro(double, float16)        \
+                     GKO_NOT_IMPLEMENTED);                                  \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float, float16));          \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, float));          \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float16>,     \
+                                                 std::complex<float>));     \
+    GKO_ADAPT_HF(template <> GKO_EXPORT_HOOK _macro(                        \
+        std::complex<float16>, std::complex<double>) GKO_NOT_IMPLEMENTED);  \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float>,       \
+                                                 std::complex<float16>));   \
+    GKO_ADAPT_HF(template <> GKO_EXPORT_HOOK _macro(                        \
+        std::complex<double>, std::complex<float16>) GKO_NOT_IMPLEMENTED);  \
+    GKO_ADAPT_BF(template <> GKO_EXPORT_HOOK _macro(bfloat16, double)       \
+                     GKO_NOT_IMPLEMENTED);                                  \
+    GKO_ADAPT_BF(template <> GKO_EXPORT_HOOK _macro(double, bfloat16)       \
+                     GKO_NOT_IMPLEMENTED);                                  \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(float, bfloat16));         \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, float));         \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>,    \
+                                                 std::complex<float>));     \
+    GKO_ADAPT_BF(template <> GKO_EXPORT_HOOK _macro(                        \
+        std::complex<bfloat16>, std::complex<double>) GKO_NOT_IMPLEMENTED); \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<float>,       \
+                                                 std::complex<bfloat16>));  \
+    GKO_ADAPT_BF(template <> GKO_EXPORT_HOOK _macro(                        \
+        std::complex<double>, std::complex<bfloat16>) GKO_NOT_IMPLEMENTED); \
+    GKO_ADAPT_BF(                                                           \
+        GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(bfloat16, float16)));  \
+    GKO_ADAPT_HF(                                                           \
+        GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(float16, bfloat16)));  \
+    GKO_ADAPT_BF(GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(              \
+        std::complex<bfloat16>, std::complex<float16>)));                   \
+    GKO_ADAPT_HF(GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(              \
+        std::complex<float16>, std::complex<bfloat16>)));                   \
     GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro)
 #else
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                      \
-    GKO_ADAPT_HF(template _macro(float16, double));                            \
-    GKO_ADAPT_HF(template _macro(double, float16));                            \
-    GKO_ADAPT_HF(template _macro(float, float16));                             \
-    GKO_ADAPT_HF(template _macro(float16, float));                             \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, std::complex<float>)); \
-    GKO_ADAPT_HF(                                                              \
-        template _macro(std::complex<float16>, std::complex<double>));         \
-    GKO_ADAPT_HF(template _macro(std::complex<float>, std::complex<float16>)); \
-    GKO_ADAPT_HF(                                                              \
-        template _macro(std::complex<double>, std::complex<float16>));         \
-    GKO_ADAPT_BF(template _macro(bfloat16, double));                           \
-    GKO_ADAPT_BF(template _macro(double, bfloat16));                           \
-    GKO_ADAPT_BF(template _macro(float, bfloat16));                            \
-    GKO_ADAPT_BF(template _macro(bfloat16, float));                            \
-    GKO_ADAPT_BF(                                                              \
-        template _macro(std::complex<bfloat16>, std::complex<float>));         \
-    GKO_ADAPT_BF(                                                              \
-        template _macro(std::complex<bfloat16>, std::complex<double>));        \
-    GKO_ADAPT_BF(                                                              \
-        template _macro(std::complex<float>, std::complex<bfloat16>));         \
-    GKO_ADAPT_BF(                                                              \
-        template _macro(std::complex<double>, std::complex<bfloat16>));        \
-    GKO_ADAPT_BF(GKO_ADAPT_HF(template _macro(bfloat16, float16)));            \
-    GKO_ADAPT_HF(GKO_ADAPT_BF(template _macro(float16, bfloat16)));            \
-    GKO_ADAPT_BF(GKO_ADAPT_HF(                                                 \
-        template _macro(std::complex<bfloat16>, std::complex<float16>)));      \
-    GKO_ADAPT_HF(GKO_ADAPT_BF(                                                 \
-        template _macro(std::complex<float16>, std::complex<bfloat16>)));      \
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro)                  \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, double));        \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(double, float16));        \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float, float16));         \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, float));         \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float16>,    \
+                                                 std::complex<float>));    \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float16>,    \
+                                                 std::complex<double>));   \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float>,      \
+                                                 std::complex<float16>));  \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<double>,     \
+                                                 std::complex<float16>));  \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, double));       \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(double, bfloat16));       \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(float, bfloat16));        \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, float));        \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>,   \
+                                                 std::complex<float>));    \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>,   \
+                                                 std::complex<double>));   \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<float>,      \
+                                                 std::complex<bfloat16>)); \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<double>,     \
+                                                 std::complex<bfloat16>)); \
+    GKO_ADAPT_BF(                                                          \
+        GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(bfloat16, float16))); \
+    GKO_ADAPT_HF(                                                          \
+        GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(float16, bfloat16))); \
+    GKO_ADAPT_BF(GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(             \
+        std::complex<bfloat16>, std::complex<float16>)));                  \
+    GKO_ADAPT_HF(GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(             \
+        std::complex<float16>, std::complex<bfloat16>)));                  \
     GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_BASE(_macro)
 #endif
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(_macro)         \
-    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro);                    \
-    GKO_ADAPT_HF(template _macro(float16, float16));                      \
-    GKO_ADAPT_HF(                                                         \
-        template _macro(std::complex<float16>, std::complex<float16>));   \
-    GKO_ADAPT_BF(template _macro(bfloat16, bfloat16));                    \
-    GKO_ADAPT_BF(                                                         \
-        template _macro(std::complex<bfloat16>, std::complex<bfloat16>)); \
-    template _macro(float, float);                                        \
-    template _macro(double, double);                                      \
-    template _macro(std::complex<float>, std::complex<float>);            \
-    template _macro(std::complex<double>, std::complex<double>)
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(_macro)              \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(_macro);                         \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, float16));           \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float16>,        \
+                                                 std::complex<float16>));      \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, bfloat16));         \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>,       \
+                                                 std::complex<bfloat16>));     \
+    template GKO_EXPORT_HOOK _macro(float, float);                             \
+    template GKO_EXPORT_HOOK _macro(double, double);                           \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, std::complex<float>); \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, std::complex<double>)
 
 /**
  * Instantiates a template for each value type pair compiled by Ginkgo.
@@ -932,23 +976,25 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_PAIR_BASE(_macro)  \
-    template _macro(float, float);                             \
-    template _macro(double, double);                           \
-    template _macro(std::complex<float>, float);               \
-    template _macro(std::complex<double>, double);             \
-    template _macro(std::complex<float>, std::complex<float>); \
-    template _macro(std::complex<double>, std::complex<double>)
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_PAIR_BASE(_macro)                  \
+    template GKO_EXPORT_HOOK _macro(float, float);                             \
+    template GKO_EXPORT_HOOK _macro(double, double);                           \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, float);               \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, double);             \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, std::complex<float>); \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, std::complex<double>)
 
-#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_PAIR(_macro)                  \
-    GKO_ADAPT_HF(template _macro(float16, float16));                      \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>, float16));        \
-    GKO_ADAPT_HF(                                                         \
-        template _macro(std::complex<float16>, std::complex<float16>));   \
-    GKO_ADAPT_BF(template _macro(bfloat16, bfloat16));                    \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>, bfloat16));      \
-    GKO_ADAPT_BF(                                                         \
-        template _macro(std::complex<bfloat16>, std::complex<bfloat16>)); \
+#define GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_PAIR(_macro)                    \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, float16));        \
+    GKO_ADAPT_HF(                                                           \
+        template GKO_EXPORT_HOOK _macro(std::complex<float16>, float16));   \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float16>,     \
+                                                 std::complex<float16>));   \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, bfloat16));      \
+    GKO_ADAPT_BF(                                                           \
+        template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>, bfloat16)); \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>,    \
+                                                 std::complex<bfloat16>));  \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_PAIR_BASE(_macro)
 
 /**
@@ -960,25 +1006,25 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#define GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE_BASE(_macro) \
-    template _macro(char, char);                                            \
-    template _macro(int32, int32);                                          \
-    template _macro(int64, int64);                                          \
-    template _macro(unsigned int, unsigned int);                            \
-    template _macro(unsigned long, unsigned long);                          \
-    template _macro(float, float);                                          \
-    template _macro(double, double);                                        \
-    template _macro(long double, long double);                              \
-    template _macro(std::complex<float>, std::complex<float>);              \
-    template _macro(std::complex<double>, std::complex<double>)
+#define GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE_BASE(_macro)    \
+    template GKO_EXPORT_HOOK _macro(char, char);                               \
+    template GKO_EXPORT_HOOK _macro(int32, int32);                             \
+    template GKO_EXPORT_HOOK _macro(int64, int64);                             \
+    template GKO_EXPORT_HOOK _macro(unsigned int, unsigned int);               \
+    template GKO_EXPORT_HOOK _macro(unsigned long, unsigned long);             \
+    template GKO_EXPORT_HOOK _macro(float, float);                             \
+    template GKO_EXPORT_HOOK _macro(double, double);                           \
+    template GKO_EXPORT_HOOK _macro(long double, long double);                 \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>, std::complex<float>); \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>, std::complex<double>)
 
-#define GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(_macro)    \
-    GKO_ADAPT_HF(template _macro(float16, float16));                      \
-    GKO_ADAPT_HF(                                                         \
-        template _macro(std::complex<float16>, std::complex<float16>));   \
-    GKO_ADAPT_BF(template _macro(bfloat16, bfloat16));                    \
-    GKO_ADAPT_BF(                                                         \
-        template _macro(std::complex<bfloat16>, std::complex<bfloat16>)); \
+#define GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE(_macro)     \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16, float16));       \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float16>,    \
+                                                 std::complex<float16>));  \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16, bfloat16));     \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>,   \
+                                                 std::complex<bfloat16>)); \
     GKO_INSTANTIATE_FOR_EACH_COMBINED_VALUE_AND_INDEX_TYPE_BASE(_macro)
 
 /**
@@ -989,21 +1035,21 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take two arguments, which are replaced by the
  *                value and index types.
  */
-#define GKO_INSTANTIATE_FOR_EACH_POD_TYPE_BASE(_macro) \
-    template _macro(float);                            \
-    template _macro(double);                           \
-    template _macro(std::complex<float>);              \
-    template _macro(std::complex<double>);             \
-    template _macro(size_type);                        \
-    template _macro(bool);                             \
-    template _macro(int32);                            \
-    template _macro(int64)
+#define GKO_INSTANTIATE_FOR_EACH_POD_TYPE_BASE(_macro)     \
+    template GKO_EXPORT_HOOK _macro(float);                \
+    template GKO_EXPORT_HOOK _macro(double);               \
+    template GKO_EXPORT_HOOK _macro(std::complex<float>);  \
+    template GKO_EXPORT_HOOK _macro(std::complex<double>); \
+    template GKO_EXPORT_HOOK _macro(size_type);            \
+    template GKO_EXPORT_HOOK _macro(bool);                 \
+    template GKO_EXPORT_HOOK _macro(int32);                \
+    template GKO_EXPORT_HOOK _macro(int64)
 
-#define GKO_INSTANTIATE_FOR_EACH_POD_TYPE(_macro)          \
-    GKO_ADAPT_HF(template _macro(float16));                \
-    GKO_ADAPT_HF(template _macro(std::complex<float16>));  \
-    GKO_ADAPT_BF(template _macro(bfloat16));               \
-    GKO_ADAPT_BF(template _macro(std::complex<bfloat16>)); \
+#define GKO_INSTANTIATE_FOR_EACH_POD_TYPE(_macro)                          \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(float16));                \
+    GKO_ADAPT_HF(template GKO_EXPORT_HOOK _macro(std::complex<float16>));  \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(bfloat16));               \
+    GKO_ADAPT_BF(template GKO_EXPORT_HOOK _macro(std::complex<bfloat16>)); \
     GKO_INSTANTIATE_FOR_EACH_POD_TYPE_BASE(_macro)
 
 /**
@@ -1017,12 +1063,12 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 #define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_BASE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE_BASE(_macro);       \
     GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);            \
-    template _macro(gko::size_type)
+    template GKO_EXPORT_HOOK _macro(gko::size_type)
 
 #define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(_macro) \
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);       \
     GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);       \
-    template _macro(gko::size_type)
+    template GKO_EXPORT_HOOK _macro(gko::size_type)
 
 
 /**
@@ -1033,7 +1079,8 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
  *                Should take one argument, which is replaced by the
  *                value type.
  */
-#define GKO_INSTANTIATE_FOR_INT32_TYPE(_macro) template _macro(int32)
+#define GKO_INSTANTIATE_FOR_INT32_TYPE(_macro) \
+    template GKO_EXPORT_HOOK _macro(int32)
 
 
 namespace detail {
@@ -1146,9 +1193,9 @@ using mpi::comm_index_type;
  *                local index type and the second by the global index type.
  */
 #define GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(_macro) \
-    template _macro(int32, int32);                               \
-    template _macro(int32, int64);                               \
-    template _macro(int64, int64)
+    template GKO_EXPORT_HOOK _macro(int32, int32);               \
+    template GKO_EXPORT_HOOK _macro(int32, int64);               \
+    template GKO_EXPORT_HOOK _macro(int64, int64)
 
 
 }  // namespace distributed
