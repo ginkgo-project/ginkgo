@@ -6,6 +6,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/export.hpp>
 
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
@@ -37,8 +38,9 @@ public:
 
 
 template <>
-deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
-    const pnode& config, const registry& context, const type_descriptor& td)
+GKO_EXPORT deferred_factory_parameter<gko::LinOpFactory>
+parse<LinOpFactoryType::Ilu>(const pnode& config, const registry& context,
+                             const type_descriptor& td)
 {
     auto updated = update_type(config, td);
     bool reverse_apply = false;

@@ -22,7 +22,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class GKO_EXPORT_CLASS Time : public Criterion {
+class GKO_EXPORT Time : public Criterion {
 public:
     using clock = std::chrono::steady_clock;
 
@@ -38,9 +38,9 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    GKO_EXPORT bool check_impl(uint8 stoppingId, bool setFinalized,
-                               array<stopping_status>* stop_status,
-                               bool* one_changed, const Updater&) override;
+    bool check_impl(uint8 stoppingId, bool setFinalized,
+                    array<stopping_status>* stop_status, bool* one_changed,
+                    const Updater&) override;
 
     explicit Time(std::shared_ptr<const gko::Executor> exec)
         : Criterion(std::move(exec)), time_limit_{}, start_{}

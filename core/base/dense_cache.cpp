@@ -157,13 +157,13 @@ std::shared_ptr<const matrix::Dense<ValueType>> ScalarCache::get() const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CACHE);
 
 #define GKO_DECLARE_GENERIC_DENSE_CACHE_GET(ValueType)                         \
-    std::shared_ptr<matrix::Dense<ValueType>>                                  \
+    GKO_EXPORT std::shared_ptr<matrix::Dense<ValueType>>                       \
     GenericDenseCache::get<ValueType>(std::shared_ptr<const Executor>, dim<2>) \
         const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GENERIC_DENSE_CACHE_GET);
 
-#define GKO_DECLARE_SCALAR_CACHE_GET(ValueType)     \
-    std::shared_ptr<const matrix::Dense<ValueType>> \
+#define GKO_DECLARE_SCALAR_CACHE_GET(ValueType)                \
+    GKO_EXPORT std::shared_ptr<const matrix::Dense<ValueType>> \
     ScalarCache::get<ValueType>() const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SCALAR_CACHE_GET);
 

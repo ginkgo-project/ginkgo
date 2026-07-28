@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -170,7 +170,7 @@ void compute_elimination_forest(
 
 
 #define GKO_DECLARE_COMPUTE_ELIMINATION_FOREST(ValueType, IndexType) \
-    void compute_elimination_forest(                                 \
+    GKO_EXPORT void compute_elimination_forest(                      \
         const matrix::Csr<ValueType, IndexType>* mtx,                \
         std::unique_ptr<elimination_forest<IndexType>>& forest)
 

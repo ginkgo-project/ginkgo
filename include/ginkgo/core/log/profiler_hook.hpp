@@ -319,12 +319,11 @@ public:
         TableSummaryWriter(std::ostream& output = std::cerr,
                            std::string header = "Runtime summary");
 
-        GKO_EXPORT void write(const std::vector<summary_entry>& entries,
-                              std::chrono::nanoseconds overhead) override;
+        void write(const std::vector<summary_entry>& entries,
+                   std::chrono::nanoseconds overhead) override;
 
-        GKO_EXPORT void write_nested(
-            const nested_summary_entry& root,
-            std::chrono::nanoseconds overhead) override;
+        void write_nested(const nested_summary_entry& root,
+                          std::chrono::nanoseconds overhead) override;
 
     private:
         std::ostream* output_;

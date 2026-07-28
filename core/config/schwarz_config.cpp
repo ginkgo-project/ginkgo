@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,8 +17,9 @@ namespace config {
 
 
 template <>
-deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Schwarz>(
-    const pnode& config, const registry& context, const type_descriptor& td)
+GKO_EXPORT deferred_factory_parameter<gko::LinOpFactory>
+parse<LinOpFactoryType::Schwarz>(const pnode& config, const registry& context,
+                                 const type_descriptor& td)
 {
     auto updated = update_type(config, td);
     // We can not directly dispatch the global index type without consider local

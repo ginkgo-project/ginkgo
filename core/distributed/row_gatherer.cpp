@@ -196,25 +196,25 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
 }
 
 
-#define GKO_DECLARE_TEST_APPLY_PREPARE(IndexType)            \
-    std::shared_ptr<const gko::detail::Event> apply_prepare( \
+#define GKO_DECLARE_TEST_APPLY_PREPARE(IndexType)                       \
+    GKO_EXPORT std::shared_ptr<const gko::detail::Event> apply_prepare( \
         const RowGatherer<IndexType>*, ptr_param<const LinOp>)
 
-#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(IndexType)    \
-    std::shared_ptr<const gko::detail::Event> apply_prepare(   \
-        const RowGatherer<IndexType>*, ptr_param<const LinOp>, \
+#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(IndexType)             \
+    GKO_EXPORT std::shared_ptr<const gko::detail::Event> apply_prepare( \
+        const RowGatherer<IndexType>*, ptr_param<const LinOp>,          \
         gko::detail::GenericDenseCache&)
 
-#define GKO_DECLARE_TEST_APPLY_FINALIZE(IndexType)                            \
-    mpi::request apply_finalize(const RowGatherer<IndexType>* rg,             \
-                                ptr_param<const LinOp> b, ptr_param<LinOp> x, \
-                                std::shared_ptr<const gko::detail::Event> ev)
+#define GKO_DECLARE_TEST_APPLY_FINALIZE(IndexType)                  \
+    GKO_EXPORT mpi::request apply_finalize(                         \
+        const RowGatherer<IndexType>* rg, ptr_param<const LinOp> b, \
+        ptr_param<LinOp> x, std::shared_ptr<const gko::detail::Event> ev)
 
-#define GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE(IndexType)                  \
-    mpi::request apply_finalize(const RowGatherer<IndexType>* rg,             \
-                                ptr_param<const LinOp> b, ptr_param<LinOp> x, \
-                                std::shared_ptr<const gko::detail::Event> ev, \
-                                gko::detail::GenericDenseCache&)
+#define GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE(IndexType)              \
+    GKO_EXPORT mpi::request apply_finalize(                               \
+        const RowGatherer<IndexType>* rg, ptr_param<const LinOp> b,       \
+        ptr_param<LinOp> x, std::shared_ptr<const gko::detail::Event> ev, \
+        gko::detail::GenericDenseCache&)
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_PREPARE);
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE);
@@ -408,7 +408,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ROW_GATHERER);
 
 
 #define GKO_DECLARE_ROW_GATHERER_CONSTRUCTOR(_ltype, _gtype)          \
-    RowGatherer<_ltype>::RowGatherer(                                 \
+    GKO_EXPORT RowGatherer<_ltype>::RowGatherer(                      \
         std::shared_ptr<const Executor> exec,                         \
         std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm, \
         const index_map<_ltype, _gtype>& imap)

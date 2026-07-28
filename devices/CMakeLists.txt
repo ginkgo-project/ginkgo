@@ -17,6 +17,7 @@ function(ginkgo_add_library name)
 endfunction()
 
 ginkgo_add_library(ginkgo_device machine_topology.cpp device.cpp)
+set_target_properties(ginkgo_device PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 ginkgo_install_library(ginkgo_device)
 
 add_subdirectory(cuda)

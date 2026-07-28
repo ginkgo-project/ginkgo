@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -48,13 +48,13 @@ type_descriptor make_type_descriptor()
 
 #define GKO_DECLARE_MAKE_TYPE_DESCRIPTOR(ValueType, LocalIndexType, \
                                          GlobalIndexType)           \
-    type_descriptor                                                 \
+    GKO_EXPORT type_descriptor                                      \
     make_type_descriptor<ValueType, LocalIndexType, GlobalIndexType>()
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_MAKE_TYPE_DESCRIPTOR);
 
 #define GKO_DECLARE_MAKE_VOID_TYPE_DESCRIPTOR(LocalIndexType, GlobalIndexType) \
-    type_descriptor                                                            \
+    GKO_EXPORT type_descriptor                                                 \
     make_type_descriptor<void, LocalIndexType, GlobalIndexType>()
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_MAKE_VOID_TYPE_DESCRIPTOR);

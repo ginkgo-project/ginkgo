@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -85,7 +85,7 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
 
 #define GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_RANGE(_local_type,          \
                                                      _global_type)         \
-    std::unique_ptr<Partition<_local_type, _global_type>>                  \
+    GKO_EXPORT std::unique_ptr<Partition<_local_type, _global_type>>       \
     build_partition_from_local_range(std::shared_ptr<const Executor> exec, \
                                      mpi::communicator comm, span local_range)
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
@@ -111,7 +111,7 @@ build_partition_from_local_size(std::shared_ptr<const Executor> exec,
 }
 
 #define GKO_DECLARE_BUILD_PARTITION_FROM_LOCAL_SIZE(_local_type, _global_type) \
-    std::unique_ptr<Partition<_local_type, _global_type>>                      \
+    GKO_EXPORT std::unique_ptr<Partition<_local_type, _global_type>>           \
     build_partition_from_local_size(std::shared_ptr<const Executor> exec,      \
                                     mpi::communicator comm,                    \
                                     size_type local_range)

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
+#include <ginkgo/export.hpp>
 
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
@@ -36,8 +37,9 @@ public:
 
 
 template <>
-deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
-    const pnode& config, const registry& context, const type_descriptor& td)
+GKO_EXPORT deferred_factory_parameter<gko::LinOpFactory>
+parse<LinOpFactoryType::Isai>(const pnode& config, const registry& context,
+                              const type_descriptor& td)
 {
     auto updated = update_type(config, td);
     if (auto& obj = config.get("isai_type")) {

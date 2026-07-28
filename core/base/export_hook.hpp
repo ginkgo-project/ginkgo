@@ -67,7 +67,7 @@
 #ifdef ginkgo_EXPORTS
 
 // #include <ginkgo/export.hpp>
-#define GKO_EXPORT_HOOK GKO_EXPORT
+#define GKO_EXPORT_HOOK
 
 #endif
 

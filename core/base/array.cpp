@@ -50,8 +50,8 @@ void convert_data(std::shared_ptr<const Executor> exec, size_type size,
 
 
 #define GKO_DECLARE_ARRAY_CONVERSION(From, To)                              \
-    void convert_data<From, To>(std::shared_ptr<const Executor>, size_type, \
-                                const From*, To*)
+    GKO_EXPORT void convert_data<From, To>(std::shared_ptr<const Executor>, \
+                                           size_type, const From*, To*)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
 
@@ -101,14 +101,16 @@ template GKO_EXPORT_HOOK GKO_DECLARE_ARRAY_FILL(uint64);
 #endif
 
 
-#define GKO_DECLARE_ARRAY_REDUCE_ADD(ValueType) \
-    void reduce_add(const array<ValueType>& arr, array<ValueType>& value)
+#define GKO_DECLARE_ARRAY_REDUCE_ADD(ValueType)             \
+    GKO_EXPORT void reduce_add(const array<ValueType>& arr, \
+                               array<ValueType>& value)
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE_ADD);
 
 
-#define GKO_DECLARE_ARRAY_REDUCE_ADD2(ValueType) \
-    ValueType reduce_add(const array<ValueType>& arr, const ValueType val)
+#define GKO_DECLARE_ARRAY_REDUCE_ADD2(ValueType)                 \
+    GKO_EXPORT ValueType reduce_add(const array<ValueType>& arr, \
+                                    const ValueType val)
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_REDUCE_ADD2);
 
