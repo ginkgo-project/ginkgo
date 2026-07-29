@@ -382,6 +382,9 @@ private:
     array<index_type> row_idxs_;
 };
 
+GKO_EXPORT std::shared_ptr<LinOp> create_coo(
+    std::shared_ptr<const Executor> exec);
+
 
 }  // namespace matrix
 }  // namespace gko

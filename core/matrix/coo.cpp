@@ -499,5 +499,10 @@ auto Coo<ValueType, IndexType>::get_const_device_view() const
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_MATRIX);
 
 
+std::shared_ptr<LinOp> create_coo(std::shared_ptr<const Executor> exec)
+{
+    return Coo<double, int>::create(exec);
+}
+
 }  // namespace matrix
 }  // namespace gko
