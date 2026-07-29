@@ -119,6 +119,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
           exec, dim<2>{diag_linop->get_size()[0], 0}))
 {
     this->set_size(size);
+    auto partition =
+        share(build_partition_from_local_size<LocalIndexType, GlobalIndexType>(
+            exec, comm, diag_linop->get_size()[0]));
+    imap_ = index_map<local_index_type, global_index_type>(
+        exec, partition, comm.rank(), array<global_index_type>{exec});
     diag_mtx_ = std::move(diag_linop);
 }
 
