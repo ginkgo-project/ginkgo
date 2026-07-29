@@ -10,8 +10,8 @@
 #include <iostream>
 #include <unordered_map>
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

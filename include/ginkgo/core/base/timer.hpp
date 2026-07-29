@@ -9,10 +9,10 @@
 #include <chrono>
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/export.hpp>
-#include <ginkgo/export_cuda.hpp>
-#include <ginkgo/export_dpcpp.hpp>
-#include <ginkgo/export_hip.hpp>
+#include <ginkgo/core/base/export.hpp>
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
 
 
 namespace gko {

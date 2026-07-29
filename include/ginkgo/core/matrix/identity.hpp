@@ -6,8 +6,8 @@
 #define GKO_PUBLIC_CORE_MATRIX_IDENTITY_HPP_
 
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

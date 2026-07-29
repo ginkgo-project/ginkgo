@@ -5,11 +5,11 @@
 #ifndef GKO_CORE_BASE_KERNEL_DECLARATION_HPP_
 #define GKO_CORE_BASE_KERNEL_DECLARATION_HPP_
 
-#include <ginkgo/export_cuda.hpp>
-#include <ginkgo/export_dpcpp.hpp>
-#include <ginkgo/export_hip.hpp>
-#include <ginkgo/export_omp.hpp>
-#include <ginkgo/export_reference.hpp>
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
+#include <ginkgo/core/base/export_omp.hpp>
+#include <ginkgo/core/base/export_reference.hpp>
 
 // clang-format off
 #define GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(_kernel_namespace, ...)      \

@@ -12,7 +12,7 @@
 #include <type_traits>
 
 #include <ginkgo/config.hpp>
-#include <ginkgo/export_device.hpp>
+#include <ginkgo/core/base/export_device.hpp>
 
 namespace gko {
 

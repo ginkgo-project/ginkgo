@@ -14,7 +14,7 @@
 #include <type_traits>
 #include <vector>
 
-#include <ginkgo/export.hpp>
+#include <ginkgo/core/base/export.hpp>
 
 
 namespace gko {

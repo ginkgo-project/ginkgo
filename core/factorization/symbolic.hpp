@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/export.hpp>
 
 #include "core/factorization/elimination_forest.hpp"
 

@@ -7,9 +7,9 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

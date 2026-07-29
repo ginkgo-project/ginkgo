@@ -6,8 +6,8 @@
 #include <memory>
 #include <mutex>
 
+#include <ginkgo/core/base/export_device.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
-#include <ginkgo/export_device.hpp>
 
 
 namespace gko {

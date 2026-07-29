@@ -14,12 +14,12 @@
 
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/event.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/collective_communicator.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

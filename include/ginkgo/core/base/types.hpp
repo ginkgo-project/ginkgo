@@ -19,9 +19,8 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/bfloat16.hpp>
+#include <ginkgo/core/base/export_hook.hpp>
 #include <ginkgo/core/base/half.hpp>
-
-#include "core/base/export_hook.hpp"
 
 
 #ifdef __HIPCC__

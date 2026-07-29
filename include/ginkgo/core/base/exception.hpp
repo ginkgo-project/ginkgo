@@ -9,9 +9,9 @@
 #include <exception>
 #include <string>
 
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/export_cuda.hpp>
-#include <ginkgo/export_hip.hpp>
 
 namespace gko {
 

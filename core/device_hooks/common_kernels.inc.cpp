@@ -5,13 +5,13 @@
 #include <type_traits>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/export_hook.hpp>
 #include <ginkgo/core/base/types.hpp>
 
 #include "core/base/batch_instantiation.hpp"
 #include "core/base/batch_multi_vector_kernels.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
 #include "core/base/event_kernels.hpp"
-#include "core/base/export_hook.hpp"
 #include "core/base/index_set_kernels.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/absolute_array_kernels.hpp"

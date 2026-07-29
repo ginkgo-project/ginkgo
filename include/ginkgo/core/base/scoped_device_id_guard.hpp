@@ -8,11 +8,11 @@
 
 #include <memory>
 
-#include <ginkgo/export_cuda.hpp>
-#include <ginkgo/export_dpcpp.hpp>
-#include <ginkgo/export_hip.hpp>
-#include <ginkgo/export_omp.hpp>
-#include <ginkgo/export_reference.hpp>
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
+#include <ginkgo/core/base/export_omp.hpp>
+#include <ginkgo/core/base/export_reference.hpp>
 
 
 namespace gko {

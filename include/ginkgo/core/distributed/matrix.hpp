@@ -13,6 +13,7 @@
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
@@ -20,7 +21,6 @@
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/row_gatherer.hpp>
 #include <ginkgo/core/distributed/vector_cache.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

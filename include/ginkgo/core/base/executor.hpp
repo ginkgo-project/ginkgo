@@ -18,6 +18,11 @@
 #include <vector>
 
 #include <ginkgo/core/base/device.hpp>
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
+#include <ginkgo/core/base/export_omp.hpp>
+#include <ginkgo/core/base/export_reference.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
 #include <ginkgo/core/base/memory.hpp>
@@ -25,11 +30,6 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/synthesizer/containers.hpp>
-#include <ginkgo/export_cuda.hpp>
-#include <ginkgo/export_dpcpp.hpp>
-#include <ginkgo/export_hip.hpp>
-#include <ginkgo/export_omp.hpp>
-#include <ginkgo/export_reference.hpp>
 
 
 namespace gko {

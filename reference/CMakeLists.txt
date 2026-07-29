@@ -105,12 +105,6 @@ if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
 
-generate_export_header(
-    ginkgo_reference
-    EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_reference.hpp"
-    BASE_NAME "GKO_REFERENCE"
-    INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_REFERENCE_HPP_"
-)
 set_target_properties(
     ginkgo_reference
     PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON

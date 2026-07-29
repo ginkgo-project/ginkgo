@@ -7,9 +7,9 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

@@ -6,7 +6,7 @@
 #include <mutex>
 
 #include <ginkgo/core/base/device.hpp>
-#include <ginkgo/export_device.hpp>
+#include <ginkgo/core/base/export_device.hpp>
 
 
 namespace gko {

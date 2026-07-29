@@ -8,10 +8,10 @@
 
 #include <optional>
 
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
-#include <ginkgo/export_cuda.hpp>
-#include <ginkgo/export_dpcpp.hpp>
-#include <ginkgo/export_hip.hpp>
 
 
 namespace gko {

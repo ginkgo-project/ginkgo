@@ -6,11 +6,11 @@
 #define GKO_CORE_CONFIG_PARSE_MACRO_HPP_
 
 
+#include <ginkgo/core/base/export_hook.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 
-#include "core/base/export_hook.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/config/type_descriptor_helper.hpp"

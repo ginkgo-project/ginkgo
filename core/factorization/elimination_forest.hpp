@@ -7,9 +7,9 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/export.hpp>
 
 #include "core/components/disjoint_sets.hpp"
 

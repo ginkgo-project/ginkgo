@@ -8,10 +8,10 @@
 
 #include <memory>
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

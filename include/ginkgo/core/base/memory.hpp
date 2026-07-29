@@ -6,11 +6,11 @@
 #define GKO_PUBLIC_CORE_BASE_MEMORY_HPP_
 
 
+#include <ginkgo/core/base/export.hpp>
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/export.hpp>
-#include <ginkgo/export_cuda.hpp>
-#include <ginkgo/export_hip.hpp>
 
 
 namespace gko {

@@ -9,9 +9,9 @@
 #include <memory>
 
 #include <ginkgo/core/base/batch_multi_vector.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

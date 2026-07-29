@@ -179,12 +179,6 @@ if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
 
-generate_export_header(
-    ginkgo_cuda
-    EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_cuda.hpp"
-    BASE_NAME "GKO_CUDA"
-    INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_CUDA_HPP_"
-)
 set_target_properties(
     ginkgo_cuda
     PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON

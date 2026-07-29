@@ -9,11 +9,11 @@
 #include <memory>
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

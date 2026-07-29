@@ -12,8 +12,8 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

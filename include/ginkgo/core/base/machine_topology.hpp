@@ -19,7 +19,7 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/export_device.hpp>
+#include <ginkgo/core/base/export_device.hpp>
 
 
 #if GKO_HAVE_HWLOC

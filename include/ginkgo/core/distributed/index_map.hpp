@@ -6,9 +6,9 @@
 #define GKO_PUBLIC_CORE_DISTRIBUTED_INDEX_MAP_HPP_
 
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
-#include <ginkgo/export.hpp>
 
 namespace gko {
 namespace experimental {

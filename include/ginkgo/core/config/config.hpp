@@ -10,11 +10,11 @@
 #include <string>
 #include <unordered_map>
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

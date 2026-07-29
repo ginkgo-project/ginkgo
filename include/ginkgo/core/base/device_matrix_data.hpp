@@ -10,9 +10,9 @@
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

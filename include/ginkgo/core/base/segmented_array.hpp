@@ -10,7 +10,7 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/export.hpp>
+#include <ginkgo/core/base/export.hpp>
 
 
 namespace gko {

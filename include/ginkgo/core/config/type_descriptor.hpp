@@ -8,8 +8,8 @@
 
 #include <string>
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/export.hpp>
 
 namespace gko {
 namespace config {

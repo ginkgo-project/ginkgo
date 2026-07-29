@@ -6,9 +6,8 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/export_hook.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-
-#include "core/base/export_hook.hpp"
 
 namespace gko {
 

@@ -8,13 +8,13 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export_hook.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"
-#include "core/base/export_hook.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/base/kernel_declaration.hpp"
 

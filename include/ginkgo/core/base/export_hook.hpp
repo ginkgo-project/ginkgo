@@ -2,17 +2,16 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_CORE_BASE_EXPORT_HOOK_HPP_
-#define GKO_CORE_BASE_EXPORT_HOOK_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_EXPORT_HOOK_HPP_
+#define GKO_PUBLIC_CORE_BASE_EXPORT_HOOK_HPP_
 
 
-// GKO_EXPORT_HOOK should only be used in the source files for backends.
-// #define GKO_EXPORT_HOOK
+// GKO_EXPORT_HOOK should only be used in the source files.
 
 #ifdef ginkgo_reference_EXPORTS
 
 
-#include <ginkgo/export_reference.hpp>
+#include <ginkgo/core/base/export_reference.hpp>
 
 #define GKO_EXPORT_HOOK GKO_REFERENCE_EXPORT
 
@@ -23,7 +22,7 @@
 #ifdef ginkgo_omp_EXPORTS
 
 
-#include <ginkgo/export_omp.hpp>
+#include <ginkgo/core/base/export_omp.hpp>
 
 #define GKO_EXPORT_HOOK GKO_OMP_EXPORT
 
@@ -34,7 +33,7 @@
 #ifdef ginkgo_cuda_EXPORTS
 
 
-#include <ginkgo/export_cuda.hpp>
+#include <ginkgo/core/base/export_cuda.hpp>
 
 #define GKO_EXPORT_HOOK GKO_CUDA_EXPORT
 
@@ -45,7 +44,7 @@
 #ifdef ginkgo_hip_EXPORTS
 
 
-#include <ginkgo/export_hip.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
 
 #define GKO_EXPORT_HOOK GKO_HIP_EXPORT
 
@@ -56,7 +55,7 @@
 #ifdef ginkgo_dpcpp_EXPORTS
 
 
-#include <ginkgo/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
 
 #define GKO_EXPORT_HOOK GKO_DPCPP_EXPORT
 
@@ -66,10 +65,10 @@
 
 #ifdef ginkgo_EXPORTS
 
-// #include <ginkgo/export.hpp>
+// #include <ginkgo/core/base/export.hpp>
 #define GKO_EXPORT_HOOK
 
 #endif
 
 
-#endif  // GKO_CORE_BASE_EXPORT_HOOK_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_EXPORT_HOOK_HPP_

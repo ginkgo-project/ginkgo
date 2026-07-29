@@ -14,12 +14,12 @@
 #include <utility>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

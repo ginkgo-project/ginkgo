@@ -6,13 +6,13 @@
 #define GKO_PUBLIC_CORE_SOLVER_DIRECT_HPP_
 
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

@@ -7,10 +7,10 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

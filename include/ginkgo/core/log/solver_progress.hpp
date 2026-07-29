@@ -9,8 +9,8 @@
 #include <iosfwd>
 #include <memory>
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/export.hpp>
 
 
 namespace gko {

@@ -4,7 +4,7 @@
 
 #include "common/cuda_hip/components/bitvector.hpp"
 
-#include "core/base/export_hook.hpp"
+#include <ginkgo/core/base/export_hook.hpp>
 
 namespace gko {
 namespace kernels {
