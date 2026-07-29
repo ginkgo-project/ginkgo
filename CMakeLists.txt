@@ -197,6 +197,19 @@ option(
     "Enables mapping to Kokkos types to check the alignment of the source and target type."
     ON
 )
+option(
+    GINKGO_EXPORT_ALL_SYMBOLS
+    "Whether we export all symbols in shared library"
+    ON
+)
+if(NOT BUILD_SHARED_LIBS)
+    set(GINKGO_EXPORT_ALL_SYMBOLS
+        ON
+        CACHE BOOL
+        "Whether we export all symbols in shared library"
+        FORCE
+    )
+endif()
 gko_rename_cache(
     GINKGO_COMPILER_FLAGS
     CMAKE_CXX_FLAGS

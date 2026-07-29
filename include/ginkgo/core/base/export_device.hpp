@@ -5,9 +5,12 @@
 #ifndef GKO_PUBLIC_CORE_BASE_EXPORT_DEVICE_HPP_
 #define GKO_PUBLIC_CORE_BASE_EXPORT_DEVICE_HPP_
 
+#include <ginkgo/config.hpp>
+
+
 // extract the necessary part from CMake's generate_export_header and adapt for
 // different platform.
-#ifdef GKO_DEVICE_STATIC_DEFINE
+#if defined(GKO_DEVICE_STATIC_DEFINE) || GINKGO_EXPORT_ALL_SYMBOLS
 
 
 #define GKO_DEVICE_EXPORT

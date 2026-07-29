@@ -220,3 +220,19 @@ function(
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp)
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver)
 endfunction()
+
+function(ginkgo_target_symbols name)
+    if(BUILD_SHARED_LIBS AND GINKGO_EXPORT_ALL_SYMBOLS)
+        if(MSVC)
+            set_target_properties(
+                ${name}
+                PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON
+            )
+        endif()
+    else()
+        set_target_properties(
+            ${name}
+            PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+        )
+    endif()
+endfunction()

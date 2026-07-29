@@ -4,11 +4,7 @@ if(NOT GINKGO_BUILD_CUDA)
     ginkgo_compile_features(ginkgo_cuda)
     ginkgo_default_includes(ginkgo_cuda)
     ginkgo_install_library(ginkgo_cuda)
-
-    set_target_properties(
-        ginkgo_cuda
-        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
-    )
+    ginkgo_target_symbols(ginkgo_cuda)
 endif()
 
 if(NOT GINKGO_BUILD_SYCL)
@@ -21,11 +17,7 @@ if(NOT GINKGO_BUILD_SYCL)
     ginkgo_compile_features(ginkgo_dpcpp)
     ginkgo_default_includes(ginkgo_dpcpp)
     ginkgo_install_library(ginkgo_dpcpp)
-
-    set_target_properties(
-        ginkgo_dpcpp
-        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
-    )
+    ginkgo_target_symbols(ginkgo_dpcpp)
 endif()
 
 if(NOT GINKGO_BUILD_HIP)
@@ -34,11 +26,7 @@ if(NOT GINKGO_BUILD_HIP)
     ginkgo_compile_features(ginkgo_hip)
     ginkgo_default_includes(ginkgo_hip)
     ginkgo_install_library(ginkgo_hip)
-
-    set_target_properties(
-        ginkgo_hip
-        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
-    )
+    ginkgo_target_symbols(ginkgo_hip)
 endif()
 
 if(NOT GINKGO_BUILD_OMP)
@@ -50,11 +38,7 @@ if(NOT GINKGO_BUILD_OMP)
     target_link_libraries(ginkgo_omp PUBLIC ginkgo_device)
     ginkgo_default_includes(ginkgo_omp)
     ginkgo_install_library(ginkgo_omp)
-
-    set_target_properties(
-        ginkgo_omp
-        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
-    )
+    ginkgo_target_symbols(ginkgo_omp)
 endif()
 
 if(NOT GINKGO_BUILD_REFERENCE)
@@ -68,9 +52,5 @@ if(NOT GINKGO_BUILD_REFERENCE)
     ginkgo_compile_features(ginkgo_reference)
     ginkgo_default_includes(ginkgo_reference)
     ginkgo_install_library(ginkgo_reference)
-
-    set_target_properties(
-        ginkgo_reference
-        PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
-    )
+    ginkgo_target_symbols(ginkgo_reference)
 endif()

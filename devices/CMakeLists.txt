@@ -19,10 +19,7 @@ endfunction()
 ginkgo_add_library(ginkgo_device machine_topology.cpp device.cpp)
 ginkgo_install_library(ginkgo_device)
 
-set_target_properties(
-    ginkgo_device
-    PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
-)
+ginkgo_target_symbols(ginkgo_device)
 
 add_subdirectory(cuda)
 add_subdirectory(dpcpp)

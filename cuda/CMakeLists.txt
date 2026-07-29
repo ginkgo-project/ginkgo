@@ -179,7 +179,4 @@ if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
 
-set_target_properties(
-    ginkgo_cuda
-    PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
-)
+ginkgo_target_symbols(ginkgo_cuda)

@@ -119,7 +119,4 @@ if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
 
-set_target_properties(
-    ginkgo_omp
-    PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
-)
+ginkgo_target_symbols(ginkgo_omp)
