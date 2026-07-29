@@ -260,24 +260,25 @@ class ExecutorBase;
  *
  * @ingroup Executor
  */
-class GKO_EXPORT Operation {
+class GKO_EXPORT_CLASS Operation {
 public:
 #define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
-    virtual void run(std::shared_ptr<const _type>) const
+    GKO_EXPORT virtual void run(std::shared_ptr<const _type>) const
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_RUN_OVERLOAD);
 
 #undef GKO_DECLARE_RUN_OVERLOAD
 
     // ReferenceExecutor overload can be defaulted to OmpExecutor's
-    virtual void run(std::shared_ptr<const ReferenceExecutor> executor) const;
+    GKO_EXPORT virtual void run(
+        std::shared_ptr<const ReferenceExecutor> executor) const;
 
     /**
      * Returns the operation's name.
      *
      * @return the operation's name
      */
-    virtual const char* get_name() const noexcept;
+    GKO_EXPORT virtual const char* get_name() const noexcept;
 };
 
 
