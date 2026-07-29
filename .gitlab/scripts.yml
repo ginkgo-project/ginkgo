@@ -63,6 +63,7 @@
         -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
+        -DGINKGO_EXPORT_ALL_SYMBOLS=${ALL_SYMBOLS}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
   dependencies: []
@@ -107,6 +108,7 @@
         -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
+        -DGINKGO_EXPORT_ALL_SYMBOLS=${ALL_SYMBOLS}
     - ninja -j${NUM_CORES} -l${CI_LOAD_LIMIT} install
     - awk '!/^#/ { print ($2 - $1)/1000 " " $4 }' .ninja_log | sort -nr
     - |
@@ -188,6 +190,7 @@
         -DGINKGO_MIXED_PRECISION=${MIXED_PRECISION}
         -DGINKGO_CONFIG_LOG_DETAILED=${CONFIG_LOG}
         -DGINKGO_DPCPP_SINGLE_MODE=${DPCPP_SINGLE_MODE}
+        -DGINKGO_EXPORT_ALL_SYMBOLS=${ALL_SYMBOLS}
     # just set a lower value of parallel for sycl too many file open
     - if [[ "${BUILD_SYCL}" == "ON" ]]; then
         export NUM_CORES=16;

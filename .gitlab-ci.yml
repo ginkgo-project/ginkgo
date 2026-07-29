@@ -325,6 +325,17 @@ build/nocuda/nompi/clang/core/release/shared:
     ENABLE_HALF: "OFF"
     ENABLE_BFLOAT16: "ON"
 
+build/nocuda/nompi/noallsymbol/gcc/omp/release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  variables:
+    BUILD_OMP: "ON"
+    BUILD_TYPE: "Release"
+    ALL_SYMBOLS: "OFF"
+
 build/nocuda/nompi/gcc/omp/release/shared:
   extends:
     - .build_and_test_template
