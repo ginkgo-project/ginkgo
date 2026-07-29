@@ -17,8 +17,17 @@ function(ginkgo_add_library name)
 endfunction()
 
 ginkgo_add_library(ginkgo_device machine_topology.cpp device.cpp)
-set_target_properties(ginkgo_device PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 ginkgo_install_library(ginkgo_device)
+generate_export_header(
+    ginkgo_device
+    EXPORT_FILE_NAME "${Ginkgo_BINARY_DIR}/include/ginkgo/export_device.hpp"
+    BASE_NAME "GKO_DEVICE"
+    INCLUDE_GUARD_NAME "GKO_PUBLIC_API_EXPORT_DEVICE_HPP_"
+)
+set_target_properties(
+    ginkgo_device
+    PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN ON
+)
 
 add_subdirectory(cuda)
 add_subdirectory(dpcpp)

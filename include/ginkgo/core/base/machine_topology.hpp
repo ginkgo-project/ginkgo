@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,6 +19,7 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/export_device.hpp>
 
 
 #if GKO_HAVE_HWLOC
@@ -283,7 +284,8 @@ public:
      * @param pci_bus_id  The PCI bus id of the pci device
      * @return  the PCI object struct.
      */
-    const io_obj_info* get_pci_device(const std::string& pci_bus_id) const;
+    GKO_DEVICE_EXPORT const io_obj_info* get_pci_device(
+        const std::string& pci_bus_id) const;
 
     /**
      * Get the number of PU objects stored in this Topology tree.
@@ -319,7 +321,7 @@ public:
      * A helper function that binds the calling process with the ids of `obj`
      * object .
      */
-    void hwloc_binding_helper(
+    GKO_DEVICE_EXPORT void hwloc_binding_helper(
         const std::vector<machine_topology::normal_obj_info>& obj,
         const std::vector<int>& ids, const bool singlify = true) const;
 
@@ -331,8 +333,8 @@ public:
      * @note The objects should be sorted by logical index since hwloc uses
      * logical index with these functions
      */
-    void load_objects(hwloc_obj_type_t type,
-                      std::vector<normal_obj_info>& objects) const;
+    GKO_DEVICE_EXPORT void load_objects(
+        hwloc_obj_type_t type, std::vector<normal_obj_info>& objects) const;
 
     /**
      * @internal
@@ -342,8 +344,8 @@ public:
      * @note The objects should be sorted by logical index since hwloc uses
      * logical index with these functions
      */
-    void load_objects(hwloc_obj_type_t type,
-                      std::vector<io_obj_info>& vector) const;
+    GKO_DEVICE_EXPORT void load_objects(hwloc_obj_type_t type,
+                                        std::vector<io_obj_info>& vector) const;
 
     /**
      *
@@ -351,8 +353,8 @@ public:
      *
      * Get object id from the os index
      */
-    int get_obj_id_by_os_index(const std::vector<normal_obj_info>& objects,
-                               size_type os_index) const;
+    GKO_DEVICE_EXPORT int get_obj_id_by_os_index(
+        const std::vector<normal_obj_info>& objects, size_type os_index) const;
 
     /**
      *
@@ -360,15 +362,15 @@ public:
      *
      * Get object id from the hwloc index
      */
-    int get_obj_id_by_gp_index(const std::vector<normal_obj_info>& objects,
-                               size_type gp_index) const;
+    GKO_DEVICE_EXPORT int get_obj_id_by_gp_index(
+        const std::vector<normal_obj_info>& objects, size_type gp_index) const;
 
 private:
     /**
      * Do not allow the machine_topology object to be copied/moved. There should
      * be only one global object per execution.
      */
-    machine_topology();
+    GKO_DEVICE_EXPORT machine_topology();
     machine_topology(machine_topology&) = delete;
     machine_topology(machine_topology&&) = delete;
     machine_topology& operator=(machine_topology&) = delete;
