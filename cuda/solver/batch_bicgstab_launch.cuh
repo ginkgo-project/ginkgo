@@ -57,8 +57,7 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec);
 
 #define GKO_INSTANTIATE_BATCH_BICGSTAB_GET_MAX_DYNAMIC_SHARED_MEMORY \
     GKO_BATCH_INSTANTIATE(                                           \
-        _export_macro                                                \
-            GKO_DECLARE_BATCH_BICGSTAB_GET_MAX_DYNAMIC_SHARED_MEMORY)
+        GKO_DECLARE_BATCH_BICGSTAB_GET_MAX_DYNAMIC_SHARED_MEMORY)
 
 
 }  // namespace batch_bicgstab

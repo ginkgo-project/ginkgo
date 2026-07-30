@@ -5,8 +5,8 @@
 #ifndef GKO_PUBLIC_CORE_BASE_EXPORT_HOOK_HPP_
 #define GKO_PUBLIC_CORE_BASE_EXPORT_HOOK_HPP_
 
-
 // GKO_EXPORT_HOOK should only be used in the source files.
+
 
 #ifdef ginkgo_reference_EXPORTS
 
@@ -65,8 +65,18 @@
 
 #ifdef ginkgo_EXPORTS
 
-// #include <ginkgo/core/base/export.hpp>
+
 #define GKO_EXPORT_HOOK
+
+
+#endif
+
+
+#ifndef GKO_EXPORT_HOOK
+
+
+#define GKO_EXPORT_HOOK
+
 
 #endif
 
