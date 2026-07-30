@@ -502,14 +502,6 @@ endif()
 # Bundled third party libraries
 add_subdirectory(third_party) # Third-party tools and libraries
 
-if(MSVC)
-    if(BUILD_SHARED_LIBS)
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
-    else()
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
-    endif()
-endif()
-
 if(GINKGO_BUILD_SYCL)
     ginkgo_extract_dpcpp_version(
         ${CMAKE_CXX_COMPILER}
@@ -542,7 +534,7 @@ configure_file(
     ${Ginkgo_BINARY_DIR}/include/ginkgo/extensions/kokkos/config.hpp
     @ONLY
 )
-include(GenerateExportHeader)
+
 # Ginkgo core libraries
 # Needs to be first in order for `CMAKE_CUDA_DEVICE_LINK_EXECUTABLE` to be
 # propagated to the other parts of Ginkgo in case of building as static libraries

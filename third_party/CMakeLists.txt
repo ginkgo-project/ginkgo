@@ -10,9 +10,9 @@ if(GINKGO_BUILD_BENCHMARKS)
 endif()
 
 if(GINKGO_BUILD_TESTS OR GINKGO_BUILD_BENCHMARKS OR GINKGO_BUILD_EXAMPLES)
-    # if(NOT nlohmann_json_FOUND)
-    #     add_subdirectory(nlohmann_json)
-    # endif()
+    if(NOT nlohmann_json_FOUND)
+        add_subdirectory(nlohmann_json)
+    endif()
 endif()
 
 if(GINKGO_TEST_NONDEFAULT_STREAM)
