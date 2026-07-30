@@ -314,13 +314,15 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
 {
     if (&other != this) {
         LinOp::operator=(other);
-        // NOTE: as soon as strategies are improved, this can be reverted
         values_ = other.values_;
         col_idxs_ = other.col_idxs_;
         row_ptrs_ = other.row_ptrs_;
         srow_ = other.srow_;
-        this->set_strategy(other.get_strategy());
-        // END NOTE
+        strategy_ = other.strategy_;
+        if (this->get_executor() != other.get_executor()) {
+            // strategy can give different srow on different executor
+            this->make_srow();
+        }
     }
     return *this;
 }
@@ -338,6 +340,7 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         srow_ = std::move(other.srow_);
         strategy_ = other.strategy_;
         if (this->get_executor() != other.get_executor()) {
+            // strategy can give different srow on different executor
             this->make_srow();
         }
         // restore other invariant

@@ -310,21 +310,18 @@ TYPED_TEST(ParIlut, KernelThresholdSelectMax)
 
 TYPED_TEST(ParIlut, KernelComplexThresholdSelect)
 {
-    using value_type = typename TestFixture::value_type;
     this->test_select(this->mtx1_complex, 5, sqrt(2), this->tol);
 }
 
 
 TYPED_TEST(ParIlut, KernelComplexThresholdSelectMin)
 {
-    using value_type = typename TestFixture::value_type;
     this->test_select(this->mtx1_complex, 0, 0.1, this->tol);
 }
 
 
 TYPED_TEST(ParIlut, KernelComplexThresholdSelectMax)
 {
-    using value_type = typename TestFixture::value_type;
     this->test_select(this->mtx1_complex, 9, sqrt(9.01), this->tol);
 }
 
@@ -333,8 +330,6 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCoo)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
     auto res_mtx = Csr::create(this->exec, this->mtx1->get_size());
     Coo* null_coo = nullptr;
 
@@ -464,8 +459,6 @@ TYPED_TEST(ParIlut, KernelComplexThresholdFilterNoneApprox)
 TYPED_TEST(ParIlut, KernelAddCandidates)
 {
     using Csr = typename TestFixture::Csr;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
     auto res_mtx_l = Csr::create(this->exec, this->mtx_system->get_size());
     auto res_mtx_u = Csr::create(this->exec, this->mtx_system->get_size());
 
@@ -486,7 +479,6 @@ TYPED_TEST(ParIlut, KernelComputeLU)
 {
     using Csr = typename TestFixture::Csr;
     using Coo = typename TestFixture::Coo;
-    using value_type = typename TestFixture::value_type;
     auto mtx_l_coo = Coo::create(this->exec, this->mtx_system->get_size());
     this->mtx_l_system->convert_to(mtx_l_coo);
     auto mtx_u_transp = this->mtx_u_system->transpose();

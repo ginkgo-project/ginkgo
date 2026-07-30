@@ -151,8 +151,6 @@ TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
     auto mtx = this->template gen_mtx<Csr>(600, 600);
     auto dmtx = gko::clone(this->exec, mtx);
 
@@ -169,8 +167,6 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsortedEquivalentToRef)
 {
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
     auto mtx = this->gen_unsorted_mtx(600, 600);
     auto dmtx = gko::clone(this->exec, mtx);
 
@@ -188,8 +184,6 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsortedEquivalentToRef)
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquareEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
     auto mtx = this->template gen_mtx<Csr>(600, 500);
     auto dmtx = gko::clone(this->exec, mtx);
 

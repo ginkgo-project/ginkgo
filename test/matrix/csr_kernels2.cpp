@@ -206,7 +206,7 @@ TEST_F(Csr, SrowIsCorrectFromLoadBalance)
         auto srow_val = exec->copy_val_to_host(dmtx->get_const_srow() + i);
         if (srow_val > 0) {
             // the number of elements before this row should be less than the
-            // assgined number
+            // assigned number
             ASSERT_LE(exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
                                              srow_val - 1),
                       current);
