@@ -1,1 +1,2 @@
+ginkgo_create_omp_test(csr_spmm_kernels)
 ginkgo_create_omp_test(fbcsr_kernels)

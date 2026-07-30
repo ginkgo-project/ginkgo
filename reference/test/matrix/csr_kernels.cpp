@@ -428,6 +428,67 @@ TYPED_TEST(Csr, AppliesToDenseMatrix)
 }
 
 
+TYPED_TEST(Csr, AppliesToDenseMatrixWithMoreThanTwoColumns)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    // more than two columns exercises the SpMM path (nrhs > 2)
+    auto x = gko::initialize<Vec>(
+        {I<T>{2.0, 3.0, 1.0}, I<T>{1.0, -1.5, 0.0}, I<T>{4.0, 2.5, -2.0}},
+        this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{2, 3});
+
+    this->mtx->apply(x, y);
+
+    EXPECT_EQ(y->at(0, 0), T{13.0});
+    EXPECT_EQ(y->at(1, 0), T{5.0});
+    EXPECT_EQ(y->at(0, 1), T{3.5});
+    EXPECT_EQ(y->at(1, 1), T{-7.5});
+    EXPECT_EQ(y->at(0, 2), T{-3.0});
+    EXPECT_EQ(y->at(1, 2), T{0.0});
+}
+
+
+TYPED_TEST(Csr, AppliesToDenseMatrixWithMoreRowsAndColumns)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    // a larger, non-square sparse matrix exercises SpMM over many rows
+    auto a = Mtx::create(this->exec);
+    gko::initialize<Vec>(
+        {I<T>{2.0, 0.0, 1.0, 0.0, 0.0}, I<T>{0.0, 3.0, 0.0, 0.0, 0.0},
+         I<T>{1.0, 0.0, 0.0, 2.0, 1.0}, I<T>{0.0, 0.0, 0.0, 0.0, 4.0}},
+        this->exec)
+        ->convert_to(a);
+    auto x = gko::initialize<Vec>(
+        {I<T>{1.0, 0.0, 2.0, 1.0}, I<T>{2.0, 1.0, 0.0, 1.0},
+         I<T>{0.0, 3.0, 1.0, 0.0}, I<T>{1.0, 1.0, 1.0, 2.0},
+         I<T>{3.0, 0.0, 1.0, 1.0}},
+        this->exec);
+    auto y = Vec::create(this->exec, gko::dim<2>{4, 4});
+
+    a->apply(x, y);
+
+    EXPECT_EQ(y->at(0, 0), T{2.0});
+    EXPECT_EQ(y->at(0, 1), T{3.0});
+    EXPECT_EQ(y->at(0, 2), T{5.0});
+    EXPECT_EQ(y->at(0, 3), T{2.0});
+    EXPECT_EQ(y->at(1, 0), T{6.0});
+    EXPECT_EQ(y->at(1, 1), T{3.0});
+    EXPECT_EQ(y->at(1, 2), T{0.0});
+    EXPECT_EQ(y->at(1, 3), T{3.0});
+    EXPECT_EQ(y->at(2, 0), T{6.0});
+    EXPECT_EQ(y->at(2, 1), T{2.0});
+    EXPECT_EQ(y->at(2, 2), T{5.0});
+    EXPECT_EQ(y->at(2, 3), T{6.0});
+    EXPECT_EQ(y->at(3, 0), T{12.0});
+    EXPECT_EQ(y->at(3, 1), T{0.0});
+    EXPECT_EQ(y->at(3, 2), T{4.0});
+    EXPECT_EQ(y->at(3, 3), T{4.0});
+}
+
+
 TYPED_TEST(Csr, MixedAppliesToDenseMatrix1)
 {
     // Both vectors have the same value type which differs from the matrix
@@ -604,6 +665,75 @@ TYPED_TEST(Csr, AppliesLinearCombinationToDenseMatrix)
     EXPECT_EQ(y->at(1, 0), T{-1.0});
     EXPECT_EQ(y->at(0, 1), T{-2.5});
     EXPECT_EQ(y->at(1, 1), T{4.5});
+}
+
+
+TYPED_TEST(Csr, AppliesLinearCombinationToDenseMatrixWithMoreThanTwoColumns)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    // more than two columns exercises the advanced SpMM path (nrhs > 2)
+    auto x = gko::initialize<Vec>(
+        {I<T>{2.0, 3.0, 1.0}, I<T>{1.0, -1.5, 0.0}, I<T>{4.0, 2.5, -2.0}},
+        this->exec);
+    auto y = gko::initialize<Vec>({I<T>{1.0, 0.5, 3.0}, I<T>{2.0, -1.5, -2.0}},
+                                  this->exec);
+
+    this->mtx->apply(alpha, x, beta, y);
+
+    EXPECT_EQ(y->at(0, 0), T{-11.0});
+    EXPECT_EQ(y->at(1, 0), T{-1.0});
+    EXPECT_EQ(y->at(0, 1), T{-2.5});
+    EXPECT_EQ(y->at(1, 1), T{4.5});
+    EXPECT_EQ(y->at(0, 2), T{9.0});
+    EXPECT_EQ(y->at(1, 2), T{-4.0});
+}
+
+
+TYPED_TEST(Csr, AppliesLinearCombinationToDenseMatrixWithMoreRowsAndColumns)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
+    auto beta = gko::initialize<Vec>({2.0}, this->exec);
+    // a larger, non-square sparse matrix exercises advanced SpMM over many rows
+    auto a = Mtx::create(this->exec);
+    gko::initialize<Vec>(
+        {I<T>{2.0, 0.0, 1.0, 0.0, 0.0}, I<T>{0.0, 3.0, 0.0, 0.0, 0.0},
+         I<T>{1.0, 0.0, 0.0, 2.0, 1.0}, I<T>{0.0, 0.0, 0.0, 0.0, 4.0}},
+        this->exec)
+        ->convert_to(a);
+    auto x = gko::initialize<Vec>(
+        {I<T>{1.0, 0.0, 2.0, 1.0}, I<T>{2.0, 1.0, 0.0, 1.0},
+         I<T>{0.0, 3.0, 1.0, 0.0}, I<T>{1.0, 1.0, 1.0, 2.0},
+         I<T>{3.0, 0.0, 1.0, 1.0}},
+        this->exec);
+    auto y = gko::initialize<Vec>(
+        {I<T>{1.0, 0.0, 1.0, 0.0}, I<T>{0.0, 1.0, 0.0, 1.0},
+         I<T>{2.0, 0.0, 0.0, 1.0}, I<T>{1.0, 1.0, 1.0, 1.0}},
+        this->exec);
+
+    a->apply(alpha, x, beta, y);
+
+    EXPECT_EQ(y->at(0, 0), T{0.0});
+    EXPECT_EQ(y->at(0, 1), T{-3.0});
+    EXPECT_EQ(y->at(0, 2), T{-3.0});
+    EXPECT_EQ(y->at(0, 3), T{-2.0});
+    EXPECT_EQ(y->at(1, 0), T{-6.0});
+    EXPECT_EQ(y->at(1, 1), T{-1.0});
+    EXPECT_EQ(y->at(1, 2), T{0.0});
+    EXPECT_EQ(y->at(1, 3), T{-1.0});
+    EXPECT_EQ(y->at(2, 0), T{-2.0});
+    EXPECT_EQ(y->at(2, 1), T{-2.0});
+    EXPECT_EQ(y->at(2, 2), T{-5.0});
+    EXPECT_EQ(y->at(2, 3), T{-4.0});
+    EXPECT_EQ(y->at(3, 0), T{-10.0});
+    EXPECT_EQ(y->at(3, 1), T{2.0});
+    EXPECT_EQ(y->at(3, 2), T{-2.0});
+    EXPECT_EQ(y->at(3, 3), T{-2.0});
 }
 
 

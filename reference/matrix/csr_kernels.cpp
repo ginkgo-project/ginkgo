@@ -117,6 +117,103 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL);
 
 
+// Sequential Gustavson's algorithm
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void spmm(std::shared_ptr<const ReferenceExecutor> exec,
+          const matrix::Csr<MatrixValueType, IndexType>* a,
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
+{
+    using arithmetic_type =
+        highest_precision<MatrixValueType, InputValueType, OutputValueType>;
+
+    const auto row_ptrs = a->get_const_row_ptrs();
+    const auto col_idxs = a->get_const_col_idxs();
+
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+
+    const auto num_rows = a->get_size()[0];
+    const auto num_cols = c.size[1];
+
+    array<arithmetic_type> row_acc{exec, num_cols};
+    auto* row_acc_vals = row_acc.get_data();
+    const auto row_acc_size = row_acc.get_size();
+    for (size_type row = 0; row < num_rows; ++row) {
+        std::fill_n(row_acc_vals, row_acc_size, zero<arithmetic_type>());
+        for (size_type nz = row_ptrs[row];
+             nz < static_cast<size_type>(row_ptrs[row + 1]); ++nz) {
+            const arithmetic_type a_ik = a_vals(nz);
+            const auto k_row_b = static_cast<size_type>(col_idxs[nz]);
+            for (size_type j = 0; j < num_cols; ++j) {
+                row_acc_vals[j] += a_ik * b_vals(k_row_b, j);
+            }
+        }
+        for (size_type j = 0; j < num_cols; ++j) {
+            c_vals(row, j) = row_acc_vals[j];
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SPMM_KERNEL);
+
+
+template <typename MatrixValueType, typename InputValueType,
+          typename OutputValueType, typename IndexType>
+void advanced_spmm(std::shared_ptr<const ReferenceExecutor> exec,
+                   matrix::view::dense<const MatrixValueType> alpha,
+                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
+{
+    using arithmetic_type =
+        highest_precision<MatrixValueType, InputValueType, OutputValueType>;
+
+    const auto row_ptrs = a->get_const_row_ptrs();
+    const auto col_idxs = a->get_const_col_idxs();
+
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
+    const auto b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
+    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+
+    const auto num_rows = a->get_size()[0];
+    const auto num_cols = c.size[1];
+    const auto valpha = static_cast<arithmetic_type>(alpha(0, 0));
+    const auto vbeta = static_cast<arithmetic_type>(beta(0, 0));
+
+    array<arithmetic_type> row_acc{exec, num_cols};
+    auto* row_acc_vals = row_acc.get_data();
+    const auto row_acc_size = row_acc.get_size();
+    for (size_type row = 0; row < num_rows; ++row) {
+        std::fill_n(row_acc_vals, row_acc_size, zero<arithmetic_type>());
+        for (size_type nz = row_ptrs[row];
+             nz < static_cast<size_type>(row_ptrs[row + 1]); ++nz) {
+            const arithmetic_type a_ik = a_vals(nz);
+            const auto k_row_b = static_cast<size_type>(col_idxs[nz]);
+            for (size_type j = 0; j < num_cols; ++j) {
+                row_acc_vals[j] += a_ik * b_vals(k_row_b, j);
+            }
+        }
+        for (size_type j = 0; j < num_cols; ++j) {
+            const auto scaled_c =
+                is_zero(vbeta) ? zero(vbeta) : c_vals(row, j) * vbeta;
+            c_vals(row, j) = valpha * row_acc_vals[j] + scaled_c;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPMM_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void spgemm_insert_row(unordered_set<IndexType>& cols,
                        const matrix::Csr<ValueType, IndexType>* c,
