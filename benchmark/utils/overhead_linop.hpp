@@ -25,9 +25,9 @@ namespace overhead {
 #define GKO_DECLARE_OVERHEAD_OPERATION_KERNEL(_type, _num, _export_macro)    \
     static volatile std::uintptr_t val_operation_##_num = 0;                 \
     template <typename _type>                                                \
-    _export_macro void operation##_num(                                      \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const matrix::Dense<_type>* b, matrix::Dense<_type>* x)              \
+    void operation##_num(std::shared_ptr<const DefaultExecutor> exec,        \
+                         const matrix::Dense<_type>* b,                      \
+                         matrix::Dense<_type>* x)                            \
     {                                                                        \
         val_operation_##_num = reinterpret_cast<std::uintptr_t>(x);          \
     }                                                                        \

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -287,10 +287,10 @@ namespace kernels {
 namespace dpcpp {
 
 
-void destroy_event(sycl::event* event) { delete event; }
+GKO_DPCPP_EXPORT void destroy_event(sycl::event* event) { delete event; }
 
 
-std::string get_device_name(int device_id)
+GKO_DPCPP_EXPORT std::string get_device_name(int device_id)
 {
     auto devices = ::gko::detail::get_devices("gpu");
     if (devices.empty()) {

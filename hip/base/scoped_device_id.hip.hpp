@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 #define GKO_HIP_BASE_SCOPED_DEVICE_ID_HIP_HPP_
 
 
+#include <ginkgo/core/base/export_hip.hpp>
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>
 
 
@@ -16,7 +17,8 @@ namespace detail {
 /**
  * A scoped device id for HIP.
  */
-class hip_scoped_device_id_guard : public generic_scoped_device_id_guard {
+class GKO_HIP_EXPORT hip_scoped_device_id_guard
+    : public generic_scoped_device_id_guard {
 public:
     /**
      * The constructor sets the device id to the passed in value for the

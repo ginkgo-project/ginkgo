@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,6 +16,8 @@
 
 #include <ginkgo/core/log/profiler_hook.hpp>
 
+#include "core/log/profiler_hook.hpp"
+
 
 namespace gko {
 namespace log {
@@ -25,7 +27,7 @@ namespace log {
 constexpr static uint32 category_magic_offset = 0x676B6FU;
 
 
-void init_nvtx()
+GKO_CUDA_EXPORT void init_nvtx()
 {
 #define NAMED_CATEGORY(_name)                                             \
     nvtxNameCategory(static_cast<uint32>(profile_event_category::_name) + \
@@ -44,8 +46,8 @@ void init_nvtx()
 }
 
 
-std::function<void(const char*, profile_event_category)> begin_nvtx_fn(
-    uint32_t color_argb)
+GKO_CUDA_EXPORT std::function<void(const char*, profile_event_category)>
+begin_nvtx_fn(uint32_t color_argb)
 {
     return [color_argb](const char* name, profile_event_category category) {
         nvtxEventAttributes_t attr{};
@@ -62,7 +64,10 @@ std::function<void(const char*, profile_event_category)> begin_nvtx_fn(
 }
 
 
-void end_nvtx(const char* name, profile_event_category) { nvtxRangePop(); }
+GKO_CUDA_EXPORT void end_nvtx(const char* name, profile_event_category)
+{
+    nvtxRangePop();
+}
 
 
 }  // namespace log

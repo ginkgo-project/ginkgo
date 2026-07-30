@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,8 @@
 
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
 
 
 namespace gko {
@@ -17,7 +19,7 @@ namespace gko {
  * The stream will be created on construction and destroyed when the lifetime of
  * the wrapper ends.
  */
-class cuda_stream {
+class GKO_CUDA_EXPORT cuda_stream {
 public:
     /** Creates an empty stream wrapper, representing the default stream. */
     cuda_stream();
@@ -60,7 +62,7 @@ private:
  * The stream will be created on construction and destroyed when the lifetime of
  * the wrapper ends.
  */
-class hip_stream {
+class GKO_HIP_EXPORT hip_stream {
 public:
     /** Creates an empty stream wrapper, representing the default stream. */
     hip_stream();
