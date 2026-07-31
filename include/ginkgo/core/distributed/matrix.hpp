@@ -273,6 +273,7 @@ class Matrix
       public ConvertibleTo<Matrix<next_precision<ValueType, 3>, LocalIndexType,
                                   GlobalIndexType>>,
 #endif
+      public WritableToMatrixData<ValueType, GlobalIndexType>,
       public DistributedBase {
     friend class EnableCloneable<Matrix>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
@@ -412,6 +413,17 @@ public:
         std::shared_ptr<const Partition<local_index_type, global_index_type>>
             col_partition,
         assembly_mode assembly_type = assembly_mode::local_only);
+
+    /**
+     * Writes the locally stored matrix data into a matrix_data structure using
+     * global row and column indices.
+     *
+     * @param data  the output matrix_data
+     *
+     * @note this currently assume the row index mapping is equal to the column
+     *       index mapping
+     */
+    void write(matrix_data<value_type, global_index_type>& data) const override;
 
     /**
      * Get read access to the stored diagonal matrix block.

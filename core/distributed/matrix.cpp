@@ -34,6 +34,46 @@ GKO_REGISTER_OPERATION(separate_diag_off_diag,
 }  // namespace matrix
 
 
+namespace {
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void append_global_matrix_data(
+    std::shared_ptr<const Executor> exec,
+    const matrix_data<ValueType, LocalIndexType>& local_data,
+    const index_map<LocalIndexType, GlobalIndexType>& imap,
+    index_space col_space, matrix_data<ValueType, GlobalIndexType>& result)
+{
+    if (local_data.nonzeros.empty()) {
+        return;
+    }
+
+    auto device_data =
+        device_matrix_data<ValueType, LocalIndexType>::create_from_host(
+            exec, local_data);
+    const auto nnz = device_data.get_num_stored_elements();
+    auto local_row_idxs =
+        make_array_view(exec, nnz, device_data.get_row_idxs());
+    auto local_col_idxs =
+        make_array_view(exec, nnz, device_data.get_col_idxs());
+    auto global_row_idxs =
+        imap.map_to_global(local_row_idxs, index_space::local);
+    auto global_col_idxs = imap.map_to_global(local_col_idxs, col_space);
+    auto values = make_array_view(exec, nnz, device_data.get_values());
+    auto global_data =
+        device_matrix_data<ValueType, GlobalIndexType>{
+            exec, result.size, std::move(global_row_idxs),
+            std::move(global_col_idxs), std::move(values)}
+            .copy_to_host();
+
+    result.nonzeros.insert(result.nonzeros.end(), global_data.nonzeros.begin(),
+                           global_data.nonzeros.end());
+}
+
+
+}  // namespace
+
+
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
@@ -79,6 +119,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
           exec, dim<2>{diag_linop->get_size()[0], 0}))
 {
     this->set_size(size);
+    auto partition =
+        share(build_partition_from_local_size<LocalIndexType, GlobalIndexType>(
+            exec, comm, diag_linop->get_size()[0]));
+    imap_ = index_map<local_index_type, global_index_type>(
+        exec, partition, comm.rank(), array<global_index_type>{exec});
     diag_mtx_ = std::move(diag_linop);
 }
 
@@ -431,6 +476,27 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     assembly_mode assembly_type)
 {
     return this->read_distributed(data, partition, partition, assembly_type);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::write(
+    matrix_data<value_type, global_index_type>& data) const
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    auto diag_data = matrix_data<value_type, local_index_type>{};
+    auto off_diag_data = matrix_data<value_type, local_index_type>{};
+    as<WritableToMatrixData<ValueType, LocalIndexType>>(this->diag_mtx_)
+        ->write(diag_data);
+    as<WritableToMatrixData<ValueType, LocalIndexType>>(this->off_diag_mtx_)
+        ->write(off_diag_data);
+
+    data = {this->get_size(), {}};
+    auto exec = this->get_executor();
+    append_global_matrix_data(exec, diag_data, imap_, index_space::local, data);
+    append_global_matrix_data(exec, off_diag_data, imap_,
+                              index_space::non_local, data);
+    data.sort_row_major();
 }
 
 
