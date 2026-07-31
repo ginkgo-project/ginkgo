@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/composition.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -91,34 +92,34 @@ public:
      * @return  a new Factorization object containing this factorization
      *          represented as storage_type::composition.
      */
-    std::unique_ptr<Factorization> unpack() const;
+    GKO_EXPORT std::unique_ptr<Factorization> unpack() const;
 
     /** Returns the storage type used by this factorization. */
-    storage_type get_storage_type() const;
+    GKO_EXPORT storage_type get_storage_type() const;
 
     /**
      * Returns the lower triangular factor of the factorization, if available,
      * nullptr otherwise.
      */
-    std::shared_ptr<const matrix_type> get_lower_factor() const;
+    GKO_EXPORT std::shared_ptr<const matrix_type> get_lower_factor() const;
 
     /**
      * Returns the diagonal scaling matrix of the factorization, if available,
      * nullptr otherwise.
      */
-    std::shared_ptr<const diag_type> get_diagonal() const;
+    GKO_EXPORT std::shared_ptr<const diag_type> get_diagonal() const;
 
     /**
      * Returns the upper triangular factor of the factorization, if available,
      * nullptr otherwise.
      */
-    std::shared_ptr<const matrix_type> get_upper_factor() const;
+    GKO_EXPORT std::shared_ptr<const matrix_type> get_upper_factor() const;
 
     /**
      * Returns the matrix storing a compact representation of the factorization,
      * if available, nullptr otherwise.
      */
-    std::shared_ptr<const matrix_type> get_combined() const;
+    GKO_EXPORT std::shared_ptr<const matrix_type> get_combined() const;
 
     /** Creates a deep copy of the factorization. */
     Factorization(const Factorization&);
@@ -139,7 +140,7 @@ public:
      *
      * @return  a Factorization storing the elements from the Composition.
      */
-    static std::unique_ptr<Factorization> create_from_composition(
+    GKO_EXPORT static std::unique_ptr<Factorization> create_from_composition(
         std::unique_ptr<composition_type> composition);
 
     /**
@@ -152,8 +153,8 @@ public:
      * @return  a symmetric Factorization storing the elements from the
      * Composition.
      */
-    static std::unique_ptr<Factorization> create_from_symm_composition(
-        std::unique_ptr<composition_type> composition);
+    GKO_EXPORT static std::unique_ptr<Factorization>
+    create_from_symm_composition(std::unique_ptr<composition_type> composition);
 
     /**
      * Creates a Factorization from an existing combined representation of an LU
@@ -166,16 +167,16 @@ public:
      * @return  a symmetric Factorization storing the elements from the
      * Composition.
      */
-    static std::unique_ptr<Factorization> create_from_combined_lu(
+    GKO_EXPORT static std::unique_ptr<Factorization> create_from_combined_lu(
         std::unique_ptr<matrix_type> matrix);
 
-    static std::unique_ptr<Factorization> create_from_combined_ldu(
+    GKO_EXPORT static std::unique_ptr<Factorization> create_from_combined_ldu(
         std::unique_ptr<matrix_type> matrix);
 
-    static std::unique_ptr<Factorization> create_from_combined_cholesky(
-        std::unique_ptr<matrix_type> matrix);
+    GKO_EXPORT static std::unique_ptr<Factorization>
+    create_from_combined_cholesky(std::unique_ptr<matrix_type> matrix);
 
-    static std::unique_ptr<Factorization> create_from_combined_ldl(
+    GKO_EXPORT static std::unique_ptr<Factorization> create_from_combined_ldl(
         std::unique_ptr<matrix_type> matrix);
 
 protected:
@@ -184,10 +185,10 @@ protected:
     Factorization(std::unique_ptr<Composition<ValueType>> factors,
                   storage_type type);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     storage_type storage_type_;

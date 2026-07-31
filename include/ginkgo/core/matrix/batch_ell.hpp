@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -76,10 +77,11 @@ public:
     using absolute_type = remove_complex<Ell>;
     using complex_type = to_complex<Ell>;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Ell<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Ell<next_precision<ValueType>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Ell<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Ell<previous_precision<ValueType, 2>, IndexType>;
@@ -87,10 +89,11 @@ public:
         Ell<next_precision<ValueType, 2>, IndexType>>::convert_to;
     using ConvertibleTo<Ell<next_precision<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Ell<next_precision<ValueType, 2>, IndexType>* result) const override;
 
-    void move_to(Ell<next_precision<ValueType, 2>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Ell<next_precision<ValueType, 2>, IndexType>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
@@ -99,10 +102,11 @@ public:
         Ell<next_precision<ValueType, 3>, IndexType>>::convert_to;
     using ConvertibleTo<Ell<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Ell<next_precision<ValueType, 3>, IndexType>* result) const override;
 
-    void move_to(Ell<next_precision<ValueType, 3>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Ell<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
     /**
@@ -115,12 +119,13 @@ public:
      * @return  a batch::matrix::Ell object with the data from the batch item
      * at the given index.
      */
-    std::unique_ptr<unbatch_type> create_view_for_item(size_type item_id);
+    GKO_EXPORT std::unique_ptr<unbatch_type> create_view_for_item(
+        size_type item_id);
 
     /**
      * @copydoc create_view_for_item(size_type)
      */
-    std::unique_ptr<const unbatch_type> create_const_view_for_item(
+    GKO_EXPORT std::unique_ptr<const unbatch_type> create_const_view_for_item(
         size_type item_id) const;
 
     /**
@@ -261,7 +266,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Ell> create(
+    GKO_EXPORT static std::unique_ptr<Ell> create(
         std::shared_ptr<const Executor> exec,
         const batch_dim<2>& size = batch_dim<2>{},
         const IndexType num_elems_per_row = 0);
@@ -282,11 +287,10 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec,
-                                       const batch_dim<2>& size,
-                                       const IndexType num_elems_per_row,
-                                       array<value_type> values,
-                                       array<index_type> col_idxs);
+    GKO_EXPORT static std::unique_ptr<Ell> create(
+        std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
+        const IndexType num_elems_per_row, array<value_type> values,
+        array<index_type> col_idxs);
 
     /**
      * @copydoc std::unique_ptr<Ell> create(std::shared_ptr<const Executor>,
@@ -324,7 +328,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<const Ell> create_const(
+    GKO_EXPORT static std::unique_ptr<const Ell> create_const(
         std::shared_ptr<const Executor> exec, const batch_dim<2>& sizes,
         const index_type num_elems_per_row,
         gko::detail::const_array_view<value_type>&& values,
@@ -337,8 +341,8 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    void apply(ptr_param<const MultiVector<value_type>> b,
-               ptr_param<MultiVector<value_type>> x);
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<MultiVector<value_type>> x);
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
@@ -350,26 +354,26 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    void apply(ptr_param<const MultiVector<value_type>> alpha,
-               ptr_param<const MultiVector<value_type>> b,
-               ptr_param<const MultiVector<value_type>> beta,
-               ptr_param<MultiVector<value_type>> x);
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> alpha,
+                          ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<const MultiVector<value_type>> beta,
+                          ptr_param<MultiVector<value_type>> x);
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
-    void apply(ptr_param<const MultiVector<value_type>> b,
-               ptr_param<MultiVector<value_type>> x) const;
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, const
      * MultiVector<value_type>*, const MultiVector<value_type>*,
      * MultiVector<value_type>*)
      */
-    void apply(ptr_param<const MultiVector<value_type>> alpha,
-               ptr_param<const MultiVector<value_type>> b,
-               ptr_param<const MultiVector<value_type>> beta,
-               ptr_param<MultiVector<value_type>> x) const;
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> alpha,
+                          ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<const MultiVector<value_type>> beta,
+                          ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * Performs in-place row and column scaling for this matrix.
@@ -377,8 +381,8 @@ public:
      * @param row_scale  the row scalars
      * @param col_scale  the column scalars
      */
-    void scale(const array<value_type>& row_scale,
-               const array<value_type>& col_scale);
+    GKO_EXPORT void scale(const array<value_type>& row_scale,
+                          const array<value_type>& col_scale);
 
     /**
      * Performs the operation this = alpha*I + beta*this.
@@ -390,8 +394,9 @@ public:
      * @note This operation fails in case this matrix does not have all its
      *       diagonal entries.
      */
-    void add_scaled_identity(ptr_param<const MultiVector<value_type>> alpha,
-                             ptr_param<const MultiVector<value_type>> beta);
+    GKO_EXPORT void add_scaled_identity(
+        ptr_param<const MultiVector<value_type>> alpha,
+        ptr_param<const MultiVector<value_type>> beta);
 
 private:
     size_type compute_num_elems(const batch_dim<2>& size,
@@ -401,21 +406,21 @@ private:
                num_elems_per_row;
     }
 
-    Ell(std::shared_ptr<const Executor> exec,
-        const batch_dim<2>& size = batch_dim<2>{},
-        const IndexType num_elems_per_row = 0);
+    GKO_EXPORT Ell(std::shared_ptr<const Executor> exec,
+                   const batch_dim<2>& size = batch_dim<2>{},
+                   const IndexType num_elems_per_row = 0);
 
-    Ell(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
-        const IndexType num_elems_per_row, array<value_type> values,
-        array<index_type> col_idxs);
+    GKO_EXPORT Ell(std::shared_ptr<const Executor> exec,
+                   const batch_dim<2>& size, const IndexType num_elems_per_row,
+                   array<value_type> values, array<index_type> col_idxs);
 
-    void apply_impl(const MultiVector<value_type>* b,
-                    MultiVector<value_type>* x) const;
+    GKO_EXPORT void apply_impl(const MultiVector<value_type>* b,
+                               MultiVector<value_type>* x) const;
 
-    void apply_impl(const MultiVector<value_type>* alpha,
-                    const MultiVector<value_type>* b,
-                    const MultiVector<value_type>* beta,
-                    MultiVector<value_type>* x) const;
+    GKO_EXPORT void apply_impl(const MultiVector<value_type>* alpha,
+                               const MultiVector<value_type>* b,
+                               const MultiVector<value_type>* beta,
+                               MultiVector<value_type>* x) const;
 
     index_type num_elems_per_row_;
     array<value_type> values_;

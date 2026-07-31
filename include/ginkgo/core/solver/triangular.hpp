@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -74,9 +75,9 @@ public:
     using index_type = IndexType;
     using transposed_type = UpperTrs<ValueType, IndexType>;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -144,28 +145,28 @@ public:
      * shallow-copies the system matrix. Solver analysis information will be
      * regenerated.
      */
-    LowerTrs& operator=(const LowerTrs&);
+    GKO_EXPORT LowerTrs& operator=(const LowerTrs&);
 
     /**
      * Move-constructs a triangular solver. Preserves the executor, moves
      * the system matrix and solver analysis information. Moved-from
      * object is empty (0x0 and nullptr system matrix)
      */
-    LowerTrs& operator=(LowerTrs&&);
+    GKO_EXPORT LowerTrs& operator=(LowerTrs&&);
 
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
     /**
      * Generates the analysis structure from the system matrix and the right
      * hand side needed for the level solver.
      */
-    void generate();
+    GKO_EXPORT void generate();
 
     explicit LowerTrs(std::shared_ptr<const Executor> exec)
         : LinOp(std::move(exec))
@@ -192,17 +193,17 @@ template <typename ValueType, typename IndexType>
 struct workspace_traits<LowerTrs<ValueType, IndexType>> {
     using Solver = LowerTrs<ValueType, IndexType>;
     // number of vectors used by this workspace
-    static int num_vectors(const Solver&);
+    GKO_EXPORT static int num_vectors(const Solver&);
     // number of arrays used by this workspace
-    static int num_arrays(const Solver&);
+    GKO_EXPORT static int num_arrays(const Solver&);
     // array containing the num_vectors names for the workspace vectors
-    static std::vector<std::string> op_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> op_names(const Solver&);
     // array containing the num_arrays names for the workspace vectors
-    static std::vector<std::string> array_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> array_names(const Solver&);
     // array containing all varying scalar vectors (independent of problem size)
-    static std::vector<int> scalars(const Solver&);
+    GKO_EXPORT static std::vector<int> scalars(const Solver&);
     // array containing all varying vectors (dependent on problem size)
-    static std::vector<int> vectors(const Solver&);
+    GKO_EXPORT static std::vector<int> vectors(const Solver&);
 
     // transposed input vector
     constexpr static int transposed_b = 0;
@@ -241,9 +242,9 @@ public:
     using index_type = IndexType;
     using transposed_type = LowerTrs<ValueType, IndexType>;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -296,7 +297,7 @@ public:
      * the system matrix. If the executors mismatch, clones system matrix onto
      * this executor. Solver analysis information will be regenerated.
      */
-    UpperTrs(const UpperTrs&);
+    GKO_EXPORT UpperTrs(const UpperTrs&);
 
     /**
      * Move-assigns a triangular solver. Preserves the executor, moves
@@ -304,35 +305,35 @@ public:
      * this executor and regenerates solver analysis information. Moved-from
      * object is empty (0x0 and nullptr system matrix)
      */
-    UpperTrs(UpperTrs&&);
+    GKO_EXPORT UpperTrs(UpperTrs&&);
 
     /**
      * Copy-constructs a triangular solver. Preserves the executor,
      * shallow-copies the system matrix. Solver analysis information will be
      * regenerated.
      */
-    UpperTrs& operator=(const UpperTrs&);
+    GKO_EXPORT UpperTrs& operator=(const UpperTrs&);
 
     /**
      * Move-constructs a triangular solver. Preserves the executor, moves
      * the system matrix and solver analysis information. Moved-from
      * object is empty (0x0 and nullptr system matrix)
      */
-    UpperTrs& operator=(UpperTrs&&);
+    GKO_EXPORT UpperTrs& operator=(UpperTrs&&);
 
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
     /**
      * Generates the analysis structure from the system matrix and the right
      * hand side(only dimensional info needed) needed for the level solver.
      */
-    void generate();
+    GKO_EXPORT void generate();
 
     explicit UpperTrs(std::shared_ptr<const Executor> exec)
         : LinOp(std::move(exec))
@@ -359,17 +360,17 @@ template <typename ValueType, typename IndexType>
 struct workspace_traits<UpperTrs<ValueType, IndexType>> {
     using Solver = UpperTrs<ValueType, IndexType>;
     // number of vectors used by this workspace
-    static int num_vectors(const Solver&);
+    GKO_EXPORT static int num_vectors(const Solver&);
     // number of arrays used by this workspace
-    static int num_arrays(const Solver&);
+    GKO_EXPORT static int num_arrays(const Solver&);
     // array containing the num_vectors names for the workspace vectors
-    static std::vector<std::string> op_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> op_names(const Solver&);
     // array containing the num_arrays names for the workspace vectors
-    static std::vector<std::string> array_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> array_names(const Solver&);
     // array containing all varying scalar vectors (independent of problem size)
-    static std::vector<int> scalars(const Solver&);
+    GKO_EXPORT static std::vector<int> scalars(const Solver&);
     // array containing all varying vectors (dependent on problem size)
-    static std::vector<int> vectors(const Solver&);
+    GKO_EXPORT static std::vector<int> vectors(const Solver&);
 
     // transposed input vector
     constexpr static int transposed_b = 0;

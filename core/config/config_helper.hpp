@@ -81,7 +81,7 @@ enum class LinOpFactoryType : int {
  * implementation needs to deal with the template selection.
  */
 template <LinOpFactoryType flag>
-deferred_factory_parameter<gko::LinOpFactory> parse(
+GKO_EXPORT deferred_factory_parameter<gko::LinOpFactory> parse(
     const pnode& config, const registry& context,
     const type_descriptor& td = make_type_descriptor<>());
 

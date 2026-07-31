@@ -18,6 +18,11 @@
 #include <vector>
 
 #include <ginkgo/core/base/device.hpp>
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
+#include <ginkgo/core/base/export_omp.hpp>
+#include <ginkgo/core/base/export_reference.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
 #include <ginkgo/core/base/machine_topology.hpp>
 #include <ginkgo/core/base/memory.hpp>
@@ -255,24 +260,25 @@ class ExecutorBase;
  *
  * @ingroup Executor
  */
-class Operation {
+class GKO_EXPORT_CLASS Operation {
 public:
 #define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
-    virtual void run(std::shared_ptr<const _type>) const
+    GKO_EXPORT virtual void run(std::shared_ptr<const _type>) const
 
     GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_DECLARE_RUN_OVERLOAD);
 
 #undef GKO_DECLARE_RUN_OVERLOAD
 
     // ReferenceExecutor overload can be defaulted to OmpExecutor's
-    virtual void run(std::shared_ptr<const ReferenceExecutor> executor) const;
+    GKO_EXPORT virtual void run(
+        std::shared_ptr<const ReferenceExecutor> executor) const;
 
     /**
      * Returns the operation's name.
      *
      * @return the operation's name
      */
-    virtual const char* get_name() const noexcept;
+    GKO_EXPORT virtual const char* get_name() const noexcept;
 };
 
 
@@ -1401,11 +1407,12 @@ public:
         return std::shared_ptr<OmpExecutor>(new OmpExecutor(std::move(alloc)));
     }
 
-    std::shared_ptr<Executor> get_master() noexcept override;
+    GKO_OMP_EXPORT std::shared_ptr<Executor> get_master() noexcept override;
 
-    std::shared_ptr<const Executor> get_master() const noexcept override;
+    GKO_OMP_EXPORT std::shared_ptr<const Executor> get_master()
+        const noexcept override;
 
-    void synchronize() const override;
+    GKO_OMP_EXPORT void synchronize() const override;
 
     int get_num_cores() const
     {
@@ -1417,11 +1424,12 @@ public:
         return this->get_exec_info().num_pu_per_cu;
     }
 
-    static int get_num_omp_threads();
+    GKO_OMP_EXPORT static int get_num_omp_threads();
 
-    scoped_device_id_guard get_scoped_device_id_guard() const override;
+    GKO_OMP_EXPORT scoped_device_id_guard
+    get_scoped_device_id_guard() const override;
 
-    std::string get_description() const override;
+    GKO_OMP_EXPORT std::string get_description() const override;
 
 protected:
     OmpExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
@@ -1430,13 +1438,25 @@ protected:
         this->OmpExecutor::populate_exec_info(machine_topology::get_instance());
     }
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    GKO_OMP_EXPORT void populate_exec_info(
+        const machine_topology* mach_topo) override;
 
-    void* raw_alloc(size_type size) const override;
+    GKO_OMP_EXPORT void* raw_alloc(size_type size) const override;
 
-    void raw_free(void* ptr) const noexcept override;
+    GKO_OMP_EXPORT void raw_free(void* ptr) const noexcept override;
 
-    GKO_ENABLE_FOR_ALL_EXECUTORS(GKO_OVERRIDE_RAW_COPY_TO);
+    GKO_OMP_EXPORT void raw_copy_to(const OmpExecutor* dest_exec,
+                                    size_type n_bytes, const void* src_ptr,
+                                    void* dest_ptr) const override;
+    GKO_HIP_EXPORT void raw_copy_to(const HipExecutor* dest_exec,
+                                    size_type n_bytes, const void* src_ptr,
+                                    void* dest_ptr) const override;
+    GKO_DPCPP_EXPORT void raw_copy_to(const DpcppExecutor* dest_exec,
+                                      size_type n_bytes, const void* src_ptr,
+                                      void* dest_ptr) const override;
+    GKO_CUDA_EXPORT void raw_copy_to(const CudaExecutor* dest_exec,
+                                     size_type n_bytes, const void* src_ptr,
+                                     void* dest_ptr) const override;
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(OmpExecutor, true);
 
@@ -1446,7 +1466,8 @@ protected:
 
     GKO_DEFAULT_OVERRIDE_VERIFY_MEMORY(CudaExecutor, false);
 
-    bool verify_memory_to(const DpcppExecutor* dest_exec) const override;
+    GKO_DPCPP_EXPORT bool verify_memory_to(
+        const DpcppExecutor* dest_exec) const override;
 
     std::shared_ptr<CpuAllocatorBase> alloc_;
 };
@@ -1565,7 +1586,7 @@ public:
         "  std::shared_ptr<CudaAllocatorBase> alloc,"
         "  CUstream_st* stream);"
         "instead")
-    static std::shared_ptr<CudaExecutor> create(
+    GKO_CUDA_EXPORT static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master, bool device_reset,
         allocation_mode alloc_mode = default_cuda_alloc_mode,
         CUstream_st* stream = nullptr);
@@ -1579,21 +1600,23 @@ public:
      * @param alloc  the allocator to use for device memory allocations.
      * @param stream  the stream to execute operations on.
      */
-    static std::shared_ptr<CudaExecutor> create(
+    GKO_CUDA_EXPORT static std::shared_ptr<CudaExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         std::shared_ptr<CudaAllocatorBase> alloc =
             std::make_shared<CudaAllocator>(),
         CUstream_st* stream = nullptr);
 
-    std::shared_ptr<Executor> get_master() noexcept override;
+    GKO_CUDA_EXPORT std::shared_ptr<Executor> get_master() noexcept override;
 
-    std::shared_ptr<const Executor> get_master() const noexcept override;
+    GKO_CUDA_EXPORT std::shared_ptr<const Executor> get_master()
+        const noexcept override;
 
-    void synchronize() const override;
+    GKO_CUDA_EXPORT void synchronize() const override;
 
-    scoped_device_id_guard get_scoped_device_id_guard() const override;
+    GKO_CUDA_EXPORT scoped_device_id_guard
+    get_scoped_device_id_guard() const override;
 
-    std::string get_description() const override;
+    GKO_CUDA_EXPORT std::string get_description() const override;
 
     /**
      * Get the CUDA device id of the device associated to this executor.
@@ -1606,7 +1629,7 @@ public:
     /**
      * Get the number of devices present on the system.
      */
-    static int get_num_devices();
+    GKO_CUDA_EXPORT static int get_num_devices();
 
     /**
      * Get the number of warps per SM of this executor.
@@ -1806,26 +1829,28 @@ public:
         "device_reset is deprecated entirely, call hipDeviceReset directly. "
         "alloc_mode was replaced by the Allocator type "
         "hierarchy.")
-    static std::shared_ptr<HipExecutor> create(
+    GKO_HIP_EXPORT static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master, bool device_reset,
         allocation_mode alloc_mode = default_hip_alloc_mode,
         GKO_HIP_STREAM_STRUCT* stream = nullptr);
 
-    static std::shared_ptr<HipExecutor> create(
+    GKO_HIP_EXPORT static std::shared_ptr<HipExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         std::shared_ptr<HipAllocatorBase> alloc =
             std::make_shared<HipAllocator>(),
         GKO_HIP_STREAM_STRUCT* stream = nullptr);
 
-    std::shared_ptr<Executor> get_master() noexcept override;
+    GKO_HIP_EXPORT std::shared_ptr<Executor> get_master() noexcept override;
 
-    std::shared_ptr<const Executor> get_master() const noexcept override;
+    GKO_HIP_EXPORT std::shared_ptr<const Executor> get_master()
+        const noexcept override;
 
-    void synchronize() const override;
+    GKO_HIP_EXPORT void synchronize() const override;
 
-    scoped_device_id_guard get_scoped_device_id_guard() const override;
+    GKO_HIP_EXPORT scoped_device_id_guard
+    get_scoped_device_id_guard() const override;
 
-    std::string get_description() const override;
+    GKO_HIP_EXPORT std::string get_description() const override;
 
     /**
      * Get the HIP device id of the device associated to this executor.
@@ -1838,7 +1863,7 @@ public:
     /**
      * Get the number of devices present on the system.
      */
-    static int get_num_devices();
+    GKO_HIP_EXPORT static int get_num_devices();
 
     /**
      * Get the number of warps per SM of this executor.
@@ -2017,20 +2042,22 @@ public:
      * @param device_type  a string representing the type of device to consider
      *                     (accelerator, cpu, gpu or all).
      */
-    static std::shared_ptr<DpcppExecutor> create(
+    GKO_DPCPP_EXPORT static std::shared_ptr<DpcppExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
         std::string device_type = "all",
         dpcpp_queue_property property = dpcpp_queue_property::in_order);
 
-    std::shared_ptr<Executor> get_master() noexcept override;
+    GKO_DPCPP_EXPORT std::shared_ptr<Executor> get_master() noexcept override;
 
-    std::shared_ptr<const Executor> get_master() const noexcept override;
+    GKO_DPCPP_EXPORT std::shared_ptr<const Executor> get_master()
+        const noexcept override;
 
-    void synchronize() const override;
+    GKO_DPCPP_EXPORT void synchronize() const override;
 
-    scoped_device_id_guard get_scoped_device_id_guard() const override;
+    GKO_DPCPP_EXPORT scoped_device_id_guard
+    get_scoped_device_id_guard() const override;
 
-    std::string get_description() const override;
+    GKO_DPCPP_EXPORT std::string get_description() const override;
 
     /**
      * Get the DPCPP device id of the device associated to this executor.
@@ -2051,7 +2078,7 @@ public:
      *
      * @return the number of devices present on the system
      */
-    static int get_num_devices(std::string device_type);
+    GKO_DPCPP_EXPORT static int get_num_devices(std::string device_type);
 
     /**
      * Get the available subgroup sizes for this device.

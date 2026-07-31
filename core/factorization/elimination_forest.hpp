@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -41,7 +42,7 @@ struct elimination_forest {
 
 
 template <typename ValueType, typename IndexType>
-void compute_elimination_forest(
+GKO_EXPORT void compute_elimination_forest(
     const matrix::Csr<ValueType, IndexType>* mtx,
     std::unique_ptr<elimination_forest<IndexType>>& forest);
 

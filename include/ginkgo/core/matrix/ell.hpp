@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
 
@@ -95,10 +96,11 @@ public:
     using const_device_view =
         matrix::view::ell<const value_type, const index_type>;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Ell<next_precision<ValueType>, IndexType>* result) const override;
 
-    void move_to(Ell<next_precision<ValueType>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Ell<next_precision<ValueType>, IndexType>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
     friend class Ell<previous_precision<ValueType, 2>, IndexType>;
@@ -106,10 +108,11 @@ public:
         Ell<next_precision<ValueType, 2>, IndexType>>::convert_to;
     using ConvertibleTo<Ell<next_precision<ValueType, 2>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Ell<next_precision<ValueType, 2>, IndexType>* result) const override;
 
-    void move_to(Ell<next_precision<ValueType, 2>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Ell<next_precision<ValueType, 2>, IndexType>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
@@ -118,33 +121,35 @@ public:
         Ell<next_precision<ValueType, 3>, IndexType>>::convert_to;
     using ConvertibleTo<Ell<next_precision<ValueType, 3>, IndexType>>::move_to;
 
-    void convert_to(
+    GKO_EXPORT void convert_to(
         Ell<next_precision<ValueType, 3>, IndexType>* result) const override;
 
-    void move_to(Ell<next_precision<ValueType, 3>, IndexType>* result) override;
+    GKO_EXPORT void move_to(
+        Ell<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(Dense<ValueType>* other) const override;
+    GKO_EXPORT void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    GKO_EXPORT void move_to(Dense<ValueType>* other) override;
 
-    void convert_to(Csr<ValueType, IndexType>* other) const override;
+    GKO_EXPORT void convert_to(Csr<ValueType, IndexType>* other) const override;
 
-    void move_to(Csr<ValueType, IndexType>* other) override;
+    GKO_EXPORT void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void read(const mat_data& data) override;
+    GKO_EXPORT void read(const mat_data& data) override;
 
-    void read(const device_mat_data& data) override;
+    GKO_EXPORT void read(const device_mat_data& data) override;
 
-    void read(device_mat_data&& data) override;
+    GKO_EXPORT void read(device_mat_data&& data) override;
 
-    void write(mat_data& data) const override;
+    GKO_EXPORT void write(mat_data& data) const override;
 
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
+    GKO_EXPORT std::unique_ptr<Diagonal<ValueType>> extract_diagonal()
+        const override;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
+    GKO_EXPORT std::unique_ptr<absolute_type> compute_absolute() const override;
 
-    void compute_absolute_inplace() override;
+    GKO_EXPORT void compute_absolute_inplace() override;
 
     /**
      * Returns the values of the matrix.
@@ -258,10 +263,10 @@ public:
     }
 
     /** get the non-owning device view */
-    device_view get_device_view();
+    GKO_EXPORT device_view get_device_view();
 
     /** get the const non-owning device view */
-    const_device_view get_const_device_view() const;
+    GKO_EXPORT const_device_view get_const_device_view() const;
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.
@@ -274,7 +279,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Ell> create(
+    GKO_EXPORT static std::unique_ptr<Ell> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size = {},
         size_type num_stored_elements_per_row = 0, size_type stride = 0);
 
@@ -297,12 +302,10 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Ell> create(std::shared_ptr<const Executor> exec,
-                                       const dim<2>& size,
-                                       array<value_type> values,
-                                       array<index_type> col_idxs,
-                                       size_type num_stored_elements_per_row,
-                                       size_type stride);
+    GKO_EXPORT static std::unique_ptr<Ell> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<value_type> values, array<index_type> col_idxs,
+        size_type num_stored_elements_per_row, size_type stride);
 
     /**
      * @copydoc std::unique_ptr<Ell> create(std::shared_ptr<const Executor>,
@@ -337,7 +340,7 @@ public:
      *          (if they reside on the same executor as the matrix) or a copy of
      *          the arrays on the correct executor.
      */
-    static std::unique_ptr<const Ell> create_const(
+    GKO_EXPORT static std::unique_ptr<const Ell> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
@@ -348,34 +351,36 @@ public:
      * matrix with minimal stride if the dimensions don't match, then copies the
      * data over, ignoring padding.
      */
-    Ell& operator=(const Ell&);
+    GKO_EXPORT Ell& operator=(const Ell&);
 
     /**
      * Move-assigns an Ell matrix. Preserves the executor, moves the data over
      * preserving size and stride. Leaves the moved-from object in an empty
      * state (0x0 with empty Array).
      */
-    Ell& operator=(Ell&&);
+    GKO_EXPORT Ell& operator=(Ell&&);
 
     /**
      * Copy-constructs an Ell matrix. Inherits executor and dimensions, but
      * copies data without padding.
      */
-    Ell(const Ell&);
+    GKO_EXPORT Ell(const Ell&);
 
     /**
      * Move-constructs an Ell matrix. Inherits executor, dimensions and data
      * with padding. The moved-from object is empty (0x0 with empty Array).
      */
-    Ell(Ell&&);
+    GKO_EXPORT Ell(Ell&&);
 
 protected:
-    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
-        size_type num_stored_elements_per_row = 0, size_type stride = 0);
+    GKO_EXPORT Ell(std::shared_ptr<const Executor> exec,
+                   const dim<2>& size = {},
+                   size_type num_stored_elements_per_row = 0,
+                   size_type stride = 0);
 
-    Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
-        array<value_type> values, array<index_type> col_idxs,
-        size_type num_stored_elements_per_row, size_type stride);
+    GKO_EXPORT Ell(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                   array<value_type> values, array<index_type> col_idxs,
+                   size_type num_stored_elements_per_row, size_type stride);
 
     /**
      * Resizes the matrix to the given dimensions and row nonzero count.
@@ -388,10 +393,10 @@ protected:
      */
     void resize(dim<2> new_size, size_type max_row_nnz);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {

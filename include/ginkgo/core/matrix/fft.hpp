@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 
 
@@ -42,13 +43,14 @@ namespace matrix {
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft : public LinOp,
-            public EnableCloneable<Fft>,
-            public WritableToMatrixData<std::complex<float>, int32>,
-            public WritableToMatrixData<std::complex<float>, int64>,
-            public WritableToMatrixData<std::complex<double>, int32>,
-            public WritableToMatrixData<std::complex<double>, int64>,
-            public Transposable {
+class GKO_EXPORT_CLASS Fft
+    : public LinOp,
+      public EnableCloneable<Fft>,
+      public WritableToMatrixData<std::complex<float>, int32>,
+      public WritableToMatrixData<std::complex<float>, int64>,
+      public WritableToMatrixData<std::complex<double>, int32>,
+      public WritableToMatrixData<std::complex<double>, int64>,
+      public Transposable {
     friend class EnableCloneable<Fft>;
 
 public:
@@ -59,21 +61,25 @@ public:
     using index_type = int64;
     using transposed_type = Fft;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
-    void write(matrix_data<std::complex<float>, int32>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<float>, int32>& data) const override;
 
-    void write(matrix_data<std::complex<float>, int64>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<float>, int64>& data) const override;
 
-    void write(matrix_data<std::complex<double>, int32>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<double>, int32>& data) const override;
 
-    void write(matrix_data<std::complex<double>, int64>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<double>, int64>& data) const override;
 
-    dim<1> get_fft_size() const;
+    GKO_EXPORT dim<1> get_fft_size() const;
 
-    bool is_inverse() const;
+    GKO_EXPORT bool is_inverse() const;
 
     /**
      * Creates an empty Fourier matrix.
@@ -82,7 +88,8 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fft> create(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT static std::unique_ptr<Fft> create(
+        std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -92,18 +99,18 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fft> create(std::shared_ptr<const Executor> exec,
-                                       size_type size = 0,
-                                       bool inverse = false);
+    GKO_EXPORT static std::unique_ptr<Fft> create(
+        std::shared_ptr<const Executor> exec, size_type size = 0,
+        bool inverse = false);
 
 protected:
     Fft(std::shared_ptr<const Executor> exec, size_type size = 0,
         bool inverse = false);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     mutable array<char> buffer_;
@@ -141,13 +148,14 @@ private:
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft2 : public LinOp,
-             public EnableCloneable<Fft2>,
-             public WritableToMatrixData<std::complex<float>, int32>,
-             public WritableToMatrixData<std::complex<float>, int64>,
-             public WritableToMatrixData<std::complex<double>, int32>,
-             public WritableToMatrixData<std::complex<double>, int64>,
-             public Transposable {
+class GKO_EXPORT_CLASS Fft2
+    : public LinOp,
+      public EnableCloneable<Fft2>,
+      public WritableToMatrixData<std::complex<float>, int32>,
+      public WritableToMatrixData<std::complex<float>, int64>,
+      public WritableToMatrixData<std::complex<double>, int32>,
+      public WritableToMatrixData<std::complex<double>, int64>,
+      public Transposable {
     friend class EnableCloneable<Fft2>;
 
 public:
@@ -158,21 +166,25 @@ public:
     using index_type = int64;
     using transposed_type = Fft2;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
-    void write(matrix_data<std::complex<float>, int32>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<float>, int32>& data) const override;
 
-    void write(matrix_data<std::complex<float>, int64>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<float>, int64>& data) const override;
 
-    void write(matrix_data<std::complex<double>, int32>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<double>, int32>& data) const override;
 
-    void write(matrix_data<std::complex<double>, int64>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<double>, int64>& data) const override;
 
-    dim<2> get_fft_size() const;
+    GKO_EXPORT dim<2> get_fft_size() const;
 
-    bool is_inverse() const;
+    GKO_EXPORT bool is_inverse() const;
 
     /**
      * Creates an empty Fourier matrix.
@@ -181,7 +193,8 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fft2> create(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT static std::unique_ptr<Fft2> create(
+        std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -190,8 +203,8 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fft2> create(std::shared_ptr<const Executor> exec,
-                                        size_type size);
+    GKO_EXPORT static std::unique_ptr<Fft2> create(
+        std::shared_ptr<const Executor> exec, size_type size);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -202,18 +215,18 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fft2> create(std::shared_ptr<const Executor> exec,
-                                        size_type size1, size_type size2,
-                                        bool inverse = false);
+    GKO_EXPORT static std::unique_ptr<Fft2> create(
+        std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
+        bool inverse = false);
 
 protected:
     Fft2(std::shared_ptr<const Executor> exec, size_type size1 = 0,
          size_type size2 = 0, bool inverse = false);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     mutable array<char> buffer_;
@@ -254,13 +267,14 @@ private:
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft3 : public LinOp,
-             public EnableCloneable<Fft3>,
-             public WritableToMatrixData<std::complex<float>, int32>,
-             public WritableToMatrixData<std::complex<float>, int64>,
-             public WritableToMatrixData<std::complex<double>, int32>,
-             public WritableToMatrixData<std::complex<double>, int64>,
-             public Transposable {
+class GKO_EXPORT_CLASS Fft3
+    : public LinOp,
+      public EnableCloneable<Fft3>,
+      public WritableToMatrixData<std::complex<float>, int32>,
+      public WritableToMatrixData<std::complex<float>, int64>,
+      public WritableToMatrixData<std::complex<double>, int32>,
+      public WritableToMatrixData<std::complex<double>, int64>,
+      public Transposable {
     friend class EnableCloneable<Fft3>;
 
 public:
@@ -271,21 +285,25 @@ public:
     using index_type = int64;
     using transposed_type = Fft3;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
-    void write(matrix_data<std::complex<float>, int32>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<float>, int32>& data) const override;
 
-    void write(matrix_data<std::complex<float>, int64>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<float>, int64>& data) const override;
 
-    void write(matrix_data<std::complex<double>, int32>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<double>, int32>& data) const override;
 
-    void write(matrix_data<std::complex<double>, int64>& data) const override;
+    GKO_EXPORT void write(
+        matrix_data<std::complex<double>, int64>& data) const override;
 
-    dim<3> get_fft_size() const;
+    GKO_EXPORT dim<3> get_fft_size() const;
 
-    bool is_inverse() const;
+    GKO_EXPORT bool is_inverse() const;
 
     /**
      * Creates an empty Fourier matrix.
@@ -294,7 +312,8 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fft3> create(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT static std::unique_ptr<Fft3> create(
+        std::shared_ptr<const Executor> exec);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -303,8 +322,8 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fft3> create(std::shared_ptr<const Executor> exec,
-                                        size_type size);
+    GKO_EXPORT static std::unique_ptr<Fft3> create(
+        std::shared_ptr<const Executor> exec, size_type size);
 
     /**
      * Creates an Fourier matrix with the given dimensions.
@@ -316,18 +335,18 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Fft3> create(std::shared_ptr<const Executor> exec,
-                                        size_type size1, size_type size2,
-                                        size_type size3, bool inverse = false);
+    GKO_EXPORT static std::unique_ptr<Fft3> create(
+        std::shared_ptr<const Executor> exec, size_type size1, size_type size2,
+        size_type size3, bool inverse = false);
 
 protected:
     Fft3(std::shared_ptr<const Executor> exec, size_type size1 = 0,
          size_type size2 = 0, size_type size3 = 0, bool inverse = false);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
 private:
     mutable array<char> buffer_;

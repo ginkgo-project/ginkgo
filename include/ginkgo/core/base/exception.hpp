@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,8 +9,9 @@
 #include <exception>
 #include <string>
 
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
 #include <ginkgo/core/base/types.hpp>
-
 
 namespace gko {
 
@@ -185,7 +186,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_CUDA_EXPORT static std::string get_error(int64 error_code);
 };
 
 
@@ -208,7 +209,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_CUDA_EXPORT static std::string get_error(int64 error_code);
 };
 
 
@@ -231,7 +232,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_CUDA_EXPORT static std::string get_error(int64 error_code);
 };
 
 
@@ -254,7 +255,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_CUDA_EXPORT static std::string get_error(int64 error_code);
 };
 
 
@@ -277,7 +278,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_CUDA_EXPORT static std::string get_error(int64 error_code);
 };
 
 
@@ -300,7 +301,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_HIP_EXPORT static std::string get_error(int64 error_code);
 };
 
 
@@ -323,7 +324,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_HIP_EXPORT static std::string get_error(int64 error_code);
 };
 
 
@@ -346,7 +347,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_HIP_EXPORT static std::string get_error(int64 error_code);
 };
 
 
@@ -370,7 +371,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_HIP_EXPORT static std::string get_error(int64 error_code);
 };
 
 
@@ -393,7 +394,7 @@ public:
     {}
 
 private:
-    static std::string get_error(int64 error_code);
+    GKO_HIP_EXPORT static std::string get_error(int64 error_code);
 };
 
 

@@ -27,8 +27,14 @@ namespace set_all_statuses {
 }  // namespace set_all_statuses
 
 
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro) \
+    _export_macro GKO_DECLARE_SET_ALL_STATUSES_KERNEL
+
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(set_all_statuses,
-                                        GKO_DECLARE_SET_ALL_STATUSES_KERNEL);
+                                        GKO_DECLARE_ALL_AS_TEMPLATES);
+
+#undef GKO_DECLARE_ALL_AS_TEMPLATES
+
 }  // namespace kernels
 }  // namespace gko
 

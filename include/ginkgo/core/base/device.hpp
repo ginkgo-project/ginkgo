@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,7 +12,7 @@
 #include <type_traits>
 
 #include <ginkgo/config.hpp>
-
+#include <ginkgo/core/base/export_device.hpp>
 
 namespace gko {
 
@@ -38,7 +38,7 @@ private:
      *
      * @return recursive_mutex reference
      */
-    static std::mutex& get_mutex(int i);
+    GKO_DEVICE_EXPORT static std::mutex& get_mutex(int i);
 
     /**
      * get_num_execs gets the static num_execs reference at i.
@@ -47,7 +47,7 @@ private:
      *
      * @return int reference
      */
-    static int& get_num_execs(int i);
+    GKO_DEVICE_EXPORT static int& get_num_execs(int i);
 
     static constexpr int max_devices = 64;
 };
@@ -68,7 +68,7 @@ private:
      *
      * @return recursive_mutex reference
      */
-    static std::mutex& get_mutex(int i);
+    GKO_DEVICE_EXPORT static std::mutex& get_mutex(int i);
 
     /**
      * get_num_execs gets the static num_execs reference at i.
@@ -77,7 +77,7 @@ private:
      *
      * @return int reference
      */
-    static int& get_num_execs(int i);
+    GKO_DEVICE_EXPORT static int& get_num_execs(int i);
 
     static constexpr int max_devices = 64;
 };

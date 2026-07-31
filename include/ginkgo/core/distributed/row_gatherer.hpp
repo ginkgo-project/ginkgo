@@ -14,6 +14,7 @@
 
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/event.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
@@ -206,7 +207,7 @@ public:
     /*
      * Create method for an empty RowGatherer.
      */
-    static std::unique_ptr<RowGatherer> create(
+    GKO_EXPORT static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
     /*
@@ -225,7 +226,7 @@ public:
      *   imap);
      * ```
      */
-    static std::unique_ptr<RowGatherer> create(
+    GKO_EXPORT static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template);
 

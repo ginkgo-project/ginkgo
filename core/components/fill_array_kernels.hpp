@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,11 +27,11 @@ namespace kernels {
                         ValueType* data, size_type num_entries)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES          \
-    template <typename ValueType>             \
-    GKO_DECLARE_FILL_ARRAY_KERNEL(ValueType); \
-    template <typename ValueType>             \
-    GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)         \
+    template <typename ValueType>                           \
+    _export_macro GKO_DECLARE_FILL_ARRAY_KERNEL(ValueType); \
+    template <typename ValueType>                           \
+    _export_macro GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,

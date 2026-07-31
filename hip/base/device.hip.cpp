@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,20 +17,20 @@ namespace kernels {
 namespace hip {
 
 
-void reset_device(int device_id)
+GKO_HIP_EXPORT void reset_device(int device_id)
 {
     gko::detail::hip_scoped_device_id_guard guard{device_id};
     (void)hipDeviceReset();
 }
 
 
-void destroy_event(GKO_HIP_EVENT_STRUCT* event)
+GKO_HIP_EXPORT void destroy_event(GKO_HIP_EVENT_STRUCT* event)
 {
     GKO_ASSERT_NO_HIP_ERRORS(hipEventDestroy(event));
 }
 
 
-std::string get_device_name(int device_id)
+GKO_HIP_EXPORT std::string get_device_name(int device_id)
 {
     hipDeviceProp_t prop;
     GKO_ASSERT_NO_HIP_ERRORS(hipGetDeviceProperties(&prop, device_id));

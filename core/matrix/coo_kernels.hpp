@@ -64,21 +64,22 @@ namespace kernels {
                     size_type num_elems, ValueType* values)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);             \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType); \
-    template <typename ValueType>                                  \
-    GKO_DECLARE_COO_CONJ_ARRAY_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_COO_SPMV_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_COO_ADVANCED_SPMV_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_COO_SPMV2_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_COO_ADVANCED_SPMV2_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_COO_FILL_IN_DENSE_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_COO_EXTRACT_DIAGONAL_KERNEL(ValueType,           \
+                                                          IndexType);          \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_COO_CONJ_ARRAY_KERNEL(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(coo, GKO_DECLARE_ALL_AS_TEMPLATES);

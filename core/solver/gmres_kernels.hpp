@@ -46,13 +46,13 @@ namespace gmres {
                    matrix::view::dense<ValueType> hessenberg_col)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                \
-    template <typename ValueType>                   \
-    GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType);    \
-    template <typename ValueType>                   \
-    GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType); \
-    template <typename ValueType>                   \
-    GKO_DECLARE_GMRES_MULTI_DOT_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)               \
+    template <typename ValueType>                                 \
+    _export_macro GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType);    \
+    template <typename ValueType>                                 \
+    _export_macro GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType); \
+    template <typename ValueType>                                 \
+    _export_macro GKO_DECLARE_GMRES_MULTI_DOT_KERNEL(ValueType)
 
 
 }  // namespace gmres

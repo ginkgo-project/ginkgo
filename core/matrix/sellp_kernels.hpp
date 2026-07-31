@@ -70,23 +70,29 @@ namespace kernels {
         matrix::view::sellp<const ValueType, const IndexType> orig,     \
         matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_SELLP_SPMV_KERNEL(ValueType, IndexType);                   \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);    \
-    template <typename IndexType>                                          \
-    GKO_DECLARE_SELLP_COMPUTE_SLICE_SETS_KERNEL(IndexType);                \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);         \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_SELLP_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                           \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_SELLP_SPMV_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL(ValueType,           \
+                                                         IndexType);          \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL(ValueType,     \
+                                                               IndexType);    \
+    template <typename IndexType>                                             \
+    _export_macro GKO_DECLARE_SELLP_COMPUTE_SLICE_SETS_KERNEL(IndexType);     \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_SELLP_FILL_IN_DENSE_KERNEL(ValueType,           \
+                                                         IndexType);          \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_SELLP_CONVERT_TO_CSR_KERNEL(ValueType,          \
+                                                          IndexType);         \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_SELLP_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType,  \
+                                                                  IndexType); \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_SELLP_EXTRACT_DIAGONAL_KERNEL(ValueType,        \
+                                                            IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(sellp, GKO_DECLARE_ALL_AS_TEMPLATES);

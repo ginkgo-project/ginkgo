@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -72,19 +73,19 @@ enum class permute_mode : unsigned {
 
 
 /** Combines two permutation modes. */
-permute_mode operator|(permute_mode a, permute_mode b);
+GKO_EXPORT permute_mode operator|(permute_mode a, permute_mode b);
 
 
 /** Computes the intersection of two permutation modes. */
-permute_mode operator&(permute_mode a, permute_mode b);
+GKO_EXPORT permute_mode operator&(permute_mode a, permute_mode b);
 
 
 /** Computes the symmetric difference of two permutation modes. */
-permute_mode operator^(permute_mode a, permute_mode b);
+GKO_EXPORT permute_mode operator^(permute_mode a, permute_mode b);
 
 
 /** Prints a permutation mode. */
-std::ostream& operator<<(std::ostream& stream, permute_mode mode);
+GKO_EXPORT std::ostream& operator<<(std::ostream& stream, permute_mode mode);
 
 
 using mask_type = gko::uint64;
@@ -145,13 +146,13 @@ public:
      * array.
      */
     GKO_DEPRECATED("use get_size()[0] instead")
-    size_type get_permutation_size() const noexcept;
+    GKO_EXPORT size_type get_permutation_size() const noexcept;
 
     GKO_DEPRECATED("permute mask is no longer supported")
-    mask_type get_permute_mask() const;
+    GKO_EXPORT mask_type get_permute_mask() const;
 
     GKO_DEPRECATED("permute mask is no longer supported")
-    void set_permute_mask(mask_type permute_mask);
+    GKO_EXPORT void set_permute_mask(mask_type permute_mask);
 
     /**
      * Returns the inverse permutation.
@@ -159,7 +160,7 @@ public:
      * @return a newly created Permutation object storing the inverse
      *         permutation of this Permutation.
      */
-    std::unique_ptr<Permutation> compute_inverse() const;
+    GKO_EXPORT std::unique_ptr<Permutation> compute_inverse() const;
 
     /**
      * Composes this permutation with another permutation.
@@ -172,10 +173,11 @@ public:
      * @param other  the other permutation
      * @return the combined permutation
      */
-    std::unique_ptr<Permutation> compose(
+    GKO_EXPORT std::unique_ptr<Permutation> compose(
         ptr_param<const Permutation> other) const;
 
-    void write(gko::matrix_data<value_type, index_type>& data) const override;
+    GKO_EXPORT void write(
+        gko::matrix_data<value_type, index_type>& data) const override;
 
     /**
      * Creates an uninitialized Permutation arrays on the specified executor.
@@ -184,7 +186,7 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Permutation> create(
+    GKO_EXPORT static std::unique_ptr<Permutation> create(
         std::shared_ptr<const Executor> exec, size_type size = 0);
 
     /**
@@ -202,28 +204,28 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Permutation> create(
+    GKO_EXPORT static std::unique_ptr<Permutation> create(
         std::shared_ptr<const Executor> exec,
         array<IndexType> permutation_indices);
 
     GKO_DEPRECATED(
         "dim<2> is no longer supported as a dimension parameter, use size_type "
         "instead")
-    static std::unique_ptr<Permutation> create(
+    GKO_EXPORT static std::unique_ptr<Permutation> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size);
 
     GKO_DEPRECATED("permute mask is no longer supported")
-    static std::unique_ptr<Permutation> create(
+    GKO_EXPORT static std::unique_ptr<Permutation> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         const mask_type& enabled_permute);
 
     GKO_DEPRECATED("use the overload without dimensions")
-    static std::unique_ptr<Permutation> create(
+    GKO_EXPORT static std::unique_ptr<Permutation> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<IndexType> permutation_indices);
 
     GKO_DEPRECATED("permute mask is no longer supported")
-    static std::unique_ptr<Permutation> create(
+    GKO_EXPORT static std::unique_ptr<Permutation> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<index_type> permutation_indices,
         const mask_type& enabled_permute);
@@ -240,7 +242,7 @@ public:
      *          the array on the correct executor.
      */
     GKO_DEPRECATED("use create_const without size and permute mask")
-    static std::unique_ptr<const Permutation> create_const(
+    GKO_EXPORT static std::unique_ptr<const Permutation> create_const(
         std::shared_ptr<const Executor> exec, size_type size,
         gko::detail::const_array_view<IndexType>&& perm_idxs,
         mask_type enabled_permute = row_permute);
@@ -255,20 +257,20 @@ public:
      *          (if it resides on the same executor as the matrix) or a copy of
      *          the array on the correct executor.
      */
-    static std::unique_ptr<const Permutation> create_const(
+    GKO_EXPORT static std::unique_ptr<const Permutation> create_const(
         std::shared_ptr<const Executor> exec,
         gko::detail::const_array_view<IndexType>&& perm_idxs);
 
 protected:
-    Permutation(std::shared_ptr<const Executor> exec, size_type = 0);
+    GKO_EXPORT Permutation(std::shared_ptr<const Executor> exec, size_type = 0);
 
-    Permutation(std::shared_ptr<const Executor> exec,
-                array<IndexType> permutation_indices);
+    GKO_EXPORT Permutation(std::shared_ptr<const Executor> exec,
+                           array<IndexType> permutation_indices);
 
-    void apply_impl(const LinOp* in, LinOp* out) const override;
+    GKO_EXPORT void apply_impl(const LinOp* in, LinOp* out) const override;
 
-    void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
-                    LinOp* out) const override;
+    GKO_EXPORT void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
+                               LinOp* out) const override;
 
 private:
     array<index_type> permutation_;

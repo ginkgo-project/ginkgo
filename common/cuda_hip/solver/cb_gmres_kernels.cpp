@@ -7,6 +7,7 @@
 #include <algorithm>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/export_hook.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,9 +41,9 @@ namespace kernels {
                                 IndexType* counts, size_type num_entries)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES \
-    template <typename IndexType>    \
-    GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro) \
+    template <typename IndexType>                   \
+    _export_macro GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,

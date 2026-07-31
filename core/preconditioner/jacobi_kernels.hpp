@@ -137,36 +137,40 @@ namespace kernels {
                   const array<IndexType>& block_pointers,        \
                   matrix::Csr<ValueType, IndexType>* csr)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_JACOBI_GENERATE_KERNEL(ValueType, IndexType);         \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL(ValueType);                 \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL(ValueType);             \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL(ValueType);                \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_JACOBI_APPLY_KERNEL(ValueType, IndexType);            \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL(ValueType);         \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType>                                     \
-    GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL(ValueType);     \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType, IndexType); \
-    GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL;                  \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_JACOBI_SCALAR_L1_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                 \
-    GKO_DECLARE_JACOBI_BLOCK_L1_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_JACOBI_GENERATE_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_JACOBI_SCALAR_CONJ_KERNEL(ValueType);            \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL(ValueType);        \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_JACOBI_SCALAR_APPLY_KERNEL(ValueType);           \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_JACOBI_APPLY_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_JACOBI_SIMPLE_SCALAR_APPLY_KERNEL(ValueType);    \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_JACOBI_SIMPLE_APPLY_KERNEL(ValueType,            \
+                                                         IndexType);           \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_JACOBI_TRANSPOSE_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_JACOBI_CONJ_TRANSPOSE_KERNEL(ValueType,          \
+                                                           IndexType);         \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_JACOBI_SCALAR_CONVERT_TO_DENSE_KERNEL(           \
+        ValueType);                                                            \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_JACOBI_CONVERT_TO_DENSE_KERNEL(ValueType,        \
+                                                             IndexType);       \
+    _export_macro GKO_DECLARE_JACOBI_INITIALIZE_PRECISIONS_KERNEL;             \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_JACOBI_SCALAR_L1_KERNEL(ValueType, IndexType);   \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_JACOBI_BLOCK_L1_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(jacobi, GKO_DECLARE_ALL_AS_TEMPLATES);

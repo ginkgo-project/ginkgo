@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -272,7 +273,7 @@ public:
      * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
-    index_type get_global_index(index_type local_index) const;
+    GKO_EXPORT index_type get_global_index(index_type local_index) const;
 
     /**
      * Return the local index given a global index.
@@ -294,7 +295,7 @@ public:
      * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
-    index_type get_local_index(index_type global_index) const;
+    GKO_EXPORT index_type get_local_index(index_type global_index) const;
 
     /**
      * This is an array version of the scalar function above.
@@ -310,7 +311,7 @@ public:
      * @note Passing local indices from [0, size) is equivalent to using the
      *       @to_global_indices function.
      */
-    array<index_type> map_local_to_global(
+    GKO_EXPORT array<index_type> map_local_to_global(
         const array<index_type>& local_indices,
         const bool is_sorted = false) const;
 
@@ -326,7 +327,7 @@ public:
      * @note Whenever possible, passing a sorted array is preferred as the
      *       queries can be significantly faster.
      */
-    array<index_type> map_global_to_local(
+    GKO_EXPORT array<index_type> map_global_to_local(
         const array<index_type>& global_indices,
         const bool is_sorted = false) const;
 
@@ -336,7 +337,7 @@ public:
      *
      * @return  the decompressed set of indices.
      */
-    array<index_type> to_global_indices() const;
+    GKO_EXPORT array<index_type> to_global_indices() const;
 
     /**
      * Checks if the individual global indeices exist in the index set.
@@ -348,8 +349,8 @@ public:
      * @return  the array that contains element wise whether the corresponding
      *          global index in the index set or not.
      */
-    array<bool> contains(const array<index_type>& global_indices,
-                         const bool is_sorted = false) const;
+    GKO_EXPORT array<bool> contains(const array<index_type>& global_indices,
+                                    const bool is_sorted = false) const;
 
     /**
      * Checks if the global index exists in the index set.
@@ -361,7 +362,7 @@ public:
      * @warning This single entry query can have significant kernel launch
      *          overheads and should be avoided if possible.
      */
-    bool contains(const index_type global_index) const;
+    GKO_EXPORT bool contains(const index_type global_index) const;
 
     /**
      * Returns the number of subsets stored in the index set.
@@ -406,8 +407,8 @@ public:
     }
 
 private:
-    void populate_subsets(const gko::array<index_type>& indices,
-                          const bool is_sorted);
+    GKO_EXPORT void populate_subsets(const gko::array<index_type>& indices,
+                                     const bool is_sorted);
 
     std::shared_ptr<const Executor> exec_;
     index_type index_space_size_;

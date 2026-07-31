@@ -705,7 +705,7 @@ public:
 
     virtual ~DiagonalExtractable() = default;
 
-    std::unique_ptr<LinOp> extract_diagonal_linop() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> extract_diagonal_linop() const override;
 
     /**
      * Extracts the diagonal entries of the matrix into a vector.

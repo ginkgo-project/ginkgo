@@ -101,7 +101,7 @@ protected:
     explicit NestedDissection(std::shared_ptr<const Executor> exec,
                               const parameters_type& params = {});
 
-    std::unique_ptr<LinOp> generate_impl(
+    GKO_EXPORT std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> system_matrix) const override;
 
 private:

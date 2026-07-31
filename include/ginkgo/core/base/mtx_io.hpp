@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,7 +30,7 @@ namespace gko {
  *       structure. Consider using gko::read instead.
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-matrix_data<ValueType, IndexType> read_raw(std::istream& is);
+GKO_EXPORT matrix_data<ValueType, IndexType> read_raw(std::istream& is);
 
 
 /**
@@ -65,7 +65,7 @@ matrix_data<ValueType, IndexType> read_raw(std::istream& is);
  *       structure. Consider using gko::read_binary instead.
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is);
+GKO_EXPORT matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is);
 
 
 /**
@@ -84,7 +84,7 @@ matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is);
  *       structure. Consider using gko::read_generic instead.
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-matrix_data<ValueType, IndexType> read_generic_raw(std::istream& is);
+GKO_EXPORT matrix_data<ValueType, IndexType> read_generic_raw(std::istream& is);
 
 
 /**
@@ -117,8 +117,9 @@ enum class layout_type {
  *       gko::write instead.
  */
 template <typename ValueType, typename IndexType>
-void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
-               layout_type layout = layout_type::coordinate);
+GKO_EXPORT void write_raw(std::ostream& os,
+                          const matrix_data<ValueType, IndexType>& data,
+                          layout_type layout = layout_type::coordinate);
 
 
 /**
@@ -138,8 +139,8 @@ void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
  *       gko::write_binary instead.
  */
 template <typename ValueType, typename IndexType>
-void write_binary_raw(std::ostream& os,
-                      const matrix_data<ValueType, IndexType>& data);
+GKO_EXPORT void write_binary_raw(std::ostream& os,
+                                 const matrix_data<ValueType, IndexType>& data);
 
 
 /**
@@ -317,7 +318,7 @@ inline void write(
  * @param os  output stream where the data is to be written
  * @param matrix  the matrix to write
  */
-void write(std::ostream& os, ptr_param<const LinOp> matrix);
+GKO_EXPORT void write(std::ostream& os, ptr_param<const LinOp> matrix);
 
 
 /**

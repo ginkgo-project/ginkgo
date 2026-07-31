@@ -991,18 +991,20 @@ void write_raw(std::ostream& os, const matrix_data<ValueType, IndexType>& data,
 
 
 #define GKO_DECLARE_READ_RAW(ValueType, IndexType) \
-    matrix_data<ValueType, IndexType> read_raw(std::istream& is)
-#define GKO_DECLARE_WRITE_RAW(ValueType, IndexType)               \
-    void write_raw(std::ostream& os,                              \
-                   const matrix_data<ValueType, IndexType>& data, \
-                   layout_type layout)
-#define GKO_DECLARE_READ_BINARY_RAW(ValueType, IndexType) \
-    matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is)
+    GKO_EXPORT matrix_data<ValueType, IndexType> read_raw(std::istream& is)
+#define GKO_DECLARE_WRITE_RAW(ValueType, IndexType)                          \
+    GKO_EXPORT void write_raw(std::ostream& os,                              \
+                              const matrix_data<ValueType, IndexType>& data, \
+                              layout_type layout)
+#define GKO_DECLARE_READ_BINARY_RAW(ValueType, IndexType)         \
+    GKO_EXPORT matrix_data<ValueType, IndexType> read_binary_raw( \
+        std::istream& is)
 #define GKO_DECLARE_WRITE_BINARY_RAW(ValueType, IndexType) \
-    void write_binary_raw(std::ostream& os,                \
-                          const matrix_data<ValueType, IndexType>& data)
-#define GKO_DECLARE_READ_GENERIC_RAW(ValueType, IndexType) \
-    matrix_data<ValueType, IndexType> read_generic_raw(std::istream& is)
+    GKO_EXPORT void write_binary_raw(                      \
+        std::ostream& os, const matrix_data<ValueType, IndexType>& data)
+#define GKO_DECLARE_READ_GENERIC_RAW(ValueType, IndexType)         \
+    GKO_EXPORT matrix_data<ValueType, IndexType> read_generic_raw( \
+        std::istream& is)
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WRITE_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_BINARY_RAW);

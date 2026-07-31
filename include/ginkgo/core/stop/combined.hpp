@@ -52,9 +52,10 @@ public:
                                                        parameters_type>;
 
     public:
-        explicit Factory(std::shared_ptr<const ::gko::Executor> exec);
-        explicit Factory(std::shared_ptr<const ::gko::Executor> exec,
-                         const parameters_type& parameters);
+        GKO_EXPORT explicit Factory(
+            std::shared_ptr<const ::gko::Executor> exec);
+        GKO_EXPORT explicit Factory(std::shared_ptr<const ::gko::Executor> exec,
+                                    const parameters_type& parameters);
 
         Factory(const Factory& other) = default;
         Factory(Factory&& other) = default;
@@ -67,9 +68,9 @@ public:
     const parameters_type& get_parameters() const { return parameters_; }
 
 protected:
-    bool check_impl(uint8 stoppingId, bool setFinalized,
-                    array<stopping_status>* stop_status, bool* one_changed,
-                    const Updater&) override;
+    GKO_EXPORT bool check_impl(uint8 stoppingId, bool setFinalized,
+                               array<stopping_status>* stop_status,
+                               bool* one_changed, const Updater&) override;
 
     explicit Combined(std::shared_ptr<const gko::Executor> exec);
 

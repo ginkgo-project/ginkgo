@@ -26,7 +26,8 @@ namespace ir {
                     array<stopping_status>& stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES GKO_DECLARE_IR_INITIALIZE_KERNEL
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro) \
+    _export_macro GKO_DECLARE_IR_INITIALIZE_KERNEL
 
 
 }  // namespace ir

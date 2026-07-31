@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,9 @@
 
 #include <optional>
 
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
 
 
@@ -23,7 +26,7 @@ void init_tau();
  * Global initialization of NVTX event categories
  * (can be called safely multiple times).
  */
-void init_nvtx();
+GKO_CUDA_EXPORT void init_nvtx();
 
 
 /** Starts a TAU profiling range through PerfStubs. */
@@ -31,18 +34,19 @@ void begin_tau(const char*, profile_event_category);
 
 
 /** Returns a function starting an NVTX profiling range with the given color. */
-ProfilerHook::hook_function begin_nvtx_fn(uint32 color_rgb);
+GKO_CUDA_EXPORT ProfilerHook::hook_function begin_nvtx_fn(uint32 color_rgb);
 
 
 /**
  * Returns a pair of functions starting and ending a VTune ITT profiling range.
  */
+GKO_DPCPP_EXPORT
 std::pair<ProfilerHook::hook_function, ProfilerHook::hook_function>
 create_vtune_fns();
 
 
 /** Starts a ROCTX profiling range. */
-void begin_roctx(const char*, profile_event_category);
+GKO_HIP_EXPORT void begin_roctx(const char*, profile_event_category);
 
 
 /** Ends a TAU profiling range through PerfStubs. */
@@ -50,11 +54,11 @@ void end_tau(const char*, profile_event_category);
 
 
 /** Ends an NVTX profiling range. */
-void end_nvtx(const char*, profile_event_category);
+GKO_CUDA_EXPORT void end_nvtx(const char*, profile_event_category);
 
 
 /** Ends a ROCTX profiling range. */
-void end_roctx(const char*, profile_event_category);
+GKO_HIP_EXPORT void end_roctx(const char*, profile_event_category);
 
 
 /** Global finalization of TAU through PerfStubs*/

@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export_hook.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -34,52 +35,52 @@
  *                const accessor, or not.
  */
 #define GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE_HELPER(_macro, _const)          \
-    template _macro(                                                           \
+    template GKO_EXPORT_HOOK _macro(                                           \
         double,                                                                \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, double, _const double>>));    \
-    template _macro(                                                           \
+    template GKO_EXPORT_HOOK _macro(                                           \
         double,                                                                \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, double, _const float>>));     \
-    template _macro(                                                           \
+    template GKO_EXPORT_HOOK _macro(                                           \
         double,                                                                \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, double, _const half>>));      \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   3, double, _const int64, 0b101>>));         \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   3, double, _const int32, 0b101>>));         \
-    template _macro(double,                                                    \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   3, double, _const int16, 0b101>>));         \
-    template _macro(                                                           \
+    template GKO_EXPORT_HOOK _macro(                                           \
+        double, GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<           \
+                               3, double, _const int64, 0b101>>));             \
+    template GKO_EXPORT_HOOK _macro(                                           \
+        double, GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<           \
+                               3, double, _const int32, 0b101>>));             \
+    template GKO_EXPORT_HOOK _macro(                                           \
+        double, GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<           \
+                               3, double, _const int16, 0b101>>));             \
+    template GKO_EXPORT_HOOK _macro(                                           \
         float,                                                                 \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, float, _const float>>));      \
-    template _macro(                                                           \
+    template GKO_EXPORT_HOOK _macro(                                           \
         float,                                                                 \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, float, _const half>>));       \
-    template _macro(float,                                                     \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   3, float, _const int32, 0b101>>));          \
-    template _macro(float,                                                     \
-                    GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<       \
-                                   3, float, _const int16, 0b101>>));          \
-    template _macro(                                                           \
+    template GKO_EXPORT_HOOK _macro(                                           \
+        float, GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<            \
+                              3, float, _const int32, 0b101>>));               \
+    template GKO_EXPORT_HOOK _macro(                                           \
+        float, GKO_UNPACK(acc::range<acc::scaled_reduced_row_major<            \
+                              3, float, _const int16, 0b101>>));               \
+    template GKO_EXPORT_HOOK _macro(                                           \
         std::complex<double>,                                                  \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, std::complex<double>,         \
                                               _const std::complex<double>>>)); \
-    template _macro(                                                           \
+    template GKO_EXPORT_HOOK _macro(                                           \
         std::complex<double>,                                                  \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, std::complex<double>,         \
                                               _const std::complex<float>>>));  \
-    template _macro(                                                           \
+    template GKO_EXPORT_HOOK _macro(                                           \
         std::complex<float>,                                                   \
         GKO_UNPACK(                                                            \
             acc::range<acc::reduced_row_major<3, std::complex<float>,          \
@@ -144,15 +145,16 @@ namespace kernels {
         const array<size_type>& final_iter_nums)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                            \
-    template <typename ValueType>                               \
-    GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType);          \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType, Accessor3d)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                           \
+    template <typename ValueType>                                             \
+    _export_macro GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType);          \
+    template <typename ValueType, typename Accessor3d>                        \
+    _export_macro GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d); \
+    template <typename ValueType, typename Accessor3d>                        \
+    _export_macro GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(ValueType, Accessor3d); \
+    template <typename ValueType, typename Accessor3d>                        \
+    _export_macro GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType,         \
+                                                           Accessor3d)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cb_gmres, GKO_DECLARE_ALL_AS_TEMPLATES);

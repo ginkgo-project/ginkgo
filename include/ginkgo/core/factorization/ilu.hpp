@@ -9,6 +9,7 @@
 #include <memory>
 
 #include <ginkgo/core/base/composition.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -163,7 +164,7 @@ protected:
      * @return  A Composition, containing the incomplete LU factors for the
      *          given system_matrix (first element is L, then U)
      */
-    std::unique_ptr<Composition<ValueType>> generate_l_u(
+    GKO_EXPORT std::unique_ptr<Composition<ValueType>> generate_l_u(
         const std::shared_ptr<const LinOp>& system_matrix,
         bool skip_sorting) const;
 };

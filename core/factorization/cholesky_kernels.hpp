@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,15 +58,16 @@ namespace kernels {
         array<int>& tmp_storage)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CHOLESKY_INITIALIZE(ValueType, IndexType);         \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_CHOLESKY_FACTORIZE(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                          \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_CHOLESKY_SYMBOLIC_COUNT(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_CHOLESKY_SYMBOLIC_FACTORIZE(ValueType,         \
+                                                          IndexType);        \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_CHOLESKY_INITIALIZE(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_CHOLESKY_FACTORIZE(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(cholesky, GKO_DECLARE_ALL_AS_TEMPLATES);

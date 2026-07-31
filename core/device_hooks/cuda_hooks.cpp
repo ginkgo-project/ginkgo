@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -90,7 +90,7 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-std::shared_ptr<CudaExecutor> CudaExecutor::create(
+GKO_CUDA_EXPORT std::shared_ptr<CudaExecutor> CudaExecutor::create(
     int device_id, std::shared_ptr<Executor> master,
     std::shared_ptr<CudaAllocatorBase> alloc, CUstream_st* stream)
 {
@@ -105,8 +105,10 @@ void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
 }
 
 
-void OmpExecutor::raw_copy_to(const CudaExecutor*, size_type num_bytes,
-                              const void* src_ptr, void* dest_ptr) const
+GKO_CUDA_EXPORT void OmpExecutor::raw_copy_to(const CudaExecutor*,
+                                              size_type num_bytes,
+                                              const void* src_ptr,
+                                              void* dest_ptr) const
     GKO_NOT_COMPILED(cuda);
 
 
@@ -235,7 +237,7 @@ namespace cuda {
 void reset_device(int device_id) GKO_NOT_COMPILED(cuda);
 
 
-void destroy_event(CUevent_st* event) GKO_NOT_COMPILED(cuda);
+GKO_CUDA_EXPORT void destroy_event(CUevent_st* event) GKO_NOT_COMPILED(cuda);
 
 
 }  // namespace cuda
@@ -245,14 +247,15 @@ void destroy_event(CUevent_st* event) GKO_NOT_COMPILED(cuda);
 namespace log {
 
 
-void init_nvtx() GKO_NOT_COMPILED(cuda);
+GKO_CUDA_EXPORT void init_nvtx() GKO_NOT_COMPILED(cuda);
 
 
-std::function<void(const char*, profile_event_category)> begin_nvtx_fn(
-    uint32_t color_rgb) GKO_NOT_COMPILED(cuda);
+GKO_CUDA_EXPORT std::function<void(const char*, profile_event_category)>
+begin_nvtx_fn(uint32_t color_rgb) GKO_NOT_COMPILED(cuda);
 
 
-void end_nvtx(const char*, profile_event_category) GKO_NOT_COMPILED(cuda);
+GKO_CUDA_EXPORT void end_nvtx(const char*, profile_event_category)
+    GKO_NOT_COMPILED(cuda);
 
 
 }  // namespace log

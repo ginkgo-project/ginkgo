@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,8 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+
+#include <ginkgo/core/base/export.hpp>
 
 
 namespace gko {
@@ -39,14 +41,14 @@ public:
     /**
      * Default constructor: create an empty node
      */
-    explicit pnode();
+    GKO_EXPORT explicit pnode();
 
     /**
      * Constructor for bool
      *
      * @param boolean  the bool type value
      */
-    explicit pnode(bool boolean);
+    GKO_EXPORT explicit pnode(bool boolean);
 
     /**
      * Constructor for integer with all integer type
@@ -64,57 +66,57 @@ public:
      *
      * @param str  string type value
      */
-    explicit pnode(const std::string& str);
+    GKO_EXPORT explicit pnode(const std::string& str);
 
     /**
      * Constructor for char* (otherwise, it will use bool)
      *
      * @param str  the string like "..."
      */
-    explicit pnode(const char* str);
+    GKO_EXPORT explicit pnode(const char* str);
 
     /**
      * Constructor for double (and also float)
      *
      * @param real  the floating point type value
      */
-    explicit pnode(double real);
+    GKO_EXPORT explicit pnode(double real);
 
     /**
      * Constructor for array
      *
      * @param array  an pnode array
      */
-    explicit pnode(const array_type& array);
+    GKO_EXPORT explicit pnode(const array_type& array);
 
     /**
      * Constructor for map
      *
      * @param map  a (string, pnode)-map
      */
-    explicit pnode(const map_type& map);
+    GKO_EXPORT explicit pnode(const map_type& map);
 
     /**
      * bool conversion. It's true if and only if it is not empty.
      */
-    explicit operator bool() const noexcept;
+    GKO_EXPORT explicit operator bool() const noexcept;
 
     /**
      * Check whether the representing data of two pnodes are the same
      */
-    bool operator==(const pnode& rhs) const;
+    GKO_EXPORT bool operator==(const pnode& rhs) const;
 
     /**
      * Check whether the representing data of two pnodes are different.
      */
-    bool operator!=(const pnode& rhs) const;
+    GKO_EXPORT bool operator!=(const pnode& rhs) const;
 
     /**
      * Get the current node tag.
      *
      * @return the tag
      */
-    tag_t get_tag() const;
+    GKO_EXPORT tag_t get_tag() const;
 
     /**
      * Access the array stored in this property node. Throws
@@ -122,7 +124,7 @@ public:
      *
      * @return the array
      */
-    const array_type& get_array() const;
+    GKO_EXPORT const array_type& get_array() const;
 
     /**
      * Access the map stored in this property node. Throws
@@ -130,7 +132,7 @@ public:
      *
      * @return the map
      */
-    const map_type& get_map() const;
+    GKO_EXPORT const map_type& get_map() const;
 
     /**
      * Access the boolean value stored in this property node. Throws
@@ -139,7 +141,7 @@ public:
      *
      * @return the boolean value
      */
-    bool get_boolean() const;
+    GKO_EXPORT bool get_boolean() const;
 
     /**
      * * Access the integer value stored in this property node. Throws
@@ -148,7 +150,7 @@ public:
      *
      * @return the integer value
      */
-    std::int64_t get_integer() const;
+    GKO_EXPORT std::int64_t get_integer() const;
 
     /**
      * Access the real floating point value stored in this property node. Throws
@@ -156,7 +158,7 @@ public:
      *
      * @return the real floating point value
      */
-    double get_real() const;
+    GKO_EXPORT double get_real() const;
 
     /**
      * Access the string stored in this property node. Throws
@@ -164,7 +166,7 @@ public:
      *
      * @return the string
      */
-    const std::string& get_string() const;
+    GKO_EXPORT const std::string& get_string() const;
 
     /**
      * This function is to access the data under the map. It will throw error
@@ -176,7 +178,7 @@ public:
      * @return node. If the map does not have the key, return
      * an empty node.
      */
-    const pnode& get(const std::string& key) const;
+    GKO_EXPORT const pnode& get(const std::string& key) const;
 
     /**
      * This function is to access the data under the array. It will throw error
@@ -186,7 +188,7 @@ public:
      *
      * @return node.
      */
-    const pnode& get(int index) const;
+    GKO_EXPORT const pnode& get(int index) const;
 
 private:
     void throw_if_not_contain(tag_t tag) const;

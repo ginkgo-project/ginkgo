@@ -83,29 +83,30 @@ namespace pgm {
                       const IndexType* gather_map, IndexType* result)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_MATCH_EDGE_KERNEL(IndexType);                  \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_COUNT_UNAGG_KERNEL(IndexType);                 \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_RENUMBER_KERNEL(IndexType);                    \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_SORT_AGG_KERNEL(IndexType);                    \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_MAP_ROW_KERNEL(IndexType);                     \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_MAP_COL_KERNEL(IndexType);                     \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_COUNT_UNREPEATED_NNZ_KERNEL(IndexType);        \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType);      \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_GATHER_INDEX(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                          \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_PGM_MATCH_EDGE_KERNEL(IndexType);              \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_PGM_COUNT_UNAGG_KERNEL(IndexType);             \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_PGM_RENUMBER_KERNEL(IndexType);                \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_PGM_SORT_AGG_KERNEL(IndexType);                \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_PGM_MAP_ROW_KERNEL(IndexType);                 \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_PGM_MAP_COL_KERNEL(IndexType);                 \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_PGM_COUNT_UNREPEATED_NNZ_KERNEL(IndexType);    \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR(ValueType,         \
+                                                          IndexType);        \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    _export_macro GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType);  \
+    template <typename IndexType>                                            \
+    _export_macro GKO_DECLARE_PGM_GATHER_INDEX(IndexType)
 
 
 }  // namespace pgm

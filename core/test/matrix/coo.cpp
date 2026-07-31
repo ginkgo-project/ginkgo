@@ -44,7 +44,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<Mtx> mtx;
+    std::shared_ptr<Mtx> mtx;
 
     void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
     {
@@ -79,9 +79,21 @@ protected:
 
 TYPED_TEST_SUITE(Coo, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
+void print_typeinfo(const std::type_info& t)
+{
+    std::cout << t.name() << " @" << static_cast<const void*>(&t) << std::endl;
+}
 
 TYPED_TEST(Coo, KnowsItsSize)
 {
+    auto c = gko::matrix::create_coo(this->exec);
+    auto c2 = gko::matrix::create_coo(this->exec);
+    print_typeinfo(typeid(*c));
+    print_typeinfo(typeid(*c2));
+    print_typeinfo(typeid(gko::matrix::Coo<double, int>));
+    print_typeinfo(typeid(*(this->mtx)));
+    std::cout << bool(typeid(*c) == typeid(gko::matrix::Coo<double, int>));
+    // std::cout << ptr << " " << lin_op_ptr << std::endl;
     ASSERT_EQ(this->mtx->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx->get_num_stored_elements(), 4);
 }

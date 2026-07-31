@@ -192,10 +192,10 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 private:
-    explicit Jacobi(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT explicit Jacobi(std::shared_ptr<const Executor> exec);
 
-    explicit Jacobi(const Factory* factory,
-                    std::shared_ptr<const BatchLinOp> system_matrix);
+    GKO_EXPORT explicit Jacobi(const Factory* factory,
+                               std::shared_ptr<const BatchLinOp> system_matrix);
 
     void generate_precond(const BatchLinOp* const system_matrix);
 

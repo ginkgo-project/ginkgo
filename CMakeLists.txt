@@ -197,6 +197,19 @@ option(
     "Enables mapping to Kokkos types to check the alignment of the source and target type."
     ON
 )
+option(
+    GINKGO_EXPORT_ALL_SYMBOLS
+    "Whether we export all symbols in shared library"
+    ON
+)
+if(NOT BUILD_SHARED_LIBS)
+    set(GINKGO_EXPORT_ALL_SYMBOLS
+        ON
+        CACHE BOOL
+        "Whether we export all symbols in shared library"
+        FORCE
+    )
+endif()
 gko_rename_cache(
     GINKGO_COMPILER_FLAGS
     CMAKE_CXX_FLAGS
@@ -263,7 +276,7 @@ if(MSVC)
     # After CMake 4.1, they do not add several flags for MSVC. (see Other Changes section in https://cmake.org/cmake/help/v4.1/release/4.1.html)
     # `/Zc:inline` is required in Ginkgo to reduce the symbol significantly, so we add it back here.
     set(CMAKE_CXX_FLAGS
-        "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive- /Zc:inline"
+        "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive- /Zc:inline /EHsc"
     )
 endif()
 if(MINGW OR CYGWIN)
@@ -488,14 +501,6 @@ endif()
 
 # Bundled third party libraries
 add_subdirectory(third_party) # Third-party tools and libraries
-
-if(MSVC)
-    if(BUILD_SHARED_LIBS)
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
-    else()
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS FALSE)
-    endif()
-endif()
 
 if(GINKGO_BUILD_SYCL)
     ginkgo_extract_dpcpp_version(

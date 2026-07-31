@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "common/cuda_hip/components/bitvector.hpp"
+
+#include <ginkgo/core/base/export_hook.hpp>
 
 namespace gko {
 namespace kernels {
@@ -10,10 +12,12 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace bitvector {
 
 
-template GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(gko::int32*);
-template GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(gko::int64*);
-template GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(const gko::int32*);
-template GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(const gko::int64*);
+template GKO_EXPORT_HOOK GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(gko::int32*);
+template GKO_EXPORT_HOOK GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(gko::int64*);
+template GKO_EXPORT_HOOK GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(
+    const gko::int32*);
+template GKO_EXPORT_HOOK GKO_DECLARE_BITVECTOR_FROM_SORTED_INDICES(
+    const gko::int64*);
 
 
 }  // namespace bitvector

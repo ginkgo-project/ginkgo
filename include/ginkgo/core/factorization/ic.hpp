@@ -9,6 +9,7 @@
 #include <memory>
 
 #include <ginkgo/core/base/composition.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -150,7 +151,7 @@ protected:
         }
     }
 
-    std::unique_ptr<Composition<ValueType>> generate(
+    GKO_EXPORT std::unique_ptr<Composition<ValueType>> generate(
         const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
         bool both_factors) const;
 };

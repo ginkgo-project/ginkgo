@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/batch_lin_op.hpp>
 #include <ginkgo/core/base/batch_multi_vector.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -48,8 +49,8 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    void apply(ptr_param<const MultiVector<value_type>> b,
-               ptr_param<MultiVector<value_type>> x);
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<MultiVector<value_type>> x);
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
@@ -61,26 +62,26 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    void apply(ptr_param<const MultiVector<value_type>> alpha,
-               ptr_param<const MultiVector<value_type>> b,
-               ptr_param<const MultiVector<value_type>> beta,
-               ptr_param<MultiVector<value_type>> x);
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> alpha,
+                          ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<const MultiVector<value_type>> beta,
+                          ptr_param<MultiVector<value_type>> x);
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
-    void apply(ptr_param<const MultiVector<value_type>> b,
-               ptr_param<MultiVector<value_type>> x) const;
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, const
      * MultiVector<value_type>*, const MultiVector<value_type>*,
      * MultiVector<value_type>*)
      */
-    void apply(ptr_param<const MultiVector<value_type>> alpha,
-               ptr_param<const MultiVector<value_type>> b,
-               ptr_param<const MultiVector<value_type>> beta,
-               ptr_param<MultiVector<value_type>> x) const;
+    GKO_EXPORT void apply(ptr_param<const MultiVector<value_type>> alpha,
+                          ptr_param<const MultiVector<value_type>> b,
+                          ptr_param<const MultiVector<value_type>> beta,
+                          ptr_param<MultiVector<value_type>> x) const;
     /**
      * Creates an Identity matrix of the specified size.
      *
@@ -89,21 +90,21 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Identity> create(
+    GKO_EXPORT static std::unique_ptr<Identity> create(
         std::shared_ptr<const Executor> exec,
         const batch_dim<2>& size = batch_dim<2>{});
 
 private:
-    Identity(std::shared_ptr<const Executor> exec,
-             const batch_dim<2>& size = batch_dim<2>{});
+    GKO_EXPORT Identity(std::shared_ptr<const Executor> exec,
+                        const batch_dim<2>& size = batch_dim<2>{});
 
-    void apply_impl(const MultiVector<value_type>* b,
-                    MultiVector<value_type>* x) const;
+    GKO_EXPORT void apply_impl(const MultiVector<value_type>* b,
+                               MultiVector<value_type>* x) const;
 
-    void apply_impl(const MultiVector<value_type>* alpha,
-                    const MultiVector<value_type>* b,
-                    const MultiVector<value_type>* beta,
-                    MultiVector<value_type>* x) const;
+    GKO_EXPORT void apply_impl(const MultiVector<value_type>* alpha,
+                               const MultiVector<value_type>* b,
+                               const MultiVector<value_type>* beta,
+                               MultiVector<value_type>* x) const;
 };
 
 

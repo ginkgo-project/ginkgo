@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -188,7 +189,7 @@ public:
      *
      * @return  size of part.
      */
-    local_index_type get_part_size(comm_index_type part) const;
+    GKO_EXPORT local_index_type get_part_size(comm_index_type part) const;
 
     /**
      * Returns the range IDs segmented by their part ID.
@@ -205,7 +206,7 @@ public:
      *
      * @return  true if each part has no more than one contiguous range.
      */
-    bool has_connected_parts() const;
+    GKO_EXPORT bool has_connected_parts() const;
 
     /**
      * Checks if the ranges are ordered by their part index.
@@ -214,7 +215,7 @@ public:
      *
      * @return  true if the ranges are ordered by their part index.
      */
-    bool has_ordered_parts() const;
+    GKO_EXPORT bool has_ordered_parts() const;
 
     /**
      * Builds a partition from a given mapping global_index -> part_id.
@@ -225,7 +226,7 @@ public:
      *
      * @return  a Partition representing the given mapping as a set of ranges
      */
-    static std::unique_ptr<Partition> build_from_mapping(
+    GKO_EXPORT static std::unique_ptr<Partition> build_from_mapping(
         std::shared_ptr<const Executor> exec,
         const array<comm_index_type>& mapping, comm_index_type num_parts);
 
@@ -242,7 +243,7 @@ public:
      *
      * @return  a Partition representing the given contiguous partitioning.
      */
-    static std::unique_ptr<Partition> build_from_contiguous(
+    GKO_EXPORT static std::unique_ptr<Partition> build_from_contiguous(
         std::shared_ptr<const Executor> exec,
         const array<global_index_type>& ranges,
         const array<comm_index_type>& part_ids = {});
@@ -258,7 +259,7 @@ public:
      * `floor(global_size/num_parts)` or `floor(global_size/num_parts) + 1`
      * indices.
      */
-    static std::unique_ptr<Partition> build_from_global_size_uniform(
+    GKO_EXPORT static std::unique_ptr<Partition> build_from_global_size_uniform(
         std::shared_ptr<const Executor> exec, comm_index_type num_parts,
         global_index_type global_size);
 
@@ -266,7 +267,7 @@ private:
     Partition(std::shared_ptr<const Executor> exec,
               comm_index_type num_parts = 0, size_type num_ranges = 0);
 
-    static std::unique_ptr<Partition> create(
+    GKO_EXPORT static std::unique_ptr<Partition> create(
         std::shared_ptr<const Executor> exec, comm_index_type num_parts = 0,
         size_type num_ranges = 0);
 

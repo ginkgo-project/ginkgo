@@ -58,21 +58,25 @@ namespace kernels {
                         const matrix::Diagonal<ValueType>* orig,     \
                         matrix::Diagonal<ValueType>* trans)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
-    template <typename ValueType>                                          \
-    GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL(ValueType);                 \
-    template <typename ValueType>                                          \
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL(ValueType);           \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType>                                          \
-    GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL(ValueType);       \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_DENSE_KERNEL(ValueType); \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(ValueType,          \
+                                                           IndexType);         \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType,    \
+                                                                 IndexType);   \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL(ValueType,   \
+                                                                  IndexType);  \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_DIAGONAL_CONVERT_TO_CSR_KERNEL(ValueType,        \
+                                                             IndexType);       \
+    template <typename ValueType>                                              \
+    _export_macro GKO_DECLARE_DIAGONAL_CONJ_TRANSPOSE_KERNEL(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(diagonal, GKO_DECLARE_ALL_AS_TEMPLATES);

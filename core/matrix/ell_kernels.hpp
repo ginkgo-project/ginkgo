@@ -76,29 +76,32 @@ namespace kernels {
         matrix::view::ell<const ValueType, const IndexType> orig,     \
         matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
-    template <typename InputValueType, typename MatrixValueType,          \
-              typename OutputValueType, typename IndexType>               \
-    GKO_DECLARE_ELL_SPMV_KERNEL(InputValueType, MatrixValueType,          \
-                                OutputValueType, IndexType);              \
-    template <typename InputValueType, typename MatrixValueType,          \
-              typename OutputValueType, typename IndexType>               \
-    GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(InputValueType, MatrixValueType, \
-                                         OutputValueType, IndexType);     \
-    template <typename IndexType>                                         \
-    GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL(IndexType);                \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ELL_COPY_KERNEL(ValueType, IndexType);                    \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);          \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>                     \
-    GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename InputValueType, typename MatrixValueType,               \
+              typename OutputValueType, typename IndexType>                    \
+    _export_macro GKO_DECLARE_ELL_SPMV_KERNEL(InputValueType, MatrixValueType, \
+                                              OutputValueType, IndexType);     \
+    template <typename InputValueType, typename MatrixValueType,               \
+              typename OutputValueType, typename IndexType>                    \
+    _export_macro GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(                        \
+        InputValueType, MatrixValueType, OutputValueType, IndexType);          \
+    template <typename IndexType>                                              \
+    _export_macro GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL(IndexType);       \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType,        \
+                                                             IndexType);       \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_FILL_IN_DENSE_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_COPY_KERNEL(ValueType, IndexType);           \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_CONVERT_TO_CSR_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType,     \
+                                                                IndexType);    \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_ELL_EXTRACT_DIAGONAL_KERNEL(ValueType,           \
+                                                          IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(ell, GKO_DECLARE_ALL_AS_TEMPLATES);

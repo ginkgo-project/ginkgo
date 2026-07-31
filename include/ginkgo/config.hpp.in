@@ -136,5 +136,10 @@
 #cmakedefine01 GINKGO_HAVE_OPENMPI_PRE_4_1_X
 // clang-format on
 
+/* Do we export all symbols in shared library build? */
+// clang-format off
+#cmakedefine01 GINKGO_EXPORT_ALL_SYMBOLS
+// clang-format on
+
 
 #endif  // GKO_INCLUDE_CONFIG_H

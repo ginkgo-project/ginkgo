@@ -183,8 +183,8 @@ protected:
      *                      finalized or not
      * @param stop_status  status of the stopping criterion
      */
-    void set_all_statuses(uint8 stopping_id, bool set_finalized,
-                          array<stopping_status>* stop_status);
+    GKO_EXPORT void set_all_statuses(uint8 stopping_id, bool set_finalized,
+                                     array<stopping_status>* stop_status);
 
     explicit Criterion(std::shared_ptr<const gko::Executor> exec)
         : PolymorphicObject(exec)

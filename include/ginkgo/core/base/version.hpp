@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,8 +9,13 @@
 #include <ostream>
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/export.hpp>
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
+#include <ginkgo/core/base/export_omp.hpp>
+#include <ginkgo/core/base/export_reference.hpp>
 #include <ginkgo/core/base/types.hpp>
-
 
 namespace gko {
 
@@ -197,17 +202,17 @@ private:
                        GKO_VERSION_TAG};
     }
 
-    static version get_core_version() noexcept;
+    static GKO_EXPORT version get_core_version() noexcept;
 
-    static version get_reference_version() noexcept;
+    static GKO_REFERENCE_EXPORT version get_reference_version() noexcept;
 
-    static version get_omp_version() noexcept;
+    static GKO_OMP_EXPORT version get_omp_version() noexcept;
 
-    static version get_cuda_version() noexcept;
+    static GKO_CUDA_EXPORT version get_cuda_version() noexcept;
 
-    static version get_hip_version() noexcept;
+    static GKO_HIP_EXPORT version get_hip_version() noexcept;
 
-    static version get_dpcpp_version() noexcept;
+    static GKO_DPCPP_EXPORT version get_dpcpp_version() noexcept;
 
     version_info()
         : header_version{get_header_version()},
@@ -229,7 +234,8 @@ private:
  *
  * @return os
  */
-std::ostream& operator<<(std::ostream& os, const version_info& ver_info);
+GKO_EXPORT std::ostream& operator<<(std::ostream& os,
+                                    const version_info& ver_info);
 
 
 }  // namespace gko

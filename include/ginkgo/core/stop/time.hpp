@@ -9,6 +9,7 @@
 #include <chrono>
 
 #include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
@@ -21,7 +22,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Time : public Criterion {
+class GKO_EXPORT Time : public Criterion {
 public:
     using clock = std::chrono::steady_clock;
 
@@ -87,7 +88,7 @@ private:
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<Time::Factory> time_limit(
+GKO_EXPORT deferred_factory_parameter<Time::Factory> time_limit(
     std::chrono::nanoseconds duration);
 
 

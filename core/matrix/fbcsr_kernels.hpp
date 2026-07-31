@@ -76,27 +76,34 @@ namespace kernels {
                           const matrix::Fbcsr<ValueType, IndexType>* orig, \
                           matrix::Diagonal<ValueType>* diag)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_SPMV_KERNEL(ValueType, IndexType);                \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                   \
-    GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                         \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_SPMV_KERNEL(ValueType, IndexType);      \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL(ValueType,         \
+                                                         IndexType);        \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType,   \
+                                                               IndexType);  \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_FILL_IN_DENSE_KERNEL(ValueType,         \
+                                                         IndexType);        \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_CONVERT_TO_CSR_KERNEL(ValueType,        \
+                                                          IndexType);       \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_TRANSPOSE_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_CONJ_TRANSPOSE_KERNEL(ValueType,        \
+                                                          IndexType);       \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_IS_SORTED_BY_COLUMN_INDEX(ValueType,    \
+                                                              IndexType);   \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_SORT_BY_COLUMN_INDEX(ValueType,         \
+                                                         IndexType);        \
+    template <typename ValueType, typename IndexType>                       \
+    _export_macro GKO_DECLARE_FBCSR_EXTRACT_DIAGONAL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(fbcsr, GKO_DECLARE_ALL_AS_TEMPLATES);

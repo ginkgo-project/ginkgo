@@ -50,16 +50,19 @@ namespace rs {
         matrix::Csr<ValueType, IndexType>* P)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                           \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL(ValueType, IndexType);                \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL(ValueType,  \
-                                                                   IndexType); \
-    template <typename ValueType, typename IndexType>                          \
-    GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                           \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType,     \
+                                                               IndexType);    \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro                                                             \
+        GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL(       \
+            ValueType, IndexType);                                            \
+    template <typename ValueType, typename IndexType>                         \
+    _export_macro GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL(ValueType,      \
+                                                              IndexType)
 
 
 }  // namespace rs

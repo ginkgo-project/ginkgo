@@ -29,7 +29,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-2022, windows-latest]
-    name: msvc/${{ matrix.os }}
+        symbols: [ON, OFF]
+    name: msvc/${{ matrix.os }}/symbols=${{ matrix.symbols }}
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout the latest code (shallow clone)
@@ -47,5 +48,6 @@ jobs:
         refreshenv
         mkdir build
         cd build
-        cmake -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF ..
+        cmake -DGINKGO_EXPORT_ALL_SYMBOLS=${{ matrix.symbols }} -DGINKGO_BUILD_OMP=OFF -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF ..
         cmake --build . -j4 --config Release
+        ctest . -C Release

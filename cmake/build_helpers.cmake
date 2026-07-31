@@ -220,3 +220,31 @@ function(
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp)
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver)
 endfunction()
+
+function(ginkgo_target_symbols name)
+    if(BUILD_SHARED_LIBS)
+        if(GINKGO_EXPORT_ALL_SYMBOLS)
+            if(MSVC)
+                set_target_properties(
+                    ${name}
+                    PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON
+                )
+            endif()
+        else()
+            set_target_properties(
+                ${name}
+                PROPERTIES
+                    CXX_VISIBILITY_PRESET hidden
+                    VISIBILITY_INLINES_HIDDEN ON
+                    CUDA_VISIBILITY_PRESET hidden
+                    HIP_VISIBILITY_PRESET hidden
+            )
+            target_compile_options(
+                ${name}
+                PRIVATE
+                    $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=-fvisibility-inlines-hidden>
+                    $<$<COMPILE_LANGUAGE:HIP>:-Xcompiler=-fvisibility-inlines-hidden>
+            )
+        endif()
+    endif()
+endfunction()

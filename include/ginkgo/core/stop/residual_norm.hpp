@@ -55,17 +55,19 @@ protected:
     using ComplexVector = matrix::Dense<to_complex<ValueType>>;
     using NormVector = matrix::Dense<absolute_type>;
     using Vector = matrix::Dense<ValueType>;
-    bool check_impl(uint8 stoppingId, bool setFinalized,
-                    array<stopping_status>* stop_status, bool* one_changed,
-                    const Criterion::Updater& updater) override;
+    GKO_EXPORT bool check_impl(uint8 stoppingId, bool setFinalized,
+                               array<stopping_status>* stop_status,
+                               bool* one_changed,
+                               const Criterion::Updater& updater) override;
 
-    explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
+    GKO_EXPORT explicit ResidualNormBase(
+        std::shared_ptr<const gko::Executor> exec)
         : Criterion(exec), device_storage_{exec, 2}
     {}
 
-    explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec,
-                              const CriterionArgs& args,
-                              absolute_type reduction_factor, mode baseline);
+    GKO_EXPORT explicit ResidualNormBase(
+        std::shared_ptr<const gko::Executor> exec, const CriterionArgs& args,
+        absolute_type reduction_factor, mode baseline);
 
     remove_complex<ValueType> reduction_factor_{};
     std::unique_ptr<NormVector> starting_tau_{};
@@ -201,9 +203,10 @@ public:
 protected:
     // check_impl needs to be overwritten again since we focus on the implicit
     // residual here
-    bool check_impl(uint8 stoppingId, bool setFinalized,
-                    array<stopping_status>* stop_status, bool* one_changed,
-                    const Criterion::Updater& updater) override;
+    GKO_EXPORT bool check_impl(uint8 stoppingId, bool setFinalized,
+                               array<stopping_status>* stop_status,
+                               bool* one_changed,
+                               const Criterion::Updater& updater) override;
 
     explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)
         : ResidualNormBase<ValueType>(exec)
@@ -251,28 +254,28 @@ protected:
  * @return a deferred_factory_parameter that can be passed to the
  *         `with_criteria` function when building a solver.
  */
-deferred_factory_parameter<CriterionFactory> absolute_residual_norm(
+GKO_EXPORT deferred_factory_parameter<CriterionFactory> absolute_residual_norm(
     double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> relative_residual_norm(
+GKO_EXPORT deferred_factory_parameter<CriterionFactory> relative_residual_norm(
     double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> initial_residual_norm(
+GKO_EXPORT deferred_factory_parameter<CriterionFactory> initial_residual_norm(
     double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> absolute_implicit_residual_norm(
-    double tolerance);
+GKO_EXPORT deferred_factory_parameter<CriterionFactory>
+absolute_implicit_residual_norm(double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> relative_implicit_residual_norm(
-    double tolerance);
+GKO_EXPORT deferred_factory_parameter<CriterionFactory>
+relative_implicit_residual_norm(double tolerance);
 
 /** @copydoc absolute_residual_norm */
-deferred_factory_parameter<CriterionFactory> initial_implicit_residual_norm(
-    double tolerance);
+GKO_EXPORT deferred_factory_parameter<CriterionFactory>
+initial_implicit_residual_norm(double tolerance);
 
 
 // The following classes are deprecated, but they internally reference

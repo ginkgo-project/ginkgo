@@ -25,3 +25,4 @@
     CXX_FLAGS: "-Wpedantic"
     EXTRA_CMAKE_FLAGS: ""
     CI_PROJECT_DIR_SUFFIX: ""
+    ALL_SYMBOLS: "ON"

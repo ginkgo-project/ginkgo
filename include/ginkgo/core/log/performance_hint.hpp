@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <iostream>
 #include <unordered_map>
 
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/log/logger.hpp>
 
 
@@ -26,25 +27,24 @@ namespace log {
  *
  * @ingroup log
  */
-class PerformanceHint : public Logger {
+class GKO_EXPORT_CLASS PerformanceHint : public Logger {
 public:
-    void on_allocation_completed(const Executor* exec,
-                                 const size_type& num_bytes,
-                                 const uintptr& location) const override;
+    GKO_EXPORT void on_allocation_completed(
+        const Executor* exec, const size_type& num_bytes,
+        const uintptr& location) const override;
 
-    void on_free_completed(const Executor* exec,
-                           const uintptr& location) const override;
+    GKO_EXPORT void on_free_completed(const Executor* exec,
+                                      const uintptr& location) const override;
 
-    void on_copy_completed(const Executor* from, const Executor* to,
-                           const uintptr& location_from,
-                           const uintptr& location_to,
-                           const size_type& num_bytes) const override;
+    GKO_EXPORT void on_copy_completed(
+        const Executor* from, const Executor* to, const uintptr& location_from,
+        const uintptr& location_to, const size_type& num_bytes) const override;
 
     /**
      * Writes out the cross-executor writes and allocations that have been
      * stored so far.
      */
-    void print_status() const;
+    GKO_EXPORT void print_status() const;
 
     /**
      * Creates a PerformanceHint logger. This dynamically allocates the memory,

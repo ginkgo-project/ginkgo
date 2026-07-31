@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,6 +14,7 @@
 #include <utility>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
@@ -178,7 +179,7 @@ public:
      *                        prefix in the key to simply avoid conflict with
      *                        ginkgo's map.
      */
-    registry(const configuration_map& additional_map = {});
+    GKO_EXPORT registry(const configuration_map& additional_map = {});
 
     /**
      * registry constructor
@@ -192,7 +193,7 @@ public:
      *                        prefix in the key to simply avoid conflict with
      *                        ginkgo's map.
      */
-    registry(
+    GKO_EXPORT registry(
         const std::unordered_map<std::string, detail::allowed_ptr>& stored_map,
         const configuration_map& additional_map = {});
 

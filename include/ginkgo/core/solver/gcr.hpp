@@ -10,6 +10,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -55,9 +56,9 @@ public:
     using value_type = ValueType;
     using transposed_type = Gcr<ValueType>;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
      * Return true as iterative solvers use the data in x as an initial guess.
@@ -110,13 +111,13 @@ public:
                                      config::make_type_descriptor<ValueType>());
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
     template <typename VectorType>
     void apply_dense_impl(const VectorType* b, VectorType* x) const;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
     explicit Gcr(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
@@ -140,17 +141,17 @@ template <typename ValueType>
 struct workspace_traits<Gcr<ValueType>> {
     using Solver = Gcr<ValueType>;
     // number of vectors used by this workspace
-    static int num_vectors(const Solver&);
+    GKO_EXPORT static int num_vectors(const Solver&);
     // number of arrays used by this workspace
-    static int num_arrays(const Solver&);
+    GKO_EXPORT static int num_arrays(const Solver&);
     // array containing the num_vectors names for the workspace vectors
-    static std::vector<std::string> op_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> op_names(const Solver&);
     // array containing the num_arrays names for the workspace vectors
-    static std::vector<std::string> array_names(const Solver&);
+    GKO_EXPORT static std::vector<std::string> array_names(const Solver&);
     // array containing all varying scalar vectors (independent of problem size)
-    static std::vector<int> scalars(const Solver&);
+    GKO_EXPORT static std::vector<int> scalars(const Solver&);
     // array containing all varying vectors (dependent on problem size)
-    static std::vector<int> vectors(const Solver&);
+    GKO_EXPORT static std::vector<int> vectors(const Solver&);
 
     // residual vector
     constexpr static int residual = 0;

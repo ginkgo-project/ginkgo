@@ -7,6 +7,7 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 
@@ -73,8 +74,9 @@ struct value_span {
  * BlockOperator, which will requires copying any block that is associated with
  * a different executor.
  */
-class BlockOperator final : public LinOp,
-                            public EnableCloneable<BlockOperator> {
+class GKO_EXPORT_CLASS BlockOperator final
+    : public LinOp,
+      public EnableCloneable<BlockOperator> {
     friend class EnableCloneable<BlockOperator>;
 
 public:
@@ -107,7 +109,7 @@ public:
      *
      * @return  empty BlockOperator.
      */
-    static std::unique_ptr<BlockOperator> create(
+    GKO_EXPORT static std::unique_ptr<BlockOperator> create(
         std::shared_ptr<const Executor> exec);
 
     /**
@@ -119,7 +121,7 @@ public:
      *
      * @return  BlockOperator with the given blocks.
      */
-    static std::unique_ptr<BlockOperator> create(
+    GKO_EXPORT static std::unique_ptr<BlockOperator> create(
         std::shared_ptr<const Executor> exec,
         std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks);
 
@@ -127,20 +129,20 @@ public:
      * Copy constructs a BlockOperator. The executor of other is used for this.
      * The blocks of other are deep-copied into this, using clone.
      */
-    BlockOperator(const BlockOperator& other);
+    GKO_EXPORT BlockOperator(const BlockOperator& other);
 
     /**
      * Move constructs a BlockOperator. The executor of other is used for this.
      * All remaining data of other is moved into this. After this operation,
      * other will be empty.
      */
-    BlockOperator(BlockOperator&& other) noexcept;
+    GKO_EXPORT BlockOperator(BlockOperator&& other) noexcept;
 
     /**
      * Copy assigns a BlockOperator. The executor of this is not modified.
      * The blocks of other are deep-copied into this, using clone.
      */
-    BlockOperator& operator=(const BlockOperator& other);
+    GKO_EXPORT BlockOperator& operator=(const BlockOperator& other);
 
     /**
      * Move assigns a BlockOperator. The executor of this is not modified.
@@ -148,19 +150,19 @@ public:
      * executor of this and other differ, the blocks will be copied to the
      * executor of this. After this operation, other will be empty.
      */
-    BlockOperator& operator=(BlockOperator&& other);
+    GKO_EXPORT BlockOperator& operator=(BlockOperator&& other);
 
 private:
-    explicit BlockOperator(std::shared_ptr<const Executor> exec);
+    GKO_EXPORT explicit BlockOperator(std::shared_ptr<const Executor> exec);
 
-    BlockOperator(
+    GKO_EXPORT BlockOperator(
         std::shared_ptr<const Executor> exec,
         std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override;
 
     dim<2> block_size_;
     std::vector<detail::value_span> row_spans_;

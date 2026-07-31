@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/export.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -210,9 +211,9 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
-    std::unique_ptr<LinOp> transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> transpose() const override;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    GKO_EXPORT std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
     explicit Isai(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
@@ -243,13 +244,13 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp* b, LinOp* x) const override
+    GKO_EXPORT void apply_impl(const LinOp* b, LinOp* x) const override
     {
         approximate_inverse_->apply(b, x);
     }
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
+    GKO_EXPORT void apply_impl(const LinOp* alpha, const LinOp* b,
+                               const LinOp* beta, LinOp* x) const override
     {
         approximate_inverse_->apply(alpha, b, beta, x);
     }
@@ -265,9 +266,10 @@ private:
      * @param skip_sorting  dictates if the sorting of the input matrix should
      *                      be skipped.
      */
-    void generate_inverse(std::shared_ptr<const LinOp> to_invert,
-                          bool skip_sorting, int power, index_type excess_limit,
-                          remove_complex<value_type> excess_solver_reduction);
+    GKO_EXPORT void generate_inverse(
+        std::shared_ptr<const LinOp> to_invert, bool skip_sorting, int power,
+        index_type excess_limit,
+        remove_complex<value_type> excess_solver_reduction);
 
 private:
     std::shared_ptr<LinOp> approximate_inverse_;

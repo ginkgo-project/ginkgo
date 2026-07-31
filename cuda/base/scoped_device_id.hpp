@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,7 +16,8 @@ namespace detail {
 /**
  * A scoped device id for CUDA.
  */
-class cuda_scoped_device_id_guard : public generic_scoped_device_id_guard {
+class GKO_CUDA_EXPORT cuda_scoped_device_id_guard
+    : public generic_scoped_device_id_guard {
 public:
     /**
      * The constructor sets the device id to the passed in value for the

@@ -71,29 +71,33 @@ namespace kernels {
         const matrix::SparsityCsr<ValueType, IndexType>* to_check,    \
         bool& is_sorted)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    template <typename MatrixValueType, typename InputValueType,            \
-              typename OutputValueType, typename IndexType>                 \
-    GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(MatrixValueType, InputValueType,   \
-                                         OutputValueType, IndexType);       \
-    template <typename MatrixValueType, typename InputValueType,            \
-              typename OutputValueType, typename IndexType>                 \
-    GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(                          \
-        MatrixValueType, InputValueType, OutputValueType, IndexType);       \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType,     \
-                                                             IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_DIAGONAL_ELEMENT_PREFIX_SUM_KERNEL(ValueType,  \
-                                                                IndexType); \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType, IndexType);        \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX(ValueType, IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                            \
+    template <typename MatrixValueType, typename InputValueType,               \
+              typename OutputValueType, typename IndexType>                    \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_SPMV_KERNEL(                        \
+        MatrixValueType, InputValueType, OutputValueType, IndexType);          \
+    template <typename MatrixValueType, typename InputValueType,               \
+              typename OutputValueType, typename IndexType>                    \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(               \
+        MatrixValueType, InputValueType, OutputValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL(ValueType,     \
+                                                                IndexType);    \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(    \
+        ValueType, IndexType);                                                 \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_DIAGONAL_ELEMENT_PREFIX_SUM_KERNEL( \
+        ValueType, IndexType);                                                 \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_TRANSPOSE_KERNEL(ValueType,         \
+                                                            IndexType);        \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_SORT_BY_COLUMN_INDEX(ValueType,     \
+                                                                IndexType);    \
+    template <typename ValueType, typename IndexType>                          \
+    _export_macro GKO_DECLARE_SPARSITY_CSR_IS_SORTED_BY_COLUMN_INDEX(          \
+        ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(sparsity_csr,

@@ -104,3 +104,5 @@ endif()
 if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
+
+ginkgo_target_symbols(ginkgo_reference)

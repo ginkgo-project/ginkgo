@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,12 @@
 
 
 #include <memory>
+
+#include <ginkgo/core/base/export_cuda.hpp>
+#include <ginkgo/core/base/export_dpcpp.hpp>
+#include <ginkgo/core/base/export_hip.hpp>
+#include <ginkgo/core/base/export_omp.hpp>
+#include <ginkgo/core/base/export_reference.hpp>
 
 
 namespace gko {
@@ -83,7 +89,8 @@ public:
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id_guard(const ReferenceExecutor* exec, int device_id);
+    GKO_REFERENCE_EXPORT scoped_device_id_guard(const ReferenceExecutor* exec,
+                                                int device_id);
 
     /**
      * Create a scoped device id from an OmpExecutor.
@@ -93,7 +100,8 @@ public:
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id_guard(const OmpExecutor* exec, int device_id);
+    GKO_OMP_EXPORT scoped_device_id_guard(const OmpExecutor* exec,
+                                          int device_id);
 
     /**
      * Create a scoped device id from an CudaExecutor.
@@ -103,7 +111,8 @@ public:
      * @param exec  Not used.
      * @param device_id  The device id to use within the scope.
      */
-    scoped_device_id_guard(const CudaExecutor* exec, int device_id);
+    GKO_CUDA_EXPORT scoped_device_id_guard(const CudaExecutor* exec,
+                                           int device_id);
 
     /**
      * Create a scoped device id from an HipExecutor.
@@ -113,7 +122,8 @@ public:
      * @param exec  Not used.
      * @param device_id  The device id to use within the scope.
      */
-    scoped_device_id_guard(const HipExecutor* exec, int device_id);
+    GKO_HIP_EXPORT scoped_device_id_guard(const HipExecutor* exec,
+                                          int device_id);
 
     /**
      * Create a scoped device id from an DpcppExecutor.
@@ -123,7 +133,8 @@ public:
      * @param exec  Not used.
      * @param device_id  Not used.
      */
-    scoped_device_id_guard(const DpcppExecutor* exec, int device_id);
+    GKO_DPCPP_EXPORT scoped_device_id_guard(const DpcppExecutor* exec,
+                                            int device_id);
 
     scoped_device_id_guard() = default;
 

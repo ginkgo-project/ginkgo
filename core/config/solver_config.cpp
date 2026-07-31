@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -52,7 +52,7 @@ GKO_PARSE_VALUE_TYPE(Chebyshev, gko::solver::Chebyshev);
 
 
 template <>
-deferred_factory_parameter<gko::LinOpFactory>
+GKO_EXPORT deferred_factory_parameter<gko::LinOpFactory>
 parse<LinOpFactoryType::Multigrid>(const pnode& config, const registry& context,
                                    const gko::config::type_descriptor& td)
 {

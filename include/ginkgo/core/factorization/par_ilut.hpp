@@ -243,7 +243,7 @@ protected:
      * @return  A Composition, containing the incomplete LU factors for the
      *          given system_matrix (first element is L, then U)
      */
-    std::unique_ptr<Composition<ValueType>> generate_l_u(
+    GKO_EXPORT std::unique_ptr<Composition<ValueType>> generate_l_u(
         const std::shared_ptr<const LinOp>& system_matrix) const;
 };
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -66,7 +66,8 @@ struct DenseCache {
      * @param template_vec  Defines the configuration (executor, size, stride)
      *                      of the buffered vector.
      */
-    void init_from(const matrix::Dense<ValueType>* template_vec) const;
+    GKO_EXPORT void init_from(
+        const matrix::Dense<ValueType>* template_vec) const;
 
     /**
      * Initializes the buffered vector, if
@@ -77,7 +78,8 @@ struct DenseCache {
      * @param exec  Executor of the buffered vector.
      * @param size  Size of the buffered vector.
      */
-    void init(std::shared_ptr<const Executor> exec, dim<2> size) const;
+    GKO_EXPORT void init(std::shared_ptr<const Executor> exec,
+                         dim<2> size) const;
 
     /**
      * Reference access to the underlying vector.
@@ -118,10 +120,10 @@ struct GenericDenseCache {
 
     GenericDenseCache() = default;
     ~GenericDenseCache() = default;
-    GenericDenseCache(const GenericDenseCache&);
-    GenericDenseCache(GenericDenseCache&&) noexcept;
-    GenericDenseCache& operator=(const GenericDenseCache&);
-    GenericDenseCache& operator=(GenericDenseCache&&) noexcept;
+    GKO_EXPORT GenericDenseCache(const GenericDenseCache&);
+    GKO_EXPORT GenericDenseCache(GenericDenseCache&&) noexcept;
+    GKO_EXPORT GenericDenseCache& operator=(const GenericDenseCache&);
+    GKO_EXPORT GenericDenseCache& operator=(GenericDenseCache&&) noexcept;
 
     /**
      * Pointer access to the underlying vector with specific type.
@@ -129,7 +131,7 @@ struct GenericDenseCache {
      * @return  Pointer to the vector view.
      */
     template <typename ValueType>
-    std::shared_ptr<matrix::Dense<ValueType>> get(
+    GKO_EXPORT std::shared_ptr<matrix::Dense<ValueType>> get(
         std::shared_ptr<const Executor> exec, dim<2> size) const;
 
 private:
@@ -154,12 +156,13 @@ class ScalarCacheAccessor;
 struct ScalarCache {
     friend class ScalarCacheAccessor;
 
-    ScalarCache(std::shared_ptr<const Executor> executor, double scalar_value);
+    GKO_EXPORT ScalarCache(std::shared_ptr<const Executor> executor,
+                           double scalar_value);
     ~ScalarCache() = default;
-    ScalarCache(const ScalarCache& other);
-    ScalarCache(ScalarCache&& other) noexcept;
-    ScalarCache& operator=(const ScalarCache& other);
-    ScalarCache& operator=(ScalarCache&& other) noexcept;
+    GKO_EXPORT ScalarCache(const ScalarCache& other);
+    GKO_EXPORT ScalarCache(ScalarCache&& other) noexcept;
+    GKO_EXPORT ScalarCache& operator=(const ScalarCache& other);
+    GKO_EXPORT ScalarCache& operator=(ScalarCache&& other) noexcept;
 
     /**
      * Pointer access to the underlying vector with specific type.
@@ -167,7 +170,7 @@ struct ScalarCache {
      * @return  Pointer to the vector view.
      */
     template <typename ValueType>
-    std::shared_ptr<const matrix::Dense<ValueType>> get() const;
+    GKO_EXPORT std::shared_ptr<const matrix::Dense<ValueType>> get() const;
 
 private:
     std::shared_ptr<const Executor> exec;

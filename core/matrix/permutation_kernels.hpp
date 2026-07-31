@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,11 +38,11 @@ namespace kernels {
                  IndexType* combined_permutation)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                  \
-    template <typename IndexType>                     \
-    GKO_DECLARE_PERMUTATION_INVERT_KERNEL(IndexType); \
-    template <typename IndexType>                     \
-    GKO_DECLARE_PERMUTATION_COMPOSE_KERNEL(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro)                 \
+    template <typename IndexType>                                   \
+    _export_macro GKO_DECLARE_PERMUTATION_INVERT_KERNEL(IndexType); \
+    template <typename IndexType>                                   \
+    _export_macro GKO_DECLARE_PERMUTATION_COMPOSE_KERNEL(IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(permutation,

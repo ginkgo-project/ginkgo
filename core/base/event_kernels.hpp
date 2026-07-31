@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,7 +23,8 @@ namespace kernels {
                       std::shared_ptr<const detail::Event>& event)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES GKO_DECLARE_EVENT_RECORD_EVENT
+#define GKO_DECLARE_ALL_AS_TEMPLATES(_export_macro) \
+    _export_macro GKO_DECLARE_EVENT_RECORD_EVENT
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(event, GKO_DECLARE_ALL_AS_TEMPLATES);
