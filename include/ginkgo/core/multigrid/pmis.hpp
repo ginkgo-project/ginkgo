@@ -9,15 +9,12 @@
 #include <vector>
 
 #include <ginkgo/core/base/composition.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 
@@ -106,53 +103,20 @@ public:
             config::make_type_descriptor<ValueType, IndexType>());
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override
-    {
-        this->get_composition()->apply(b, x);
-    }
+    void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
-    {
-        this->get_composition()->apply(alpha, b, beta, x);
-    }
+                    LinOp* x) const;
 
-    explicit Pmis(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
-    {}
+    explicit Pmis(std::shared_ptr<const Executor> exec);
 
     explicit Pmis(const Factory* factory,
-                  std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(), system_matrix->get_size()),
-          EnableMultigridLevel<ValueType>(system_matrix),
-          parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix},
-          weight_(factory->get_executor(), system_matrix_->get_size()[0])
-    {
-        GKO_ASSERT(parameters_.strength_threshold <= 1.0);
-        GKO_ASSERT(parameters_.strength_threshold >= 0.0);
-        if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existed matrix
-            this->generate();
-        }
-    }
+                  std::shared_ptr<const LinOp> system_matrix);
 
     void generate();
 
-    /**
-     * This function generates the local matrix coarsening operators.
-     *
-     * @return a tuple with prolongation, coarse, and restriction linop
-     */
-    std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
-               std::shared_ptr<LinOp>>
-    generate_local(
-        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
-
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
-    // weight = the number of strong dependence + rand[0, 1]
-    gko::array<remove_complex<ValueType>> weight_;
 };
 
 

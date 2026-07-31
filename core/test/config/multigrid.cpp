@@ -10,6 +10,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/multigrid/fixed_coarsening.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/pmis.hpp>
 #include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
@@ -105,6 +106,35 @@ struct UniformCoarsening
 };
 
 
+struct Pmis : MultigridLevelConfigTest<gko::multigrid::Pmis<float, int>,
+                                       gko::multigrid::Pmis<double, int>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"multigrid::Pmis"}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
+                    std::shared_ptr<const gko::Executor> exec)
+    {
+        config_map["strength_threshold"] = pnode{0.1};
+        param.with_strength_threshold(decltype(param.strength_threshold){0.1});
+        config_map["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.strength_threshold, ans_param.strength_threshold);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+    }
+};
+
+
 template <typename T>
 class MultigridLevel : public ::testing::Test {
 protected:
@@ -120,7 +150,8 @@ protected:
 };
 
 
-using MultigridLevelTypes = ::testing::Types<::Pgm, ::UniformCoarsening>;
+using MultigridLevelTypes =
+    ::testing::Types<::Pgm, ::UniformCoarsening, ::Pmis>;
 
 
 TYPED_TEST_SUITE(MultigridLevel, MultigridLevelTypes, TypenameNameGenerator);

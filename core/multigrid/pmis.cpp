@@ -13,6 +13,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
+#include "core/base/array_access.hpp"
 #include "core/base/dispatch_helper.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -72,6 +73,44 @@ Pmis<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
+void Pmis<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+{
+    this->get_composition()->apply(b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Pmis<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                            const LinOp* beta, LinOp* x) const
+{
+    this->get_composition()->apply(alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+Pmis<ValueType, IndexType>::Pmis(std::shared_ptr<const Executor> exec)
+    : LinOp(std::move(exec))
+{}
+
+
+template <typename ValueType, typename IndexType>
+Pmis<ValueType, IndexType>::Pmis(const Factory* factory,
+                                 std::shared_ptr<const LinOp> system_matrix)
+    : LinOp(factory->get_executor(), system_matrix->get_size()),
+      EnableMultigridLevel<ValueType>(system_matrix),
+      parameters_{factory->get_parameters()},
+      system_matrix_{system_matrix}
+{
+    GKO_ASSERT(parameters_.strength_threshold <= 1.0);
+    GKO_ASSERT(parameters_.strength_threshold >= 0.0);
+    if (system_matrix_->get_size()[0] != 0) {
+        // generate on the existed matrix
+        this->generate();
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 void Pmis<ValueType, IndexType>::generate()
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
@@ -88,17 +127,18 @@ void Pmis<ValueType, IndexType>::generate()
 
     array<IndexType> sparsity_rows(exec, pmis_op->get_size()[0] + 1);
     array<remove_complex<ValueType>> row_maxabs(exec, pmis_op->get_size()[0]);
+    // weight = the number of strong dependence + rand[0, 1]
+    gko::array<remove_complex<ValueType>> weight_(exec, pmis_op->get_size()[0]);
     exec->run(
         pmis::make_compute_row_maxabs(pmis_op.get(), row_maxabs.get_data()));
-    // the number of #S_i into sparsity_row i
+    // the number of nonzero in strong_dep of node i (#S_i) into sparsity_row i
     exec->run(pmis::make_compute_strong_dep_row(
         pmis_op.get(), row_maxabs.get_const_data(),
         this->get_parameters().strength_threshold, sparsity_rows.get_data()));
     // build offset
     exec->run(pmis::make_prefix_sum_nonnegative(sparsity_rows.get_data(),
                                                 sparsity_rows.get_size()));
-    auto nnz = exec->copy_val_to_host(sparsity_rows.get_const_data() +
-                                      pmis_op->get_size()[0]);
+    auto nnz = get_element(sparsity_rows, pmis_op->get_size()[0]);
     array<IndexType> sparsity_cols(exec, nnz);
     auto strong_dep = matrix::SparsityCsr<ValueType, IndexType>::create(
         exec, pmis_op->get_size(), std::move(sparsity_cols),
@@ -129,10 +169,8 @@ void Pmis<ValueType, IndexType>::generate()
         size_type new_num = 0;
         exec->run(
             pmis::make_count(this->get_size()[0], new_status_ptr, &new_num));
-        if (new_num == num_not_assigned) {
-            // no progess -> throw error (maybe unneccessary)
-            throw std::runtime_error("no progress in Pmis");
-        }
+        GKO_THROW_IF_INVALID(new_num != num_not_assigned,
+                             "no progress in Pmis");
         num_not_assigned = new_num;
         std::swap(new_status_ptr, status_ptr);
     }
@@ -140,37 +178,41 @@ void Pmis<ValueType, IndexType>::generate()
     array<IndexType> prolong_row_ptrs(exec, pmis_op->get_size()[0] + 1);
     exec->run(pmis::make_direct_interpolation_row_count(
         strong_dep.get(), status_ptr, prolong_row_ptrs.get_data()));
-    // coarse_map[i] gives the coarse index from i if i is in coarse grid.
-    // if i is not in coarse grid, coarse_map[i] has no meaning;
-    // In theory, we can reuse status_ptr as coarse_map. We iterate the classify
+
+    // coarse_map[i] gives the coarse index from i if i will appear in coarse
+    // grid. if i is not in coarse grid, coarse_map[i] has no meaning; In
+    // theory, we can reuse status_ptr as coarse_map. We iterate the classify
     // process on status_ptr, so keeping that it in int not IndexType might give
-    // some performance benifit.
+    // some performance benefit.
     array<IndexType> coarse_map(exec, pmis_op->get_size()[0] + 1);
     exec->run(pmis::make_convert_precision(pmis_op->get_size()[0], status_ptr,
                                            coarse_map.get_data()));
     exec->run(pmis::make_prefix_sum_nonnegative(coarse_map.get_data(),
                                                 this->get_size()[0] + 1));
-    auto num_coarse = static_cast<size_type>(exec->copy_val_to_host(
-        coarse_map.get_const_data() + this->get_size()[0]));
-    // the following implements direct interpolation
-    //  create a coarse point map k in coarse -> c[k] c[k] in the fine
-    // construct interpolation w_ik k from S_ic[k] exists and c[k] is coarse
-    // point counte nnz per row again depends on S_ic[k] get row offset allocate
-    // col and value and move them into csr
+    auto num_coarse =
+        static_cast<size_type>(get_element(coarse_map, this->get_size()[0]));
+
+    // the following implements direct interpolation, c is coarse_map, which map
+    // the fine grid index k to coarse grid index c[k] if k will appear in
+    // coarse grid. Construct interpolation W which contain value w_{i, c[i]} if
+    // i will appear in coarse grid or w_{i, c[k]} if S_ik exists and k will
+    // appear in coarse grid.
 
     exec->run(pmis::make_prefix_sum_nonnegative(prolong_row_ptrs.get_data(),
                                                 this->get_size()[0] + 1));
-    IndexType prolong_nnz = exec->copy_val_to_host(
-        prolong_row_ptrs.get_const_data() + this->get_size()[0]);
+    IndexType prolong_nnz = get_element(prolong_row_ptrs, this->get_size()[0]);
     array<IndexType> prolong_col_idxs(exec, prolong_nnz);
     array<ValueType> prolong_values(exec, prolong_nnz);
+
     // alpha_i = sum(a_ij which a_ij < 0) / sum(a_ik which s_ik exist, a_ik < 0,
     // k is coarse point)
     // beta_i = sum(a_ij which a_ij > 0) / sum(a_ik which
     // s_ik exist, a_ik > 0, k is coarse point)
-    // if nothing in divisor, do not add the interpolation
-    // finish weight construction w_ik = {-alpha_i if a_ic[k] is
-    // negative or -beta_i if it is positive} * a_ic[k]/a_ii
+    // If there is no entry for alpha_i or beta_i, we consider it is empty.
+    // If the following formula uses empty alpha_i or beta_i, the weight will
+    // not have that entry. finish weight construction w_{i, c[k]} = {-alpha_i
+    // if a_ik is negative or -beta_i if it is positive} * a_ik/a_ii if i is
+    // fine point. If i is coarse point w_{i, c[i]} = 1
     exec->run(pmis::make_direct_interpolation_fill(
         pmis_op.get(), row_maxabs.get_const_data(),
         this->get_parameters().strength_threshold, coarse_map.get_const_data(),
