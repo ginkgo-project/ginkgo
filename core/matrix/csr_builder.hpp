@@ -43,6 +43,13 @@ public:
     Csr<ValueType, IndexType>* get_matrix() { return matrix_; }
 
     /**
+     * Returns the max nnz per row
+     *
+     * @note it currently only for testing to access the private member
+     */
+    IndexType get_max_nnz_per_row() { return matrix_->max_nnz_per_row_; }
+
+    /**
      * Initializes a CsrBuilder from an existing CSR matrix.
      */
     explicit CsrBuilder(ptr_param<Csr<ValueType, IndexType>> matrix)

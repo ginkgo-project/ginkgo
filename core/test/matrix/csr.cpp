@@ -8,6 +8,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/matrix/csr_builder.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -50,7 +51,7 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
+    void assert_equal_to_original_mtx(gko::ptr_param<Mtx> m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -70,9 +71,12 @@ protected:
         EXPECT_EQ(v[2], value_type{2.0});
         EXPECT_EQ(v[3], value_type{5.0});
         ASSERT_EQ(s, nullptr);
+        ASSERT_EQ(gko::matrix::make_builder_unique_ptr(m.get())
+                      ->get_max_nnz_per_row(),
+                  3);
     }
 
-    void assert_empty(gko::ptr_param<const Mtx> m)
+    void assert_empty(gko::ptr_param<Mtx> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -80,6 +84,9 @@ protected:
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_NE(m->get_const_row_ptrs(), nullptr);
         ASSERT_EQ(m->get_const_srow(), nullptr);
+        ASSERT_EQ(gko::matrix::make_builder_unique_ptr(m.get())
+                      ->get_max_nnz_per_row(),
+                  0);
     }
 };
 

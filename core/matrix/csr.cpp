@@ -318,6 +318,7 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         col_idxs_ = other.col_idxs_;
         row_ptrs_ = other.row_ptrs_;
         srow_ = other.srow_;
+        max_nnz_per_row_ = other.max_nnz_per_row_;
         strategy_ = other.strategy_;
         if (this->get_executor() != other.get_executor()) {
             // strategy can give different srow on different executor
@@ -338,6 +339,7 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         col_idxs_ = std::move(other.col_idxs_);
         row_ptrs_ = std::move(other.row_ptrs_);
         srow_ = std::move(other.srow_);
+        max_nnz_per_row_ = std::exchange(other.max_nnz_per_row_, 0);
         strategy_ = other.strategy_;
         if (this->get_executor() != other.get_executor()) {
             // strategy can give different srow on different executor

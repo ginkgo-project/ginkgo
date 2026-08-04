@@ -52,6 +52,18 @@ TYPED_TEST(CsrBuilder, ReturnsCorrectArrays)
 }
 
 
+TYPED_TEST(CsrBuilder, ReturnsCorrectMaxNnzPerRow)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    this->mtx->read(
+        {{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
+    gko::matrix::CsrBuilder<value_type, index_type> builder{this->mtx};
+
+    ASSERT_EQ(builder.get_max_nnz_per_row(), 3);
+}
+
+
 TYPED_TEST(CsrBuilder, HelperFunctionOnUniquePtrReturnCorrect)
 {
     auto ref_col_idxs = this->mtx->get_col_idxs();
