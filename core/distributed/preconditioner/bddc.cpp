@@ -1219,14 +1219,14 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             min_size = std::min(
                 min_size, static_cast<int>(local_sizes.get_const_data()[i]));
         }
-        // int nparts = 1;
-        int nparts = std::pow(
-            2,
-            std::ceil(std::log(std::ceil(
-                          static_cast<remove_complex<ValueType>>(
-                              n_global_interfaces) /
-                          static_cast<remove_complex<ValueType>>(min_size))) /
-                      std::log(2)));
+        int nparts = 1;
+        // int nparts = std::pow(
+        //     2,
+        //     std::ceil(std::log(std::ceil(
+        //                   static_cast<remove_complex<ValueType>>(
+        //                       n_global_interfaces) /
+        //                   static_cast<remove_complex<ValueType>>(min_size))) /
+        //               std::log(2)));
         // std::cout << "RANK " << comm.rank() << ": " << local_size << ", "
         // << min_size << ", " << n_global_interfaces << " ==> "
         // << nparts << std::endl;
