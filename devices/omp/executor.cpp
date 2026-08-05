@@ -7,20 +7,11 @@
 #include <cstdlib>
 #include <cstring>
 
-#include <omp.h>
-
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace gko {
-
-
-void OmpExecutor::populate_exec_info()
-{
-    this->get_exec_info().num_computing_units = omp_get_max_threads();
-    this->get_exec_info().num_pu_per_cu = 1;
-}
 
 
 void OmpExecutor::raw_free(void* ptr) const noexcept
