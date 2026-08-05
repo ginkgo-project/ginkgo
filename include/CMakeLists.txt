@@ -1,6 +1,5 @@
 if(GINKGO_CHECK_CIRCULAR_DEPS)
     add_library(ginkgo_public_api INTERFACE) # dummy target
-    target_link_libraries(ginkgo_public_api INTERFACE hwloc)
     set_property(
         TARGET ginkgo_public_api
         APPEND

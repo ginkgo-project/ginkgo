@@ -19,7 +19,6 @@
 
 #include <ginkgo/core/base/device.hpp>
 #include <ginkgo/core/base/fwd_decls.hpp>
-#include <ginkgo/core/base/machine_topology.hpp>
 #include <ginkgo/core/base/memory.hpp>
 #include <ginkgo/core/base/scoped_device_id_guard.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -917,25 +916,19 @@ protected:
         std::string device_type;
 
         /**
-         * The numa node of the executor.
-         */
-        int numa_node = -1;
-
-        /**
          * The number of computing units in the executor.
          *
-         * @note In CPU executors this is equivalent to the number of cores.
-         *       In CUDA and HIP executors this is the number of Streaming
-         *       Multiprocessors. In DPCPP, this is the number of computing
-         *       units.
+         * @note In Reference executors this is 1. In Omp executor this is
+         *       equivalent to the maximum number of threads. In CUDA and HIP
+         *       executors this is the number of Streaming Multiprocessors. In
+         *       DPCPP, this is the number of computing units.
          */
         int num_computing_units = -1;
 
         /**
          * The number of processing units per computing unit in the executor.
          *
-         * @note In CPU executors this is equivalent to the number of SIMD units
-         *       per core.
+         * @note In CPU executors, it is 1.
          *       In CUDA and HIP executors this is the number of warps
          *       per SM.
          *       In DPCPP, this is currently number of hardware threads per eu.
@@ -1003,18 +996,6 @@ protected:
          * @note Only relevant for I/O devices (GPUs).
          */
         std::string pci_bus_id = std::string(13, 'x');
-
-        /**
-         * The host processing units closest to the device.
-         *
-         * @note Currently only relevant for CUDA, HIP and DPCPP executors.
-         *       [Definition from hwloc
-         *       documentation:](https://www.open-mpi.org/projects/hwloc/doc/v2.4.0/a00350.php)
-         *       "The smallest processing element that can be represented by a
-         *       hwloc object. It may be a single-core processor, a core of a
-         *       multicore processor, or a single thread in a SMT processor"
-         */
-        std::vector<int> closest_pu_ids{};
     };
 
     /**
@@ -1107,7 +1088,7 @@ protected:
      *
      * @param mach_topo the machine topology object.
      */
-    virtual void populate_exec_info(const machine_topology* mach_topo) = 0;
+    virtual void populate_exec_info() = 0;
 
     /**
      * Gets the modifiable exec info object
@@ -1427,10 +1408,10 @@ protected:
     OmpExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
         : alloc_{std::move(alloc)}
     {
-        this->OmpExecutor::populate_exec_info(machine_topology::get_instance());
+        this->OmpExecutor::populate_exec_info();
     }
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    void populate_exec_info() override;
 
     void* raw_alloc(size_type size) const override;
 
@@ -1497,11 +1478,10 @@ protected:
     ReferenceExecutor(std::shared_ptr<CpuAllocatorBase> alloc)
         : OmpExecutor{std::move(alloc)}
     {
-        this->ReferenceExecutor::populate_exec_info(
-            machine_topology::get_instance());
+        this->ReferenceExecutor::populate_exec_info();
     }
 
-    void populate_exec_info(const machine_topology*) override
+    void populate_exec_info() override
     {
         this->get_exec_info().device_id = -1;
         this->get_exec_info().num_computing_units = 1;
@@ -1698,23 +1678,6 @@ public:
     }
 
     /**
-     * Get the closest PUs
-     *
-     * @return  the array of PUs closest to this device
-     */
-    std::vector<int> get_closest_pus() const
-    {
-        return this->get_exec_info().closest_pu_ids;
-    }
-
-    /**
-     * Get the closest NUMA node
-     *
-     * @return  the closest NUMA node closest to this device
-     */
-    int get_closest_numa() const { return this->get_exec_info().numa_node; }
-
-    /**
      * Returns the CUDA stream used by this executor. Can be nullptr for the
      * default stream.
      *
@@ -1734,8 +1697,7 @@ protected:
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
-        this->CudaExecutor::populate_exec_info(
-            machine_topology::get_instance());
+        this->CudaExecutor::populate_exec_info();
         this->set_gpu_property();
         this->init_handles();
     }
@@ -1756,7 +1718,7 @@ protected:
 
     bool verify_memory_to(const CudaExecutor* dest_exec) const override;
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    void populate_exec_info() override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -1921,23 +1883,6 @@ public:
         return hipsparse_handle_.get();
     }
 
-    /**
-     * Get the closest NUMA node
-     *
-     * @return  the closest NUMA node closest to this device
-     */
-    int get_closest_numa() const { return this->get_exec_info().numa_node; }
-
-    /**
-     * Get the closest PUs
-     *
-     * @return  the array of PUs closest to this device
-     */
-    std::vector<int> get_closest_pus() const
-    {
-        return this->get_exec_info().closest_pu_ids;
-    }
-
     GKO_HIP_STREAM_STRUCT* get_stream() const { return stream_; }
 
 protected:
@@ -1953,7 +1898,7 @@ protected:
         this->get_exec_info().device_id = device_id;
         this->get_exec_info().num_computing_units = 0;
         this->get_exec_info().num_pu_per_cu = 0;
-        this->HipExecutor::populate_exec_info(machine_topology::get_instance());
+        this->HipExecutor::populate_exec_info();
         this->set_gpu_property();
         this->init_handles();
     }
@@ -1974,7 +1919,7 @@ protected:
 
     bool verify_memory_to(const HipExecutor* dest_exec) const override;
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    void populate_exec_info() override;
 
 private:
     std::shared_ptr<Executor> master_;
@@ -2139,7 +2084,7 @@ protected:
         this->set_device_property(property);
     }
 
-    void populate_exec_info(const machine_topology* mach_topo) override;
+    void populate_exec_info() override;
 
     void* raw_alloc(size_type size) const override;
 

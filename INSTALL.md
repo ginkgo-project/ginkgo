@@ -59,7 +59,6 @@ Ginkgo adds the following additional switches to control what is being built:
     `OFF` otherwise.
 *   `-DCMAKE_HIP_ARCHITECTURES="gpuarch1;gpuarch2"` the AMDGPU targets to be passed to the compiler.
     If empty, compiler chooses based on the available GPUs.
-*   `-DGINKGO_BUILD_HWLOC={ON, OFF}` builds Ginkgo with HWLOC. Default is `OFF`.
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
@@ -206,12 +205,6 @@ packages can be turned off by disabling the relevant options.
 + GINKGO_BUILD_BENCHMARKS=ON: For argument management we use
   [gflags](https://github.com/gflags/gflags) and for JSON parsing we use
   [nlohmann-json](https://github.com/nlohmann/json);
-+ GINKGO_BUILD_HWLOC=ON:
-  [hwloc](https://www.open-mpi.org/projects/hwloc) to detect and control cores
-  and devices.
-+ GINKGO_BUILD_HWLOC=ON and GINKGO_BUILD_TESTS=ON:
-  [libnuma](https://www.man7.org/linux/man-pages/man3/numa.3.html) is required
-  when testing the functions provided through MachineTopology.
 + GINKGO_BUILD_EXAMPLES=ON:
   [OpenCV](https://opencv.org/) is required for some examples, they are disabled when OpenCV is not available.
 + GINKGO_BUILD_DOC=ON:
@@ -225,8 +218,8 @@ packages can be turned off by disabling the relevant options.
 
 Ginkgo attempts to use pre-installed versions of these package if they match
 version requirements using `find_package`. Otherwise, the configuration step
-will download the files for each of the packages `GTest`, `gflags`,
-`nlohmann-json` and `hwloc` and build them internally.
+will download the files for each of the packages `GTest`, `gflags`, and
+`nlohmann-json` and build them internally.
 
 Note that, if the external packages were not installed to the default location,
 the CMake option `-DCMAKE_PREFIX_PATH=<path-list>` needs to be set to the

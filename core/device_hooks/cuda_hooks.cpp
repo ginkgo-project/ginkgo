@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -99,7 +99,7 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
+void CudaExecutor::populate_exec_info()
 {
     // This method is always called, so cannot throw when not compiled.
 }

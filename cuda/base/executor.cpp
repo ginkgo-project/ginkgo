@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,7 +68,7 @@ std::shared_ptr<CudaExecutor> CudaExecutor::create(
 }
 
 
-void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
+void CudaExecutor::populate_exec_info()
 {
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {
@@ -76,14 +76,6 @@ void CudaExecutor::populate_exec_info(const machine_topology* mach_topo)
         GKO_ASSERT_NO_CUDA_ERRORS(
             cudaDeviceGetPCIBusId(&(this->get_exec_info().pci_bus_id.front()),
                                   13, this->get_device_id()));
-
-        auto cuda_hwloc_obj =
-            mach_topo->get_pci_device(this->get_exec_info().pci_bus_id);
-        if (cuda_hwloc_obj) {
-            this->get_exec_info().numa_node = cuda_hwloc_obj->closest_numa;
-            this->get_exec_info().closest_pu_ids =
-                cuda_hwloc_obj->closest_pu_ids;
-        }
     }
 }
 
