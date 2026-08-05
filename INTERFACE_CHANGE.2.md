@@ -33,7 +33,7 @@ auto ic = preconditioner::Ic<double>::build().on(exec);
 You can provide any `LinOpFactory` to `.with_l_solver()`.
 
 The same applies to `preconditioner::Ilu`, except that the solver for both the lower triangular and upper triangular part can be provided.
-# Removed Interface
+
 ## Clone is no longer available by default in Ginkgo Classes
 Previously, Ginkgo provides `clone` to any class inherited from `PolymorphicObject` (or `EnablePolymorphicObject`).
 We decide to move `clone` related function from default requirement to optional feature via `Cloneable` class. (see changed interface for more details)
@@ -46,6 +46,8 @@ If users previously rely on calling `source->clone([exec,] target)`, please use 
 Factory does not support clone, either. 
 Users, who want to create the same factory for different executors, please create a factory without specifying executor in the components' factory.
 
+## Remove HWLOC related stuff [#2060](https://github.com/ginkgo-project/ginkgo/pull/2060)
+It removes the HWLOC usage in Ginkgo, `struct machine_topology`, `get_closest_pus()`,  and `get_closest_numa()`.
 
 # Changed Interface
 ## Clone related function is not longer belonging to PolymorphicObject [#2005](https://github.com/ginkgo-project/ginkgo/pull/2005)
