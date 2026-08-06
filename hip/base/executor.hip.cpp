@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -64,7 +64,7 @@ std::shared_ptr<HipExecutor> HipExecutor::create(
 }
 
 
-void HipExecutor::populate_exec_info(const machine_topology* mach_topo)
+void HipExecutor::populate_exec_info()
 {
     if (this->get_device_id() < this->get_num_devices() &&
         this->get_device_id() >= 0) {
@@ -72,14 +72,6 @@ void HipExecutor::populate_exec_info(const machine_topology* mach_topo)
         GKO_ASSERT_NO_HIP_ERRORS(
             hipDeviceGetPCIBusId(&(this->get_exec_info().pci_bus_id.front()),
                                  13, this->get_device_id()));
-
-        auto hip_hwloc_obj =
-            mach_topo->get_pci_device(this->get_exec_info().pci_bus_id);
-        if (hip_hwloc_obj) {
-            this->get_exec_info().numa_node = hip_hwloc_obj->closest_numa;
-            this->get_exec_info().closest_pu_ids =
-                hip_hwloc_obj->closest_pu_ids;
-        }
     }
 }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -77,43 +77,6 @@ TEST(OmpExecutor, IsItsOwnMaster)
 
     ASSERT_EQ(omp, omp->get_master());
 }
-
-
-#if GKO_HAVE_HWLOC
-
-
-inline int get_os_id(int log_id)
-{
-    return gko::machine_topology::get_instance()->get_core(log_id)->os_id;
-}
-
-
-TEST(MachineTopology, CanBindToASpecificCore)
-{
-    auto cpu_sys = sched_getcpu();
-
-    const int bind_core = 3;
-    gko::machine_topology::get_instance()->bind_to_cores(
-        std::vector<int>{bind_core});
-
-    cpu_sys = sched_getcpu();
-    ASSERT_EQ(cpu_sys, get_os_id(bind_core));
-}
-
-
-TEST(MachineTopology, CanBindToARangeofCores)
-{
-    auto cpu_sys = sched_getcpu();
-
-    const std::vector<int> bind_core = {1, 3};
-    gko::machine_topology::get_instance()->bind_to_cores(bind_core);
-
-    cpu_sys = sched_getcpu();
-    ASSERT_TRUE(cpu_sys == get_os_id(3) || cpu_sys == get_os_id(1));
-}
-
-
-#endif
 
 
 TEST(ReferenceExecutor, AllocatesAndFreesMemory)
