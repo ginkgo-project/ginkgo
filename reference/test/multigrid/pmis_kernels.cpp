@@ -217,7 +217,7 @@ TYPED_TEST(Pmis, InitializeWeightAndStatus)
 }
 
 
-TYPED_TEST(Pmis, Classify1)
+TYPED_TEST(Pmis, Classify)
 {
     using real_type = typename TestFixture::real_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
@@ -227,8 +227,8 @@ TYPED_TEST(Pmis, Classify1)
     std::array<gko::array<int>, 4> status_ans{
         gko::array<int>(this->exec, {0, 1, 0, -1}),
         gko::array<int>(this->exec, {0, 1, 0, 1}),
-        gko::array<int>(this->exec, {0, 0, -1, 0, 1}),
         gko::array<int>(this->exec, {0, 0, 1, 0, 1})};
+    std::array<int, 2> required_step{2, 1};
     for (int i = 0; i < 2; i++) {
         SCOPED_TRACE(i);
         auto strong_dep =
@@ -237,11 +237,11 @@ TYPED_TEST(Pmis, Classify1)
                                 std::move(this->dep_row_ptrs.at(i)));
         auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
         auto new_status = this->expected_status.at(i);
-        for (int step = 0; step < 2; step++) {
+        for (int step = 0; step < required_step.at(i); step++) {
             SCOPED_TRACE(step);
             auto status = new_status;
             gko::kernels::reference::pmis::classify(
-                this->exec, weight.at(i).get_data(), this->mtx.at(i).get(),
+                this->exec, weight.at(i).get_data(), strong_dep.get(),
                 trans_strong_dep.get(), status.get_const_data(),
                 new_status.get_data());
 

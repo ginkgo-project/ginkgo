@@ -151,27 +151,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void classify(std::shared_ptr<const DefaultExecutor> exec,
               const remove_complex<ValueType>* weight,
-              const matrix::Csr<ValueType, IndexType>* csr,
+              const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
               const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
               const int* status, int* new_status)
 {
-    const auto nrows = static_cast<IndexType>(csr->get_size()[0]);
-    const auto row_ptrs = csr->get_const_row_ptrs();
-    const auto col_idxs = csr->get_const_col_idxs();
+    const auto nrows = static_cast<IndexType>(strong_dep->get_size()[0]);
+    const auto row_ptrs = strong_dep->get_const_row_ptrs();
+    const auto col_idxs = strong_dep->get_const_col_idxs();
 
     for (IndexType row = 0; row < nrows; row++) {
         // -1 is unassigned yet
         auto ans = status[row];
         if (status[row] == -1) {
-            // works on the original graph
+            // works on the strong graph
             const auto row_start = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
             bool is_coarse = true;
             for (IndexType idx = row_start; idx < row_end; idx++) {
                 auto col = col_idxs[idx];
-                if (col == row) {
-                    continue;
-                }
                 if (status[col] == -1 && weight[col] >= weight[row]) {
                     is_coarse = false;
                     break;
