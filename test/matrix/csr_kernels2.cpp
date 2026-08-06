@@ -196,26 +196,22 @@ TEST_F(Csr, SrowIsCorrectFromLoadBalance)
     const auto num_lines =
         gko::ceildiv(dmtx->get_num_stored_elements(), warp_size);
     ASSERT_GT(srow_size, 0);
-    // srow (starting rows) should try to distribute these unit
-    // first num_lines % srow_size has one more than avg
-    const auto avg = num_lines / srow_size;
-    index_type current = 0;
     ASSERT_EQ(exec->copy_val_to_host(dmtx->get_const_srow()), 0);
     for (int i = 1; i < srow_size; i++) {
-        current += (avg + (i < (num_lines % srow_size))) * warp_size;
+        auto start = (i * num_lines / srow_size) * warp_size;
         auto srow_val = exec->copy_val_to_host(dmtx->get_const_srow() + i);
         if (srow_val > 0) {
             // the number of elements before this row should be less than the
             // assigned number
             ASSERT_LE(exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
                                              srow_val - 1),
-                      current);
+                      start);
         }
         // the starting point should be in this row not the next row.
-        ASSERT_GE(current, exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
-                                                  srow_val));
-        ASSERT_LT(current, exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
-                                                  srow_val + 1));
+        ASSERT_GE(start, exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
+                                                srow_val));
+        ASSERT_LT(start, exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
+                                                srow_val + 1));
     }
 }
 
