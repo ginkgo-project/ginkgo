@@ -193,29 +193,29 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
         dim<2>{strong_dep->get_size()[0], width}, status, weight,
         strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());
     // mark new fine point strongly influenced by the new coarse points
-    // TODO: change to use strong_dep, which allows multiple read not multiple
-    // write
-    run_kernel(
+    // TODO: using warp vote function if implement in native way.
+    run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto row, auto tid, auto status, auto new_status,
-                      auto trans_row_ptrs, auto trans_col_idxs) {
-            if (new_status[row] != 1 || new_status[row] == status[row]) {
-                return;
+        [] GKO_KERNEL(auto row, auto tid, auto new_status, auto row_ptrs,
+                      auto col_idxs) {
+            if (new_status[row] != -1) {
+                return new_status[row];
             }
-            for (auto idx = tid + trans_row_ptrs[row];
-                 idx < trans_row_ptrs[row + 1]; idx += width) {
-                // It is correct even if more than one threads might
-                // assign the
-                // value
-                auto col = trans_col_idxs[idx];
-                if (new_status[col] == -1) {
-                    new_status[col] = 0;
+            for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
+                 idx += width) {
+                // we will only update new_status from -1 to 0 or keep -1, so
+                // grabbing this value is fine no matter if it is updated or
+                // not.
+                if (new_status[col_idxs[idx]] == 1) {
+                    return 0;
                 }
             }
+            return -1;
         },
-        dim<2>{strong_dep->get_size()[0], width}, status, new_status,
-        trans_strong_dep->get_const_row_ptrs(),
-        trans_strong_dep->get_const_col_idxs());
+        [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; } /* maximum */,
+        [] GKO_KERNEL(auto a) { return a; }, int{-1}, new_status, 1,
+        dim<2>{strong_dep->get_size()[0], width}, new_status,
+        strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_CLASSIFY_KERNEL);
