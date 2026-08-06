@@ -182,9 +182,6 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
             for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
                  idx += width) {
                 auto col = col_idxs[idx];
-                if (row == col) {
-                    continue;
-                }
                 if (status[col] == -1 && weight[col] >= weight[row]) {
                     return -1;
                 }
@@ -193,8 +190,8 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
         },
         [] GKO_KERNEL(auto a, auto b) { return a < b ? a : b; } /* minimun */,
         [] GKO_KERNEL(auto a) { return a; }, int{1}, new_status, 1,
-        dim<2>{csr->get_size()[0], width}, status, weight,
-        csr->get_const_row_ptrs(), csr->get_const_col_idxs());
+        dim<2>{strong_dep->get_size()[0], width}, status, weight,
+        strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());
     // mark new fine point strongly influenced by the new coarse points
     // TODO: change to use strong_dep, which allows multiple read not multiple
     // write
@@ -216,7 +213,7 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
         },
-        dim<2>{csr->get_size()[0], width}, status, new_status,
+        dim<2>{strong_dep->get_size()[0], width}, status, new_status,
         trans_strong_dep->get_const_row_ptrs(),
         trans_strong_dep->get_const_col_idxs());
 }

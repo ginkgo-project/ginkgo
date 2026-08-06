@@ -216,15 +216,16 @@ TEST_F(Pmis, ClassifyIsEquivalentToRef)
         ref, trans_strong_dep.get(), weight.get_data(), status.get_data());
     gko::array<real_type> d_weight(exec, weight);
     gko::array<int> d_status(exec, status);
+    auto d_strong_dep = gko::clone(exec, strong_dep);
     auto d_trans_strong_dep = gko::clone(exec, trans_strong_dep);
     gko::array<int> new_status(ref, num);
     gko::array<int> d_new_status(exec, num);
 
     gko::kernels::reference::pmis::classify(
-        ref, weight.get_data(), system_mtx.get(), trans_strong_dep.get(),
+        ref, weight.get_data(), strong_dep.get(), trans_strong_dep.get(),
         status.get_const_data(), new_status.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::pmis::classify(
-        exec, d_weight.get_data(), d_system_mtx.get(), d_trans_strong_dep.get(),
+        exec, d_weight.get_data(), d_strong_dep.get(), d_trans_strong_dep.get(),
         d_status.get_const_data(), d_new_status.get_data());
 
     GKO_ASSERT_ARRAY_EQ(d_new_status, new_status);
@@ -263,7 +264,7 @@ TEST_F(Pmis, DirectInterpolationRowCountIsEquivalentToRef)
                                          &num_not_assigned);
     while (num_not_assigned != 0) {
         gko::kernels::reference::pmis::classify(
-            ref, weight.get_data(), system_mtx.get(), trans_strong_dep.get(),
+            ref, weight.get_data(), strong_dep.get(), trans_strong_dep.get(),
             status_ptr, new_status_ptr);
         gko::size_type new_num = 0;
         gko::kernels::reference::pmis::count(ref, num, new_status_ptr,
@@ -327,7 +328,7 @@ TEST_F(Pmis, DirectInterpolationFillIsEquivalentToRef)
                                          &num_not_assigned);
     while (num_not_assigned != 0) {
         gko::kernels::reference::pmis::classify(
-            ref, weight.get_data(), system_mtx.get(), trans_strong_dep.get(),
+            ref, weight.get_data(), strong_dep.get(), trans_strong_dep.get(),
             status_ptr, new_status_ptr);
         gko::size_type new_num = 0;
         gko::kernels::reference::pmis::count(ref, num, new_status_ptr,
