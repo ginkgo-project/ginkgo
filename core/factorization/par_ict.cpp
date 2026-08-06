@@ -101,16 +101,15 @@ struct ParIctState {
     // temporary array for threshold selection
     array<remove_complex<ValueType>> selection_tmp2;
     // strategy to be used by the lower factor
-    std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy;
+    matrix::csr::spmv_strategy l_strategy;
     // strategy to be used by the upper factor
-    std::shared_ptr<typename CsrMatrix::strategy_type> lh_strategy;
+    matrix::csr::spmv_strategy lh_strategy;
 
     ParIctState(std::shared_ptr<const Executor> exec_in,
                 const CsrMatrix* system_matrix_in,
                 std::unique_ptr<CsrMatrix> l_in, IndexType l_nnz_limit,
-                bool use_approx_select,
-                std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy_,
-                std::shared_ptr<typename CsrMatrix::strategy_type> lh_strategy_)
+                bool use_approx_select, matrix::csr::spmv_strategy l_strategy_,
+                matrix::csr::spmv_strategy lh_strategy_)
         : exec{std::move(exec_in)},
           l_nnz_limit{l_nnz_limit},
           use_approx_select{use_approx_select},
@@ -118,8 +117,8 @@ struct ParIctState {
           l{std::move(l_in)},
           selection_tmp{exec},
           selection_tmp2{exec},
-          l_strategy{std::move(l_strategy_)},
-          lh_strategy{std::move(lh_strategy_)}
+          l_strategy{l_strategy_},
+          lh_strategy{lh_strategy_}
     {
         auto mtx_size = system_matrix->get_size();
         auto l_nnz = l->get_num_stored_elements();
@@ -235,11 +234,12 @@ template <typename ValueType, typename IndexType>
 void ParIctState<ValueType, IndexType>::iterate()
 {
     // compute L * L^H
-    exec->run(make_spgemm(l.get(), lh.get(), llh.get()));
+    exec->run(
+        make_spgemm(l.get(), lh.get(), make_builder_unique_ptr(llh).get()));
 
     // add new candidates to L' factor
-    exec->run(
-        make_add_candidates(llh.get(), system_matrix, l.get(), l_new.get()));
+    exec->run(make_add_candidates(llh.get(), system_matrix, l.get(),
+                                  make_builder_unique_ptr(l_new).get()));
 
     // update L(COO), L'^H sizes and pointers
     {
@@ -270,18 +270,18 @@ void ParIctState<ValueType, IndexType>::iterate()
     if (use_approx_select) {
         remove_complex<ValueType> tmp{};
         // remove approximately smallest candidates
-        exec->run(make_threshold_filter_approx(l_new.get(), l_filter_rank,
-                                               selection_tmp, tmp, l.get(),
-                                               l_coo.get()));
+        exec->run(make_threshold_filter_approx(
+            l_new.get(), l_filter_rank, selection_tmp, tmp,
+            make_builder_unique_ptr(l).get(), l_coo.get()));
     } else {
         // select threshold to remove smallest candidates
         remove_complex<ValueType> l_threshold{};
         exec->run(make_threshold_select(l_new.get(), l_filter_rank,
                                         selection_tmp, selection_tmp2,
                                         l_threshold));
-
         // remove smallest candidates
-        exec->run(make_threshold_filter(l_new.get(), l_threshold, l.get(),
+        exec->run(make_threshold_filter(l_new.get(), l_threshold,
+                                        make_builder_unique_ptr(l).get(),
                                         l_coo.get(), true));
     }
 
@@ -292,11 +292,11 @@ void ParIctState<ValueType, IndexType>::iterate()
     // convert L to L^H
     {
         auto l_nnz = l->get_num_stored_elements();
-        CsrBuilder lt_builder{lh};
-        lt_builder.get_col_idx_array().resize_and_reset(l_nnz);
-        lt_builder.get_value_array().resize_and_reset(l_nnz);
+        CsrBuilder lh_builder{lh};
+        lh_builder.get_col_idx_array().resize_and_reset(l_nnz);
+        lh_builder.get_value_array().resize_and_reset(l_nnz);
+        exec->run(make_csr_conj_transpose(l.get(), lh.get()));
     }
-    exec->run(make_csr_conj_transpose(l.get(), lh.get()));
 }
 
 

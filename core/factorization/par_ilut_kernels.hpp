@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/device_views.hpp>
 
 #include "core/base/kernel_declaration.hpp"
+#include "core/matrix/csr_builder.hpp"
 
 
 namespace gko {
@@ -23,13 +24,14 @@ namespace kernels {
 
 
 #define GKO_DECLARE_PAR_ILUT_ADD_CANDIDATES_KERNEL(ValueType, IndexType) \
-    void add_candidates(std::shared_ptr<const DefaultExecutor> exec,     \
-                        const matrix::Csr<ValueType, IndexType>* lu,     \
-                        const matrix::Csr<ValueType, IndexType>* a,      \
-                        const matrix::Csr<ValueType, IndexType>* l,      \
-                        const matrix::Csr<ValueType, IndexType>* u,      \
-                        matrix::Csr<ValueType, IndexType>* l_new,        \
-                        matrix::Csr<ValueType, IndexType>* u_new)
+    void add_candidates(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                     \
+        const matrix::Csr<ValueType, IndexType>* lu,                     \
+        const matrix::Csr<ValueType, IndexType>* a,                      \
+        const matrix::Csr<ValueType, IndexType>* l,                      \
+        const matrix::Csr<ValueType, IndexType>* u,                      \
+        matrix::CsrBuilder<ValueType, IndexType>* l_new_builder,         \
+        matrix::CsrBuilder<ValueType, IndexType>* u_new_builder)
 
 #define GKO_DECLARE_PAR_ILUT_COMPUTE_LU_FACTORS_KERNEL(ValueType, IndexType) \
     void compute_l_u_factors(                                                \
@@ -49,21 +51,21 @@ namespace kernels {
                           remove_complex<ValueType>& threshold)
 
 #define GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_KERNEL(ValueType, IndexType) \
-    void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,     \
-                          const matrix::Csr<ValueType, IndexType>* m,      \
-                          remove_complex<ValueType> threshold,             \
-                          matrix::Csr<ValueType, IndexType>* m_out,        \
-                          matrix::Coo<ValueType, IndexType>* m_out_coo,    \
-                          bool lower)
+    void threshold_filter(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        const matrix::Csr<ValueType, IndexType>* m,                        \
+        remove_complex<ValueType> threshold,                               \
+        matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,           \
+        matrix::Coo<ValueType, IndexType>* m_out_coo, bool lower)
 
-#define GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL(ValueType,        \
-                                                            IndexType)        \
-    void threshold_filter_approx(std::shared_ptr<const DefaultExecutor> exec, \
-                                 const matrix::Csr<ValueType, IndexType>* m,  \
-                                 IndexType rank, array<ValueType>& tmp,       \
-                                 remove_complex<ValueType>& threshold,        \
-                                 matrix::Csr<ValueType, IndexType>* m_out,    \
-                                 matrix::Coo<ValueType, IndexType>* m_out_coo)
+#define GKO_DECLARE_PAR_ILUT_THRESHOLD_FILTER_APPROX_KERNEL(ValueType, \
+                                                            IndexType) \
+    void threshold_filter_approx(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        const matrix::Csr<ValueType, IndexType>* m, IndexType rank,    \
+        array<ValueType>& tmp, remove_complex<ValueType>& threshold,   \
+        matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,       \
+        matrix::Coo<ValueType, IndexType>* m_out_coo)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \
     constexpr auto sampleselect_searchtree_height = 8;                    \

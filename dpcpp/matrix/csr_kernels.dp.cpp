@@ -1526,6 +1526,8 @@ bool try_sparselib_spmv(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
+          const matrix::csr::spmv_strategy strategy,
+          const IndexType max_nnz_per_row,
           const matrix::Csr<MatrixValueType, IndexType>* a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
@@ -1539,7 +1541,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         dense::fill(exec, c, zero<OutputValueType>());
         return;
     }
-    if (a->get_strategy()->get_name() == "merge_path") {
+    if (strategy == matrix::csr::spmv_strategy::merge_path) {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -1553,33 +1555,16 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "load_balance") {
+        if (strategy == matrix::csr::spmv_strategy::load_balance) {
             use_classical = !host_kernel::load_balance_spmv(exec, a, b, c);
-        } else if (a->get_strategy()->get_name() == "sparselib" ||
-                   a->get_strategy()->get_name() == "cusparse") {
+        } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
             use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
         }
         if (use_classical) {
-            IndexType max_length_per_row = 0;
-            using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
-            if (auto strategy =
-                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                        a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else if (auto strategy = std::dynamic_pointer_cast<
-                           const typename Tcsr::automatical>(
-                           a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else {
-                // as a fall-back: use average row length, at least 1
-                max_length_per_row = a->get_num_stored_elements() /
-                                     std::max<size_type>(a->get_size()[0], 1);
-            }
-            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
-                [&max_length_per_row](int compiled_info) {
-                    return max_length_per_row >= compiled_info;
+                [&max_nnz_per_row](int compiled_info) {
+                    return max_nnz_per_row >= compiled_info;
                 },
                 syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
         }
@@ -1593,6 +1578,8 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+                   const matrix::csr::spmv_strategy strategy,
+                   const IndexType max_nnz_per_row,
                    matrix::view::dense<const MatrixValueType> alpha,
                    const matrix::Csr<MatrixValueType, IndexType>* a,
                    matrix::view::dense<const InputValueType> b,
@@ -1608,7 +1595,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         dense::scale(exec, beta, c);
         return;
     }
-    if (a->get_strategy()->get_name() == "merge_path") {
+    if (strategy == matrix::csr::spmv_strategy::merge_path) {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -1623,35 +1610,18 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             beta);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "load_balance") {
+        if (strategy == matrix::csr::spmv_strategy::load_balance) {
             use_classical =
                 !host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
-        } else if (a->get_strategy()->get_name() == "sparselib" ||
-                   a->get_strategy()->get_name() == "cusparse") {
+        } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
             use_classical =
                 !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
         }
         if (use_classical) {
-            IndexType max_length_per_row = 0;
-            using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
-            if (auto strategy =
-                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                        a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else if (auto strategy = std::dynamic_pointer_cast<
-                           const typename Tcsr::automatical>(
-                           a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else {
-                // as a fall-back: use average row length, at least 1
-                max_length_per_row = a->get_num_stored_elements() /
-                                     std::max<size_type>(a->get_size()[0], 1);
-            }
-            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
-                [&max_length_per_row](int compiled_info) {
-                    return max_length_per_row >= compiled_info;
+                [&max_nnz_per_row](int compiled_info) {
+                    return max_nnz_per_row >= compiled_info;
                 },
                 syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
                 alpha, beta);
@@ -1986,7 +1956,7 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto num_rows = a->get_size()[0];
     const auto a_row_ptrs = a->get_const_row_ptrs();
@@ -1995,6 +1965,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
     const auto b_row_ptrs = b->get_const_row_ptrs();
     const auto b_cols = b->get_const_col_idxs();
     const auto b_vals = as_device_type(b->get_const_values());
+    auto c = c_builder->get_matrix();
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
 
@@ -2023,9 +1994,8 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
@@ -2066,8 +2036,9 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* b,
                      matrix::view::dense<const ValueType> beta,
                      const matrix::Csr<ValueType, IndexType>* d,
-                     matrix::Csr<ValueType, IndexType>* c)
+                     matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
+    auto c = c_builder->get_matrix();
     auto num_rows = a->get_size()[0];
     const auto a_row_ptrs = a->get_const_row_ptrs();
     const auto a_cols = a->get_const_col_idxs();
@@ -2123,9 +2094,8 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
 
@@ -2351,7 +2321,7 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             matrix::view::dense<const ValueType> beta,
             const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
     const auto num_rows = a->get_size()[0];
@@ -2359,6 +2329,7 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
     const auto a_cols = a->get_const_col_idxs();
     const auto b_row_ptrs = b->get_const_row_ptrs();
     const auto b_cols = b->get_const_col_idxs();
+    auto c = c_builder->get_matrix();
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
 
@@ -2386,9 +2357,8 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_cols = c_col_idxs_array.get_data();

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,18 +31,6 @@ using namespace gko::config;
 using Sparsity = gko::matrix::SparsityCsr<float, int>;
 
 
-template <typename StrategyType>
-inline void check_strategy(std::shared_ptr<StrategyType>& res,
-                           std::shared_ptr<StrategyType>& ans)
-{
-    if (ans && res) {
-        ASSERT_EQ(res->get_name(), ans->get_name());
-    } else {
-        ASSERT_EQ(res, ans);
-    }
-}
-
-
 template <typename ChangedType, typename DefaultType>
 struct FactorizationConfigTest {
     using changed_type = ChangedType;
@@ -68,9 +56,7 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
                     std::shared_ptr<const gko::Executor> exec)
     {
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["both_factors"] = pnode{false};
@@ -86,7 +72,7 @@ struct Ic : FactorizationConfigTest<gko::factorization::Ic<float, int>,
         auto res_param = gko::as<AnswerType>(result)->get_parameters();
         auto ans_param = answer->get_parameters();
 
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
         ASSERT_EQ(res_param.both_factors, ans_param.both_factors);
         ASSERT_EQ(res_param.algorithm, ans_param.algorithm);
@@ -106,13 +92,9 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, int>,
                     std::shared_ptr<const gko::Executor> exec)
     {
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["u_strategy"] = pnode{"sparselib"};
-        param.with_u_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_u_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["algorithm"] = pnode{"syncfree"};
@@ -126,8 +108,8 @@ struct Ilu : FactorizationConfigTest<gko::factorization::Ilu<float, int>,
         auto res_param = gko::as<AnswerType>(result)->get_parameters();
         auto ans_param = answer->get_parameters();
 
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
-        check_strategy(res_param.u_strategy, ans_param.u_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.u_strategy, ans_param.u_strategy);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
         ASSERT_EQ(res_param.algorithm, ans_param.algorithm);
     }
@@ -218,9 +200,7 @@ struct ParIc : FactorizationConfigTest<gko::factorization::ParIc<float, int>,
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["both_factors"] = pnode{false};
         param.with_both_factors(false);
     }
@@ -233,7 +213,7 @@ struct ParIc : FactorizationConfigTest<gko::factorization::ParIc<float, int>,
 
         ASSERT_EQ(res_param.iterations, ans_param.iterations);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.both_factors, ans_param.both_factors);
     }
 };
@@ -256,13 +236,9 @@ struct ParIlu
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["u_strategy"] = pnode{"sparselib"};
-        param.with_u_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_u_strategy(gko::matrix::csr::spmv_strategy::sparselib);
     }
 
     template <typename AnswerType>
@@ -273,8 +249,8 @@ struct ParIlu
 
         ASSERT_EQ(res_param.iterations, ans_param.iterations);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
-        check_strategy(res_param.u_strategy, ans_param.u_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.u_strategy, ans_param.u_strategy);
     }
 };
 
@@ -296,9 +272,7 @@ struct ParIct
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["approximate_select"] = pnode{false};
         param.with_approximate_select(false);
         config_map["deterministic_sample"] = pnode{true};
@@ -306,9 +280,7 @@ struct ParIct
         config_map["fill_in_limit"] = pnode{2.5};
         param.with_fill_in_limit(2.5);
         config_map["lt_strategy"] = pnode{"sparselib"};
-        param.with_lt_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_lt_strategy(gko::matrix::csr::spmv_strategy::sparselib);
     }
 
     template <typename AnswerType>
@@ -319,12 +291,12 @@ struct ParIct
 
         ASSERT_EQ(res_param.iterations, ans_param.iterations);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.approximate_select, ans_param.approximate_select);
         ASSERT_EQ(res_param.deterministic_sample,
                   ans_param.deterministic_sample);
         ASSERT_EQ(res_param.fill_in_limit, ans_param.fill_in_limit);
-        check_strategy(res_param.lt_strategy, ans_param.lt_strategy);
+        ASSERT_EQ(res_param.lt_strategy, ans_param.lt_strategy);
     }
 };
 
@@ -346,9 +318,7 @@ struct ParIlut
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
         config_map["l_strategy"] = pnode{"sparselib"};
-        param.with_l_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_l_strategy(gko::matrix::csr::spmv_strategy::sparselib);
         config_map["approximate_select"] = pnode{false};
         param.with_approximate_select(false);
         config_map["deterministic_sample"] = pnode{true};
@@ -356,9 +326,7 @@ struct ParIlut
         config_map["fill_in_limit"] = pnode{2.5};
         param.with_fill_in_limit(2.5);
         config_map["u_strategy"] = pnode{"sparselib"};
-        param.with_u_strategy(
-            std::make_shared<
-                typename gko::matrix::Csr<float, int>::sparselib>());
+        param.with_u_strategy(gko::matrix::csr::spmv_strategy::sparselib);
     }
 
     template <typename AnswerType>
@@ -369,12 +337,12 @@ struct ParIlut
 
         ASSERT_EQ(res_param.iterations, ans_param.iterations);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
-        check_strategy(res_param.l_strategy, ans_param.l_strategy);
+        ASSERT_EQ(res_param.l_strategy, ans_param.l_strategy);
         ASSERT_EQ(res_param.approximate_select, ans_param.approximate_select);
         ASSERT_EQ(res_param.deterministic_sample,
                   ans_param.deterministic_sample);
         ASSERT_EQ(res_param.fill_in_limit, ans_param.fill_in_limit);
-        check_strategy(res_param.u_strategy, ans_param.u_strategy);
+        ASSERT_EQ(res_param.u_strategy, ans_param.u_strategy);
     }
 };
 

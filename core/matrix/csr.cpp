@@ -32,6 +32,7 @@
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csr_strategy.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/permutation.hpp"
@@ -107,6 +108,62 @@ GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
 
 
 }  // anonymous namespace
+
+
+namespace detail {
+
+
+spmv_strategy get_actual_strategy(std::shared_ptr<const Executor> exec,
+                                  spmv_strategy strategy,
+                                  size_type num_stored_elements,
+                                  size_type max_nnz_per_row)
+{
+    if (strategy != spmv_strategy::automatic) {
+        return strategy;
+    }
+    // If the number of stored elements is larger than <nnz_limit> or the
+    // maximum
+    // number of stored elements per row is larger than <row_len_limit>, use
+    // load_balance otherwise use classical
+    /* Use imbalance strategy when the maximum number of nonzero per row
+     * is more than 1024 on NVIDIA hardware */
+    const int64_t nvidia_row_len_limit = 1024;
+    /* Use imbalance strategy when the matrix has more more than 1e6 on
+     * NVIDIA hardware */
+    const int64_t nvidia_nnz_limit{static_cast<int64_t>(1e6)};
+    /* Use imbalance strategy when the maximum number of nonzero per row
+     * is more than 768 on AMD hardware */
+    const int64_t amd_row_len_limit = 768;
+    /* Use imbalance strategy when the matrix has more more than 1e8 on
+     * AMD hardware */
+    const int64_t amd_nnz_limit{static_cast<int64_t>(1e8)};
+    /* Use imbalance strategy when the maximum number of nonzero per row
+     * is more than 25600 on Intel hardware */
+    const int64_t intel_row_len_limit = 25600;
+    /* Use imbalance strategy when the matrix has more more than 3e8 on
+     * Intel hardware */
+    const int64_t intel_nnz_limit{static_cast<int64_t>(3e8)};
+    auto nnz_limit = nvidia_nnz_limit;
+    auto row_len_limit = nvidia_row_len_limit;
+    if (std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
+        nnz_limit = intel_nnz_limit;
+        row_len_limit = intel_row_len_limit;
+    } else if (std::dynamic_pointer_cast<const HipExecutor>(exec)) {
+        nnz_limit = amd_nnz_limit;
+        row_len_limit = amd_row_len_limit;
+    } else if (!std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
+        // we do not have load balance on reference and omp executor.
+        return spmv_strategy::classical;
+    }
+    if (num_stored_elements > nnz_limit || max_nnz_per_row > row_len_limit) {
+        return spmv_strategy::load_balance;
+    } else {
+        return spmv_strategy::classical;
+    }
+}
+
+
+}  // namespace detail
 }  // namespace csr
 
 
@@ -117,7 +174,7 @@ Csr<ValueType, IndexType>::create_const(
     gko::detail::const_array_view<ValueType>&& values,
     gko::detail::const_array_view<IndexType>&& col_idxs,
     gko::detail::const_array_view<IndexType>&& row_ptrs,
-    std::shared_ptr<strategy_type> strategy)
+    csr::spmv_strategy strategy)
 {
     // cast const-ness away, but return a const object afterwards,
     // so we can ensure that no modifications take place.
@@ -129,8 +186,7 @@ Csr<ValueType, IndexType>::create_const(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
-    std::shared_ptr<const Executor> exec,
-    std::shared_ptr<strategy_type> strategy)
+    std::shared_ptr<const Executor> exec, csr::spmv_strategy strategy)
 {
     return create(exec, dim<2>{}, size_type{}, std::move(strategy));
 }
@@ -139,7 +195,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
-    size_type num_nonzeros, std::shared_ptr<strategy_type> strategy)
+    size_type num_nonzeros, csr::spmv_strategy strategy)
 {
     return std::unique_ptr<Csr>{
         new Csr{exec, size, num_nonzeros, std::move(strategy)}};
@@ -150,7 +206,7 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     array<value_type> values, array<index_type> col_idxs,
-    array<index_type> row_ptrs, std::shared_ptr<strategy_type> strategy)
+    array<index_type> row_ptrs, csr::spmv_strategy strategy)
 {
     return std::unique_ptr<Csr>{
         new Csr{exec, size, std::move(values), std::move(col_idxs),
@@ -158,16 +214,75 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
 }
 
 
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
+// C++ can not deduce template parameters from a nested dependent type.
+// Thus, we put Csr not ValueType, IndexType as template because we need to call
+// with explicit type anyway.
+template <typename Csr>
+csr::spmv_strategy get_strategy_enum(
+    std::shared_ptr<typename Csr::strategy_type> strategy)
+{
+    if (strategy) {
+        return strategy->get_enum();
+    } else {
+        return csr::spmv_strategy::automatic;
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<const Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::create_const(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    gko::detail::const_array_view<ValueType>&& values,
+    gko::detail::const_array_view<IndexType>&& col_idxs,
+    gko::detail::const_array_view<IndexType>&& row_ptrs,
+    std::shared_ptr<strategy_type> strategy)
+{
+    return create_const(
+        std::move(exec), size,
+        std::forward<gko::detail::const_array_view<ValueType>>(values),
+        std::forward<gko::detail::const_array_view<IndexType>>(col_idxs),
+        std::forward<gko::detail::const_array_view<IndexType>>(row_ptrs),
+        get_strategy_enum<Csr>(strategy));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<strategy_type> strategy)
+{
+    return create(std::move(exec), get_strategy_enum<Csr>(strategy));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
+    std::shared_ptr<const Executor> exec, const dim<2>& size,
+    array<value_type> values, array<index_type> col_idxs,
+    array<index_type> row_ptrs, std::shared_ptr<strategy_type> strategy)
+{
+    return create(std::move(exec), size, std::move(values), std::move(col_idxs),
+                  std::move(row_ptrs), get_strategy_enum<Csr>(strategy));
+}
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+
 template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, size_type num_nonzeros,
-                               std::shared_ptr<strategy_type> strategy)
+                               csr::spmv_strategy strategy)
     : LinOp(exec, size),
-      strategy_(strategy ? strategy->copy() : Csr::make_default_strategy(exec)),
+      strategy_(strategy),
       values_(exec, num_nonzeros),
       col_idxs_(exec, num_nonzeros),
       row_ptrs_(exec, size[0] + 1),
-      srow_(exec, strategy_->clac_size(num_nonzeros))
+      srow_(exec)
 {
     row_ptrs_.fill(0);
     this->make_srow();
@@ -179,9 +294,9 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, array<value_type> values,
                                array<index_type> col_idxs,
                                array<index_type> row_ptrs,
-                               std::shared_ptr<strategy_type> strategy)
+                               csr::spmv_strategy strategy)
     : LinOp(exec, size),
-      strategy_(strategy ? strategy->copy() : Csr::make_default_strategy(exec)),
+      strategy_(strategy),
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)},
       row_ptrs_{exec, std::move(row_ptrs)},
@@ -199,17 +314,16 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
 {
     if (&other != this) {
         LinOp::operator=(other);
-        // NOTE: as soon as strategies are improved, this can be reverted
         values_ = other.values_;
         col_idxs_ = other.col_idxs_;
         row_ptrs_ = other.row_ptrs_;
         srow_ = other.srow_;
+        max_nnz_per_row_ = other.max_nnz_per_row_;
+        strategy_ = other.strategy_;
         if (this->get_executor() != other.get_executor()) {
-            other.convert_strategy_helper(this);
-        } else {
-            this->set_strategy(other.get_strategy()->copy());
+            // strategy can give different srow on different executor
+            this->make_srow();
         }
-        // END NOTE
     }
     return *this;
 }
@@ -225,9 +339,11 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         col_idxs_ = std::move(other.col_idxs_);
         row_ptrs_ = std::move(other.row_ptrs_);
         srow_ = std::move(other.srow_);
+        max_nnz_per_row_ = std::exchange(other.max_nnz_per_row_, 0);
         strategy_ = other.strategy_;
         if (this->get_executor() != other.get_executor()) {
-            detail::strategy_rebuild_helper(this);
+            // strategy can give different srow on different executor
+            this->make_srow();
         }
         // restore other invariant
         other.row_ptrs_.resize_and_reset(1);
@@ -262,16 +378,115 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
-        this->get_executor()->run(csr::make_spgemm(this, b_csr, x_csr));
+        this->get_executor()->run(csr::make_spgemm(
+            this, b_csr, make_builder_unique_ptr(x_csr).get()));
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
-                this->get_executor()->run(
-                    csr::make_spmv(this, dense_b->get_const_device_view(),
-                                   dense_x->get_device_view()));
+                this->get_executor()->run(csr::make_spmv(
+                    this->get_actual_strategy(), max_nnz_per_row_, this,
+                    dense_b->get_const_device_view(),
+                    dense_x->get_device_view()));
             },
             b, x);
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::make_srow()
+{
+    size_type srow_size = 0;
+    int warp_size = 0;
+    int64_t nwarps = 0;
+    max_nnz_per_row_ = 0;
+    auto exec = this->get_executor();
+    array<IndexType> row_ptrs_host(exec->get_master());
+    const IndexType* row_ptrs{nullptr};
+    if (exec == exec->get_master()) {
+        row_ptrs = row_ptrs_.get_const_data();
+    } else {
+        row_ptrs_host = row_ptrs_;
+        row_ptrs = row_ptrs_host.get_const_data();
+    }
+    // calculate the max_nnz_per_row in host
+    for (int i = 0; i < this->get_size()[0]; i++) {
+        max_nnz_per_row_ =
+            std::max(max_nnz_per_row_, row_ptrs[i + 1] - row_ptrs[i]);
+    }
+
+    if (auto dexec = std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
+        nwarps = dexec->get_num_warps();
+        warp_size = dexec->get_warp_size();
+    } else if (auto dexec =
+                   std::dynamic_pointer_cast<const HipExecutor>(exec)) {
+        nwarps = dexec->get_num_warps();
+        warp_size = dexec->get_warp_size();
+    } else if (auto dexec =
+                   std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
+        nwarps = dexec->get_num_subgroups();
+        warp_size = 32;
+    }
+    auto load_balance_size = [&](const int64_t nnz) -> int64_t {
+        int multiple = 8;
+        if (std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
+            if (nnz >= static_cast<int64_t>(2e8)) {
+                multiple = 2048;
+            } else if (nnz >= static_cast<int64_t>(2e7)) {
+                multiple = 512;
+            } else if (nnz >= static_cast<int64_t>(2e6)) {
+                multiple = 128;
+            } else if (nnz >= static_cast<int64_t>(2e5)) {
+                multiple = 32;
+            }
+        } else if (std::dynamic_pointer_cast<const HipExecutor>(exec)) {
+            // only for AMD GPU
+            if (nnz >= static_cast<int64_t>(1e7)) {
+                multiple = 64;
+            } else if (nnz >= static_cast<int64_t>(1e6)) {
+                multiple = 16;
+            }
+        } else if (std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
+            if (nnz >= static_cast<int64_t>(2e8)) {
+                multiple = 256;
+            } else if (nnz >= static_cast<int64_t>(2e7)) {
+                multiple = 32;
+            }
+        } else {
+            return 0;
+        }
+        return static_cast<int64_t>(std::min(
+            ceildiv(nnz, warp_size), static_cast<int64_t>(nwarps * multiple)));
+    };
+
+    if (this->get_actual_strategy() == csr::spmv_strategy::load_balance) {
+        srow_size = load_balance_size(this->get_num_stored_elements());
+    }
+    srow_.resize_and_reset(srow_size);
+    if (srow_size != 0) {
+        srow_.set_executor(exec->get_master());
+        const auto num_rows = this->get_size()[0];
+        for (size_type i = 0; i < srow_size; i++) {
+            srow_.get_data()[i] = 0;
+        }
+        const auto num_elems = this->get_num_stored_elements();
+        const auto bucket_divider =
+            num_elems > 0 ? ceildiv(num_elems, warp_size) : 1;
+        for (size_type i = 0; i < num_rows; i++) {
+            auto bucket =
+                ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * srow_size),
+                        bucket_divider);
+            if (bucket < srow_size) {
+                srow_.get_data()[bucket]++;
+            }
+        }
+        // find starting row for thread i
+        for (size_type i = 1; i < srow_size; i++) {
+            srow_.get_data()[i] += srow_.get_data()[i - 1];
+        }
+        srow_.set_executor(exec);
+    }
+    row_ptrs_.set_executor(exec);
 }
 
 
@@ -289,7 +504,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         this->get_executor()->run(csr::make_advanced_spgemm(
             as<Dense<ValueType>>(alpha)->get_const_device_view(), this, b_csr,
             as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
-            x_csr));
+            make_builder_unique_ptr(x_csr).get()));
     } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
         auto x_csr = as<TCsr>(x);
@@ -297,7 +512,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         this->get_executor()->run(csr::make_spgeam(
             as<Dense<ValueType>>(alpha)->get_const_device_view(), this,
             as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
-            x_csr));
+            make_builder_unique_ptr(x_csr).get()));
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this, alpha, beta](auto dense_b, auto dense_x) {
@@ -306,6 +521,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                     typename std::decay_t<decltype(*dense_x)>::value_type>(
                     beta);
                 this->get_executor()->run(csr::make_advanced_spmv(
+                    this->get_actual_strategy(), max_nnz_per_row_,
                     dense_alpha->get_const_device_view(), this,
                     dense_b->get_const_device_view(),
                     dense_beta->get_const_device_view(),
@@ -324,7 +540,7 @@ void Csr<ValueType, IndexType>::convert_to(
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
-    convert_strategy_helper(result);
+    result->set_strategy(this->get_strategy());
 }
 
 
@@ -344,7 +560,7 @@ void Csr<ValueType, IndexType>::convert_to(
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
-    convert_strategy_helper(result);
+    result->set_strategy(this->get_strategy());
 }
 
 
@@ -366,7 +582,7 @@ void Csr<ValueType, IndexType>::convert_to(
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
-    convert_strategy_helper(result);
+    result->set_strategy(this->get_strategy());
 }
 
 
@@ -663,7 +879,8 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::multiply(
     auto exec = this->get_executor();
     auto local_other = make_temporary_clone(exec, other);
     auto result = Csr::create(exec, result_size);
-    exec->run(csr::make_spgemm(this, local_other.get(), result.get()));
+    exec->run(csr::make_spgemm(this, local_other.get(),
+                               make_builder_unique_ptr(result).get()));
     return result;
 }
 
@@ -742,7 +959,10 @@ Csr<ValueType, IndexType>::multiply_reuse(ptr_param<const Csr> other) const
     auto exec = this->get_executor();
     auto local_other = make_temporary_clone(exec, other);
     auto result = Csr::create(exec, result_size);
-    exec->run(csr::make_spgemm(this, local_other.get(), result.get()));
+    {
+        exec->run(csr::make_spgemm(this, local_other.get(),
+                                   make_builder_unique_ptr(result).get()));
+    }
     auto lookup = csr::build_lookup(result.get());
     auto reuse_info = multiply_reuse_info{
         std::make_unique<typename multiply_reuse_info::lookup_data>(
@@ -777,7 +997,7 @@ Csr<ValueType, IndexType>::multiply_add(
     exec->run(csr::make_advanced_spgemm(
         local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
         local_scale_add->get_const_device_view(), local_mtx_add.get(),
-        result.get()));
+        make_builder_unique_ptr(result).get()));
     return result;
 }
 
@@ -881,7 +1101,7 @@ Csr<ValueType, IndexType>::multiply_add_reuse(
     exec->run(csr::make_advanced_spgemm(
         local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
         local_scale_add->get_const_device_view(), local_mtx_add.get(),
-        result.get()));
+        make_builder_unique_ptr(result).get()));
     auto lookup = csr::build_lookup(result.get());
     auto reuse_info = multiply_add_reuse_info{
         std::make_unique<typename multiply_add_reuse_info::lookup_data>(
@@ -911,7 +1131,8 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::scale_add(
     auto result = Csr::create(exec, this->get_size());
     exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
                                local_scale_other->get_const_device_view(),
-                               local_mtx_other.get(), result.get()));
+                               local_mtx_other.get(),
+                               make_builder_unique_ptr(result).get()));
     return result;
 }
 
@@ -1005,7 +1226,8 @@ Csr<ValueType, IndexType>::add_scale_reuse(
     auto result = Csr::create(exec, this->get_size());
     exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
                                local_scale_other->get_const_device_view(),
-                               local_mtx_other.get(), result.get()));
+                               local_mtx_other.get(),
+                               make_builder_unique_ptr(result).get()));
     return std::make_pair(
         std::move(result),
         scale_add_reuse_info{
@@ -1041,7 +1263,7 @@ transform_reusable(const Csr<ValueType, IndexType>* input, gko::dim<2> out_size,
         make_const_array_view(exec, nnz, input->get_const_col_idxs()),
         make_const_array_view(exec, in_size[0] + 1,
                               input->get_const_row_ptrs()),
-        std::make_shared<typename Csr<FloatIndexType, IndexType>::sparselib>());
+        csr::spmv_strategy::sparselib);
     auto transformed_iota = closure(iota_mtx.get());
     exec->copy(out_size[0] + 1, transformed_iota->get_const_row_ptrs(),
                transformed->get_row_ptrs());
@@ -1143,7 +1365,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     if ((mode & permute_mode::symmetric) == permute_mode::none) {
         return this->clone();
     }
-    auto result = Csr::create(exec, size, nnz, this->get_strategy()->copy());
+    auto result = Csr::create(exec, size, nnz, this->get_strategy());
     auto local_permutation = make_temporary_clone(exec, permutation);
     std::unique_ptr<const Permutation<IndexType>> inv_permutation;
     const auto perm_idxs = local_permutation->get_const_permutation();
@@ -1197,7 +1419,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     const auto nnz = this->get_num_stored_elements();
     GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
     GKO_ASSERT_EQUAL_COLS(this, col_permutation);
-    auto result = Csr::create(exec, size, nnz, this->get_strategy()->copy());
+    auto result = Csr::create(exec, size, nnz, this->get_strategy());
     auto local_row_permutation = make_temporary_clone(exec, row_permutation);
     auto local_col_permutation = make_temporary_clone(exec, col_permutation);
     if (invert) {
@@ -1256,7 +1478,7 @@ Csr<ValueType, IndexType>::scale_permute(
     if ((mode & permute_mode::symmetric) == permute_mode::none) {
         return this->clone();
     }
-    auto result = Csr::create(exec, size, nnz, this->get_strategy()->copy());
+    auto result = Csr::create(exec, size, nnz, this->get_strategy());
     auto local_permutation = make_temporary_clone(exec, permutation);
     std::unique_ptr<const ScaledPermutation<ValueType, IndexType>>
         inv_permutation;
@@ -1320,7 +1542,7 @@ Csr<ValueType, IndexType>::scale_permute(
     const auto nnz = this->get_num_stored_elements();
     GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
     GKO_ASSERT_EQUAL_COLS(this, col_permutation);
-    auto result = Csr::create(exec, size, nnz, this->get_strategy()->copy());
+    auto result = Csr::create(exec, size, nnz, this->get_strategy());
     auto local_row_permutation = make_temporary_clone(exec, row_permutation);
     auto local_col_permutation = make_temporary_clone(exec, col_permutation);
     if (invert) {
@@ -1559,7 +1781,7 @@ Csr<ValueType, IndexType>::compute_absolute() const
                                                 this->get_num_stored_elements(),
                                                 abs_csr->get_values()));
 
-    convert_strategy_helper(abs_csr.get());
+    abs_csr->make_srow();
     return abs_csr;
 }
 
@@ -1599,6 +1821,23 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
         make_temporary_conversion<ValueType>(a)->get_const_device_view(),
         make_temporary_conversion<ValueType>(b)->get_const_device_view(),
         this));
+}
+
+template <typename ValueType, typename IndexType>
+csr::spmv_strategy Csr<ValueType, IndexType>::get_strategy() const noexcept
+{
+    return strategy_;
+}
+
+
+template <typename ValueType, typename IndexType>
+csr::spmv_strategy Csr<ValueType, IndexType>::get_actual_strategy()
+    const noexcept
+{
+    return csr::detail::get_actual_strategy(
+        this->get_executor(), this->get_strategy(),
+        this->get_num_stored_elements(),
+        static_cast<size_type>(max_nnz_per_row_));
 }
 
 

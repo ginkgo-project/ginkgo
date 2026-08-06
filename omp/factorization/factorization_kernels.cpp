@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -138,10 +138,11 @@ void add_missing_diagonal_elements(const matrix::Csr<ValueType, IndexType>* mtx,
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
-                           matrix::Csr<ValueType, IndexType>* mtx,
-                           bool is_sorted)
+void add_diagonal_elements(
+    std::shared_ptr<const OmpExecutor> exec,
+    matrix::CsrBuilder<ValueType, IndexType>* mtx_builder, bool is_sorted)
 {
+    auto mtx = mtx_builder->get_matrix();
     auto mtx_size = mtx->get_size();
     size_type row_ptrs_size = mtx_size[0] + 1;
     array<IndexType> row_ptrs_addition{exec, row_ptrs_size};
@@ -176,9 +177,8 @@ void add_diagonal_elements(std::shared_ptr<const OmpExecutor> exec,
         old_row_ptrs_ptr[i] += row_ptrs_addition_ptr[i];
     }
 
-    matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
-    mtx_builder.get_value_array() = std::move(new_values);
-    mtx_builder.get_col_idx_array() = std::move(new_col_idxs);
+    mtx_builder->get_value_array() = std::move(new_values);
+    mtx_builder->get_col_idx_array() = std::move(new_col_idxs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

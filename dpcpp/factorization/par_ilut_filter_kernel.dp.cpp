@@ -54,7 +54,7 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
                       std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* a,
                       remove_complex<ValueType> threshold,
-                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
                       matrix::Coo<ValueType, IndexType>* m_out_coo, bool lower)
 {
     auto old_row_ptrs = a->get_const_row_ptrs();
@@ -64,6 +64,7 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
     auto num_rows = static_cast<IndexType>(a->get_size()[0]);
     auto block_size = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(num_rows, block_size);
+    auto m_out = m_out_builder->get_matrix();
     auto new_row_ptrs = m_out->get_row_ptrs();
     kernel::threshold_filter_nnz<subgroup_size>(
         num_blocks, default_block_size, 0, exec->get_queue(), old_row_ptrs,
@@ -75,9 +76,8 @@ void threshold_filter(syn::value_list<int, subgroup_size>,
     // build matrix
     auto new_nnz = exec->copy_val_to_host(new_row_ptrs + num_rows);
     // resize arrays and update aliases
-    matrix::CsrBuilder<ValueType, IndexType> builder{m_out};
-    builder.get_col_idx_array().resize_and_reset(new_nnz);
-    builder.get_value_array().resize_and_reset(new_nnz);
+    m_out_builder->get_col_idx_array().resize_and_reset(new_nnz);
+    m_out_builder->get_value_array().resize_and_reset(new_nnz);
     auto new_col_idxs = m_out->get_col_idxs();
     auto new_vals = m_out->get_values();
     IndexType* new_row_idxs{};
@@ -107,7 +107,7 @@ template <typename ValueType, typename IndexType>
 void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
                       const matrix::Csr<ValueType, IndexType>* a,
                       remove_complex<ValueType> threshold,
-                      matrix::Csr<ValueType, IndexType>* m_out,
+                      matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
                       matrix::Coo<ValueType, IndexType>* m_out_coo, bool lower)
 {
     auto num_rows = a->get_size()[0];
@@ -119,8 +119,8 @@ void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subgroup_size ||
                    compiled_subgroup_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, a, threshold, m_out,
-        m_out_coo, lower);
+        syn::value_list<int>(), syn::type_list<>(), exec, a, threshold,
+        m_out_builder, m_out_coo, lower);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

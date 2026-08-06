@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,7 +68,8 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
                   gko::ptr_param<gko::matrix::Dense<>> x)
 {
     using Mtx = gko::matrix::Csr<>;
-    auto A = gko::share(Mtx::create(exec, std::make_shared<Mtx::classical>()));
+    auto A = gko::share(
+        Mtx::create(exec, gko::matrix::csr::spmv_strategy::classical));
 
     auto num_iters = 20u;
     double reduction_factor = 1e-7;
@@ -89,8 +90,8 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
 #if defined(HAS_HIP) || defined(HAS_CUDA)
     // If we are on a device, we need to run a reference test to compare against
     auto exec_ref = exec->get_master();
-    auto A_ref =
-        gko::share(Mtx::create(exec_ref, std::make_shared<Mtx::classical>()));
+    auto A_ref = gko::share(
+        Mtx::create(exec_ref, gko::matrix::csr::spmv_strategy::classical));
     A_ref->read(A_raw);
     auto solver_gen_ref =
         Solver::build()
@@ -359,7 +360,8 @@ int main()
     // core/matrix/csr.hpp
     {
         using Mtx = gko::matrix::Csr<>;
-        auto test = Mtx::create(exec, std::make_shared<Mtx::classical>());
+        auto test =
+            Mtx::create(exec, gko::matrix::csr::spmv_strategy::classical);
     }
 
     // core/matrix/dense.hpp

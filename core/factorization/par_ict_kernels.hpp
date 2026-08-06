@@ -23,11 +23,12 @@ namespace kernels {
 
 
 #define GKO_DECLARE_PAR_ICT_ADD_CANDIDATES_KERNEL(ValueType, IndexType) \
-    void add_candidates(std::shared_ptr<const DefaultExecutor> exec,    \
-                        const matrix::Csr<ValueType, IndexType>* llh,   \
-                        const matrix::Csr<ValueType, IndexType>* a,     \
-                        const matrix::Csr<ValueType, IndexType>* l,     \
-                        matrix::Csr<ValueType, IndexType>* l_new)
+    void add_candidates(                                                \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType>* llh,                   \
+        const matrix::Csr<ValueType, IndexType>* a,                     \
+        const matrix::Csr<ValueType, IndexType>* l,                     \
+        matrix::CsrBuilder<ValueType, IndexType>* l_new_builder)
 
 #define GKO_DECLARE_PAR_ICT_COMPUTE_FACTOR_KERNEL(ValueType, IndexType) \
     void compute_factor(                                                \

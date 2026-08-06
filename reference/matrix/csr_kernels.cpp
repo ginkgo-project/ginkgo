@@ -43,6 +43,7 @@ namespace csr {
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
+          const matrix::csr::spmv_strategy, const IndexType,
           const matrix::Csr<MatrixValueType, IndexType>* a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
@@ -80,6 +81,8 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
+                   const matrix::csr::spmv_strategy,
+                   const IndexType /* max_nnz_per_row */,
                    matrix::view::dense<const MatrixValueType> alpha,
                    const matrix::Csr<MatrixValueType, IndexType>* a,
                    matrix::view::dense<const InputValueType> b,
@@ -196,10 +199,11 @@ template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto num_rows = a->get_size()[0];
 
+    auto c = c_builder->get_matrix();
     // first sweep: count nnz for each row
     auto c_row_ptrs = c->get_row_ptrs();
 
@@ -215,9 +219,8 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
@@ -247,12 +250,13 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
                      const matrix::Csr<ValueType, IndexType>* b,
                      matrix::view::dense<const ValueType> beta,
                      const matrix::Csr<ValueType, IndexType>* d,
-                     matrix::Csr<ValueType, IndexType>* c)
+                     matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto num_rows = a->get_size()[0];
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
 
+    auto c = c_builder->get_matrix();
     // first sweep: count nnz for each row
     auto c_row_ptrs = c->get_row_ptrs();
 
@@ -269,9 +273,8 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
@@ -423,12 +426,13 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
             const matrix::Csr<ValueType, IndexType>* a,
             matrix::view::dense<const ValueType> beta,
             const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto num_rows = a->get_size()[0];
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
 
+    auto c = c_builder->get_matrix();
     // first sweep: count nnz for each row
     auto c_row_ptrs = c->get_row_ptrs();
 
@@ -444,9 +448,8 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
 
     // second sweep: accumulate non-zeros
     auto new_nnz = c_row_ptrs[num_rows];
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();

@@ -170,7 +170,7 @@ protected:
                   const gko::dim<2>& size = gko::dim<2>{})
         : CusparseBase(exec, size),
           csr_(std::move(
-              csr::create(exec, std::make_shared<typename csr::classical>()))),
+              csr::create(exec, gko::matrix::csr::spmv_strategy::classical))),
           trans_(SPARSELIB_OPERATION_NON_TRANSPOSE),
           buffer_(exec)
     {
@@ -309,7 +309,7 @@ protected:
                        const gko::dim<2>& size = gko::dim<2>{})
         : CusparseBase(exec, size),
           csr_(std::move(
-              csr::create(exec, std::make_shared<typename csr::classical>()))),
+              csr::create(exec, gko::matrix::csr::spmv_strategy::classical))),
           trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 

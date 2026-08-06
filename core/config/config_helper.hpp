@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -298,22 +299,22 @@ get_value(const pnode& config)
 
 
 template <typename Csr>
-inline std::shared_ptr<typename Csr::strategy_type> get_strategy(
-    const pnode& config)
+inline matrix::csr::spmv_strategy get_strategy(const pnode& config)
 {
     auto str = config.get_string();
-    std::shared_ptr<typename Csr::strategy_type> strategy_ptr;
-    // automatical and load_balance requires the executor
-    if (str == "sparselib" || str == "cusparse") {
-        strategy_ptr = std::make_shared<typename Csr::sparselib>();
+    if (str == "sparselib") {
+        return matrix::csr::spmv_strategy::sparselib;
     } else if (str == "merge_path") {
-        strategy_ptr = std::make_shared<typename Csr::merge_path>();
+        return matrix::csr::spmv_strategy::merge_path;
     } else if (str == "classical") {
-        strategy_ptr = std::make_shared<typename Csr::classical>();
+        return matrix::csr::spmv_strategy::classical;
+    } else if (str == "automatic") {
+        return matrix::csr::spmv_strategy::automatic;
+    } else if (str == "load_balance") {
+        return matrix::csr::spmv_strategy::load_balance;
     } else {
         GKO_INVALID_CONFIG_VALUE("strategy", str);
     }
-    return strategy_ptr;
 }
 
 

@@ -91,9 +91,10 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
         csr_system_matrix->sort_by_column_index();
     }
 
+    // TODO: it always run make_srow even if the matrix is not changed
     // Add explicit diagonal zero elements if they are missing
     exec->run(par_ic_factorization::make_add_diagonal_elements(
-        csr_system_matrix.get(), true));
+        matrix::make_builder_unique_ptr(csr_system_matrix).get(), true));
 
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];

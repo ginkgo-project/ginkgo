@@ -91,14 +91,14 @@ protected:
         {
             SCOPED_TRACE("With Csr with strategy");
             using ConcreteCsr = Csr<value_type, local_index_type>;
-            auto strategy = std::make_shared<typename ConcreteCsr::classical>();
+            auto strategy = gko::matrix::csr::spmv_strategy::classical;
             f(gko::with_matrix_type<Csr>(strategy),
               ConcreteCsr::create(this->ref, strategy),
               [](gko::ptr_param<const gko::LinOp> local_mat) {
                   auto local_csr = gko::as<ConcreteCsr>(local_mat);
 
-                  ASSERT_NO_THROW(gko::as<typename ConcreteCsr::classical>(
-                      local_csr->get_strategy()));
+                  ASSERT_EQ(local_csr->get_strategy(),
+                            gko::matrix::csr::spmv_strategy::classical);
               });
         }
         {

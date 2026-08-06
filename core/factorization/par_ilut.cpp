@@ -110,17 +110,17 @@ struct ParIlutState {
     // temporary array for threshold selection
     array<remove_complex<ValueType>> selection_tmp2;
     // strategy to be used by the lower factor
-    std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy;
+    matrix::csr::spmv_strategy l_strategy;
     // strategy to be used by the upper factor
-    std::shared_ptr<typename CsrMatrix::strategy_type> u_strategy;
+    matrix::csr::spmv_strategy u_strategy;
 
     ParIlutState(std::shared_ptr<const Executor> exec_in,
                  const CsrMatrix* system_matrix_in,
                  std::unique_ptr<CsrMatrix> l_in,
                  std::unique_ptr<CsrMatrix> u_in, IndexType l_nnz_limit,
                  IndexType u_nnz_limit, bool use_approx_select,
-                 std::shared_ptr<typename CsrMatrix::strategy_type> l_strategy_,
-                 std::shared_ptr<typename CsrMatrix::strategy_type> u_strategy_)
+                 matrix::csr::spmv_strategy l_strategy_,
+                 matrix::csr::spmv_strategy u_strategy_)
         : exec{std::move(exec_in)},
           l_nnz_limit{l_nnz_limit},
           u_nnz_limit{u_nnz_limit},
@@ -130,8 +130,8 @@ struct ParIlutState {
           u{std::move(u_in)},
           selection_tmp{exec},
           selection_tmp2{exec},
-          l_strategy{std::move(l_strategy_)},
-          u_strategy{std::move(u_strategy_)}
+          l_strategy{l_strategy_},
+          u_strategy{u_strategy_}
     {
         auto mtx_size = system_matrix->get_size();
         auto u_nnz = u->get_num_stored_elements();
@@ -263,11 +263,12 @@ template <typename ValueType, typename IndexType>
 void ParIlutState<ValueType, IndexType>::iterate()
 {
     // compute L * U
-    exec->run(make_spgemm(l.get(), u.get(), lu.get()));
+    exec->run(make_spgemm(l.get(), u.get(), make_builder_unique_ptr(lu).get()));
 
     // add new candidates to L' and U' factors
     exec->run(make_add_candidates(lu.get(), system_matrix, l.get(), u.get(),
-                                  l_new.get(), u_new.get()));
+                                  make_builder_unique_ptr(l_new).get(),
+                                  make_builder_unique_ptr(u_new).get()));
 
     // update U'(CSC), L'(COO), U'(COO) sizes and pointers
     {
@@ -319,12 +320,12 @@ void ParIlutState<ValueType, IndexType>::iterate()
     CooMatrix* null_coo = nullptr;
     if (use_approx_select) {
         // remove approximately smallest candidates from L' and U'^T
-        exec->run(make_threshold_filter_approx(l_new.get(), l_filter_rank,
-                                               selection_tmp, l_threshold,
-                                               l.get(), l_coo.get()));
-        exec->run(make_threshold_filter_approx(u_new_csc.get(), u_filter_rank,
-                                               selection_tmp, u_threshold,
-                                               u_csc.get(), null_coo));
+        exec->run(make_threshold_filter_approx(
+            l_new.get(), l_filter_rank, selection_tmp, l_threshold,
+            make_builder_unique_ptr(l).get(), l_coo.get()));
+        exec->run(make_threshold_filter_approx(
+            u_new_csc.get(), u_filter_rank, selection_tmp, u_threshold,
+            make_builder_unique_ptr(u_csc).get(), null_coo));
     } else {
         // select threshold to remove smallest candidates
         exec->run(make_threshold_select(l_new.get(), l_filter_rank,
@@ -335,13 +336,16 @@ void ParIlutState<ValueType, IndexType>::iterate()
                                         u_threshold));
 
         // remove smallest candidates from L' and U'^T
-        exec->run(make_threshold_filter(l_new.get(), l_threshold, l.get(),
+        exec->run(make_threshold_filter(l_new.get(), l_threshold,
+                                        make_builder_unique_ptr(l).get(),
                                         l_coo.get(), true));
         exec->run(make_threshold_filter(u_new_csc.get(), u_threshold,
-                                        u_csc.get(), null_coo, true));
+                                        make_builder_unique_ptr(u_csc).get(),
+                                        null_coo, true));
     }
     // remove smallest candidates from U'
-    exec->run(make_threshold_filter(u_new.get(), u_threshold, u.get(),
+    exec->run(make_threshold_filter(u_new.get(), u_threshold,
+                                    make_builder_unique_ptr(u).get(),
                                     u_coo.get(), false));
 
     // execute asynchronous iteration

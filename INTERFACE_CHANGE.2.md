@@ -56,3 +56,12 @@ Users can use `as<ConcreteType>(as<Cloneable>(pointer)->clone())` or `as<Concret
 If the object is the concrete type like Dense and Csr, `pointer->clone()` and `pointer->clone(exec)` works the same as previous version.
 
 If Users have their own class inherit from something like `EnableLinOp`, users only need to inherit from `LinOp` for `apply` function and optionally inherit from `EnableCloneable<ConcreteType>` for `clone` function.
+
+## Csr create function with the strategy
+The `Csr::strategy` classes are deprecated.
+To create a Csr matrix with a specific strategy, use the enum `gko::matrix::csr::spmv_strategy` instead.
+For example, `std::make_shared<Csr<>>(exec, std::make_shared<Csr<>::classical>())` is equivalent to
+`std::make_shared<Csr<>>(exec, csr::spmv_strategy::classical)`. 
+`csr->get_strategy` will now return the enum value instead of a shared_ptr.
+We use `automatic` in enum not `automatical` like old shared_ptr usage.
+**Note:** It is not possible to have a custom load_balance strategy with the new interface. (Please let us know if you need it)

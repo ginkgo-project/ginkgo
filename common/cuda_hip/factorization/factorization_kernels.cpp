@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -353,13 +353,14 @@ __global__ __launch_bounds__(default_block_size) void symbolic_validate(
 
 
 template <typename ValueType, typename IndexType>
-void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
-                           matrix::Csr<ValueType, IndexType>* mtx,
-                           bool is_sorted)
+void add_diagonal_elements(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::CsrBuilder<ValueType, IndexType>* mtx_builder, bool is_sorted)
 {
     // TODO: Runtime can be optimized by choosing a appropriate size for the
     //       subwarp dependent on the matrix properties
     constexpr int subwarp_size = config::warp_size;
+    auto mtx = mtx_builder->get_matrix();
     auto mtx_size = mtx->get_size();
     auto num_rows = static_cast<IndexType>(mtx_size[0]);
     auto num_cols = static_cast<IndexType>(mtx_size[1]);
@@ -422,9 +423,8 @@ void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec,
                               exec->get_stream()>>>(num_rows + 1, old_row_ptrs,
                                                     row_ptrs_add);
 
-    matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
-    mtx_builder.get_value_array() = std::move(new_value_array);
-    mtx_builder.get_col_idx_array() = std::move(new_col_idx_array);
+    mtx_builder->get_value_array() = std::move(new_value_array);
+    mtx_builder->get_col_idx_array() = std::move(new_col_idx_array);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

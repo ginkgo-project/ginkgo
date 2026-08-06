@@ -147,17 +147,15 @@ TYPED_TEST(ParIc, SetStrategy)
 {
     using Csr = typename TestFixture::Csr;
     using factorization_type = typename TestFixture::factorization_type;
-    auto l_strategy = std::make_shared<typename Csr::merge_path>();
+    auto l_strategy = gko::matrix::csr::spmv_strategy::merge_path;
 
     auto factory =
         factorization_type::build().with_l_strategy(l_strategy).on(this->ref);
     auto fact = factory->generate(this->mtx_system);
 
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
-    ASSERT_EQ(fact->get_l_factor()->get_strategy()->get_name(),
-              l_strategy->get_name());
-    ASSERT_EQ(fact->get_lt_factor()->get_strategy()->get_name(),
-              l_strategy->get_name());
+    ASSERT_EQ(fact->get_l_factor()->get_strategy(), l_strategy);
+    ASSERT_EQ(fact->get_lt_factor()->get_strategy(), l_strategy);
 }
 
 

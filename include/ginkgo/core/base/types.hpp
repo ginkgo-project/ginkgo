@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,6 +59,17 @@
 
 
 // Handle deprecated notices correctly on different systems
+/**
+ * It helps the clang-format formatting properly
+ * example: deprecated class with a function having return will lead weird
+ * formatting
+ * ```c++
+ * class [[deprecated("T")]] B {
+ *   public:
+ *    int get() const { return 1; }
+ *   };
+ * ```
+ */
 // clang-format off
 #define GKO_DEPRECATED(_msg) [[deprecated(_msg)]]
 #ifdef __NVCOMPILER

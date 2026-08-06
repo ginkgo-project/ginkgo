@@ -53,14 +53,14 @@ protected:
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>{2, 3}, 4,
-                          std::make_shared<typename Mtx::load_balance>(2))),
+                          gko::matrix::csr::spmv_strategy::load_balance)),
           mtx2(Mtx::create(exec, gko::dim<2>{2, 3}, 5,
-                           std::make_shared<typename Mtx::classical>())),
+                           gko::matrix::csr::spmv_strategy::classical)),
           mtx3_sorted(Mtx::create(exec, gko::dim<2>(3, 3), 7,
-                                  std::make_shared<typename Mtx::classical>())),
+                                  gko::matrix::csr::spmv_strategy::classical)),
           mtx3_unsorted(
               Mtx::create(exec, gko::dim<2>(3, 3), 7,
-                          std::make_shared<typename Mtx::classical>())),
+                          gko::matrix::csr::spmv_strategy::classical)),
           perm3(Perm::create(exec, gko::array<index_type>{exec, {1, 2, 0}})),
           perm3_rev(perm3->compute_inverse()),
           perm2(Perm::create(exec, gko::array<index_type>{exec, {1, 0}})),
@@ -86,7 +86,6 @@ protected:
         value_type* v = m->get_values();
         index_type* c = m->get_col_idxs();
         index_type* r = m->get_row_ptrs();
-        auto* s = m->get_srow();
         /*
          * 1   3   2
          * 0   5   0
@@ -102,7 +101,8 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
-        s[0] = 0;
+        // set srow after filling the matrix
+        m->set_strategy(m->get_strategy());
     }
 
     void create_mtx2(Mtx* m)
@@ -1170,7 +1170,7 @@ TYPED_TEST(Csr, ConvertsToPrecision)
     GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
     auto first_strategy = this->mtx2->get_strategy();
     auto second_strategy = res->get_strategy();
-    GKO_ASSERT_DYNAMIC_TYPE_EQ(first_strategy, second_strategy);
+    ASSERT_EQ(first_strategy, second_strategy);
 }
 
 
@@ -1196,7 +1196,7 @@ TYPED_TEST(Csr, MovesToPrecision)
     GKO_ASSERT_MTX_NEAR(this->mtx2, res, residual);
     auto first_strategy = this->mtx2->get_strategy();
     auto second_strategy = res->get_strategy();
-    GKO_ASSERT_DYNAMIC_TYPE_EQ(first_strategy, second_strategy);
+    ASSERT_EQ(first_strategy, second_strategy);
 }
 
 
@@ -2379,8 +2379,7 @@ TYPED_TEST(Csr, OutplaceAbsolute)
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l({{1.0, 2.0, 2.0}, {3.0, 5.0, 0.0}, {0.0, 1.0, 1.5}}), 0.0);
-    ASSERT_EQ(mtx->get_strategy()->get_name(),
-              abs_mtx->get_strategy()->get_name());
+    ASSERT_EQ(mtx->get_strategy(), abs_mtx->get_strategy());
 }
 
 
@@ -2674,8 +2673,7 @@ TYPED_TEST(CsrComplex, OutplaceAbsolute)
 
     GKO_ASSERT_MTX_NEAR(
         abs_mtx, l({{1.0, 5.0, 2.0}, {5.0, 1.0, 0.0}, {0.0, 1.5, 2.0}}), 0.0);
-    ASSERT_EQ(mtx->get_strategy()->get_name(),
-              abs_mtx->get_strategy()->get_name());
+    ASSERT_EQ(mtx->get_strategy(), abs_mtx->get_strategy());
 }
 
 

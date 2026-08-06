@@ -88,7 +88,7 @@ std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp* mtx)
         mtx->get_executor(), const_cast<LinOp*>(mtx));
 
     csr_matrix_unique_ptr->set_strategy(
-        std::make_shared<typename CsrType::classical>());
+        gko::matrix::csr::spmv_strategy::classical);
 
     return csr_matrix_unique_ptr->conj_transpose();
 }

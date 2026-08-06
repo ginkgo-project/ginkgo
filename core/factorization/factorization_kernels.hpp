@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,6 +13,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/base/kernel_declaration.hpp"
+#include "core/matrix/csr_builder.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
 
@@ -20,11 +21,11 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType,   \
-                                                               IndexType)   \
-    void add_diagonal_elements(std::shared_ptr<const DefaultExecutor> exec, \
-                               matrix::Csr<ValueType, IndexType>* mtx,      \
-                               bool is_sorted)
+#define GKO_DECLARE_FACTORIZATION_ADD_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
+                                                               IndexType) \
+    void add_diagonal_elements(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        matrix::CsrBuilder<ValueType, IndexType>* mtx_builder, bool is_sorted)
 
 #define GKO_DECLARE_FACTORIZATION_INITIALIZE_ROW_PTRS_L_U_KERNEL(ValueType, \
                                                                  IndexType) \

@@ -51,12 +51,11 @@ protected:
                           .with_skip_sorting(true)
                           .on(exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
-                          std::make_shared<typename Mtx::classical>())),
-          weight(WeightMtx::create(
-              exec, gko::dim<2>(5, 5), 15,
-              std::make_shared<typename WeightMtx::classical>())),
+                          gko::matrix::csr::spmv_strategy::classical)),
+          weight(WeightMtx::create(exec, gko::dim<2>(5, 5), 15,
+                                   gko::matrix::csr::spmv_strategy::classical)),
           coarse(Mtx::create(exec, gko::dim<2>(2, 2), 4,
-                             std::make_shared<typename Mtx::classical>())),
+                             gko::matrix::csr::spmv_strategy::classical)),
           agg(exec, 5)
     {
         fine_b = gko::initialize<Vec>(

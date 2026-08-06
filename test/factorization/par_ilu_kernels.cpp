@@ -47,7 +47,7 @@ protected:
         auto mtx_temp = gko::read<Csr>(input_file, ref);
         // Make sure there are diagonal elements present
         gko::kernels::reference::factorization::add_diagonal_elements(
-            ref, mtx_temp.get(), false);
+            ref, gko::matrix::make_builder_unique_ptr(mtx_temp).get(), false);
         auto dmtx_temp = gko::clone(exec, mtx_temp);
         mtx = gko::give(mtx_temp);
         dmtx = gko::give(dmtx_temp);
@@ -155,9 +155,9 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
     auto dmtx = gko::clone(this->exec, mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, mtx.get(), true);
+        this->ref, gko::matrix::make_builder_unique_ptr(mtx).get(), true);
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
-        this->exec, dmtx.get(), true);
+        this->exec, gko::matrix::make_builder_unique_ptr(dmtx).get(), true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.);
@@ -171,9 +171,9 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsortedEquivalentToRef)
     auto dmtx = gko::clone(this->exec, mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, mtx.get(), false);
+        this->ref, gko::matrix::make_builder_unique_ptr(mtx).get(), false);
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
-        this->exec, dmtx.get(), false);
+        this->exec, gko::matrix::make_builder_unique_ptr(dmtx).get(), false);
 
     ASSERT_FALSE(mtx->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.);
@@ -188,9 +188,9 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquareEquivalentToRef)
     auto dmtx = gko::clone(this->exec, mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, mtx.get(), true);
+        this->ref, gko::matrix::make_builder_unique_ptr(mtx).get(), true);
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
-        this->exec, dmtx.get(), true);
+        this->exec, gko::matrix::make_builder_unique_ptr(dmtx).get(), true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.);

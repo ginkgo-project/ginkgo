@@ -340,7 +340,7 @@ TEST_F(UpperTrs, ApplyTriangularSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyFullDenseMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
-    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory = solver_type::build().on(ref);
     auto d_upper_trs_factory = solver_type::build().on(exec);
     auto solver = upper_trs_factory->generate(mtx);
@@ -356,7 +356,7 @@ TEST_F(UpperTrs, ClassicalApplyFullDenseMtxIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyFullDenseMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
-    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
     auto d_upper_trs_factory =
@@ -374,7 +374,7 @@ TEST_F(UpperTrs, ClassicalApplyFullDenseMtxUnitDiagIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyFullSparseMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 5);
-    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory = solver_type::build().on(ref);
     auto d_upper_trs_factory = solver_type::build().on(exec);
     auto solver = upper_trs_factory->generate(mtx);
@@ -390,7 +390,7 @@ TEST_F(UpperTrs, ClassicalApplyFullSparseMtxIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyFullSparseMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 5);
-    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
     auto d_upper_trs_factory =
@@ -408,7 +408,7 @@ TEST_F(UpperTrs, ClassicalApplyFullSparseMtxUnitDiagIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
-    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory = solver_type::build().on(ref);
     auto d_upper_trs_factory = solver_type::build().on(exec);
     auto solver = upper_trs_factory->generate(mtx_u);
@@ -424,7 +424,7 @@ TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
-    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
     auto d_upper_trs_factory =
@@ -442,7 +442,7 @@ TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyTriangularSparseMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 5);
-    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory = solver_type::build().on(ref);
     auto d_upper_trs_factory = solver_type::build().on(exec);
     auto solver = upper_trs_factory->generate(mtx_u);
@@ -458,7 +458,7 @@ TEST_F(UpperTrs, ClassicalApplyTriangularSparseMtxIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 5);
-    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).on(ref);
     auto d_upper_trs_factory =
@@ -476,7 +476,7 @@ TEST_F(UpperTrs, ClassicalApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 4, 50);
-    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory = solver_type::build().with_num_rhs(4u).on(ref);
     auto d_upper_trs_factory = solver_type::build().with_num_rhs(4u).on(exec);
     auto solver = upper_trs_factory->generate(mtx);
@@ -492,7 +492,7 @@ TEST_F(UpperTrs, ClassicalApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 5, 50);
-    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory =
         solver_type::build().with_num_rhs(5u).with_unit_diagonal(true).on(ref);
     auto d_upper_trs_factory =
@@ -510,7 +510,7 @@ TEST_F(UpperTrs, ClassicalApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 TEST_F(UpperTrs, ClassicalApplyFullSparseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 6, 5);
-    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory = solver_type::build().with_num_rhs(6u).on(ref);
     auto d_upper_trs_factory = solver_type::build().with_num_rhs(6u).on(exec);
     auto solver = upper_trs_factory->generate(mtx);
@@ -527,7 +527,7 @@ TEST_F(UpperTrs,
        ClassicalApplyFullSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 7, 5);
-    dmtx->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory =
         solver_type::build().with_num_rhs(7u).with_unit_diagonal(true).on(ref);
     auto d_upper_trs_factory =
@@ -545,7 +545,7 @@ TEST_F(UpperTrs,
 TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 8, 50);
-    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory = solver_type::build().with_num_rhs(8u).on(ref);
     auto d_upper_trs_factory = solver_type::build().with_num_rhs(8u).on(exec);
     auto solver = upper_trs_factory->generate(mtx_u);
@@ -562,7 +562,7 @@ TEST_F(UpperTrs,
        ClassicalApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 9, 50);
-    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory =
         solver_type::build().with_num_rhs(9u).with_unit_diagonal(true).on(ref);
     auto d_upper_trs_factory =
@@ -580,7 +580,7 @@ TEST_F(UpperTrs,
 TEST_F(UpperTrs, ClassicalApplyTriangularSparseMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 10, 5);
-    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory = solver_type::build().with_num_rhs(10u).on(ref);
     auto d_upper_trs_factory = solver_type::build().with_num_rhs(10u).on(exec);
     auto solver = upper_trs_factory->generate(mtx_u);
@@ -597,7 +597,7 @@ TEST_F(UpperTrs,
        ClassicalApplyTriangularSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 11, 5);
-    dmtx_u->set_strategy(std::make_shared<mtx_type::classical>());
+    dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
     auto upper_trs_factory =
         solver_type::build().with_unit_diagonal(true).with_num_rhs(11u).on(ref);
     auto d_upper_trs_factory =
