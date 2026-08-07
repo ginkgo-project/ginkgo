@@ -137,9 +137,10 @@ void initialize_weight_and_status(
     const auto row_ptrs = trans_strong_dep->get_const_row_ptrs();
 
     for (size_type row = 0; row < nrows; row++) {
-        weight[row] = static_cast<remove_complex<ValueType>>(row_ptrs[row + 1] -
-                                                             row_ptrs[row]);
-        status[row] = (weight[row] == 0 ? 0 : -1);
+        weight[row] = static_cast<double>(row_ptrs[row + 1] - row_ptrs[row]);
+        status[row] =
+            (weight[row] == zero<ValueType>() ? kernels::pmis::fine
+                                              : kernels::pmis::unassigned);
         weight[row] += static_cast<remove_complex<ValueType>>(dist(gen));
     }
 }
@@ -162,7 +163,7 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
     for (IndexType row = 0; row < nrows; row++) {
         // -1 is unassigned yet
         auto ans = status[row];
-        if (status[row] == -1) {
+        if (status[row] == kernels::pmis::unassigned) {
             // works on the strong graph
             const auto row_start = row_ptrs[row];
             const auto row_end = row_ptrs[row + 1];
@@ -175,7 +176,7 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
             if (is_coarse) {
-                ans = 1;
+                ans = kernels::pmis::coarse;
             }
         }
         new_status[row] = ans;
@@ -183,14 +184,15 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
     // mark all points strongly influenced by the new coarse points to fine
     // group
     for (IndexType row = 0; row < nrows; row++) {
-        if (new_status[row] == 1 && new_status[row] != status[row]) {
+        if (new_status[row] == kernels::pmis::coarse &&
+            new_status[row] != status[row]) {
             for (auto idx = trans_strong_dep->get_const_row_ptrs()[row];
                  idx < trans_strong_dep->get_const_row_ptrs()[row + 1]; idx++) {
                 // It is correct even if more than one threads might assign the
                 // value
                 auto col = trans_strong_dep->get_const_col_idxs()[idx];
-                if (new_status[col] == -1) {
-                    new_status[col] = 0;
+                if (new_status[col] == kernels::pmis::unassigned) {
+                    new_status[col] = kernels::pmis::fine;
                 }
             }
         }
@@ -205,7 +207,7 @@ void count(std::shared_ptr<const DefaultExecutor> exec, size_type num,
 {
     size_type ans = 0;
     for (size_type i = 0; i < num; i++) {
-        if (status[i] == -1) {
+        if (status[i] == kernels::pmis::unassigned) {
             ans++;
         }
     }
@@ -228,7 +230,7 @@ void direct_interpolation_row_count(
         for (auto idx = strong_dep->get_const_row_ptrs()[row];
              idx < strong_dep->get_const_row_ptrs()[row + 1]; idx++) {
             auto col = strong_dep->get_const_col_idxs()[idx];
-            if (status[col] == 1) {
+            if (status[col] == kernels::pmis::coarse) {
                 num++;
             }
         }

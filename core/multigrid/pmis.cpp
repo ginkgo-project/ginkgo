@@ -159,7 +159,7 @@ void Pmis<ValueType, IndexType>::generate()
     exec->run(pmis::make_initialize_weight_and_status(
         transpose_strong_dep.get(), weight_.get_data(), status_ptr));
     size_type num_not_assigned = 0;
-    // count #{status == 0}
+
     exec->run(
         pmis::make_count(this->get_size()[0], status_ptr, &num_not_assigned));
     while (num_not_assigned != 0) {
@@ -185,6 +185,9 @@ void Pmis<ValueType, IndexType>::generate()
     // process on status_ptr, so keeping that it in int not IndexType might give
     // some performance benefit.
     array<IndexType> coarse_map(exec, pmis_op->get_size()[0] + 1);
+    static_assert(
+        kernels::pmis::coarse == 1 && kernels::pmis::fine == 0,
+        "we perform prefix sum directly by having fine == 0 and coarse == 1");
     exec->run(pmis::make_convert_precision(pmis_op->get_size()[0], status_ptr,
                                            coarse_map.get_data()));
     exec->run(pmis::make_prefix_sum_nonnegative(coarse_map.get_data(),

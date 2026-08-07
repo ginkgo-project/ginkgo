@@ -20,6 +20,11 @@ namespace kernels {
 namespace pmis {
 
 
+constexpr int coarse = 1;
+constexpr int fine = 0;
+constexpr int unassigned = -1;
+
+
 #define GKO_DECLARE_PMIS_COMPUTE_ROW_MAXABS_KERNEL(ValueType, IndexType)  \
     void compute_row_maxabs(std::shared_ptr<const DefaultExecutor> exec,  \
                             const matrix::Csr<ValueType, IndexType>* csr, \
