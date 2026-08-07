@@ -83,6 +83,7 @@ target_sources(
         matrix/coo.cpp
         matrix/csr.cpp
         matrix/csr_lookup.cpp
+        matrix/dense.cpp
         matrix/diagonal.cpp
         matrix/ell.cpp
         matrix/fbcsr.cpp

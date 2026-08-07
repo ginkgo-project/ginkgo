@@ -38,7 +38,7 @@ GKO_REGISTER_OPERATION(add_scaled_identity, batch_dense::add_scaled_identity);
 
 
 template <typename ValueType>
-std::unique_ptr<gko::matrix::MultiVector<ValueType>>
+std::unique_ptr<gko::matrix::Dense<ValueType>>
 Dense<ValueType>::create_view_for_item(size_type item_id)
 {
     auto exec = this->get_executor();
@@ -54,7 +54,7 @@ Dense<ValueType>::create_view_for_item(size_type item_id)
 
 
 template <typename ValueType>
-std::unique_ptr<const gko::matrix::MultiVector<ValueType>>
+std::unique_ptr<const gko::matrix::Dense<ValueType>>
 Dense<ValueType>::create_const_view_for_item(size_type item_id) const
 {
     auto exec = this->get_executor();

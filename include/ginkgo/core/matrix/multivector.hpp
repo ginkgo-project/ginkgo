@@ -69,6 +69,8 @@ class Sellp;
 template <typename ValueType, typename IndexType>
 class SparsityCsr;
 
+template <typename ValueType>
+class Dense;
 
 /**
  * MultiVector is a matrix format which explicitly stores all values of the
@@ -100,6 +102,7 @@ class MultiVector
       public ConvertibleTo<Coo<ValueType, int64>>,
       public ConvertibleTo<Csr<ValueType, int32>>,
       public ConvertibleTo<Csr<ValueType, int64>>,
+      public ConvertibleTo<Dense<ValueType>>,
       public ConvertibleTo<Ell<ValueType, int32>>,
       public ConvertibleTo<Ell<ValueType, int64>>,
       public ConvertibleTo<Fbcsr<ValueType, int32>>,
@@ -125,6 +128,7 @@ class MultiVector
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
+    friend class Dense<ValueType>;
     friend class Diagonal<ValueType>;
     friend class Ell<ValueType, int32>;
     friend class Ell<ValueType, int64>;
@@ -155,6 +159,8 @@ public:
     using ConvertibleTo<Csr<ValueType, int32>>::move_to;
     using ConvertibleTo<Csr<ValueType, int64>>::convert_to;
     using ConvertibleTo<Csr<ValueType, int64>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
     using ConvertibleTo<Ell<ValueType, int32>>::convert_to;
     using ConvertibleTo<Ell<ValueType, int32>>::move_to;
     using ConvertibleTo<Ell<ValueType, int64>>::convert_to;
@@ -335,6 +341,10 @@ public:
     void convert_to(Csr<ValueType, int64>* result) const override;
 
     void move_to(Csr<ValueType, int64>* result) override;
+
+    void convert_to(Dense<ValueType>* result) const override;
+
+    void move_to(Dense<ValueType>* result) override;
 
     void convert_to(Ell<ValueType, int32>* result) const override;
 
@@ -1280,6 +1290,11 @@ public:
     static std::unique_ptr<const MultiVector> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values, size_type stride);
+
+    [[nodiscard]] std::unique_ptr<const Dense<ValueType>> as_const_dense_view()
+        const;
+
+    [[nodiscard]] std::unique_ptr<Dense<ValueType>> as_dense_view();
 
     /**
      * Copy-assigns a MultiVector. Preserves the executor, reallocates
