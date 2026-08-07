@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -37,6 +38,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using MultiVector = gko::matrix::MultiVector<value_type>;
     using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
@@ -312,27 +314,27 @@ TYPED_TEST(Fbcsr, MovesToPrecision)
 }
 
 
-TYPED_TEST(Fbcsr, ConvertsToMultiVector)
+TYPED_TEST(Fbcsr, ConvertsToDense)
 {
-    using MultiVector = typename TestFixture::MultiVector;
-    auto dense_mtx = MultiVector::create(this->mtx->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
 
     this->mtx->convert_to(dense_mtx);
 
-    auto refdenmtx = MultiVector::create(this->mtx->get_executor());
+    auto refdenmtx = Dense::create(this->mtx->get_executor());
     this->refcsrmtx->convert_to(refdenmtx);
     GKO_ASSERT_MTX_NEAR(dense_mtx, refdenmtx, 0.0);
 }
 
 
-TYPED_TEST(Fbcsr, MovesToMultiVector)
+TYPED_TEST(Fbcsr, MovesToDense)
 {
-    using MultiVector = typename TestFixture::MultiVector;
-    auto dense_mtx = MultiVector::create(this->mtx->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
 
     this->mtx->move_to(dense_mtx);
 
-    auto refdenmtx = MultiVector::create(this->mtx->get_executor());
+    auto refdenmtx = Dense::create(this->mtx->get_executor());
     this->refcsrmtx->convert_to(refdenmtx);
     GKO_ASSERT_MTX_NEAR(dense_mtx, refdenmtx, 0.0);
 }
@@ -426,13 +428,13 @@ TYPED_TEST(Fbcsr, MovesEmptyToPrecision)
 }
 
 
-TYPED_TEST(Fbcsr, ConvertsEmptyToMultiVector)
+TYPED_TEST(Fbcsr, ConvertsEmptyToDense)
 {
     using ValueType = typename TestFixture::value_type;
     using Fbcsr = typename TestFixture::Mtx;
-    using MultiVector = typename TestFixture::MultiVector;
+    using Dense = typename TestFixture::Dense;
     auto empty = Fbcsr::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->convert_to(res);
 
@@ -440,13 +442,13 @@ TYPED_TEST(Fbcsr, ConvertsEmptyToMultiVector)
 }
 
 
-TYPED_TEST(Fbcsr, MovesEmptyToMultiVector)
+TYPED_TEST(Fbcsr, MovesEmptyToDense)
 {
     using ValueType = typename TestFixture::value_type;
     using Fbcsr = typename TestFixture::Mtx;
-    using MultiVector = typename TestFixture::MultiVector;
+    using Dense = typename TestFixture::Dense;
     auto empty = Fbcsr::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->move_to(res);
 
