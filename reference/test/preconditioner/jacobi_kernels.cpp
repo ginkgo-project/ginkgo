@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
@@ -29,6 +30,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Bj = gko::preconditioner::Jacobi<value_type, index_type>;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
     using mdata = gko::matrix_data<value_type, index_type>;
 
@@ -1070,11 +1072,11 @@ TYPED_TEST(Jacobi,
 }
 
 
-TYPED_TEST(Jacobi, ConvertsToMultiVector)
+TYPED_TEST(Jacobi, ConvertsToDense)
 {
-    using Vec = typename TestFixture::Vec;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
-    auto dense = Vec::create(this->exec);
+    auto dense = Dense::create(this->exec);
 
     this->bj_factory->generate(this->mtx)->move_to(dense);
 
@@ -1090,12 +1092,12 @@ TYPED_TEST(Jacobi, ConvertsToMultiVector)
 }
 
 
-TYPED_TEST(Jacobi, ConvertsToMultiVectorWithAdaptivePrecision)
+TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
 {
-    using Vec = typename TestFixture::Vec;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     auto half_tol = std::sqrt(r<value_type>::value);
-    auto dense = Vec::create(this->exec);
+    auto dense = Dense::create(this->exec);
 
     this->adaptive_bj_factory->generate(this->mtx)->move_to(dense);
 
@@ -1111,11 +1113,11 @@ TYPED_TEST(Jacobi, ConvertsToMultiVectorWithAdaptivePrecision)
 }
 
 
-TYPED_TEST(Jacobi, ConvertsEmptyToMultiVector)
+TYPED_TEST(Jacobi, ConvertsEmptyToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto empty = gko::share(Vec::create(this->exec));
-    auto res = Vec::create(this->exec);
+    using Dense = typename TestFixture::Dense;
+    auto empty = gko::share(Dense::create(this->exec));
+    auto res = Dense::create(this->exec);
 
     TestFixture::Bj::build().on(this->exec)->generate(empty)->move_to(res);
 
@@ -1186,14 +1188,14 @@ TYPED_TEST(Jacobi, BlockL1)
 }
 
 
-TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToMultiVector)
+TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
 {
     using Bj = typename TestFixture::Bj;
     using Mtx = typename TestFixture::Mtx;
-    using Vec = typename TestFixture::Vec;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto dense = Vec::create(this->exec);
+    auto dense = Dense::create(this->exec);
     auto bj_factory = Bj::build()
                           .with_max_block_size(3u)
                           .with_block_pointers(this->block_pointers)
@@ -1231,15 +1233,15 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToMultiVector)
 }
 
 
-TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToMultiVectorWithAdaptivePrecision)
+TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDenseWithAdaptivePrecision)
 {
     using Bj = typename TestFixture::Bj;
     using Mtx = typename TestFixture::Mtx;
-    using Vec = typename TestFixture::Vec;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     auto half_tol = std::sqrt(r<value_type>::value);
-    auto dense = Vec::create(this->exec);
+    auto dense = Dense::create(this->exec);
     auto bj_factory = Bj::build()
                           .with_max_block_size(17u)
                           // make sure group size is 1
