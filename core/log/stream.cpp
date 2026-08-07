@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
@@ -35,6 +36,13 @@ std::ostream& operator<<(std::ostream& os,
         os << std::endl;
     }
     return os << "]" << std::endl;
+}
+
+
+template <typename ValueType = default_precision>
+std::ostream& operator<<(std::ostream& os, const matrix::Dense<ValueType>* mtx)
+{
+    return os << mtx->as_const_multivector_view().get();
 }
 
 
@@ -252,7 +260,7 @@ void Stream<ValueType>::on_linop_apply_started(const LinOp* A, const LinOp* b,
     *os_ << prefix_ << "apply started on A " << demangle_name(A) << " with b "
          << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
     if (verbose_) {
-        *os_ << demangle_name(A) << as<gko::matrix::MultiVector<ValueType>>(A)
+        *os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
              << std::endl;
         *os_ << demangle_name(b) << as<gko::matrix::MultiVector<ValueType>>(b)
              << std::endl;
@@ -269,7 +277,7 @@ void Stream<ValueType>::on_linop_apply_completed(const LinOp* A, const LinOp* b,
     *os_ << prefix_ << "apply completed on A " << demangle_name(A) << " with b "
          << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
     if (verbose_) {
-        *os_ << demangle_name(A) << as<gko::matrix::MultiVector<ValueType>>(A)
+        *os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
              << std::endl;
         *os_ << demangle_name(b) << as<gko::matrix::MultiVector<ValueType>>(b)
              << std::endl;
@@ -291,7 +299,7 @@ void Stream<ValueType>::on_linop_advanced_apply_started(const LinOp* A,
          << " beta " << demangle_name(beta) << " and x " << demangle_name(x)
          << std::endl;
     if (verbose_) {
-        *os_ << demangle_name(A) << as<gko::matrix::MultiVector<ValueType>>(A)
+        *os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
              << std::endl;
         *os_ << demangle_name(alpha)
              << as<gko::matrix::MultiVector<ValueType>>(alpha) << std::endl;
@@ -317,7 +325,7 @@ void Stream<ValueType>::on_linop_advanced_apply_completed(const LinOp* A,
          << " beta " << demangle_name(beta) << " and x " << demangle_name(x)
          << std::endl;
     if (verbose_) {
-        *os_ << demangle_name(A) << as<gko::matrix::MultiVector<ValueType>>(A)
+        *os_ << demangle_name(A) << as<gko::matrix::Dense<ValueType>>(A)
              << std::endl;
         *os_ << demangle_name(alpha)
              << as<gko::matrix::MultiVector<ValueType>>(alpha) << std::endl;
