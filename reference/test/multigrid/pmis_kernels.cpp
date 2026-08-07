@@ -21,6 +21,9 @@
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 
+constexpr auto c = gko::kernels::pmis::coarse;
+constexpr auto f = gko::kernels::pmis::fine;
+constexpr auto u = gko::kernels::pmis::unassigned;
 
 template <typename ValueIndexType>
 class Pmis : public ::testing::Test {
@@ -43,8 +46,8 @@ protected:
                        gko::array<index_type>(this->exec, {0, 2, 3, 4, 6, 6})},
           dep_col_idxs{gko::array<index_type>(this->exec, {1, 2, 3, 1, 2}),
                        gko::array<index_type>(this->exec, {2, 4, 4, 1, 2, 4})},
-          expected_status{gko::array<int>(this->exec, {0, -1, -1, -1}),
-                          gko::array<int>(this->exec, {0, -1, -1, 0, -1})},
+          expected_status{gko::array<int>(this->exec, {f, u, u, u}),
+                          gko::array<int>(this->exec, {f, u, u, f, u})},
           floor_weight{gko::array<real_type>(this->exec, {0, 2, 2, 1}),
                        gko::array<real_type>(this->exec, {0, 1, 2, 0, 3})},
           prolong_op1(Mtx::create(this->exec)),
@@ -225,9 +228,9 @@ TYPED_TEST(Pmis, Classify)
         gko::array<real_type>(this->exec, {0.1, 2.2, 2.1, 1.2}),
         gko::array<real_type>(this->exec, {0.0, 1.0, 2.0, 0.0, 3.0})};
     std::array<gko::array<int>, 4> status_ans{
-        gko::array<int>(this->exec, {0, 1, 0, -1}),
-        gko::array<int>(this->exec, {0, 1, 0, 1}),
-        gko::array<int>(this->exec, {0, 0, 1, 0, 1})};
+        gko::array<int>(this->exec, {f, c, f, u}),
+        gko::array<int>(this->exec, {f, c, f, c}),
+        gko::array<int>(this->exec, {f, f, c, f, c})};
     std::array<int, 2> required_step{2, 1};
     for (int i = 0; i < 2; i++) {
         SCOPED_TRACE(i);
@@ -255,11 +258,11 @@ TYPED_TEST(Pmis, Count)
 {
     gko::array<int> arr(this->exec, 5);
     auto data = arr.get_data();
-    data[0] = -1;
-    data[1] = 0;
-    data[2] = -1;
-    data[3] = 1;
-    data[4] = -1;
+    data[0] = u;
+    data[1] = f;
+    data[2] = u;
+    data[3] = c;
+    data[4] = u;
 
     gko::size_type num = 0;
     gko::kernels::reference::pmis::count(this->exec, 5, arr.get_const_data(),
@@ -274,8 +277,8 @@ TYPED_TEST(Pmis, DirectInterpolationRowCount)
     using index_type = typename TestFixture::index_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
     std::array<gko::array<int>, 2> status{
-        gko::array<int>(this->exec, {0, 1, 0, 1}),
-        gko::array<int>(this->exec, {0, 0, 1, 0, 1})};
+        gko::array<int>(this->exec, {f, c, f, c}),
+        gko::array<int>(this->exec, {f, f, c, f, c})};
     std::array<gko::array<index_type>, 2> row_count_ans{
         gko::array<index_type>(this->exec, {2, 1, 1, 1}),
         gko::array<index_type>(this->exec, {2, 1, 1, 2, 1})};
