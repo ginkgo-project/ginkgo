@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
@@ -47,6 +48,7 @@ protected:
     using Hybrid = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
     using MixedVec = gko::matrix::MultiVector<gko::next_precision<value_type>>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Perm = gko::matrix::Permutation<index_type>;
     using ScaledPerm = gko::matrix::ScaledPermutation<value_type, index_type>;
 
@@ -1200,11 +1202,11 @@ TYPED_TEST(Csr, MovesToPrecision)
 }
 
 
-TYPED_TEST(Csr, ConvertsToMultiVector)
+TYPED_TEST(Csr, ConvertsToDense)
 {
-    using MultiVector = typename TestFixture::Vec;
-    auto dense_mtx = MultiVector::create(this->mtx->get_executor());
-    auto dense_other = gko::initialize<MultiVector>(
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    auto dense_other = gko::initialize<Dense>(
         4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
 
     this->mtx->convert_to(dense_mtx);
@@ -1213,11 +1215,11 @@ TYPED_TEST(Csr, ConvertsToMultiVector)
 }
 
 
-TYPED_TEST(Csr, MovesToMultiVector)
+TYPED_TEST(Csr, MovesToDense)
 {
-    using MultiVector = typename TestFixture::Vec;
-    auto dense_mtx = MultiVector::create(this->mtx->get_executor());
-    auto dense_other = gko::initialize<MultiVector>(
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    auto dense_other = gko::initialize<Dense>(
         4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
 
     this->mtx->move_to(dense_mtx);
@@ -1390,13 +1392,12 @@ TYPED_TEST(Csr, MovesEmptyToPrecision)
 }
 
 
-TYPED_TEST(Csr, ConvertsEmptyToMultiVector)
+TYPED_TEST(Csr, ConvertsEmptyToDense)
 {
-    using ValueType = typename TestFixture::value_type;
     using Csr = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = typename TestFixture::Dense;
     auto empty = Csr::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->convert_to(res);
 
@@ -1404,13 +1405,12 @@ TYPED_TEST(Csr, ConvertsEmptyToMultiVector)
 }
 
 
-TYPED_TEST(Csr, MovesEmptyToMultiVector)
+TYPED_TEST(Csr, MovesEmptyToDense)
 {
-    using ValueType = typename TestFixture::value_type;
     using Csr = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = typename TestFixture::Dense;
     auto empty = Csr::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->move_to(res);
 

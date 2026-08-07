@@ -14,10 +14,16 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
+#include "ginkgo/core/matrix/sellp.hpp"
 
 
 namespace {
@@ -713,9 +719,11 @@ TYPED_TEST(DenseWithIndexType, ConvertsToCsr)
     this->mtx3->convert_to(csr_mtx_m);
 
     assert_csr_eq_mtx3(csr_mtx_c.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_c->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
     GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(csr_mtx_m->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
 }
 
 
@@ -734,9 +742,11 @@ TYPED_TEST(DenseWithIndexType, MovesToCsr)
     mtx_clone->move_to(csr_mtx_m);
 
     assert_csr_eq_mtx3(csr_mtx_c.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_c->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
     GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(csr_mtx_m->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
 }
 
 
