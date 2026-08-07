@@ -31,8 +31,53 @@ namespace matrix {
 template <typename ValueType>
 class Diagonal;
 
+template <typename ValueType>
+class Dense;
+
 
 }  // namespace matrix
+
+
+namespace detail {
+
+
+template <typename T>
+struct is_dense_ptr : std::false_type {};
+
+template <typename T>
+struct is_dense_ptr<const T&> : is_dense_ptr<std::decay_t<T>> {};
+
+template <typename T>
+struct is_dense_ptr<T&> : is_dense_ptr<std::decay_t<T>> {};
+
+template <typename ValueType>
+struct is_dense_ptr<matrix::Dense<ValueType>*> : std::true_type {};
+
+template <typename ValueType>
+struct is_dense_ptr<const matrix::Dense<ValueType>*> : std::true_type {};
+
+template <typename ValueType>
+struct is_dense_ptr<std::shared_ptr<matrix::Dense<ValueType>>>
+    : std::true_type {};
+
+template <typename ValueType>
+struct is_dense_ptr<std::shared_ptr<const matrix::Dense<ValueType>>>
+    : std::true_type {};
+
+template <typename ValueType>
+struct is_dense_ptr<std::unique_ptr<matrix::Dense<ValueType>>>
+    : std::true_type {};
+
+template <typename ValueType>
+struct is_dense_ptr<std::unique_ptr<const matrix::Dense<ValueType>>>
+    : std::true_type {};
+
+
+}  // namespace detail
+
+
+template <typename T>
+constexpr bool is_dense_ptr = detail::is_dense_ptr<T>::value;
 
 
 /**
@@ -174,6 +219,36 @@ public:
                          make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha.get(), b.get(), beta.get(), x.get());
+    }
+
+    template <typename DenseIn, typename DenseOut,
+              typename = std::enable_if_t<is_dense_ptr<DenseIn> &&
+                                          is_dense_ptr<DenseOut>>>
+    [[deprecated(
+        "Use apply(ptr_param<const AbstractMultiVector> b, "
+        "ptr_param<AbstractMultiVector> x) by storing vectors as "
+        "matrix::MultiVector")]] void
+    apply(const DenseIn& b, DenseOut&& x) const
+    {
+        apply(b->as_const_multivector_view(), x->as_multivector_view());
+    }
+
+    template <typename DenseAlpha, typename DenseIn, typename DenseBeta,
+              typename DenseOut,
+              typename = std::enable_if_t<
+                  is_dense_ptr<DenseAlpha> && is_dense_ptr<DenseIn> &&
+                  is_dense_ptr<DenseBeta> && is_dense_ptr<DenseOut>>>
+    [[deprecated(
+        "Use apply(ptr_param<const AbstractMultiVector> alpha, ptr_param<const "
+        "AbstractMultiVector> b, ptr_param<const AbstractMultiVector> beta, "
+        "ptr_param<AbstractMultiVector> x) by storing vectors as "
+        "matrix::MultiVector")]] void
+    apply(const DenseAlpha& alpha, const DenseIn& b, const DenseBeta& beta,
+          DenseOut&& x) const
+    {
+        apply(alpha->as_const_multivector_view(),
+              b->as_const_multivector_view(), beta->as_const_multivector_view(),
+              x->as_multivector_view());
     }
 
     /**
