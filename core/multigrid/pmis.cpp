@@ -163,9 +163,9 @@ void Pmis<ValueType, IndexType>::generate()
     exec->run(
         pmis::make_count(this->get_size()[0], status_ptr, &num_not_assigned));
     while (num_not_assigned != 0) {
-        exec->run(pmis::make_classify(
-            weight_.get_const_data(), strong_dep.get(),
-            transpose_strong_dep.get(), status_ptr, new_status_ptr));
+        exec->run(pmis::make_classify(weight_.get_const_data(),
+                                      strong_dep.get(), status_ptr,
+                                      new_status_ptr));
         size_type new_num = 0;
         exec->run(
             pmis::make_count(this->get_size()[0], new_status_ptr, &new_num));
