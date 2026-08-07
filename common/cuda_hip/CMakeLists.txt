@@ -42,6 +42,7 @@ set(CUDA_HIP_SOURCES
     preconditioner/jacobi_generate_kernels.cpp
     preconditioner/jacobi_simple_apply_kernels.cpp
     preconditioner/sor_kernels.cpp
+    reorder/multicolor_kernels.cpp
     reorder/rcm_kernels.cpp
     solver/cb_gmres_kernels.cpp
     solver/idr_kernels.cpp

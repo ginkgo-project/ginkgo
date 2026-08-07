@@ -106,6 +106,7 @@ target_sources(
         preconditioner/sor.cpp
         reorder/amd.cpp
         reorder/mc64.cpp
+        reorder/multicolor.cpp
         reorder/rcm.cpp
         reorder/scaled_reordered.cpp
         solver/batch_bicgstab.cpp

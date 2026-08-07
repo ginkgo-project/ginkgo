@@ -434,6 +434,12 @@ int main()
         auto test = Bj::build().with_max_block_size(1u).on(exec);
     }
 
+    // core/reorder/multicolor.cpp
+    {
+        using Mc = gko::reorder::Multicolor<>;
+        auto test = Mc::build().on(exec);
+    }
+
     // core/solver/batch_bicgstab.hpp
     {
         using Solver = gko::batch::solver::Bicgstab<>;
