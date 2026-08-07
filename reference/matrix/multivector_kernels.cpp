@@ -165,42 +165,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
 
 
 template <typename ValueType>
-void add_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
-                     matrix::view::dense<const ValueType> alpha,
-                     const matrix::Diagonal<ValueType>* x,
-                     matrix::view::dense<ValueType> y)
-{
-    const auto diag_values = x->get_const_values();
-    if (is_nonzero(alpha(0, 0))) {
-        for (size_type i = 0; i < x->get_size()[0]; i++) {
-            y(i, i) += alpha(0, 0) * diag_values[i];
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_MULTIVECTOR_ADD_SCALED_DIAG_KERNEL);
-
-
-template <typename ValueType>
-void sub_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
-                     matrix::view::dense<const ValueType> alpha,
-                     const matrix::Diagonal<ValueType>* x,
-                     matrix::view::dense<ValueType> y)
-{
-    const auto diag_values = x->get_const_values();
-    if (is_nonzero(alpha(0, 0))) {
-        for (size_type i = 0; i < x->get_size()[0]; i++) {
-            y(i, i) -= alpha(0, 0) * diag_values[i];
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_MULTIVECTOR_SUB_SCALED_DIAG_KERNEL);
-
-
-template <typename ValueType>
 void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
                  matrix::view::dense<const ValueType> x,
                  matrix::view::dense<const ValueType> y,
@@ -746,21 +710,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType>
-void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
-                      matrix::view::dense<const ValueType> orig,
-                      matrix::Diagonal<ValueType>* diag)
-{
-    auto diag_values = diag->get_values();
-    for (size_type i = 0; i < diag->get_size()[0]; ++i) {
-        diag_values[i] = orig(i, i);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_MULTIVECTOR_EXTRACT_DIAGONAL_KERNEL);
-
-
-template <typename ValueType>
 void inplace_absolute_dense(std::shared_ptr<const ReferenceExecutor> exec,
                             matrix::view::dense<ValueType> source)
 {
@@ -838,27 +787,6 @@ void get_imag(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GET_IMAG_KERNEL);
-
-
-template <typename ValueType, typename ScalarType>
-void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
-                         matrix::view::dense<const ScalarType> alpha,
-                         matrix::view::dense<const ScalarType> beta,
-                         matrix::view::dense<ValueType> mtx)
-{
-    const auto dim = mtx.size;
-    for (size_type row = 0; row < dim[0]; row++) {
-        for (size_type col = 0; col < dim[1]; col++) {
-            mtx(row, col) = beta.values[0] * mtx(row, col);
-            if (row == col) {
-                mtx(row, row) += alpha.values[0];
-            }
-        }
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
-    GKO_DECLARE_MULTIVECTOR_ADD_SCALED_IDENTITY_KERNEL);
 
 
 }  // namespace multivector

@@ -810,89 +810,6 @@ TYPED_TEST(MultiVector,
 }
 
 
-TYPED_TEST(MultiVector, ExtractsDiagonalFromSquareMatrix)
-{
-    using T = typename TestFixture::value_type;
-
-    auto diag = this->mtx5->extract_diagonal();
-
-    ASSERT_EQ(diag->get_size()[0], 3);
-    ASSERT_EQ(diag->get_size()[1], 3);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{2.});
-    ASSERT_EQ(diag->get_values()[2], T{1.2});
-}
-
-
-TYPED_TEST(MultiVector, ExtractsDiagonalFromTallSkinnyMatrix)
-{
-    using T = typename TestFixture::value_type;
-
-    auto diag = this->mtx4->extract_diagonal();
-
-    ASSERT_EQ(diag->get_size()[0], 2);
-    ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{5.});
-}
-
-
-TYPED_TEST(MultiVector, ExtractsDiagonalFromShortFatMatrix)
-{
-    using T = typename TestFixture::value_type;
-
-    auto diag = this->mtx8->extract_diagonal();
-
-    ASSERT_EQ(diag->get_size()[0], 2);
-    ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{2.});
-}
-
-
-TYPED_TEST(MultiVector, ExtractsDiagonalFromSquareMatrixIntoDiagonal)
-{
-    using T = typename TestFixture::value_type;
-    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 3);
-
-    this->mtx5->extract_diagonal(diag);
-
-    ASSERT_EQ(diag->get_size()[0], 3);
-    ASSERT_EQ(diag->get_size()[1], 3);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{2.});
-    ASSERT_EQ(diag->get_values()[2], T{1.2});
-}
-
-
-TYPED_TEST(MultiVector, ExtractsDiagonalFromTallSkinnyMatrixIntoDiagonal)
-{
-    using T = typename TestFixture::value_type;
-    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
-
-    this->mtx4->extract_diagonal(diag);
-
-    ASSERT_EQ(diag->get_size()[0], 2);
-    ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{5.});
-}
-
-
-TYPED_TEST(MultiVector, ExtractsDiagonalFromShortFatMatrixIntoDiagonal)
-{
-    using T = typename TestFixture::value_type;
-    auto diag = gko::matrix::Diagonal<T>::create(this->exec, 2);
-
-    this->mtx8->extract_diagonal(diag);
-
-    ASSERT_EQ(diag->get_size()[0], 2);
-    ASSERT_EQ(diag->get_size()[1], 2);
-    ASSERT_EQ(diag->get_values()[0], T{1.});
-    ASSERT_EQ(diag->get_values()[1], T{2.});
-}
-
-
 TYPED_TEST(MultiVector, InplaceAbsolute)
 {
     using T = typename TestFixture::value_type;
@@ -1119,21 +1036,6 @@ TYPED_TEST(MultiVector, MakeTemporaryConversionConstDoesntConvertBack)
     }
 
     ASSERT_EQ(alpha->at(0, 0), MixedT{7.0});
-}
-
-
-TYPED_TEST(MultiVector, ScaleAddIdentityRectangular)
-{
-    using T = typename TestFixture::value_type;
-    using Vec = typename TestFixture::Mtx;
-    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
-    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
-    auto b = gko::initialize<Vec>(
-        {I<T>{2.0, 0.0}, I<T>{1.0, 2.5}, I<T>{0.0, -4.0}}, this->exec);
-
-    b->add_scaled_identity(alpha, beta);
-
-    GKO_ASSERT_MTX_NEAR(b, l({{0.0, 0.0}, {-1.0, -0.5}, {0.0, 4.0}}), 0.0);
 }
 
 

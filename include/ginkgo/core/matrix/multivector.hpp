@@ -77,7 +77,6 @@ class MultiVector
       public ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>,
 #endif
       public ConvertibleTo<Dense<ValueType>>,
-      public DiagonalExtractable<ValueType>,
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public WritableToMatrixData<ValueType, int32>,
@@ -85,10 +84,8 @@ class MultiVector
       public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>>,
-      public ScaledIdentityAddable {
+      public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>> {
     friend class Dense<ValueType>;
-    friend class Diagonal<ValueType>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class EnableCloneable<MultiVector>;
     friend class experimental::distributed::Vector<ValueType>;
@@ -680,17 +677,6 @@ public:
      */
     void inverse_column_permute(const array<int64>* permutation_indices,
                                 ptr_param<MultiVector> output) const;
-
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
-
-    /**
-     * Writes the diagonal of this matrix into an existing diagonal matrix.
-     *
-     * @param output  The output matrix. Its size must match the size of this
-     *                matrix's diagonal.
-     * @see MultiVector::extract_diagonal()
-     */
-    void extract_diagonal(ptr_param<Diagonal<ValueType>> output) const;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -1386,8 +1372,6 @@ protected:
 private:
     size_type stride_;
     array<value_type> values_;
-
-    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };
 
 
