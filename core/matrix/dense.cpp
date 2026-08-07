@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -43,6 +44,10 @@ GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
 GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
+GKO_REGISTER_OPERATION(extract_diagonal, dense::extract_diagonal);
+GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
+GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
+GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
 
 
 }  // namespace dense
@@ -536,6 +541,20 @@ void Dense<ValueType>::convert_impl(
 
 
 template <typename ValueType>
+void Dense<ValueType>::add_scaled_identity_impl(const LinOp* a, const LinOp* b)
+{
+    precision_dispatch_real_complex<ValueType>(
+        [this](auto dense_alpha, auto dense_beta, auto dense_x) {
+            this->get_executor()->run(dense::make_add_scaled_identity(
+                dense_alpha->get_const_device_view(),
+                dense_beta->get_const_device_view(),
+                dense_x->get_device_view()));
+        },
+        a, b, this);
+}
+
+
+template <typename ValueType>
 void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int32>* result) const
 {
     this->convert_impl(result);
@@ -654,14 +673,23 @@ template <typename ValueType>
 void Dense<ValueType>::extract_diagonal(
     ptr_param<Diagonal<ValueType>> output) const
 {
-    this->as_const_multivector_view()->extract_diagonal(output);
+    auto exec = this->get_executor();
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    GKO_ASSERT_EQ(output->get_size()[0], diag_size);
+
+    exec->run(dense::make_extract_diagonal(
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, output).get()));
 }
 
 
 template <typename ValueType>
 std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
 {
-    return this->as_const_multivector_view()->extract_diagonal();
+    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
+    auto diag = Diagonal<ValueType>::create(this->get_executor(), diag_size);
+    this->extract_diagonal(diag);
+    return diag;
 }
 
 
@@ -697,6 +725,40 @@ void Dense<ValueType>::conj_transpose(ptr_param<Dense> output) const
 {
     this->as_const_multivector_view()->conj_transpose(
         output->as_multivector_view());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
+                                  ptr_param<const Diagonal<value_type>> diag)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, diag);
+    auto exec = this->get_executor();
+    exec->run(dense::make_add_scaled_diag(
+        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
+        diag.get(), this->get_device_view()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
+                                  ptr_param<const Diagonal<value_type>> diag)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, diag);
+    auto exec = this->get_executor();
+    exec->run(dense::make_sub_scaled_diag(
+        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
+        diag.get(), this->get_device_view()));
 }
 
 
