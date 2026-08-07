@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
@@ -29,6 +30,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Ell<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
     using MixedVec = gko::matrix::MultiVector<gko::next_precision<value_type>>;
 
@@ -499,10 +501,10 @@ TYPED_TEST(Ell, MovesToPrecision)
 }
 
 
-TYPED_TEST(Ell, ConvertsToMultiVector)
+TYPED_TEST(Ell, ConvertsToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx1->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx1->get_executor());
 
     this->mtx1->convert_to(dense_mtx);
 
@@ -514,10 +516,10 @@ TYPED_TEST(Ell, ConvertsToMultiVector)
 }
 
 
-TYPED_TEST(Ell, MovesToMultiVector)
+TYPED_TEST(Ell, MovesToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx1->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx1->get_executor());
 
     this->mtx1->move_to(dense_mtx);
 
@@ -633,12 +635,12 @@ TYPED_TEST(Ell, ApplyWithStrideFailsOnWrongNumberOfCols)
 }
 
 
-TYPED_TEST(Ell, ConvertsWithStrideToMultiVector)
+TYPED_TEST(Ell, ConvertsWithStrideToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx2->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx2->get_executor());
     // clang-format off
-    auto dense_other = gko::initialize<Vec>(
+    auto dense_other = gko::initialize<Dense>(
         4, {{1.0, 3.0, 2.0},
             {0.0, 5.0, 0.0}}, this->exec);
     // clang-format on
@@ -653,10 +655,10 @@ TYPED_TEST(Ell, ConvertsWithStrideToMultiVector)
 }
 
 
-TYPED_TEST(Ell, MovesWithStrideToMultiVector)
+TYPED_TEST(Ell, MovesWithStrideToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx2->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx2->get_executor());
 
     this->mtx2->move_to(dense_mtx);
 
@@ -788,14 +790,14 @@ TYPED_TEST(Ell, MovesEmptyToPrecision)
 }
 
 
-TYPED_TEST(Ell, ConvertsEmptyToMultiVector)
+TYPED_TEST(Ell, ConvertsEmptyToDense)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Ell = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = gko::matrix::Dense<ValueType>;
     auto empty = Ell::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->convert_to(res);
 
@@ -803,14 +805,14 @@ TYPED_TEST(Ell, ConvertsEmptyToMultiVector)
 }
 
 
-TYPED_TEST(Ell, MovesEmptyToMultiVector)
+TYPED_TEST(Ell, MovesEmptyToDense)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Ell = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = gko::matrix::Dense<ValueType>;
     auto empty = Ell::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->move_to(res);
 
