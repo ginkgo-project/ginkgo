@@ -168,7 +168,6 @@ template <typename ValueType, typename IndexType>
 void classify(std::shared_ptr<const DefaultExecutor> exec,
               const remove_complex<ValueType>* weight,
               const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
-              const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
               const int* status, int* new_status)
 {
     static_assert(kernels::pmis::unassigned < kernels::pmis::coarse,

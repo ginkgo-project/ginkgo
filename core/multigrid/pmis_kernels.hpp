@@ -57,13 +57,11 @@ constexpr int unassigned = -1;
         const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep, \
         remove_complex<ValueType>* weight, int* status)
 
-#define GKO_DECLARE_PMIS_CLASSIFY_KERNEL(ValueType, IndexType)             \
-    void classify(                                                         \
-        std::shared_ptr<const DefaultExecutor> exec,                       \
-        const remove_complex<ValueType>* weight,                           \
-        const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,       \
-        const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep, \
-        const int* status, int* new_status)
+#define GKO_DECLARE_PMIS_CLASSIFY_KERNEL(ValueType, IndexType)                 \
+    void classify(std::shared_ptr<const DefaultExecutor> exec,                 \
+                  const remove_complex<ValueType>* weight,                     \
+                  const matrix::SparsityCsr<ValueType, IndexType>* strong_dep, \
+                  const int* status, int* new_status)
 
 #define GKO_DECLARE_COUNT_KERNEL                                           \
     void count(std::shared_ptr<const DefaultExecutor> exec, size_type num, \

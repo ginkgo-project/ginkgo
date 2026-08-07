@@ -239,15 +239,13 @@ TYPED_TEST(Pmis, Classify)
             SparsityCsr::create(this->exec, this->mtx.at(i)->get_size(),
                                 std::move(this->dep_col_idxs.at(i)),
                                 std::move(this->dep_row_ptrs.at(i)));
-        auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
         auto new_status = this->expected_status.at(i);
         for (int step = 0; step < required_step.at(i); step++) {
             SCOPED_TRACE(step);
             auto status = new_status;
             gko::kernels::reference::pmis::classify(
                 this->exec, weight.at(i).get_data(), strong_dep.get(),
-                trans_strong_dep.get(), status.get_const_data(),
-                new_status.get_data());
+                status.get_const_data(), new_status.get_data());
 
             GKO_ASSERT_ARRAY_EQ(new_status, status_ans.at(status_idx));
             status_idx++;
@@ -266,13 +264,12 @@ TYPED_TEST(Pmis, ClassifyOnSameWeight)
         SparsityCsr::create(this->exec, this->mtx.at(0)->get_size(),
                             std::move(this->dep_col_idxs.at(0)),
                             std::move(this->dep_row_ptrs.at(0)));
-    auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
     gko::array<int> status_ans(this->exec, {f, c, c, f});
     auto new_status = this->expected_status.at(0);
     auto status = new_status;
 
     gko::kernels::reference::pmis::classify(
-        this->exec, weight.get_data(), strong_dep.get(), trans_strong_dep.get(),
+        this->exec, weight.get_data(), strong_dep.get(),
         status.get_const_data(), new_status.get_data());
 
     GKO_ASSERT_ARRAY_EQ(new_status, status_ans);
