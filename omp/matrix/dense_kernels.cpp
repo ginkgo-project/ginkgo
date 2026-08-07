@@ -19,6 +19,7 @@
 
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -246,11 +247,9 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     const auto nzbs = result->get_num_stored_blocks();
     const auto num_block_rows = num_rows / bs;
     const auto num_block_cols = num_cols / bs;
-    acc::range<acc::block_col_major<ValueType, 3>> blocks(
-        std::array<acc::size_type, 3>{static_cast<acc::size_type>(nzbs),
-                                      static_cast<acc::size_type>(bs),
-                                      static_cast<acc::size_type>(bs)},
-        result->get_values());
+    GKO_ASSERT(fits_index_type<IndexType>(nzbs * bs * bs));
+    acc::range<acc::block_col_major<ValueType, 3, IndexType>> blocks(
+        to_std_array<IndexType>(nzbs, bs, bs), result->get_values());
     auto col_idxs = result->get_col_idxs();
 #pragma omp parallel for
     for (size_type brow = 0; brow < num_block_rows; ++brow) {

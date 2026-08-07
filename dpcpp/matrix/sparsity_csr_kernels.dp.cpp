@@ -14,6 +14,7 @@
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/sycl_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/utils.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
@@ -192,9 +193,11 @@ void classical_spmv(
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using input_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType,
+                                    IndexType>;
     using output_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType,
+                                    IndexType>;
     constexpr int threads_per_cu = 7;
     const auto num_subgroup = exec->get_num_computing_units() * threads_per_cu *
                               classical_oversubscription;
@@ -205,16 +208,20 @@ void classical_spmv(
     const dim3 grid(gridx, b.size[1]);
     const auto block = spmv_block_size;
 
+    GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
+    GKO_ASSERT(fits_index_type<IndexType>(c.size[0] * c.stride));
     const auto b_vals = gko::acc::range<input_accessor>(
-        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
-                                       static_cast<acc::size_type>(b.size[1])}},
+        typename input_accessor::dim_type{{static_cast<IndexType>(b.size[0]),
+                                           static_cast<IndexType>(b.size[1])}},
         b.values,
-        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
+        typename input_accessor::storage_stride_type{
+            {static_cast<IndexType>(b.stride)}});
     auto c_vals = gko::acc::range<output_accessor>(
-        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(c.size[0]),
-                                       static_cast<acc::size_type>(c.size[1])}},
+        typename output_accessor::dim_type{{static_cast<IndexType>(c.size[0]),
+                                            static_cast<IndexType>(c.size[1])}},
         c.values,
-        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(c.stride)}});
+        typename output_accessor::storage_stride_type{
+            {static_cast<IndexType>(c.stride)}});
     if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
         return;
