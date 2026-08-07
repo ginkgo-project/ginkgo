@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace {
@@ -290,6 +291,34 @@ TEST_F(LinOp, AdvancedApplyIsLogged)
     ASSERT_EQ(logger->linop_advanced_apply_completed,
               before_logger.linop_advanced_apply_completed + 1);
 }
+
+
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
+TEST_F(LinOpApply, SimpleApplyToDense)
+{
+    auto op = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{3, 5});
+    auto b = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{5, 1});
+    auto x = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{3, 1});
+
+    EXPECT_NO_THROW(op->apply(b, x));
+}
+
+
+TEST_F(LinOpApply, AdvancedApplyToDense)
+{
+    auto op = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{3, 5});
+    auto alpha = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{1, 1});
+    auto beta = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{1, 1});
+    auto b = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{5, 1});
+    auto x = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{3, 1});
+
+    EXPECT_NO_THROW(op->apply(alpha, b, beta, x));
+}
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 template <typename T = int>
