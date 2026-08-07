@@ -30,6 +30,7 @@ set(CUDA_HIP_SOURCES
     matrix/batch_dense_kernels.cpp
     matrix/batch_ell_kernels.cpp
     matrix/coo_kernels.cpp
+    matrix/dense_kernels.cpp
     matrix/diagonal_kernels.cpp
     matrix/ell_kernels.cpp
     matrix/multivector_kernels.cpp
