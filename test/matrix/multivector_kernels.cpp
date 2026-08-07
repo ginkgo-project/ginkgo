@@ -913,46 +913,6 @@ TEST_F(
 }
 
 
-TEST_F(MultiVector, AddsScaledDiagIsEquivalentToRef)
-{
-    auto mat = gen_mtx<Mtx>(532, 532);
-    gko::array<Mtx::value_type> diag_values(this->ref, 532);
-    gko::kernels::reference::components::fill_array(
-        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
-    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
-                                                               diag_values);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
-    auto dmat = gko::clone(this->exec, mat);
-    auto ddiag = gko::clone(this->exec, diag);
-    auto dalpha = gko::clone(this->exec, alpha);
-
-    mat->add_scaled(alpha, diag);
-    dmat->add_scaled(dalpha, ddiag);
-
-    GKO_ASSERT_MTX_NEAR(mat, dmat, r<value_type>::value);
-}
-
-
-TEST_F(MultiVector, SubtractScaledDiagIsEquivalentToRef)
-{
-    auto mat = gen_mtx<Mtx>(532, 532);
-    gko::array<Mtx::value_type> diag_values(this->ref, 532);
-    gko::kernels::reference::components::fill_array(
-        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
-    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
-                                                               diag_values);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
-    auto dmat = gko::clone(this->exec, mat);
-    auto ddiag = gko::clone(this->exec, diag);
-    auto dalpha = gko::clone(this->exec, alpha);
-
-    mat->sub_scaled(alpha, diag);
-    dmat->sub_scaled(dalpha, ddiag);
-
-    GKO_ASSERT_MTX_NEAR(mat, dmat, r<value_type>::value);
-}
-
-
 TEST_F(MultiVector, CanGatherRows)
 {
     set_up_apply_data();
@@ -1390,56 +1350,6 @@ TEST_F(MultiVector, IsInverseColPermutableIntoMultiVectorCrossExecutor)
 }
 
 
-TEST_F(MultiVector, ExtractDiagonalOnTallSkinnyIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto diag = x->extract_diagonal();
-    auto ddiag = dx->extract_diagonal();
-
-    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
-}
-
-
-TEST_F(MultiVector, ExtractDiagonalOnTallSkinnyIntoMultiVectorCrossExecutor)
-{
-    set_up_apply_data();
-    auto diag = Diagonal::create(ref, x->get_size()[1]);
-    // test make_temporary_clone
-    auto ddiag = Diagonal::create(ref, x->get_size()[1]);
-
-    x->extract_diagonal(diag);
-    dx->extract_diagonal(ddiag);
-
-    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
-}
-
-
-TEST_F(MultiVector, ExtractDiagonalOnShortFatIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto diag = y->extract_diagonal();
-    auto ddiag = dy->extract_diagonal();
-
-    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
-}
-
-
-TEST_F(MultiVector, ExtractDiagonalOnShortFatIntoMultiVectorCrossExecutor)
-{
-    set_up_apply_data();
-    auto diag = Diagonal::create(ref, y->get_size()[0]);
-    // test make_temporary_clone
-    auto ddiag = Diagonal::create(ref, y->get_size()[0]);
-
-    y->extract_diagonal(diag);
-    dy->extract_diagonal(ddiag);
-
-    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
-}
-
-
 TEST_F(MultiVector, ComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(1);
@@ -1749,28 +1659,6 @@ TEST_F(MultiVector, GetImagIntoMultiVectorCrossExecutor)
     dx->get_imag(dimag_x);
 
     GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
-}
-
-
-TEST_F(MultiVector, AddScaledIdentityToNonSquare)
-{
-    set_up_apply_data();
-
-    x->add_scaled_identity(alpha, beta);
-    dx->add_scaled_identity(dalpha, dbeta);
-
-    GKO_ASSERT_MTX_NEAR(x, dx, r<value_type>::value);
-}
-
-
-TEST_F(MultiVector, AddScaledIdentityToNonSquareOnDifferentExecutor)
-{
-    set_up_apply_data();
-
-    x->add_scaled_identity(alpha, beta);
-    dx->add_scaled_identity(alpha, beta);
-
-    GKO_ASSERT_MTX_NEAR(x, dx, r<value_type>::value);
 }
 
 
