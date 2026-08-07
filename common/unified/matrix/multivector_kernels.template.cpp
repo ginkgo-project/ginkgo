@@ -184,42 +184,6 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType>
-void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
-                     matrix::view::dense<const ValueType> alpha,
-                     const matrix::Diagonal<ValueType>* x,
-                     matrix::view::dense<ValueType> y)
-{
-    const auto diag_values = x->get_const_values();
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
-            if (is_nonzero(alpha[0])) {
-                y(i, i) += alpha[0] * diag[i];
-            }
-        },
-        x->get_size()[0], alpha.values, x->get_const_values(), y);
-}
-
-
-template <typename ValueType>
-void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
-                     matrix::view::dense<const ValueType> alpha,
-                     const matrix::Diagonal<ValueType>* x,
-                     matrix::view::dense<ValueType> y)
-{
-    const auto diag_values = x->get_const_values();
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
-            if (is_nonzero(alpha[0])) {
-                y(i, i) -= alpha[0] * diag[i];
-            }
-        },
-        x->get_size()[0], alpha.values, x->get_const_values(), y);
-}
-
-
-template <typename ValueType>
 void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  matrix::view::dense<const ValueType> x,
                  matrix::view::dense<const ValueType> y,
@@ -628,18 +592,6 @@ void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType>
-void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      matrix::view::dense<const ValueType> orig,
-                      matrix::Diagonal<ValueType>* diag)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto i, auto orig, auto diag) { diag[i] = orig(i, i); },
-        diag->get_size()[0], orig, diag->get_values());
-}
-
-
-template <typename ValueType>
 void inplace_absolute_dense(std::shared_ptr<const DefaultExecutor> exec,
                             matrix::view::dense<ValueType> source)
 {
@@ -706,24 +658,6 @@ void get_imag(std::shared_ptr<const DefaultExecutor> exec,
             result(row, col) = imag(source(row, col));
         },
         source.size, source, result);
-}
-
-
-template <typename ValueType, typename ScalarType>
-void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
-                         matrix::view::dense<const ScalarType> alpha,
-                         matrix::view::dense<const ScalarType> beta,
-                         matrix::view::dense<ValueType> mtx)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto alpha, auto beta, auto mtx) {
-            mtx(row, col) = beta[0] * mtx(row, col);
-            if (row == col) {
-                mtx(row, row) += alpha[0];
-            }
-        },
-        mtx.size, alpha.values, beta.values, mtx);
 }
 
 
