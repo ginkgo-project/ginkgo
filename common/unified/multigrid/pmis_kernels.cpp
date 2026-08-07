@@ -151,9 +151,10 @@ void initialize_weight_and_status(
         [] GKO_KERNEL(auto row, auto row_ptrs, auto random, auto weight,
                       auto status) {
             using type = device_type<remove_complex<ValueType>>;
-            auto w = static_cast<type>(row_ptrs[row + 1] - row_ptrs[row]);
-            status[row] = (w == 0 ? 0 : -1);
-            weight[row] = static_cast<type>(random[row]) + w;
+            auto w = static_cast<float>(row_ptrs[row + 1] - row_ptrs[row]);
+            status[row] =
+                (w == 0.0f ? kernels::pmis::fine : kernels::pmis::unassigned);
+            weight[row] = static_cast<type>(random[row] + w);
         },
         num, trans_strong_dep->get_const_row_ptrs(), random.get_const_data(),
         weight, status);
@@ -170,23 +171,26 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
               const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
               const int* status, int* new_status)
 {
+    static_assert(kernels::pmis::unassigned < kernels::pmis::coarse,
+                  "we use min reduction to mark local maximum as coarse");
     // mark coarse point
     run_kernel_row_reduction(
         exec,
         [] GKO_KERNEL(auto row, auto tid, auto status, auto weight,
                       auto row_ptrs, auto col_idxs) {
             auto ans = status[row];
-            if (ans != -1) {
+            if (ans != kernels::pmis::unassigned) {
                 return ans;
             }
             for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
                  idx += width) {
                 auto col = col_idxs[idx];
-                if (status[col] == -1 && weight[col] >= weight[row]) {
-                    return -1;
+                if (status[col] == kernels::pmis::unassigned &&
+                    weight[col] >= weight[row]) {
+                    return kernels::pmis::unassigned;
                 }
             }
-            return 1;
+            return kernels::pmis::coarse;
         },
         [] GKO_KERNEL(auto a, auto b) { return a < b ? a : b; } /* minimun */,
         [] GKO_KERNEL(auto a) { return a; }, int{1}, new_status, 1,
@@ -194,11 +198,13 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
         strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());
     // mark new fine point strongly influenced by the new coarse points
     // TODO: using warp vote function if implement in native way.
+    static_assert(kernels::pmis::fine > kernels::pmis::unassigned,
+                  "we use max reduction to mark new fine by any strong coarse");
     run_kernel_row_reduction(
         exec,
         [] GKO_KERNEL(auto row, auto tid, auto new_status, auto row_ptrs,
                       auto col_idxs) {
-            if (new_status[row] != -1) {
+            if (new_status[row] != kernels::pmis::unassigned) {
                 return new_status[row];
             }
             for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
@@ -206,11 +212,11 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
                 // we will only update new_status from -1 to 0 or keep -1, so
                 // grabbing this value is fine no matter if it is updated or
                 // not.
-                if (new_status[col_idxs[idx]] == 1) {
-                    return 0;
+                if (new_status[col_idxs[idx]] == kernels::pmis::coarse) {
+                    return kernels::pmis::fine;
                 }
             }
-            return -1;
+            return kernels::pmis::unassigned;
         },
         [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; } /* maximum */,
         [] GKO_KERNEL(auto a) { return a; }, int{-1}, new_status, 1,
@@ -228,7 +234,8 @@ void count(std::shared_ptr<const DefaultExecutor> exec, size_type num,
     run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto i, auto status) {
-            return static_cast<size_type>(status[i] == -1);
+            return static_cast<size_type>(status[i] ==
+                                          kernels::pmis::unassigned);
         },
         GKO_KERNEL_REDUCE_SUM(size_type), d_result.get_data(), num, status);
     *num_unassigned = get_element(d_result, 0);
@@ -245,13 +252,13 @@ void direct_interpolation_row_count(
         exec,
         [] GKO_KERNEL(auto row, auto tid, auto status, auto row_ptrs,
                       auto col_idxs) {
-            if (status[row] == 1) {
+            if (status[row] == kernels::pmis::coarse) {
                 return tid == 0 ? one<IndexType>() : zero<IndexType>();
             }
             auto count = zero<IndexType>();
             for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
                  idx += width) {
-                if (status[col_idxs[idx]] == 1) {
+                if (status[col_idxs[idx]] == kernels::pmis::coarse) {
                     count++;
                 }
             }
