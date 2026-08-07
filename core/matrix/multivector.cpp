@@ -17,6 +17,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
@@ -41,8 +42,6 @@ namespace multivector {
 namespace {
 
 
-GKO_REGISTER_OPERATION(simple_apply, multivector::simple_apply);
-GKO_REGISTER_OPERATION(apply, multivector::apply);
 GKO_REGISTER_OPERATION(copy, multivector::copy);
 GKO_REGISTER_OPERATION(fill, multivector::fill);
 GKO_REGISTER_OPERATION(scale, multivector::scale);
@@ -846,6 +845,32 @@ template <typename ValueType>
 void MultiVector<ValueType>::move_to(Csr<ValueType, int64>* result)
 {
     this->convert_to(result);
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::convert_to(Dense<ValueType>* result) const
+{
+    if (result->get_size() != this->get_size()) {
+        result->set_size(this->get_size());
+        result->stride_ = stride_;
+        result->values_.resize_and_reset(result->get_size()[0] *
+                                         result->stride_);
+    }
+    auto exec = this->get_executor();
+    exec->run(multivector::make_copy(
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, result)->get_device_view()));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::move_to(Dense<ValueType>* result)
+{
+    result->set_size(this->get_size());
+    this->set_size(dim<2>{0, 0});
+    result->stride_ = std::exchange(stride_, 0);
+    result->values_ = std::move(values_);
 }
 
 
@@ -2223,6 +2248,24 @@ MultiVector<ValueType>::create_const(
     // so we can ensure that no modifications take place.
     return std::unique_ptr<const MultiVector>{new MultiVector{
         exec, size, gko::detail::array_const_cast(std::move(values)), stride}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>>
+MultiVector<ValueType>::as_const_dense_view() const
+{
+    return Dense<ValueType>::create_const(this->get_executor(),
+                                          this->get_size(),
+                                          values_.as_const_view(), stride_);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> MultiVector<ValueType>::as_dense_view()
+{
+    return Dense<ValueType>::create(this->get_executor(), this->get_size(),
+                                    values_.as_view(), stride_);
 }
 
 

@@ -17,7 +17,7 @@
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 
 namespace gko {
@@ -66,7 +66,7 @@ public:
     using value_type = ValueType;
     using index_type = int32;
     using transposed_type = Dense<ValueType>;
-    using unbatch_type = gko::matrix::MultiVector<ValueType>;
+    using unbatch_type = gko::matrix::Dense<ValueType>;
     using absolute_type = remove_complex<Dense>;
     using complex_type = to_complex<Dense>;
 

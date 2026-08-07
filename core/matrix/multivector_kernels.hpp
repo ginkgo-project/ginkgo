@@ -21,20 +21,6 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_MULTIVECTOR_SIMPLE_APPLY_KERNEL(ValueType)     \
-    void simple_apply(std::shared_ptr<const DefaultExecutor> exec, \
-                      matrix::view::dense<const ValueType> a,      \
-                      matrix::view::dense<const ValueType> b,      \
-                      matrix::view::dense<ValueType> c)
-
-#define GKO_DECLARE_MULTIVECTOR_APPLY_KERNEL(ValueType)     \
-    void apply(std::shared_ptr<const DefaultExecutor> exec, \
-               matrix::view::dense<const ValueType> alpha,  \
-               matrix::view::dense<const ValueType> a,      \
-               matrix::view::dense<const ValueType> b,      \
-               matrix::view::dense<const ValueType> beta,   \
-               matrix::view::dense<ValueType> c)
-
 #define GKO_DECLARE_MULTIVECTOR_COPY_KERNEL(InValueType, OutValueType) \
     void copy(std::shared_ptr<const DefaultExecutor> exec,             \
               matrix::view::dense<const InValueType> input,            \
@@ -389,10 +375,6 @@ namespace kernels {
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
-    template <typename ValueType>                                             \
-    GKO_DECLARE_MULTIVECTOR_SIMPLE_APPLY_KERNEL(ValueType);                   \
-    template <typename ValueType>                                             \
-    GKO_DECLARE_MULTIVECTOR_APPLY_KERNEL(ValueType);                          \
     template <typename InValueType, typename OutValueType>                    \
     GKO_DECLARE_MULTIVECTOR_COPY_KERNEL(InValueType, OutValueType);           \
     template <typename ValueType>                                             \

@@ -41,6 +41,7 @@
 #include "core/matrix/batch_ell_kernels.hpp"
 #include "core/matrix/coo_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 #include "core/matrix/ell_kernels.hpp"
 #include "core/matrix/fbcsr_kernels.hpp"
@@ -451,11 +452,19 @@ GKO_STUB_VALUE_AND_INT32_TYPE(GKO_DECLARE_BATCH_ELL_ADD_SCALED_IDENTITY_KERNEL);
 }  // namespace batch_ell
 
 
+namespace dense {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
+
+
+}  // namespace dense
+
+
 namespace multivector {
 
 
-GKO_STUB_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_SIMPLE_APPLY_KERNEL);
-GKO_STUB_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_APPLY_KERNEL);
 GKO_STUB_VALUE_CONVERSION_OR_COPY(GKO_DECLARE_MULTIVECTOR_COPY_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_FILL_KERNEL);
 GKO_STUB_VALUE_AND_SCALAR_TYPE(GKO_DECLARE_MULTIVECTOR_SCALE_KERNEL);
