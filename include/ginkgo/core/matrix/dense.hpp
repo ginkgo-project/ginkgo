@@ -86,7 +86,8 @@ class Dense : public LinOp,
               public ReadableFromMatrixData<ValueType, int64>,
               public WritableToMatrixData<ValueType, int32>,
               public WritableToMatrixData<ValueType, int64>,
-              public Transposable {
+              public Transposable,
+              public ScaledIdentityAddable {
     friend class EnableCloneable<Dense>;
     friend class Dense<to_complex<ValueType>>;
     friend class Dense<previous_precision<ValueType>>;
@@ -288,6 +289,12 @@ public:
      */
     void conj_transpose(ptr_param<Dense> output) const;
 
+    void add_scaled(ptr_param<const LinOp> alpha,
+                    ptr_param<const Diagonal<value_type>> diag);
+
+    void sub_scaled(ptr_param<const LinOp> alpha,
+                    ptr_param<const Diagonal<value_type>> diag);
+
     [[nodiscard]] static std::unique_ptr<Dense> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{},
         size_type stride = 0);
@@ -381,6 +388,8 @@ protected:
 private:
     size_type stride_;
     array<value_type> values_;
+
+    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };
 
 
