@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
@@ -32,6 +33,7 @@ protected:
     using Mtx = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using MixedVec = gko::matrix::MultiVector<gko::next_precision<value_type>>;
 
     Hybrid()
@@ -274,10 +276,10 @@ TYPED_TEST(Hybrid, MovesToPrecision)
 }
 
 
-TYPED_TEST(Hybrid, ConvertsToMultiVector)
+TYPED_TEST(Hybrid, ConvertsToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx1->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx1->get_executor());
 
     this->mtx1->convert_to(dense_mtx);
 
@@ -289,10 +291,10 @@ TYPED_TEST(Hybrid, ConvertsToMultiVector)
 }
 
 
-TYPED_TEST(Hybrid, MovesToMultiVector)
+TYPED_TEST(Hybrid, MovesToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx1->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx1->get_executor());
 
     this->mtx1->move_to(dense_mtx);
 
@@ -401,14 +403,14 @@ TYPED_TEST(Hybrid, MovesEmptyToPrecision)
 }
 
 
-TYPED_TEST(Hybrid, ConvertsEmptyToMultiVector)
+TYPED_TEST(Hybrid, ConvertsEmptyToDense)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Hybrid = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = gko::matrix::Dense<ValueType>;
     auto other = Hybrid::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     other->convert_to(res);
 
@@ -416,14 +418,14 @@ TYPED_TEST(Hybrid, ConvertsEmptyToMultiVector)
 }
 
 
-TYPED_TEST(Hybrid, MovesEmptyToMultiVector)
+TYPED_TEST(Hybrid, MovesEmptyToDense)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Hybrid = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = gko::matrix::Dense<ValueType>;
     auto other = Hybrid::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     other->move_to(res);
 
@@ -589,10 +591,10 @@ TYPED_TEST(Hybrid, ConvertsWithStrideToMultiVector)
 }
 
 
-TYPED_TEST(Hybrid, MovesWithStrideToMultiVector)
+TYPED_TEST(Hybrid, MovesWithStrideToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx2->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx2->get_executor());
 
     this->mtx2->move_to(dense_mtx);
 

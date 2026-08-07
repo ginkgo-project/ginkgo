@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
@@ -29,6 +30,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Sellp<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
 
     Sellp()
@@ -246,10 +248,10 @@ TYPED_TEST(Sellp, MovesToPrecision)
 }
 
 
-TYPED_TEST(Sellp, ConvertsToMultiVector)
+TYPED_TEST(Sellp, ConvertsToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx1->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx1->get_executor());
 
     this->mtx1->convert_to(dense_mtx);
 
@@ -261,10 +263,10 @@ TYPED_TEST(Sellp, ConvertsToMultiVector)
 }
 
 
-TYPED_TEST(Sellp, MovesToMultiVector)
+TYPED_TEST(Sellp, MovesToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx1->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx1->get_executor());
 
     this->mtx1->move_to(dense_mtx);
 
@@ -363,14 +365,14 @@ TYPED_TEST(Sellp, MovesEmptyToPrecision)
 }
 
 
-TYPED_TEST(Sellp, ConvertsEmptyToMultiVector)
+TYPED_TEST(Sellp, ConvertsEmptyToDense)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Sellp = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = gko::matrix::Dense<ValueType>;
     auto empty = Sellp::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->convert_to(res);
 
@@ -378,14 +380,14 @@ TYPED_TEST(Sellp, ConvertsEmptyToMultiVector)
 }
 
 
-TYPED_TEST(Sellp, MovesEmptyToMultiVector)
+TYPED_TEST(Sellp, MovesEmptyToDense)
 {
     using ValueType = typename TestFixture::value_type;
     using IndexType = typename TestFixture::index_type;
     using Sellp = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = gko::matrix::Dense<ValueType>;
     auto empty = Sellp::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->move_to(res);
 
@@ -555,10 +557,10 @@ TYPED_TEST(Sellp, ConvertsWithSliceSizeAndStrideFactorToMultiVector)
 }
 
 
-TYPED_TEST(Sellp, MovesWithSliceSizeAndStrideFactorToMultiVector)
+TYPED_TEST(Sellp, MovesWithSliceSizeAndStrideFactorToDense)
 {
-    using Vec = typename TestFixture::Vec;
-    auto dense_mtx = Vec::create(this->mtx2->get_executor());
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx2->get_executor());
 
     this->mtx2->move_to(dense_mtx);
 
