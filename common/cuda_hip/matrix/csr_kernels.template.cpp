@@ -103,7 +103,11 @@ __host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
 
 template <typename ValueType, typename IndexType>
 __device__ __forceinline__ bool block_segment_scan_reverse(
-    const IndexType* __restrict__ ind, ValueType* __restrict__ val)
+    const IndexType* __restrict__ ind, ValueType* val)
+// NOTE: val must NOT carry __restrict__. On Blackwell (sm_120) with NVCC 13.2,
+// __restrict__ on a __shared__ pointer causes register promotion of
+// val[threadIdx.x], suppressing the st.shared before __syncthreads() and
+// corrupting the Hillis-Steele accumulation.
 {
     bool last = true;
     const auto reg_ind = ind[threadIdx.x];
@@ -121,7 +125,6 @@ __device__ __forceinline__ bool block_segment_scan_reverse(
         val[threadIdx.x] += temp;
         group::this_thread_block().sync();
     }
-
     return last;
 }
 
@@ -2047,13 +2050,13 @@ int compute_items_per_thread(std::shared_ptr<const DefaultExecutor> exec)
     const int version =
         (exec->get_major_version() << 4) + exec->get_minor_version();
     // The num_item is decided to make the occupancy 100%
-    // TODO: Extend this list when new GPU is released
-    //       Tune this parameter
+    // TODO: Tune this parameter for newer architectures
     // 128 threads/block the number of items per threads
     // 3.0 3.5: 6
     // 3.7: 14
     // 5.0, 5.3, 6.0, 6.2: 8
     // 5.2, 6.1, 7.0: 12
+    // 7.5+ (Turing/Ampere/Ada/Hopper/Blackwell): 12 (same as Volta)
     int num_item = 6;
     switch (version) {
     case 0x50:
@@ -2069,6 +2072,10 @@ int compute_items_per_thread(std::shared_ptr<const DefaultExecutor> exec)
         break;
     case 0x37:
         num_item = 14;
+        break;
+    default:
+        if (version > 0x70) num_item = 12;
+        break;
     }
 
 
