@@ -251,23 +251,46 @@ public:
         }
     }
 
+    /**
+     * Create a temporary conversion from a bare pointer.
+     *
+     * @tparam OrigT Type of the pointer to convert from, either same as T, base
+     *               class of T, or convertible to T.
+     * @param orig Object to convert from
+     * @return Temporary conversion of orig_ptr to type T
+     */
     template <typename OrigT>
-    static temporary_conversion create(OrigT* orig_ptr)
+    static temporary_conversion create(OrigT* orig)
     {
         if constexpr (std::is_same_v<T, OrigT>) {
-            return handle_type{orig_ptr, null_deleter<T>{}};
+            return handle_type{orig, null_deleter<T>{}};
         }
-        if (auto p = dynamic_cast<T*>(orig_ptr)) {
+        if (auto p = dynamic_cast<T*>(orig)) {
             return {handle_type{p, null_deleter<T>{}}};
         }
         using DecayT = std::decay_t<T>;
         auto converted =
-            detail::conversion_target_helper<DecayT>::create_empty(orig_ptr);
-        as<ConvertibleTo<DecayT>>(orig_ptr)->convert_to(converted);
+            detail::conversion_target_helper<DecayT>::create_empty(orig);
+        as<ConvertibleTo<DecayT>>(orig)->convert_to(converted);
         return {handle_type(converted.release(),
-                            detail::convert_back_deleter<T, OrigT>{orig_ptr})};
+                            detail::convert_back_deleter<T, OrigT>{orig})};
     }
 
+    /**
+     * Create a temporary conversion that also owns orig.
+     *
+     * This create method takes ownership of the input pointer. It can be
+     * useful, when chaining conversion. For example if the conversion A -> C
+     * isn't implemented, but A -> B and B -> C are, then this can simplify the
+     * conversion by just chaining the two.
+     *
+     * When the temporary conversion is deleted, orig will be deleted as well.
+     *
+     * @tparam OrigT Type of the pointer to convert from, either same as T, base
+     *               class of T, or convertible to T.
+     * @param orig Object to convert from and take ownership of
+     * @return Temporary conversion of orig_ptr to type T
+     */
     template <typename OrigT>
     static temporary_conversion create(std::unique_ptr<OrigT> orig)
     {
@@ -295,6 +318,10 @@ public:
     /**
      * Create a temporary conversion for a base type T from an object of a
      * derived type.
+     *
+     * @tparam Derived A derived type of T
+     * @param derived_ptr Object to convert from
+     * @return Temporary conversion of orig_ptr to type T
      */
     template <typename Derived, typename = std::enable_if_t<std::is_base_of_v<
                                     std::decay_t<T>, std::decay_t<Derived>>>>
@@ -308,6 +335,14 @@ public:
                             }}};
     }
 
+    /**
+     * Create a temporary conversion for a derived type T from an object of a
+     * base type.
+     *
+     * @tparam Base A base type of T
+     * @param base_ptr Object to convert from
+     * @return Temporary conversion of orig_ptr to type T
+     */
     template <typename Base, typename = std::enable_if_t<std::is_base_of_v<
                                  std::decay_t<Base>, std::decay_t<T>>>>
     static temporary_conversion create_from_base(
@@ -339,10 +374,10 @@ public:
      */
     explicit operator bool() { return static_cast<bool>(handle_); }
 
-    handle_type empty_out() && { return std::move(handle_); }
-
 private:
     temporary_conversion(handle_type handle) : handle_{std::move(handle)} {}
+
+    handle_type empty_out() && { return std::move(handle_); }
 
     handle_type handle_;
 };
