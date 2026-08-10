@@ -179,6 +179,9 @@ struct conversion_helper<> {
 };
 
 
+}  // namespace detail
+
+
 /**
  * A temporary_conversion is a special smart pointer-like object that is
  * designed to hold an object temporarily converted to another format.
@@ -219,8 +222,8 @@ public:
         if ((cast_ptr = dynamic_cast<T*>(ptr.get()))) {
             return handle_type{cast_ptr, null_deleter<T>{}};
         } else {
-            return conversion_helper<ConversionCandidates...>::template convert<
-                T>(ptr.get());
+            return detail::conversion_helper<
+                ConversionCandidates...>::template convert<T>(ptr.get());
         }
     }
 
@@ -235,10 +238,10 @@ public:
         }
         using DecayT = std::decay_t<T>;
         auto converted =
-            conversion_target_helper<DecayT>::create_empty(orig_ptr);
+            detail::conversion_target_helper<DecayT>::create_empty(orig_ptr);
         as<ConvertibleTo<DecayT>>(orig_ptr)->convert_to(converted);
         return {handle_type(converted.release(),
-                            convert_back_deleter<T, OrigT>{orig_ptr})};
+                            detail::convert_back_deleter<T, OrigT>{orig_ptr})};
     }
 
     template <typename OrigT>
@@ -255,13 +258,13 @@ public:
         using DecayT = std::decay_t<T>;
         auto orig_ptr = orig.get();
         auto converted =
-            conversion_target_helper<DecayT>::create_empty(orig_ptr);
+            detail::conversion_target_helper<DecayT>::create_empty(orig_ptr);
         as<ConvertibleTo<DecayT>>(orig_ptr)->convert_to(converted);
-        return {
-            handle_type(converted.release(), [orig = std::move(orig)](T* ptr) {
-                auto deleter = convert_back_deleter<T, OrigT>{orig.get()};
-                deleter(ptr);
-            })};
+        return {handle_type(converted.release(), [orig =
+                                                      std::move(orig)](T* ptr) {
+            auto deleter = detail::convert_back_deleter<T, OrigT>{orig.get()};
+            deleter(ptr);
+        })};
     }
 
     /**
@@ -292,7 +295,6 @@ public:
                             }}};
     }
 
-
     /**
      * Returns the object held by temporary_conversion.
      *
@@ -321,9 +323,6 @@ private:
 };
 
 
-}  // namespace detail
-
-
 /**
  * Performs polymorphic type conversion of a shared_ptr.
  *
@@ -336,26 +335,32 @@ private:
  *         NotSupported. This pointer shares ownership with the input pointer.
  */
 template <typename T, typename U>
-detail::temporary_conversion<T> as(detail::temporary_conversion<U>&& obj)
+temporary_conversion<T> as(temporary_conversion<U>&& obj)
 {
     if (!dynamic_cast<T*>(obj.get())) {
         GKO_NOT_SUPPORTED(obj.get());
     }
-    return detail::temporary_conversion<T>::create_from_base(std::move(obj));
+    return temporary_conversion<T>::create_from_base(std::move(obj));
 }
 
 template <typename T, typename U>
-detail::temporary_conversion<const T> as(
-    detail::temporary_conversion<const U>&& obj)
+temporary_conversion<const T> as(temporary_conversion<const U>&& obj)
 {
     if (!dynamic_cast<const T*>(obj.get())) {
         GKO_NOT_SUPPORTED(obj.get());
     }
-    return detail::temporary_conversion<const T>::create_from_base(
-        std::move(obj));
+    return temporary_conversion<const T>::create_from_base(std::move(obj));
 }
 
 
+namespace detail {
+
+
+// For backwards compatibility
+using gko::temporary_conversion;
+
+
+}  // namespace detail
 }  // namespace gko
 
 
