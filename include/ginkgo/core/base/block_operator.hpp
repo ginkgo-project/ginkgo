@@ -9,39 +9,10 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/range.hpp>
 
 
 namespace gko {
-namespace detail {
-
-
-/**
- * Carbon copy og gko::span, except that the members are not const.
- * Necessary since the normal gko::span is not copy/movable.
- */
-struct value_span {
-    constexpr value_span(size_type point) noexcept
-        : value_span{point, point + 1}
-    {}
-
-    constexpr value_span(size_type begin, size_type end) noexcept
-        : begin{begin}, end{end}
-    {}
-
-    constexpr operator span() const { return {begin, end}; }
-
-    constexpr value_span(const span& s) noexcept : value_span(s.begin, s.end) {}
-
-    constexpr bool is_valid() const { return begin <= end; }
-
-    constexpr size_type length() const { return end - begin; }
-
-    size_type begin;
-    size_type end;
-};
-
-
-}  // namespace detail
 
 
 /**
@@ -163,8 +134,8 @@ private:
                     LinOp* x) const override;
 
     dim<2> block_size_;
-    std::vector<detail::value_span> row_spans_;
-    std::vector<detail::value_span> col_spans_;
+    std::vector<local_span> row_spans_;
+    std::vector<local_span> col_spans_;
     std::vector<std::shared_ptr<const LinOp>> blocks_;
     /**
      * @internal Using a fixed precision here may lead to temporary
