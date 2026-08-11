@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/precision.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 
 
@@ -117,6 +118,15 @@ inline dim<2> get_size(const T& op)
 }
 
 inline dim<2> get_size(const dim<2>& size) { return size; }
+
+
+template <typename T>
+precision get_precision(T&& op)
+{
+    return op->get_precision();
+}
+
+inline precision get_precision(precision p) { return p; }
 
 
 template <typename T>
@@ -284,6 +294,21 @@ inline size_type get_num_batch_items(const T& obj)
             ::gko::detail::get_size(_op2)[0],                               \
             ::gko::detail::get_size(_op2)[1], "expected equal dimensions"); \
     }
+
+
+/**
+ * Asserts that _op has the expected precision _expected.
+ *
+ * @throw PrecisionError  if _op has a precision other than _expected.
+ */
+#define GKO_ASSERT_PRECISION(_expected, _op)                                  \
+    if (::gko::detail::get_precision(_expected) !=                            \
+        ::gko::detail::get_precision(_op)) {                                  \
+        throw ::gko::PrecisionError(__FILE__, __LINE__, __func__,             \
+                                    ::gko::detail::get_precision(_expected),  \
+                                    #_op, ::gko::detail::get_precision(_op)); \
+    }                                                                         \
+    static_assert(true, "Require ;")
 
 
 /**
