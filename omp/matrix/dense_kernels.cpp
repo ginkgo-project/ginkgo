@@ -20,6 +20,7 @@
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/matrix/csr_accessor_helper.hpp"
 
 
 namespace gko {
@@ -136,6 +137,82 @@ void apply(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
+
+template <typename ValueType, typename IndexType, typename Init,
+          typename AOperation>
+void mspm_auxiliary(std::shared_ptr<const DefaultExecutor> exec,
+                    matrix::view::dense<const ValueType> a,
+                    const matrix::Csr<ValueType, IndexType>* b,
+                    matrix::view::dense<ValueType> c, Init init,
+                    AOperation op_a)
+{
+    // initialization
+    const auto b_rowptrs = b->get_const_row_ptrs();
+    const auto b_cols = b->get_const_col_idxs();
+    const auto b_vals = b->get_const_values();
+    const auto c_vals_ptr = c.values;
+// compute the multiplication, 1 thread per row
+#pragma omp parallel
+#pragma omp for
+    for (auto row = zero<IndexType>(); row < c.size[0]; row++) {
+        auto out_ptr = c_vals_ptr + row * c.stride;
+        init(out_ptr, b->get_size()[1], row);
+        // iterate over the whole matrix b
+        for (auto k = zero<IndexType>(); k < b->get_size()[0]; k++) {
+            const auto val_a = op_a(row, k);
+            // iterate over the non-zero values of a row
+            for (auto idx_b = b_rowptrs[k]; idx_b < b_rowptrs[k + 1]; idx_b++) {
+                const auto col = b_cols[idx_b];
+                out_ptr[col] += val_a * b_vals[idx_b];
+            }
+        }
+    }
+}
+
+template <typename ValueType, typename IndexType>
+void simple_mspm(std::shared_ptr<const DefaultExecutor> exec,
+                 matrix::view::dense<const ValueType> a,
+                 const matrix::Csr<ValueType, IndexType>* b,
+                 matrix::view::dense<ValueType> c)
+{
+    // reinitialize accumulator with zeroes
+    auto simple_init = [b](ValueType* acc_begin_ptr, IndexType acc_size,
+                           IndexType) {
+        std::fill(acc_begin_ptr, acc_begin_ptr + acc_size, zero<ValueType>());
+    };
+    // no multiplication by alpha, just get value in a
+    auto simple_a_op = [a](IndexType row, IndexType k) { return a(row, k); };
+    mspm_auxiliary(exec, a, b, c, simple_init, simple_a_op);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SIMPLE_MSPM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void mspm(std::shared_ptr<const DefaultExecutor> exec,
+          matrix::view::dense<const ValueType> alpha,
+          matrix::view::dense<const ValueType> a,
+          const matrix::Csr<ValueType, IndexType>* b,
+          matrix::view::dense<const ValueType> beta,
+          matrix::view::dense<ValueType> c)
+{
+    // initialize the accumulator with c * beta
+    auto advanced_init = [b, c, beta](ValueType* acc_begin_ptr,
+                                      IndexType acc_size, IndexType row) {
+        const auto begin_row_c_vals_ptr = c.values + c.stride * row;
+        std::transform(begin_row_c_vals_ptr, begin_row_c_vals_ptr + acc_size,
+                       acc_begin_ptr,
+                       [&](auto val) { return beta(0, 0) * val; });
+    };
+    // multiply a(row,k) by alpha
+    auto advanced_a_op = [a, alpha](IndexType row, IndexType k) {
+        return alpha(0, 0) * a(row, k);
+    };
+    mspm_auxiliary(exec, a, b, c, advanced_init, advanced_a_op);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DENSE_MSPM_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
