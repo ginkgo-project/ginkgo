@@ -467,8 +467,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
 
     if constexpr (std::is_same_v<VectorType, experimental::distributed::Vector<
                                                  ValueType>>) {
-        if (dd_system_matrix->has_null_space()) {
-            dd_system_matrix->remove_null_space(dense_x);
+        if (dd_system_matrix->has_nullspace()) {
+            dd_system_matrix->remove_nullspace(dense_x);
         }
     }
 }

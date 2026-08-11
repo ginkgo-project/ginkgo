@@ -545,6 +545,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                                   one_scalar_.get(), local_x);
         },
         b, x);
+    this->remove_nullspace(x);
 }
 
 
@@ -552,6 +553,21 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
+    if (this->has_nullspace()) {
+        // The nullspace belongs to the operator's action A*b, not to the
+        // incoming beta*x. Compute the (nullspace-projected) product into a
+        // temporary, then combine: x <- alpha * A*b + beta * x.
+        auto tmp = x->clone();
+        this->apply_impl(b, tmp.get());
+        distributed::precision_dispatch_real_complex<ValueType>(
+            [](const auto local_alpha, const auto dense_tmp,
+               const auto local_beta, auto dense_x) {
+                dense_x->scale(local_beta);
+                dense_x->add_scaled(local_alpha, dense_tmp);
+            },
+            alpha, tmp.get(), beta, x);
+        return;
+    }
     distributed::precision_dispatch_real_complex<ValueType>(
         [this](const auto local_alpha, const auto dense_b,
                const auto local_beta, auto dense_x) {
@@ -579,6 +595,48 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                                   one_scalar_.get(), local_x);
         },
         alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<
+    typename Matrix<ValueType, LocalIndexType, GlobalIndexType>::
+        global_vector_type>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create_constant_nullspace()
+    const
+{
+    auto exec = this->get_executor();
+    auto comm = this->get_communicator();
+    auto local = local_vector_type::create(
+        exec, dim<2>{local_mtx_->get_size()[0], 1});
+    local->fill(one<ValueType>());
+    return global_vector_type::create(exec, comm,
+                                      dim<2>{this->get_size()[0], 1},
+                                      std::move(local));
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<
+    typename Matrix<ValueType, LocalIndexType, GlobalIndexType>::
+        global_vector_type>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::
+    create_nullspace_column_view(global_vector_type* x, size_type col) const
+{
+    auto exec = x->get_executor();
+    auto comm = x->get_communicator();
+    const auto local_x = x->get_local_vector();
+    const auto n_local_rows = local_x->get_size()[0];
+    const auto stride = local_x->get_stride();
+    auto values = x->get_local_values();
+    const auto count = n_local_rows == 0
+                           ? size_type{0}
+                           : (n_local_rows - 1) * stride + col + 1;
+    auto local_col = local_vector_type::create(
+        exec, dim<2>{n_local_rows, 1},
+        make_array_view(exec, count, values + col), stride);
+    return global_vector_type::create(
+        exec, comm, dim<2>{x->get_size()[0], 1}, std::move(local_col));
 }
 
 

@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/nullspace_removable.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
@@ -162,7 +163,8 @@ class DdMatrix
     : public EnableLinOp<DdMatrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<DdMatrix<next_precision_base<ValueType>,
                                     LocalIndexType, GlobalIndexType>>,
-      public DistributedBase {
+      public DistributedBase,
+      public EnableNullspaceRemoval<Vector<ValueType>> {
     friend class EnablePolymorphicObject<DdMatrix, LinOp>;
     friend class DdMatrix<next_precision_base<ValueType>, LocalIndexType,
                           GlobalIndexType>;
@@ -390,67 +392,6 @@ public:
         return active_idxs_;
     }
 
-    /**
-     * Attaches a null-space to this matrix.
-     *
-     * The null-space is stored on the matrix and can be used by solvers to
-     * project out null-space components from the right-hand side and
-     * solution, similar to PETSc's MatSetNullSpace.
-     *
-     * Each column of the provided vector represents one null-space vector.
-     * The null-space vectors should be orthonormal.
-     *
-     * @param null_space  The null-space vectors as columns of a distributed
-     *                    vector, or nullptr to remove the null-space.
-     */
-    void set_null_space(std::shared_ptr<const global_vector_type> null_space);
-
-    /**
-     * Sets the null-space to be the constant (all-ones, normalized) vector.
-     *
-     * This is a convenience method for the common case where the null-space
-     * consists of the constant vector, e.g. for Neumann problems or
-     * elasticity without Dirichlet boundary conditions.
-     *
-     * Requires that read_distributed has been called first so that the
-     * matrix dimensions and partition are known.
-     *
-     * @param partition  The partition used for the distributed vector.
-     */
-    void set_constant_null_space(
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            partition);
-
-    /**
-     * Returns the null-space attached to this matrix.
-     *
-     * @return  Shared pointer to the null-space vectors, or nullptr if no
-     *          null-space is set.
-     */
-    std::shared_ptr<const global_vector_type> get_null_space() const
-    {
-        return null_space_;
-    }
-
-    /**
-     * Checks whether a null-space is attached to this matrix.
-     *
-     * @return  true if a null-space has been set.
-     */
-    bool has_null_space() const { return null_space_ != nullptr; }
-
-    /**
-     * Projects out null-space components from the given vector in-place.
-     *
-     * For each null-space vector n_i, computes:
-     *   v = v - (n_i^T * v) * n_i
-     *
-     * This is equivalent to PETSc's MatNullSpaceRemove.
-     *
-     * @param vec  The vector to project. Modified in-place.
-     */
-    void remove_null_space(ptr_param<global_vector_type> vec) const;
-
 protected:
     explicit DdMatrix(std::shared_ptr<const Executor> exec,
                       mpi::communicator comm);
@@ -464,6 +405,12 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
+    std::unique_ptr<global_vector_type> create_constant_nullspace()
+        const override;
+
+    std::unique_ptr<global_vector_type> create_nullspace_column_view(
+        global_vector_type* x, size_type col) const override;
+
 private:
     gko::experimental::distributed::detail::VectorCache<value_type> lhs_buffer_;
     gko::experimental::distributed::detail::VectorCache<value_type> rhs_buffer_;
@@ -473,8 +420,6 @@ private:
     gko::experimental::distributed::index_map<LocalIndexType, GlobalIndexType>
         map_;
     array<local_index_type> active_idxs_;
-    std::shared_ptr<const global_vector_type> null_space_;
-    mutable gko::detail::DenseCache<value_type> nsp_dot_buffer_;
 };
 
 

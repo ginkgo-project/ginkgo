@@ -322,6 +322,7 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             prolongation_->apply(rhs_buffer_.get(), dense_x);
         },
         b, x);
+    this->remove_nullspace(x);
 }
 
 
@@ -329,6 +330,21 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
+    if (this->has_nullspace()) {
+        // The nullspace belongs to the operator's action A*b, not to the
+        // incoming beta*x. Compute the (nullspace-projected) product into a
+        // temporary, then combine: x <- alpha * A*b + beta * x.
+        auto tmp = x->clone();
+        this->apply_impl(b, tmp.get());
+        distributed::precision_dispatch_real_complex<ValueType>(
+            [](const auto local_alpha, const auto dense_tmp,
+               const auto local_beta, auto dense_x) {
+                dense_x->scale(local_beta);
+                dense_x->add_scaled(local_alpha, dense_tmp);
+            },
+            alpha, tmp.get(), beta, x);
+        return;
+    }
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
     const auto nrhs = x->get_size()[1];
@@ -409,52 +425,44 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::set_null_space(
-    std::shared_ptr<const global_vector_type> null_space)
-{
-    if (null_space) {
-        GKO_ASSERT_EQUAL_ROWS(this, null_space.get());
-    }
-    null_space_ = std::move(null_space);
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::
-    set_constant_null_space(
-        std::shared_ptr<const Partition<local_index_type, global_index_type>>
-            partition)
+std::unique_ptr<typename DdMatrix<ValueType, LocalIndexType,
+                                  GlobalIndexType>::global_vector_type>
+DdMatrix<ValueType, LocalIndexType,
+         GlobalIndexType>::create_constant_nullspace() const
 {
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
-    auto global_size = this->get_size()[0];
-    auto local_size =
-        static_cast<size_type>(partition->get_part_size(comm.rank()));
-    auto local_vec =
-        gko::matrix::Dense<ValueType>::create(exec, dim<2>{local_size, 1});
-    // Fill with 1/sqrt(n) so the null-space vector is normalized.
-    local_vec->fill(one<ValueType>() /
-                    sqrt(static_cast<remove_complex<ValueType>>(global_size)));
-    null_space_ = global_vector_type::create(exec, comm, dim<2>{global_size, 1},
-                                             std::move(local_vec));
+    // The local size of a domain vector is the number of locally owned
+    // indices of the matrix' index map.
+    auto local = local_vector_type::create(
+        exec, dim<2>{map_.get_local_size(), 1});
+    local->fill(one<ValueType>());
+    return global_vector_type::create(exec, comm,
+                                      dim<2>{this->get_size()[0], 1},
+                                      std::move(local));
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::remove_null_space(
-    ptr_param<global_vector_type> vec) const
+std::unique_ptr<typename DdMatrix<ValueType, LocalIndexType,
+                                  GlobalIndexType>::global_vector_type>
+DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::
+    create_nullspace_column_view(global_vector_type* x, size_type col) const
 {
-    if (!null_space_) {
-        return;
-    }
-    auto exec = this->get_executor();
-    GKO_ASSERT_EQUAL_COLS(null_space_.get(), vec.get());
-    const auto num_nsp = null_space_->get_size()[1];
-    // dot = null_space^T * vec  (1 x num_nsp, column-wise dot products)
-    nsp_dot_buffer_.init(exec, dim<2>{1, num_nsp});
-    null_space_->compute_dot(vec.get(), nsp_dot_buffer_.get());
-    // vec = vec - dot * null_space
-    vec->sub_scaled(nsp_dot_buffer_.get(), null_space_);
+    auto exec = x->get_executor();
+    auto comm = x->get_communicator();
+    const auto local_x = x->get_local_vector();
+    const auto n_local_rows = local_x->get_size()[0];
+    const auto stride = local_x->get_stride();
+    auto values = x->get_local_values();
+    const auto count = n_local_rows == 0
+                           ? size_type{0}
+                           : (n_local_rows - 1) * stride + col + 1;
+    auto local_col = local_vector_type::create(
+        exec, dim<2>{n_local_rows, 1},
+        make_array_view(exec, count, values + col), stride);
+    return global_vector_type::create(
+        exec, comm, dim<2>{x->get_size()[0], 1}, std::move(local_col));
 }
 
 
@@ -495,7 +503,11 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         restriction_->copy_from(other.restriction_);
         prolongation_->copy_from(other.prolongation_);
         map_ = other.map_;
-        null_space_ = other.null_space_;
+        if (other.has_nullspace()) {
+            this->set_nullspace(other.get_nullspace());
+        } else {
+            this->clear_nullspace();
+        }
     }
     return *this;
 }
@@ -515,7 +527,12 @@ DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         restriction_->move_from(other.restriction_);
         prolongation_->move_from(other.prolongation_);
         map_ = other.map_;
-        null_space_ = std::move(other.null_space_);
+        if (other.has_nullspace()) {
+            this->set_nullspace(other.get_nullspace());
+            other.clear_nullspace();
+        } else {
+            this->clear_nullspace();
+        }
     }
     return *this;
 }

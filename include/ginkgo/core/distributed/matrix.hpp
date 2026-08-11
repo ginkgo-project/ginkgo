@@ -15,9 +15,11 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/nullspace_removable.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 
 
 namespace gko {
@@ -265,7 +267,8 @@ class Matrix
       public ConvertibleTo<Matrix<next_precision<next_precision<ValueType>>,
                                   LocalIndexType, GlobalIndexType>>,
 #endif
-      public DistributedBase {
+      public DistributedBase,
+      public EnableNullspaceRemoval<Vector<ValueType>> {
     friend class EnablePolymorphicObject<Matrix, LinOp>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
@@ -686,6 +689,12 @@ protected:
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    std::unique_ptr<global_vector_type> create_constant_nullspace()
+        const override;
+
+    std::unique_ptr<global_vector_type> create_nullspace_column_view(
+        global_vector_type* x, size_type col) const override;
 
 private:
     index_map<local_index_type, global_index_type> imap_;

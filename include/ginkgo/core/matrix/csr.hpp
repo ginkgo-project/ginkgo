@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/nullspace_removable.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
@@ -121,7 +122,8 @@ class Csr : public EnableLinOp<Csr<ValueType, IndexType>>,
             public Permutable<IndexType>,
             public EnableAbsoluteComputation<
                 remove_complex<Csr<ValueType, IndexType>>>,
-            public ScaledIdentityAddable {
+            public ScaledIdentityAddable,
+            public EnableNullspaceRemoval<Dense<ValueType>> {
     friend class EnablePolymorphicObject<Csr, LinOp>;
     friend class Coo<ValueType, IndexType>;
     friend class Dense<ValueType>;
@@ -1264,6 +1266,12 @@ protected:
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    std::unique_ptr<Dense<ValueType>> create_constant_nullspace()
+        const override;
+
+    std::unique_ptr<Dense<ValueType>> create_nullspace_column_view(
+        Dense<ValueType>* x, size_type col) const override;
 
     // TODO: This provides some more sane settings. Please fix this!
     static std::shared_ptr<strategy_type> make_default_strategy(

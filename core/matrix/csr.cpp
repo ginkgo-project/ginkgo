@@ -264,6 +264,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                     csr::make_spmv(this, dense_b, dense_x));
             },
             b, x);
+        this->remove_nullspace(x);
     }
 }
 
@@ -289,6 +290,24 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         this->get_executor()->run(
             csr::make_spgeam(as<Dense<ValueType>>(alpha), this,
                              as<Dense<ValueType>>(beta), x_copy.get(), x_csr));
+    } else if (this->has_nullspace()) {
+        // The nullspace belongs to the operator's action A*b, not to the
+        // incoming beta*x. Project it out of the raw product before combining:
+        // x <- alpha * remove_nullspace(A*b) + beta * x.
+        mixed_precision_dispatch_real_complex<ValueType>(
+            [this, alpha, beta](auto dense_b, auto dense_x) {
+                using x_value_type =
+                    typename std::decay_t<decltype(*dense_x)>::value_type;
+                auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
+                auto dense_beta = make_temporary_conversion<x_value_type>(beta);
+                auto tmp = dense_x->clone();
+                this->get_executor()->run(
+                    csr::make_spmv(this, dense_b, tmp.get()));
+                this->remove_nullspace(tmp.get());
+                dense_x->scale(dense_beta.get());
+                dense_x->add_scaled(dense_alpha.get(), tmp.get());
+            },
+            b, x);
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this, alpha, beta](auto dense_b, auto dense_x) {
@@ -302,6 +321,27 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             },
             b, x);
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Dense<ValueType>>
+Csr<ValueType, IndexType>::create_constant_nullspace() const
+{
+    auto vec = Dense<ValueType>::create(this->get_executor(),
+                                        dim<2>{this->get_size()[1], 1});
+    vec->fill(one<ValueType>());
+    return vec;
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Dense<ValueType>>
+Csr<ValueType, IndexType>::create_nullspace_column_view(Dense<ValueType>* x,
+                                                        size_type col) const
+{
+    return x->create_submatrix(span{0, x->get_size()[0]},
+                               span{col, col + 1});
 }
 
 
