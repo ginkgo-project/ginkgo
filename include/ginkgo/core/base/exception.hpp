@@ -13,6 +13,8 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/types.hpp>
 
+#include "precision.hpp"
+
 
 namespace gko {
 
@@ -686,6 +688,30 @@ public:
         : Error(file, line,
                 "Invariant violated in " +
                     name_demangling::get_type_name(type) + ": " + invariant)
+    {}
+};
+
+
+/**
+ * Exception thrown if an object with mismatched precision is used
+ */
+class PrecisionError : public Error {
+public:
+    /**
+     *
+     * @param file  The name of the offending source file
+     * @param line  The source code line number where the error occurred
+     * @param func  The function name where the error occurred
+     * @param expected  The string value of the expected precision
+     * @param op  The offending operator
+     * @param p  The string value of the precision of the operator
+     */
+    PrecisionError(const std::string& file, int line, const std::string& func,
+                   precision expected, const std::string& op, precision p)
+        : Error(file, line,
+                func + ": expected precision " + to_string(expected) +
+                    " but object " + op + " has precision " + to_string(p) +
+                    ".")
     {}
 };
 
