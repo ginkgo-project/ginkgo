@@ -545,7 +545,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                                   one_scalar_.get(), local_x);
         },
         b, x);
-    this->remove_nullspace(x);
 }
 
 
@@ -553,21 +552,6 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
-    if (this->has_nullspace()) {
-        // The nullspace belongs to the operator's action A*b, not to the
-        // incoming beta*x. Compute the (nullspace-projected) product into a
-        // temporary, then combine: x <- alpha * A*b + beta * x.
-        auto tmp = x->clone();
-        this->apply_impl(b, tmp.get());
-        distributed::precision_dispatch_real_complex<ValueType>(
-            [](const auto local_alpha, const auto dense_tmp,
-               const auto local_beta, auto dense_x) {
-                dense_x->scale(local_beta);
-                dense_x->add_scaled(local_alpha, dense_tmp);
-            },
-            alpha, tmp.get(), beta, x);
-        return;
-    }
     distributed::precision_dispatch_real_complex<ValueType>(
         [this](const auto local_alpha, const auto dense_b,
                const auto local_beta, auto dense_x) {

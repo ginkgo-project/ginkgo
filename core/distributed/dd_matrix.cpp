@@ -322,7 +322,6 @@ void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             prolongation_->apply(rhs_buffer_.get(), dense_x);
         },
         b, x);
-    this->remove_nullspace(x);
 }
 
 
@@ -330,21 +329,6 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void DdMatrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
 {
-    if (this->has_nullspace()) {
-        // The nullspace belongs to the operator's action A*b, not to the
-        // incoming beta*x. Compute the (nullspace-projected) product into a
-        // temporary, then combine: x <- alpha * A*b + beta * x.
-        auto tmp = x->clone();
-        this->apply_impl(b, tmp.get());
-        distributed::precision_dispatch_real_complex<ValueType>(
-            [](const auto local_alpha, const auto dense_tmp,
-               const auto local_beta, auto dense_x) {
-                dense_x->scale(local_beta);
-                dense_x->add_scaled(local_alpha, dense_tmp);
-            },
-            alpha, tmp.get(), beta, x);
-        return;
-    }
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
     const auto nrhs = x->get_size()[1];

@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/nullspace_removable.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
@@ -127,6 +128,19 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         gko::detail::get_local(q), prev_rho, rho, &stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // If the system matrix is singular with a known nullspace (e.g. the
+    // constant vector for a pure-Neumann problem), project it out following
+    // PETSc's MatSetNullSpace convention: the initial residual (which carries
+    // the right-hand side) is projected so the system is consistent, and each
+    // search direction is projected so the iterate stays orthogonal to the
+    // nullspace.
+    auto nullspace_op = dynamic_cast<const NullspaceRemovable*>(
+        this->get_system_matrix().get());
+    const bool project_nullspace =
+        nullspace_op && nullspace_op->has_nullspace();
+    if (project_nullspace) {
+        nullspace_op->remove_nullspace(r);
+    }
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -167,6 +181,10 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         exec->run(cg::make_step_1(gko::detail::get_local(p),
                                   gko::detail::get_local(z), rho, prev_rho,
                                   &stop_status));
+        // keep the search direction orthogonal to the nullspace
+        if (project_nullspace) {
+            nullspace_op->remove_nullspace(p);
+        }
         // q = A * p
         this->get_system_matrix()->apply(p, q);
         // beta = dot(p, q)
@@ -179,6 +197,11 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(p), gko::detail::get_local(q), beta, rho,
             &stop_status));
         swap(prev_rho, rho);
+    }
+    // Remove any nullspace component that accumulated in the solution so the
+    // returned x is the minimum-norm solution orthogonal to the nullspace.
+    if (project_nullspace) {
+        nullspace_op->remove_nullspace(dense_x);
     }
 }
 

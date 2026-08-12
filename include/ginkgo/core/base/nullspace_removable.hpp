@@ -20,20 +20,53 @@ namespace gko {
 
 
 /**
- * The EnableNullspaceRemoval mixin equips a LinOp with an (optional) nullspace
- * that is automatically projected out of the result of every `apply`.
+ * A non-templated interface for operators that carry an (optional) nullspace.
  *
- * A nullspace is a single vector `n` spanning a one-dimensional subspace that
- * should not appear in the operator's output (e.g. the constant vector for a
- * pure-Neumann problem). Once a nullspace is attached, the concrete operator is
- * expected to call remove_nullspace() at the end of its apply_impl(), which
- * performs the orthogonal projection
+ * The nullspace is metadata: it is *not* applied inside the operator's apply.
+ * Instead, iterative solvers query it (analogous to PETSc's MatSetNullSpace)
+ * and project it out of the right-hand side and of the iterates themselves, so
+ * that a singular but consistent system \f$A x = b\f$ (e.g. a pure-Neumann
+ * problem, whose nullspace is the constant vector) is solved for the
+ * minimum-norm solution orthogonal to the nullspace.
+ *
+ * This base class exposes only the type-erased query/projection entry points so
+ * that a solver can handle any operator uniformly via `dynamic_cast`, without
+ * knowing its value or vector type. Operators obtain a working implementation by
+ * inheriting the EnableNullspaceRemoval mixin.
+ *
+ * @ingroup LinOp
+ */
+class NullspaceRemovable {
+public:
+    virtual ~NullspaceRemovable() = default;
+
+    /** @return whether a nullspace is currently attached */
+    virtual bool has_nullspace() const = 0;
+
+    /**
+     * Projects the attached nullspace out of `x` in place (like PETSc's
+     * MatNullSpaceRemove). Does nothing if no nullspace is attached.
+     *
+     * @param x  the vector to project; must match the operator's vector type
+     */
+    virtual void remove_nullspace(ptr_param<LinOp> x) const = 0;
+};
+
+
+/**
+ * The EnableNullspaceRemoval mixin equips a LinOp with an (optional) nullspace
+ * stored as metadata, and implements the NullspaceRemovable interface.
+ *
+ * A nullspace is a single vector `n` spanning a one-dimensional subspace that a
+ * solver should project out of the right-hand side and the iterates (e.g. the
+ * constant vector for a pure-Neumann problem). The projection performed by
+ * remove_nullspace() is the orthogonal projection
  * \f[
  *     x_j \leftarrow x_j - (n^H x_j)\, n
  * \f]
- * for every column \f$x_j\f$ of the output. The attached nullspace is always
- * normalized to \f$\|n\|_2 = 1\f$ at attach time, so the projection does not
- * need to divide by \f$n^H n\f$.
+ * for every column \f$x_j\f$. The attached nullspace is normalized to
+ * \f$\|n\|_2 = 1\f$ at attach time, so the projection does not need to divide
+ * by \f$n^H n\f$.
  *
  * The nullspace can be either an arbitrary user-provided vector
  * (see set_nullspace()) or the constant all-ones vector (see
@@ -52,18 +85,15 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename VectorType>
-class EnableNullspaceRemoval {
+class EnableNullspaceRemoval : public NullspaceRemovable {
 public:
     using vector_type = VectorType;
     using value_type = typename VectorType::value_type;
 
-    virtual ~EnableNullspaceRemoval() = default;
-
     /**
-     * Attaches an arbitrary vector as the nullspace to be removed after every
-     * apply. The vector is copied and normalized to unit 2-norm internally, so
-     * the caller retains ownership of the passed object and may modify it
-     * afterwards.
+     * Attaches an arbitrary vector as the nullspace. The vector is copied and
+     * normalized to unit 2-norm internally, so the caller retains ownership of
+     * the passed object and may modify it afterwards.
      *
      * @param nullspace  a single-column vector of the operator's VectorType
      */
@@ -77,9 +107,9 @@ public:
     }
 
     /**
-     * Attaches the constant (all-ones) vector as the nullspace to be removed
-     * after every apply. The vector is normalized to unit 2-norm internally,
-     * i.e. every entry becomes \f$1/\sqrt{N}\f$ with \f$N\f$ the global size.
+     * Attaches the constant (all-ones) vector as the nullspace. The vector is
+     * normalized to unit 2-norm internally, i.e. every entry becomes
+     * \f$1/\sqrt{N}\f$ with \f$N\f$ the global size.
      */
     void set_constant_nullspace()
     {
@@ -97,22 +127,15 @@ public:
         return nullspace_;
     }
 
-    /** @return whether a nullspace is currently attached */
-    bool has_nullspace() const { return static_cast<bool>(nullspace_); }
-
     /** Detaches any currently attached nullspace. */
     void clear_nullspace() { nullspace_.reset(); }
 
-    /**
-     * Projects the attached nullspace out of `x` in place. Does nothing if no
-     * nullspace is attached. This is called automatically at the end of the
-     * operator's apply, but is also exposed publicly (analogous to PETSc's
-     * MatNullSpaceRemove) so callers can project other vectors, e.g. a
-     * right-hand side or a preconditioner's output.
-     *
-     * @param x  the vector to project; must be of the operator's VectorType
-     */
-    void remove_nullspace(ptr_param<LinOp> x) const
+    bool has_nullspace() const override
+    {
+        return static_cast<bool>(nullspace_);
+    }
+
+    void remove_nullspace(ptr_param<LinOp> x) const override
     {
         if (!nullspace_) {
             return;
@@ -148,7 +171,7 @@ protected:
     /**
      * Creates a single-column view of column `col` of `x` that shares its
      * memory, so that in-place updates on the view modify `x`. Only used for
-     * multi-column applies.
+     * multi-column right-hand sides.
      *
      * @param x  the (multi-)vector to take a column view of
      * @param col  the column index

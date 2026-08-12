@@ -447,6 +447,12 @@ void Pgm<ValueType, IndexType>::generate()
                     Matrix<ValueType, IndexType, global_index_type>::create(
                         exec, comm, std::move(coarse_imap), std::get<1>(result),
                         result_non_local_csr));
+            // If the fine operator is singular with a nullspace, the Galerkin
+            // coarse operator inherits the constant nullspace (aggregation
+            // prolongation preserves constants exactly), so propagate it.
+            if (matrix->has_nullspace()) {
+                coarse->set_constant_nullspace();
+            }
             auto restrict_op = share(
                 experimental::distributed::
                     Matrix<ValueType, IndexType, global_index_type>::create(
@@ -480,7 +486,14 @@ void Pgm<ValueType, IndexType>::generate()
             this->set_fine_op(pgm_op);
         }
         auto result = this->generate_local(pgm_op);
-        this->set_multigrid_level(std::get<0>(result), std::get<1>(result),
+        auto coarse = std::get<1>(result);
+        // If the fine operator is singular with a nullspace, the Galerkin
+        // coarse operator inherits the constant nullspace (aggregation
+        // prolongation preserves constants exactly), so propagate it.
+        if (pgm_op->has_nullspace()) {
+            coarse->set_constant_nullspace();
+        }
+        this->set_multigrid_level(std::get<0>(result), coarse,
                                   std::get<2>(result));
     }
 }
