@@ -140,8 +140,9 @@ void ProfilerHook::on_polymorphic_object_move_completed(
 }
 
 
-void ProfilerHook::on_linop_apply_started(const LinOp* A, const LinOp* b,
-                                          const LinOp* x) const
+void ProfilerHook::on_linop_apply_started(const LinOp* A,
+                                          const AbstractMultiVector* b,
+                                          const AbstractMultiVector* x) const
 {
     std::stringstream ss;
     ss << "apply(" << stringify_object(A) << " * " << stringify_object(b)
@@ -153,8 +154,9 @@ void ProfilerHook::on_linop_apply_started(const LinOp* A, const LinOp* b,
 }
 
 
-void ProfilerHook::on_linop_apply_completed(const LinOp* A, const LinOp* b,
-                                            const LinOp* x) const
+void ProfilerHook::on_linop_apply_completed(const LinOp* A,
+                                            const AbstractMultiVector* b,
+                                            const AbstractMultiVector* x) const
 {
     std::stringstream ss;
     ss << "apply(" << stringify_object(A) << " * " << stringify_object(b)
@@ -166,11 +168,10 @@ void ProfilerHook::on_linop_apply_completed(const LinOp* A, const LinOp* b,
 }
 
 
-void ProfilerHook::on_linop_advanced_apply_started(const LinOp* A,
-                                                   const LinOp* alpha,
-                                                   const LinOp* b,
-                                                   const LinOp* beta,
-                                                   const LinOp* x) const
+void ProfilerHook::on_linop_advanced_apply_started(
+    const LinOp* A, const AbstractMultiVector* alpha,
+    const AbstractMultiVector* b, const AbstractMultiVector* beta,
+    const AbstractMultiVector* x) const
 {
     std::stringstream ss;
     ss << "advanced_apply(" << stringify_object(alpha) << " * "
@@ -183,11 +184,10 @@ void ProfilerHook::on_linop_advanced_apply_started(const LinOp* A,
 }
 
 
-void ProfilerHook::on_linop_advanced_apply_completed(const LinOp* A,
-                                                     const LinOp* alpha,
-                                                     const LinOp* b,
-                                                     const LinOp* beta,
-                                                     const LinOp* x) const
+void ProfilerHook::on_linop_advanced_apply_completed(
+    const LinOp* A, const AbstractMultiVector* alpha,
+    const AbstractMultiVector* b, const AbstractMultiVector* beta,
+    const AbstractMultiVector* x) const
 {
     std::stringstream ss;
     ss << "advanced_apply(" << stringify_object(alpha) << " * "
@@ -220,8 +220,10 @@ void ProfilerHook::on_linop_factory_generate_completed(
 
 void ProfilerHook::on_criterion_check_started(
     const stop::Criterion* criterion, const size_type& num_iterations,
-    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
-    const uint8& stopping_id, const bool& set_finalized) const
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* solution, const uint8& stopping_id,
+    const bool& set_finalized) const
 {
     std::stringstream ss;
     ss << "check(" << stringify_object(criterion) << ")";
@@ -231,10 +233,11 @@ void ProfilerHook::on_criterion_check_started(
 
 void ProfilerHook::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
-    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
-    const uint8& stopping_id, const bool& set_finalized,
-    const array<stopping_status>* status, const bool& one_changed,
-    const bool& all_converged) const
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* solution, const uint8& stopping_id,
+    const bool& set_finalized, const array<stopping_status>* status,
+    const bool& one_changed, const bool& all_converged) const
 {
     this->on_criterion_check_completed(
         criterion, num_iterations, residual, residual_norm, nullptr, solution,
@@ -243,11 +246,12 @@ void ProfilerHook::on_criterion_check_completed(
 
 void ProfilerHook::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
-    const LinOp* residual, const LinOp* residual_norm,
-    const LinOp* implicit_sq_resnorm, const LinOp* solution,
-    const uint8& stopping_id, const bool& set_finalized,
-    const array<stopping_status>* status, const bool& one_changed,
-    const bool& all_stopped) const
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_sq_resnorm,
+    const AbstractMultiVector* solution, const uint8& stopping_id,
+    const bool& set_finalized, const array<stopping_status>* status,
+    const bool& one_changed, const bool& all_stopped) const
 {
     std::stringstream ss;
     ss << "check(" << stringify_object(criterion) << ")";
@@ -256,9 +260,11 @@ void ProfilerHook::on_criterion_check_completed(
 
 
 void ProfilerHook::on_iteration_complete(
-    const LinOp* solver, const LinOp* right_hand_side, const LinOp* solution,
-    const size_type& num_iterations, const LinOp* residual,
-    const LinOp* residual_norm, const LinOp* implicit_sq_residual_norm,
+    const LinOp* solver, const AbstractMultiVector* right_hand_side,
+    const AbstractMultiVector* solution, const size_type& num_iterations,
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_sq_residual_norm,
     const array<stopping_status>* status, bool stopped) const
 {
     if (num_iterations > 0 &&
@@ -269,11 +275,10 @@ void ProfilerHook::on_iteration_complete(
 }
 
 
-void ProfilerHook::on_iteration_complete(const LinOp* solver,
-                                         const size_type& num_iterations,
-                                         const LinOp* residual,
-                                         const LinOp* solution,
-                                         const LinOp* residual_norm) const
+void ProfilerHook::on_iteration_complete(
+    const LinOp* solver, const size_type& num_iterations,
+    const AbstractMultiVector* residual, const AbstractMultiVector* solution,
+    const AbstractMultiVector* residual_norm) const
 {
     on_iteration_complete(solver, nullptr, solution, num_iterations, residual,
                           residual_norm, nullptr, nullptr, false);
@@ -281,9 +286,10 @@ void ProfilerHook::on_iteration_complete(const LinOp* solver,
 
 
 void ProfilerHook::on_iteration_complete(
-    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
-    const LinOp* solution, const LinOp* residual_norm,
-    const LinOp* implicit_sq_residual_norm) const
+    const LinOp* solver, const size_type& num_iterations,
+    const AbstractMultiVector* residual, const AbstractMultiVector* solution,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_sq_residual_norm) const
 {
     on_iteration_complete(solver, nullptr, solution, num_iterations, residual,
                           residual_norm, implicit_sq_residual_norm, nullptr,
