@@ -78,7 +78,7 @@ public:
      * @throws InvalidStateError  if a previous scatter has not been finished
      *                            by wait_and_accumulate.
      */
-    void apply_async(ptr_param<const LinOp> local_values) const;
+    void apply_async(ptr_param<const AbstractMultiVector> local_values) const;
 
     /**
      * Wait for the scatter communication to complete and accumulate received
@@ -91,7 +91,8 @@ public:
      * @throws InvalidStateError  if there is no scatter started by
      *                            apply_async.
      */
-    void wait_and_accumulate(ptr_param<LinOp> distributed_target) const;
+    void wait_and_accumulate(
+        ptr_param<AbstractMultiVector> distributed_target) const;
 
     /**
      * Returns the size of the row scatterer.
@@ -191,7 +192,7 @@ private:
     // request and receive buffer of the active apply_async, consumed by
     // wait_and_accumulate
     mutable mpi::request req_;
-    mutable std::shared_ptr<LinOp> recv_buffer_;
+    mutable std::shared_ptr<AbstractMultiVector> recv_buffer_;
     mutable gko::detail::GenericDenseCache recv_cache_;
 };
 
