@@ -519,13 +519,13 @@ public:
      *                        matrix and `gather_indices->get_size()` rows.
      */
     void row_gather(const array<int32>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const array<int32>*, LinOp*) const
      */
     void row_gather(const array<int64>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * Copies the given rows from this matrix into `row_collection` with scaling
@@ -543,7 +543,7 @@ public:
     void row_gather(ptr_param<const LinOp> alpha,
                     const array<int32>* gather_indices,
                     ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const LinOp*, const array<int32>*, const LinOp*,
@@ -552,7 +552,7 @@ public:
     void row_gather(ptr_param<const LinOp> alpha,
                     const array<int64>* gather_indices,
                     ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * Accumulates rows from `source` into this matrix at scattered positions:
@@ -567,13 +567,13 @@ public:
      *                type differs from this matrix, it is converted first.
      */
     void scatter_add(const array<int32>* scatter_indices,
-                     ptr_param<const LinOp> source);
+                     ptr_param<const AbstractMultiVector> source);
 
     /**
      * @copydoc scatter_add(const array<int32>*, ptr_param<const LinOp>)
      */
     void scatter_add(const array<int64>* scatter_indices,
-                     ptr_param<const LinOp> source);
+                     ptr_param<const AbstractMultiVector> source);
 
     std::unique_ptr<MultiVector> column_permute(
         const array<int32>* permutation_indices) const;
@@ -972,7 +972,7 @@ protected:
 
     template <typename IndexType>
     void scatter_add_impl(const array<IndexType>* scatter_indices,
-                          const LinOp* source);
+                          const AbstractMultiVector* source);
 
 private:
     size_type stride_;
