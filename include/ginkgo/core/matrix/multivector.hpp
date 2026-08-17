@@ -20,6 +20,8 @@
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
+#include "ginkgo/core/base/multivector_mixin.hpp"
+
 
 namespace gko {
 namespace experimental {
@@ -67,8 +69,7 @@ class Dense;
  */
 template <typename ValueType = default_precision>
 class MultiVector
-    : public LinOp,
-      public EnableCloneable<MultiVector<ValueType>>,
+    : public EnableMultiVector<MultiVector<ValueType>>,
       public ConvertibleTo<MultiVector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>,
@@ -118,22 +119,6 @@ public:
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
     /**
-     * Creates a MultiVector with the same size and stride as another
-     * MultiVector matrix.
-     *
-     * @param other  The other matrix whose configuration needs to copied.
-     */
-    static std::unique_ptr<MultiVector> create_with_config_of(
-        ptr_param<const MultiVector> other)
-    {
-        // De-referencing `other` before calling the functions (instead of
-        // using operator `->`) is currently required to be compatible with
-        // CUDA 10.1.
-        // Otherwise, it results in a compile error.
-        return (*other).create_with_same_config();
-    }
-
-    /**
      * Creates a MultiVector with the same type as another MultiVector
      * matrix but on a different executor and with a different size.
      *
@@ -150,42 +135,6 @@ public:
     {
         // See create_with_config_of()
         return (*other).create_with_type_of_impl(exec, size, size[1]);
-    }
-
-    /**
-     * @copydoc create_with_type_of(const MultiVector*, std::shared_ptr<const
-     * Executor>, const dim<2>)
-     *
-     * @param stride  The stride of the new matrix.
-     *
-     * @note This is an overload which allows full parameter specification.
-     */
-    static std::unique_ptr<MultiVector> create_with_type_of(
-        ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type stride)
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, stride);
-    }
-
-    /**
-     * @copydoc create_with_type_of(const MultiVector*, std::shared_ptr<const
-     * Executor>, const dim<2>)
-     *
-     * @param local_size  Unused
-     * @param stride  The stride of the new matrix.
-     *
-     * @note This is an overload to stay consistent with
-     *       gko::experimental::distributed::Vector
-     */
-    static std::unique_ptr<MultiVector> create_with_type_of(
-        ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        const dim<2>& local_size, size_type stride)
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, stride);
     }
 
     /**
@@ -283,13 +232,6 @@ public:
      *                `gko::transpose(this->get_size())`
      */
     void conj_transpose(ptr_param<MultiVector> output) const;
-
-    /**
-     * Fill the dense matrix with a given value.
-     *
-     * @param value  the value to be filled
-     */
-    void fill(const ValueType value);
 
     /**
      * Creates a permuted copy \f$A'\f$ of this matrix \f$A\f$ with the given
@@ -678,55 +620,6 @@ public:
     void inverse_column_permute(const array<int64>* permutation_indices,
                                 ptr_param<MultiVector> output) const;
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
-
-    /**
-     * Writes the absolute values of this matrix into an existing matrix.
-     *
-     * @param output  The output matrix. Its size must match the size of this
-     *                matrix.
-     * @see MultiVector::compute_absolute()
-     */
-    void compute_absolute(ptr_param<absolute_type> output) const;
-
-    void compute_absolute_inplace() override;
-
-    /**
-     * Creates a complex copy of the original matrix. If the original matrix
-     * was real, the imaginary part of the result will be zero.
-     */
-    std::unique_ptr<complex_type> make_complex() const;
-
-    /**
-     * Writes a complex copy of the original matrix to a given complex matrix.
-     * If the original matrix was real, the imaginary part of the result will
-     * be zero.
-     */
-    void make_complex(ptr_param<complex_type> result) const;
-
-    /**
-     * Creates a new real matrix and extracts the real part of the original
-     * matrix into that.
-     */
-    std::unique_ptr<real_type> get_real() const;
-
-    /**
-     * Extracts the real part of the original matrix into a given real matrix.
-     */
-    void get_real(ptr_param<real_type> result) const;
-
-    /**
-     * Creates a new real matrix and extracts the imaginary part of the
-     * original matrix into that.
-     */
-    std::unique_ptr<real_type> get_imag() const;
-
-    /**
-     * Extracts the imaginary part of the original matrix into a given real
-     * matrix.
-     */
-    void get_imag(ptr_param<real_type> result) const;
-
     /**
      * Returns a pointer to the array of values of the matrix.
      *
@@ -818,168 +711,6 @@ public:
     }
 
     /**
-     * Scales the matrix with a scalar (aka: BLAS scal).
-     *
-     * @param alpha  If alpha is 1x1 MultiVector is scaled
-     *               by alpha. If it is a MultiVector row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
-     */
-    void scale(ptr_param<const LinOp> alpha);
-
-    /**
-     * Scales the matrix with the inverse of a scalar.
-     *
-     * @param alpha  If alpha is 1x1 MultiVector is scaled
-     *               by 1 / alpha. If it is a MultiVector row vector of values,
-     *               then i-th column of the matrix is scaled with the inverse
-     *               of the i-th element of alpha (the number of columns of
-     *               alpha has to match the number of columns of the matrix).
-     */
-    void inv_scale(ptr_param<const LinOp> alpha);
-
-    void validate_data() const override;
-
-    /**
-     * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 MultiVector is scaled
-     *               by alpha. If it is a MultiVector row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
-     * @param b  a matrix of the same dimension as this
-     */
-    void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Subtracts `b` scaled by `alpha` from the matrix (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 MultiVector, b is scaled
-     *               by alpha. If it is a MultiVector row vector of values,
-     *               then i-th column of b is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
-     * @param b  a matrix of the same dimension as this
-     */
-    void sub_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Computes the column-wise dot product of this matrix and `b`.
-     *
-     * @param b  a MultiVector of same dimension as this
-     * @param result  a MultiVector row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of this matrix and `b`.
-     *
-     * @param b  a MultiVector of same dimension as this
-     * @param result  a MultiVector row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                     array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
-     *
-     * @param b  a MultiVector of same dimension as this
-     * @param result  a MultiVector row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b,
-                          ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
-     *
-     * @param b  a MultiVector of same dimension as this
-     * @param result  a MultiVector row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                          array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise Euclidean (L^2) norm of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise Euclidean (L^2) norm of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_norm1(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean (L^2) norm of this
-     * matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean (L^2) norm of this
-     * matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
      * Computes the column-wise arithmetic mean of this matrix.
      *
      * @param result  a MultiVector row vector, used to store the mean
@@ -1000,66 +731,7 @@ public:
      */
     void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
 
-    /**
-     * Create a submatrix from the original matrix.
-     * Warning: defining stride for this create_submatrix method might cause
-     * wrong memory access. Better use the create_submatrix(rows, columns)
-     * method instead.
-     *
-     * @param rows     row span
-     * @param columns  column span
-     * @param stride   stride of the new submatrix.
-     */
-    std::unique_ptr<MultiVector> create_submatrix(const span& rows,
-                                                  const span& columns,
-                                                  const size_type stride)
-    {
-        return this->create_submatrix_impl(rows, columns, stride);
-    }
-
-    /**
-     * Create a submatrix from the original matrix.
-     *
-     * @param rows     row span
-     * @param columns  column span
-     */
-    std::unique_ptr<MultiVector> create_submatrix(const span& rows,
-                                                  const span& columns)
-    {
-        return create_submatrix(rows, columns, this->get_stride());
-    }
-
-
-    /**
-     * Create a submatrix from the original matrix.
-     *
-     * @param rows  row span
-     * @param columns  column span
-     * @param size  size of the submatrix (only used for consistency with
-     *              distributed::Vector)
-     */
-    std::unique_ptr<MultiVector> create_submatrix(const local_span& rows,
-                                                  const local_span& columns,
-                                                  dim<2> size)
-    {
-        dim<2> deduced_size{rows.length(), columns.length()};
-        GKO_ASSERT_EQUAL_DIMENSIONS(deduced_size, size);
-        return create_submatrix(rows, columns, this->get_stride());
-    }
-
-    /**
-     * Create a real view of the (potentially) complex original matrix.
-     * If the original matrix is real, nothing changes. If the original matrix
-     * is complex, the result is created by viewing the complex matrix with as
-     * real with a reinterpret_cast with twice the number of columns and
-     * double the stride.
-     */
-    std::unique_ptr<real_type> create_real_view();
-
-    /**
-     * @copydoc create_real_view()
-     */
-    std::unique_ptr<const real_type> create_real_view() const;
+    void validate_data() const override;
 
     /**
      * Creates an uninitialized MultiVector of the specified size.
@@ -1168,19 +840,6 @@ protected:
                 array<value_type> values, size_type stride);
 
     /**
-     * Creates a MultiVector with the same size and stride as the callers
-     * matrix.
-     *
-     * @returns a MultiVector with the same size and stride as the
-     * caller.
-     */
-    virtual std::unique_ptr<MultiVector> create_with_same_config() const
-    {
-        return MultiVector::create(this->get_executor(), this->get_size(),
-                                   this->get_stride());
-    }
-
-    /**
      * Creates a MultiVector with the same type as the callers matrix.
      *
      * @param size  size of the matrix
@@ -1227,78 +886,6 @@ protected:
     }
 
     /**
-     * @copydoc scale(const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void scale_impl(const LinOp* alpha);
-
-    /**
-     * @copydoc inv_scale(const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void inv_scale_impl(const LinOp* alpha);
-
-    /**
-     * @copydoc add_scaled(const LinOp *, const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void add_scaled_impl(const LinOp* alpha, const LinOp* b);
-
-    /**
-     * @copydoc sub_scaled(const LinOp *, const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void sub_scaled_impl(const LinOp* alpha, const LinOp* b);
-
-    /**
-     * @copydoc compute_dot(const LinOp*, LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_dot_impl(const LinOp* b, LinOp* result) const;
-
-    /**
-     * @copydoc compute_conj_dot(const LinOp*, LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_conj_dot_impl(const LinOp* b, LinOp* result) const;
-
-    /**
-     * @copydoc compute_norm2(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_norm2_impl(LinOp* result) const;
-
-    /**
-     * @copydoc compute_norm1(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_norm1_impl(LinOp* result) const;
-
-    /**
-     * @copydoc compute_squared_norm2(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_squared_norm2_impl(LinOp* result) const;
-
-    /**
      * @copydoc compute_mean(LinOp*) const
      */
     virtual void compute_mean_impl(LinOp* result) const;
@@ -1312,16 +899,6 @@ protected:
      * @param new_size  the new matrix dimensions
      */
     void resize(gko::dim<2> new_size);
-
-    /**
-     * @copydoc create_submatrix(const span, const span, const size_type)
-     *
-     * @note  Other implementations of dense should override this function
-     *        instead of create_submatrix(const span, const span, const
-     *        size_type).
-     */
-    virtual std::unique_ptr<MultiVector> create_submatrix_impl(
-        const span& rows, const span& columns, const size_type stride);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
