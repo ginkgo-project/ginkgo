@@ -20,7 +20,7 @@ namespace distributed {
 
 template <typename LocalIndexType>
 void RowScatterer<LocalIndexType>::apply_async(
-    ptr_param<const LinOp> local_values) const
+    ptr_param<const AbstractMultiVector> local_values) const
 {
     GKO_THROW_IF_INVALID(recv_buffer_ == nullptr,
                          "apply_async requires the previous scatter to be "
@@ -33,17 +33,11 @@ void RowScatterer<LocalIndexType>::apply_async(
     // Dispatch on local_values as a distributed::Vector. It is not cloned to
     // another executor, since a temporary clone would be freed before the
     // communication finishes.
-    run<Vector,
-#if GINKGO_ENABLE_HALF
-        half, std::complex<half>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-        bfloat16, std::complex<bfloat16>,
-#endif
-        double, float, std::complex<double>, std::complex<float>>(
-        local_values.get(), [&](const auto* lv_global) {
-            using ValueType =
-                typename std::decay_t<decltype(*lv_global)>::value_type;
+    std::visit(
+        [&](auto p) {
+            using ValueType = std::decay_t<decltype(p)>;
+            auto lv_global = as<Vector<ValueType>>(local_values);
+
             auto lv_local = lv_global->get_local_vector();
             auto ncols = lv_local->get_size()[1];
 
@@ -77,13 +71,14 @@ void RowScatterer<LocalIndexType>::apply_async(
                                               recv_buffer->get_values(),
                                               type.get());
             recv_buffer_ = recv_buffer;
-        });
+        },
+        precision_to_variant(local_values->get_precision()));
 }
 
 
 template <typename LocalIndexType>
 void RowScatterer<LocalIndexType>::wait_and_accumulate(
-    ptr_param<LinOp> distributed_target) const
+    ptr_param<AbstractMultiVector> distributed_target) const
 {
     GKO_THROW_IF_INVALID(recv_buffer_ != nullptr,
                          "wait_and_accumulate requires a preceding "
@@ -92,19 +87,12 @@ void RowScatterer<LocalIndexType>::wait_and_accumulate(
     auto recv_buffer_op = std::exchange(recv_buffer_, nullptr);
 
     // Dispatch on the distributed target to get ValueType
-    run<Vector,
-#if GINKGO_ENABLE_HALF
-        half, std::complex<half>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-        bfloat16, std::complex<bfloat16>,
-#endif
-        double, float, std::complex<double>, std::complex<float>>(
-        distributed_target.get(), [&](auto* target_global) {
-            using ValueType =
-                typename std::decay_t<decltype(*target_global)>::value_type;
+    std::visit(
+        [&](auto p) {
+            using ValueType = std::decay_t<decltype(p)>;
+            auto target_global = as<Vector<ValueType>>(distributed_target);
 
-            auto target_dense = gko::detail::get_local(target_global);
+            auto target_dense = detail::get_local_mutable(target_global);
             // throws if apply_async used a different value type
             auto recv_buffer =
                 gko::as<matrix::MultiVector<ValueType>>(recv_buffer_op);
@@ -113,7 +101,8 @@ void RowScatterer<LocalIndexType>::wait_and_accumulate(
             // scatter_add handles cross-executor copies via
             // make_temporary_clone
             target_dense->scatter_add(&recv_idxs_, recv_buffer.get());
-        });
+        },
+        precision_to_variant(distributed_target->get_precision()));
 }
 
 
@@ -155,10 +144,9 @@ RowScatterer<LocalIndexType>::RowScatterer(
     : PolymorphicObject(exec),
       DistributedBase(coll_comm->get_base_communicator()),
       // transpose of the corresponding RowGatherer size
-      size_(dim<2>{
-          imap.get_global_size(),
-          gko::detail::global_add(exec, coll_comm->get_base_communicator(),
-                                  imap.get_non_local_size())}),
+      size_(dim<2>{imap.get_global_size(),
+                   detail::global_add(exec, coll_comm->get_base_communicator(),
+                                      imap.get_non_local_size())}),
       coll_comm_(std::move(coll_comm)),
       recv_idxs_(exec)
 {
