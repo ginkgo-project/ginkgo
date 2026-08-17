@@ -418,7 +418,8 @@ void MultiVector<ValueType>::write(mat_data32& data) const
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::transpose() const
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::transpose()
+    const
 {
     auto result = MultiVector::create(this->get_executor(),
                                       gko::transpose(this->get_size()));
@@ -428,7 +429,8 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::transpose() const
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::conj_transpose() const
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::conj_transpose()
+    const
 {
     auto result = MultiVector::create(this->get_executor(),
                                       gko::transpose(this->get_size()));
