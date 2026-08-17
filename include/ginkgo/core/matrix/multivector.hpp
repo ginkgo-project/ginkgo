@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/multivector_mixin.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -84,14 +85,14 @@ class MultiVector
       public WritableToMatrixData<ValueType, int64> {
     friend class Dense<ValueType>;
     friend class MultiVector<to_complex<ValueType>>;
-    friend class EnableCloneable<MultiVector>;
+    friend class EnableMultiVector<MultiVector>;
     friend class experimental::distributed::Vector<ValueType>;
     friend class experimental::distributed::detail::VectorCache<ValueType>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<MultiVector>::convert_to;
-    using EnableCloneable<MultiVector>::move_to;
+    using EnableMultiVector<MultiVector>::convert_to;
+    using EnableMultiVector<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -99,39 +100,28 @@ public:
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
 
-    using value_type = ValueType;
+    using value_type = typename EnableMultiVector<MultiVector>::value_type;
     using index_type = int64;
     using transposed_type = MultiVector<value_type>;
     using mat_data64 = matrix_data<value_type, int64>;
     using mat_data32 = matrix_data<value_type, int32>;
     using device_mat_data64 = device_matrix_data<value_type, int64>;
     using device_mat_data32 = device_matrix_data<value_type, int32>;
-    using absolute_type = remove_complex<MultiVector>;
-    using real_type = absolute_type;
-    using complex_type = to_complex<MultiVector>;
-    using device_view = matrix::view::dense<value_type>;
-    using const_device_view = matrix::view::dense<const value_type>;
+    using absolute_type =
+        typename EnableMultiVector<MultiVector>::absolute_type;
+    using real_type = typename EnableMultiVector<MultiVector>::real_type;
+    using complex_type = typename EnableMultiVector<MultiVector>::complex_type;
+    using norm_type = typename EnableMultiVector<MultiVector>::norm_type;
+    using device_view = typename EnableMultiVector<MultiVector>::device_view;
+    using const_device_view =
+        typename EnableMultiVector<MultiVector>::const_device_view;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
-    /**
-     * Creates a MultiVector with the same type as another MultiVector
-     * matrix but on a different executor and with a different size.
-     *
-     * @param other  The other matrix whose type we target.
-     * @param exec  The executor of the new matrix.
-     * @param size  The size of the new matrix.
-     * @param stride  The stride of the new matrix.
-     *
-     * @returns a MultiVector with the type of other.
-     */
-    static std::unique_ptr<MultiVector> create_with_type_of(
+    [[nodiscard]] static std::unique_ptr<MultiVector> create_with_type_of(
         ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, size[1]);
-    }
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        size_type stride);
 
     /**
      * Creates a MultiVector, where the underlying array is a view of another
@@ -713,7 +703,7 @@ public:
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
-    void compute_mean(ptr_param<LinOp> result) const;
+    void compute_mean(ptr_param<AbstractMultiVector> result) const;
 
     /**
      * Computes the column-wise arithmetic mean of this matrix.
@@ -725,7 +715,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
+    void compute_mean(ptr_param<AbstractMultiVector> result,
+                      array<char>& tmp) const;
 
     void validate_data() const override;
 
@@ -801,6 +792,39 @@ public:
         const;
 
     [[nodiscard]] std::unique_ptr<Dense<ValueType>> as_dense_view();
+
+    /**
+     * Converts the vector to the target precision type.
+     *
+     * @note This overload will include a copy-back operation when the temporary
+     *       conversion is destroyed, if OtherValueType != ValueType.
+     *
+     * @tparam OtherValueType The target precision type. If ValueType is real,
+     *                         OtherValueType must be real. If ValueType is
+     *                         complex, OtherValueType must be complex.
+     *
+     * @return Temporary conversion to the target precision type.
+     */
+    template <typename OtherValueType,
+              typename = std::enable_if_t<is_complex<ValueType>() ==
+                                          is_complex<OtherValueType>()>>
+    [[nodiscard]] temporary_conversion<MultiVector<OtherValueType>>
+    as_precision();
+
+    /**
+     * Converts the vector to the target precision type.
+     *
+     * @tparam OtherValueType The target precision type. If ValueType is real,
+     *                         OtherValueType must be real. If ValueType is
+     *                         complex, OtherValueType must be complex.
+     *
+     * @return Temporary conversion to the target precision type.
+     */
+    template <typename OtherValueType,
+              typename = std::enable_if_t<is_complex<ValueType>() ==
+                                          is_complex<OtherValueType>()>>
+    [[nodiscard]] temporary_conversion<const MultiVector<OtherValueType>>
+    as_precision() const;
 
     /**
      * Copy-assigns a MultiVector. Preserves the executor, reallocates
@@ -884,7 +908,7 @@ protected:
     /**
      * @copydoc compute_mean(LinOp*) const
      */
-    virtual void compute_mean_impl(LinOp* result) const;
+    virtual void compute_mean_impl(AbstractMultiVector* result) const;
 
     /**
      * Resizes the matrix to the given size.
@@ -936,6 +960,82 @@ protected:
                          const array<IndexType>* row_idxs,
                          const MultiVector<ValueType>* beta,
                          MultiVector<OutputType>* row_collection) const;
+
+    void compute_absolute_inplace_impl() override;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_with_same_config_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size, size_type stride) const override;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_subview_impl(
+        local_span rows, local_span columns) override;
+
+    [[nodiscard]] std::unique_ptr<const MultiVector> create_subview_impl(
+        local_span rows, local_span columns) const override;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) override;
+
+    [[nodiscard]] std::unique_ptr<const MultiVector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) const override;
+
+    [[nodiscard]] std::unique_ptr<const real_type> create_real_view_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> create_real_view_impl() override;
+
+    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute_impl()
+        const override;
+
+    void compute_absolute_impl(absolute_type* result) const override;
+
+    [[nodiscard]] std::unique_ptr<complex_type> make_complex_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_real_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_imag_impl() const override;
+
+    void make_complex_impl(complex_type* result) const override;
+
+    void get_real_impl(real_type* result) const override;
+
+    void get_imag_impl(real_type* result) const override;
+
+    void fill_impl(value_type value) override;
+
+    void scale_impl(scaling_param<value_type> alpha) override;
+
+    void inv_scale_impl(scaling_param<value_type> alpha) override;
+
+    void add_scaled_impl(scaling_param<value_type> alpha,
+                         const MultiVector* b) override;
+
+    void sub_scaled_impl(scaling_param<value_type> alpha,
+                         const MultiVector* b) override;
+
+    void compute_dot_impl(const MultiVector* b,
+                          matrix::MultiVector<value_type>* result,
+                          array<char>& tmp) const override;
+
+    void compute_conj_dot_impl(const MultiVector* b,
+                               matrix::MultiVector<value_type>* result,
+                               array<char>& tmp) const override;
+
+    void compute_norm2_impl(norm_type* result, array<char>& tmp) const override;
+
+    void compute_squared_norm2_impl(norm_type* result,
+                                    array<char>& tmp) const override;
+
+    void compute_norm1_impl(norm_type* result, array<char>& tmp) const override;
+    AbstractMultiVector::device_view<value_type> get_local_device_view_impl()
+        override;
+
+    AbstractMultiVector::device_view<const value_type>
+    get_const_local_device_view_impl() const override;
 
 private:
     size_type stride_;
