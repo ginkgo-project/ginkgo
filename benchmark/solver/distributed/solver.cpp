@@ -31,7 +31,8 @@ struct Generator : public DistributedDefaultSystemGenerator<SolverGenerator> {
         if (FLAGS_rhs_generation == "sinus") {
             gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
             gko::dim<2> local_vec_size{
-                gko::detail::get_local(system_matrix)->get_size()[1],
+                gko::experimental::distributed::detail::get_local(system_matrix)
+                    ->get_size()[1],
                 FLAGS_nrhs};
             return create_normalized_manufactured_rhs(
                 exec, system_matrix,
