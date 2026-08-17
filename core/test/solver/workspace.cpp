@@ -11,55 +11,51 @@
 #include <ginkgo/core/solver/workspace.hpp>
 
 #include "core/test/utils.hpp"
+#include "core/test/utils/dummy_vector.hpp"
 
 
-class DummyLinOp : public gko::LinOp,
-                   public gko::EnableCreateMethod<DummyLinOp> {
+class Vector1 : public AbstractDummyVector<Vector1>,
+                public gko::EnableCreateMethod<Vector1> {
 public:
-    DummyLinOp(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size = {},
-               gko::size_type stride = 0)
-        : LinOp(exec, size), stride_{stride}
+    using EnableCreateMethod::create;
+
+    Vector1(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size = {},
+            gko::size_type stride = 0)
+        : AbstractDummyVector(exec, size), stride_{stride}
     {}
 
     gko::size_type get_stride() { return stride_; }
 
 protected:
     gko::size_type stride_;
-
-    void apply_impl(const gko::LinOp*, gko::LinOp*) const override {}
-
-    void apply_impl(const gko::LinOp*, const gko::LinOp*, const gko::LinOp*,
-                    gko::LinOp*) const override
-    {}
 };
 
 
-class DummyLinOp2 : public gko::LinOp,
-                    public gko::EnableCreateMethod<DummyLinOp2> {
+class Vector2 : public AbstractDummyVector<Vector2>,
+                public gko::EnableCreateMethod<Vector2> {
 public:
-    DummyLinOp2(std::shared_ptr<const gko::Executor> exec,
-                gko::dim<2> size = {}, gko::size_type stride = 0)
-        : LinOp(exec, size), stride_{stride}
+    using EnableCreateMethod::create;
+
+    Vector2(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size = {},
+            gko::size_type stride = 0)
+        : AbstractDummyVector(exec, size), stride_{stride}
     {}
 
     gko::size_type get_stride() { return stride_; }
 
 protected:
     gko::size_type stride_;
-
-    void apply_impl(const gko::LinOp*, gko::LinOp*) const override {}
-
-    void apply_impl(const gko::LinOp*, const gko::LinOp*, const gko::LinOp*,
-                    gko::LinOp*) const override
-    {}
 };
 
 
-class DerivedDummyLinOp : public DummyLinOp {
+class DerivedVector : public Vector1,
+                      public gko::EnableCreateMethod<DerivedVector> {
 public:
-    DerivedDummyLinOp(std::shared_ptr<const gko::Executor> exec,
-                      gko::dim<2> size = {}, gko::size_type stride = 0)
-        : DummyLinOp(exec, size, stride)
+    using EnableCreateMethod<DerivedVector>::create;
+
+    DerivedVector(std::shared_ptr<const gko::Executor> exec,
+                  gko::dim<2> size = {}, gko::size_type stride = 0)
+        : Vector1(exec, size, stride)
     {}
 };
 
@@ -198,23 +194,23 @@ TEST_F(Workspace, CanCreateOperators)
     const gko::size_type stride1 = 3;
     const gko::size_type stride2 = 6;
 
-    auto op1 = ws.template create_or_get_op<DummyLinOp>(
-        1, [&] { return DummyLinOp::create(exec, size1, stride1); },
-        typeid(DummyLinOp), size1, stride1);
-    auto op2 = ws.template create_or_get_op<DummyLinOp2>(
-        0, [&] { return DummyLinOp2::create(exec, size2, stride2); },
-        typeid(DummyLinOp2), size2, stride2);
+    auto op1 = ws.create_or_get_vector(
+        1, [&] { return Vector1::create(exec, size1, stride1); },
+        typeid(Vector1), size1);
+    auto op2 = ws.create_or_get_vector(
+        0, [&] { return Vector2::create(exec, size2, stride2); },
+        typeid(Vector2), size2);
 
     ASSERT_EQ(op1->get_executor(), exec);
     ASSERT_EQ(op2->get_executor(), exec);
     ASSERT_EQ(op1->get_size(), size1);
     ASSERT_EQ(op2->get_size(), size2);
-    ASSERT_EQ(op1->get_stride(), stride1);
-    ASSERT_EQ(op2->get_stride(), stride2);
-    GKO_ASSERT_DYNAMIC_TYPE(op1, DummyLinOp);
-    GKO_ASSERT_DYNAMIC_TYPE(op2, DummyLinOp2);
-    ASSERT_EQ(op1, ws.get_op(1));
-    ASSERT_EQ(op2, ws.get_op(0));
+    GKO_ASSERT_DYNAMIC_TYPE(op1, Vector1);
+    GKO_ASSERT_DYNAMIC_TYPE(op2, Vector2);
+    ASSERT_EQ(gko::as<Vector1>(op1)->get_stride(), stride1);
+    ASSERT_EQ(gko::as<Vector2>(op2)->get_stride(), stride2);
+    ASSERT_EQ(op1, ws.get_vector(1));
+    ASSERT_EQ(op2, ws.get_vector(0));
 }
 
 
@@ -222,11 +218,11 @@ TEST_F(Workspace, CanReuseOperators)
 {
     gko::solver::detail::workspace ws{exec};
     ws.set_size(1, 0);
-    auto op1 = ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
+    auto op1 = ws.create_or_get_vector(0, [&] { return Vector1::create(exec); },
+                                       typeid(Vector1), {});
 
-    auto op1_reuse = ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
+    auto op1_reuse = ws.create_or_get_vector(
+        0, [&] { return Vector1::create(exec); }, typeid(Vector1), {});
 
     ASSERT_EQ(op1, op1_reuse);
 }
@@ -236,14 +232,14 @@ TEST_F(Workspace, ChecksExactOperatorType)
 {
     gko::solver::detail::workspace ws{exec};
     ws.set_size(1, 0);
-    ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
+    ws.create_or_get_vector(0, [&] { return Vector1::create(exec); },
+                            typeid(Vector1), {});
 
-    auto op1 = ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return std::make_unique<DerivedDummyLinOp>(exec); },
-        typeid(DerivedDummyLinOp), {}, 0);
+    auto op1 = ws.create_or_get_vector(
+        0, [&] { return std::make_unique<DerivedVector>(exec); },
+        typeid(DerivedVector), {});
 
-    GKO_ASSERT_DYNAMIC_TYPE(op1, DerivedDummyLinOp);
+    GKO_ASSERT_DYNAMIC_TYPE(op1, DerivedVector);
 }
 
 
@@ -252,29 +248,13 @@ TEST_F(Workspace, ChecksOperatorSize)
     gko::solver::detail::workspace ws{exec};
     ws.set_size(1, 0);
     const gko::dim<2> size{1, 2};
-    ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
+    ws.create_or_get_vector(0, [&] { return Vector1::create(exec); },
+                            typeid(Vector1), {});
 
-    auto op1 = ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return DummyLinOp::create(exec, size); }, typeid(DummyLinOp),
-        size, 0);
+    auto op1 = ws.create_or_get_vector(
+        0, [&] { return Vector1::create(exec, size); }, typeid(Vector1), size);
 
     ASSERT_EQ(op1->get_size(), size);
-}
-
-
-TEST_F(Workspace, ChecksOperatorStride)
-{
-    gko::solver::detail::workspace ws{exec};
-    ws.set_size(1, 0);
-    ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
-
-    auto op1 = ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return DummyLinOp::create(exec, gko::dim<2>{}, 1); },
-        typeid(DummyLinOp), {}, 1);
-
-    ASSERT_EQ(op1->get_stride(), 1);
 }
 
 
@@ -282,12 +262,12 @@ TEST_F(Workspace, ClearResetsOperators)
 {
     gko::solver::detail::workspace ws{exec};
     ws.set_size(1, 0);
-    auto op1 = ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
+    auto op1 = ws.create_or_get_vector(0, [&] { return Vector1::create(exec); },
+                                       typeid(Vector1), {});
 
     ws.clear();
 
-    ASSERT_EQ(ws.get_op(0), nullptr);
+    ASSERT_EQ(ws.get_vector(0), nullptr);
 }
 
 
@@ -295,10 +275,10 @@ TEST_F(Workspace, MoveResetsOperators)
 {
     gko::solver::detail::workspace ws{exec};
     ws.set_size(1, 0);
-    auto op1 = ws.template create_or_get_op<DummyLinOp>(
-        0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
+    auto op1 = ws.create_or_get_vector(0, [&] { return Vector1::create(exec); },
+                                       typeid(Vector1), {});
 
     gko::solver::detail::workspace ws2{std::move(ws)};
 
-    ASSERT_EQ(ws.get_op(0), nullptr);
+    ASSERT_EQ(ws.get_vector(0), nullptr);
 }

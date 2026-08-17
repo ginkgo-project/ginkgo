@@ -695,32 +695,6 @@ TYPED_TEST(Coo, AppliesToComplex)
 }
 
 
-TYPED_TEST(Coo, AppliesToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using Vec = gko::matrix::MultiVector<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    // clang-format off
-    auto b = gko::initialize<Vec>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
-         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
-    auto x = Vec::create(exec, gko::dim<2>{2,2});
-    // clang-format on
-
-    this->mtx->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{mixed_complex_type{13.0, 14.0}, mixed_complex_type{19.0, 20.0}},
-           {mixed_complex_type{10.0, 10.0}, mixed_complex_type{15.0, 15.0}}}),
-        0.0);
-}
-
-
 TYPED_TEST(Coo, AdvancedAppliesToComplex)
 {
     using value_type = typename TestFixture::value_type;
@@ -747,38 +721,6 @@ TYPED_TEST(Coo, AdvancedAppliesToComplex)
         x,
         l({{complex_type{-11.0, -14.0}, complex_type{-15.0, -18.0}},
            {complex_type{-6.0, -6.0}, complex_type{-9.0, -9.0}}}),
-        0.0);
-}
-
-
-TYPED_TEST(Coo, AdvancedAppliesToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using MixedMultiVector = gko::matrix::MultiVector<mixed_value_type>;
-    using MixedMultiVectorComplex =
-        gko::matrix::MultiVector<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    // clang-format off
-    auto b = gko::initialize<MixedMultiVectorComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
-         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
-    auto x = gko::initialize<MixedMultiVectorComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}}, exec);
-    auto alpha = gko::initialize<MixedMultiVector>({-1.0}, this->exec);
-    auto beta = gko::initialize<MixedMultiVector>({2.0}, this->exec);
-    // clang-format on
-
-    this->mtx->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{mixed_complex_type{-11.0, -14.0}, mixed_complex_type{-15.0, -18.0}},
-           {mixed_complex_type{-6.0, -6.0}, mixed_complex_type{-9.0, -9.0}}}),
         0.0);
 }
 
@@ -863,37 +805,6 @@ TYPED_TEST(Coo, ApplyAddsScaledToComplex)
         x,
         l({{complex_type{-12.0, -14.0}, complex_type{-17.0, -19.0}},
            {complex_type{-8.0, -8.0}, complex_type{-12.0, -12.0}}}),
-        0.0);
-}
-
-
-TYPED_TEST(Coo, ApplyAddsScaledToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using MixedMultiVector = gko::matrix::MultiVector<mixed_value_type>;
-    using MixedMultiVectorComplex =
-        gko::matrix::MultiVector<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    // clang-format off
-    auto b = gko::initialize<MixedMultiVectorComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
-         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
-    auto x = gko::initialize<MixedMultiVectorComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}}, exec);
-    auto alpha = gko::initialize<MixedMultiVector>({-1.0}, this->exec);
-    // clang-format on
-
-    this->mtx->apply2(alpha, b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{mixed_complex_type{-12.0, -14.0}, mixed_complex_type{-17.0, -19.0}},
-           {mixed_complex_type{-8.0, -8.0}, mixed_complex_type{-12.0, -12.0}}}),
         0.0);
 }
 

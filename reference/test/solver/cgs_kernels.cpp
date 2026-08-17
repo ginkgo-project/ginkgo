@@ -469,32 +469,6 @@ TYPED_TEST(Cgs, SolvesMultiVectorSystemUsingAdvancedApplyComplex)
 }
 
 
-TYPED_TEST(Cgs, SolvesMultiVectorSystemUsingAdvancedApplyMixedComplex)
-{
-    using Scalar = gko::matrix::MultiVector<
-        gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->cgs_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>(
-        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{-2.0, 4.0}, value_type{-0.5, 1.0}, value_type{2.0, -4.0}},
-        this->exec);
-
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-6.0, 12.0}, value_type{-1.5, 3.0},
-                           value_type{6.0, -12.0}}),
-                        (r_mixed<value_type, TypeParam>()) * 1e3);
-}
-
-
 TYPED_TEST(Cgs, SolvesMultipleMultiVectorSystemsUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;

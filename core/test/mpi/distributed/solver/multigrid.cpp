@@ -36,10 +36,14 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 };
 
@@ -92,10 +96,14 @@ protected:
     std::shared_ptr<const gko::LinOp> restrict_;
     std::shared_ptr<const gko::LinOp> prolong_;
 
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 };
 
