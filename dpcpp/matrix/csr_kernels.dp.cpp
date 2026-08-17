@@ -1220,7 +1220,7 @@ template <int items_per_thread, typename MatrixValueType,
 void merge_path_spmv(
     syn::value_list<int, items_per_thread>,
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::csr<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
     xstd::type_identity_t<
@@ -1232,7 +1232,7 @@ void merge_path_spmv(
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
-    const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
+    const IndexType total = a.size[0] + a.num_stored_elements;
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
     const dim3 grid = grid_num;
@@ -1242,8 +1242,8 @@ void merge_path_spmv(
     // TODO: should we store the value in arithmetic_type or output_type?
     array<arithmetic_type> val_out(exec, grid_num);
 
-    const auto a_vals = acc::helper::build_const_rrm_accessor<arithmetic_type>(
-        a->get_const_device_view());
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a.device_view);
 
     for (IndexType column_id = 0; column_id < b.size[1]; column_id++) {
         const auto column_span =
@@ -1258,11 +1258,11 @@ void merge_path_spmv(
             if (grid_num > 0) {
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
                     grid, block, 0, exec->get_queue(),
-                    static_cast<IndexType>(a->get_size()[0]),
-                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                    a->get_const_row_ptrs(), a->get_const_srow(),
-                    acc::as_device_range(b_vals), acc::as_device_range(c_vals),
-                    row_out.get_data(), as_device_type(val_out.get_data()));
+                    static_cast<IndexType>(a.size[0]),
+                    acc::as_device_range(a_vals), a.col_idxs, a.row_ptrs,
+                    a.srow, acc::as_device_range(b_vals),
+                    acc::as_device_range(c_vals), row_out.get_data(),
+                    as_device_type(val_out.get_data()));
             }
             csr::kernel::abstract_reduce(
                 1, spmv_block_size, 0, exec->get_queue(), grid_num,
@@ -1273,12 +1273,12 @@ void merge_path_spmv(
             if (grid_num > 0) {
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
                     grid, block, 0, exec->get_queue(),
-                    static_cast<IndexType>(a->get_size()[0]),
+                    static_cast<IndexType>(a.size[0]),
                     as_device_type(alpha->values), acc::as_device_range(a_vals),
-                    a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                    a->get_const_srow(), acc::as_device_range(b_vals),
-                    as_device_type(beta->values), acc::as_device_range(c_vals),
-                    row_out.get_data(), as_device_type(val_out.get_data()));
+                    a.col_idxs, a.row_ptrs, a.srow,
+                    acc::as_device_range(b_vals), as_device_type(beta->values),
+                    acc::as_device_range(c_vals), row_out.get_data(),
+                    as_device_type(val_out.get_data()));
             }
             csr::kernel::abstract_reduce(
                 1, spmv_block_size, 0, exec->get_queue(), grid_num,
@@ -1366,7 +1366,7 @@ template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 bool load_balance_spmv(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::csr<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
     xstd::type_identity_t<
@@ -1388,13 +1388,12 @@ bool load_balance_spmv(
         } else {
             dense::fill(exec, c, zero<OutputValueType>());
         }
-        const IndexType nwarps = a->get_num_srow_elements();
+        const IndexType nwarps = a.num_srow_elements;
         if (nwarps > 0) {
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b.size[1]);
             const auto a_vals =
-                acc::helper::build_const_rrm_accessor<arithmetic_type>(
-                    a->get_const_device_view());
+                acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
             const auto b_vals =
                 acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
             auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
@@ -1402,21 +1401,19 @@ bool load_balance_spmv(
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     csr::kernel::abstract_spmv(
                         csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                        static_cast<IndexType>(a->get_size()[0]),
+                        static_cast<IndexType>(a.size[0]),
                         as_device_type(alpha->values),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        a->get_const_row_ptrs(), a->get_const_srow(),
-                        acc::as_device_range(b_vals),
+                        acc::as_device_range(a_vals), a.col_idxs, a.row_ptrs,
+                        a.srow, acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals));
                 }
             } else {
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     csr::kernel::abstract_spmv(
                         csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                        static_cast<IndexType>(a->get_size()[0]),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        a->get_const_row_ptrs(), a->get_const_srow(),
-                        acc::as_device_range(b_vals),
+                        static_cast<IndexType>(a.size[0]),
+                        acc::as_device_range(a_vals), a.col_idxs, a.row_ptrs,
+                        a.const_srow, acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals));
                 }
             }
@@ -1521,7 +1518,7 @@ template <typename MatrixValueType, typename InputValueType,
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
           const matrix::csr::spmv_strategy strategy,
           const IndexType max_nnz_per_row,
-          const matrix::Csr<MatrixValueType, IndexType>* a,
+          matrix::view::csr<const MatrixValueType, const IndexType> a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
 {
@@ -1551,8 +1548,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         if (strategy == matrix::csr::spmv_strategy::load_balance) {
             use_classical = !host_kernel::load_balance_spmv(exec, a, b, c);
         } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
-            use_classical = !host_kernel::try_sparselib_spmv(
-                exec, a->get_const_device_view(), b, c);
+            use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
         }
         if (use_classical) {
             host_kernel::select_classical_spmv(
@@ -1560,8 +1556,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
                 [&max_nnz_per_row](int compiled_info) {
                     return max_nnz_per_row >= compiled_info;
                 },
-                syn::value_list<int>(), syn::type_list<>(), exec,
-                a->get_const_device_view(), b, c);
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
         }
     }
 }
@@ -1576,7 +1571,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    const matrix::csr::spmv_strategy strategy,
                    const IndexType max_nnz_per_row,
                    matrix::view::dense<const MatrixValueType> alpha,
-                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   matrix::view::csr<const MatrixValueType, const IndexType> a,
                    matrix::view::dense<const InputValueType> b,
                    matrix::view::dense<const OutputValueType> beta,
                    matrix::view::dense<OutputValueType> c)
@@ -1609,8 +1604,8 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             use_classical =
                 !host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
         } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
-            use_classical = !host_kernel::try_sparselib_spmv(
-                exec, a->get_const_device_view(), b, c, alpha, beta);
+            use_classical =
+                !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
         }
         if (use_classical) {
             host_kernel::select_classical_spmv(
@@ -1618,8 +1613,8 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                 [&max_nnz_per_row](int compiled_info) {
                     return max_nnz_per_row >= compiled_info;
                 },
-                syn::value_list<int>(), syn::type_list<>(), exec,
-                a->get_const_device_view(), b, c, alpha, beta);
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
+                alpha, beta);
         }
     }
 }
@@ -1948,17 +1943,17 @@ auto spgemm_multiway_merge(size_type row,
 
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const DpcppExecutor> exec,
-            const matrix::Csr<ValueType, IndexType>* a,
-            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::view::csr<const ValueType, const IndexType> a,
+            matrix::view::csr<const ValueType, const IndexType> b,
             matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto num_rows = a->get_size()[0];
-    const auto a_row_ptrs = a->get_const_row_ptrs();
-    const auto a_cols = a->get_const_col_idxs();
-    const auto a_vals = as_device_type(a->get_const_values());
-    const auto b_row_ptrs = b->get_const_row_ptrs();
-    const auto b_cols = b->get_const_col_idxs();
-    const auto b_vals = as_device_type(b->get_const_values());
+    auto num_rows = a.size[0];
+    const auto a_row_ptrs = a.row_ptrs;
+    const auto a_cols = a.col_idxs;
+    const auto a_vals = as_device_type(a.values);
+    const auto b_row_ptrs = b.row_ptrs;
+    const auto b_cols = b.col_idxs;
+    const auto b_vals = as_device_type(b.values);
     auto c = c_builder->get_matrix();
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
@@ -2026,20 +2021,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
                      matrix::view::dense<const ValueType> alpha,
-                     const matrix::Csr<ValueType, IndexType>* a,
-                     const matrix::Csr<ValueType, IndexType>* b,
+                     matrix::view::csr<const ValueType, const IndexType> a,
+                     matrix::view::csr<const ValueType, const IndexType> b,
                      matrix::view::dense<const ValueType> beta,
-                     const matrix::Csr<ValueType, IndexType>* d,
+                     matrix::view::csr<const ValueType, const IndexType> d,
                      matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto c = c_builder->get_matrix();
-    auto num_rows = a->get_size()[0];
-    const auto a_row_ptrs = a->get_const_row_ptrs();
-    const auto a_cols = a->get_const_col_idxs();
-    const auto a_vals = as_device_type(a->get_const_values());
-    const auto b_row_ptrs = b->get_const_row_ptrs();
-    const auto b_cols = b->get_const_col_idxs();
-    const auto b_vals = as_device_type(b->get_const_values());
+    auto num_rows = a.size[0];
+    const auto a_row_ptrs = a.row_ptrs;
+    const auto a_cols = a.col_idxs;
+    const auto a_vals = as_device_type(a.values);
+    const auto b_row_ptrs = b.row_ptrs;
+    const auto b_cols = b.col_idxs;
+    const auto b_vals = as_device_type(b.values);
     const auto d_row_ptrs = d->get_const_row_ptrs();
     const auto d_cols = d->get_const_col_idxs();
     const auto d_vals = as_device_type(d->get_const_values());
@@ -2313,17 +2308,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const DpcppExecutor> exec,
             matrix::view::dense<const ValueType> alpha,
-            const matrix::Csr<ValueType, IndexType>* a,
+            matrix::view::csr<const ValueType, const IndexType> a,
             matrix::view::dense<const ValueType> beta,
-            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::view::csr<const ValueType, const IndexType> b,
             matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
-    const auto num_rows = a->get_size()[0];
-    const auto a_row_ptrs = a->get_const_row_ptrs();
-    const auto a_cols = a->get_const_col_idxs();
-    const auto b_row_ptrs = b->get_const_row_ptrs();
-    const auto b_cols = b->get_const_col_idxs();
+    const auto num_rows = a.size[0];
+    const auto a_row_ptrs = a.row_ptrs;
+    const auto a_cols = a.col_idxs;
+    const auto b_row_ptrs = b.row_ptrs;
+    const auto b_cols = b.col_idxs;
     auto c = c_builder->get_matrix();
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
@@ -2359,8 +2354,8 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
     auto c_cols = c_col_idxs_array.get_data();
     auto c_vals = as_device_type(c_vals_array.get_data());
 
-    const auto a_vals = as_device_type(a->get_const_values());
-    const auto b_vals = as_device_type(b->get_const_values());
+    const auto a_vals = as_device_type(a.values);
+    const auto b_vals = as_device_type(b.values);
     const auto alpha_vals = as_device_type(alpha.values);
     const auto beta_vals = as_device_type(beta.values);
 

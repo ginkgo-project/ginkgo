@@ -1399,14 +1399,13 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgeam, spgeam);
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const DefaultExecutor> exec,
             matrix::view::dense<const ValueType> alpha,
-            const matrix::Csr<ValueType, IndexType>* a,
+            matrix::view::csr<const ValueType, const IndexType> a,
             matrix::view::dense<const ValueType> beta,
-            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::view::csr<const ValueType, const IndexType> b,
             matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto total_nnz =
-        a->get_num_stored_elements() + b->get_num_stored_elements();
-    auto nnz_per_row = a->get_size()[0] ? total_nnz / a->get_size()[0] : 0;
+    auto total_nnz = a.num_stored_elements + b.num_stored_elements;
+    auto nnz_per_row = a.size[0] ? total_nnz / a.size[0] : 0;
     select_spgeam(
         spgeam_kernels(),
         [&](int compiled_subwarp_size) {
@@ -1414,9 +1413,8 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
                    compiled_subwarp_size == config::warp_size;
         },
         syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
-        a->get_const_row_ptrs(), a->get_const_col_idxs(), a->get_const_values(),
-        beta.values, b->get_const_row_ptrs(), b->get_const_col_idxs(),
-        b->get_const_values(), c_builder);
+        a.row_ptrs, a.col_idxs, a.values, beta.values, b.row_ptrs, b.col_idxs,
+        b.values, c_builder);
 }
 
 
@@ -1927,7 +1925,7 @@ template <int items_per_thread, typename MatrixValueType,
 void merge_path_spmv(
     syn::value_list<int, items_per_thread>,
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::csr<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
     xstd::type_identity_t<
@@ -1939,7 +1937,7 @@ void merge_path_spmv(
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
-    const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
+    const IndexType total = a.size[0] + a.num_stored_elements;
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
     const auto grid = grid_num;
@@ -1949,8 +1947,8 @@ void merge_path_spmv(
     // TODO: should we store the value in arithmetic_type or output_type?
     array<arithmetic_type> val_out(exec, grid_num);
 
-    const auto a_vals = acc::helper::build_const_rrm_accessor<arithmetic_type>(
-        a->get_const_device_view());
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
 
     for (IndexType column_id = 0; column_id < b.size[1]; column_id++) {
         const auto column_span =
@@ -1965,10 +1963,9 @@ void merge_path_spmv(
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
                     <<<grid, block, 0, exec->get_stream()>>>(
-                        static_cast<IndexType>(a->get_size()[0]),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        as_device_type(a->get_const_row_ptrs()),
-                        as_device_type(a->get_const_srow()),
+                        static_cast<IndexType>(a.size[0]),
+                        acc::as_device_range(a_vals), a.col_idxs,
+                        as_device_type(a.row_ptrs), as_device_type(a.srow),
                         acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals),
                         as_device_type(row_out.get_data()),
@@ -1984,11 +1981,10 @@ void merge_path_spmv(
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
                     <<<grid, block, 0, exec->get_stream()>>>(
-                        static_cast<IndexType>(a->get_size()[0]),
+                        static_cast<IndexType>(a.size[0]),
                         as_device_type(alpha->values),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        as_device_type(a->get_const_row_ptrs()),
-                        as_device_type(a->get_const_srow()),
+                        acc::as_device_range(a_vals), a.col_idxs,
+                        as_device_type(a.row_ptrs), as_device_type(a.srow),
                         acc::as_device_range(b_vals),
                         as_device_type(beta->values),
                         acc::as_device_range(c_vals),
@@ -2126,7 +2122,7 @@ template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 bool load_balance_spmv(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::csr<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
     xstd::type_identity_t<
@@ -2160,13 +2156,12 @@ bool load_balance_spmv(
         } else {
             dense::fill(exec, c, zero<OutputValueType>());
         }
-        const IndexType nwarps = a->get_num_srow_elements();
+        const IndexType nwarps = a.num_srow_elements;
         if (nwarps > 0) {
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b.size[1]);
             const auto a_vals =
-                acc::helper::build_const_rrm_accessor<arithmetic_type>(
-                    a->get_const_device_view());
+                acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
             const auto b_vals =
                 acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
             auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
@@ -2174,11 +2169,10 @@ bool load_balance_spmv(
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     kernel::abstract_spmv<<<csr_grid, csr_block, 0,
                                             exec->get_stream()>>>(
-                        nwarps, static_cast<IndexType>(a->get_size()[0]),
+                        nwarps, static_cast<IndexType>(a.size[0]),
                         as_device_type(alpha->values),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        as_device_type(a->get_const_row_ptrs()),
-                        as_device_type(a->get_const_srow()),
+                        acc::as_device_range(a_vals), a.col_idxs,
+                        as_device_type(a.row_ptrs), as_device_type(a.srow),
                         acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals));
                 }
@@ -2186,10 +2180,9 @@ bool load_balance_spmv(
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     kernel::abstract_spmv<<<csr_grid, csr_block, 0,
                                             exec->get_stream()>>>(
-                        nwarps, static_cast<IndexType>(a->get_size()[0]),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        as_device_type(a->get_const_row_ptrs()),
-                        as_device_type(a->get_const_srow()),
+                        nwarps, static_cast<IndexType>(a.size[0]),
+                        acc::as_device_range(a_vals), a.col_idxs,
+                        as_device_type(a.row_ptrs), as_device_type(a.srow),
                         acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals));
                 }
@@ -2341,7 +2334,7 @@ template <typename MatrixValueType, typename InputValueType,
 void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::csr::spmv_strategy strategy,
           const IndexType max_nnz_per_row,
-          const matrix::Csr<MatrixValueType, IndexType>* a,
+          matrix::view::csr<const MatrixValueType, const IndexType> a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
 {
@@ -2349,7 +2342,7 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
         // empty output: nothing to do
         return;
     }
-    if (b.size[0] == 0 || a->get_num_stored_elements() == 0) {
+    if (b.size[0] == 0 || a.num_stored_elements == 0) {
         // empty input: zero output
         dense::fill(exec, c, zero<OutputValueType>());
         return;
@@ -2371,8 +2364,7 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
         if (strategy == matrix::csr::spmv_strategy::load_balance) {
             use_classical = !host_kernel::load_balance_spmv(exec, a, b, c);
         } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
-            use_classical = !host_kernel::try_sparselib_spmv(
-                exec, a->get_const_device_view(), b, c);
+            use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
         }
         if (use_classical) {
             host_kernel::select_classical_spmv(
@@ -2380,8 +2372,7 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
                 [&max_nnz_per_row](int compiled_info) {
                     return max_nnz_per_row >= compiled_info;
                 },
-                syn::value_list<int>(), syn::type_list<>(), exec,
-                a->get_const_device_view(), b, c);
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
         }
     }
 }
@@ -2393,7 +2384,7 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::csr::spmv_strategy strategy,
                    const IndexType max_nnz_per_row,
                    matrix::view::dense<const MatrixValueType> alpha,
-                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   matrix::view::csr<const MatrixValueType, const IndexType> a,
                    matrix::view::dense<const InputValueType> b,
                    matrix::view::dense<const OutputValueType> beta,
                    matrix::view::dense<OutputValueType> c)
@@ -2402,7 +2393,7 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
         // empty output: nothing to do
         return;
     }
-    if (b.size[0] == 0 || a->get_num_stored_elements() == 0) {
+    if (b.size[0] == 0 || a.num_stored_elements == 0) {
         // empty input: scale output
         dense::scale(exec, beta, c);
         return;
@@ -2426,8 +2417,8 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
             use_classical =
                 !host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
         } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
-            use_classical = !host_kernel::try_sparselib_spmv(
-                exec, a->get_const_device_view(), b, c, alpha, beta);
+            use_classical =
+                !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
         }
         if (use_classical) {
             host_kernel::select_classical_spmv(
@@ -2435,8 +2426,8 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
                 [&max_nnz_per_row](int compiled_info) {
                     return max_nnz_per_row >= compiled_info;
                 },
-                syn::value_list<int>(), syn::type_list<>(), exec,
-                a->get_const_device_view(), b, c, alpha, beta);
+                syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
+                alpha, beta);
         }
     }
 }
@@ -2444,8 +2435,8 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const DefaultExecutor> exec,
-            const matrix::Csr<ValueType, IndexType>* a,
-            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::view::csr<const ValueType, const IndexType> a,
+            matrix::view::csr<const ValueType, const IndexType> b,
             matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto c = c_builder->get_matrix();
@@ -2460,20 +2451,20 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
         auto info = sparselib::create_spgemm_info();
 
         auto alpha = one<ValueType>();
-        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
-        auto a_vals = a->get_const_values();
-        auto a_row_ptrs = a->get_const_row_ptrs();
-        auto a_col_idxs = a->get_const_col_idxs();
-        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
-        auto b_vals = b->get_const_values();
-        auto b_row_ptrs = b->get_const_row_ptrs();
-        auto b_col_idxs = b->get_const_col_idxs();
+        auto a_nnz = static_cast<IndexType>(a.num_stored_elements);
+        auto a_vals = a.values;
+        auto a_row_ptrs = a.row_ptrs;
+        auto a_col_idxs = a.col_idxs;
+        auto b_nnz = static_cast<IndexType>(b.num_stored_elements);
+        auto b_vals = b.values;
+        auto b_row_ptrs = b.row_ptrs;
+        auto b_col_idxs = b.col_idxs;
         auto null_value = static_cast<ValueType*>(nullptr);
         auto null_index = static_cast<IndexType*>(nullptr);
         auto zero_nnz = IndexType{};
-        auto m = static_cast<IndexType>(a->get_size()[0]);
-        auto n = static_cast<IndexType>(b->get_size()[1]);
-        auto k = static_cast<IndexType>(a->get_size()[1]);
+        auto m = static_cast<IndexType>(a.size[0]);
+        auto n = static_cast<IndexType>(b.size[1]);
+        auto k = static_cast<IndexType>(a.size[1]);
         auto c_row_ptrs = c->get_row_ptrs();
         auto& c_col_idxs_array = c_builder->get_col_idx_array();
         auto& c_vals_array = c_builder->get_value_array();
@@ -2514,26 +2505,26 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
         GKO_NOT_IMPLEMENTED;
     }
 #else   // GKO_COMPILING_CUDA
-    auto a_vals = a->get_const_values();
-    auto a_row_ptrs = a->get_const_row_ptrs();
-    auto a_col_idxs = a->get_const_col_idxs();
-    auto b_vals = b->get_const_values();
-    auto b_row_ptrs = b->get_const_row_ptrs();
-    auto b_col_idxs = b->get_const_col_idxs();
+    auto a_vals = a.values;
+    auto a_row_ptrs = a.row_ptrs;
+    auto a_col_idxs = a.col_idxs;
+    auto b_vals = b.values;
+    auto b_row_ptrs = b.row_ptrs;
+    auto b_col_idxs = b.col_idxs;
     auto c_row_ptrs = c->get_row_ptrs();
 
     auto handle = exec->get_sparselib_handle();
     sparselib::pointer_mode_guard pm_guard(handle);
 
     auto alpha = one<ValueType>();
-    auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
-    auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
+    auto a_nnz = static_cast<IndexType>(a.num_stored_elements);
+    auto b_nnz = static_cast<IndexType>(b.num_stored_elements);
     auto null_value = static_cast<ValueType*>(nullptr);
     auto null_index = static_cast<IndexType*>(nullptr);
     auto zero_nnz = IndexType{};
-    auto m = IndexType(a->get_size()[0]);
-    auto n = IndexType(b->get_size()[1]);
-    auto k = IndexType(a->get_size()[1]);
+    auto m = IndexType(a.size[0]);
+    auto n = IndexType(b.size[1]);
+    auto k = IndexType(a.size[1]);
     auto& c_col_idxs_array = c_builder->get_col_idx_array();
     auto& c_vals_array = c_builder->get_value_array();
 
@@ -2591,10 +2582,10 @@ void spgemm(std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType, typename IndexType>
 void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
                      matrix::view::dense<const ValueType> alpha,
-                     const matrix::Csr<ValueType, IndexType>* a,
-                     const matrix::Csr<ValueType, IndexType>* b,
+                     matrix::view::csr<const ValueType, const IndexType> a,
+                     matrix::view::csr<const ValueType, const IndexType> b,
                      matrix::view::dense<const ValueType> beta,
-                     const matrix::Csr<ValueType, IndexType>* d,
+                     matrix::view::csr<const ValueType, const IndexType> d,
                      matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto c = c_builder->get_matrix();
@@ -2608,23 +2599,23 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
         auto d_descr = sparselib::create_mat_descr();
         auto info = sparselib::create_spgemm_info();
 
-        auto a_nnz = static_cast<IndexType>(a->get_num_stored_elements());
-        auto a_vals = a->get_const_values();
-        auto a_row_ptrs = a->get_const_row_ptrs();
-        auto a_col_idxs = a->get_const_col_idxs();
-        auto b_nnz = static_cast<IndexType>(b->get_num_stored_elements());
-        auto b_vals = b->get_const_values();
-        auto b_row_ptrs = b->get_const_row_ptrs();
-        auto b_col_idxs = b->get_const_col_idxs();
-        auto d_vals = d->get_const_values();
-        auto d_row_ptrs = d->get_const_row_ptrs();
-        auto d_col_idxs = d->get_const_col_idxs();
+        auto a_nnz = static_cast<IndexType>(a.num_stored_elements);
+        auto a_vals = a.values;
+        auto a_row_ptrs = a.row_ptrs;
+        auto a_col_idxs = a.col_idxs;
+        auto b_nnz = static_cast<IndexType>(b.num_stored_elements);
+        auto b_vals = b.values;
+        auto b_row_ptrs = b.row_ptrs;
+        auto b_col_idxs = b.col_idxs;
+        auto d_vals = d.values;
+        auto d_row_ptrs = d.row_ptrs;
+        auto d_col_idxs = d.col_idxs;
         auto null_value = static_cast<ValueType*>(nullptr);
         auto null_index = static_cast<IndexType*>(nullptr);
         auto one_value = one<ValueType>();
-        auto m = static_cast<IndexType>(a->get_size()[0]);
-        auto n = static_cast<IndexType>(b->get_size()[1]);
-        auto k = static_cast<IndexType>(a->get_size()[1]);
+        auto m = static_cast<IndexType>(a.size[0]);
+        auto n = static_cast<IndexType>(b.size[1]);
+        auto k = static_cast<IndexType>(a.size[1]);
 
         // allocate buffer
         size_type buffer_size{};
@@ -2663,7 +2654,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
         sparselib::destroy(b_descr);
         sparselib::destroy(a_descr);
 
-        auto total_nnz = c_nnz + d->get_num_stored_elements();
+        auto total_nnz = c_nnz + d.num_stored_elements;
         auto nnz_per_row = total_nnz / m;
         select_spgeam(
             spgeam_kernels(),
@@ -2682,22 +2673,22 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     sparselib::pointer_mode_guard pm_guard(handle);
 
     auto valpha = exec->copy_val_to_host(alpha.values);
-    auto a_nnz = IndexType(a->get_num_stored_elements());
-    auto a_vals = a->get_const_values();
-    auto a_row_ptrs = a->get_const_row_ptrs();
-    auto a_col_idxs = a->get_const_col_idxs();
-    auto b_nnz = IndexType(b->get_num_stored_elements());
-    auto b_vals = b->get_const_values();
-    auto b_row_ptrs = b->get_const_row_ptrs();
-    auto b_col_idxs = b->get_const_col_idxs();
+    auto a_nnz = IndexType(a.num_stored_elements);
+    auto a_vals = a.values;
+    auto a_row_ptrs = a.row_ptrs;
+    auto a_col_idxs = a.col_idxs;
+    auto b_nnz = IndexType(b.num_stored_elements);
+    auto b_vals = b.values;
+    auto b_row_ptrs = b.row_ptrs;
+    auto b_col_idxs = b.col_idxs;
     auto vbeta = exec->copy_val_to_host(beta.values);
-    auto d_nnz = IndexType(d->get_num_stored_elements());
-    auto d_vals = d->get_const_values();
-    auto d_row_ptrs = d->get_const_row_ptrs();
-    auto d_col_idxs = d->get_const_col_idxs();
-    auto m = IndexType(a->get_size()[0]);
-    auto n = IndexType(b->get_size()[1]);
-    auto k = IndexType(a->get_size()[1]);
+    auto d_nnz = IndexType(d.num_stored_elements);
+    auto d_vals = d.values;
+    auto d_row_ptrs = d.row_ptrs;
+    auto d_col_idxs = d.col_idxs;
+    auto m = IndexType(a.size[0]);
+    auto n = IndexType(b.size[1]);
+    auto k = IndexType(a.size[1]);
 
     auto null_value = static_cast<ValueType*>(nullptr);
     auto null_index = static_cast<IndexType*>(nullptr);
@@ -2753,7 +2744,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     sparselib::destroy(a_descr);
     sparselib::destroy(spgemm_descr);
 
-    auto spgeam_total_nnz = c_tmp_nnz + d->get_num_stored_elements();
+    auto spgeam_total_nnz = c_tmp_nnz + d.num_stored_elements;
     auto nnz_per_row = spgeam_total_nnz / m;
     select_spgeam(
         spgeam_kernels(),

@@ -30,17 +30,18 @@ namespace kernels {
                               matrix::view::dense<const ValueType> b,      \
                               matrix::view::dense<ValueType> c)
 
-#define GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(ValueType, IndexType) \
-    void apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
-                      const matrix::Diagonal<ValueType>* a,            \
-                      const matrix::Csr<ValueType, IndexType>* b,      \
-                      matrix::Csr<ValueType, IndexType>* c, bool inverse)
+#define GKO_DECLARE_DIAGONAL_APPLY_TO_CSR_KERNEL(ValueType, IndexType)       \
+    void apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,           \
+                      const matrix::Diagonal<ValueType>* a,                  \
+                      matrix::view::csr<const ValueType, const IndexType> b, \
+                      matrix::view::csr<ValueType, IndexType> c, bool inverse)
 
 #define GKO_DECLARE_DIAGONAL_RIGHT_APPLY_TO_CSR_KERNEL(ValueType, IndexType) \
-    void right_apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,     \
-                            const matrix::Diagonal<ValueType>* a,            \
-                            const matrix::Csr<ValueType, IndexType>* b,      \
-                            matrix::Csr<ValueType, IndexType>* c)
+    void right_apply_to_csr(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        const matrix::Diagonal<ValueType>* a,                                \
+        matrix::view::csr<const ValueType, const IndexType> b,               \
+        matrix::view::csr<ValueType, IndexType> c)
 
 #define GKO_DECLARE_DIAGONAL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
     void fill_in_matrix_data(                                                 \

@@ -119,8 +119,10 @@ TYPED_TEST(CsrView, AccessWorks)
     std::vector<value_type> values{1, 2, 3};
     std::vector<index_type> row_ptrs{0, 1, 2};
     std::vector<index_type> col_idxs{1, 0, 2};
+    std::vector<index_type> srow{0, 2};
     gko::matrix::view::csr<value_type, index_type> view{
-        gko::dim<2>{3, 3}, 3, values.data(), row_ptrs.data(), col_idxs.data()};
+        gko::dim<2>{3, 3}, 3, values.data(), row_ptrs.data(),
+        col_idxs.data(),   2, srow.data()};
     auto const_view = view.as_const();
 
     ASSERT_EQ(view.size, gko::dim<2>(3, 3));
@@ -133,6 +135,8 @@ TYPED_TEST(CsrView, AccessWorks)
     ASSERT_EQ(const_view.values, view.values);
     ASSERT_EQ(const_view.row_ptrs, view.row_ptrs);
     ASSERT_EQ(const_view.col_idxs, view.col_idxs);
+    ASSERT_EQ(view.num_srow_elements, 2);
+    ASSERT_EQ(view.srow, srow.data());
 }
 
 

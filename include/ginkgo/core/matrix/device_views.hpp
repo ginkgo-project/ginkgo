@@ -101,23 +101,29 @@ struct csr {
     ValueType* values;
     IndexType* row_ptrs;
     IndexType* col_idxs;
+    size_type num_srow_elements;
+    IndexType* srow;  // TODO: should we handle it additionally?
 
     /** Constructs a coo view from size, nnz, values, row pointers, and column
      * indices. */
     constexpr csr(dim<2> size, size_type num_stored_elements, ValueType* values,
-                  IndexType* row_ptrs, IndexType* col_idxs)
+                  IndexType* row_ptrs, IndexType* col_idxs,
+                  size_type num_srow_elements, IndexType* srow)
         : size{size},
           num_stored_elements{num_stored_elements},
           values{values},
           row_ptrs{row_ptrs},
-          col_idxs{col_idxs}
+          col_idxs{col_idxs},
+          num_srow_elements{num_srow_elements},
+          srow{srow}
     {}
 
     /** Returns a const view of the same data */
     constexpr csr<const ValueType, const IndexType> as_const() const
     {
         return csr<const ValueType, const IndexType>{
-            size, num_stored_elements, values, row_ptrs, col_idxs};
+            size,     num_stored_elements, values, row_ptrs,
+            col_idxs, num_srow_elements,   srow};
     }
 };
 

@@ -60,18 +60,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType, typename IndexType>
 void right_apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Diagonal<ValueType>* a,
-                        const matrix::Csr<ValueType, IndexType>* b,
-                        matrix::Csr<ValueType, IndexType>* c)
+                        matrix::view::csr<const ValueType, const IndexType> b,
+                        matrix::view::csr<ValueType, IndexType> c)
 {
-    // TODO: combine copy and diag apply together
-    c->copy_from(b);
     run_kernel(
         exec,
         [] GKO_KERNEL(auto tidx, auto diag, auto result_values, auto col_idxs) {
             result_values[tidx] *= diag[col_idxs[tidx]];
         },
-        c->get_num_stored_elements(), a->get_const_values(), c->get_values(),
-        c->get_const_col_idxs());
+        c.num_stored_elements, a->get_const_values(), c.values, c.col_idxs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

@@ -265,7 +265,9 @@ template <typename ValueType, typename IndexType>
 void ParIlutState<ValueType, IndexType>::iterate()
 {
     // compute L * U
-    exec->run(make_spgemm(l.get(), u.get(), make_builder_unique_ptr(lu).get()));
+    exec->run(make_spgemm(l->get_const_device_view(),
+                          u->get_const_device_view(),
+                          make_builder_unique_ptr(lu).get()));
 
     // add new candidates to L' and U' factors
     exec->run(make_add_candidates(

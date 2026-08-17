@@ -379,12 +379,14 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(csr::make_spgemm(
-            this, b_csr, make_builder_unique_ptr(x_csr).get()));
+            this->get_const_device_view(), b_csr->get_const_device_view(),
+            make_builder_unique_ptr(x_csr).get()));
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
                 this->get_executor()->run(csr::make_spmv(
-                    this->get_actual_strategy(), max_nnz_per_row_, this,
+                    this->get_actual_strategy(), max_nnz_per_row_,
+                    this->get_const_device_view(),
                     dense_b->get_const_device_view(),
                     dense_x->get_device_view()));
             },
@@ -502,16 +504,20 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
         this->get_executor()->run(csr::make_advanced_spgemm(
-            as<Dense<ValueType>>(alpha)->get_const_device_view(), this, b_csr,
-            as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
+            as<Dense<ValueType>>(alpha)->get_const_device_view(),
+            this->get_const_device_view(), b_csr->get_const_device_view(),
+            as<Dense<ValueType>>(beta)->get_const_device_view(),
+            x_copy->get_const_device_view(),
             make_builder_unique_ptr(x_csr).get()));
     } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
         this->get_executor()->run(csr::make_spgeam(
-            as<Dense<ValueType>>(alpha)->get_const_device_view(), this,
-            as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
+            as<Dense<ValueType>>(alpha)->get_const_device_view(),
+            this->get_const_device_view(),
+            as<Dense<ValueType>>(beta)->get_const_device_view(),
+            x_copy->get_const_device_view(),
             make_builder_unique_ptr(x_csr).get()));
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
@@ -522,7 +528,8 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                     beta);
                 this->get_executor()->run(csr::make_advanced_spmv(
                     this->get_actual_strategy(), max_nnz_per_row_,
-                    dense_alpha->get_const_device_view(), this,
+                    dense_alpha->get_const_device_view(),
+                    this->get_const_device_view(),
                     dense_b->get_const_device_view(),
                     dense_beta->get_const_device_view(),
                     dense_x->get_device_view()));
@@ -884,7 +891,8 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::multiply(
     auto exec = this->get_executor();
     auto local_other = make_temporary_clone(exec, other);
     auto result = Csr::create(exec, result_size);
-    exec->run(csr::make_spgemm(this, local_other.get(),
+    exec->run(csr::make_spgemm(this->get_const_device_view(),
+                               local_other->get_const_device_view(),
                                make_builder_unique_ptr(result).get()));
     return result;
 }
@@ -967,7 +975,8 @@ Csr<ValueType, IndexType>::multiply_reuse(ptr_param<const Csr> other) const
     auto local_other = make_temporary_clone(exec, other);
     auto result = Csr::create(exec, result_size);
     {
-        exec->run(csr::make_spgemm(this, local_other.get(),
+        exec->run(csr::make_spgemm(this->get_const_device_view(),
+                                   local_other->get_const_device_view(),
                                    make_builder_unique_ptr(result).get()));
     }
     auto lookup = csr::build_lookup(result.get());
@@ -1002,8 +1011,10 @@ Csr<ValueType, IndexType>::multiply_add(
     auto local_mtx_add = make_temporary_clone(exec, mtx_add);
     auto result = Csr::create(exec, result_size);
     exec->run(csr::make_advanced_spgemm(
-        local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
-        local_scale_add->get_const_device_view(), local_mtx_add.get(),
+        local_scale_mult->get_const_device_view(),
+        this->get_const_device_view(), local_mtx_mult->get_const_device_view(),
+        local_scale_add->get_const_device_view(),
+        local_mtx_add->get_const_device_view(),
         make_builder_unique_ptr(result).get()));
     return result;
 }
@@ -1109,8 +1120,10 @@ Csr<ValueType, IndexType>::multiply_add_reuse(
     auto local_mtx_add = make_temporary_clone(exec, mtx_add);
     auto result = Csr::create(exec, result_size);
     exec->run(csr::make_advanced_spgemm(
-        local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
-        local_scale_add->get_const_device_view(), local_mtx_add.get(),
+        local_scale_mult->get_const_device_view(),
+        this->get_const_device_view(), local_mtx_mult->get_const_device_view(),
+        local_scale_add->get_const_device_view(),
+        local_mtx_add->get_const_device_view(),
         make_builder_unique_ptr(result).get()));
     auto lookup = csr::build_lookup(result.get());
     auto reuse_info = multiply_add_reuse_info{
@@ -1139,9 +1152,10 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::scale_add(
     auto local_scale_other = make_temporary_clone(exec, scale_other);
     auto local_mtx_other = make_temporary_clone(exec, mtx_other);
     auto result = Csr::create(exec, this->get_size());
-    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
+    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(),
+                               this->get_const_device_view(),
                                local_scale_other->get_const_device_view(),
-                               local_mtx_other.get(),
+                               local_mtx_other->get_const_device_view(),
                                make_builder_unique_ptr(result).get()));
     return result;
 }
@@ -1235,9 +1249,10 @@ Csr<ValueType, IndexType>::add_scale_reuse(
     auto local_scale_other = make_temporary_clone(exec, scale_other);
     auto local_mtx_other = make_temporary_clone(exec, mtx_other);
     auto result = Csr::create(exec, this->get_size());
-    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
+    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(),
+                               this->get_const_device_view(),
                                local_scale_other->get_const_device_view(),
-                               local_mtx_other.get(),
+                               local_mtx_other->get_const_device_view(),
                                make_builder_unique_ptr(result).get()));
     return std::make_pair(
         std::move(result),
@@ -1881,9 +1896,10 @@ csr::spmv_strategy Csr<ValueType, IndexType>::get_actual_strategy()
 template <typename ValueType, typename IndexType>
 auto Csr<ValueType, IndexType>::get_device_view() -> device_view
 {
-    return device_view{this->get_size(), this->get_num_stored_elements(),
-                       this->get_values(), this->get_row_ptrs(),
-                       this->get_col_idxs()};
+    return device_view{this->get_size(),     this->get_num_stored_elements(),
+                       this->get_values(),   this->get_row_ptrs(),
+                       this->get_col_idxs(), this->get_num_srow_elements(),
+                       this->get_srow()};
 }
 
 
@@ -1891,10 +1907,11 @@ template <typename ValueType, typename IndexType>
 auto Csr<ValueType, IndexType>::get_const_device_view() const
     -> const_device_view
 {
-    return const_device_view{this->get_size(), this->get_num_stored_elements(),
-                             this->get_const_values(),
-                             this->get_const_row_ptrs(),
-                             this->get_const_col_idxs()};
+    return const_device_view{
+        this->get_size(),           this->get_num_stored_elements(),
+        this->get_const_values(),   this->get_const_row_ptrs(),
+        this->get_const_col_idxs(), this->get_num_srow_elements(),
+        this->get_const_srow()};
 }
 
 

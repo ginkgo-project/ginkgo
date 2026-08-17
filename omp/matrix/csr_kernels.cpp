@@ -205,7 +205,7 @@ template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
           const matrix::csr::spmv_strategy strategy, const IndexType,
-          const matrix::Csr<MatrixValueType, IndexType>* a,
+          matrix::view::csr<const MatrixValueType, const IndexType> a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
 {
@@ -215,12 +215,10 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
         // empty output: nothing to do
     } else if (strategy == matrix::csr::spmv_strategy::merge_path) {
         merge_spmv(
-            exec, a->get_const_device_view(), b, c,
-            [](auto val) { return val; },
+            exec, a, b, c, [](auto val) { return val; },
             [](auto) { return zero<arithmetic_type>(); });
     } else {
-        classical_spmv(exec, a->get_const_device_view(), b, c,
-                       [](auto sum, auto) { return sum; });
+        classical_spmv(exec, a, b, c, [](auto sum, auto) { return sum; });
     }
 }
 
@@ -233,7 +231,7 @@ template <typename MatrixValueType, typename InputValueType,
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    const matrix::csr::spmv_strategy strategy, const IndexType,
                    matrix::view::dense<const MatrixValueType> alpha,
-                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   matrix::view::csr<const MatrixValueType, const IndexType> a,
                    matrix::view::dense<const InputValueType> b,
                    matrix::view::dense<const OutputValueType> beta,
                    matrix::view::dense<OutputValueType> c)
@@ -246,18 +244,16 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
         // empty output: nothing to do
     } else if (strategy == matrix::csr::spmv_strategy::merge_path) {
         merge_spmv(
-            exec, a->get_const_device_view(), b, c,
-            [valpha](auto val) { return valpha * val; },
+            exec, a, b, c, [valpha](auto val) { return valpha * val; },
             [vbeta](auto val) {
                 return is_zero(vbeta) ? zero(vbeta) : val * vbeta;
             });
     } else {
-        classical_spmv(exec, a->get_const_device_view(), b, c,
-                       [valpha, vbeta](auto sum, auto orig_val) {
-                           auto scaled_orig_val =
-                               is_zero(vbeta) ? zero(vbeta) : orig_val * vbeta;
-                           return valpha * sum + scaled_orig_val;
-                       });
+        classical_spmv(exec, a, b, c, [valpha, vbeta](auto sum, auto orig_val) {
+            auto scaled_orig_val =
+                is_zero(vbeta) ? zero(vbeta) : orig_val * vbeta;
+            return valpha * sum + scaled_orig_val;
+        });
     }
 }
 
@@ -281,7 +277,7 @@ template <typename ValueType, typename IndexType>
 struct col_heap_element {
     using value_type = ValueType;
     using index_type = IndexType;
-    using matrix_type = matrix::Csr<ValueType, IndexType>;
+    using matrix_type = matrix::view::csr<const ValueType, const IndexType>;
 
     IndexType idx;
     IndexType end;
@@ -308,7 +304,7 @@ template <typename ValueType, typename IndexType>
 struct val_heap_element {
     using value_type = ValueType;
     using index_type = IndexType;
-    using matrix_type = matrix::Csr<ValueType, IndexType>;
+    using matrix_type = matrix::view::csr<const ValueType, const IndexType>;
 
     IndexType idx;
     IndexType end;
@@ -393,18 +389,18 @@ void sift_down(HeapElement* heap, typename HeapElement::index_type idx,
 template <typename HeapElement, typename InitCallback, typename StepCallback,
           typename ColCallback>
 auto spgemm_multiway_merge(size_type row,
-                           const typename HeapElement::matrix_type* a,
-                           const typename HeapElement::matrix_type* b,
+                           const typename HeapElement::matrix_type a,
+                           const typename HeapElement::matrix_type b,
                            HeapElement* heap, InitCallback init_cb,
                            StepCallback step_cb, ColCallback col_cb)
     -> decltype(init_cb(0))
 {
-    auto a_row_ptrs = a->get_const_row_ptrs();
-    auto a_cols = a->get_const_col_idxs();
-    auto a_vals = a->get_const_values();
-    auto b_row_ptrs = b->get_const_row_ptrs();
-    auto b_cols = b->get_const_col_idxs();
-    auto b_vals = b->get_const_values();
+    auto a_row_ptrs = a.row_ptrs;
+    auto a_cols = a.col_idxs;
+    auto a_vals = a.values;
+    auto b_row_ptrs = b.row_ptrs;
+    auto b_cols = b.col_idxs;
+    auto b_vals = b.values;
     auto a_begin = a_row_ptrs[row];
     auto a_end = a_row_ptrs[row + 1];
 
@@ -458,16 +454,16 @@ auto spgemm_multiway_merge(size_type row,
 
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const OmpExecutor> exec,
-            const matrix::Csr<ValueType, IndexType>* a,
-            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::view::csr<const ValueType, const IndexType> a,
+            matrix::view::csr<const ValueType, const IndexType> b,
             matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto num_rows = a->get_size()[0];
+    auto num_rows = a.size[0];
     auto c = c_builder->get_matrix();
     auto c_row_ptrs = c->get_row_ptrs();
 
     array<col_heap_element<ValueType, IndexType>> col_heap_array(
-        exec, a->get_num_stored_elements());
+        exec, a.num_stored_elements);
 
     auto col_heap = col_heap_array.get_data();
 
@@ -483,7 +479,7 @@ void spgemm(std::shared_ptr<const OmpExecutor> exec,
     col_heap_array.clear();
 
     array<val_heap_element<ValueType, IndexType>> heap_array(
-        exec, a->get_num_stored_elements());
+        exec, a.num_stored_elements);
 
     auto heap = heap_array.get_data();
 
@@ -523,13 +519,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
                      matrix::view::dense<const ValueType> alpha,
-                     const matrix::Csr<ValueType, IndexType>* a,
-                     const matrix::Csr<ValueType, IndexType>* b,
+                     matrix::view::csr<const ValueType, const IndexType> a,
+                     matrix::view::csr<const ValueType, const IndexType> b,
                      matrix::view::dense<const ValueType> beta,
-                     const matrix::Csr<ValueType, IndexType>* d,
+                     matrix::view::csr<const ValueType, const IndexType> d,
                      matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto num_rows = a->get_size()[0];
+    auto num_rows = a.size[0];
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
@@ -537,12 +533,12 @@ void advanced_spgemm(std::shared_ptr<const OmpExecutor> exec,
     auto c = c_builder->get_matrix();
     // first sweep: count nnz for each row
     auto c_row_ptrs = c->get_row_ptrs();
-    auto d_row_ptrs = d->get_const_row_ptrs();
-    auto d_cols = d->get_const_col_idxs();
-    auto d_vals = d->get_const_values();
+    auto d_row_ptrs = d.row_ptrs;
+    auto d_cols = d.col_idxs;
+    auto d_vals = d.values;
 
     array<val_heap_element<ValueType, IndexType>> heap_array(
-        exec, a->get_num_stored_elements());
+        exec, a.num_stored_elements);
 
     auto heap = heap_array.get_data();
     auto col_heap =
@@ -767,12 +763,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const OmpExecutor> exec,
             matrix::view::dense<const ValueType> alpha,
-            const matrix::Csr<ValueType, IndexType>* a,
+            matrix::view::csr<const ValueType, const IndexType> a,
             matrix::view::dense<const ValueType> beta,
-            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::view::csr<const ValueType, const IndexType> b,
             matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto num_rows = a->get_size()[0];
+    auto num_rows = a.size[0];
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
 
@@ -781,8 +777,7 @@ void spgeam(std::shared_ptr<const OmpExecutor> exec,
     auto c_row_ptrs = c->get_row_ptrs();
 
     abstract_spgeam(
-        a->get_const_device_view(), b->get_const_device_view(),
-        [](IndexType) { return IndexType{}; },
+        a, b, [](IndexType) { return IndexType{}; },
         [](IndexType, IndexType, ValueType, ValueType, IndexType& nnz) {
             ++nnz;
         },
@@ -801,8 +796,7 @@ void spgeam(std::shared_ptr<const OmpExecutor> exec,
     auto c_vals = c_vals_array.get_data();
 
     abstract_spgeam(
-        a->get_const_device_view(), b->get_const_device_view(),
-        [&](IndexType row) { return c_row_ptrs[row]; },
+        a, b, [&](IndexType row) { return c_row_ptrs[row]; },
         [&](IndexType, IndexType col, ValueType a_val, ValueType b_val,
             IndexType& nz) {
             c_vals[nz] = valpha * a_val + vbeta * b_val;

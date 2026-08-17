@@ -59,15 +59,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Diagonal<ValueType>* a,
-                  const matrix::Csr<ValueType, IndexType>* b,
-                  matrix::Csr<ValueType, IndexType>* c, bool inverse)
+                  matrix::view::csr<const ValueType, const IndexType> b,
+                  matrix::view::csr<ValueType, IndexType> c, bool inverse)
 {
     const auto diag_values = a->get_const_values();
-    c->copy_from(b);
-    auto csr_values = c->get_values();
-    const auto csr_row_ptrs = c->get_const_row_ptrs();
+    auto csr_values = c.values;
+    const auto csr_row_ptrs = c.row_ptrs;
 
-    for (size_type row = 0; row < c->get_size()[0]; row++) {
+    for (size_type row = 0; row < c.size[0]; row++) {
         const auto scal =
             inverse ? one<ValueType>() / diag_values[row] : diag_values[row];
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
@@ -84,16 +83,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void right_apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                         const matrix::Diagonal<ValueType>* a,
-                        const matrix::Csr<ValueType, IndexType>* b,
-                        matrix::Csr<ValueType, IndexType>* c)
+                        matrix::view::csr<const ValueType, const IndexType> b,
+                        matrix::view::csr<ValueType, IndexType> c)
 {
     const auto diag_values = a->get_const_values();
-    c->copy_from(b);
-    auto csr_values = c->get_values();
-    const auto csr_row_ptrs = c->get_const_row_ptrs();
-    const auto csr_col_idxs = c->get_const_col_idxs();
+    auto csr_values = c.values;
+    const auto csr_row_ptrs = c.row_ptrs;
+    const auto csr_col_idxs = c.col_idxs;
 
-    for (size_type row = 0; row < c->get_size()[0]; row++) {
+    for (size_type row = 0; row < c.size[0]; row++) {
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
              idx++) {
             csr_values[idx] *= diag_values[csr_col_idxs[idx]];

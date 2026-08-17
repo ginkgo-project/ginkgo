@@ -44,23 +44,23 @@ template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           const matrix::csr::spmv_strategy, const IndexType,
-          const matrix::Csr<MatrixValueType, IndexType>* a,
+          matrix::view::csr<const MatrixValueType, const IndexType> a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
 {
     using arithmetic_type =
         highest_precision<MatrixValueType, InputValueType, OutputValueType>;
 
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
+    auto row_ptrs = a.row_ptrs;
+    auto col_idxs = a.col_idxs;
 
-    const auto a_vals = acc::helper::build_const_rrm_accessor<arithmetic_type>(
-        a->get_const_device_view());
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
     auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
 
-    for (size_type row = 0; row < a->get_size()[0]; ++row) {
+    for (size_type row = 0; row < a.size[0]; ++row) {
         for (size_type j = 0; j < c.size[1]; ++j) {
             auto sum = zero<arithmetic_type>();
             for (size_type k = row_ptrs[row];
@@ -84,7 +84,7 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    const matrix::csr::spmv_strategy,
                    const IndexType /* max_nnz_per_row */,
                    matrix::view::dense<const MatrixValueType> alpha,
-                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   matrix::view::csr<const MatrixValueType, const IndexType> a,
                    matrix::view::dense<const InputValueType> b,
                    matrix::view::dense<const OutputValueType> beta,
                    matrix::view::dense<OutputValueType> c)
@@ -92,17 +92,17 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     using arithmetic_type =
         highest_precision<MatrixValueType, InputValueType, OutputValueType>;
 
-    auto row_ptrs = a->get_const_row_ptrs();
-    auto col_idxs = a->get_const_col_idxs();
+    auto row_ptrs = a.row_ptrs;
+    auto col_idxs = a.col_idxs;
     auto valpha = static_cast<arithmetic_type>(alpha(0, 0));
     auto vbeta = static_cast<arithmetic_type>(beta(0, 0));
 
-    const auto a_vals = acc::helper::build_const_rrm_accessor<arithmetic_type>(
-        a->get_const_device_view());
+    const auto a_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
     auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
-    for (size_type row = 0; row < a->get_size()[0]; ++row) {
+    for (size_type row = 0; row < a.size[0]; ++row) {
         for (size_type j = 0; j < c.size[1]; ++j) {
             auto sum = is_zero(vbeta) ? zero(vbeta) : c_vals(row, j) * vbeta;
             for (size_type k = row_ptrs[row];
@@ -199,11 +199,11 @@ void spgemm_accumulate_row2(
 
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
-            const matrix::Csr<ValueType, IndexType>* a,
-            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::view::csr<const ValueType, const IndexType> a,
+            matrix::view::csr<const ValueType, const IndexType> b,
             matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto num_rows = a->get_size()[0];
+    auto num_rows = a.size[0];
 
     auto c = c_builder->get_matrix();
     // first sweep: count nnz for each row
@@ -212,8 +212,7 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     unordered_set<IndexType> local_col_idxs(exec);
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
-        spgemm_insert_row2(local_col_idxs, a->get_const_device_view(),
-                           b->get_const_device_view(), a_row);
+        spgemm_insert_row2(local_col_idxs, a, b, a_row);
         c_row_ptrs[a_row] = static_cast<IndexType>(local_col_idxs.size());
     }
 
@@ -232,9 +231,7 @@ void spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     map<IndexType, ValueType> local_row_nzs(exec);
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
-        spgemm_accumulate_row2(local_row_nzs, a->get_const_device_view(),
-                               b->get_const_device_view(), one<ValueType>(),
-                               a_row);
+        spgemm_accumulate_row2(local_row_nzs, a, b, one<ValueType>(), a_row);
         // store result
         auto c_nz = c_row_ptrs[a_row];
         for (auto pair : local_row_nzs) {
@@ -251,13 +248,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
                      matrix::view::dense<const ValueType> alpha,
-                     const matrix::Csr<ValueType, IndexType>* a,
-                     const matrix::Csr<ValueType, IndexType>* b,
+                     matrix::view::csr<const ValueType, const IndexType> a,
+                     matrix::view::csr<const ValueType, const IndexType> b,
                      matrix::view::dense<const ValueType> beta,
-                     const matrix::Csr<ValueType, IndexType>* d,
+                     matrix::view::csr<const ValueType, const IndexType> d,
                      matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto num_rows = a->get_size()[0];
+    auto num_rows = a.size[0];
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
 
@@ -268,9 +265,8 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     unordered_set<IndexType> local_col_idxs(exec);
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_col_idxs.clear();
-        spgemm_insert_row(local_col_idxs, d->get_const_device_view(), a_row);
-        spgemm_insert_row2(local_col_idxs, a->get_const_device_view(),
-                           b->get_const_device_view(), a_row);
+        spgemm_insert_row(local_col_idxs, d, a_row);
+        spgemm_insert_row2(local_col_idxs, a, b, a_row);
         c_row_ptrs[a_row] = static_cast<IndexType>(local_col_idxs.size());
     }
 
@@ -289,10 +285,8 @@ void advanced_spgemm(std::shared_ptr<const ReferenceExecutor> exec,
     map<IndexType, ValueType> local_row_nzs(exec);
     for (size_type a_row = 0; a_row < num_rows; ++a_row) {
         local_row_nzs.clear();
-        spgemm_accumulate_row(local_row_nzs, d->get_const_device_view(), vbeta,
-                              a_row);
-        spgemm_accumulate_row2(local_row_nzs, a->get_const_device_view(),
-                               b->get_const_device_view(), valpha, a_row);
+        spgemm_accumulate_row(local_row_nzs, d, vbeta, a_row);
+        spgemm_accumulate_row2(local_row_nzs, a, b, valpha, a_row);
         // store result
         auto c_nz = c_row_ptrs[a_row];
         for (auto pair : local_row_nzs) {
@@ -432,12 +426,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::view::dense<const ValueType> alpha,
-            const matrix::Csr<ValueType, IndexType>* a,
+            matrix::view::csr<const ValueType, const IndexType> a,
             matrix::view::dense<const ValueType> beta,
-            const matrix::Csr<ValueType, IndexType>* b,
+            matrix::view::csr<const ValueType, const IndexType> b,
             matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto num_rows = a->get_size()[0];
+    auto num_rows = a.size[0];
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
 
@@ -446,8 +440,7 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
     auto c_row_ptrs = c->get_row_ptrs();
 
     abstract_spgeam(
-        a->get_const_device_view(), b->get_const_device_view(),
-        [](IndexType) { return IndexType{}; },
+        a, b, [](IndexType) { return IndexType{}; },
         [](IndexType, IndexType, ValueType, ValueType, IndexType& nnz) {
             ++nnz;
         },
@@ -466,8 +459,7 @@ void spgeam(std::shared_ptr<const ReferenceExecutor> exec,
     auto c_vals = c_vals_array.get_data();
 
     abstract_spgeam(
-        a->get_const_device_view(), b->get_const_device_view(),
-        [&](IndexType row) { return c_row_ptrs[row]; },
+        a, b, [&](IndexType row) { return c_row_ptrs[row]; },
         [&](IndexType, IndexType col, ValueType a_val, ValueType b_val,
             IndexType& nz) {
             c_vals[nz] = valpha * a_val + vbeta * b_val;

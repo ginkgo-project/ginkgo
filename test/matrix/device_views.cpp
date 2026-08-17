@@ -122,24 +122,27 @@ void assert_csr_view(std::shared_ptr<const gko::EXEC_TYPE> exec)
     gko::array<ValueType> values{exec, 3};
     gko::array<IndexType> row_ptrs{exec, 3};
     gko::array<IndexType> col_idxs{exec, 3};
+    gko::array<IndexType> srow{exec, 2};
     values.fill(gko::one<ValueType>());
     row_ptrs.fill(IndexType{0});
     col_idxs.fill(IndexType{1});
+    srow.fill(IndexType{2});
     gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto values, auto row_ptrs, auto col_idxs,
-                      auto correct) {
+                      auto srow, auto correct) {
             using vt = std::decay_t<decltype(values[0])>;
             using it = std::decay_t<decltype(row_ptrs[0])>;
-            gko::matrix::view::csr<vt, it> view{gko::dim<2>{3, 3}, 3, values,
-                                                row_ptrs, col_idxs};
+            gko::matrix::view::csr<vt, it> view{
+                gko::dim<2>{3, 3}, 3, values, row_ptrs, col_idxs, 2, srow};
             if (view.size == gko::dim<2>(3, 3) &&
                 view.num_stored_elements == 3 && view.values == values &&
-                view.row_ptrs == row_ptrs && view.col_idxs == col_idxs) {
+                view.row_ptrs == row_ptrs && view.col_idxs == col_idxs &&
+                view.num_srow_elements == 2 && view.srow == srow) {
                 *correct = true;
             }
         },
-        1, values, row_ptrs, col_idxs, correct);
+        1, values, row_ptrs, col_idxs, srow, correct);
     ASSERT_TRUE(get_element(correct, 0));
 }
 

@@ -43,14 +43,20 @@ void Diagonal<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
     if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
         dynamic_cast<Csr<ValueType, int32>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
-                                        as<Csr<ValueType, int32>>(x), false));
+        auto b_csr = as<Csr<ValueType, int32>>(b);
+        auto x_csr = as<Csr<ValueType, int32>>(x);
+        x_csr->copy_from(b_csr);
+        exec->run(diagonal::make_apply_to_csr(this,
+                                              b_csr->get_const_device_view(),
+                                              x_csr->get_device_view(), false));
     } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
                dynamic_cast<Csr<ValueType, int64>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
-                                        as<Csr<ValueType, int64>>(x), false));
+        auto b_csr = as<Csr<ValueType, int64>>(b);
+        auto x_csr = as<Csr<ValueType, int64>>(x);
+        x_csr->copy_from(b_csr);
+        exec->run(diagonal::make_apply_to_csr(this,
+                                              b_csr->get_const_device_view(),
+                                              x_csr->get_device_view(), false));
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this, &exec](auto dense_b, auto dense_x) {
@@ -70,12 +76,20 @@ void Diagonal<ValueType>::rapply_impl(const LinOp* b, LinOp* x) const
 
     if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
         dynamic_cast<Csr<ValueType, int32>*>(x)) {
+        auto b_csr = as<Csr<ValueType, int32>>(b);
+        auto x_csr = as<Csr<ValueType, int32>>(x);
+        // TODO: combine copy and diag apply together
+        x_csr->copy_from(b_csr);
         exec->run(diagonal::make_right_apply_to_csr(
-            this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
+            this, b_csr->get_const_device_view(), x_csr->get_device_view()));
     } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
                dynamic_cast<Csr<ValueType, int64>*>(x)) {
+        auto b_csr = as<Csr<ValueType, int64>>(b);
+        auto x_csr = as<Csr<ValueType, int64>>(x);
+        // TODO: combine copy and diag apply together
+        x_csr->copy_from(b_csr);
         exec->run(diagonal::make_right_apply_to_csr(
-            this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
+            this, b_csr->get_const_device_view(), x_csr->get_device_view()));
     } else {
         // no real-to-complex conversion, as this would require doubling the
         // diagonal entries for the complex-to-real columns
@@ -97,14 +111,20 @@ void Diagonal<ValueType>::inverse_apply_impl(const LinOp* b, LinOp* x) const
 
     if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
         dynamic_cast<Csr<ValueType, int32>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
-                                        as<Csr<ValueType, int32>>(x), true));
+        auto b_csr = as<Csr<ValueType, int32>>(b);
+        auto x_csr = as<Csr<ValueType, int32>>(x);
+        x_csr->copy_from(b_csr);
+        exec->run(diagonal::make_apply_to_csr(this,
+                                              b_csr->get_const_device_view(),
+                                              x_csr->get_device_view(), true));
     } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
                dynamic_cast<Csr<ValueType, int64>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
-                                        as<Csr<ValueType, int64>>(x), true));
+        auto b_csr = as<Csr<ValueType, int64>>(b);
+        auto x_csr = as<Csr<ValueType, int64>>(x);
+        x_csr->copy_from(b_csr);
+        exec->run(diagonal::make_apply_to_csr(this,
+                                              b_csr->get_const_device_view(),
+                                              x_csr->get_device_view(), true));
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this, &exec](auto dense_b, auto dense_x) {
