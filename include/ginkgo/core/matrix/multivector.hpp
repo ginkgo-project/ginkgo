@@ -81,8 +81,7 @@ class MultiVector
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public WritableToMatrixData<ValueType, int32>,
-      public WritableToMatrixData<ValueType, int64>,
-      public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>> {
+      public WritableToMatrixData<ValueType, int64> {
     friend class Dense<ValueType>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class EnableCloneable<MultiVector>;
