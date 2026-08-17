@@ -28,5 +28,16 @@ void Criterion::set_all_statuses(uint8 stoppingId, bool setFinalized,
 }
 
 
+CriterionArgs::CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
+                             std::shared_ptr<const AbstractMultiVector> b,
+                             const AbstractMultiVector* x,
+                             const AbstractMultiVector* initial_residual)
+    : system_matrix{system_matrix},
+      b{b},
+      x{x},
+      initial_residual{initial_residual}
+{}
+
+
 }  // namespace stop
 }  // namespace gko
