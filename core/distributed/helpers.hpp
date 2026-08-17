@@ -17,58 +17,21 @@
 
 
 namespace gko {
+namespace experimental {
+namespace distributed {
 namespace detail {
-
-
-template <typename ValueType>
-std::unique_ptr<matrix::MultiVector<ValueType>> create_with_config_of(
-    const matrix::MultiVector<ValueType>* mtx)
-{
-    return matrix::MultiVector<ValueType>::create(
-        mtx->get_executor(), mtx->get_size(), mtx->get_stride());
-}
-
-
-template <typename ValueType>
-const matrix::MultiVector<ValueType>* get_local(
-    const matrix::MultiVector<ValueType>* mtx)
-{
-    return mtx;
-}
-
-
-template <typename ValueType>
-matrix::MultiVector<ValueType>* get_local(matrix::MultiVector<ValueType>* mtx)
-{
-    return mtx;
-}
-
-
 #if GINKGO_BUILD_MPI
 
 
 template <typename ValueType>
-std::unique_ptr<experimental::distributed::Vector<ValueType>>
-create_with_config_of(const experimental::distributed::Vector<ValueType>* mtx)
-{
-    return experimental::distributed::Vector<ValueType>::create(
-        mtx->get_executor(), mtx->get_communicator(), mtx->get_size(),
-        mtx->get_local_vector()->get_size(),
-        mtx->get_local_vector()->get_stride());
-}
-
-
-template <typename ValueType>
-matrix::MultiVector<ValueType>* get_local(
-    experimental::distributed::Vector<ValueType>* mtx)
+matrix::MultiVector<ValueType>* get_local_mutable(Vector<ValueType>* mtx)
 {
     return const_cast<matrix::MultiVector<ValueType>*>(mtx->get_local_vector());
 }
 
 
 template <typename ValueType>
-const matrix::MultiVector<ValueType>* get_local(
-    const experimental::distributed::Vector<ValueType>* mtx)
+const matrix::MultiVector<ValueType>* get_local(const Vector<ValueType>* mtx)
 {
     return mtx->get_local_vector();
 }
@@ -81,8 +44,7 @@ template <typename Arg>
 bool is_distributed(Arg* linop)
 {
 #if GINKGO_BUILD_MPI
-    return dynamic_cast<const experimental::distributed::DistributedBase*>(
-        linop);
+    return dynamic_cast<const DistributedBase*>(linop);
 #else
     return false;
 #endif
@@ -93,53 +55,12 @@ template <typename Arg, typename... Rest>
 bool is_distributed(Arg* linop, Rest*... rest)
 {
 #if GINKGO_BUILD_MPI
-    bool is_distributed_value =
-        dynamic_cast<const experimental::distributed::DistributedBase*>(linop);
+    bool is_distributed_value = dynamic_cast<const DistributedBase*>(linop);
     GKO_ASSERT(is_distributed_value == is_distributed(rest...));
     return is_distributed_value;
 #else
     return false;
 #endif
-}
-
-
-/**
- * Cast an input linop to the correct underlying vector type (dense/distributed)
- * and passes it to the given function.
- *
- * @tparam ValueType  The value type of the underlying dense or distributed
- * vector.
- * @tparam T  The linop type, either LinOp, or const LinOp.
- * @tparam F  The function type.
- * @tparam Args  The types for the additional arguments of f.
- *
- * @param linop  The linop to be casted into either a dense or distributed
- *               vector.
- * @param f  The function that is to be called with the correctly casted linop.
- * @param args  The additional arguments of f.
- */
-template <typename ValueType, typename T, typename F, typename... Args>
-void vector_dispatch(T* linop, F&& f, Args&&... args)
-{
-#if GINKGO_BUILD_MPI
-    if (is_distributed(linop)) {
-        using type = std::conditional_t<
-            std::is_const<T>::value,
-            const experimental::distributed::Vector<ValueType>,
-            experimental::distributed::Vector<ValueType>>;
-        f(dynamic_cast<type*>(linop), std::forward<Args>(args)...);
-    } else
-#endif
-    {
-        using type = std::conditional_t<std::is_const<T>::value,
-                                        const matrix::MultiVector<ValueType>,
-                                        matrix::MultiVector<ValueType>>;
-        if (auto concrete_linop = dynamic_cast<type*>(linop)) {
-            f(concrete_linop, std::forward<Args>(args)...);
-        } else {
-            GKO_NOT_SUPPORTED(linop);
-        }
-    }
 }
 
 
@@ -152,7 +73,7 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
 template <typename T, typename F, typename... Args>
 auto run_matrix(T* linop, F&& f, Args&&... args)
 {
-    using namespace gko::experimental::distributed;
+    using namespace gko::detail;
     return run<
         with_same_constness_t<Matrix<double, int32, int32>, T>,
         with_same_constness_t<Matrix<double, int32, int64>, T>,
@@ -205,6 +126,8 @@ inline const LinOp* get_local(const LinOp* mtx)
 
 
 }  // namespace detail
+}  // namespace distributed
+}  // namespace experimental
 }  // namespace gko
 
 
