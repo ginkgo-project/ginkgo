@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,12 +20,12 @@ namespace solver {
  * @param x  the input vectors
  * @param guess  the input guess
  */
-template <typename VectorType>
-void prepare_initial_guess(const VectorType* b, VectorType* x,
-                           initial_guess_mode guess)
+inline void prepare_initial_guess(const AbstractMultiVector* b,
+                                  AbstractMultiVector* x,
+                                  initial_guess_mode guess)
 {
     if (guess == initial_guess_mode::zero) {
-        x->fill(zero<typename VectorType::value_type>());
+        x->fill(0.0);
     } else if (guess == initial_guess_mode::rhs) {
         x->copy_from(b);
     }
