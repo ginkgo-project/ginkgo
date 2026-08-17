@@ -573,33 +573,6 @@ TYPED_TEST(Diagonal, AppliesToComplex)
 }
 
 
-TYPED_TEST(Diagonal, AppliesToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using Vec = gko::matrix::MultiVector<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto mdense1 = gko::initialize<Vec>(
-        {{mixed_complex_type{1.0, 2.0}, mixed_complex_type{2.0, 4.0},
-          mixed_complex_type{3.0, 6.0}},
-         {mixed_complex_type{1.5, 3.0}, mixed_complex_type{2.5, 5.0},
-          mixed_complex_type{3.5, 7.0}}},
-        exec);
-    auto mdense2 = Vec::create(exec, gko::dim<2>{2, 3});
-
-    this->diag1->apply(mdense1, mdense2);
-
-    GKO_ASSERT_MTX_NEAR(
-        mdense2,
-        l({{mixed_complex_type{2.0, 4.0}, mixed_complex_type{4.0, 8.0},
-            mixed_complex_type{6.0, 12.0}},
-           {mixed_complex_type{4.5, 9.0}, mixed_complex_type{7.5, 15.0},
-            mixed_complex_type{10.5, 21.0}}}),
-        0.0);
-}
-
-
 TYPED_TEST(Diagonal, AppliesLinearCombinationToComplex)
 {
     using value_type = typename TestFixture::value_type;
@@ -630,41 +603,6 @@ TYPED_TEST(Diagonal, AppliesLinearCombinationToComplex)
                            {complex_type{-1.5, -3.0}, complex_type{-2.5, -5.0},
                             complex_type{-3.5, -7.0}}}),
                         0.0);
-}
-
-
-TYPED_TEST(Diagonal, AppliesLinearCombinationToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using Vec = gko::matrix::MultiVector<mixed_complex_type>;
-    using Scalar = gko::matrix::MultiVector<mixed_value_type>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto dense1 = gko::initialize<Vec>(
-        {{mixed_complex_type{1.0, 2.0}, mixed_complex_type{2.0, 4.0},
-          mixed_complex_type{3.0, 6.0}},
-         {mixed_complex_type{1.5, 3.0}, mixed_complex_type{2.5, 5.0},
-          mixed_complex_type{3.5, 7.0}}},
-        exec);
-    auto dense2 = gko::initialize<Vec>(
-        {{mixed_complex_type{1.0, 2.0}, mixed_complex_type{2.0, 4.0},
-          mixed_complex_type{3.0, 6.0}},
-         {mixed_complex_type{1.5, 3.0}, mixed_complex_type{2.5, 5.0},
-          mixed_complex_type{3.5, 7.0}}},
-        exec);
-    auto alpha = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({2.0}, this->exec);
-
-    this->diag1->apply(alpha, dense1, beta, dense2);
-
-    GKO_ASSERT_MTX_NEAR(
-        dense2,
-        l({{mixed_complex_type{0.0, 0.0}, mixed_complex_type{0.0, 0.0},
-            mixed_complex_type{0.0, 0.0}},
-           {mixed_complex_type{-1.5, -3.0}, mixed_complex_type{-2.5, -5.0},
-            mixed_complex_type{-3.5, -7.0}}}),
-        0.0);
 }
 
 

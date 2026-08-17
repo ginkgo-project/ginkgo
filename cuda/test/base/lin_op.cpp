@@ -4,10 +4,35 @@
 
 #include <ginkgo/core/base/lin_op.hpp>
 
+#include "core/test/utils/dummy_vector.hpp"
 #include "cuda/test/utils.hpp"
 
 
 namespace {
+
+
+class AccessVector : public AbstractDummyVector<AccessVector> {
+public:
+    using AbstractDummyVector::AbstractDummyVector;
+    using AbstractDummyVector::create;
+
+    void access() const { last_access = this->get_executor(); }
+
+    mutable std::shared_ptr<const gko::Executor> last_access;
+
+protected:
+    [[nodiscard]] std::unique_ptr<Cloneable> clone_impl(
+        std::shared_ptr<const gko::Executor> exec) const override
+    {
+        return create(exec, this->get_size());
+    }
+
+    Cloneable* copy_from_impl(const Cloneable* other) override
+    {
+        this->last_access = gko::as<AccessVector>(other)->last_access;
+        return this;
+    }
+};
 
 
 class DummyLinOp : public gko::LinOp,
@@ -28,23 +53,26 @@ public:
     mutable std::shared_ptr<const gko::Executor> last_beta_access;
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         this->access();
-        static_cast<const DummyLinOp*>(b)->access();
-        static_cast<const DummyLinOp*>(x)->access();
+        dynamic_cast<const AccessVector*>(b)->access();
+        dynamic_cast<const AccessVector*>(x)->access();
         last_b_access = b->get_executor();
         last_x_access = x->get_executor();
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {
         this->access();
-        static_cast<const DummyLinOp*>(alpha)->access();
-        static_cast<const DummyLinOp*>(b)->access();
-        static_cast<const DummyLinOp*>(beta)->access();
-        static_cast<const DummyLinOp*>(x)->access();
+        dynamic_cast<const AccessVector*>(alpha)->access();
+        dynamic_cast<const AccessVector*>(b)->access();
+        dynamic_cast<const AccessVector*>(beta)->access();
+        dynamic_cast<const AccessVector*>(x)->access();
         last_alpha_access = alpha->get_executor();
         last_b_access = b->get_executor();
         last_beta_access = beta->get_executor();
@@ -57,17 +85,17 @@ class LinOp : public CudaTestFixture {
 protected:
     LinOp()
         : op{DummyLinOp::create(exec, gko::dim<2>{3, 5})},
-          alpha{DummyLinOp::create(ref, gko::dim<2>{1})},
-          beta{DummyLinOp::create(ref, gko::dim<2>{1})},
-          b{DummyLinOp::create(ref, gko::dim<2>{5, 4})},
-          x{DummyLinOp::create(ref, gko::dim<2>{3, 4})}
+          alpha{AccessVector::create(ref, gko::dim<2>{1})},
+          beta{AccessVector::create(ref, gko::dim<2>{1})},
+          b{AccessVector::create(ref, gko::dim<2>{5, 4})},
+          x{AccessVector::create(ref, gko::dim<2>{3, 4})}
     {}
 
     std::unique_ptr<DummyLinOp> op;
-    std::unique_ptr<DummyLinOp> alpha;
-    std::unique_ptr<DummyLinOp> beta;
-    std::unique_ptr<DummyLinOp> b;
-    std::unique_ptr<DummyLinOp> x;
+    std::unique_ptr<AccessVector> alpha;
+    std::unique_ptr<AccessVector> beta;
+    std::unique_ptr<AccessVector> b;
+    std::unique_ptr<AccessVector> x;
 };
 
 
