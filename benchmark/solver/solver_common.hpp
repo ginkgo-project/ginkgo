@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -321,7 +321,8 @@ struct SolverGenerator : DefaultSystemGenerator<> {
         } else {
             gko::dim<2> vec_size{system_matrix->get_size()[0], FLAGS_nrhs};
             gko::dim<2> local_vec_size{
-                gko::detail::get_local(system_matrix)->get_size()[1],
+                gko::experimental::distributed::detail::get_local(system_matrix)
+                    ->get_size()[1],
                 FLAGS_nrhs};
             if (FLAGS_rhs_generation == "1") {
                 return create_multi_vector(exec, vec_size, local_vec_size,
@@ -346,7 +347,9 @@ struct SolverGenerator : DefaultSystemGenerator<> {
     {
         gko::dim<2> vec_size{system_matrix->get_size()[1], FLAGS_nrhs};
         gko::dim<2> local_vec_size{
-            gko::detail::get_local(system_matrix)->get_size()[1], FLAGS_nrhs};
+            gko::experimental::distributed::detail::get_local(system_matrix)
+                ->get_size()[1],
+            FLAGS_nrhs};
         if (FLAGS_initial_guess_generation == "0") {
             return create_multi_vector(exec, vec_size, local_vec_size,
                                        gko::zero<etype>());
@@ -432,7 +435,7 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
         solver_benchmark_state<Generator> state;
 
         if (FLAGS_overhead) {
-            state.system_matrix = generator.initialize({1.0}, exec);
+            state.system_matrix = generator.generate_overhead_operator(exec);
             state.b = generator.initialize(
                 {std::numeric_limits<rc_etype>::quiet_NaN()}, exec);
             state.x = generator.initialize({0.0}, exec);
