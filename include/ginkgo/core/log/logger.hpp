@@ -24,6 +24,7 @@ class array;
 class Executor;
 class LinOp;
 class LinOpFactory;
+class AbstractMultiVector;
 class PolymorphicObject;
 class Operation;
 class stopping_status;
@@ -274,7 +275,8 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(13, linop_apply_started, const LinOp* A,
-                              const LinOp* b, const LinOp* x)
+                              const AbstractMultiVector* b,
+                              const AbstractMultiVector* x)
 
     /**
      * LinOp's apply completed event.
@@ -284,7 +286,8 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(14, linop_apply_completed, const LinOp* A,
-                              const LinOp* b, const LinOp* x)
+                              const AbstractMultiVector* b,
+                              const AbstractMultiVector* x)
 
     /**
      * LinOp's advanced apply started event.
@@ -296,8 +299,10 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(15, linop_advanced_apply_started, const LinOp* A,
-                              const LinOp* alpha, const LinOp* b,
-                              const LinOp* beta, const LinOp* x)
+                              const AbstractMultiVector* alpha,
+                              const AbstractMultiVector* b,
+                              const AbstractMultiVector* beta,
+                              const AbstractMultiVector* x)
 
     /**
      * LinOp's advanced apply completed event.
@@ -309,8 +314,10 @@ public:                                                              \
      * @param x  the output vector(s)
      */
     GKO_LOGGER_REGISTER_EVENT(16, linop_advanced_apply_completed,
-                              const LinOp* A, const LinOp* alpha,
-                              const LinOp* b, const LinOp* beta, const LinOp* x)
+                              const LinOp* A, const AbstractMultiVector* alpha,
+                              const AbstractMultiVector* b,
+                              const AbstractMultiVector* beta,
+                              const AbstractMultiVector* x)
 
     /**
      * LinOp Factory's generate started event.
