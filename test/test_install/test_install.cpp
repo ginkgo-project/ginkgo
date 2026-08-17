@@ -388,6 +388,12 @@ int main()
         auto test = Mtx::create(exec);
     }
 
+    // core/matrix/multivector.hpp
+    {
+        using Mtx = gko::matrix::MultiVector<>;
+        auto test = Mtx::create(exec);
+    }
+
     // core/matrix/permutation.hpp
     {
         using Mtx = gko::matrix::Permutation<>;

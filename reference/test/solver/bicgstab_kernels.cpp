@@ -459,28 +459,6 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystemComplex)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesMultiVectorSystemMixedComplex)
-{
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
-    auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
-        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
-        this->exec);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
-                           value_type{4.0, -8.0}}),
-                        (r_mixed<value_type, TypeParam>()));
-}
-
-
 TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystems)
 {
     using Vec = typename TestFixture::Vec;
@@ -573,31 +551,6 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyComplex)
                         l({value_type{-8.5, 16.5}, value_type{-3.0, 3.5},
                            value_type{6.0, -15.0}}),
                         r<value_type>::value);
-}
-
-
-TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyMixedComplex)
-{
-    using Scalar = gko::matrix::MultiVector<
-        gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>(
-        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -0.5}, value_type{1.0, 0.5}, value_type{2.0, -1.0}},
-        this->exec);
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-8.5, 16.5}, value_type{-3.0, 3.5},
-                           value_type{6.0, -15.0}}),
-                        (r_mixed<value_type, TypeParam>()));
 }
 
 

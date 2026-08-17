@@ -17,6 +17,7 @@
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
+#include "core/test/utils/dummy_vector.hpp"
 
 #ifdef __APPLE__
 // APPLE has different name for the dense<std::complex<>>
@@ -126,13 +127,16 @@ public:
     {}
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         this->get_executor()->run(DummyOperation{});
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {
         this->get_executor()->run(DummyOperation{});
     }
@@ -146,14 +150,14 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
         "end:copy(obj,obj)",
         "begin:move(obj_copy,obj)",
         "end:move(obj_copy,obj)",
-        "begin:apply(obj * obj = obj)",
+        "begin:apply(obj * vec = vec)",
         "begin:op",
         "end:op",
-        "end:apply(obj * obj = obj)",
-        "begin:advanced_apply(DummyLinOp * obj * obj + DummyLinOp * obj)",
+        "end:apply(obj * vec = vec)",
+        "begin:advanced_apply(DummyVector * obj * vec + DummyVector * vec)",
         "begin:op",
         "end:op",
-        "end:advanced_apply(DummyLinOp * obj * obj + DummyLinOp * obj)",
+        "end:advanced_apply(DummyVector * obj * vec + DummyVector * vec)",
         "begin:generate(obj_factory)",
         "begin:op",
         "end:op",
@@ -168,18 +172,20 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOp)
     auto linop = gko::share(DummyLinOp::create(exec));
     auto linop_copy = linop->clone();
     auto factory = DummyLinOp::build().on(exec);
-    auto scalar = DummyLinOp::create(exec, gko::dim<2>{1, 1});
+    auto vector = DummyVector::create(exec);
+    auto scalar = DummyVector::create(exec, gko::dim<2>{1, 1});
     logger->set_object_name(linop, "obj");
     logger->set_object_name(linop_copy, "obj_copy");
     logger->set_object_name(factory, "obj_factory");
+    logger->set_object_name(vector, "vec");
     exec->add_logger(logger);
 
     linop->copy_from(linop);
     // self move-assignment is potentially illegal for std::vector in pre-C++23,
     // this would causes the libstdc++ debug mode to abort, so use the copy
     linop->move_from(linop_copy);
-    linop->apply(linop, linop);
-    linop->apply(scalar, linop, scalar, linop);
+    linop->apply(vector, vector);
+    linop->apply(scalar, vector, scalar, vector);
     factory->generate(linop);
     logger->on_criterion_check_started(nullptr, 0, nullptr, nullptr, nullptr, 0,
                                        false);
@@ -205,14 +211,14 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
         "begin:op",
         "end:op",
         "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::MultiVector<float> + gko::matrix::MultiVector<float> * " + dense_complex_double + ")",
-        "begin:apply(obj * obj = " + dense_complex_double + ")",
+        "begin:apply(obj * vec = " + dense_complex_double + ")",
         "begin:op",
         "end:op",
-        "end:apply(obj * obj = " + dense_complex_double + ")",
-        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::MultiVector<float> + DummyLinOp * obj)",
+        "end:apply(obj * vec = " + dense_complex_double + ")",
+        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::MultiVector<float> + DummyVector * vec)",
         "begin:op",
         "end:op",
-        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::MultiVector<float> + DummyLinOp * obj)"};
+        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::MultiVector<float> + DummyVector * vec)"};
     // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
@@ -220,6 +226,7 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
     auto logger = gko::log::ProfilerHook::create_custom(
         std::move(hooks.first), std::move(hooks.second));
     auto linop = gko::share(DummyLinOp::create(exec));
+    auto vector = gko::share(DummyVector::create(exec));
     auto alpha =
         gko::share(gko::matrix::MultiVector<std::complex<double>>::create(
             exec, gko::dim<2>{1, 1}));
@@ -228,14 +235,15 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
     auto invec = gko::share(gko::matrix::MultiVector<float>::create(exec));
     auto outvec = gko::share(
         gko::matrix::MultiVector<std::complex<double>>::create(exec));
-    auto scalar = DummyLinOp::create(exec, gko::dim<2>{1, 1});
+    auto scalar = DummyVector::create(exec, gko::dim<2>{1, 1});
     logger->set_object_name(linop, "obj");
+    logger->set_object_name(vector, "vec");
     exec->add_logger(logger);
 
     linop->apply(invec, outvec);
     linop->apply(alpha, invec, beta, outvec);
-    linop->apply(linop, outvec);
-    linop->apply(alpha, invec, scalar, linop);
+    linop->apply(vector, outvec);
+    linop->apply(alpha, invec, scalar, vector);
 
     normalize_type_names(output);
     ASSERT_EQ(output, expected);
@@ -245,23 +253,25 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
 TEST(ProfilerHook, LogsIteration)
 {
     using Vec = gko::matrix::MultiVector<>;
+    using Dense = gko::matrix::Dense<>;
     // clang-format off
     std::vector<std::string> expected{
-        "begin:apply(solver * mtx = mtx)",
+        "begin:apply(solver * vec = vec)",
         "begin:iteration",
         "end:iteration",
-        "end:apply(solver * mtx = mtx)",
-        "begin:advanced_apply(gko::matrix::MultiVector<double> * solver * mtx + gko::matrix::MultiVector<double> * mtx)",
+        "end:apply(solver * vec = vec)",
+        "begin:advanced_apply(gko::matrix::MultiVector<double> * solver * vec + gko::matrix::MultiVector<double> * vec)",
         "begin:iteration",
         "end:iteration",
-        "end:advanced_apply(gko::matrix::MultiVector<double> * solver * mtx + gko::matrix::MultiVector<double> * mtx)"};
+        "end:advanced_apply(gko::matrix::MultiVector<double> * solver * vec + gko::matrix::MultiVector<double> * vec)"};
     // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
     auto exec = gko::ReferenceExecutor::create();
     auto logger = gko::log::ProfilerHook::create_custom(
         std::move(hooks.first), std::move(hooks.second));
-    auto mtx = gko::share(Vec::create(exec));
+    auto mtx = gko::share(Dense::create(exec));
+    auto vector = gko::share(gko::matrix::MultiVector<>::create(exec));
     auto alpha = gko::share(gko::initialize<Vec>({1.0}, exec));
     auto solver =
         gko::solver::Ir<>::build()
@@ -270,10 +280,11 @@ TEST(ProfilerHook, LogsIteration)
             ->generate(mtx);
     logger->set_object_name(solver, "solver");
     logger->set_object_name(mtx, "mtx");
+    logger->set_object_name(vector, "vec");
     solver->add_logger(logger);
 
-    solver->apply(mtx, mtx);
-    solver->apply(alpha, mtx, alpha, mtx);
+    solver->apply(vector, vector);
+    solver->apply(alpha, vector, alpha, vector);
 
     solver->remove_logger(logger);
     normalize_type_names(output);

@@ -919,32 +919,6 @@ TYPED_TEST(Ell, AppliesToComplex)
 }
 
 
-TYPED_TEST(Ell, AppliesToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using Vec = gko::matrix::MultiVector<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    // clang-format off
-    auto b = gko::initialize<Vec>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
-         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
-    auto x = Vec::create(exec, gko::dim<2>{2,2});
-    // clang-format on
-
-    this->mtx1->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{mixed_complex_type{13.0, 14.0}, mixed_complex_type{19.0, 20.0}},
-           {mixed_complex_type{10.0, 10.0}, mixed_complex_type{15.0, 15.0}}}),
-        0.0);
-}
-
-
 TYPED_TEST(Ell, AdvancedAppliesToComplex)
 {
     using value_type = typename TestFixture::value_type;

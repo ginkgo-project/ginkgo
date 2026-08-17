@@ -130,7 +130,8 @@ protected:
         b_dense->read(b_data);
         auto c_dense =
             Dense::create(ref, gko::dim<2>{a_data.size[0], b_data.size[1]});
-        a_dense->apply(b_dense, c_dense);
+        a_dense->apply(b_dense->as_const_multivector_view(),
+                       c_dense->as_multivector_view());
         return c_dense;
     }
 };
@@ -392,10 +393,10 @@ TYPED_TEST(DistSpgemm, NonSquareMismatchedPartitions)
     auto a_row_part_host = gko::clone(this->ref, a_row_part);
     auto local_m_begin = a_row_part_host->get_range_bounds()[rank];
     auto local_m_end = a_row_part_host->get_range_bounds()[rank + 1];
-    auto y_ref_slice = y_ref->create_submatrix(
-        gko::span{static_cast<gko::size_type>(local_m_begin),
-                  static_cast<gko::size_type>(local_m_end)},
-        gko::span{0, 1});
+    auto y_ref_slice = y_ref->create_subview(
+        gko::local_span{static_cast<gko::size_type>(local_m_begin),
+                        static_cast<gko::size_type>(local_m_end)},
+        gko::local_span{0, 1});
     GKO_ASSERT_MTX_NEAR(y_dist->get_local_vector(), y_ref_slice,
                         r<value_type>::value * 100);
 }

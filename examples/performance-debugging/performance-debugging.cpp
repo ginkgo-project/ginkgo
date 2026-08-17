@@ -223,10 +223,11 @@ struct ResidualLogger : gko::log::Logger {
     // Depending on the available information, store the norm or compute it from
     // the residual. If the true residual norm could not be computed, store the
     // value `-1.0`.
-    void on_iteration_complete(const gko::LinOp*, const gko::size_type&,
-                               const gko::LinOp* residual,
-                               const gko::LinOp* solution,
-                               const gko::LinOp* residual_norm) const override
+    void on_iteration_complete(
+        const gko::LinOp*, const gko::size_type&,
+        const gko::AbstractMultiVector* residual,
+        const gko::AbstractMultiVector* solution,
+        const gko::AbstractMultiVector* residual_norm) const override
     {
         if (residual_norm) {
             rec_res_norms.push_back(utils::get_first_element(

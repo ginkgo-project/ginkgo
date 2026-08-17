@@ -19,10 +19,14 @@ struct DummyOperator : public gko::LinOp {
         : gko::LinOp(exec, size)
     {}
 
-    void apply_impl(const LinOp* b, LinOp* x) const override {}
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 };
 
@@ -33,10 +37,14 @@ struct TransposableDummyOperator : public gko::LinOp, public gko::Transposable {
         : gko::LinOp(exec, size)
     {}
 
-    void apply_impl(const LinOp* b, LinOp* x) const override {}
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 
     std::unique_ptr<LinOp> transpose() const override

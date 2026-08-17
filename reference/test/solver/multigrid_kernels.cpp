@@ -51,19 +51,22 @@ class DummyLinOp : public gko::LinOp,
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : LinOp(exec, size, gko::precision::fp64)
+        : LinOp(exec, size)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         global_step++;
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 };
 
@@ -74,20 +77,23 @@ public:
 
     DummyRestrictOp(std::shared_ptr<const gko::Executor> exec,
                     gko::dim<2> size = gko::dim<2>{})
-        : LinOp(exec, size, gko::precision::fp64)
+        : LinOp(exec, size)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         rstr_step.push_back(global_step);
         global_step++;
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 
     mutable std::vector<int> rstr_step;
@@ -101,16 +107,20 @@ public:
 
     DummyProlongOp(std::shared_ptr<const gko::Executor> exec,
                    gko::dim<2> size = gko::dim<2>{})
-        : LinOp(exec, size, gko::precision::fp64)
+        : LinOp(exec, size)
     {}
 
     bool apply_uses_initial_guess() const override { return true; }
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {
         prlg_step.push_back(global_step);
         global_step++;
@@ -145,14 +155,17 @@ public:
     std::shared_ptr<const gko::LinOp> op_;
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         step.push_back(global_step);
         global_step++;
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {
         auto alpha_value =
             gko::as<gko::matrix::MultiVector<ValueType>>(alpha)->at(0, 0);
@@ -211,10 +224,14 @@ protected:
     std::shared_ptr<const DummyRestrictOp> restrict_;
     std::shared_ptr<const DummyProlongOp> prolong_;
 
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 };
 
