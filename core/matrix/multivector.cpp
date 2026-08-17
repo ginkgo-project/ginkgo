@@ -120,17 +120,6 @@ void MultiVector<ValueType>::validate_data() const
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::apply_impl(const LinOp* b,
-                                        LinOp* x) const GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                        const LinOp* beta,
-                                        LinOp* x) const GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType>
 void MultiVector<ValueType>::compute_mean(ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
