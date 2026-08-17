@@ -32,7 +32,7 @@ void fill_restrict_op(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto num_rows = restrict_op->get_size()[0];
     auto num_cols = restrict_op->get_size()[1];
-    GKO_ASSERT(num_cols == coarse_rows->get_num_elems());
+    GKO_ASSERT(num_cols == coarse_rows->get_size());
     GKO_ASSERT(num_cols >= num_rows);
     auto coarse_data = coarse_rows->get_const_data();
 
