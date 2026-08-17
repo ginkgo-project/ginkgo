@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <ginkgo/core/base/multivector.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -541,20 +542,6 @@ void Dense<ValueType>::convert_impl(
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_identity_impl(const LinOp* a, const LinOp* b)
-{
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(dense::make_add_scaled_identity(
-                dense_alpha->get_const_device_view(),
-                dense_beta->get_const_device_view(),
-                dense_x->get_device_view()));
-        },
-        a, b, this);
-}
-
-
-template <typename ValueType>
 void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int32>* result) const
 {
     this->convert_impl(result);
@@ -857,6 +844,19 @@ Dense<ValueType>::get_const_device_view() const
 {
     return const_device_view{this->get_size(), this->stride_,
                              this->values_.get_const_data()};
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::add_scaled_identity_impl(const AbstractMultiVector* a,
+                                                const AbstractMultiVector* b)
+{
+    this->get_executor()->run(dense::make_add_scaled_identity(
+        a->as_precision(this->get_precision())
+            ->template get_const_local_device_view<ValueType>(),
+        b->as_precision(this->get_precision())
+            ->template get_const_local_device_view<ValueType>(),
+        this->get_device_view()));
 }
 
 
