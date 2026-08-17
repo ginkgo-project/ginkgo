@@ -4,9 +4,10 @@
 
 #include "ginkgo/core/base/combination.hpp"
 
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
+
+#include "dispatch_helper.hpp"
 
 
 namespace gko {
@@ -14,9 +15,10 @@ namespace {
 
 
 template <typename ValueType>
-inline void initialize_scalars(std::shared_ptr<const Executor> exec,
-                               std::unique_ptr<LinOp>& zero,
-                               std::unique_ptr<LinOp>& one)
+inline void initialize_scalars(
+    std::shared_ptr<const Executor> exec,
+    std::unique_ptr<matrix::MultiVector<ValueType>>& zero,
+    std::unique_ptr<matrix::MultiVector<ValueType>>& one)
 {
     if (zero == nullptr) {
         zero = initialize<matrix::MultiVector<ValueType>>(
@@ -100,8 +102,7 @@ std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
     transposed->set_size(gko::transpose(this->get_size()));
     // copy coefficients
     for (auto& coef : get_coefficients()) {
-        transposed->coefficients_.push_back(
-            share(as<LinOp>(as<Cloneable>(coef)->clone())));
+        transposed->coefficients_.push_back(share(coef->clone()));
     }
     // transpose operators
     for (auto& op : get_operators()) {
@@ -121,7 +122,7 @@ std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
     // conjugate coefficients!
     for (auto& coef : get_coefficients()) {
         transposed->coefficients_.push_back(
-            share(as<Transposable>(coef)->conj_transpose()));
+            share(as<matrix::MultiVector<ValueType>>(coef)->conj_transpose()));
     }
     // conjugate-transpose operators
     for (auto& op : get_operators()) {
@@ -134,17 +135,16 @@ std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Combination<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Combination<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                        AbstractMultiVector* x) const
 {
-    initialize_scalars<ValueType>(this->get_executor(), cache_.zero,
-                                  cache_.one);
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            operators_[0]->apply(coefficients_[0], dense_b, cache_.zero,
-                                 dense_x);
+    initialize_scalars(this->get_executor(), cache_.zero, cache_.one);
+
+    precision_dispatch<ValueType>(
+        [this](auto b_, auto x_) {
+            operators_[0]->apply(coefficients_[0], b_, cache_.zero, x_);
             for (size_type i = 1; i < operators_.size(); ++i) {
-                operators_[i]->apply(coefficients_[i], dense_b, cache_.one,
-                                     dense_x);
+                operators_[i]->apply(coefficients_[i], b_, cache_.one, x_);
             }
         },
         b, x);
@@ -152,20 +152,22 @@ void Combination<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Combination<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                        const LinOp* beta, LinOp* x) const
+void Combination<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                        const AbstractMultiVector* b,
+                                        const AbstractMultiVector* beta,
+                                        AbstractMultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+    precision_dispatch<ValueType>(
+        [this, alpha, beta](auto b_, auto x_) {
             if (cache_.intermediate_x == nullptr ||
-                cache_.intermediate_x->get_size() != dense_x->get_size()) {
-                cache_.intermediate_x = dense_x->clone();
+                cache_.intermediate_x->get_size() != x_->get_size()) {
+                cache_.intermediate_x = x_->clone();
             }
-            this->apply_impl(dense_b, cache_.intermediate_x.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, cache_.intermediate_x);
+            this->apply_impl(b_, cache_.intermediate_x.get());
+            x_->scale(beta);
+            x_->add_scaled(alpha, cache_.intermediate_x);
         },
-        alpha, b, beta, x);
+        b, x);
 }
 
 

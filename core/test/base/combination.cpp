@@ -30,6 +30,8 @@ struct DummyOperator : public gko::LinOp {
 template <typename T>
 class Combination : public ::testing::Test {
 protected:
+    using MultiVector = gko::matrix::MultiVector<T>;
+
     Combination()
         : exec{gko::ReferenceExecutor::create()},
           operators{std::make_shared<DummyOperator>(exec),
