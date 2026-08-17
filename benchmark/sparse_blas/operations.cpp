@@ -252,8 +252,8 @@ public:
     {
         auto ref = gko::ReferenceExecutor::create();
         auto correct = gko::make_temporary_clone(ref, mtx2_);
-        gko::make_temporary_clone(ref, mtx_)->apply(scalar_, id_, scalar_,
-                                                    correct.get());
+        gko::make_temporary_clone(ref, mtx_)->scale_add(scalar_, scalar_,
+                                                        correct.get());
         return validate_result(correct.get(), mtx_out_);
     }
 
@@ -662,7 +662,7 @@ public:
                     {gko::one<etype>()}, exec);
             const auto id =
                 gko::matrix::Identity<etype>::create(exec, mtx_->get_size()[0]);
-            lt_factor->apply(scalar, id, scalar, symm_result);
+            lt_factor->scale_add(scalar, scalar, symm_result);
             return std::make_pair(
                 validate_symbolic_factorization(mtx_, symm_result.get()), 0.0);
         }
