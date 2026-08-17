@@ -82,8 +82,6 @@ class MultiVector
       public ReadableFromMatrixData<ValueType, int64>,
       public WritableToMatrixData<ValueType, int32>,
       public WritableToMatrixData<ValueType, int64>,
-      public Permutable<int32>,
-      public Permutable<int64>,
       public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>> {
     friend class Dense<ValueType>;
     friend class MultiVector<to_complex<ValueType>>;
@@ -404,11 +402,11 @@ public:
             column_permutation,
         ptr_param<MultiVector> output, bool invert = false) const;
 
-    std::unique_ptr<LinOp> permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the symmetrically permuted matrix into the given output matrix.
@@ -428,11 +426,11 @@ public:
     void permute(const array<int64>* permutation_indices,
                  ptr_param<MultiVector> output) const;
 
-    std::unique_ptr<LinOp> inverse_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> inverse_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the inverse symmetrically permuted matrix into the given output
@@ -453,11 +451,11 @@ public:
     void inverse_permute(const array<int64>* permutation_indices,
                          ptr_param<MultiVector> output) const;
 
-    std::unique_ptr<LinOp> row_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> row_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> row_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> row_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the row-permuted matrix into the given output matrix.
@@ -545,11 +543,11 @@ public:
                     ptr_param<const LinOp> beta,
                     ptr_param<LinOp> row_collection) const;
 
-    std::unique_ptr<LinOp> column_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> column_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> column_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> column_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the column-permuted matrix into the given output matrix.
@@ -569,11 +567,11 @@ public:
     void column_permute(const array<int64>* permutation_indices,
                         ptr_param<MultiVector> output) const;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_row_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_row_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the inverse row-permuted matrix into the given output matrix.
@@ -594,11 +592,11 @@ public:
     void inverse_row_permute(const array<int64>* permutation_indices,
                              ptr_param<MultiVector> output) const;
 
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_column_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_column_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the inverse column-permuted matrix into the given output matrix.
