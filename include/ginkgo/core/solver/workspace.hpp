@@ -93,37 +93,35 @@ public:
         return *this;
     }
 
-    template <typename LinOpType, typename CreateOperation>
-    LinOpType* create_or_get_op(int op_id, CreateOperation create,
-                                const std::type_info& expected_type,
-                                dim<2> size, size_type stride)
+    template <typename CreateOperation>
+    AbstractMultiVector* create_or_get_vector(
+        int op_id, CreateOperation create, const std::type_info& expected_type,
+        dim<2> size)
     {
-        GKO_ASSERT(op_id >= 0 && op_id < operators_.size());
+        GKO_ASSERT(op_id >= 0 && op_id < vectors_.size());
         // does the existing object have the wrong type?
         // vector types may vary e.g. if users derive from MultiVector
-        auto stored_op = operators_[op_id].get();
-        LinOpType* op{};
+        auto stored_op = vectors_[op_id].get();
+        AbstractMultiVector* op{};
         if (!stored_op || typeid(*stored_op) != expected_type) {
             auto new_op = create();
             op = new_op.get();
-            operators_[op_id] = std::move(new_op);
+            vectors_[op_id] = std::move(new_op);
             return op;
         }
         // does the existing object have the wrong dimensions?
-        op = dynamic_cast<LinOpType*>(operators_[op_id].get());
-        GKO_ASSERT(op);
-        if (op->get_size() != size || op->get_stride() != stride) {
+        if (stored_op->get_size() != size) {
             auto new_op = create();
-            op = new_op.get();
-            operators_[op_id] = std::move(new_op);
+            stored_op = new_op.get();
+            vectors_[op_id] = std::move(new_op);
         }
-        return op;
+        return stored_op;
     }
 
-    const LinOp* get_op(int op_id) const
+    const AbstractMultiVector* get_vector(int op_id) const
     {
-        GKO_ASSERT(op_id >= 0 && op_id < operators_.size());
-        return operators_[op_id].get();
+        GKO_ASSERT(op_id >= 0 && op_id < vectors_.size());
+        return vectors_[op_id].get();
     }
 
     template <typename ValueType>
@@ -155,13 +153,13 @@ public:
 
     void set_size(int num_operators, int num_arrays)
     {
-        operators_.resize(num_operators);
+        vectors_.resize(num_operators);
         arrays_.resize(num_arrays);
     }
 
     void clear()
     {
-        for (auto& op : operators_) {
+        for (auto& op : vectors_) {
             op.reset();
         }
         for (auto& array : arrays_) {
@@ -171,7 +169,7 @@ public:
 
 private:
     std::shared_ptr<const Executor> exec_;
-    std::vector<std::unique_ptr<LinOp>> operators_;
+    std::vector<std::unique_ptr<AbstractMultiVector>> vectors_;
     std::vector<any_array> arrays_;
 };
 
