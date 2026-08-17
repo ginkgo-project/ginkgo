@@ -73,15 +73,18 @@ Pmis<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
-void Pmis<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Pmis<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                            AbstractMultiVector* x) const
 {
     this->get_composition()->apply(b, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Pmis<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                            const LinOp* beta, LinOp* x) const
+void Pmis<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                            const AbstractMultiVector* b,
+                                            const AbstractMultiVector* beta,
+                                            AbstractMultiVector* x) const
 {
     this->get_composition()->apply(alpha, b, beta, x);
 }
@@ -223,17 +226,13 @@ void Pmis<ValueType, IndexType>::generate()
         this->get_parameters().strength_threshold, coarse_map.get_const_data(),
         prolong_row_ptrs.get_const_data(), prolong_col_idxs.get_data(),
         prolong_values.get_data()));
-    auto prolongation = share(matrix::Csr<ValueType, IndexType>::create(
-        exec, dim<2>{pmis_op->get_size()[0], num_coarse},
-        std::move(prolong_values), std::move(prolong_col_idxs),
-        std::move(prolong_row_ptrs)));
-    auto restriction = share(prolongation->transpose());
-    auto internal = matrix::Csr<ValueType, IndexType>::create(
-        exec, prolongation->get_size());
-    auto coarse = share(matrix::Csr<ValueType, IndexType>::create(
-        exec, dim<2>{num_coarse, num_coarse}));
-    pmis_op->apply(prolongation, internal);
-    restriction->apply(internal, coarse);
+    auto prolongation = share(
+        csr_type::create(exec, dim<2>{pmis_op->get_size()[0], num_coarse},
+                         std::move(prolong_values), std::move(prolong_col_idxs),
+                         std::move(prolong_row_ptrs)));
+    auto restriction = share(as<csr_type>(prolongation->transpose()));
+    auto internal = pmis_op->multiply(prolongation);
+    auto coarse = share(restriction->multiply(internal));
     this->set_multigrid_level(prolongation, coarse, restriction);
 }
 
