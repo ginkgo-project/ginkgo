@@ -40,24 +40,28 @@ class Convergence : public Logger {
 public:
     void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* residual_norm,
-        const LinOp* solution, const uint8& stopping_id,
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* solution, const uint8& stopping_id,
         const bool& set_finalized, const array<stopping_status>* status,
         const bool& one_changed, const bool& all_stopped) const override;
 
     void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* residual_norm,
-        const LinOp* implicit_sq_resnorm, const LinOp* solution,
-        const uint8& stopping_id, const bool& set_finalized,
-        const array<stopping_status>* status, const bool& one_changed,
-        const bool& all_stopped) const override;
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* implicit_sq_resnorm,
+        const AbstractMultiVector* solution, const uint8& stopping_id,
+        const bool& set_finalized, const array<stopping_status>* status,
+        const bool& one_changed, const bool& all_stopped) const override;
 
-    void on_iteration_complete(const LinOp* solver, const LinOp* b,
-                               const LinOp* x, const size_type& num_iterations,
-                               const LinOp* residual,
-                               const LinOp* residual_norm,
-                               const LinOp* implicit_resnorm_sq,
+    void on_iteration_complete(const LinOp* solver,
+                               const AbstractMultiVector* b,
+                               const AbstractMultiVector* x,
+                               const size_type& num_iterations,
+                               const AbstractMultiVector* residual,
+                               const AbstractMultiVector* residual_norm,
+                               const AbstractMultiVector* implicit_resnorm_sq,
                                const array<stopping_status>* status,
                                bool stopped) const override;
 
@@ -75,10 +79,7 @@ public:
     static std::unique_ptr<Convergence> create(
         std::shared_ptr<const Executor>,
         const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-    {
-        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
-    }
+                                          Logger::iteration_complete_mask);
 
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
@@ -91,59 +92,47 @@ public:
      */
     static std::unique_ptr<Convergence> create(
         const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-    {
-        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
-    }
+                                          Logger::iteration_complete_mask);
 
     /**
      * Returns true if the solver has converged.
      *
      * @return the bool flag for convergence status
      */
-    bool has_converged() const noexcept { return convergence_status_; }
+    bool has_converged() const noexcept;
 
     /**
      * Resets the convergence status to false.
      */
-    void reset_convergence_status() { this->convergence_status_ = false; }
+    void reset_convergence_status();
 
     /**
      * Returns the number of iterations
      *
      * @return the number of iterations
      */
-    const size_type& get_num_iterations() const noexcept
-    {
-        return num_iterations_;
-    }
+    const size_type& get_num_iterations() const noexcept;
 
     /**
      * Returns the residual
      *
      * @return the residual
      */
-    const LinOp* get_residual() const noexcept { return residual_.get(); }
+    const AbstractMultiVector* get_residual() const noexcept;
 
     /**
      * Returns the residual norm
      *
      * @return the residual norm
      */
-    const LinOp* get_residual_norm() const noexcept
-    {
-        return residual_norm_.get();
-    }
+    const AbstractMultiVector* get_residual_norm() const noexcept;
 
     /**
      * Returns the implicit squared residual norm
      *
      * @return the implicit squared residual norm
      */
-    const LinOp* get_implicit_sq_resnorm() const noexcept
-    {
-        return implicit_sq_resnorm_.get();
-    }
+    const AbstractMultiVector* get_implicit_sq_resnorm() const noexcept;
 
 protected:
     /**
@@ -157,9 +146,7 @@ protected:
     explicit Convergence(
         std::shared_ptr<const gko::Executor>,
         const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-        : Logger(enabled_events)
-    {}
+                                          Logger::iteration_complete_mask);
 
     /**
      * Creates a Convergence logger.
@@ -169,16 +156,14 @@ protected:
      */
     explicit Convergence(
         const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-        : Logger(enabled_events)
-    {}
+                                          Logger::iteration_complete_mask);
 
 private:
     mutable bool convergence_status_{false};
     mutable size_type num_iterations_{};
-    mutable std::unique_ptr<LinOp> residual_{};
-    mutable std::unique_ptr<LinOp> residual_norm_{};
-    mutable std::unique_ptr<LinOp> implicit_sq_resnorm_{};
+    mutable std::unique_ptr<AbstractMultiVector> residual_{};
+    mutable std::unique_ptr<AbstractMultiVector> residual_norm_{};
+    mutable std::unique_ptr<AbstractMultiVector> implicit_sq_resnorm_{};
 };
 
 
