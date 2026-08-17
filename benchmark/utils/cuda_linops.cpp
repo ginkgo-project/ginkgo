@@ -129,7 +129,8 @@ public:
     CusparseCsrEx& operator=(const CusparseCsrEx& other) = default;
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         auto dense_b = gko::as<gko::matrix::MultiVector<ValueType>>(b);
         auto dense_x = gko::as<gko::matrix::MultiVector<ValueType>>(x);
@@ -162,9 +163,10 @@ protected:
         // DEVICE for Ginkgo
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta,
-                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+    void apply_impl(
+        const gko::AbstractMultiVector* alpha,
+        const gko::AbstractMultiVector* b, const gko::AbstractMultiVector* beta,
+        gko::AbstractMultiVector* x) const override GKO_NOT_IMPLEMENTED;
 
     CusparseCsrEx(std::shared_ptr<const gko::Executor> exec,
                   const gko::dim<2>& size = gko::dim<2>{})
@@ -192,7 +194,8 @@ template <typename ValueType>
 void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
                            const cusparseSpMatDescr_t mat,
                            const gko::array<ValueType>& scalars,
-                           const gko::LinOp* b, gko::LinOp* x,
+                           const gko::AbstractMultiVector* b,
+                           gko::AbstractMultiVector* x,
                            cusparseOperation_t trans, cusparseSpMVAlg_t alg)
 {
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
@@ -295,15 +298,17 @@ public:
     CusparseGenericCsr& operator=(const CusparseGenericCsr& other) = default;
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         cusparse_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
                               Alg);
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta,
-                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+    void apply_impl(
+        const gko::AbstractMultiVector* alpha,
+        const gko::AbstractMultiVector* b, const gko::AbstractMultiVector* beta,
+        gko::AbstractMultiVector* x) const override GKO_NOT_IMPLEMENTED;
 
     CusparseGenericCsr(std::shared_ptr<const gko::Executor> exec,
                        const gko::dim<2>& size = gko::dim<2>{})
@@ -385,15 +390,17 @@ public:
     CusparseGenericCoo& operator=(const CusparseGenericCoo& other) = default;
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         cusparse_generic_spmv(this->get_gpu_exec(), mat_, scalars, b, x, trans_,
                               default_csr_alg);
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta,
-                    gko::LinOp* x) const override GKO_NOT_IMPLEMENTED;
+    void apply_impl(
+        const gko::AbstractMultiVector* alpha,
+        const gko::AbstractMultiVector* b, const gko::AbstractMultiVector* beta,
+        gko::AbstractMultiVector* x) const override GKO_NOT_IMPLEMENTED;
 
     CusparseGenericCoo(std::shared_ptr<const gko::Executor> exec,
                        const gko::dim<2>& size = gko::dim<2>{})
