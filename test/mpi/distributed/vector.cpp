@@ -1022,8 +1022,8 @@ TYPED_TEST(VectorLocalOps, CreateSubmatrixSameAsLocal)
     this->comm.all_reduce(this->exec, &global_cols, 1, MPI_SUM);
     gko::dim<2> global_size{global_rows, global_cols};
 
-    auto rv = this->x->create_submatrix(rows, cols, global_size);
-    auto local_rv = this->local_x->create_submatrix(rows, cols);
+    auto rv = this->x->create_subview(rows, cols, global_size);
+    auto local_rv = this->local_x->create_subview(rows, cols);
 
     GKO_ASSERT_EQUAL_DIMENSIONS(rv, global_size);
     GKO_ASSERT_MTX_NEAR(rv->get_local_vector(), local_rv, 0.0);

@@ -13,22 +13,24 @@ namespace {
 struct DummyLogger : public gko::log::Logger {
     DummyLogger() : gko::log::Logger(gko::log::Logger::criterion_events_mask) {}
 
-    void on_criterion_check_started(const gko::stop::Criterion* criterion,
-                                    const gko::size_type& num_iterations,
-                                    const gko::LinOp* residual,
-                                    const gko::LinOp* residual_norm,
-                                    const gko::LinOp* solution,
-                                    const gko::uint8& stopping_id,
-                                    const bool& set_finalized) const override
+    void on_criterion_check_started(
+        const gko::stop::Criterion* criterion,
+        const gko::size_type& num_iterations,
+        const gko::AbstractMultiVector* residual,
+        const gko::AbstractMultiVector* residual_norm,
+        const gko::AbstractMultiVector* solution, const gko::uint8& stopping_id,
+        const bool& set_finalized) const override
     {
         criterion_check_started++;
     }
 
     void on_criterion_check_completed(
         const gko::stop::Criterion* criterion,
-        const gko::size_type& num_iterations, const gko::LinOp* residual,
-        const gko::LinOp* residual_norm, const gko::LinOp* solution,
-        const gko::uint8& stopping_id, const bool& set_finalized,
+        const gko::size_type& num_iterations,
+        const gko::AbstractMultiVector* residual,
+        const gko::AbstractMultiVector* residual_norm,
+        const gko::AbstractMultiVector* solution, const gko::uint8& stopping_id,
+        const bool& set_finalized,
         const gko::array<gko::stopping_status>* status, const bool& one_changed,
         const bool& all_converged) const override
     {
