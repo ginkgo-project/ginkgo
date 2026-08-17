@@ -98,7 +98,7 @@ double ScalarCacheAccessor::get_value(const ScalarCache& cache)
 }
 
 
-const std::map<std::string, std::shared_ptr<const gko::LinOp>>&
+const std::map<std::string, std::shared_ptr<const AbstractMultiVector>>&
 ScalarCacheAccessor::get_scalars(const ScalarCache& cache)
 {
     return cache.scalars;
