@@ -107,8 +107,8 @@ inline std::string encode_parameters(const char* precond_name)
 
 
 struct preconditioner_benchmark_state {
-    std::unique_ptr<gko::LinOp> x;
-    std::unique_ptr<gko::LinOp> b;
+    std::unique_ptr<gko::AbstractMultiVector> x;
+    std::unique_ptr<gko::AbstractMultiVector> b;
     std::shared_ptr<const gko::LinOp> system_matrix;
 };
 
