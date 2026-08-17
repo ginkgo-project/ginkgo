@@ -82,7 +82,6 @@ class MultiVector
       public ReadableFromMatrixData<ValueType, int64>,
       public WritableToMatrixData<ValueType, int32>,
       public WritableToMatrixData<ValueType, int64>,
-      public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
       public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>> {
@@ -213,9 +212,9 @@ public:
 
     void write(mat_data32& data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    std::unique_ptr<MultiVector> transpose() const;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    std::unique_ptr<MultiVector> conj_transpose() const;
 
     /**
      * Writes the transposed matrix into the given output matrix.
