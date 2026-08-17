@@ -911,13 +911,14 @@ namespace {
 
 
 template <typename ValueType, typename Function>
-void gather_mixed_real_complex(Function fn, LinOp* out)
+void gather_mixed_real_complex(Function fn, AbstractMultiVector* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
     run<matrix::MultiVector, ValueType, next_precision<ValueType>,
         next_precision<ValueType, 2>, next_precision<ValueType, 3>>(out, fn);
 #else
-    precision_dispatch<ValueType>(fn, out);
+    fn(as<MultiVector<ValueType>>(out->as_precision(precision_v<ValueType>))
+           .get());
 #endif
 }
 
@@ -926,8 +927,9 @@ void gather_mixed_real_complex(Function fn, LinOp* out)
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::row_gather(const array<int32>* row_idxs,
-                                        ptr_param<LinOp> row_collection) const
+void MultiVector<ValueType>::row_gather(
+    const array<int32>* row_idxs,
+    ptr_param<AbstractMultiVector> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
         [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
@@ -936,8 +938,9 @@ void MultiVector<ValueType>::row_gather(const array<int32>* row_idxs,
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::row_gather(const array<int64>* row_idxs,
-                                        ptr_param<LinOp> row_collection) const
+void MultiVector<ValueType>::row_gather(
+    const array<int64>* row_idxs,
+    ptr_param<AbstractMultiVector> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
         [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
@@ -946,10 +949,9 @@ void MultiVector<ValueType>::row_gather(const array<int64>* row_idxs,
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
-                                        const array<int32>* gather_indices,
-                                        ptr_param<const LinOp> beta,
-                                        ptr_param<LinOp> out) const
+void MultiVector<ValueType>::row_gather(
+    ptr_param<const LinOp> alpha, const array<int32>* gather_indices,
+    ptr_param<const LinOp> beta, ptr_param<AbstractMultiVector> out) const
 {
     auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
     auto dense_beta = make_temporary_conversion<ValueType>(beta);
@@ -964,10 +966,9 @@ void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
 }
 
 template <typename ValueType>
-void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
-                                        const array<int64>* gather_indices,
-                                        ptr_param<const LinOp> beta,
-                                        ptr_param<LinOp> out) const
+void MultiVector<ValueType>::row_gather(
+    ptr_param<const LinOp> alpha, const array<int64>* gather_indices,
+    ptr_param<const LinOp> beta, ptr_param<AbstractMultiVector> out) const
 {
     auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
     auto dense_beta = make_temporary_conversion<ValueType>(beta);
