@@ -86,10 +86,14 @@ public:
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
-    using value_type = ValueType;
-    using absolute_type = remove_complex<Vector>;
-    using real_type = absolute_type;
-    using complex_type = Vector<to_complex<value_type>>;
+    using value_type = typename EnableMultiVector<Vector>::value_type;
+    using absolute_type = typename EnableMultiVector<Vector>::absolute_type;
+    using real_type = typename EnableMultiVector<Vector>::real_type;
+    using complex_type = typename EnableMultiVector<Vector>::complex_type;
+    using norm_type = typename EnableMultiVector<Vector>::norm_type;
+    using device_view = typename EnableMultiVector<Vector>::device_view;
+    using const_device_view =
+        typename EnableMultiVector<Vector>::const_device_view;
     using local_vector_type = gko::matrix::MultiVector<value_type>;
 
     /**
@@ -167,7 +171,7 @@ public:
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
-    void compute_mean(ptr_param<LinOp> result) const;
+    void compute_mean(ptr_param<AbstractMultiVector> result) const;
 
     /**
      * Computes the column-wise arithmetic mean of this (multi-)vector using a
@@ -180,7 +184,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
+    void compute_mean(ptr_param<AbstractMultiVector> result,
+                      array<char>& tmp) const;
 
     /**
      * Returns a single element of the multi-vector.
@@ -213,12 +218,12 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    ValueType& at_local(size_type idx) noexcept;
+    value_type& at_local(size_type idx) noexcept;
 
     /**
      * @copydoc Vector::at(size_type)
      */
-    ValueType at_local(size_type idx) const noexcept;
+    value_type at_local(size_type idx) const noexcept;
 
     /**
      * Returns a pointer to the array of local values of the multi-vector.
@@ -244,6 +249,41 @@ public:
     const local_vector_type* get_local_vector() const;
 
     size_type get_stride() const noexcept { return local_.get_stride(); }
+
+    /**
+     * Converts the vector to the target precision type.
+     *
+     * @note This overload will include a copy-back operation when the temporary
+     *       conversion is destroyed, if OtherValueType != ValueType.
+     *
+     * @tparam OtherValueType The target precision type. If ValueType is real,
+     *                         OtherValueType must be real. If ValueType is
+     *                         complex, OtherValueType must be complex.
+     *
+     * @return Temporary conversion to the target precision type.
+     */
+    template <typename OtherValueType,
+              typename = std::enable_if_t<is_complex<ValueType>() ==
+                                          is_complex<OtherValueType>()>>
+    [[nodiscard]] temporary_conversion<Vector<OtherValueType>> as_precision();
+
+    /**
+     * Converts the vector to the target precision type.
+     *
+     * @note This overload will include a copy-back operation when the temporary
+     *       conversion is destroyed, if OtherValueType != ValueType.
+     *
+     * @tparam OtherValueType The target precision type. If ValueType is real,
+     *                         OtherValueType must be real. If ValueType is
+     *                         complex, OtherValueType must be complex.
+     *
+     * @return Temporary conversion to the target precision type.
+     */
+    template <typename OtherValueType,
+              typename = std::enable_if_t<is_complex<ValueType>() ==
+                                          is_complex<OtherValueType>()>>
+    [[nodiscard]] temporary_conversion<const Vector<OtherValueType>>
+    as_precision() const;
 
     /**
      * Creates an empty distributed vector with a specified size
@@ -373,6 +413,81 @@ protected:
     void read_distributed_impl(
         const device_matrix_data<ValueType, GlobalIndexType>& data,
         const Partition<LocalIndexType, GlobalIndexType>* partition);
+
+    void compute_absolute_inplace_impl() override;
+
+    [[nodiscard]] std::unique_ptr<Vector> create_with_same_config_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<Vector> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size, size_type stride) const override;
+
+    [[nodiscard]] std::unique_ptr<Vector> create_subview_impl(
+        local_span rows, local_span columns) override;
+
+    [[nodiscard]] std::unique_ptr<const Vector> create_subview_impl(
+        local_span rows, local_span columns) const override;
+
+    [[nodiscard]] std::unique_ptr<Vector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) override;
+
+    [[nodiscard]] std::unique_ptr<const Vector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) const override;
+
+    [[nodiscard]] std::unique_ptr<const real_type> create_real_view_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> create_real_view_impl() override;
+
+    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute_impl()
+        const override;
+
+    void compute_absolute_impl(absolute_type* result) const override;
+
+    [[nodiscard]] std::unique_ptr<complex_type> make_complex_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_real_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_imag_impl() const override;
+
+    void make_complex_impl(complex_type* result) const override;
+
+    void get_real_impl(real_type* result) const override;
+
+    void get_imag_impl(real_type* result) const override;
+
+    void fill_impl(value_type value) override;
+
+    void scale_impl(scaling_param<value_type> alpha) override;
+
+    void inv_scale_impl(scaling_param<value_type> alpha) override;
+
+    void add_scaled_impl(scaling_param<value_type> alpha,
+                         const Vector* b) override;
+
+    void sub_scaled_impl(scaling_param<value_type> alpha,
+                         const Vector* b) override;
+
+    void compute_dot_impl(const Vector* b,
+                          matrix::MultiVector<value_type>* result,
+                          array<char>& tmp) const override;
+
+    void compute_conj_dot_impl(const Vector* b,
+                               matrix::MultiVector<value_type>* result,
+                               array<char>& tmp) const override;
+
+    void compute_norm2_impl(norm_type* result, array<char>& tmp) const override;
+
+    void compute_squared_norm2_impl(norm_type* result,
+                                    array<char>& tmp) const override;
+
+    void compute_norm1_impl(norm_type* result, array<char>& tmp) const override;
+
+    device_view get_local_device_view_impl() override;
+
+    const_device_view get_const_local_device_view_impl() const override;
 
 private:
     local_vector_type local_;
