@@ -507,13 +507,13 @@ public:
      *                        matrix and `gather_indices->get_size()` rows.
      */
     void row_gather(const array<int32>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const array<int32>*, LinOp*) const
      */
     void row_gather(const array<int64>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * Copies the given rows from this matrix into `row_collection` with scaling
@@ -531,7 +531,7 @@ public:
     void row_gather(ptr_param<const LinOp> alpha,
                     const array<int32>* gather_indices,
                     ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const LinOp*, const array<int32>*, const LinOp*,
@@ -540,7 +540,7 @@ public:
     void row_gather(ptr_param<const LinOp> alpha,
                     const array<int64>* gather_indices,
                     ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     std::unique_ptr<MultiVector> column_permute(
         const array<int32>* permutation_indices) const;
