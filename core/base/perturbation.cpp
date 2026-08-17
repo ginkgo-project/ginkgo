@@ -4,8 +4,10 @@
 
 #include "ginkgo/core/base/perturbation.hpp"
 
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
+
+#include "dispatch_helper.hpp"
 
 
 namespace gko {
@@ -73,8 +75,9 @@ Perturbation<ValueType>::Perturbation(std::shared_ptr<const Executor> exec)
 
 
 template <typename ValueType>
-Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
-                                      std::shared_ptr<const LinOp> basis)
+Perturbation<ValueType>::Perturbation(
+    std::shared_ptr<const matrix::MultiVector<ValueType>> scalar,
+    std::shared_ptr<const LinOp> basis)
     : Perturbation(std::move(scalar),
                    // basis can not be std::move(basis). Otherwise, Program
                    // deletes basis before applying conjugate transpose
@@ -84,9 +87,9 @@ Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
 
 
 template <typename ValueType>
-Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
-                                      std::shared_ptr<const LinOp> basis,
-                                      std::shared_ptr<const LinOp> projector)
+Perturbation<ValueType>::Perturbation(
+    std::shared_ptr<const matrix::MultiVector<ValueType>> scalar,
+    std::shared_ptr<const LinOp> basis, std::shared_ptr<const LinOp> projector)
     : LinOp(basis->get_executor(), gko::dim<2>{basis->get_size()[0]}),
       basis_{std::move(basis)},
       projector_{std::move(projector)},
@@ -106,7 +109,8 @@ std::unique_ptr<Perturbation<ValueType>> Perturbation<ValueType>::create(
 
 template <typename ValueType>
 std::unique_ptr<Perturbation<ValueType>> Perturbation<ValueType>::create(
-    std::shared_ptr<const LinOp> scalar, std::shared_ptr<const LinOp> basis)
+    std::shared_ptr<const matrix::MultiVector<ValueType>> scalar,
+    std::shared_ptr<const LinOp> basis)
 {
     return std::unique_ptr<Perturbation>{new Perturbation{scalar, basis}};
 }
@@ -114,8 +118,8 @@ std::unique_ptr<Perturbation<ValueType>> Perturbation<ValueType>::create(
 
 template <typename ValueType>
 std::unique_ptr<Perturbation<ValueType>> Perturbation<ValueType>::create(
-    std::shared_ptr<const LinOp> scalar, std::shared_ptr<const LinOp> basis,
-    std::shared_ptr<const LinOp> projector)
+    std::shared_ptr<const matrix::MultiVector<ValueType>> scalar,
+    std::shared_ptr<const LinOp> basis, std::shared_ptr<const LinOp> projector)
 {
     return std::unique_ptr<Perturbation>{
         new Perturbation{scalar, basis, projector}};
@@ -132,29 +136,50 @@ void Perturbation<ValueType>::validate_perturbation()
 
 
 template <typename ValueType>
-void Perturbation<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Perturbation<ValueType>::cache_struct::allocate(
+    std::shared_ptr<const Executor> exec, dim<2> size)
+
+{
+    using vec = gko::matrix::MultiVector<ValueType>;
+    if (one == nullptr) {
+        one = initialize<vec>({gko::one<ValueType>()}, exec);
+    }
+    if (alpha_scalar == nullptr) {
+        alpha_scalar = vec::create(exec, gko::dim<2>(1));
+    }
+    if (intermediate == nullptr || intermediate->get_size() != size) {
+        intermediate = vec::create(exec, size);
+    }
+}
+
+
+template <typename ValueType>
+void Perturbation<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                         AbstractMultiVector* x) const
 {
     // x = (I + scalar * basis * projector) * b
     // temp = projector * b                 : projector->apply(b, temp)
     // x = b                                : x->copy_from(b)
     // x = 1 * x + scalar * basis * temp    : basis->apply(scalar, temp, 1, x)
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
+    precision_dispatch<ValueType>(
+        [this](auto b_, auto x_) {
             auto exec = this->get_executor();
             auto intermediate_size =
-                gko::dim<2>(projector_->get_size()[0], dense_b->get_size()[1]);
+                gko::dim<2>(projector_->get_size()[0], b_->get_size()[1]);
             cache_.allocate(exec, intermediate_size);
-            projector_->apply(dense_b, cache_.intermediate);
-            dense_x->copy_from(dense_b);
-            basis_->apply(scalar_, cache_.intermediate, cache_.one, dense_x);
+            projector_->apply(b_, cache_.intermediate);
+            x_->copy_from(b_);
+            basis_->apply(scalar_, cache_.intermediate, cache_.one, x_);
         },
         b, x);
 }
 
 
 template <typename ValueType>
-void Perturbation<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                         const LinOp* beta, LinOp* x) const
+void Perturbation<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                         const AbstractMultiVector* b,
+                                         const AbstractMultiVector* beta,
+                                         AbstractMultiVector* x) const
 {
     // x = alpha * (I + scalar * basis * projector) b + beta * x
     //   = beta * x + alpha * b + alpha * scalar * basis * projector * b
@@ -163,20 +188,23 @@ void Perturbation<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     //                            x->add_scaled(alpha, b)
     // x = x + alpha * scalar * basis * temp
     //                          : basis->apply(alpha * scalar, temp, 1, x)
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+    precision_dispatch<ValueType>(
+        [this, alpha, beta](auto b_, auto x_) {
             auto exec = this->get_executor();
+            auto converted_alpha = as<matrix::MultiVector<ValueType>>(
+                alpha->as_precision(precision_v<ValueType>));
             auto intermediate_size =
-                gko::dim<2>(projector_->get_size()[0], dense_b->get_size()[1]);
+                gko::dim<2>(projector_->get_size()[0], b_->get_size()[1]);
             cache_.allocate(exec, intermediate_size);
-            projector_->apply(dense_b, cache_.intermediate);
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, dense_b);
-            dense_alpha->apply(scalar_, cache_.alpha_scalar);
+            projector_->apply(b_, cache_.intermediate);
+            x_->scale(beta);
+            x_->add_scaled(converted_alpha.get(), b_);
+            cache_.alpha_scalar->copy_from(converted_alpha.get());
+            cache_.alpha_scalar->scale(scalar_);
             basis_->apply(cache_.alpha_scalar, cache_.intermediate, cache_.one,
-                          dense_x);
+                          x_);
         },
-        alpha, b, beta, x);
+        b, x);
 }
 
 
