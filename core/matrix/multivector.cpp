@@ -674,7 +674,7 @@ void MultiVector<ValueType>::row_gather_impl(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -684,7 +684,7 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -805,7 +805,7 @@ void MultiVector<ValueType>::permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::inverse_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -815,7 +815,7 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::inverse_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -845,7 +845,7 @@ void MultiVector<ValueType>::inverse_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::row_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::row_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -855,7 +855,7 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::row_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::row_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -983,7 +983,7 @@ void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::column_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::column_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -993,7 +993,7 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::column_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::column_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1023,7 +1023,8 @@ void MultiVector<ValueType>::column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_row_permute(
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::inverse_row_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1033,7 +1034,8 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_row_permute(
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::inverse_row_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1063,7 +1065,8 @@ void MultiVector<ValueType>::inverse_row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_column_permute(
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::inverse_column_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1073,7 +1076,8 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_column_permute(
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::inverse_column_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
