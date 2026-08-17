@@ -24,6 +24,11 @@
 
 
 namespace gko {
+
+
+class AbstractMultiVector;
+
+
 namespace matrix {
 
 
@@ -776,6 +781,8 @@ public:
  */
 class ScaledIdentityAddable {
 public:
+    virtual ~ScaledIdentityAddable() = default;
+
     /**
      * Scales this and adds another scalar times the identity to it.
      *
@@ -783,18 +790,12 @@ public:
      * @param b  Scalar to multiply this before adding the scaled identity to
      *           it.
      */
-    void add_scaled_identity(ptr_param<const LinOp> const a,
-                             ptr_param<const LinOp> const b)
-    {
-        GKO_ASSERT_IS_SCALAR(a);
-        GKO_ASSERT_IS_SCALAR(b);
-        auto ae = make_temporary_clone(as<LinOp>(this)->get_executor(), a);
-        auto be = make_temporary_clone(as<LinOp>(this)->get_executor(), b);
-        add_scaled_identity_impl(ae.get(), be.get());
-    }
+    void add_scaled_identity(ptr_param<const AbstractMultiVector> a,
+                             ptr_param<const AbstractMultiVector> b);
 
 private:
-    virtual void add_scaled_identity_impl(const LinOp* a, const LinOp* b) = 0;
+    virtual void add_scaled_identity_impl(const AbstractMultiVector* a,
+                                          const AbstractMultiVector* b) = 0;
 };
 
 
