@@ -13,6 +13,9 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/test/utils.hpp"
+#include "core/test/utils/dummy_vector.hpp"
+
 
 namespace {
 
@@ -23,28 +26,32 @@ struct DummyLogger : gko::log::Logger {
                            gko::log::Logger::linop_factory_events_mask)
     {}
 
-    void on_linop_apply_started(const gko::LinOp*, const gko::LinOp*,
-                                const gko::LinOp*) const override
+    void on_linop_apply_started(const gko::LinOp*,
+                                const gko::AbstractMultiVector*,
+                                const gko::AbstractMultiVector*) const override
     {
         linop_apply_started++;
     }
 
-    void on_linop_apply_completed(const gko::LinOp*, const gko::LinOp*,
-                                  const gko::LinOp*) const override
+    void on_linop_apply_completed(
+        const gko::LinOp*, const gko::AbstractMultiVector*,
+        const gko::AbstractMultiVector*) const override
     {
         linop_apply_completed++;
     }
 
-    void on_linop_advanced_apply_started(const gko::LinOp*, const gko::LinOp*,
-                                         const gko::LinOp*, const gko::LinOp*,
-                                         const gko::LinOp*) const override
+    void on_linop_advanced_apply_started(
+        const gko::LinOp*, const gko::AbstractMultiVector*,
+        const gko::AbstractMultiVector*, const gko::AbstractMultiVector*,
+        const gko::AbstractMultiVector*) const override
     {
         linop_advanced_apply_started++;
     }
 
-    void on_linop_advanced_apply_completed(const gko::LinOp*, const gko::LinOp*,
-                                           const gko::LinOp*, const gko::LinOp*,
-                                           const gko::LinOp*) const override
+    void on_linop_advanced_apply_completed(
+        const gko::LinOp*, const gko::AbstractMultiVector*,
+        const gko::AbstractMultiVector*, const gko::AbstractMultiVector*,
+        const gko::AbstractMultiVector*) const override
     {
         linop_advanced_apply_completed++;
     }
@@ -71,6 +78,17 @@ struct DummyLogger : gko::log::Logger {
 };
 
 
+class AccessVector : public AbstractDummyVector<AccessVector> {
+public:
+    using AbstractDummyVector::AbstractDummyVector;
+    using AbstractDummyVector::create;
+
+    void access() const { last_access = this->get_executor(); }
+
+    mutable std::shared_ptr<const gko::Executor> last_access;
+};
+
+
 class DummyLinOp : public gko::LinOp,
                    public gko::EnableCloneable<DummyLinOp>,
                    public gko::EnableCreateMethod<DummyLinOp> {
@@ -89,23 +107,26 @@ public:
     mutable std::shared_ptr<const gko::Executor> last_beta_access;
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         this->access();
-        static_cast<const DummyLinOp*>(b)->access();
-        static_cast<const DummyLinOp*>(x)->access();
+        dynamic_cast<const AccessVector*>(b)->access();
+        dynamic_cast<const AccessVector*>(x)->access();
         last_b_access = b->get_executor();
         last_x_access = x->get_executor();
     }
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {
         this->access();
-        static_cast<const DummyLinOp*>(alpha)->access();
-        static_cast<const DummyLinOp*>(b)->access();
-        static_cast<const DummyLinOp*>(beta)->access();
-        static_cast<const DummyLinOp*>(x)->access();
+        dynamic_cast<const AccessVector*>(alpha)->access();
+        dynamic_cast<const AccessVector*>(b)->access();
+        dynamic_cast<const AccessVector*>(beta)->access();
+        dynamic_cast<const AccessVector*>(x)->access();
         last_alpha_access = alpha->get_executor();
         last_b_access = b->get_executor();
         last_beta_access = beta->get_executor();
@@ -120,10 +141,10 @@ protected:
         : ref{gko::ReferenceExecutor::create()},
           ref2{gko::ReferenceExecutor::create()},
           op{DummyLinOp::create(ref2, gko::dim<2>{3, 5})},
-          alpha{DummyLinOp::create(ref, gko::dim<2>{1})},
-          beta{DummyLinOp::create(ref, gko::dim<2>{1})},
-          b{DummyLinOp::create(ref, gko::dim<2>{5, 4})},
-          x{DummyLinOp::create(ref, gko::dim<2>{3, 4})},
+          alpha{AccessVector::create(ref, gko::dim<2>{1})},
+          beta{AccessVector::create(ref, gko::dim<2>{1})},
+          b{AccessVector::create(ref, gko::dim<2>{5, 4})},
+          x{AccessVector::create(ref, gko::dim<2>{3, 4})},
           logger{std::make_shared<DummyLogger>()}
     {
         op->add_logger(logger);
@@ -132,10 +153,10 @@ protected:
     std::shared_ptr<const gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::ReferenceExecutor> ref2;
     std::unique_ptr<DummyLinOp> op;
-    std::unique_ptr<DummyLinOp> alpha;
-    std::unique_ptr<DummyLinOp> beta;
-    std::unique_ptr<DummyLinOp> b;
-    std::unique_ptr<DummyLinOp> x;
+    std::unique_ptr<AccessVector> alpha;
+    std::unique_ptr<AccessVector> beta;
+    std::unique_ptr<AccessVector> b;
+    std::unique_ptr<AccessVector> x;
     std::shared_ptr<DummyLogger> logger;
 };
 
@@ -158,7 +179,7 @@ TEST_F(LinOp, CallsExtendedApplyImpl)
 
 TEST_F(LinOp, ApplyFailsOnWrongBSize)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
+    auto wrong = AccessVector::create(ref, gko::dim<2>{3, 4});
 
     ASSERT_THROW(op->apply(wrong, x), gko::DimensionMismatch);
 }
@@ -166,7 +187,7 @@ TEST_F(LinOp, ApplyFailsOnWrongBSize)
 
 TEST_F(LinOp, ApplyFailsOnWrongSolutionRows)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
+    auto wrong = AccessVector::create(ref, gko::dim<2>{5, 4});
 
     ASSERT_THROW(op->apply(b, wrong), gko::DimensionMismatch);
 }
@@ -174,7 +195,7 @@ TEST_F(LinOp, ApplyFailsOnWrongSolutionRows)
 
 TEST_F(LinOp, ApplyFailsOnWrongSolutionColumns)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
+    auto wrong = AccessVector::create(ref, gko::dim<2>{3, 5});
 
     ASSERT_THROW(op->apply(b, wrong), gko::DimensionMismatch);
 }
@@ -182,7 +203,7 @@ TEST_F(LinOp, ApplyFailsOnWrongSolutionColumns)
 
 TEST_F(LinOp, ExtendedApplyFailsOnWrongBSize)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 4});
+    auto wrong = AccessVector::create(ref, gko::dim<2>{3, 4});
 
     ASSERT_THROW(op->apply(alpha, wrong, beta, x), gko::DimensionMismatch);
 }
@@ -190,7 +211,7 @@ TEST_F(LinOp, ExtendedApplyFailsOnWrongBSize)
 
 TEST_F(LinOp, ExtendedApplyFailsOnWrongSolutionRows)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim<2>{5, 4});
+    auto wrong = AccessVector::create(ref, gko::dim<2>{5, 4});
 
     ASSERT_THROW(op->apply(alpha, b, beta, wrong), gko::DimensionMismatch);
 }
@@ -198,7 +219,7 @@ TEST_F(LinOp, ExtendedApplyFailsOnWrongSolutionRows)
 
 TEST_F(LinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim<2>{3, 5});
+    auto wrong = AccessVector::create(ref, gko::dim<2>{3, 5});
 
     ASSERT_THROW(op->apply(alpha, b, beta, wrong), gko::DimensionMismatch);
 }
@@ -206,7 +227,7 @@ TEST_F(LinOp, ExtendedApplyFailsOnWrongSolutionColumns)
 
 TEST_F(LinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
+    auto wrong = AccessVector::create(ref, gko::dim<2>{2, 5});
 
     ASSERT_THROW(op->apply(wrong, b, beta, x), gko::DimensionMismatch);
 }
@@ -214,7 +235,7 @@ TEST_F(LinOp, ExtendedApplyFailsOnWrongAlphaDimension)
 
 TEST_F(LinOp, ExtendedApplyFailsOnWrongBetaDimension)
 {
-    auto wrong = DummyLinOp::create(ref, gko::dim<2>{2, 5});
+    auto wrong = AccessVector::create(ref, gko::dim<2>{2, 5});
 
     ASSERT_THROW(op->apply(alpha, b, wrong, x), gko::DimensionMismatch);
 }
@@ -296,7 +317,7 @@ TEST_F(LinOp, AdvancedApplyIsLogged)
 GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
-TEST_F(LinOpApply, SimpleApplyToDense)
+TEST_F(LinOp, SimpleApplyToDense)
 {
     auto op = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{3, 5});
     auto b = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{5, 1});
@@ -306,7 +327,7 @@ TEST_F(LinOpApply, SimpleApplyToDense)
 }
 
 
-TEST_F(LinOpApply, AdvancedApplyToDense)
+TEST_F(LinOp, AdvancedApplyToDense)
 {
     auto op = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{3, 5});
     auto alpha = gko::matrix::Dense<>::create(this->ref, gko::dim<2>{1, 1});
@@ -337,7 +358,7 @@ public:
 
     DummyLinOpWithFactory(const Factory* factory,
                           std::shared_ptr<const gko::LinOp> op)
-        : gko::LinOp(factory->get_executor()),
+        : gko::LinOp(factory->get_executor(), op->get_size()),
           parameters_{factory->get_parameters()},
           op_{op}
     {}
@@ -345,10 +366,14 @@ public:
     std::shared_ptr<const gko::LinOp> op_;
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 };
 
@@ -415,8 +440,9 @@ TEST_F(LinOpFactory, WithLoggersWorksAndPropagates)
     auto before_logger = *logger;
     auto factory =
         DummyLinOpWithFactory<>::build().with_loggers(logger).on(ref);
-    auto op = factory->generate(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
-    op->apply(op, op);
+    auto op = factory->generate(DummyLinOp::create(ref, gko::dim<2>{3, 3}));
+    auto vec = AccessVector::create(ref, gko::dim<2>{3, 3});
+    op->apply(vec, vec);
 
     ASSERT_EQ(logger->linop_factory_generate_started,
               before_logger.linop_factory_generate_started + 1);
@@ -473,10 +499,14 @@ public:
     Type get_value() const { return value_; }
 
 protected:
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
 
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 
 private:

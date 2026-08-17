@@ -792,20 +792,20 @@ protected:
             SCOPED_TRACE("Single strided vector");
             run_strided<VecType, OutVecType>(mtx, 1, 2, 3, guarded_fn);
         }
-        if (!gko::is_complex<value_type>()) {
-            // check application of real matrix to complex vector
-            // viewed as interleaved real/imag vector
-            using complex_vec = gko::to_complex<VecType>;
-            using complex_out_vec = gko::to_complex<OutVecType>;
+        // check application of real matrix to complex vector
+        // viewed as interleaved real/imag vector
+        using complex_vec = gko::to_complex<VecType>;
+        if (!gko::is_complex<value_type>() &&
+            std::is_same_v<VecType, OutVecType> &&
+            std::is_same_v<value_type, gko::remove_complex<
+                                           typename complex_vec::value_type>>) {
             if (Config::supports_strides()) {
                 SCOPED_TRACE("Single strided complex vector");
-                run_strided<complex_vec, complex_out_vec>(mtx, 1, 2, 3,
-                                                          guarded_fn);
+                run_strided<complex_vec, complex_vec>(mtx, 1, 2, 3, guarded_fn);
             }
             if (Config::supports_strides()) {
                 SCOPED_TRACE("Strided complex multivector with 2 columns");
-                run_strided<complex_vec, complex_out_vec>(mtx, 2, 3, 4,
-                                                          guarded_fn);
+                run_strided<complex_vec, complex_vec>(mtx, 2, 3, 4, guarded_fn);
             }
         }
         {

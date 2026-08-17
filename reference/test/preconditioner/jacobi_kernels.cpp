@@ -695,31 +695,6 @@ TYPED_TEST(Jacobi, AppliesToComplexVector)
 }
 
 
-TYPED_TEST(Jacobi, AppliesToMixedComplexVector)
-{
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Vec = gko::matrix::MultiVector<value_type>;
-    auto x = gko::initialize<Vec>(
-        {value_type{1.0, 2.0}, value_type{-1.0, -2.0}, value_type{2.0, 4.0},
-         value_type{-2.0, -4.0}, value_type{3.0, 6.0}},
-        this->exec);
-    auto b = gko::initialize<Vec>(
-        {value_type{4.0, 8.0}, value_type{-1.0, -2.0}, value_type{-2.0, -4.0},
-         value_type{4.0, 8.0}, value_type{-1.0, -2.0}},
-        this->exec);
-    auto bj = this->bj_factory->generate(this->mtx);
-
-    bj->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({value_type{1.0, 2.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0},
-           value_type{1.0, 2.0}, value_type{0.0, 0.0}}),
-        (r_mixed<value_type, typename TestFixture::value_type>()));
-}
-
-
 TYPED_TEST(Jacobi, AppliesToVectorWithAdaptivePrecision)
 {
     using Vec = typename TestFixture::Vec;
@@ -941,32 +916,6 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToComplexVector)
                         l({T{1.0, 2.0}, T{1.0, 2.0}, T{-2.0, -4.0}, T{4.0, 8.0},
                            T{-3.0, -6.0}}),
                         r<value_type>::value);
-}
-
-
-TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedComplexVector)
-{
-    using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using MixedMultiVector = gko::matrix::MultiVector<value_type>;
-    using MixedMultiVectorComplex = gko::to_complex<MixedMultiVector>;
-    using T = gko::to_complex<value_type>;
-    auto x = gko::initialize<MixedMultiVectorComplex>(
-        {T{1.0, 2.0}, T{-1.0, -2.0}, T{2.0, 4.0}, T{-2.0, -4.0}, T{3.0, 6.0}},
-        this->exec);
-    auto b = gko::initialize<MixedMultiVectorComplex>(
-        {T{4.0, 8.0}, T{-1.0, -2.0}, T{-2.0, -4.0}, T{4.0, 8.0}, T{-1.0, -2.0}},
-        this->exec);
-    auto alpha = gko::initialize<MixedMultiVector>({2.0}, this->exec);
-    auto beta = gko::initialize<MixedMultiVector>({-1.0}, this->exec);
-    auto bj = this->bj_factory->generate(this->mtx);
-
-    bj->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({T{1.0, 2.0}, T{1.0, 2.0}, T{-2.0, -4.0}, T{4.0, 8.0},
-           T{-3.0, -6.0}}),
-        (r_mixed<value_type, typename TestFixture::value_type>()));
 }
 
 

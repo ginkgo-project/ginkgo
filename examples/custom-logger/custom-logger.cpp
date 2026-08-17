@@ -97,14 +97,14 @@ struct ResidualLogger : gko::log::Logger {
 
     // Customize the logging hook which is called everytime an iteration is
     // completed
-    void on_iteration_complete(const gko::LinOp* solver, const gko::LinOp* b,
-                               const gko::LinOp* solution,
-                               const gko::size_type& iteration,
-                               const gko::LinOp* residual,
-                               const gko::LinOp* residual_norm,
-                               const gko::LinOp* implicit_sq_residual_norm,
-                               const gko::array<gko::stopping_status>*,
-                               bool) const override
+    void on_iteration_complete(
+        const gko::LinOp* solver, const gko::AbstractMultiVector* b,
+        const gko::AbstractMultiVector* solution,
+        const gko::size_type& iteration,
+        const gko::AbstractMultiVector* residual,
+        const gko::AbstractMultiVector* residual_norm,
+        const gko::AbstractMultiVector* implicit_sq_residual_norm,
+        const gko::array<gko::stopping_status>*, bool) const override
     {
         // If the solver shares a residual norm, log its value
         if (residual_norm) {

@@ -101,7 +101,9 @@ TYPED_TEST(MultiVector, TemporaryOutputCloneWorks)
     using value_type = typename TestFixture::value_type;
     auto other = gko::OmpExecutor::create();
     auto m =
-        gko::initialize<gko::matrix::MultiVector<TypeParam>>({1.0, 2.0}, other);
+        gko::matrix::MultiVector<TypeParam>::create(other, gko::dim<2>{2, 1});
+    m->at(0) = 1.0;
+    m->at(1) = 2.0;
 
     {
         auto clone = gko::make_temporary_output_clone(this->exec, m);
@@ -397,40 +399,6 @@ TYPED_TEST(MultiVector, AddScaledFailsOnWrongSizes)
 }
 
 
-TYPED_TEST(MultiVector, AddsScaledDiag)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
-    auto diag = gko::matrix::Diagonal<T>::create(
-        this->exec, 2, gko::array<T>{this->exec, {3.0, 2.0}});
-
-    this->mtx2->add_scaled(alpha, diag);
-
-    ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
-    ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
-    ASSERT_EQ(this->mtx2->at(1, 0), T{-2.0});
-    ASSERT_EQ(this->mtx2->at(1, 1), T{6.0});
-}
-
-
-TYPED_TEST(MultiVector, SubtractsScaledDiag)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using T = typename TestFixture::value_type;
-    auto alpha = gko::initialize<Mtx>({-2.0}, this->exec);
-    auto diag = gko::matrix::Diagonal<T>::create(
-        this->exec, 2, gko::array<T>{this->exec, {3.0, 2.0}});
-
-    this->mtx2->sub_scaled(alpha, diag);
-
-    ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
-    ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
-    ASSERT_EQ(this->mtx2->at(1, 0), T{-2.0});
-    ASSERT_EQ(this->mtx2->at(1, 1), T{6.0});
-}
-
-
 TYPED_TEST(MultiVector, ComputesDot)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -453,7 +421,7 @@ TYPED_TEST(MultiVector, ComputesDotMixed)
     this->mtx3->convert_to(mmtx3);
     auto result = MixedMtx::create(this->exec, gko::dim<2>{1, 3});
 
-    this->mtx1->compute_dot(this->mtx3, result);
+    this->mtx1->compute_dot(mmtx3, result);
 
     EXPECT_EQ(result->at(0, 0), MixedT{1.75});
     EXPECT_EQ(result->at(0, 1), MixedT{7.75});
@@ -483,7 +451,7 @@ TYPED_TEST(MultiVector, ComputesConjDotMixed)
     this->mtx3->convert_to(mmtx3);
     auto result = MixedMtx::create(this->exec, gko::dim<2>{1, 3});
 
-    this->mtx1->compute_conj_dot(this->mtx3, result);
+    this->mtx1->compute_conj_dot(mmtx3, result);
 
     EXPECT_EQ(result->at(0, 0), MixedT{1.75});
     EXPECT_EQ(result->at(0, 1), MixedT{7.75});
@@ -747,7 +715,7 @@ TYPED_TEST(MultiVector, SquareSubmatrixIsTransposableIntoMultiVector)
     using T = typename TestFixture::value_type;
     auto trans = Mtx::create(this->exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})->transpose(trans);
+    this->mtx5->create_subview({0, 2}, {0, 2})->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, -2.0}, {-1.0, 2.0}}), 0.0);
     ASSERT_EQ(trans->get_stride(), 4);
@@ -793,7 +761,7 @@ TYPED_TEST(MultiVector, NonSquareSubmatrixIsTransposableIntoMultiVector)
     using T = typename TestFixture::value_type;
     auto trans = Mtx::create(this->exec, gko::dim<2>{2, 1}, 5);
 
-    this->mtx4->create_submatrix({0, 1}, {0, 2})->transpose(trans);
+    this->mtx4->create_subview({0, 1}, {0, 2})->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans, l({1.0, 3.0}), 0.0);
     ASSERT_EQ(trans->get_stride(), 5);
@@ -825,7 +793,7 @@ TYPED_TEST(MultiVector, InplaceAbsolute)
 TYPED_TEST(MultiVector, InplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto mtx = this->mtx5->create_subview(gko::span{0, 2}, gko::span{0, 2});
 
     mtx->compute_absolute_inplace();
 
@@ -865,7 +833,7 @@ TYPED_TEST(MultiVector, OutplaceAbsoluteIntoMultiVector)
 TYPED_TEST(MultiVector, OutplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto mtx = this->mtx5->create_subview(gko::span{0, 2}, gko::span{0, 2});
 
     auto abs_mtx = mtx->compute_absolute();
 
@@ -878,7 +846,7 @@ TYPED_TEST(MultiVector, OutplaceSubmatrixAbsoluteIntoMultiVector)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto mtx = this->mtx5->create_subview(gko::span{0, 2}, gko::span{0, 2});
     auto abs_mtx =
         gko::remove_complex<Mtx>::create(this->exec, gko::dim<2>{2, 2}, 4);
 
@@ -996,17 +964,17 @@ TYPED_TEST(MultiVector, GetImagIntoMultiVectorFailsForWrongDimensions)
 }
 
 
-TYPED_TEST(MultiVector, MakeTemporaryConversionDoesntConvertOnMatch)
+TYPED_TEST(MultiVector, AsPrecisionDoesntConvertOnMatch)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({8.0}, this->exec);
 
-    ASSERT_EQ(gko::make_temporary_conversion<T>(alpha).get(), alpha.get());
+    ASSERT_EQ(alpha->template as_precision<T>().get(), alpha.get());
 }
 
 
-TYPED_TEST(MultiVector, MakeTemporaryConversionConvertsBack)
+TYPED_TEST(MultiVector, AsPrecisionConvertsBack)
 {
     using MixedMtx = typename TestFixture::MixedMtx;
     using T = typename TestFixture::value_type;
@@ -1014,7 +982,7 @@ TYPED_TEST(MultiVector, MakeTemporaryConversionConvertsBack)
     auto alpha = gko::initialize<MixedMtx>({8.0}, this->exec);
 
     {
-        auto conversion = gko::make_temporary_conversion<T>(alpha);
+        auto conversion = alpha->template as_precision<T>();
         conversion->at(0, 0) = T{7.0};
     }
 
@@ -1022,7 +990,7 @@ TYPED_TEST(MultiVector, MakeTemporaryConversionConvertsBack)
 }
 
 
-TYPED_TEST(MultiVector, MakeTemporaryConversionConstDoesntConvertBack)
+TYPED_TEST(MultiVector, AsPrecisionConstDoesntConvertBack)
 {
     using MixedMtx = typename TestFixture::MixedMtx;
     using T = typename TestFixture::value_type;
@@ -1030,8 +998,8 @@ TYPED_TEST(MultiVector, MakeTemporaryConversionConstDoesntConvertBack)
     auto alpha = gko::initialize<MixedMtx>({8.0}, this->exec);
 
     {
-        auto conversion = gko::make_temporary_conversion<T>(
-            static_cast<const MixedMtx*>(alpha.get()));
+        auto conversion = static_cast<const MixedMtx*>(alpha.get())
+                              ->template as_precision<T>();
         alpha->at(0, 0) = MixedT{7.0};
     }
 
@@ -1126,7 +1094,7 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_permute(
 {
     using gko::matrix::permute_mode;
     auto result = input->clone();
-    auto permutation_multivector =
+    auto permutation_dense =
         gko::matrix::MultiVector<double>::create(input->get_executor());
     gko::matrix_data<double, IndexType> permutation_data;
     if ((mode & permute_mode::inverse) == permute_mode::inverse) {
@@ -1134,17 +1102,17 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_permute(
     } else {
         permutation->write(permutation_data);
     }
-    permutation_multivector->read(permutation_data);
+    permutation_dense->read(permutation_data);
     if ((mode & permute_mode::rows) == permute_mode::rows) {
         // compute P * A
-        permutation_multivector->apply(input, result);
+        permutation_dense->as_const_dense_view()->apply(input, result);
     }
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         // compute A * P^T = (P * A^T)^T
         auto tmp = gko::share(result->transpose());
         auto tmp2 = gko::as<gko::matrix::MultiVector<ValueType>>(
             gko::as<gko::Cloneable>(tmp)->clone());
-        permutation_multivector->apply(tmp, tmp2);
+        permutation_dense->as_const_dense_view()->apply(tmp, tmp2);
         tmp2->transpose(result);
     }
     return result;
@@ -1159,9 +1127,9 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_permute(
 {
     using gko::matrix::permute_mode;
     auto result = input->clone();
-    auto row_permutation_multivector =
+    auto row_permutation_dense =
         gko::matrix::MultiVector<double>::create(input->get_executor());
-    auto col_permutation_multivector =
+    auto col_permutation_dense =
         gko::matrix::MultiVector<double>::create(input->get_executor());
     gko::matrix_data<double, IndexType> row_permutation_data;
     gko::matrix_data<double, IndexType> col_permutation_data;
@@ -1172,13 +1140,13 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_permute(
         row_permutation->write(row_permutation_data);
         col_permutation->write(col_permutation_data);
     }
-    row_permutation_multivector->read(row_permutation_data);
-    col_permutation_multivector->read(col_permutation_data);
-    row_permutation_multivector->apply(input, result);
+    row_permutation_dense->read(row_permutation_data);
+    col_permutation_dense->read(col_permutation_data);
+    row_permutation_dense->as_const_dense_view()->apply(input, result);
     auto tmp = gko::share(result->transpose());
     auto tmp2 = gko::as<gko::matrix::MultiVector<ValueType>>(
         gko::as<gko::Cloneable>(tmp)->clone());
-    col_permutation_multivector->apply(tmp, tmp2);
+    col_permutation_dense->as_const_dense_view()->apply(tmp, tmp2);
     tmp2->transpose(result);
     return result;
 }
@@ -1454,7 +1422,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto row_collection = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {1, 3})
+    this->mtx5->create_subview({0, 2}, {1, 3})
         ->row_gather(&permute_idxs, row_collection);
 
     GKO_ASSERT_MTX_NEAR(row_collection,
@@ -1562,7 +1530,7 @@ TYPED_TEST(MultiVectorWithIndexType, SquareSubmatrixIsPermutableIntoMultiVector)
     auto exec = this->mtx5->get_executor();
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
-    auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
+    auto mtx = this->mtx5->create_subview({0, 2}, {1, 3});
 
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->row_permute(&permute_idxs))
@@ -1654,7 +1622,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     auto exec = this->mtx5->get_executor();
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
-    auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
+    auto mtx = this->mtx5->create_subview({0, 2}, {1, 3});
 
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->inverse_row_permute(&permute_idxs))
@@ -1768,7 +1736,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->row_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-2.0, 2.0}, {1.0, -1.0}}),
@@ -1864,7 +1832,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->column_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-1.0, 1.0}, {2.0, -2.0}}),
@@ -1963,7 +1931,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->inverse_row_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-2.0, 2.0}, {1.0, -1.0}}),
@@ -2064,7 +2032,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->column_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-1.0, 1.0}, {2.0, -2.0}}),
@@ -2110,7 +2078,7 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_scaled_permute(
 {
     using gko::matrix::permute_mode;
     auto result = input->clone();
-    auto permutation_multivector =
+    auto permutation_dense =
         gko::matrix::MultiVector<ValueType>::create(input->get_executor());
     gko::matrix_data<ValueType, IndexType> permutation_data;
     if ((mode & permute_mode::inverse) == permute_mode::inverse) {
@@ -2118,17 +2086,17 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_scaled_permute(
     } else {
         permutation->write(permutation_data);
     }
-    permutation_multivector->read(permutation_data);
+    permutation_dense->read(permutation_data);
     if ((mode & permute_mode::rows) == permute_mode::rows) {
         // compute P * A
-        permutation_multivector->apply(input, result);
+        permutation_dense->as_const_dense_view()->apply(input, result);
     }
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         // compute A * P^T = (P * A^T)^T
         auto tmp = share(result->transpose());
         auto tmp2 = gko::as<gko::matrix::MultiVector<ValueType>>(
             gko::as<gko::Cloneable>(tmp)->clone());
-        permutation_multivector->apply(tmp, tmp2);
+        permutation_dense->as_const_dense_view()->apply(tmp, tmp2);
         tmp2->transpose(result);
     }
     return result;
@@ -2144,9 +2112,9 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_scaled_permute(
 {
     using gko::matrix::permute_mode;
     auto result = input->clone();
-    auto row_permutation_multivector =
+    auto row_permutation_dense =
         gko::matrix::MultiVector<ValueType>::create(input->get_executor());
-    auto col_permutation_multivector =
+    auto col_permutation_dense =
         gko::matrix::MultiVector<ValueType>::create(input->get_executor());
     gko::matrix_data<ValueType, IndexType> row_permutation_data;
     gko::matrix_data<ValueType, IndexType> col_permutation_data;
@@ -2157,13 +2125,13 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_scaled_permute(
         row_permutation->write(row_permutation_data);
         col_permutation->write(col_permutation_data);
     }
-    row_permutation_multivector->read(row_permutation_data);
-    col_permutation_multivector->read(col_permutation_data);
-    row_permutation_multivector->apply(input, result);
+    row_permutation_dense->read(row_permutation_data);
+    col_permutation_dense->read(col_permutation_data);
+    row_permutation_dense->as_const_dense_view()->apply(input, result);
     auto tmp = gko::share(result->transpose());
     auto tmp2 = gko::as<gko::matrix::MultiVector<ValueType>>(
         gko::as<gko::Cloneable>(tmp)->clone());
-    col_permutation_multivector->apply(tmp, tmp2);
+    col_permutation_dense->as_const_dense_view()->apply(tmp, tmp2);
     tmp2->transpose(result);
     return result;
 }

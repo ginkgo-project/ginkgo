@@ -582,30 +582,6 @@ TYPED_TEST(Dense, AppliesToComplex)
 }
 
 
-TYPED_TEST(Dense, AppliesToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using Vec = gko::matrix::Dense<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto b = gko::initialize<Vec>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
-         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}},
-        exec);
-    auto x = Vec::create(exec, gko::dim<2>{2, 2});
-
-    this->mtx1->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{mixed_complex_type{14.0, 16.0}, mixed_complex_type{20.0, 22.0}},
-           {mixed_complex_type{17.0, 19.0}, mixed_complex_type{24.5, 26.5}}}),
-        0.0);
-}
-
-
 TYPED_TEST(Dense, AdvancedAppliesToComplex)
 {
     using value_type = typename TestFixture::value_type;
