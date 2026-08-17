@@ -389,7 +389,8 @@ private:
     size_type stride_;
     array<value_type> values_;
 
-    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
+    void add_scaled_identity_impl(const AbstractMultiVector* a,
+                                  const AbstractMultiVector* b) override;
 };
 
 
