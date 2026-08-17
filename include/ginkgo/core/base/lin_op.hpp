@@ -300,7 +300,7 @@ protected:
     virtual void apply_impl(const AbstractMultiVector* alpha,
                             const AbstractMultiVector* b,
                             const AbstractMultiVector* beta,
-                            AbstractMultiVector* x) const = 0;
+                            AbstractMultiVector* x) const;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of

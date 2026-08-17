@@ -4,6 +4,7 @@
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/multivector.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 namespace gko {
 
@@ -65,6 +66,18 @@ LinOp::LinOp(std::shared_ptr<const Executor> exec, const dim<2>& size)
 
 
 void LinOp::set_size(const dim<2>& value) noexcept { size_ = value; }
+
+
+void LinOp::apply_impl(const AbstractMultiVector* alpha,
+                       const AbstractMultiVector* b,
+                       const AbstractMultiVector* beta,
+                       AbstractMultiVector* x) const
+{
+    auto x_clone = x->clone();
+    this->apply_impl(b, x_clone.get());
+    x->scale(beta);
+    x->add_scaled(alpha, x_clone);
+}
 
 
 void LinOp::validate_application_parameters(const AbstractMultiVector* b,
