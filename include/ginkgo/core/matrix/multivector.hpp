@@ -123,33 +123,6 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type stride);
 
-    /**
-     * Creates a MultiVector, where the underlying array is a view of another
-     * MultiVector' array.
-     *
-     * @param other  The other matrix on which to create the view
-     *
-     * @return  A MultiVector that is a view of other
-     */
-    static std::unique_ptr<MultiVector> create_view_of(
-        ptr_param<MultiVector> other)
-    {
-        return other->create_view_of_impl();
-    }
-
-    /**
-     * Creates a immutable MultiVector, where the underlying array is a view of
-     * another MultiVector' array.
-     *
-     * @param other  The other matrix on which to create the view
-     * @return  A immutable MultiVector that is a view of other
-     */
-    static std::unique_ptr<const MultiVector> create_const_view_of(
-        ptr_param<const MultiVector> other)
-    {
-        return other->create_const_view_of_impl();
-    }
-
     friend class MultiVector<previous_precision<ValueType>>;
 
     void convert_to(
@@ -874,38 +847,6 @@ protected:
     }
 
     /**
-     * Creates a MultiVector where the underlying array is a view of
-     * this' array.
-     *
-     * @return  A MultiVector that is a view of this.
-     */
-    virtual std::unique_ptr<MultiVector> create_view_of_impl()
-    {
-        auto exec = this->get_executor();
-        return MultiVector::create(
-            exec, this->get_size(),
-            gko::make_array_view(exec, this->get_num_stored_elements(),
-                                 this->get_values()),
-            this->get_stride());
-    }
-
-    /**
-     * Creates a immutable MultiVector where the underlying array is a
-     * view of this' array.
-     *
-     * @return  A immutable MultiVector that is a view of this.
-     */
-    virtual std::unique_ptr<const MultiVector> create_const_view_of_impl() const
-    {
-        auto exec = this->get_executor();
-        return MultiVector::create_const(
-            exec, this->get_size(),
-            gko::make_const_array_view(exec, this->get_num_stored_elements(),
-                                       this->get_const_values()),
-            this->get_stride());
-    }
-
-    /**
      * @copydoc compute_mean(LinOp*) const
      */
     virtual void compute_mean_impl(AbstractMultiVector* result) const;
@@ -1080,8 +1021,8 @@ std::unique_ptr<
     matrix::MultiVector<typename detail::pointee<VecPtr>::value_type>>
 make_dense_view(VecPtr&& vector)
 {
-    using value_type = typename detail::pointee<VecPtr>::value_type;
-    return matrix::MultiVector<value_type>::create_view_of(vector);
+    return vector->create_subview({0, vector->get_size()[0]},
+                                  {0, vector->get_size()[1]});
 }
 
 
@@ -1097,8 +1038,8 @@ std::unique_ptr<
     const matrix::MultiVector<typename detail::pointee<VecPtr>::value_type>>
 make_const_dense_view(VecPtr&& vector)
 {
-    using value_type = typename detail::pointee<VecPtr>::value_type;
-    return matrix::MultiVector<value_type>::create_const_view_of(vector);
+    return vector->create_subview({0, vector->get_size()[0]},
+                                  {0, vector->get_size()[1]});
 }
 
 
