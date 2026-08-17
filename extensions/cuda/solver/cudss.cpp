@@ -10,7 +10,7 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/multivector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/extensions/cuda/solver/cudss.hpp>
@@ -265,98 +265,93 @@ void Cudss<ValueType, IndexType>::refactorize(
 
 
 template <typename ValueType, typename IndexType>
-void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Cudss<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                             AbstractMultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            using MultiVector = matrix::MultiVector<ValueType>;
-            const auto exec = this->get_executor();
-            const auto nrhs = dense_b->get_size()[1];
-            if (nrhs <= 1) {
-                const auto nrows = dense_b->get_size()[0];
-                const auto nrows_i64 = static_cast<int64_t>(nrows);
+    auto dense_b = as<matrix::MultiVector<ValueType>>(
+        b->as_precision(precision_v<ValueType>));
+    auto dense_x = as<matrix::MultiVector<ValueType>>(
+        x->as_precision(precision_v<ValueType>));
+    using MultiVector = matrix::MultiVector<ValueType>;
+    const auto exec = this->get_executor();
+    const auto nrhs = dense_b->get_size()[1];
+    if (nrhs <= 1) {
+        const auto nrows = dense_b->get_size()[0];
+        const auto nrows_i64 = static_cast<int64_t>(nrows);
 
-                if (nrows == 0) {
-                    return;
-                }
+        if (nrows == 0) {
+            return;
+        }
 
-                const bool b_strided =
-                    (dense_b->get_stride() != dense_b->get_size()[1]);
-                const bool x_strided =
-                    (dense_x->get_stride() != dense_x->get_size()[1]);
+        const bool b_strided =
+            (dense_b->get_stride() != dense_b->get_size()[1]);
+        const bool x_strided =
+            (dense_x->get_stride() != dense_x->get_size()[1]);
 
-                ValueType* b_data =
-                    const_cast<ValueType*>(dense_b->get_const_values());
-                ValueType* x_data = dense_x->get_values();
-                std::unique_ptr<MultiVector> b_buf;
-                std::unique_ptr<MultiVector> x_buf;
+        ValueType* b_data = const_cast<ValueType*>(dense_b->get_const_values());
+        ValueType* x_data = dense_x->get_values();
+        std::unique_ptr<MultiVector> b_buf;
+        std::unique_ptr<MultiVector> x_buf;
 
-                if (b_strided) {
-                    b_buf = MultiVector::create(exec, dim<2>{nrows, 1});
-                    auto mut_b = const_cast<std::remove_const_t<
-                        std::remove_pointer_t<decltype(dense_b)>>*>(dense_b);
-                    mut_b->create_submatrix(span{0, nrows}, span{0, 1})
-                        ->convert_to(b_buf);
-                    b_data = b_buf->get_values();
-                }
-                if (x_strided) {
-                    x_buf = MultiVector::create(exec, dim<2>{nrows, 1});
-                    x_buf->fill(zero<ValueType>());
-                    x_data = x_buf->get_values();
-                }
+        if (b_strided) {
+            b_buf = MultiVector::create(exec, dim<2>{nrows, 1});
+            dense_b->create_subview(local_span{0, nrows}, local_span{0, 1})
+                ->convert_to(b_buf);
+            b_data = b_buf->get_values();
+        }
+        if (x_strided) {
+            x_buf = MultiVector::create(exec, dim<2>{nrows, 1});
+            x_buf->fill(zero<ValueType>());
+            x_data = x_buf->get_values();
+        }
 
-                cudssMatrix_t cudss_b = nullptr;
-                cudssMatrix_t cudss_x = nullptr;
+        cudssMatrix_t cudss_b = nullptr;
+        cudssMatrix_t cudss_x = nullptr;
 
-                GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-                    &cudss_b, nrows_i64, 1, nrows_i64, b_data,
-                    cudss_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
-                GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
-                    &cudss_x, nrows_i64, 1, nrows_i64, x_data,
-                    cudss_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
+            &cudss_b, nrows_i64, 1, nrows_i64, b_data,
+            cudss_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
+            &cudss_x, nrows_i64, 1, nrows_i64, x_data,
+            cudss_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
 
-                GKO_ASSERT_NO_CUDSS_ERRORS(cudssExecute(
-                    state_->handle, CUDSS_PHASE_SOLVE, state_->config,
-                    state_->data, state_->A, cudss_x, cudss_b));
+        GKO_ASSERT_NO_CUDSS_ERRORS(
+            cudssExecute(state_->handle, CUDSS_PHASE_SOLVE, state_->config,
+                         state_->data, state_->A, cudss_x, cudss_b));
 
-                GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(cudss_b));
-                GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(cudss_x));
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(cudss_b));
+        GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(cudss_x));
 
-                if (x_strided) {
-                    dense_x->create_submatrix(span{0, nrows}, span{0, 1})
-                        ->copy_from(x_buf);
-                }
-            } else {
-                const auto nrows = dense_b->get_size()[0];
-                auto tmp_b = MultiVector::create(exec, dim<2>{nrows, 1});
-                auto tmp_x = MultiVector::create(exec, dim<2>{nrows, 1});
-                auto mut_b = const_cast<std::remove_const_t<
-                    std::remove_pointer_t<decltype(dense_b)>>*>(dense_b);
-                for (size_type j = 0; j < nrhs; ++j) {
-                    mut_b->create_submatrix(span{0, nrows}, span{j, j + 1})
-                        ->convert_to(tmp_b);
-                    this->apply_impl(tmp_b.get(), tmp_x.get());
-                    dense_x->create_submatrix(span{0, nrows}, span{j, j + 1})
-                        ->copy_from(tmp_x);
-                }
-            }
-        },
-        b, x);
+        if (x_strided) {
+            dense_x->create_subview(local_span{0, nrows}, local_span{0, 1})
+                ->copy_from(x_buf);
+        }
+    } else {
+        const auto nrows = dense_b->get_size()[0];
+        auto tmp_b = MultiVector::create(exec, dim<2>{nrows, 1});
+        auto tmp_x = MultiVector::create(exec, dim<2>{nrows, 1});
+        for (size_type j = 0; j < nrhs; ++j) {
+            dense_b->create_subview(local_span{0, nrows}, local_span{j, j + 1})
+                ->convert_to(tmp_b);
+            this->apply_impl(tmp_b.get(), tmp_x.get());
+            dense_x->create_subview(local_span{0, nrows}, local_span{j, j + 1})
+                ->copy_from(tmp_x);
+        }
+    }
 }
 
 
 template <typename ValueType, typename IndexType>
-void Cudss<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                             const LinOp* beta, LinOp* x) const
+void Cudss<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                             const AbstractMultiVector* b,
+                                             const AbstractMultiVector* beta,
+                                             AbstractMultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto tmp = dense_x->clone();
-            this->apply_impl(dense_b, tmp.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, tmp);
-        },
-        alpha, b, beta, x);
+    auto converted_x = x->as_precision(precision_v<ValueType>);
+    auto tmp = converted_x->clone();
+    this->apply_impl(b, tmp.get());
+    converted_x->scale(beta);
+    converted_x->add_scaled(alpha, tmp);
 }
 
 
