@@ -79,10 +79,12 @@ protected:
      * @param x  the output vector(s) where the result is stored
      * @param guess  the input guess to handle the input vector(s)
      */
-    virtual void apply_with_initial_guess(const LinOp* b, LinOp* x,
+    virtual void apply_with_initial_guess(const AbstractMultiVector* b,
+                                          AbstractMultiVector* x,
                                           initial_guess_mode guess) const = 0;
 
-    void apply_with_initial_guess(ptr_param<const LinOp> b, ptr_param<LinOp> x,
+    void apply_with_initial_guess(ptr_param<const AbstractMultiVector> b,
+                                  ptr_param<AbstractMultiVector> x,
                                   initial_guess_mode guess) const
     {
         apply_with_initial_guess(b.get(), x.get(), guess);
@@ -100,15 +102,17 @@ protected:
      * @param x  output vector(s)
      * @param guess  the input guess to handle the input vector(s)
      */
-    virtual void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
-                                          const LinOp* beta, LinOp* x,
+    virtual void apply_with_initial_guess(const AbstractMultiVector* alpha,
+                                          const AbstractMultiVector* b,
+                                          const AbstractMultiVector* beta,
+                                          AbstractMultiVector* x,
                                           initial_guess_mode guess) const = 0;
 
 
-    void apply_with_initial_guess(ptr_param<const LinOp> alpha,
-                                  ptr_param<const LinOp> b,
-                                  ptr_param<const LinOp> beta,
-                                  ptr_param<LinOp> x,
+    void apply_with_initial_guess(ptr_param<const AbstractMultiVector> alpha,
+                                  ptr_param<const AbstractMultiVector> b,
+                                  ptr_param<const AbstractMultiVector> beta,
+                                  ptr_param<AbstractMultiVector> x,
                                   initial_guess_mode guess) const
     {
         apply_with_initial_guess(alpha.get(), b.get(), beta.get(), x.get(),
@@ -168,10 +172,12 @@ protected:
     {}
 
     /**
-     * @copydoc apply_with_initial_guess(const LinOp*, LinOp*,
-     *          initial_guess_mode)
+     * @copydoc apply_with_initial_guess(const AbstractMultiVector*,
+     *                                   AbstractMultiVector*,
+     *                                   initial_guess_mode)
      */
-    void apply_with_initial_guess(const LinOp* b, LinOp* x,
+    void apply_with_initial_guess(const AbstractMultiVector* b,
+                                  AbstractMultiVector* x,
                                   initial_guess_mode guess) const override
     {
         self()->template log<log::Logger::linop_apply_started>(self(), b, x);
@@ -186,11 +192,14 @@ protected:
     }
 
     /**
-     * @copydoc apply_with_initial_guess(const LinOp*,const LinOp*,const LinOp*,
-     *          LinOp*, initial_guess_mode)
+     * @copydoc apply_with_initial_guess(const AbstractMultiVector*,const
+     *          AbstractMultiVector*,const AbstractMultiVector*,
+     *          AbstractMultiVector*, initial_guess_mode)
      */
-    void apply_with_initial_guess(const LinOp* alpha, const LinOp* b,
-                                  const LinOp* beta, LinOp* x,
+    void apply_with_initial_guess(const AbstractMultiVector* alpha,
+                                  const AbstractMultiVector* b,
+                                  const AbstractMultiVector* beta,
+                                  AbstractMultiVector* x,
                                   initial_guess_mode guess) const override
     {
         self()->template log<log::Logger::linop_advanced_apply_started>(
@@ -216,14 +225,16 @@ protected:
      * according to the initial_guess_mode
      */
     virtual void apply_with_initial_guess_impl(
-        const LinOp* b, LinOp* x, initial_guess_mode guess) const = 0;
+        const AbstractMultiVector* b, AbstractMultiVector* x,
+        initial_guess_mode guess) const = 0;
 
     /**
      * The class should override this method and must modify the input vectors
      * according to the initial_guess_mode
      */
     virtual void apply_with_initial_guess_impl(
-        const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+        const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+        const AbstractMultiVector* beta, AbstractMultiVector* x,
         initial_guess_mode guess) const = 0;
 
     GKO_ENABLE_SELF(DerivedType);
@@ -377,9 +388,9 @@ public:
         return system_matrix_;
     }
 
-    const LinOp* get_workspace_op(int vector_id) const
+    const AbstractMultiVector* get_workspace_op(int vector_id) const
     {
-        return workspace_.get_op(vector_id);
+        return workspace_.get_vector(vector_id);
     }
 
     virtual int get_num_workspace_ops() const { return 0; }
@@ -412,77 +423,68 @@ protected:
         workspace_.set_size(num_operators, num_arrays);
     }
 
-    template <typename LinOpType>
-    LinOpType* create_workspace_op(int vector_id, gko::dim<2> size) const
+    template <typename VectorType,
+              typename = std::enable_if_t<
+                  std::is_base_of_v<AbstractMultiVector, VectorType>>>
+    VectorType* create_workspace_op(int vector_id, gko::dim<2> size) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return as<VectorType>(workspace_.create_or_get_vector(
             vector_id,
             [&] {
-                return LinOpType::create(this->workspace_.get_executor(), size);
+                return VectorType::create(this->workspace_.get_executor(),
+                                          size);
             },
-            typeid(LinOpType), size, size[1]);
+            typeid(VectorType), size));
     }
 
-    template <typename LinOpType>
-    LinOpType* create_workspace_op_with_config_of(int vector_id,
-                                                  const LinOpType* vec) const
+    template <typename VectorType,
+              typename = std::enable_if_t<
+                  std::is_base_of_v<AbstractMultiVector, VectorType>>>
+    VectorType* create_workspace_op_with_config_of(int vector_id,
+                                                   const VectorType* vec) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
-            vector_id, [&] { return LinOpType::create_with_config_of(vec); },
-            typeid(*vec), vec->get_size(), vec->get_stride());
+        return as<VectorType>(workspace_.create_or_get_vector(
+            vector_id, [&] { return VectorType::create_with_config_of(vec); },
+            typeid(*vec), vec->get_size()));
     }
 
-    template <typename LinOpType>
-    LinOpType* create_workspace_op_with_type_of(int vector_id,
-                                                const LinOpType* vec,
-                                                dim<2> size) const
+    template <typename VectorType,
+              typename = std::enable_if_t<
+                  std::is_base_of_v<AbstractMultiVector, VectorType>>>
+    VectorType* create_workspace_op_with_type_of(int vector_id,
+                                                 const VectorType* vec,
+                                                 dim<2> global_size,
+                                                 dim<2> local_size) const
     {
-        return workspace_.template create_or_get_op<LinOpType>(
+        return as<VectorType>(workspace_.create_or_get_vector(
             vector_id,
             [&] {
-                return LinOpType::create_with_type_of(
-                    vec, workspace_.get_executor(), size, size[1]);
+                return VectorType::create_with_type_of(
+                    vec, workspace_.get_executor(), global_size, local_size);
             },
-            typeid(*vec), size, size[1]);
-    }
-
-    template <typename LinOpType>
-    LinOpType* create_workspace_op_with_type_of(int vector_id,
-                                                const LinOpType* vec,
-                                                dim<2> global_size,
-                                                dim<2> local_size) const
-    {
-        return workspace_.template create_or_get_op<LinOpType>(
-            vector_id,
-            [&] {
-                return LinOpType::create_with_type_of(
-                    vec, workspace_.get_executor(), global_size, local_size,
-                    local_size[1]);
-            },
-            typeid(*vec), global_size, local_size[1]);
+            typeid(*vec), global_size));
     }
 
     template <typename ValueType>
     matrix::MultiVector<ValueType>* create_workspace_scalar(
         int vector_id, size_type size) const
     {
-        return workspace_
-            .template create_or_get_op<matrix::MultiVector<ValueType>>(
+        return as<matrix::MultiVector<ValueType>>(
+            workspace_.create_or_get_vector(
                 vector_id,
                 [&] {
                     return matrix::MultiVector<ValueType>::create(
                         workspace_.get_executor(), dim<2>{1, size});
                 },
-                typeid(matrix::MultiVector<ValueType>), gko::dim<2>{1, size},
-                size);
+                typeid(matrix::MultiVector<ValueType>), gko::dim<2>{1, size}));
     }
 
     template <typename ValueType>
     const matrix::MultiVector<ValueType>* create_workspace_fixed_scalar(
         int vector_id, size_type size, ValueType val) const
     {
-        return workspace_
-            .template create_or_get_op<matrix::MultiVector<ValueType>>(
+        return as<matrix::MultiVector<ValueType>>(
+            workspace_.create_or_get_vector(
                 vector_id,
                 [&] {
                     auto mat = matrix::MultiVector<ValueType>::create(
@@ -490,8 +492,7 @@ protected:
                     mat->fill(val);
                     return mat;
                 },
-                typeid(matrix::MultiVector<ValueType>), gko::dim<2>{1, size},
-                size);
+                typeid(matrix::MultiVector<ValueType>), gko::dim<2>{1, size}));
     }
 
     template <typename ValueType>
