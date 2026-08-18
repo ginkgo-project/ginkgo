@@ -9,7 +9,6 @@
 #include <memory>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace gko {

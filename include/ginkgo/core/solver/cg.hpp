@@ -18,7 +18,6 @@
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
