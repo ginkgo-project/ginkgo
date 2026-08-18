@@ -15,6 +15,7 @@
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/base/index_range.hpp"
