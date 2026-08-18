@@ -9,6 +9,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/solver_progress.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 

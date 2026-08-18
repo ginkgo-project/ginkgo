@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicg.hpp>

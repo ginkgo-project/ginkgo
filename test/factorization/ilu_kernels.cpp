@@ -14,6 +14,7 @@
 #include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
