@@ -161,10 +161,10 @@ TEST_F(Cudss, ApplyToStridedSingleRhsMatchesRef)
     }
     auto d_wide_input = gko::clone(this->exec, wide_input);
     auto d_wide_output = gko::clone(this->exec, wide_output);
-    auto strided_input =
-        d_wide_input->create_submatrix(gko::span{0, nrows}, gko::span{1, 2});
-    auto strided_output =
-        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{1, 2});
+    auto strided_input = d_wide_input->create_subview(gko::local_span{0, nrows},
+                                                      gko::local_span{1, 2});
+    auto strided_output = d_wide_output->create_subview(
+        gko::local_span{0, nrows}, gko::local_span{1, 2});
     const auto input_stride_before = strided_input->get_stride();
     const auto output_stride_before = strided_output->get_stride();
     auto wide_input_before = gko::clone(d_wide_input);
@@ -175,16 +175,16 @@ TEST_F(Cudss, ApplyToStridedSingleRhsMatchesRef)
     ASSERT_EQ(strided_input->get_stride(), input_stride_before);
     ASSERT_EQ(strided_output->get_stride(), output_stride_before);
     GKO_ASSERT_MTX_NEAR(d_wide_input, wide_input_before, 0);
-    GKO_ASSERT_MTX_NEAR(
-        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{0, 1}),
-        wide_output_before->create_submatrix(gko::span{0, nrows},
-                                             gko::span{0, 1}),
-        0);
-    GKO_ASSERT_MTX_NEAR(
-        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{2, 3}),
-        wide_output_before->create_submatrix(gko::span{0, nrows},
-                                             gko::span{2, 3}),
-        0);
+    GKO_ASSERT_MTX_NEAR(d_wide_output->create_subview(gko::local_span{0, nrows},
+                                                      gko::local_span{0, 1}),
+                        wide_output_before->create_subview(
+                            gko::local_span{0, nrows}, gko::local_span{0, 1}),
+                        0);
+    GKO_ASSERT_MTX_NEAR(d_wide_output->create_subview(gko::local_span{0, nrows},
+                                                      gko::local_span{2, 3}),
+                        wide_output_before->create_subview(
+                            gko::local_span{0, nrows}, gko::local_span{2, 3}),
+                        0);
     GKO_ASSERT_MTX_NEAR(strided_output, this->solution,
                         100 * r<value_type>::value);
 }
@@ -205,10 +205,10 @@ TEST_F(Cudss, ApplyToStridedMultipleRhsMatchesRef)
     }
     auto d_wide_input = gko::clone(this->exec, wide_input);
     auto d_wide_output = gko::clone(this->exec, wide_output);
-    auto strided_input =
-        d_wide_input->create_submatrix(gko::span{0, nrows}, gko::span{1, 4});
-    auto strided_output =
-        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{1, 4});
+    auto strided_input = d_wide_input->create_subview(gko::local_span{0, nrows},
+                                                      gko::local_span{1, 4});
+    auto strided_output = d_wide_output->create_subview(
+        gko::local_span{0, nrows}, gko::local_span{1, 4});
     const auto input_stride_before = strided_input->get_stride();
     const auto output_stride_before = strided_output->get_stride();
     auto wide_input_before = gko::clone(d_wide_input);
@@ -219,16 +219,16 @@ TEST_F(Cudss, ApplyToStridedMultipleRhsMatchesRef)
     ASSERT_EQ(strided_input->get_stride(), input_stride_before);
     ASSERT_EQ(strided_output->get_stride(), output_stride_before);
     GKO_ASSERT_MTX_NEAR(d_wide_input, wide_input_before, 0);
-    GKO_ASSERT_MTX_NEAR(
-        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{0, 1}),
-        wide_output_before->create_submatrix(gko::span{0, nrows},
-                                             gko::span{0, 1}),
-        0);
-    GKO_ASSERT_MTX_NEAR(
-        d_wide_output->create_submatrix(gko::span{0, nrows}, gko::span{4, 6}),
-        wide_output_before->create_submatrix(gko::span{0, nrows},
-                                             gko::span{4, 6}),
-        0);
+    GKO_ASSERT_MTX_NEAR(d_wide_output->create_subview(gko::local_span{0, nrows},
+                                                      gko::local_span{0, 1}),
+                        wide_output_before->create_subview(
+                            gko::local_span{0, nrows}, gko::local_span{0, 1}),
+                        0);
+    GKO_ASSERT_MTX_NEAR(d_wide_output->create_subview(gko::local_span{0, nrows},
+                                                      gko::local_span{4, 6}),
+                        wide_output_before->create_subview(
+                            gko::local_span{0, nrows}, gko::local_span{4, 6}),
+                        0);
     GKO_ASSERT_MTX_NEAR(strided_output, this->solution,
                         100 * r<value_type>::value);
 }

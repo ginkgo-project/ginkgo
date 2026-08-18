@@ -402,8 +402,8 @@ TYPED_TEST(Nullspace, ProjectsColumnsIndependently)
     auto v = this->test_vector(5, 3);
     auto expected = gko::clone(v);
     for (gko::size_type j = 0; j < 3; ++j) {
-        ns->project(
-            expected->create_submatrix(gko::span{0, 5}, gko::span{j, j + 1}));
+        ns->project(expected->create_subview(gko::local_span{0, 5},
+                                             gko::local_span{j, j + 1}));
     }
 
     ns->project(v);
