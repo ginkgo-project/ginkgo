@@ -7,7 +7,6 @@
 
 
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "accessor/index_span.hpp"
 #include "accessor/reduced_row_major.hpp"

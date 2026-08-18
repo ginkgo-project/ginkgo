@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 #include "core/base/kernel_declaration.hpp"
