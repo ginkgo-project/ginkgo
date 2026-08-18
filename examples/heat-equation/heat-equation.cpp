@@ -45,6 +45,8 @@ setting.
 
 #include <ginkgo/ginkgo.hpp>
 
+#include <ginkgo/core/matrix/dense.hpp>
+
 
 // This function implements a simple Ginkgo-themed clamped color mapping for
 // values in the range [0,5].

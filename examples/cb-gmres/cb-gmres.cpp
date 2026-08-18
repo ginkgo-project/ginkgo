@@ -12,6 +12,8 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include <ginkgo/core/matrix/dense.hpp>
+
 
 // Helper function which measures the time of `solver->apply(b, x)` in seconds
 // To get an accurate result, the solve is repeated multiple times (while

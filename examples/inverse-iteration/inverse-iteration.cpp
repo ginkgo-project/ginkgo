@@ -12,6 +12,8 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include <ginkgo/core/matrix/dense.hpp>
+
 
 int main(int argc, char* argv[])
 {
