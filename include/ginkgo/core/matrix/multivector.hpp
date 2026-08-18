@@ -1533,10 +1533,6 @@ private:
 };
 
 
-template <typename ValueType>
-using Dense = MultiVector<ValueType>;
-
-
 }  // namespace matrix
 
 
