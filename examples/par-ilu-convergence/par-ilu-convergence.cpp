@@ -11,6 +11,8 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include <ginkgo/core/matrix/dense.hpp>
+
 
 const std::map<std::string, std::function<std::shared_ptr<gko::Executor>()>>
     executors{

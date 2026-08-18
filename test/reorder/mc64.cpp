@@ -1,10 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/composition.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/reorder/mc64.hpp>
 
 #include "core/test/utils/assertions.hpp"

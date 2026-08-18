@@ -11,6 +11,8 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include <ginkgo/core/matrix/dense.hpp>
+
 
 /**
  * The ByInteraction class is a criterion which asks for user input to stop
