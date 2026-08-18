@@ -640,10 +640,10 @@ TEST_F(MultiVector, IsTransposable)
 TEST_F(MultiVector, IsTransposableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::local_span{0, x->get_size()[0] - 2};
-    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_subview(row_span, col_span);
-    auto sub_dx = dx->create_subview(row_span, col_span);
+    auto row_span = gko::span{0, x->get_size()[0] - 2};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
     // create the target matrices on another executor to
     // force temporary clone
     auto trans = Mtx::create(ref, gko::transpose(sub_x->get_size()));
@@ -672,10 +672,10 @@ TEST_F(MultiVector, IsConjugateTransposable)
 TEST_F(MultiVector, IsConjugateTransposableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::local_span{0, c_x->get_size()[0] - 2};
-    auto col_span = gko::local_span{0, c_x->get_size()[1] - 2};
-    auto sub_x = c_x->create_subview(row_span, col_span);
-    auto sub_dx = dc_x->create_subview(row_span, col_span);
+    auto row_span = gko::span{0, c_x->get_size()[0] - 2};
+    auto col_span = gko::span{0, c_x->get_size()[1] - 2};
+    auto sub_x = c_x->create_submatrix(row_span, col_span);
+    auto sub_dx = dc_x->create_submatrix(row_span, col_span);
     // create the target matrices on another executor to
     // force temporary clone
     auto trans = ComplexMtx::create(ref, gko::transpose(sub_x->get_size()));
@@ -1194,10 +1194,10 @@ TEST_F(MultiVector, CanGatherRows)
 TEST_F(MultiVector, CanGatherRowsIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::local_span{0, x->get_size()[0]};
-    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_subview(row_span, col_span);
-    auto sub_dx = dx->create_subview(row_span, col_span);
+    auto row_span = gko::span{0, x->get_size()[0]};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
         gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = Mtx::create(ref, gather_size);
@@ -1214,10 +1214,10 @@ TEST_F(MultiVector, CanGatherRowsIntoMultiVectorCrossExecutor)
 TEST_F(MultiVector, CanAdvancedGatherRowsIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::local_span{0, x->get_size()[0]};
-    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_subview(row_span, col_span);
-    auto sub_dx = dx->create_subview(row_span, col_span);
+    auto row_span = gko::span{0, x->get_size()[0]};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
         gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = gen_mtx<Mtx>(gather_size[0], gather_size[1]);
@@ -1235,10 +1235,10 @@ TEST_F(MultiVector, CanAdvancedGatherRowsIntoMultiVectorCrossExecutor)
 TEST_F(MultiVector, CanGatherRowsIntoMixedMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::local_span{0, x->get_size()[0]};
-    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_subview(row_span, col_span);
-    auto sub_dx = dx->create_subview(row_span, col_span);
+    auto row_span = gko::span{0, x->get_size()[0]};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
         gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = MixedMtx::create(ref, gather_size);
@@ -1256,10 +1256,10 @@ TEST_F(MultiVector, CanGatherRowsIntoMixedMultiVectorCrossExecutor)
 TEST_F(MultiVector, CanAdvancedGatherRowsIntoMixedMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::local_span{0, x->get_size()[0]};
-    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_subview(row_span, col_span);
-    auto sub_dx = dx->create_subview(row_span, col_span);
+    auto row_span = gko::span{0, x->get_size()[0]};
+    auto col_span = gko::span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_submatrix(row_span, col_span);
+    auto sub_dx = dx->create_submatrix(row_span, col_span);
     auto gather_size =
         gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = gen_mtx<MixedMtx>(gather_size[0], gather_size[1]);
