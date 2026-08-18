@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"

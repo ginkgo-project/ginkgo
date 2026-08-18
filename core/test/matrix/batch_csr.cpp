@@ -8,6 +8,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"

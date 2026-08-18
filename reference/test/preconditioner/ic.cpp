@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>

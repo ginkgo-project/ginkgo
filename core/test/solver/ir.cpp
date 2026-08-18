@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/combined.hpp>

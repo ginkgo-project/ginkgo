@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/mtx_io.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/extensions/kokkos/spaces.hpp>
 #include <ginkgo/extensions/kokkos/types.hpp>
 

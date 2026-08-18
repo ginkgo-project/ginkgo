@@ -406,4 +406,158 @@ struct temporary_clone_helper<matrix::Dense<ValueType>> {
 
 
 }  // namespace detail
+
+
+/**
+ * Creates and initializes a column-vector.
+ *
+ * This function first creates a temporary Dense matrix, fills it with
+ * passed in values, and then converts the matrix to the requested type.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix>
+ *                 interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param stride  row stride for the temporary Dense matrix
+ * @param vals  values used to initialize the vector
+ * @param exec  Executor associated to the vector
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(
+    size_type stride, std::initializer_list<typename Matrix::value_type> vals,
+    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
+{
+    using dense = matrix::Dense<typename Matrix::value_type>;
+    size_type num_rows = vals.size();
+    auto tmp = dense::create(exec->get_master(), dim<2>{num_rows, 1}, stride);
+    size_type idx = 0;
+    for (const auto& elem : vals) {
+        tmp->at(idx, 0) = elem;
+        ++idx;
+    }
+    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
+    tmp->move_to(mtx);
+    return mtx;
+}
+
+/**
+ * Creates and initializes a column-vector.
+ *
+ * This function first creates a temporary Dense matrix, fills it with
+ * passed in values, and then converts the matrix to the requested type. The
+ * stride of the intermediate Dense matrix is set to 1.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix>
+ *                 interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param vals  values used to initialize the vector
+ * @param exec  Executor associated to the vector
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(
+    std::initializer_list<typename Matrix::value_type> vals,
+    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
+{
+    return initialize<Matrix>(1, vals, std::move(exec),
+                              std::forward<TArgs>(create_args)...);
+}
+
+
+/**
+ * Creates and initializes a matrix.
+ *
+ * This function first creates a temporary Dense matrix, fills it with
+ * passed in values, and then converts the matrix to the requested type.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix>
+ *                 interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param stride  row stride for the temporary Dense matrix
+ * @param vals  values used to initialize the matrix
+ * @param exec  Executor associated to the matrix
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(
+    size_type stride,
+    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
+        vals,
+    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
+{
+    using dense = matrix::Dense<typename Matrix::value_type>;
+    size_type num_rows = vals.size();
+    size_type num_cols = num_rows > 0 ? begin(vals)->size() : 1;
+    auto tmp =
+        dense::create(exec->get_master(), dim<2>{num_rows, num_cols}, stride);
+    size_type ridx = 0;
+    for (const auto& row : vals) {
+        size_type cidx = 0;
+        for (const auto& elem : row) {
+            tmp->at(ridx, cidx) = elem;
+            ++cidx;
+        }
+        ++ridx;
+    }
+    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
+    tmp->move_to(mtx);
+    return mtx;
+}
+
+
+/**
+ * Creates and initializes a matrix.
+ *
+ * This function first creates a temporary Dense matrix, fills it with
+ * passed in values, and then converts the matrix to the requested type. The
+ * stride of the intermediate Dense matrix is set to the number of columns
+ * of the initializer list.
+ *
+ * @tparam Matrix  matrix type to initialize
+ *                 (Dense has to implement the ConvertibleTo<Matrix>
+ *                 interface)
+ * @tparam TArgs  argument types for Matrix::create method
+ *                (not including the implied Executor as the first argument)
+ *
+ * @param vals  values used to initialize the matrix
+ * @param exec  Executor associated to the matrix
+ * @param create_args  additional arguments passed to Matrix::create, not
+ *                     including the Executor, which is passed as the first
+ *                     argument
+ *
+ * @ingroup LinOp
+ */
+template <typename Matrix, typename... TArgs>
+std::unique_ptr<Matrix> initialize(
+    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
+        vals,
+    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
+{
+    return initialize<Matrix>(vals.size() > 0 ? begin(vals)->size() : 0, vals,
+                              std::move(exec),
+                              std::forward<TArgs>(create_args)...);
+}
+
+
 }  // namespace gko
