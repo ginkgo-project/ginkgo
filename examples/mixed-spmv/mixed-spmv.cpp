@@ -7,6 +7,7 @@
 // This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
 
+
 // Add the fstream header to read from data from files.
 #include <fstream>
 // Add the C++ iostream header to output information to the console.

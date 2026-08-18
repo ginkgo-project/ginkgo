@@ -17,7 +17,6 @@
 #include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/multivector_kernels.hpp"
-#include "ginkgo/core/matrix/fbcsr.hpp"
 
 
 namespace gko {
