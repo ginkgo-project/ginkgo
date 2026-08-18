@@ -8,7 +8,6 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/range.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/index_set_kernels.hpp"
 #include "core/test/utils.hpp"
