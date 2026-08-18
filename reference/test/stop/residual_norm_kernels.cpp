@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 

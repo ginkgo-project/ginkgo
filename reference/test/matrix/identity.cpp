@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 

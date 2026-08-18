@@ -9,6 +9,8 @@
 
 #include <gflags/gflags.h>
 
+#include <ginkgo/core/matrix/dense.hpp>
+
 #include "core/base/array_access.hpp"
 #include "core/factorization/elimination_forest.hpp"
 #include "core/factorization/factorization_kernels.hpp"

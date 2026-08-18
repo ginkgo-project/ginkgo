@@ -10,6 +10,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/stream.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
