@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>

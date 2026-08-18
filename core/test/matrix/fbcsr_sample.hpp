@@ -10,7 +10,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "accessor/block_col_major.hpp"

@@ -14,7 +14,6 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
