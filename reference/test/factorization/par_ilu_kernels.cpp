@@ -15,6 +15,7 @@
 #include <ginkgo/core/factorization/par_ilu.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/factorization/factorization_kernels.hpp"

@@ -25,6 +25,7 @@
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/segmented_array.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/batch_utilities.hpp"
