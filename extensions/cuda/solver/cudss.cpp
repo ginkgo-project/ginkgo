@@ -295,7 +295,8 @@ void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                     b_buf = MultiVector::create(exec, dim<2>{nrows, 1});
                     auto mut_b = const_cast<std::remove_const_t<
                         std::remove_pointer_t<decltype(dense_b)>>*>(dense_b);
-                    mut_b->create_submatrix(span{0, nrows}, span{0, 1})
+                    mut_b
+                        ->create_subview(local_span{0, nrows}, local_span{0, 1})
                         ->convert_to(b_buf);
                     b_data = b_buf->get_values();
                 }
@@ -323,7 +324,8 @@ void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                 GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(cudss_x));
 
                 if (x_strided) {
-                    dense_x->create_submatrix(span{0, nrows}, span{0, 1})
+                    dense_x
+                        ->create_subview(local_span{0, nrows}, local_span{0, 1})
                         ->copy_from(x_buf);
                 }
             } else {
@@ -333,10 +335,14 @@ void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                 auto mut_b = const_cast<std::remove_const_t<
                     std::remove_pointer_t<decltype(dense_b)>>*>(dense_b);
                 for (size_type j = 0; j < nrhs; ++j) {
-                    mut_b->create_submatrix(span{0, nrows}, span{j, j + 1})
+                    mut_b
+                        ->create_subview(local_span{0, nrows},
+                                         local_span{j, j + 1})
                         ->convert_to(tmp_b);
                     this->apply_impl(tmp_b.get(), tmp_x.get());
-                    dense_x->create_submatrix(span{0, nrows}, span{j, j + 1})
+                    dense_x
+                        ->create_subview(local_span{0, nrows},
+                                         local_span{j, j + 1})
                         ->copy_from(tmp_x);
                 }
             }

@@ -328,9 +328,9 @@ TYPED_TEST(Fft, AppliesStrided1DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->frequency1->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency1->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -356,9 +356,9 @@ TYPED_TEST(Fft, AppliesStridedInverse1DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->frequency1->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency1->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -384,9 +384,9 @@ TYPED_TEST(Fft, AppliesStrided2DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->frequency2->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency2->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -412,9 +412,9 @@ TYPED_TEST(Fft, AppliesStridedInverse2DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->frequency2->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency2->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -440,9 +440,9 @@ TYPED_TEST(Fft, AppliesStrided3DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->frequency3->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency3->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 
@@ -468,9 +468,9 @@ TYPED_TEST(Fft, AppliesStridedInverse3DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
-        this->frequency3->create_submatrix({0, this->n}, {0, this->subcols});
+        this->frequency3->create_subview({0, this->n}, {0, this->subcols});
     auto ref_view =
-        this->amplitude->create_submatrix({0, this->n}, {0, this->subcols});
+        this->amplitude->create_subview({0, this->n}, {0, this->subcols});
     auto out =
         TestFixture::Vec::create(this->exec, in_view->get_size(), this->stride);
 

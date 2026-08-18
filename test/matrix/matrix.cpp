@@ -756,21 +756,21 @@ protected:
         // create slightly bigger vectors
         auto in_padded = gen_in_vec<VecType>(mtx, in_stride);
         auto out_padded = gen_out_vec<OutVecType>(mtx, out_stride);
-        const auto in_rows = gko::span(0, mtx.ref->get_size()[1]);
-        const auto out_rows = gko::span(0, mtx.ref->get_size()[0]);
-        const auto cols = gko::span(0, rhs);
-        const auto out_pad_cols = gko::span(rhs, out_stride);
+        const auto in_rows = gko::local_span(0, mtx.ref->get_size()[1]);
+        const auto out_rows = gko::local_span(0, mtx.ref->get_size()[0]);
+        const auto cols = gko::local_span(0, rhs);
+        const auto out_pad_cols = gko::local_span(rhs, out_stride);
         // create views of the padding and in/out vectors
         auto out_padding = test_pair<OutVecType>{
-            out_padded.ref->create_submatrix(out_rows, out_pad_cols),
-            out_padded.dev->create_submatrix(out_rows, out_pad_cols)};
+            out_padded.ref->create_subview(out_rows, out_pad_cols),
+            out_padded.dev->create_subview(out_rows, out_pad_cols)};
         auto orig_padding = out_padding.ref->clone();
         auto in =
-            test_pair<VecType>{in_padded.ref->create_submatrix(in_rows, cols),
-                               in_padded.dev->create_submatrix(in_rows, cols)};
+            test_pair<VecType>{in_padded.ref->create_subview(in_rows, cols),
+                               in_padded.dev->create_subview(in_rows, cols)};
         auto out = test_pair<OutVecType>{
-            out_padded.ref->create_submatrix(out_rows, cols),
-            out_padded.dev->create_submatrix(out_rows, cols)};
+            out_padded.ref->create_subview(out_rows, cols),
+            out_padded.dev->create_subview(out_rows, cols)};
         fn(std::move(in), std::move(out));
         // check that padding was unmodified
         GKO_ASSERT_MTX_NEAR(out_padding.ref, orig_padding, 0.0);
