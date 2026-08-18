@@ -131,78 +131,6 @@ struct conversion_target_helper {
 };
 
 
-/**
- * @internal
- *
- * Helper type that attempts to statically find the dynamic type of a given
- * LinOp from a list of ConversionCandidates and, on the first match, converts
- * it to TargetType with an appropriate convert_back_deleter.
- *
- * @tparam ConversionCandidates  list of potential dynamic types of the input
- *                               object to be checked.
- */
-template <typename... ConversionCandidates>
-struct conversion_helper {
-    /** Dispatch convert_impl with the ConversionCandidates list */
-    template <typename TargetType, typename MaybeConstLinOp>
-    static std::unique_ptr<TargetType, std::function<void(TargetType*)>>
-    convert(MaybeConstLinOp* obj)
-    {
-        return convert_impl<TargetType, MaybeConstLinOp,
-                            ConversionCandidates...>(obj);
-    }
-
-    /**
-     * Attempts to cast obj from the first ConversionCandidate and convert it to
-     * TargetType with a matching convert_back_deleter. If the cast fails,
-     * recursively tries the remaining conversion candidates.
-     */
-    template <typename TargetType, typename MaybeConstLinOp,
-              typename FirstCandidate, typename... TrailingCandidates>
-    static std::unique_ptr<TargetType, std::function<void(TargetType*)>>
-    convert_impl(MaybeConstLinOp* obj)
-    {
-        // make candidate_type conditionally const based on whether obj is const
-        using candidate_type =
-            std::conditional_t<std::is_const<MaybeConstLinOp>::value,
-                               const FirstCandidate, FirstCandidate>;
-        candidate_type* cast_obj{};
-        if ((cast_obj = dynamic_cast<candidate_type*>(obj))) {
-            // if the cast is successful, obj is of dynamic type candidate_type
-            // so we can convert from this type to TargetType
-            auto converted = conversion_target_helper<
-                std::remove_cv_t<TargetType>>::create_empty(cast_obj);
-            cast_obj->convert_to(converted);
-            // Make sure ConvertibleTo<TargetType> is available and symmetric
-            static_assert(
-                std::is_base_of<ConvertibleTo<std::remove_cv_t<TargetType>>,
-                                FirstCandidate>::value,
-                "ConvertibleTo not implemented");
-            static_assert(std::is_base_of<ConvertibleTo<FirstCandidate>,
-                                          TargetType>::value,
-                          "ConvertibleTo not symmetric");
-            return {converted.release(),
-                    convert_back_deleter<TargetType, candidate_type>{cast_obj}};
-        } else {
-            // else try the remaining candidates
-            return conversion_helper<TrailingCandidates...>::template convert<
-                TargetType>(obj);
-        }
-    }
-};
-
-template <>
-struct conversion_helper<> {
-    template <typename T, typename MaybeConstLinOp>
-    static std::unique_ptr<T, std::function<void(T*)>> convert(
-        MaybeConstLinOp* obj)
-    {
-        // return nullptr if no previous candidates matched
-        return {nullptr, null_deleter<T>{}};
-    }
-};
-
-
 }  // namespace detail
 
 
@@ -232,24 +160,6 @@ public:
     using pointer = T*;
     using lin_op_type =
         std::conditional_t<std::is_const<T>::value, const LinOp, LinOp>;
-
-    /**
-     * Create a temporary conversion for a non-temporary LinOp.
-     *
-     * @tparam ConversionCandidates  list of potential dynamic types of ptr to
-     *                               try out for converting ptr to type T.
-     */
-    template <typename... ConversionCandidates>
-    static temporary_conversion create(ptr_param<lin_op_type> ptr)
-    {
-        T* cast_ptr{};
-        if ((cast_ptr = dynamic_cast<T*>(ptr.get()))) {
-            return handle_type{cast_ptr, null_deleter<T>{}};
-        } else {
-            return detail::conversion_helper<
-                ConversionCandidates...>::template convert<T>(ptr.get());
-        }
-    }
 
     /**
      * Create a temporary conversion from a bare pointer.
