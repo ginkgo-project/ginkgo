@@ -10,7 +10,6 @@
 #include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 
