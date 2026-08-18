@@ -11,6 +11,8 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include <ginkgo/core/matrix/dense.hpp>
+
 // the header in extensions is not shipped with ginkgo.hpp
 #include <ginkgo/extensions/config/json_config.hpp>
 

@@ -8,6 +8,8 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include <ginkgo/core/matrix/dense.hpp>
+
 
 [[noreturn]] void print_usage_and_exit(const char* name)
 {

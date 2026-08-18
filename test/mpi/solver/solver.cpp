@@ -16,6 +16,7 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>

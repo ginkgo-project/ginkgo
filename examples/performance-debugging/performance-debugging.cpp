@@ -19,6 +19,8 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include <ginkgo/core/matrix/dense.hpp>
+
 
 template <typename ValueType>
 using vec = gko::matrix::MultiVector<ValueType>;
