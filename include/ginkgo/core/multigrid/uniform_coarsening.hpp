@@ -56,8 +56,7 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class UniformCoarsening : public LinOp,
-                          public EnableMultigridLevel<ValueType> {
+class UniformCoarsening : public LinOp, public EnableMultigridLevel<ValueType> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
