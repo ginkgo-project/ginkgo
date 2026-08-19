@@ -5,6 +5,7 @@
 #include "ginkgo/core/solver/gmres.hpp"
 
 #include <string>
+#include <vector>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -72,6 +73,10 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
     if (auto& obj = config_check.get("krylov_dim")) {
         params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
+    if (auto& obj = config_check.get("restart_tol")) {
+        params.with_restart_tol(
+            gko::config::get_value<remove_complex<ValueType>>(obj));
+    }
     if (auto& obj = config_check.get("flexible")) {
         params.with_flexible(gko::config::get_value<bool>(obj));
     }
@@ -102,6 +107,7 @@ std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
             share(as<Transposable>(this->get_preconditioner())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_krylov_dim(this->get_krylov_dim())
+        .with_restart_tol(this->get_restart_tol())
         .with_flexible(this->get_parameters().flexible)
         .on(this->get_executor())
         ->generate(
@@ -117,6 +123,7 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_krylov_dim(this->get_krylov_dim())
+        .with_restart_tol(this->get_restart_tol())
         .with_flexible(this->get_parameters().flexible)
         .on(this->get_executor())
         ->generate(share(
@@ -402,6 +409,54 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto& final_iter_nums = this->template create_workspace_array<size_type>(
         ws::final_iter_nums, num_rhs);
 
+    // Tolerance-based restart, disabled by restart_tol == 0.
+    const auto restart_tol = this->get_restart_tol();
+    const bool use_restart_tol =
+        restart_tol > zero<remove_complex<ValueType>>();
+    // With one rhs the loop has already been left if it stopped, so the
+    // synchronizing copy of its status is not needed.
+    const bool need_host_stop_status = use_restart_tol && num_rhs > 1;
+    std::unique_ptr<NormVector> host_residual_norm;
+    std::vector<remove_complex<ValueType>> cycle_start_norm;
+    array<stopping_status> host_stop_status(exec->get_master());
+    if (use_restart_tol) {
+        host_residual_norm =
+            NormVector::create(exec->get_master(), dim<2>{1, num_rhs});
+        cycle_start_norm.resize(num_rhs, zero<remove_complex<ValueType>>());
+        if (need_host_stop_status) {
+            host_stop_status.resize_and_reset(num_rhs);
+        }
+    }
+    auto record_cycle_start = [&] {
+        if (use_restart_tol) {
+            host_residual_norm->copy_from(residual_norm);
+            for (size_type i = 0; i < num_rhs; ++i) {
+                cycle_start_norm[i] = host_residual_norm->at(0, i);
+            }
+        }
+    };
+    // ||r_i - A d_i|| <= restart_tol * ||r_i|| for every unstopped rhs.
+    auto cycle_tolerance_met = [&] {
+        if (!use_restart_tol) {
+            return false;
+        }
+        host_residual_norm->copy_from(residual_norm);
+        if (need_host_stop_status) {
+            host_stop_status = stop_status;
+        }
+        for (size_type i = 0; i < num_rhs; ++i) {
+            if (need_host_stop_status &&
+                host_stop_status.get_const_data()[i].has_stopped()) {
+                continue;
+            }
+            if (!(host_residual_norm->at(0, i) <=
+                  restart_tol * cycle_start_norm[i])) {
+                return false;
+            }
+        }
+        return true;
+    };
+
     // Initialization
     // residual = dense_b
     // givens_sin = givens_cos = 0
@@ -425,6 +480,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         residual_norm_collection->get_device_view(),
         gko::detail::get_local(krylov_bases)->get_device_view(),
         final_iter_nums.get_data()));
+    record_cycle_start();
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -433,6 +489,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     int total_iter = -1;
     size_type restart_iter = 0;
+    bool perform_reset = false;
 
     /* Memory movement summary for average iteration with krylov_dim d:
      * (5/2d+21/2+14/d)n * values + (1+1/d) * matrix/preconditioner storage
@@ -468,8 +525,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             break;
         }
 
-        if (restart_iter == krylov_dim) {
+        if (restart_iter == krylov_dim || perform_reset) {
             // Restart
+            perform_reset = false;
             // Solve upper triangular.
             // y = hessenberg \ residual_norm_collection
             exec->run(gmres::make_solve_krylov(
@@ -506,6 +564,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 gko::detail::get_local(krylov_bases)->get_device_view(),
                 final_iter_nums.get_data()));
             restart_iter = 0;
+            record_cycle_start();
         }
         auto this_krylov = krylov_bases->create_submatrix(
             local_span{local_num_rows * restart_iter,
@@ -601,6 +660,11 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             final_iter_nums.get_data(), stop_status.get_const_data()));
 
         restart_iter++;
+
+        // The restart is then taken at the top of the next iteration.
+        if (restart_iter < krylov_dim && cycle_tolerance_met()) {
+            perform_reset = true;
+        }
     }
 
     auto hessenberg_small = hessenberg->create_submatrix(

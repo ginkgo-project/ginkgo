@@ -120,14 +120,64 @@ public:
      */
     void set_krylov_dim(size_type other) { parameters_.krylov_dim = other; }
 
+    /**
+     * Returns the restart tolerance.
+     *
+     * @return the restart tolerance
+     */
+    remove_complex<ValueType> get_restart_tol() const
+    {
+        return parameters_.restart_tol;
+    }
+
+    /**
+     * Sets the restart tolerance.
+     *
+     * @param other  the new restart tolerance
+     */
+    void set_restart_tol(remove_complex<ValueType> other)
+    {
+        parameters_.restart_tol = other;
+    }
+
 
     class Factory;
 
     struct parameters_type
         : enable_preconditioned_iterative_solver_factory_parameters<
               parameters_type, Factory> {
-        /** Krylov subspace dimension/restart value. */
+        /**
+         * Krylov subspace dimension/restart value.
+         *
+         * With restart_tol positive this is a cap on the basis size rather than
+         * the restart length, and a cycle ends at whichever criterion is met
+         * first.
+         */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
+
+        /**
+         * Restart tolerance.
+         *
+         * If positive, a cycle ends as soon as
+         * \f$ \|r_i - A d_i\| \leq \text{restart\_tol} \cdot \|r_i\| \f$
+         * holds for every right-hand side that has not already stopped, where
+         * \f$r_i\f$ is the residual at the start of the cycle. Since
+         * \f$\|A\|_F \|d_i\| \geq 0\f$ enlarges the denominator of the
+         * backward error, this bounds the normwise backward error of the
+         * correction by restart_tol, which is what admits a backward error
+         * analysis of the restarted method.
+         *
+         * Must lie in [0, 1), with 0.9 to 0.95 the useful range. Well below one
+         * the test is only met after the cycle has done most of the work of a
+         * full solve, so krylov_dim governs the restart again. Close to one the
+         * cycles are too short for the subspace to make progress; at exactly
+         * one the non-increasing GMRES residual satisfies the test at every
+         * iteration, so values outside [0, 1) are rejected.
+         *
+         * Zero, the default, disables the criterion.
+         */
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(restart_tol,
+                                                               0.0);
 
         /** Flexible GMRES */
         bool GKO_FACTORY_PARAMETER_SCALAR(flexible, false);
@@ -180,6 +230,12 @@ protected:
     {
         if (!parameters_.krylov_dim) {
             parameters_.krylov_dim = gmres_default_krylov_dim;
+        }
+        if (parameters_.restart_tol < zero<remove_complex<ValueType>>() ||
+            parameters_.restart_tol >= one<remove_complex<ValueType>>()) {
+            GKO_INVALID_STATE(
+                "restart_tol must lie in [0, 1); zero disables the criterion "
+                "and values close to but below one are the useful range");
         }
     }
 };
