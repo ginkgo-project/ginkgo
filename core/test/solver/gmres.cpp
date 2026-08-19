@@ -171,6 +171,78 @@ TYPED_TEST(Gmres, CanSetKrylovDimAgain)
 }
 
 
+TYPED_TEST(Gmres, RestartTolIsZeroByDefault)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    auto gmres_factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    auto solver = gmres_factory->generate(this->mtx);
+
+    ASSERT_EQ(solver->get_restart_tol(), real_type{0});
+}
+
+
+TYPED_TEST(Gmres, CanSetRestartTol)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    const real_type new_restart_tol{0.9};
+
+    auto gmres_factory =
+        Solver::build()
+            .with_restart_tol(new_restart_tol)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    auto solver = gmres_factory->generate(this->mtx);
+
+    ASSERT_EQ(solver->get_restart_tol(), new_restart_tol);
+}
+
+
+TYPED_TEST(Gmres, CanSetRestartTolAgain)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    const real_type new_restart_tol{0.95};
+    auto gmres_factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    auto solver = gmres_factory->generate(this->mtx);
+
+    solver->set_restart_tol(new_restart_tol);
+
+    ASSERT_EQ(solver->get_restart_tol(), new_restart_tol);
+}
+
+
+TYPED_TEST(Gmres, RejectsRestartTolOutsideUnitInterval)
+{
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using real_type = gko::remove_complex<value_type>;
+    auto build_with = [this](real_type tol) {
+        return Solver::build()
+            .with_restart_tol(tol)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    };
+
+    ASSERT_THROW(build_with(real_type{1.0})->generate(this->mtx),
+                 gko::InvalidStateError);
+    ASSERT_THROW(build_with(real_type{2.0})->generate(this->mtx),
+                 gko::InvalidStateError);
+    ASSERT_THROW(build_with(-real_type{0.5})->generate(this->mtx),
+                 gko::InvalidStateError);
+}
+
+
 TYPED_TEST(Gmres, CanSetPreconditionerInFactory)
 {
     using Solver = typename TestFixture::Solver;

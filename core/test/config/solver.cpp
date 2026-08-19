@@ -300,6 +300,8 @@ struct Gmres
                                                    exec);
         config_map["krylov_dim"] = pnode{3};
         param.with_krylov_dim(3u);
+        config_map["restart_tol"] = pnode{0.9};
+        param.with_restart_tol(decltype(param.restart_tol){0.9});
         config_map["flexible"] = pnode{true};
         param.with_flexible(true);
         config_map["ortho_method"] = pnode{"cgs"};
@@ -314,6 +316,7 @@ struct Gmres
 
         solver_config_test::template validate<from_reg>(result, answer);
         ASSERT_EQ(res_param.krylov_dim, ans_param.krylov_dim);
+        ASSERT_EQ(res_param.restart_tol, ans_param.restart_tol);
         ASSERT_EQ(res_param.flexible, ans_param.flexible);
         ASSERT_EQ(res_param.ortho_method, ans_param.ortho_method);
     }
