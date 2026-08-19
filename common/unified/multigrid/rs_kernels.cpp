@@ -88,17 +88,17 @@ void compute_soc_and_run_rs(
         [theta] GKO_KERNEL(auto i, auto row_ptrs, auto col_idxs, auto vals,
                            auto is_strong_vals) {
             auto max_offdiag = zero<decltype(real(vals[0]))>();
-            using real_t = decltype(max_offdiag);
-            const auto theta_cast = static_cast<real_t>(theta);
             for (auto jj = row_ptrs[i]; jj < row_ptrs[i + 1]; ++jj) {
                 if (col_idxs[jj] != i) {
                     max_offdiag = gko::max(max_offdiag, -real(vals[jj]));
                 }
             }
+            const auto threshold = theta * static_cast<double>(max_offdiag);
             for (auto jj = row_ptrs[i]; jj < row_ptrs[i + 1]; ++jj) {
                 const auto j = col_idxs[jj];
                 is_strong_vals[jj] =
-                    (j != i && -real(vals[jj]) >= theta_cast * max_offdiag);
+                    (j != i &&
+                     static_cast<double>(-real(vals[jj])) >= threshold);
             }
         },
         n, a_row_ptrs, a_col_idxs, a_vals, is_strong_vals);
@@ -138,14 +138,16 @@ void compute_soc_and_run_rs(
         array<IndexType> h_lambda(host_exec, needs_copy ? n : 0);
         array<IndexType> h_cf(host_exec, needs_copy ? n : 0);
 
-        // alternatives on host, initialise with these pointers first
-        const auto* hr_ptrs = a_row_ptrs;
-        const auto* hc_idxs = a_col_idxs;
-        const auto* h_is_str = is_strong.get_const_data();
-        auto* h_lam = lambda_vals;
-        auto* h_cf_v = cf;
+        // the pointers the sequential loop below dereferences on the host.
+        // for a device executor they always point into the host mirrors above,
+        // filled by explicit device-to-host copies; only for a host executor
+        // do they alias the original data, and then no copy happens at all.
+        const IndexType* hr_ptrs{};
+        const IndexType* hc_idxs{};
+        const bool* h_is_str{};
+        IndexType* h_lam{};
+        IndexType* h_cf_v{};
 
-        // Copy device arrays to host if needed
         if (needs_copy) {
             host_exec->copy_from(exec, n + 1, a_row_ptrs,
                                  h_row_ptrs.get_data());
@@ -160,6 +162,12 @@ void compute_soc_and_run_rs(
             h_is_str = h_is_strong.get_const_data();
             h_lam = h_lambda.get_data();
             h_cf_v = h_cf.get_data();
+        } else {
+            hr_ptrs = a_row_ptrs;
+            hc_idxs = a_col_idxs;
+            h_is_str = is_strong.get_const_data();
+            h_lam = lambda_vals;
+            h_cf_v = cf;
         }
 
         while (true) {
