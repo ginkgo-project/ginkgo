@@ -336,3 +336,42 @@ TEST_F(Pgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
                         r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_row_gather_view, row_gather_view);
 }
+
+
+TEST_F(Pgm, GenerateMgLevelWithoutSymmetrizationIsEquivalentOnHpd)
+{
+    initialize_data();
+    auto d_mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
+                                  .with_deterministic(true)
+                                  .with_skip_sorting(true)
+                                  .with_weight_symmetrization(true)
+                                  .on(exec);
+    auto d_mg_level_factory_wo_sym =
+        gko::multigrid::Pgm<value_type, int>::build()
+            .with_deterministic(true)
+            .with_skip_sorting(true)
+            .with_weight_symmetrization(false)
+            .on(exec);
+
+    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx->clone());
+    auto d_mg_level_wo_sym = d_mg_level_factory_wo_sym->generate(d_system_mtx);
+    auto d_row_gatherer = gko::as<RowGatherer>(d_mg_level->get_prolong_op());
+    auto d_row_gatherer_wo_sym =
+        gko::as<RowGatherer>(d_mg_level_wo_sym->get_prolong_op());
+    auto d_row_gather_view = gko::array<index_type>::const_view(
+        d_row_gatherer->get_executor(), d_row_gatherer->get_size()[0],
+        d_row_gatherer->get_const_row_idxs());
+    auto d_row_gather_view_wo_sym = gko::array<index_type>::const_view(
+        d_row_gatherer_wo_sym->get_executor(),
+        d_row_gatherer_wo_sym->get_size()[0],
+        d_row_gatherer_wo_sym->get_const_row_idxs());
+
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<SparsityCsr>(d_mg_level_wo_sym->get_restrict_op()),
+        gko::as<SparsityCsr>(d_mg_level->get_restrict_op()),
+        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level_wo_sym->get_coarse_op()),
+                        gko::as<Csr>(d_mg_level->get_coarse_op()),
+                        r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(d_row_gather_view, d_row_gather_view_wo_sym);
+}
