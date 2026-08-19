@@ -32,7 +32,9 @@ void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
     const auto col_idxs = matrix->get_const_col_idxs();
     const auto values = matrix->get_const_values();
 
-    array<bool> d_result(exec, 1);
+    // reduce into a 0/1 integer bc the reduction needs a type
+    // with well-defined arithmetic/shuffle support on all backends
+    array<int32> d_result(exec, 1);
     run_kernel_reduction(
         exec,
         [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs, auto values) {
@@ -49,13 +51,16 @@ void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
                     if (val > zero<real_t>()) valid = false;
                 }
             }
-            return valid && has_diag;
+            return (valid && has_diag) ? int32{1} : int32{0};
         },
-        [] GKO_KERNEL(auto a, auto b) { return a && b; },
-        [] GKO_KERNEL(auto a) { return a; }, true, is_m_matrix_array.get_data(),
+        // logical AND on 0/1 values, again just seems to be a stable operation
+        [] GKO_KERNEL(auto a, auto b) { return a * b; },
+        [] GKO_KERNEL(auto a) { return a; }, int32{1}, d_result.get_data(),
         num_rows, row_ptrs, col_idxs, values);
 
-    is_m_matrix_array.get_data()[0] = get_element(d_result, 0);
+    const bool is_m_matrix = get_element(d_result, 0) != 0;
+    exec->copy_from(exec->get_master(), 1, &is_m_matrix,
+                    is_m_matrix_array.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -122,23 +127,33 @@ void compute_soc_and_run_rs(
     {
         auto host_exec = exec->get_master();
         const auto nnz = A->get_num_stored_elements();
+        const bool needs_copy = exec != host_exec;
+
+        // host mirrors of the device data: these must outlive the coarsening
+        // loop below, so they are declared in its scope (empty when exec
+        // already is a host executor)
+        array<IndexType> h_row_ptrs(host_exec, needs_copy ? n + 1 : 0);
+        array<IndexType> h_col_idxs(host_exec, needs_copy ? nnz : 0);
+        array<bool> h_is_strong(host_exec, needs_copy ? nnz : 0);
+        array<IndexType> h_lambda(host_exec, needs_copy ? n : 0);
+        array<IndexType> h_cf(host_exec, needs_copy ? n : 0);
 
         // alternatives on host, initialise with these pointers first
         const auto* hr_ptrs = a_row_ptrs;
         const auto* hc_idxs = a_col_idxs;
         const auto* h_is_str = is_strong.get_const_data();
-        auto* h_lam = lambda.get_data();
-        auto* h_cf_v = cf_marker.get_data();
+        auto* h_lam = lambda_vals;
+        auto* h_cf_v = cf;
 
         // Copy device arrays to host if needed
-        if (exec != host_exec) {
-            array<IndexType> h_row_ptrs(host_exec, a_row_ptrs,
-                                        a_row_ptrs + n + 1);
-            array<IndexType> h_col_idxs(host_exec, a_col_idxs,
-                                        a_col_idxs + nnz);
-            array<bool> h_is_strong(host_exec, is_strong);
-            array<IndexType> h_lambda(host_exec, lambda);
-            array<IndexType> h_cf(host_exec, cf_marker);
+        if (needs_copy) {
+            host_exec->copy_from(exec, n + 1, a_row_ptrs,
+                                 h_row_ptrs.get_data());
+            host_exec->copy_from(exec, nnz, a_col_idxs, h_col_idxs.get_data());
+            host_exec->copy_from(exec, nnz, is_strong.get_const_data(),
+                                 h_is_strong.get_data());
+            host_exec->copy_from(exec, n, lambda_vals, h_lambda.get_data());
+            host_exec->copy_from(exec, n, cf, h_cf.get_data());
 
             hr_ptrs = h_row_ptrs.get_const_data();
             hc_idxs = h_col_idxs.get_const_data();
@@ -174,9 +189,13 @@ void compute_soc_and_run_rs(
             }
         }
 
-        // Copy results back to device
-        cf_marker = array<IndexType>(exec, cf_marker.get_size(), h_cf_v);
-        cf = cf_marker.get_data();
+        // Copy results back to device. Never rebind cf_marker/lambda to
+        // borrowed memory here: the array constructor takes ownership of the
+        // pointer, which would free the buffer that is still in use.
+        if (needs_copy) {
+            exec->copy_from(host_exec, n, h_cf_v, cf);
+            exec->copy_from(host_exec, n, h_lam, lambda_vals);
+        }
     }
 
     /// 5. CLEANUP, MAKE SURE NO UNDECIDED REMAIN
