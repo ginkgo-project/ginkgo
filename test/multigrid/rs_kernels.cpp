@@ -93,7 +93,8 @@ TEST_F(Rs, CheckMMatrixIsEquivalentToRef)
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::check_m_matrix(
         exec, d_m_matrix.get(), is_m_exec);
     EXPECT_TRUE(is_m_ref.get_const_data()[0]);
-    EXPECT_TRUE(is_m_exec.get_const_data()[0]);
+    // is_m_exec may live in device memory, it cannot be dereferenced on host
+    EXPECT_TRUE(exec->copy_val_to_host(is_m_exec.get_const_data()));
 
     // Test on an invalid M-matrix
     gko::kernels::reference::rs::check_m_matrix(ref, non_m_matrix.get(),
@@ -101,7 +102,7 @@ TEST_F(Rs, CheckMMatrixIsEquivalentToRef)
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::check_m_matrix(
         exec, d_non_m_matrix.get(), is_m_exec);
     EXPECT_FALSE(is_m_ref.get_const_data()[0]);
-    EXPECT_FALSE(is_m_exec.get_const_data()[0]);
+    EXPECT_FALSE(exec->copy_val_to_host(is_m_exec.get_const_data()));
 }
 
 

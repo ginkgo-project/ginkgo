@@ -35,6 +35,7 @@ void check_m_matrix(std::shared_ptr<const ReferenceExecutor> exec,
     const auto values = matrix.values;
 
     auto is_m_matrix = is_m_matrix_array.get_data();
+    *is_m_matrix = true;
 
     for (size_type row = 0; row < num_rows; ++row) {
         bool has_diag = false;
