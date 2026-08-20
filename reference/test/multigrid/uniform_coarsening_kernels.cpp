@@ -70,9 +70,9 @@ protected:
                I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
               exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
-                          std::make_shared<typename Mtx::classical>())),
+                          gko::matrix::csr::spmv_strategy::classical)),
           coarse(Mtx::create(exec, gko::dim<2>(3, 3), 7,
-                             std::make_shared<typename Mtx::classical>())),
+                             gko::matrix::csr::spmv_strategy::classical)),
           coarse_rows(exec, 5)
     {
         this->create_mtx(mtx.get(), &coarse_rows, coarse.get());
@@ -375,9 +375,9 @@ protected:
                I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
               exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
-                          std::make_shared<typename Mtx::classical>())),
+                          gko::matrix::csr::spmv_strategy::classical)),
           coarse(Mtx::create(exec, gko::dim<2>(3, 3), 9,
-                             std::make_shared<typename Mtx::classical>())),
+                             gko::matrix::csr::spmv_strategy::classical)),
           coarse_rows(exec, 5)
     {
         // Expected aggregates for coarse_skip=2, num_rows=5: every fine row
