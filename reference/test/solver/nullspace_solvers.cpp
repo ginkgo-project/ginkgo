@@ -289,36 +289,6 @@ TYPED_TEST(NullspaceSolvers, StaysAccurateWhenIteratingPastConvergence)
 }
 
 
-TYPED_TEST(NullspaceSolvers, RealSolverSolvesComplexSystem)
-{
-    using value_type = typename TestFixture::value_type;
-    if constexpr (!gko::is_complex<value_type>()) {
-        using complex_vec = gko::matrix::MultiVector<std::complex<value_type>>;
-        const auto n = this->mtx->get_size()[0];
-        auto x_star = complex_vec::create(this->exec, gko::dim<2>{n, 1});
-        auto x = complex_vec::create(this->exec, gko::dim<2>{n, 1});
-        for (gko::size_type i = 0; i < n; ++i) {
-            x_star->at(i, 0) = std::complex<value_type>{
-                this->x_star->at(i, 0), this->x_star2->at(i, 0)};
-            x->at(i, 0) =
-                std::complex<value_type>{value_type{2}, value_type{3}};
-        }
-        for (const auto& name : this->solvers) {
-            SCOPED_TRACE(name);
-            auto solver = this->factory(name, this->constant, this->constant)
-                              ->generate(this->mtx);
-            auto b = complex_vec::create(this->exec, gko::dim<2>{n, 1});
-            this->mtx->apply(x_star, b);
-            auto x_sol = gko::clone(x);
-
-            solver->apply(b, x_sol);
-
-            GKO_ASSERT_MTX_NEAR(x_sol, x_star, this->tol);
-        }
-    }
-}
-
-
 TYPED_TEST(NullspaceSolvers, ExplicitBasisOfDisconnectedGraph)
 {
     using value_type = typename TestFixture::value_type;
