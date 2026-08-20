@@ -183,9 +183,20 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
     // omega = 1
     omega->fill(one<SubspaceType>());
 
+    // Use real view for matrix and preconditioner apply if the value type of
+    // the solver is real and the complex subspace option is enabled
+    auto maybe_real_view = [](auto ptr) {
+        if constexpr (is_complex<SubspaceType>() && !is_complex<value_type>()) {
+            return ptr->create_real_view();
+        } else {
+            return ptr;
+        }
+    };
+
     // residual = b - Ax
     residual->copy_from(dense_b);
-    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
+    this->get_system_matrix()->apply(neg_one_op, maybe_real_view(dense_x),
+                                     one_op, maybe_real_view(residual));
     residual->compute_norm2(residual_norm, reduction_tmp);
 
     // g = u = 0
@@ -247,7 +258,8 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                 residual->get_const_device_view(), g->get_const_device_view(),
                 c->get_device_view(), v->get_device_view(), stop_status));
 
-            this->get_preconditioner()->apply(v, helper);
+            this->get_preconditioner()->apply(maybe_real_view(v),
+                                              maybe_real_view(helper));
 
             // u_k = omega * precond_vector + sum i=[k,s) of (c_i * u_i)
             exec->run(idr::make_step_2(nrhs, k, omega->get_const_device_view(),
@@ -259,7 +271,8 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                                          local_span{k * nrhs, (k + 1) * nrhs});
 
             // g_k = Au_k
-            this->get_system_matrix()->apply(u_k, helper);
+            this->get_system_matrix()->apply(maybe_real_view(u_k.get()),
+                                             maybe_real_view(helper));
 
             // for i = [0,k)
             //     alpha = p^H_i * g_k / m_i,i
@@ -283,8 +296,10 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
                 stop_status));
         }
 
-        this->get_preconditioner()->apply(residual, helper);
-        this->get_system_matrix()->apply(helper, t);
+        this->get_preconditioner()->apply(maybe_real_view(residual),
+                                          maybe_real_view(helper));
+        this->get_system_matrix()->apply(maybe_real_view(helper),
+                                         maybe_real_view(t));
 
         t->compute_conj_dot(residual, omega, reduction_tmp);
         t->compute_conj_dot(t, tht, reduction_tmp);
