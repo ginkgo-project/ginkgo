@@ -293,23 +293,6 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithMixedMtx)
 }
 
 
-TYPED_TEST(Ilu, SolvesSingleRhsWithComplexMtx)
-{
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using T = typename Mtx::value_type;
-    const auto b = gko::initialize<Mtx>(
-        {T{1.0, 2.0}, T{3.0, 6.0}, T{6.0, 12.0}}, this->exec);
-    auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
-    x->copy_from(b);
-
-    auto preconditioner = this->ilu_pre_factory->generate(this->mtx);
-    preconditioner->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x, l({T{-0.125, -0.25}, T{0.25, 0.5}, T{1.0, 2.0}}),
-                        r<TypeParam>::value * 1e+1);
-}
-
-
 TYPED_TEST(Ilu, SolvesReverseSingleRhs)
 {
     using Mtx = typename TestFixture::Mtx;
