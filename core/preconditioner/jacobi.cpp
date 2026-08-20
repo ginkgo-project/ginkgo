@@ -9,7 +9,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/config/config.hpp>
@@ -18,6 +17,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/base/utils.hpp"
 #include "core/config/config_helper.hpp"
@@ -148,21 +148,19 @@ Jacobi<ValueType, IndexType>::Jacobi(Jacobi&& other)
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Jacobi<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                              AbstractMultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
+    apply_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x) {
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_simple_scalar_apply(
-                    this->blocks_, dense_b->get_const_device_view(),
-                    dense_x->get_device_view()));
+                    this->blocks_, view_b, view_x));
             } else {
                 this->get_executor()->run(jacobi::make_simple_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
-                    parameters_.block_pointers, blocks_,
-                    dense_b->get_const_device_view(),
-                    dense_x->get_device_view()));
+                    parameters_.block_pointers, blocks_, view_b, view_x));
             }
         },
         b, x);
@@ -170,27 +168,24 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                              const LinOp* b, const LinOp* beta,
-                                              LinOp* x) const
+void Jacobi<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                              const AbstractMultiVector* b,
+                                              const AbstractMultiVector* beta,
+                                              AbstractMultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+    apply_precision_dispatch<ValueType>(
+        [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x) {
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_scalar_apply(
-                    this->blocks_, dense_alpha->get_const_device_view(),
-                    dense_b->get_const_device_view(),
-                    dense_beta->get_const_device_view(),
-                    dense_x->get_device_view()));
+                    this->blocks_, dense_alpha->get_const_device_view(), view_b,
+                    dense_beta->get_const_device_view(), view_x));
             } else {
                 this->get_executor()->run(jacobi::make_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
                     parameters_.block_pointers, blocks_,
-                    dense_alpha->get_const_device_view(),
-                    dense_b->get_const_device_view(),
-                    dense_beta->get_const_device_view(),
-                    dense_x->get_device_view()));
+                    dense_alpha->get_const_device_view(), view_b,
+                    dense_beta->get_const_device_view(), view_x));
             }
         },
         alpha, b, beta, x);
