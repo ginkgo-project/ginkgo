@@ -6,7 +6,6 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
@@ -15,7 +14,6 @@
 #include "core/base/utils.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/factorization/factorization_kernels.hpp"
-#include "core/matrix/csr_builder.hpp"
 #include "core/preconditioner/sor_kernels.hpp"
 
 namespace gko {
