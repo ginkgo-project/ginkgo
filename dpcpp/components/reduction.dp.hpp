@@ -179,7 +179,7 @@ void reduce_add_array(size_type size, const ValueType* __restrict__ source,
                       sycl::local_accessor<ValueType, 1> block_sum)
 {
     reduce_array<DeviceConfig::subgroup_size>(
-        size, source, block_sum, item_ct1,
+        size, source, &block_sum[0], item_ct1,
         [](const ValueType& x, const ValueType& y) { return x + y; });
 
     if (item_ct1.get_local_id(2) == 0) {
