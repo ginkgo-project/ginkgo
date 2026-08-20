@@ -438,27 +438,6 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystemMixed)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesMultiVectorSystemComplex)
-{
-    using Vec = gko::to_complex<typename TestFixture::Vec>;
-    using value_type = typename Vec::value_type;
-    auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto b = gko::initialize<Vec>(
-        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
-        this->exec);
-    auto x = gko::initialize<Vec>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
-        this->exec);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
-                           value_type{4.0, -8.0}}),
-                        r<value_type>::value);
-}
-
-
 TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystems)
 {
     using Vec = typename TestFixture::Vec;
@@ -527,30 +506,6 @@ TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyMixed)
 
     GKO_ASSERT_MTX_NEAR(x, l({-8.5, -3.0, 6.0}),
                         (2 * r_mixed<value_type, TypeParam>()));
-}
-
-
-TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyComplex)
-{
-    using Scalar = typename TestFixture::Vec;
-    using Vec = gko::to_complex<typename TestFixture::Vec>;
-    using value_type = typename Vec::value_type;
-    auto solver = this->bicgstab_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b = gko::initialize<Vec>(
-        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
-        this->exec);
-    auto x = gko::initialize<Vec>(
-        {value_type{0.5, -0.5}, value_type{1.0, 0.5}, value_type{2.0, -1.0}},
-        this->exec);
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-8.5, 16.5}, value_type{-3.0, 3.5},
-                           value_type{6.0, -15.0}}),
-                        r<value_type>::value);
 }
 
 

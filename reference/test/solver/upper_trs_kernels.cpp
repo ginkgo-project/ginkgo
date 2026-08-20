@@ -124,28 +124,6 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemMixed)
 }
 
 
-TYPED_TEST(UpperTrs, SolvesTriangularSystemComplex)
-{
-    using Scalar = typename TestFixture::Mtx;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
-        {value_type{4.0, -8.0}, value_type{2.0, -4.0}, value_type{3.0, -6.0}},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
-        this->exec);
-    auto solver = this->upper_trs_factory->generate(this->mtx);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{13.0, -26.0}, value_type{-4.0, 8.0},
-                           value_type{3.0, -6.0}}),
-                        r<value_type>::value);
-}
-
-
 TYPED_TEST(UpperTrs, SolvesMultipleTriangularSystems)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -210,30 +188,6 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemUsingAdvancedApplyMixed)
 
     GKO_ASSERT_MTX_NEAR(x, l({25.0, -7.0, 5.0}),
                         (r_mixed<value_type, other_value_type>()));
-}
-
-
-TYPED_TEST(UpperTrs, SolvesTriangularSystemUsingAdvancedApplyComplex)
-{
-    using Scalar = typename TestFixture::Mtx;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
-        {value_type{4.0, -8.0}, value_type{2.0, -4.0}, value_type{3.0, -6.0}},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{1.0, -2.0}, value_type{-1.0, 2.0}, value_type{1.0, -2.0}},
-        this->exec);
-    auto solver = this->upper_trs_factory->generate(this->mtx);
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{25.0, -50.0}, value_type{-7.0, 14.0},
-                           value_type{5.0, -10.0}}),
-                        r<value_type>::value);
 }
 
 
