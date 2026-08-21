@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -334,15 +334,14 @@ void build_children_from_parents(
 
 template <typename ValueType, typename IndexType>
 void from_factor(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::Csr<ValueType, IndexType>* factors,
+                 matrix::view::csr<const ValueType, const IndexType> factors,
                  gko::factorization::elimination_forest<IndexType>& forest)
 {
-    const auto num_rows = factors->get_size()[0];
+    const auto num_rows = factors.size[0];
     const auto it = thrust::make_counting_iterator(IndexType{});
     thrust::transform(
         thrust_policy(exec), it, it + num_rows, forest.parents.get_data(),
-        [row_ptrs = factors->get_const_row_ptrs(),
-         col_idxs = factors->get_const_col_idxs(),
+        [row_ptrs = factors.row_ptrs, col_idxs = factors.col_idxs,
          num_rows] __device__(IndexType l_col) {
             const auto llt_row_begin = row_ptrs[l_col];
             const auto llt_row_end = row_ptrs[l_col + 1];

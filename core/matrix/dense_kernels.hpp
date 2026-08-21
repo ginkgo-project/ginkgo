@@ -154,7 +154,7 @@ namespace kernels {
 #define GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL(ValueType, IndexType) \
     void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,  \
                         matrix::view::dense<const ValueType> source,  \
-                        matrix::Csr<ValueType, IndexType>* other)
+                        matrix::view::csr<ValueType, IndexType> other)
 
 #define GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL(ValueType, IndexType) \
     void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,  \

@@ -142,7 +142,8 @@ struct ParIlutState {
         u_new_csc = CsrMatrix::create(exec, mtx_size);
         l_coo = CooMatrix::create(exec, mtx_size);
         u_coo = CooMatrix::create(exec, mtx_size);
-        exec->run(make_csr_transpose(u.get(), u_csc.get()));
+        exec->run(make_csr_transpose(u->get_const_device_view(),
+                                     u_csc->get_device_view()));
     }
 
     std::unique_ptr<Composition<ValueType>> to_factors() &&
@@ -216,8 +217,8 @@ ParIlut<ValueType, IndexType>::generate_l_u(
     array<IndexType> u_row_ptrs_array{exec, num_rows + 1};
     auto l_row_ptrs = l_row_ptrs_array.get_data();
     auto u_row_ptrs = u_row_ptrs_array.get_data();
-    exec->run(make_initialize_row_ptrs_l_u(csr_system_matrix.get(), l_row_ptrs,
-                                           u_row_ptrs));
+    exec->run(make_initialize_row_ptrs_l_u(
+        csr_system_matrix->get_const_device_view(), l_row_ptrs, u_row_ptrs));
 
     auto l_nnz =
         static_cast<size_type>(get_element(l_row_ptrs_array, num_rows));
@@ -233,7 +234,8 @@ ParIlut<ValueType, IndexType>::generate_l_u(
                                std::move(u_row_ptrs_array));
 
     // initialize L and U
-    exec->run(make_initialize_l_u(csr_system_matrix.get(), l.get(), u.get()));
+    exec->run(make_initialize_l_u(csr_system_matrix->get_const_device_view(),
+                                  l->get_device_view(), u->get_device_view()));
 
     // compute limit #nnz for L and U
     auto l_nnz_limit =
@@ -263,12 +265,16 @@ template <typename ValueType, typename IndexType>
 void ParIlutState<ValueType, IndexType>::iterate()
 {
     // compute L * U
-    exec->run(make_spgemm(l.get(), u.get(), make_builder_unique_ptr(lu).get()));
+    exec->run(make_spgemm(l->get_const_device_view(),
+                          u->get_const_device_view(),
+                          make_builder_unique_ptr(lu).get()));
 
     // add new candidates to L' and U' factors
-    exec->run(make_add_candidates(lu.get(), system_matrix, l.get(), u.get(),
-                                  make_builder_unique_ptr(l_new).get(),
-                                  make_builder_unique_ptr(u_new).get()));
+    exec->run(make_add_candidates(
+        lu->get_const_device_view(), system_matrix->get_const_device_view(),
+        l->get_const_device_view(), u->get_const_device_view(),
+        make_builder_unique_ptr(l_new).get(),
+        make_builder_unique_ptr(u_new).get()));
 
     // update U'(CSC), L'(COO), U'(COO) sizes and pointers
     {
@@ -294,7 +300,8 @@ void ParIlutState<ValueType, IndexType>::iterate()
     }
 
     // convert U' into CSC format
-    exec->run(make_csr_transpose(u_new.get(), u_new_csc.get()));
+    exec->run(make_csr_transpose(u_new->get_const_device_view(),
+                                 u_new_csc->get_device_view()));
 
     // convert L' and U' into COO format
     exec->run(make_convert_ptrs_to_idxs(l_new->get_const_row_ptrs(),
@@ -306,8 +313,9 @@ void ParIlutState<ValueType, IndexType>::iterate()
 
     // execute asynchronous iteration
     exec->run(make_compute_l_u_factors(
-        system_matrix, l_new.get(), l_coo->get_const_device_view(), u_new.get(),
-        u_coo->get_const_device_view(), u_new_csc.get()));
+        system_matrix->get_const_device_view(), l_new->get_device_view(),
+        l_coo->get_const_device_view(), u_new->get_device_view(),
+        u_coo->get_const_device_view(), u_new_csc->get_device_view()));
 
     // determine ranks for selection/filtering
     IndexType l_nnz = l_new->get_num_stored_elements();
@@ -321,37 +329,38 @@ void ParIlutState<ValueType, IndexType>::iterate()
     if (use_approx_select) {
         // remove approximately smallest candidates from L' and U'^T
         exec->run(make_threshold_filter_approx(
-            l_new.get(), l_filter_rank, selection_tmp, l_threshold,
-            make_builder_unique_ptr(l).get(), l_coo.get()));
+            l_new->get_const_device_view(), l_filter_rank, selection_tmp,
+            l_threshold, make_builder_unique_ptr(l).get(), l_coo.get()));
         exec->run(make_threshold_filter_approx(
-            u_new_csc.get(), u_filter_rank, selection_tmp, u_threshold,
-            make_builder_unique_ptr(u_csc).get(), null_coo));
+            u_new_csc->get_const_device_view(), u_filter_rank, selection_tmp,
+            u_threshold, make_builder_unique_ptr(u_csc).get(), null_coo));
     } else {
         // select threshold to remove smallest candidates
-        exec->run(make_threshold_select(l_new.get(), l_filter_rank,
-                                        selection_tmp, selection_tmp2,
-                                        l_threshold));
-        exec->run(make_threshold_select(u_new_csc.get(), u_filter_rank,
-                                        selection_tmp, selection_tmp2,
-                                        u_threshold));
+        exec->run(make_threshold_select(l_new->get_const_device_view(),
+                                        l_filter_rank, selection_tmp,
+                                        selection_tmp2, l_threshold));
+        exec->run(make_threshold_select(u_new_csc->get_const_device_view(),
+                                        u_filter_rank, selection_tmp,
+                                        selection_tmp2, u_threshold));
 
         // remove smallest candidates from L' and U'^T
-        exec->run(make_threshold_filter(l_new.get(), l_threshold,
-                                        make_builder_unique_ptr(l).get(),
-                                        l_coo.get(), true));
-        exec->run(make_threshold_filter(u_new_csc.get(), u_threshold,
-                                        make_builder_unique_ptr(u_csc).get(),
-                                        null_coo, true));
+        exec->run(make_threshold_filter(
+            l_new->get_const_device_view(), l_threshold,
+            make_builder_unique_ptr(l).get(), l_coo.get(), true));
+        exec->run(make_threshold_filter(
+            u_new_csc->get_const_device_view(), u_threshold,
+            make_builder_unique_ptr(u_csc).get(), null_coo, true));
     }
     // remove smallest candidates from U'
-    exec->run(make_threshold_filter(u_new.get(), u_threshold,
+    exec->run(make_threshold_filter(u_new->get_const_device_view(), u_threshold,
                                     make_builder_unique_ptr(u).get(),
                                     u_coo.get(), false));
 
     // execute asynchronous iteration
     exec->run(make_compute_l_u_factors(
-        system_matrix, l.get(), l_coo->get_const_device_view(), u.get(),
-        u_coo->get_const_device_view(), u_csc.get()));
+        system_matrix->get_const_device_view(), l->get_device_view(),
+        l_coo->get_const_device_view(), u->get_device_view(),
+        u_coo->get_const_device_view(), u_csc->get_device_view()));
 }
 
 

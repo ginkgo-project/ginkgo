@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,16 +24,15 @@ namespace diagonal {
 template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const OmpExecutor> exec,
                   const matrix::Diagonal<ValueType>* a,
-                  const matrix::Csr<ValueType, IndexType>* b,
-                  matrix::Csr<ValueType, IndexType>* c, bool inverse)
+                  matrix::view::csr<const ValueType, const IndexType> b,
+                  matrix::view::csr<ValueType, IndexType> c, bool inverse)
 {
     const auto diag_values = a->get_const_values();
-    c->copy_from(b);
-    auto csr_values = c->get_values();
-    const auto csr_row_ptrs = c->get_const_row_ptrs();
+    auto csr_values = c.values;
+    const auto csr_row_ptrs = c.row_ptrs;
 
 #pragma omp parallel for
-    for (size_type row = 0; row < c->get_size()[0]; row++) {
+    for (size_type row = 0; row < c.size[0]; row++) {
         const auto scal =
             inverse ? one<ValueType>() / diag_values[row] : diag_values[row];
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];

@@ -70,7 +70,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const DpcppExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
     GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

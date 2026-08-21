@@ -239,23 +239,22 @@ __global__ __launch_bounds__(default_block_size) void symbolic_factorize_simple(
 
 template <typename ValueType, typename IndexType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType>* mtx,
+                matrix::view::csr<const ValueType, const IndexType> mtx,
                 const IndexType* factor_lookup_offsets,
                 const int64* factor_lookup_descs,
                 const int32* factor_lookup_storage, IndexType* diag_idxs,
-                matrix::Csr<ValueType, IndexType>* factors)
+                matrix::view::csr<ValueType, IndexType> factors)
 {
-    const auto num_rows = mtx->get_size()[0];
+    const auto num_rows = mtx.size[0];
     if (num_rows > 0) {
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
         kernel::initialize<<<num_blocks, default_block_size, 0,
                              exec->get_stream()>>>(
-            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            as_device_type(mtx->get_const_values()),
-            factors->get_const_row_ptrs(), factors->get_const_col_idxs(),
-            factor_lookup_offsets, factor_lookup_storage, factor_lookup_descs,
-            as_device_type(factors->get_values()), diag_idxs, num_rows);
+            mtx.row_ptrs, mtx.col_idxs, as_device_type(mtx.values),
+            factors.row_ptrs, factors.col_idxs, factor_lookup_offsets,
+            factor_lookup_storage, factor_lookup_descs,
+            as_device_type(factors.values), diag_idxs, num_rows);
     }
 }
 
@@ -266,10 +265,10 @@ template <typename ValueType, typename IndexType>
 void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
-               matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
-               array<int>& tmp_storage)
+               matrix::view::csr<ValueType, IndexType> factors,
+               bool full_fillin, array<int>& tmp_storage)
 {
-    const auto num_rows = factors->get_size()[0];
+    const auto num_rows = factors.size[0];
     if (num_rows > 0) {
         syncfree_storage storage(exec, tmp_storage, num_rows);
         const auto num_blocks =
@@ -277,17 +276,15 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
         if (full_fillin) {
             kernel::factorize<true>
                 <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                    factors->get_const_row_ptrs(),
-                    factors->get_const_col_idxs(), lookup_offsets,
+                    factors.row_ptrs, factors.col_idxs, lookup_offsets,
                     lookup_storage, lookup_descs, diag_idxs,
-                    as_device_type(factors->get_values()), storage, num_rows);
+                    as_device_type(factors.values), storage, num_rows);
         } else {
             kernel::factorize<false>
                 <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                    factors->get_const_row_ptrs(),
-                    factors->get_const_col_idxs(), lookup_offsets,
+                    factors.row_ptrs, factors.col_idxs, lookup_offsets,
                     lookup_storage, lookup_descs, diag_idxs,
-                    as_device_type(factors->get_values()), storage, num_rows);
+                    as_device_type(factors.values), storage, num_rows);
         }
     }
 }
@@ -300,12 +297,12 @@ void symbolic_factorize_simple(
     std::shared_ptr<const DefaultExecutor> exec, const IndexType* row_ptrs,
     const IndexType* col_idxs, const IndexType* lookup_offsets,
     const int64* lookup_descs, const int32* lookup_storage,
-    matrix::Csr<float, IndexType>* factors, IndexType* out_row_nnz)
+    matrix::view::csr<float, IndexType> factors, IndexType* out_row_nnz)
 {
-    const auto num_rows = factors->get_size()[0];
-    const auto factor_row_ptrs = factors->get_const_row_ptrs();
-    const auto factor_cols = factors->get_const_col_idxs();
-    const auto factor_vals = factors->get_values();
+    const auto num_rows = factors.size[0];
+    const auto factor_row_ptrs = factors.row_ptrs;
+    const auto factor_cols = factors.col_idxs;
+    const auto factor_vals = factors.values;
     array<IndexType> diag_idx_array{exec, num_rows};
     array<int> tmp_storage{exec};
     const auto diag_idxs = diag_idx_array.get_data();
@@ -345,16 +342,17 @@ struct return_second_functor {
 template <typename IndexType>
 void symbolic_factorize_simple_finalize(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<float, IndexType>* factors, IndexType* out_col_idxs)
+    matrix::view::csr<const float, const IndexType> factors,
+    IndexType* out_col_idxs)
 {
-    const auto col_idxs = factors->get_const_col_idxs();
-    const auto vals = factors->get_const_values();
+    const auto col_idxs = factors.col_idxs;
+    const auto vals = factors.values;
     const auto input_it =
         thrust::make_zip_iterator(thrust::make_tuple(vals, col_idxs));
     const auto output_it = thrust::make_transform_output_iterator(
         out_col_idxs, return_second_functor{});
     thrust::copy_if(thrust_policy(exec), input_it,
-                    input_it + factors->get_num_stored_elements(), output_it,
+                    input_it + factors.num_stored_elements, output_it,
                     first_eq_one_functor{});
 }
 

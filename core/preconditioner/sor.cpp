@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -105,7 +105,8 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
         array<index_type> l_row_ptrs{exec, size[0] + 1};
         array<index_type> u_row_ptrs{exec, size[0] + 1};
         exec->run(make_initialize_row_ptrs_l_u(
-            csr_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
+            csr_matrix->get_const_device_view(), l_row_ptrs.get_data(),
+            u_row_ptrs.get_data()));
         const auto l_nnz =
             static_cast<size_type>(get_element(l_row_ptrs, size[0]));
         const auto u_nnz =
@@ -121,9 +122,9 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
 
         // fill l_mtx with 1/w (D + wL)
         // fill u_mtx with 1/(1-w) (D + wU)
-        exec->run(make_initialize_weighted_l_u(csr_matrix.get(),
-                                               parameters_.relaxation_factor,
-                                               l_mtx.get(), u_mtx.get()));
+        exec->run(make_initialize_weighted_l_u(
+            csr_matrix->get_const_device_view(), parameters_.relaxation_factor,
+            l_mtx->get_device_view(), u_mtx->get_device_view()));
 
         // scale u_mtx with D^-1
         auto diag = csr_matrix->extract_diagonal();
@@ -138,8 +139,8 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
         return composition_type::create(std::move(u_trs), std::move(l_trs));
     } else {
         array<index_type> l_row_ptrs{exec, size[0] + 1};
-        exec->run(make_initialize_row_ptrs_l(csr_matrix.get(),
-                                             l_row_ptrs.get_data()));
+        exec->run(make_initialize_row_ptrs_l(
+            csr_matrix->get_const_device_view(), l_row_ptrs.get_data()));
         const auto l_nnz =
             static_cast<size_type>(get_element(l_row_ptrs, size[0]));
 
@@ -150,7 +151,8 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
 
         // fill l_mtx with 1/w * (D + wL)
         exec->run(make_initialize_weighted_l(
-            csr_matrix.get(), parameters_.relaxation_factor, l_mtx.get()));
+            csr_matrix->get_const_device_view(), parameters_.relaxation_factor,
+            l_mtx->get_device_view()));
 
         // invert the triangular matrices with triangular solvers
         auto l_trs = l_trs_factory->generate(std::move(l_mtx));

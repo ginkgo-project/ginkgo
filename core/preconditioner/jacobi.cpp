@@ -326,9 +326,9 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
 {
     parameters_.block_pointers.resize_and_reset(system_matrix->get_size()[0] +
                                                 1);
-    this->get_executor()->run(
-        jacobi::make_find_blocks(system_matrix, parameters_.max_block_size,
-                                 num_blocks_, parameters_.block_pointers));
+    this->get_executor()->run(jacobi::make_find_blocks(
+        system_matrix->get_const_device_view(), parameters_.max_block_size,
+        num_blocks_, parameters_.block_pointers));
     blocks_.resize_and_reset(
         storage_scheme_.compute_storage_space(num_blocks_));
 }
@@ -347,7 +347,8 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             auto csr_mtx = convert_to_with_sorting<const csr_type>(
                 exec, system_matrix, skip_sorting);
             auto diagonal = share(csr_mtx->extract_diagonal());
-            exec->run(jacobi::make_scalar_l1(csr_mtx.get(), diagonal.get()));
+            exec->run(jacobi::make_scalar_l1(csr_mtx->get_const_device_view(),
+                                             diagonal.get()));
             diag = diagonal;
         } else {
             diag = share(as<DiagonalLinOpExtractable>(system_matrix)
@@ -386,8 +387,9 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             exec->run(jacobi::make_add_diagonal_elements(
                 matrix::make_builder_unique_ptr(changed_mtx).get(), true));
             // block_pointers has larger size than actual num_blocks_
-            exec->run(jacobi::make_block_l1(
-                num_blocks_, parameters_.block_pointers, changed_mtx.get()));
+            exec->run(jacobi::make_block_l1(num_blocks_,
+                                            parameters_.block_pointers,
+                                            changed_mtx->get_device_view()));
             csr_mtx = changed_mtx;
         }
         const auto all_block_opt =
@@ -408,9 +410,9 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             conditioning_.resize_and_reset(num_blocks_);
         }
         exec->run(jacobi::make_generate(
-            csr_mtx.get(), num_blocks_, parameters_.max_block_size,
-            parameters_.accuracy, storage_scheme_, conditioning_, precisions,
-            parameters_.block_pointers, blocks_));
+            csr_mtx->get_const_device_view(), num_blocks_,
+            parameters_.max_block_size, parameters_.accuracy, storage_scheme_,
+            conditioning_, precisions, parameters_.block_pointers, blocks_));
     }
 }
 

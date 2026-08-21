@@ -224,7 +224,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
                     const matrix::Fbcsr<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
     const int bs = source->get_block_size();
     const IndexType nbrows = source->get_num_block_rows();
@@ -233,14 +233,13 @@ void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
     const IndexType* const bcolinds = source->get_const_col_idxs();
     const ValueType* const bvals = source->get_const_values();
 
-    assert(nbrows * bs == result->get_size()[0]);
-    assert(nbcols * bs == result->get_size()[1]);
-    assert(source->get_num_stored_elements() ==
-           result->get_num_stored_elements());
+    assert(nbrows * bs == result.size[0]);
+    assert(nbcols * bs == result.size[1]);
+    assert(source->get_num_stored_elements() == result.num_stored_elements);
 
-    IndexType* const row_ptrs = result->get_row_ptrs();
-    IndexType* const col_idxs = result->get_col_idxs();
-    ValueType* const vals = result->get_values();
+    IndexType* const row_ptrs = result.row_ptrs;
+    IndexType* const col_idxs = result.col_idxs;
+    ValueType* const vals = result.values;
 
     const acc::range<acc::block_col_major<const ValueType, 3>> bvalues{
         std::array<acc::size_type, 3>{

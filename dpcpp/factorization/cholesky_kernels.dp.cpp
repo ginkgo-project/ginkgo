@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,17 +27,17 @@ namespace cholesky {
 
 template <typename ValueType, typename IndexType>
 void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* mtx,
+                    matrix::view::csr<const ValueType, const IndexType> mtx,
                     const factorization::elimination_forest<IndexType>& forest,
                     IndexType* row_nnz, array<IndexType>& tmp_storage)
 {
-    const auto num_rows = mtx->get_size()[0];
-    const auto mtx_nnz = mtx->get_num_stored_elements();
+    const auto num_rows = mtx.size[0];
+    const auto mtx_nnz = mtx.num_stored_elements;
     tmp_storage.resize_and_reset(mtx_nnz + num_rows);
     const auto postorder_cols = tmp_storage.get_data();
     const auto lower_ends = postorder_cols + mtx_nnz;
-    const auto row_ptrs = mtx->get_const_row_ptrs();
-    const auto cols = mtx->get_const_col_idxs();
+    const auto row_ptrs = mtx.row_ptrs;
+    const auto cols = mtx.col_idxs;
     const auto inv_postorder = forest.inv_postorder.get_const_data();
     const auto postorder_parent = forest.postorder_parents.get_const_data();
     auto queue = exec->get_queue();
@@ -96,21 +96,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void symbolic_factorize(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* mtx,
+    matrix::view::csr<const ValueType, const IndexType> mtx,
     const factorization::elimination_forest<IndexType>& forest,
-    matrix::Csr<ValueType, IndexType>* l_factor,
+    matrix::view::csr<ValueType, IndexType> l_factor,
     const array<IndexType>& tmp_storage)
 {
-    const auto num_rows = mtx->get_size()[0];
-    const auto mtx_nnz = mtx->get_num_stored_elements();
+    const auto num_rows = mtx.size[0];
+    const auto mtx_nnz = mtx.num_stored_elements;
     const auto postorder_cols = tmp_storage.get_const_data();
     const auto lower_ends = postorder_cols + mtx_nnz;
-    const auto row_ptrs = mtx->get_const_row_ptrs();
+    const auto row_ptrs = mtx.row_ptrs;
     const auto postorder = forest.postorder.get_const_data();
     const auto inv_postorder = forest.inv_postorder.get_const_data();
     const auto postorder_parent = forest.postorder_parents.get_const_data();
-    const auto out_row_ptrs = l_factor->get_const_row_ptrs();
-    const auto out_cols = l_factor->get_col_idxs();
+    const auto out_row_ptrs = l_factor.row_ptrs;
+    const auto out_cols = l_factor.col_idxs;
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx_id) {
             const auto row = idx_id[0];
@@ -143,13 +143,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType>* mtx,
-                const IndexType* factor_lookup_offsets,
-                const int64* factor_lookup_descs,
-                const int32* factor_lookup_storage, IndexType* diag_idxs,
-                IndexType* transpose_idxs,
-                matrix::Csr<ValueType, IndexType>* factors) GKO_NOT_IMPLEMENTED;
+void initialize(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> mtx,
+    const IndexType* factor_lookup_offsets, const int64* factor_lookup_descs,
+    const int32* factor_lookup_storage, IndexType* diag_idxs,
+    IndexType* transpose_idxs,
+    matrix::view::csr<ValueType, IndexType> factors) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_INITIALIZE);
 
@@ -160,8 +160,8 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const int32* lookup_storage, const IndexType* diag_idxs,
                const IndexType* transpose_idxs,
                const factorization::elimination_forest<IndexType>& forest,
-               matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
-               array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
+               matrix::view::csr<ValueType, IndexType> factors,
+               bool full_fillin, array<int>& tmp_storage) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CHOLESKY_FACTORIZE);
 

@@ -135,17 +135,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
     IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 {
-    auto row_ptrs = system_matrix->get_const_row_ptrs();
-    auto col_idxs = system_matrix->get_const_col_idxs();
+    auto row_ptrs = system_matrix.row_ptrs;
+    auto col_idxs = system_matrix.col_idxs;
     IndexType l_nnz{};
     IndexType u_nnz{};
 
     l_row_ptrs[0] = 0;
     u_row_ptrs[0] = 0;
-    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+    for (size_type row = 0; row < system_matrix.size[0]; ++row) {
         for (auto el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             auto col = col_idxs[el];
             // don't count diagonal
@@ -165,10 +165,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* system_matrix,
-                    matrix::Csr<ValueType, IndexType>* csr_l,
-                    matrix::Csr<ValueType, IndexType>* csr_u)
+void initialize_l_u(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    matrix::view::csr<ValueType, IndexType> csr_l,
+    matrix::view::csr<ValueType, IndexType> csr_u)
 {
     helpers::initialize_l_u(
         system_matrix, csr_l, csr_u,
@@ -185,15 +186,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
     IndexType* l_row_ptrs)
 {
-    auto row_ptrs = system_matrix->get_const_row_ptrs();
-    auto col_idxs = system_matrix->get_const_col_idxs();
+    auto row_ptrs = system_matrix.row_ptrs;
+    auto col_idxs = system_matrix.col_idxs;
     size_type l_nnz{};
 
     l_row_ptrs[0] = 0;
-    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+    for (size_type row = 0; row < system_matrix.size[0]; ++row) {
         for (size_type el = row_ptrs[row]; el < row_ptrs[row + 1]; ++el) {
             size_type col = col_idxs[el];
             // skip diagonal
@@ -210,9 +211,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l(std::shared_ptr<const ReferenceExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType>* system_matrix,
-                  matrix::Csr<ValueType, IndexType>* csr_l, bool diag_sqrt)
+void initialize_l(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    matrix::view::csr<ValueType, IndexType> csr_l, bool diag_sqrt)
 {
     helpers::initialize_l(system_matrix, csr_l,
                           helpers::triangular_mtx_closure(
@@ -276,15 +278,13 @@ bool symbolic_validate_impl(std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType, typename IndexType>
 void symbolic_validate(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
-    const matrix::Csr<ValueType, IndexType>* factors,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    matrix::view::csr<const ValueType, const IndexType> factors,
     const matrix::csr::lookup_data<IndexType>& factors_lookup, bool& valid)
 {
     valid = symbolic_validate_impl(
-        exec, system_matrix->get_const_row_ptrs(),
-        system_matrix->get_const_col_idxs(), factors->get_const_row_ptrs(),
-        factors->get_const_col_idxs(),
-        static_cast<IndexType>(system_matrix->get_size()[0]));
+        exec, system_matrix.row_ptrs, system_matrix.col_idxs, factors.row_ptrs,
+        factors.col_idxs, static_cast<IndexType>(system_matrix.size[0]));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

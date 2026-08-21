@@ -101,7 +101,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     array<IndexType> l_row_ptrs{exec, number_rows + 1};
     array<IndexType> u_row_ptrs{exec, number_rows + 1};
     exec->run(par_ilu_factorization::make_initialize_row_ptrs_l_u(
-        csr_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
+        csr_system_matrix->get_const_device_view(), l_row_ptrs.get_data(),
+        u_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, number_rows));
@@ -121,7 +122,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         std::move(u_row_ptrs), u_strategy);
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
-        csr_system_matrix.get(), l_factor.get(), u_factor.get()));
+        csr_system_matrix->get_const_device_view(), l_factor->get_device_view(),
+        u_factor->get_device_view()));
 
     // We use `transpose()` here to convert the Csr format to Csc.
     auto u_factor_transpose_lin_op = u_factor->transpose();
@@ -147,14 +149,15 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     exec->run(par_ilu_factorization::make_compute_l_u_factors(
         parameters_.iterations, coo_system_matrix_ptr->get_const_device_view(),
-        l_factor.get(), u_factor_transpose));
+        l_factor->get_device_view(), u_factor_transpose->get_device_view()));
 
     // Transpose it again, which is basically a conversion from CSC back to CSR
     // Since the transposed version has the exact same non-zero positions
     // as `u_factor`, we can both skip the allocation and the `make_srow()`
     // call from CSR, leaving just the `transpose()` kernel call
-    exec->run(par_ilu_factorization::make_csr_transpose(u_factor_transpose,
-                                                        u_factor.get()));
+    exec->run(par_ilu_factorization::make_csr_transpose(
+        u_factor_transpose->get_const_device_view(),
+        u_factor->get_device_view()));
 
     return Composition<ValueType>::create(std::move(l_factor),
                                           std::move(u_factor));

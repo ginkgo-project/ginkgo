@@ -247,7 +247,7 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(
     std::shared_ptr<const ReferenceExecutor> exec,
     matrix::view::sellp<const ValueType, const IndexType> source,
-    matrix::Csr<ValueType, IndexType>* result)
+    matrix::view::csr<ValueType, IndexType> result)
 {
     auto num_rows = source.size[0];
     auto slice_size = source.slice_size;
@@ -258,9 +258,9 @@ void convert_to_csr(
     const auto source_slice_sets = source.slice_sets;
     const auto source_col_idxs = source.col_idxs;
 
-    auto result_vals = result->get_values();
-    auto result_row_ptrs = result->get_row_ptrs();
-    auto result_col_idxs = result->get_col_idxs();
+    auto result_vals = result.values;
+    auto result_row_ptrs = result.row_ptrs;
+    auto result_col_idxs = result.col_idxs;
 
     size_type cur_ptr = 0;
 

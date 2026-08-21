@@ -221,15 +221,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const OmpExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
     const auto nbrows = source->get_num_block_rows();
     const auto bs = source->get_block_size();
     const auto block_row_ptrs = source->get_const_row_ptrs();
     const auto block_col_idxs = source->get_const_col_idxs();
-    const auto row_ptrs = result->get_row_ptrs();
-    const auto col_idxs = result->get_col_idxs();
-    const auto vals = result->get_values();
+    const auto row_ptrs = result.row_ptrs;
+    const auto col_idxs = result.col_idxs;
+    const auto vals = result.values;
     auto sizes =
         gko::to_std_array<acc::size_type>(block_row_ptrs[nbrows], bs, bs);
     const auto block_vals =
@@ -257,7 +257,7 @@ void convert_to_csr(const std::shared_ptr<const OmpExecutor> exec,
             }
         }
     }
-    row_ptrs[result->get_size()[0]] = source->get_num_stored_elements();
+    row_ptrs[result.size[0]] = source->get_num_stored_elements();
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

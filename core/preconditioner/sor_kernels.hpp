@@ -16,21 +16,21 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L(ValueType, IndexType) \
-    void initialize_weighted_l(                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                \
-        const matrix::Csr<ValueType, IndexType>* system_matrix,     \
-        remove_complex<ValueType> weight,                           \
-        matrix::Csr<ValueType, IndexType>* l_factor)
+#define GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L(ValueType, IndexType)        \
+    void initialize_weighted_l(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        matrix::view::csr<const ValueType, const IndexType> system_matrix, \
+        remove_complex<ValueType> weight,                                  \
+        matrix::view::csr<ValueType, IndexType> l_factor)
 
 
-#define GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L_U(ValueType, IndexType) \
-    void initialize_weighted_l_u(                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::Csr<ValueType, IndexType>* system_matrix,       \
-        remove_complex<ValueType> weight,                             \
-        matrix::Csr<ValueType, IndexType>* l_factor,                  \
-        matrix::Csr<ValueType, IndexType>* u_factor)
+#define GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L_U(ValueType, IndexType)      \
+    void initialize_weighted_l_u(                                          \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        matrix::view::csr<const ValueType, const IndexType> system_matrix, \
+        remove_complex<ValueType> weight,                                  \
+        matrix::view::csr<ValueType, IndexType> l_factor,                  \
+        matrix::view::csr<ValueType, IndexType> u_factor)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \

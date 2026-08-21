@@ -379,12 +379,15 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         this->get_executor()->run(csr::make_spgemm(
-            this, b_csr, make_builder_unique_ptr(x_csr).get()));
+            this->get_const_device_view(), b_csr->get_const_device_view(),
+            make_builder_unique_ptr(x_csr).get()));
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
                 this->get_executor()->run(csr::make_spmv(
-                    this->get_actual_strategy(), max_nnz_per_row_, this,
+                    this->get_actual_strategy(), max_nnz_per_row_,
+                    this->get_num_srow_elements(), this->get_const_srow(),
+                    this->get_const_device_view(),
                     dense_b->get_const_device_view(),
                     dense_x->get_device_view()));
             },
@@ -502,16 +505,20 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
         this->get_executor()->run(csr::make_advanced_spgemm(
-            as<Dense<ValueType>>(alpha)->get_const_device_view(), this, b_csr,
-            as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
+            as<Dense<ValueType>>(alpha)->get_const_device_view(),
+            this->get_const_device_view(), b_csr->get_const_device_view(),
+            as<Dense<ValueType>>(beta)->get_const_device_view(),
+            x_copy->get_const_device_view(),
             make_builder_unique_ptr(x_csr).get()));
     } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
         // if b is an identity matrix, we compute an SpGEAM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
         this->get_executor()->run(csr::make_spgeam(
-            as<Dense<ValueType>>(alpha)->get_const_device_view(), this,
-            as<Dense<ValueType>>(beta)->get_const_device_view(), x_copy.get(),
+            as<Dense<ValueType>>(alpha)->get_const_device_view(),
+            this->get_const_device_view(),
+            as<Dense<ValueType>>(beta)->get_const_device_view(),
+            x_copy->get_const_device_view(),
             make_builder_unique_ptr(x_csr).get()));
     } else {
         mixed_precision_dispatch_real_complex<ValueType>(
@@ -522,7 +529,9 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                     beta);
                 this->get_executor()->run(csr::make_advanced_spmv(
                     this->get_actual_strategy(), max_nnz_per_row_,
-                    dense_alpha->get_const_device_view(), this,
+                    this->get_num_srow_elements(), this->get_const_srow(),
+                    dense_alpha->get_const_device_view(),
+                    this->get_const_device_view(),
                     dense_b->get_const_device_view(),
                     dense_beta->get_const_device_view(),
                     dense_x->get_device_view()));
@@ -624,7 +633,8 @@ void Csr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(csr::make_fill_in_dense(this, tmp_result->get_device_view()));
+    exec->run(csr::make_fill_in_dense(this->get_const_device_view(),
+                                      tmp_result->get_device_view()));
 }
 
 
@@ -658,7 +668,8 @@ void Csr<ValueType, IndexType>::convert_to(
     coo_nnz = get_element(coo_row_ptrs, num_rows);
     auto tmp = make_temporary_clone(exec, result);
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
-    exec->run(csr::make_convert_to_hybrid(this, coo_row_ptrs.get_const_data(),
+    exec->run(csr::make_convert_to_hybrid(this->get_const_device_view(),
+                                          coo_row_ptrs.get_const_data(),
                                           tmp->get_device_view()));
 }
 
@@ -692,7 +703,8 @@ void Csr<ValueType, IndexType>::convert_to(
     tmp->col_idxs_.resize_and_reset(total_cols * slice_size);
     tmp->values_.resize_and_reset(total_cols * slice_size);
     tmp->set_size(this->get_size());
-    exec->run(csr::make_convert_to_sellp(this, tmp->get_device_view()));
+    exec->run(csr::make_convert_to_sellp(this->get_const_device_view(),
+                                         tmp->get_device_view()));
 }
 
 
@@ -742,7 +754,8 @@ void Csr<ValueType, IndexType>::convert_to(
         tmp->values_.resize_and_reset(storage);
         tmp->set_size(this->get_size());
     }
-    exec->run(csr::make_convert_to_ell(this, tmp->get_device_view()));
+    exec->run(csr::make_convert_to_ell(this->get_const_device_view(),
+                                       tmp->get_device_view()));
 }
 
 
@@ -764,8 +777,9 @@ void Csr<ValueType, IndexType>::convert_to(
     auto tmp = make_temporary_clone(exec, result);
     tmp->row_ptrs_.resize_and_reset(row_blocks + 1);
     tmp->set_size(this->get_size());
-    exec->run(csr::make_convert_to_fbcsr(this, bs, tmp->row_ptrs_,
-                                         tmp->col_idxs_, tmp->values_));
+    exec->run(csr::make_convert_to_fbcsr(this->get_const_device_view(), bs,
+                                         tmp->row_ptrs_, tmp->col_idxs_,
+                                         tmp->values_));
 }
 
 
@@ -879,7 +893,8 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::multiply(
     auto exec = this->get_executor();
     auto local_other = make_temporary_clone(exec, other);
     auto result = Csr::create(exec, result_size);
-    exec->run(csr::make_spgemm(this, local_other.get(),
+    exec->run(csr::make_spgemm(this->get_const_device_view(),
+                               local_other->get_const_device_view(),
                                make_builder_unique_ptr(result).get()));
     return result;
 }
@@ -944,8 +959,10 @@ void Csr<ValueType, IndexType>::multiply_reuse_info::update_values(
     auto local_mtx1 = make_temporary_clone(exec, mtx1);
     auto local_mtx2 = make_temporary_clone(exec, mtx2);
     auto local_out = make_temporary_clone(exec, out);
-    exec->run(csr::make_spgemm_reuse(local_mtx1.get(), local_mtx2.get(),
-                                     internal->data, local_out.get()));
+    exec->run(csr::make_spgemm_reuse(local_mtx1->get_const_device_view(),
+                                     local_mtx2->get_const_device_view(),
+                                     internal->data,
+                                     local_out->get_device_view()));
 }
 
 
@@ -960,7 +977,8 @@ Csr<ValueType, IndexType>::multiply_reuse(ptr_param<const Csr> other) const
     auto local_other = make_temporary_clone(exec, other);
     auto result = Csr::create(exec, result_size);
     {
-        exec->run(csr::make_spgemm(this, local_other.get(),
+        exec->run(csr::make_spgemm(this->get_const_device_view(),
+                                   local_other->get_const_device_view(),
                                    make_builder_unique_ptr(result).get()));
     }
     auto lookup = csr::build_lookup(result.get());
@@ -995,8 +1013,10 @@ Csr<ValueType, IndexType>::multiply_add(
     auto local_mtx_add = make_temporary_clone(exec, mtx_add);
     auto result = Csr::create(exec, result_size);
     exec->run(csr::make_advanced_spgemm(
-        local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
-        local_scale_add->get_const_device_view(), local_mtx_add.get(),
+        local_scale_mult->get_const_device_view(),
+        this->get_const_device_view(), local_mtx_mult->get_const_device_view(),
+        local_scale_add->get_const_device_view(),
+        local_mtx_add->get_const_device_view(),
         make_builder_unique_ptr(result).get()));
     return result;
 }
@@ -1072,9 +1092,12 @@ void Csr<ValueType, IndexType>::multiply_add_reuse_info::update_values(
     auto local_alpha = make_temporary_clone(exec, alpha);
     auto local_beta = make_temporary_clone(exec, beta);
     exec->run(csr::make_advanced_spgemm_reuse(
-        local_alpha->get_const_device_view(), local_mtx1.get(),
-        local_mtx2.get(), local_beta->get_const_device_view(), local_mtx3.get(),
-        internal->data, local_out.get()));
+        local_alpha->get_const_device_view(),
+        local_mtx1->get_const_device_view(),
+        local_mtx2->get_const_device_view(),
+        local_beta->get_const_device_view(),
+        local_mtx3->get_const_device_view(), internal->data,
+        local_out->get_device_view()));
 }
 
 
@@ -1099,8 +1122,10 @@ Csr<ValueType, IndexType>::multiply_add_reuse(
     auto local_mtx_add = make_temporary_clone(exec, mtx_add);
     auto result = Csr::create(exec, result_size);
     exec->run(csr::make_advanced_spgemm(
-        local_scale_mult->get_const_device_view(), this, local_mtx_mult.get(),
-        local_scale_add->get_const_device_view(), local_mtx_add.get(),
+        local_scale_mult->get_const_device_view(),
+        this->get_const_device_view(), local_mtx_mult->get_const_device_view(),
+        local_scale_add->get_const_device_view(),
+        local_mtx_add->get_const_device_view(),
         make_builder_unique_ptr(result).get()));
     auto lookup = csr::build_lookup(result.get());
     auto reuse_info = multiply_add_reuse_info{
@@ -1129,9 +1154,10 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::scale_add(
     auto local_scale_other = make_temporary_clone(exec, scale_other);
     auto local_mtx_other = make_temporary_clone(exec, mtx_other);
     auto result = Csr::create(exec, this->get_size());
-    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
+    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(),
+                               this->get_const_device_view(),
                                local_scale_other->get_const_device_view(),
-                               local_mtx_other.get(),
+                               local_mtx_other->get_const_device_view(),
                                make_builder_unique_ptr(result).get()));
     return result;
 }
@@ -1191,9 +1217,10 @@ void Csr<ValueType, IndexType>::scale_add_reuse_info::update_values(
     auto local_mtx2 = make_temporary_clone(exec, mtx2);
     auto local_mtx_out = make_temporary_clone(exec, out);
     exec->run(csr::make_spgeam_numeric(local_scale1->get_const_device_view(),
-                                       local_mtx1.get(),
+                                       local_mtx1->get_const_device_view(),
                                        local_scale2->get_const_device_view(),
-                                       local_mtx2.get(), local_mtx_out.get()));
+                                       local_mtx2->get_const_device_view(),
+                                       local_mtx_out->get_device_view()));
 }
 
 
@@ -1224,9 +1251,10 @@ Csr<ValueType, IndexType>::add_scale_reuse(
     auto local_scale_other = make_temporary_clone(exec, scale_other);
     auto local_mtx_other = make_temporary_clone(exec, mtx_other);
     auto result = Csr::create(exec, this->get_size());
-    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(), this,
+    exec->run(csr::make_spgeam(local_scale_this->get_const_device_view(),
+                               this->get_const_device_view(),
                                local_scale_other->get_const_device_view(),
-                               local_mtx_other.get(),
+                               local_mtx_other->get_const_device_view(),
                                make_builder_unique_ptr(result).get()));
     return std::make_pair(
         std::move(result),
@@ -1333,7 +1361,8 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::transpose() const
         Csr::create(exec, gko::transpose(this->get_size()),
                     this->get_num_stored_elements(), this->get_strategy());
 
-    exec->run(csr::make_transpose(this, trans_cpy.get()));
+    exec->run(csr::make_transpose(this->get_const_device_view(),
+                                  trans_cpy->get_device_view()));
     trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
@@ -1347,7 +1376,8 @@ std::unique_ptr<LinOp> Csr<ValueType, IndexType>::conj_transpose() const
         Csr::create(exec, gko::transpose(this->get_size()),
                     this->get_num_stored_elements(), this->get_strategy());
 
-    exec->run(csr::make_conj_transpose(this, trans_cpy.get()));
+    exec->run(csr::make_conj_transpose(this->get_const_device_view(),
+                                       trans_cpy->get_device_view()));
     trans_cpy->make_srow();
     return std::move(trans_cpy);
 }
@@ -1380,23 +1410,34 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     }
     switch (mode) {
     case permute_mode::rows:
-        exec->run(csr::make_row_permute(perm_idxs, this, result.get()));
+        exec->run(csr::make_row_permute(perm_idxs,
+                                        this->get_const_device_view(),
+                                        result->get_device_view()));
         break;
     case permute_mode::columns:
-        exec->run(csr::make_inv_col_permute(inv_perm_idxs, this, result.get()));
+        exec->run(csr::make_inv_col_permute(inv_perm_idxs,
+                                            this->get_const_device_view(),
+                                            result->get_device_view()));
         break;
     case permute_mode::inverse_rows:
-        exec->run(csr::make_inv_row_permute(perm_idxs, this, result.get()));
+        exec->run(csr::make_inv_row_permute(perm_idxs,
+                                            this->get_const_device_view(),
+                                            result->get_device_view()));
         break;
     case permute_mode::inverse_columns:
-        exec->run(csr::make_inv_col_permute(perm_idxs, this, result.get()));
+        exec->run(csr::make_inv_col_permute(perm_idxs,
+                                            this->get_const_device_view(),
+                                            result->get_device_view()));
         break;
     case permute_mode::symmetric:
-        exec->run(
-            csr::make_inv_symm_permute(inv_perm_idxs, this, result.get()));
+        exec->run(csr::make_inv_symm_permute(inv_perm_idxs,
+                                             this->get_const_device_view(),
+                                             result->get_device_view()));
         break;
     case permute_mode::inverse_symmetric:
-        exec->run(csr::make_inv_symm_permute(perm_idxs, this, result.get()));
+        exec->run(csr::make_inv_symm_permute(perm_idxs,
+                                             this->get_const_device_view(),
+                                             result->get_device_view()));
         break;
     default:
         GKO_INVALID_STATE("Invalid permute mode");
@@ -1425,14 +1466,15 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     if (invert) {
         exec->run(csr::make_inv_nonsymm_permute(
             local_row_permutation->get_const_permutation(),
-            local_col_permutation->get_const_permutation(), this,
-            result.get()));
+            local_col_permutation->get_const_permutation(),
+            this->get_const_device_view(), result->get_device_view()));
     } else {
         const auto inv_row_perm = local_row_permutation->compute_inverse();
         const auto inv_col_perm = local_col_permutation->compute_inverse();
         exec->run(csr::make_inv_nonsymm_permute(
             inv_row_perm->get_const_permutation(),
-            inv_col_perm->get_const_permutation(), this, result.get()));
+            inv_col_perm->get_const_permutation(),
+            this->get_const_device_view(), result->get_device_view()));
     }
     result->make_srow();
     result->sort_by_column_index();
@@ -1496,28 +1538,34 @@ Csr<ValueType, IndexType>::scale_permute(
     }
     switch (mode) {
     case permute_mode::rows:
-        exec->run(csr::make_row_scale_permute(scale_factors, perm_idxs, this,
-                                              result.get()));
+        exec->run(csr::make_row_scale_permute(scale_factors, perm_idxs,
+                                              this->get_const_device_view(),
+                                              result->get_device_view()));
         break;
     case permute_mode::columns:
         exec->run(csr::make_inv_col_scale_permute(
-            inv_scale_factors, inv_perm_idxs, this, result.get()));
+            inv_scale_factors, inv_perm_idxs, this->get_const_device_view(),
+            result->get_device_view()));
         break;
     case permute_mode::inverse_rows:
         exec->run(csr::make_inv_row_scale_permute(scale_factors, perm_idxs,
-                                                  this, result.get()));
+                                                  this->get_const_device_view(),
+                                                  result->get_device_view()));
         break;
     case permute_mode::inverse_columns:
         exec->run(csr::make_inv_col_scale_permute(scale_factors, perm_idxs,
-                                                  this, result.get()));
+                                                  this->get_const_device_view(),
+                                                  result->get_device_view()));
         break;
     case permute_mode::symmetric:
         exec->run(csr::make_inv_symm_scale_permute(
-            inv_scale_factors, inv_perm_idxs, this, result.get()));
+            inv_scale_factors, inv_perm_idxs, this->get_const_device_view(),
+            result->get_device_view()));
         break;
     case permute_mode::inverse_symmetric:
-        exec->run(csr::make_inv_symm_scale_permute(scale_factors, perm_idxs,
-                                                   this, result.get()));
+        exec->run(csr::make_inv_symm_scale_permute(
+            scale_factors, perm_idxs, this->get_const_device_view(),
+            result->get_device_view()));
         break;
     default:
         GKO_INVALID_STATE("Invalid permute mode");
@@ -1550,8 +1598,8 @@ Csr<ValueType, IndexType>::scale_permute(
             local_row_permutation->get_const_scaling_factors(),
             local_row_permutation->get_const_permutation(),
             local_col_permutation->get_const_scaling_factors(),
-            local_col_permutation->get_const_permutation(), this,
-            result.get()));
+            local_col_permutation->get_const_permutation(),
+            this->get_const_device_view(), result->get_device_view()));
     } else {
         const auto inv_row_perm = local_row_permutation->compute_inverse();
         const auto inv_col_perm = local_col_permutation->compute_inverse();
@@ -1559,7 +1607,8 @@ Csr<ValueType, IndexType>::scale_permute(
             inv_row_perm->get_const_scaling_factors(),
             inv_row_perm->get_const_permutation(),
             inv_col_perm->get_const_scaling_factors(),
-            inv_col_perm->get_const_permutation(), this, result.get()));
+            inv_col_perm->get_const_permutation(),
+            this->get_const_device_view(), result->get_device_view()));
     }
     result->make_srow();
     result->sort_by_column_index();
@@ -1634,7 +1683,7 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::sort_by_column_index()
 {
     auto exec = this->get_executor();
-    exec->run(csr::make_sort_by_column_index(this));
+    exec->run(csr::make_sort_by_column_index(this->get_device_view()));
 }
 
 
@@ -1643,7 +1692,8 @@ bool Csr<ValueType, IndexType>::is_sorted_by_column_index() const
 {
     auto exec = this->get_executor();
     bool is_sorted;
-    exec->run(csr::make_is_sorted_by_column_index(this, is_sorted));
+    exec->run(csr::make_is_sorted_by_column_index(this->get_const_device_view(),
+                                                  is_sorted));
     return is_sorted;
 }
 
@@ -1658,7 +1708,7 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
     auto sub_mat_size = gko::dim<2>(row_span.length(), column_span.length());
     array<IndexType> row_ptrs(exec, row_span.length() + 1);
     exec->run(csr::make_calculate_nonzeros_per_row_in_span(
-        this, row_span, column_span, row_ptrs));
+        this->get_const_device_view(), row_span, column_span, row_ptrs));
     exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
                                                row_span.length() + 1));
     auto num_nnz = get_element(row_ptrs, sub_mat_size[0]);
@@ -1666,8 +1716,9 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
                                std::move(array<ValueType>(exec, num_nnz)),
                                std::move(array<IndexType>(exec, num_nnz)),
                                std::move(row_ptrs), this->get_strategy());
-    exec->run(csr::make_compute_submatrix(this, row_span, column_span,
-                                          sub_mat.get()));
+    exec->run(csr::make_compute_submatrix(this->get_const_device_view(),
+                                          row_span, column_span,
+                                          sub_mat->get_device_view()));
     sub_mat->make_srow();
     return sub_mat;
 }
@@ -1702,7 +1753,8 @@ Csr<ValueType, IndexType>::create_submatrix(
         auto sub_mat_size = gko::dim<2>(submat_num_rows, submat_num_cols);
         array<IndexType> row_ptrs(exec, submat_num_rows + 1);
         exec->run(csr::make_calculate_nonzeros_per_row_in_index_set(
-            this, row_index_set, col_index_set, row_ptrs.get_data()));
+            this->get_const_device_view(), row_index_set, col_index_set,
+            row_ptrs.get_data()));
         exec->run(csr::make_prefix_sum_nonnegative(row_ptrs.get_data(),
                                                    submat_num_rows + 1));
         auto num_nnz = get_element(row_ptrs, sub_mat_size[0]);
@@ -1711,7 +1763,8 @@ Csr<ValueType, IndexType>::create_submatrix(
                                    std::move(array<IndexType>(exec, num_nnz)),
                                    std::move(row_ptrs), this->get_strategy());
         exec->run(csr::make_compute_submatrix_from_index_set(
-            this, row_index_set, col_index_set, sub_mat.get()));
+            this->get_const_device_view(), row_index_set, col_index_set,
+            sub_mat->get_device_view()));
         sub_mat->make_srow();
         return sub_mat;
     }
@@ -1751,7 +1804,8 @@ Csr<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(csr::make_fill_array(diag->get_values(), diag->get_size()[0],
                                    zero<ValueType>()));
-    exec->run(csr::make_extract_diagonal(this, diag.get()));
+    exec->run(
+        csr::make_extract_diagonal(this->get_const_device_view(), diag.get()));
     return diag;
 }
 
@@ -1792,7 +1846,7 @@ void Csr<ValueType, IndexType>::scale_impl(const LinOp* alpha)
     auto exec = this->get_executor();
     exec->run(csr::make_scale(
         make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
-        this));
+        this->get_device_view()));
 }
 
 
@@ -1802,7 +1856,7 @@ void Csr<ValueType, IndexType>::inv_scale_impl(const LinOp* alpha)
     auto exec = this->get_executor();
     exec->run(csr::make_inv_scale(
         make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
-        this));
+        this->get_device_view()));
 }
 
 
@@ -1811,8 +1865,8 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
                                                          const LinOp* b)
 {
     bool has_diags{false};
-    this->get_executor()->run(
-        csr::make_check_diagonal_entries(this, has_diags));
+    this->get_executor()->run(csr::make_check_diagonal_entries(
+        this->get_const_device_view(), has_diags));
     if (!has_diags) {
         GKO_UNSUPPORTED_MATRIX_PROPERTY(
             "The matrix has one or more structurally zero diagonal entries!");
@@ -1820,7 +1874,7 @@ void Csr<ValueType, IndexType>::add_scaled_identity_impl(const LinOp* a,
     this->get_executor()->run(csr::make_add_scaled_identity(
         make_temporary_conversion<ValueType>(a)->get_const_device_view(),
         make_temporary_conversion<ValueType>(b)->get_const_device_view(),
-        this));
+        this->get_device_view()));
 }
 
 template <typename ValueType, typename IndexType>
@@ -1838,6 +1892,26 @@ csr::spmv_strategy Csr<ValueType, IndexType>::get_actual_strategy()
         this->get_executor(), this->get_strategy(),
         this->get_num_stored_elements(),
         static_cast<size_type>(max_nnz_per_row_));
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Csr<ValueType, IndexType>::get_device_view() -> device_view
+{
+    return device_view{this->get_size(), this->get_num_stored_elements(),
+                       this->get_values(), this->get_row_ptrs(),
+                       this->get_col_idxs()};
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Csr<ValueType, IndexType>::get_const_device_view() const
+    -> const_device_view
+{
+    return const_device_view{this->get_size(), this->get_num_stored_elements(),
+                             this->get_const_values(),
+                             this->get_const_row_ptrs(),
+                             this->get_const_col_idxs()};
 }
 
 

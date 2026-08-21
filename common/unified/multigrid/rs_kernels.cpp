@@ -25,7 +25,7 @@ namespace rs {
 
 template <typename ValueType, typename IndexType>
 void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* matrix,
+                    matrix::view::csr<const ValueType, const IndexType> matrix,
                     array<bool>& is_m_matrix_array)
 {
     GKO_NOT_IMPLEMENTED;
@@ -35,11 +35,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL);
 
 template <typename ValueType, typename IndexType>
-void compute_soc_and_run_rs(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Csr<ValueType, IndexType>* A,
-                            double theta, array<bool>& is_strong,
-                            array<IndexType>& lambda,
-                            array<IndexType>& cf_marker, IndexType& coarse_size)
+void compute_soc_and_run_rs(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> A, double theta,
+    array<bool>& is_strong, array<IndexType>& lambda,
+    array<IndexType>& cf_marker, IndexType& coarse_size)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -53,8 +53,8 @@ void fill_coarse_and_compute_prolong_row_ptrs(
     std::shared_ptr<const DefaultExecutor> exec,
     const array<IndexType>& cf_marker, array<IndexType>& coarse_rows,
     array<IndexType>& fine_to_coarse,
-    const matrix::Csr<ValueType, IndexType>* A, const array<bool>& is_strong,
-    array<IndexType>& row_ptrs)
+    matrix::view::csr<const ValueType, const IndexType> A,
+    const array<bool>& is_strong, array<IndexType>& row_ptrs)
 {
     GKO_NOT_IMPLEMENTED;
 }
@@ -64,12 +64,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_interpolation(std::shared_ptr<const DefaultExecutor> exec,
-                           const matrix::Csr<ValueType, IndexType>* A,
-                           const bool* is_strong,
-                           const array<IndexType>& cf_marker,
-                           const IndexType* fine_to_coarse,
-                           matrix::Csr<ValueType, IndexType>* P)
+void compute_interpolation(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> A,
+    const bool* is_strong, const array<IndexType>& cf_marker,
+    const IndexType* fine_to_coarse, matrix::view::csr<ValueType, IndexType> P)
 {
     GKO_NOT_IMPLEMENTED;
 }

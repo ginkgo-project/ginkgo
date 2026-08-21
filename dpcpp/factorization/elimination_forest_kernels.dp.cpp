@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,7 +32,7 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void from_factor(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::Csr<ValueType, IndexType>* factors,
+                 matrix::view::csr<const ValueType, const IndexType> factors,
                  gko::factorization::elimination_forest<IndexType>& forest)
     GKO_NOT_IMPLEMENTED;
 

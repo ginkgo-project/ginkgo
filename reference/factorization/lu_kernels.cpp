@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,19 +26,19 @@ namespace lu_factorization {
 
 template <typename ValueType, typename IndexType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType>* mtx,
+                matrix::view::csr<const ValueType, const IndexType> mtx,
                 const IndexType* factor_lookup_offsets,
                 const int64* factor_lookup_descs,
                 const int32* factor_lookup_storage, IndexType* diag_idxs,
-                matrix::Csr<ValueType, IndexType>* factors)
+                matrix::view::csr<ValueType, IndexType> factors)
 {
-    const auto num_rows = mtx->get_size()[0];
-    const auto mtx_row_ptrs = mtx->get_const_row_ptrs();
-    const auto factor_row_ptrs = factors->get_const_row_ptrs();
-    const auto mtx_cols = mtx->get_const_col_idxs();
-    const auto factor_cols = factors->get_const_col_idxs();
-    const auto mtx_vals = mtx->get_const_values();
-    const auto factor_vals = factors->get_values();
+    const auto num_rows = mtx.size[0];
+    const auto mtx_row_ptrs = mtx.row_ptrs;
+    const auto factor_row_ptrs = factors.row_ptrs;
+    const auto mtx_cols = mtx.col_idxs;
+    const auto factor_cols = factors.col_idxs;
+    const auto mtx_vals = mtx.values;
+    const auto factor_vals = factors.values;
     for (size_type row = 0; row < num_rows; row++) {
         const auto factor_begin = factor_row_ptrs[row];
         const auto factor_end = factor_row_ptrs[row + 1];
@@ -68,13 +68,13 @@ template <bool full_fillin, typename ValueType, typename IndexType>
 void factorize_impl(std::shared_ptr<const DefaultExecutor> exec,
                     const IndexType* lookup_offsets, const int64* lookup_descs,
                     const int32* lookup_storage, const IndexType* diag_idxs,
-                    matrix::Csr<ValueType, IndexType>* factors,
+                    matrix::view::csr<ValueType, IndexType> factors,
                     array<int>& tmp_storage)
 {
-    const auto num_rows = factors->get_size()[0];
-    const auto row_ptrs = factors->get_const_row_ptrs();
-    const auto cols = factors->get_const_col_idxs();
-    const auto vals = factors->get_values();
+    const auto num_rows = factors.size[0];
+    const auto row_ptrs = factors.row_ptrs;
+    const auto cols = factors.col_idxs;
+    const auto vals = factors.values;
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_diag = diag_idxs[row];
@@ -112,8 +112,8 @@ template <typename ValueType, typename IndexType>
 void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const IndexType* lookup_offsets, const int64* lookup_descs,
                const int32* lookup_storage, const IndexType* diag_idxs,
-               matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
-               array<int>& tmp_storage)
+               matrix::view::csr<ValueType, IndexType> factors,
+               bool full_fillin, array<int>& tmp_storage)
 {
     if (full_fillin) {
         factorize_impl<true>(exec, lookup_offsets, lookup_descs, lookup_storage,
@@ -132,12 +132,12 @@ void symbolic_factorize_simple(
     std::shared_ptr<const DefaultExecutor> exec, const IndexType* row_ptrs,
     const IndexType* col_idxs, const IndexType* lookup_offsets,
     const int64* lookup_descs, const int32* lookup_storage,
-    matrix::Csr<float, IndexType>* factors, IndexType* out_row_nnz)
+    matrix::view::csr<float, IndexType> factors, IndexType* out_row_nnz)
 {
-    const auto num_rows = factors->get_size()[0];
-    const auto factor_row_ptrs = factors->get_const_row_ptrs();
-    const auto factor_cols = factors->get_const_col_idxs();
-    const auto factor_vals = factors->get_values();
+    const auto num_rows = factors.size[0];
+    const auto factor_row_ptrs = factors.row_ptrs;
+    const auto factor_cols = factors.col_idxs;
+    const auto factor_vals = factors.values;
     array<IndexType> diag_idx_array{exec, num_rows};
     const auto diag_idxs = diag_idx_array.get_data();
     for (size_type row = 0; row < num_rows; row++) {
@@ -190,14 +190,15 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE);
 template <typename IndexType>
 void symbolic_factorize_simple_finalize(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<float, IndexType>* factors, IndexType* out_col_idxs)
+    matrix::view::csr<const float, const IndexType> factors,
+    IndexType* out_col_idxs)
 {
-    const auto col_idxs = factors->get_const_col_idxs();
-    const auto vals = factors->get_const_values();
+    const auto col_idxs = factors.col_idxs;
+    const auto vals = factors.values;
     size_type output_idx{};
     // copy all nonzero entries from the symmetric factor to the unsymmetric
     // factor
-    for (size_type i = 0; i < factors->get_num_stored_elements(); i++) {
+    for (size_type i = 0; i < factors.num_stored_elements; i++) {
         if (vals[i] == one<float>()) {
             out_col_idxs[output_idx] = col_idxs[i];
             ++output_idx;

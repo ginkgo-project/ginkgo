@@ -243,7 +243,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
         tmp->col_idxs_.resize_and_reset(this->get_num_stored_elements());
         tmp->values_.resize_and_reset(this->get_num_stored_elements());
         tmp->set_size(this->get_size());
-        exec->run(fbcsr::make_convert_to_csr(this, tmp.get()));
+        exec->run(fbcsr::make_convert_to_csr(this, tmp->get_device_view()));
     }
     result->make_srow();
 }

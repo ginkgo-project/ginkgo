@@ -260,8 +260,8 @@ void Ell<ValueType, IndexType>::convert_to(
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
-        exec->run(
-            ell::make_convert_to_csr(this->get_const_device_view(), tmp.get()));
+        exec->run(ell::make_convert_to_csr(this->get_const_device_view(),
+                                           tmp->get_device_view()));
     }
     result->make_srow();
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,14 +55,16 @@ void symbolic_cholesky(
     const auto num_rows = mtx->get_size()[0];
     array<IndexType> row_ptrs{exec, num_rows + 1};
     array<IndexType> tmp{exec};
-    exec->run(make_symbolic_count(mtx, *forest, row_ptrs.get_data(), tmp));
+    exec->run(make_symbolic_count(mtx->get_const_device_view(), *forest,
+                                  row_ptrs.get_data(), tmp));
     exec->run(make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
     const auto factor_nnz =
         static_cast<size_type>(get_element(row_ptrs, num_rows));
     factors = matrix_type::create(
         exec, mtx->get_size(), array<ValueType>{exec, factor_nnz},
         array<IndexType>{exec, factor_nnz}, std::move(row_ptrs));
-    exec->run(make_symbolic(mtx, *forest, factors.get(), tmp));
+    exec->run(make_symbolic(mtx->get_const_device_view(), *forest,
+                            factors->get_device_view(), tmp));
     factors->sort_by_column_index();
     if (symmetrize) {
         auto lt_factor = as<matrix_type>(factors->transpose());
@@ -103,14 +105,16 @@ void symbolic_cholesky_device(
     }
     array<IndexType> row_ptrs{exec, num_rows + 1};
     array<IndexType> tmp{exec};
-    exec->run(make_symbolic_count(mtx, *forest, row_ptrs.get_data(), tmp));
+    exec->run(make_symbolic_count(mtx->get_const_device_view(), *forest,
+                                  row_ptrs.get_data(), tmp));
     exec->run(make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
     const auto factor_nnz =
         static_cast<size_type>(get_element(row_ptrs, num_rows));
     factors = matrix_type::create(
         exec, mtx->get_size(), array<ValueType>{exec, factor_nnz},
         array<IndexType>{exec, factor_nnz}, std::move(row_ptrs));
-    exec->run(make_symbolic(mtx, *forest, factors.get(), tmp));
+    exec->run(make_symbolic(mtx->get_const_device_view(), *forest,
+                            factors->get_device_view(), tmp));
     factors->sort_by_column_index();
     if (symmetrize) {
         auto lt_factor = as<matrix_type>(factors->transpose());
@@ -172,7 +176,7 @@ void symbolic_lu_near_symm(
         mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
         lookup.storage_offsets.get_const_data(),
         lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-        symm_factors.get(), factor_row_ptrs.get_data()));
+        symm_factors->get_device_view(), factor_row_ptrs.get_data()));
     // build row pointers from nnz
     exec->run(
         make_prefix_sum_nonnegative(factor_row_ptrs.get_data(), size[0] + 1));
@@ -180,8 +184,8 @@ void symbolic_lu_near_symm(
         static_cast<size_type>(get_element(factor_row_ptrs, size[0]));
     // copy over nonzero columns
     array<IndexType> factor_cols{exec, factor_nnz};
-    exec->run(make_symbolic_factorize_simple_finalize(symm_factors.get(),
-                                                      factor_cols.get_data()));
+    exec->run(make_symbolic_factorize_simple_finalize(
+        symm_factors->get_const_device_view(), factor_cols.get_data()));
     factors =
         matrix_type::create(exec, size, array<ValueType>{exec, factor_nnz},
                             std::move(factor_cols), std::move(factor_row_ptrs));

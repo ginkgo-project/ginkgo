@@ -394,24 +394,24 @@ namespace {
 template <int subgroup_size, typename ValueType, typename IndexType>
 void add_candidates(syn::value_list<int, subgroup_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* llh,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    const matrix::Csr<ValueType, IndexType>* l,
+                    matrix::view::csr<const ValueType, const IndexType> llh,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::csr<const ValueType, const IndexType> l,
                     matrix::CsrBuilder<ValueType, IndexType>* l_new_builder)
 {
-    auto num_rows = static_cast<IndexType>(llh->get_size()[0]);
+    auto num_rows = static_cast<IndexType>(llh.size[0]);
     auto subwarps_per_block = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(num_rows, subwarps_per_block);
     auto l_new = l_new_builder->get_matrix();
-    auto llh_row_ptrs = llh->get_const_row_ptrs();
-    auto llh_col_idxs = llh->get_const_col_idxs();
-    auto llh_vals = as_device_type(llh->get_const_values());
-    auto a_row_ptrs = a->get_const_row_ptrs();
-    auto a_col_idxs = a->get_const_col_idxs();
-    auto a_vals = as_device_type(a->get_const_values());
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_col_idxs = l->get_const_col_idxs();
-    auto l_vals = as_device_type(l->get_const_values());
+    auto llh_row_ptrs = llh.row_ptrs;
+    auto llh_col_idxs = llh.col_idxs;
+    auto llh_vals = as_device_type(llh.values);
+    auto a_row_ptrs = a.row_ptrs;
+    auto a_col_idxs = a.col_idxs;
+    auto a_vals = as_device_type(a.values);
+    auto l_row_ptrs = l.row_ptrs;
+    auto l_col_idxs = l.col_idxs;
+    auto l_vals = as_device_type(l.values);
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     // count non-zeros per row
     kernel::ict_tri_spgeam_nnz<subgroup_size>(
@@ -444,20 +444,18 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_add_candidates, add_candidates);
 template <int subgroup_size, typename ValueType, typename IndexType>
 void compute_factor(syn::value_list<int, subgroup_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    matrix::Csr<ValueType, IndexType>* l,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::csr<ValueType, IndexType> l,
                     matrix::view::coo<const ValueType, const IndexType> l_coo)
 {
-    auto total_nnz = static_cast<IndexType>(l->get_num_stored_elements());
+    auto total_nnz = static_cast<IndexType>(l.num_stored_elements);
     auto block_size = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
     kernel::ict_sweep<subgroup_size>(
-        num_blocks, default_block_size, 0, exec->get_queue(),
-        a->get_const_row_ptrs(), a->get_const_col_idxs(),
-        as_device_type(a->get_const_values()), l->get_const_row_ptrs(),
-        l_coo.row_idxs, l->get_const_col_idxs(),
-        as_device_type(l->get_values()),
-        static_cast<IndexType>(l->get_num_stored_elements()));
+        num_blocks, default_block_size, 0, exec->get_queue(), a.row_ptrs,
+        a.col_idxs, as_device_type(a.values), l.row_ptrs, l_coo.row_idxs,
+        l.col_idxs, as_device_type(l.values),
+        static_cast<IndexType>(l.num_stored_elements));
 }
 
 
@@ -469,14 +467,13 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_factor, compute_factor);
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* llh,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    const matrix::Csr<ValueType, IndexType>* l,
+                    matrix::view::csr<const ValueType, const IndexType> llh,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::csr<const ValueType, const IndexType> l,
                     matrix::CsrBuilder<ValueType, IndexType>* l_new_builder)
 {
-    auto num_rows = a->get_size()[0];
-    auto total_nnz =
-        llh->get_num_stored_elements() + a->get_num_stored_elements();
+    auto num_rows = a.size[0];
+    auto total_nnz = llh.num_stored_elements + a.num_stored_elements;
     auto total_nnz_per_row = total_nnz / num_rows;
     select_add_candidates(
         compiled_kernels(),
@@ -494,12 +491,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    matrix::Csr<ValueType, IndexType>* l,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::csr<ValueType, IndexType> l,
                     matrix::view::coo<const ValueType, const IndexType> l_coo)
 {
-    auto num_rows = a->get_size()[0];
-    auto total_nnz = 2 * l->get_num_stored_elements();
+    auto num_rows = a.size[0];
+    auto total_nnz = 2 * l.num_stored_elements;
     auto total_nnz_per_row = total_nnz / num_rows;
     select_compute_factor(
         compiled_kernels(),

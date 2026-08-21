@@ -38,7 +38,7 @@ void should_perform_transpose(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const DpcppExecutor> exec,
-              const matrix::Csr<ValueType, IndexType>* matrix,
+              matrix::view::csr<const ValueType, const IndexType> matrix,
               std::shared_ptr<solver::SolveStruct>& solve_struct,
               bool unit_diag, const solver::trisolve_algorithm algorithm,
               const size_type num_rhs)
@@ -53,7 +53,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void solve(std::shared_ptr<const DpcppExecutor> exec,
-           const matrix::Csr<ValueType, IndexType>* matrix,
+           matrix::view::csr<const ValueType, const IndexType> matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
            std::optional<matrix::view::dense<ValueType>> trans_b,

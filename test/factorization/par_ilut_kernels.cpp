@@ -98,8 +98,8 @@ protected:
             gko::matrix::CsrBuilder<value_type, index_type> u_builder(
                 mtx_u_ani);
             gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-                ref, mtx_ani.get(), mtx_l_ani->get_row_ptrs(),
-                mtx_u_ani->get_row_ptrs());
+                ref, mtx_ani->get_const_device_view(),
+                mtx_l_ani->get_row_ptrs(), mtx_u_ani->get_row_ptrs());
             auto l_nnz =
                 mtx_l_ani->get_const_row_ptrs()[mtx_ani->get_size()[0]];
             auto u_nnz =
@@ -109,11 +109,13 @@ protected:
             u_builder.get_col_idx_array().resize_and_reset(u_nnz);
             u_builder.get_value_array().resize_and_reset(u_nnz);
             gko::kernels::reference::factorization::initialize_l_u(
-                ref, mtx_ani.get(), mtx_l_ani.get(), mtx_u_ani.get());
+                ref, mtx_ani->get_const_device_view(),
+                mtx_l_ani->get_device_view(), mtx_u_ani->get_device_view());
             mtx_ut_ani = Csr::create(ref, mtx_ani->get_size(),
                                      mtx_u_ani->get_num_stored_elements());
-            gko::kernels::reference::csr::transpose(ref, mtx_u_ani.get(),
-                                                    mtx_ut_ani.get());
+            gko::kernels::reference::csr::transpose(
+                ref, mtx_u_ani->get_const_device_view(),
+                mtx_ut_ani->get_device_view());
         }
         dmtx_ani->copy_from(mtx_ani);
         dmtx_l_ani->copy_from(mtx_l_ani);
@@ -138,9 +140,10 @@ protected:
         gko::array<gko::remove_complex<ValueType>> dtmp2(exec);
 
         gko::kernels::reference::par_ilut_factorization::threshold_select(
-            ref, mtx.get(), rank, tmp, tmp2, res);
+            ref, mtx->get_const_device_view(), rank, tmp, tmp2, res);
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
-            threshold_select(exec, dmtx.get(), rank, dtmp, dtmp2, dres);
+            threshold_select(exec, dmtx->get_const_device_view(), rank, dtmp,
+                             dtmp2, dres);
 
         ASSERT_NEAR(res, dres, tolerance);
     }
@@ -161,11 +164,12 @@ protected:
             gko::as<Mtx>(lower ? dmtx->clone() : dmtx->transpose());
 
         gko::kernels::reference::par_ilut_factorization::threshold_filter(
-            ref, local_mtx.get(), threshold,
+            ref, local_mtx->get_const_device_view(), threshold,
             gko::matrix::make_builder_unique_ptr(res).get(), res_coo.get(),
             lower);
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
-            threshold_filter(exec, local_dmtx.get(), threshold,
+            threshold_filter(exec, local_dmtx->get_const_device_view(),
+                             threshold,
                              gko::matrix::make_builder_unique_ptr(dres).get(),
                              dres_coo.get(), lower);
 
@@ -198,11 +202,11 @@ protected:
 
         gko::kernels::reference::par_ilut_factorization::
             threshold_filter_approx(
-                ref, mtx.get(), rank, tmp, threshold,
+                ref, mtx->get_const_device_view(), rank, tmp, threshold,
                 gko::matrix::make_builder_unique_ptr(res).get(), res_coo.get());
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
             threshold_filter_approx(
-                exec, dmtx.get(), rank, dtmp, dthreshold,
+                exec, dmtx->get_const_device_view(), rank, dtmp, dthreshold,
                 gko::matrix::make_builder_unique_ptr(dres).get(),
                 dres_coo.get());
 
@@ -299,10 +303,10 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCooIsEquivalentToRef)
     Coo* null_coo = nullptr;
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
-        this->ref, this->mtx_l.get(), 0.5,
+        this->ref, this->mtx_l->get_const_device_view(), 0.5,
         gko::matrix::make_builder_unique_ptr(res).get(), null_coo, true);
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
-        threshold_filter(this->exec, this->dmtx_l.get(), 0.5,
+        threshold_filter(this->exec, this->dmtx_l->get_const_device_view(), 0.5,
                          gko::matrix::make_builder_unique_ptr(dres).get(),
                          null_coo, true);
 
@@ -371,12 +375,13 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCooIsEquivalentToRef)
     index_type rank{};
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
-        this->ref, this->mtx_l.get(), rank, tmp, threshold,
+        this->ref, this->mtx_l->get_const_device_view(), rank, tmp, threshold,
         gko::matrix::make_builder_unique_ptr(res).get(), null_coo);
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
         threshold_filter_approx(
-            this->exec, this->dmtx_l.get(), rank, dtmp, dthreshold,
-            gko::matrix::make_builder_unique_ptr(dres).get(), null_coo);
+            this->exec, this->dmtx_l->get_const_device_view(), rank, dtmp,
+            dthreshold, gko::matrix::make_builder_unique_ptr(dres).get(),
+            null_coo);
 
     GKO_ASSERT_MTX_NEAR(res, dres, 0);
     GKO_ASSERT_MTX_EQ_SPARSITY(res, dres);
@@ -458,13 +463,17 @@ TYPED_TEST(ParIlut, KernelAddCandidatesIsEquivalentToRef)
     auto dres_mtx_u = Csr::create(this->exec, square_size);
 
     gko::kernels::reference::par_ilut_factorization::add_candidates(
-        this->ref, mtx_lu.get(), this->mtx_square.get(), this->mtx_l2.get(),
-        this->mtx_u.get(),
+        this->ref, mtx_lu->get_const_device_view(),
+        this->mtx_square->get_const_device_view(),
+        this->mtx_l2->get_const_device_view(),
+        this->mtx_u->get_const_device_view(),
         gko::matrix::make_builder_unique_ptr(res_mtx_l).get(),
         gko::matrix::make_builder_unique_ptr(res_mtx_u).get());
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::add_candidates(
-        this->exec, dmtx_lu.get(), this->dmtx_square.get(), this->dmtx_l2.get(),
-        this->dmtx_u.get(),
+        this->exec, dmtx_lu->get_const_device_view(),
+        this->dmtx_square->get_const_device_view(),
+        this->dmtx_l2->get_const_device_view(),
+        this->dmtx_u->get_const_device_view(),
         gko::matrix::make_builder_unique_ptr(dres_mtx_l).get(),
         gko::matrix::make_builder_unique_ptr(dres_mtx_u).get());
 
@@ -496,15 +505,19 @@ TYPED_TEST(ParIlut, KernelComputeLUIsEquivalentToRef)
     dmtx_u_coo->copy_from(mtx_u_coo);
 
     gko::kernels::reference::par_ilut_factorization::compute_l_u_factors(
-        this->ref, this->mtx_ani.get(), this->mtx_l_ani.get(),
-        mtx_l_coo->get_const_device_view(), this->mtx_u_ani.get(),
-        mtx_u_coo->get_const_device_view(), this->mtx_ut_ani.get());
+        this->ref, this->mtx_ani->get_const_device_view(),
+        this->mtx_l_ani->get_device_view(), mtx_l_coo->get_const_device_view(),
+        this->mtx_u_ani->get_device_view(), mtx_u_coo->get_const_device_view(),
+        this->mtx_ut_ani->get_device_view());
     for (int i = 0; i < 20; ++i) {
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilut_factorization::
-            compute_l_u_factors(
-                this->exec, this->dmtx_ani.get(), this->dmtx_l_ani.get(),
-                dmtx_l_coo->get_const_device_view(), this->dmtx_u_ani.get(),
-                dmtx_u_coo->get_const_device_view(), this->dmtx_ut_ani.get());
+            compute_l_u_factors(this->exec,
+                                this->dmtx_ani->get_const_device_view(),
+                                this->dmtx_l_ani->get_device_view(),
+                                dmtx_l_coo->get_const_device_view(),
+                                this->dmtx_u_ani->get_device_view(),
+                                dmtx_u_coo->get_const_device_view(),
+                                this->dmtx_ut_ani->get_device_view());
     }
     auto dmtx_utt_ani = gko::as<Csr>(this->dmtx_ut_ani->transpose());
 

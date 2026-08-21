@@ -434,10 +434,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l_u(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
     IndexType* l_row_ptrs, IndexType* u_row_ptrs)
 {
-    const size_type num_rows{system_matrix->get_size()[0]};
+    const size_type num_rows{system_matrix.size[0]};
 
     const auto block_size = default_block_size;
     const uint32 number_blocks =
@@ -447,10 +447,8 @@ void initialize_row_ptrs_l_u(
     if (grid_dim > 0) {
         kernel::count_nnz_per_l_u_row<<<grid_dim, block_size, 0,
                                         exec->get_stream()>>>(
-            num_rows, system_matrix->get_const_row_ptrs(),
-            system_matrix->get_const_col_idxs(),
-            as_device_type(system_matrix->get_const_values()), l_row_ptrs,
-            u_row_ptrs);
+            num_rows, system_matrix.row_ptrs, system_matrix.col_idxs,
+            as_device_type(system_matrix.values), l_row_ptrs, u_row_ptrs);
     }
 
     components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
@@ -462,12 +460,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* system_matrix,
-                    matrix::Csr<ValueType, IndexType>* csr_l,
-                    matrix::Csr<ValueType, IndexType>* csr_u)
+void initialize_l_u(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    matrix::view::csr<ValueType, IndexType> csr_l,
+    matrix::view::csr<ValueType, IndexType> csr_u)
 {
-    const size_type num_rows{system_matrix->get_size()[0]};
+    const size_type num_rows{system_matrix.size[0]};
     const auto block_size = helpers::default_block_size;
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
@@ -480,13 +479,11 @@ void initialize_l_u(std::shared_ptr<const DefaultExecutor> exec,
         auto u_closure = triangular_mtx_closure(identity{}, identity{});
         helpers::
             initialize_l_u<<<grid_dim, block_size, 0, exec->get_stream()>>>(
-                num_rows, system_matrix->get_const_row_ptrs(),
-                system_matrix->get_const_col_idxs(),
-                as_device_type(system_matrix->get_const_values()),
-                csr_l->get_const_row_ptrs(), csr_l->get_col_idxs(),
-                as_device_type(csr_l->get_values()),
-                csr_u->get_const_row_ptrs(), csr_u->get_col_idxs(),
-                as_device_type(csr_u->get_values()), l_closure, u_closure);
+                num_rows, system_matrix.row_ptrs, system_matrix.col_idxs,
+                as_device_type(system_matrix.values), csr_l.row_ptrs,
+                csr_l.col_idxs, as_device_type(csr_l.values), csr_u.row_ptrs,
+                csr_u.col_idxs, as_device_type(csr_u.values), l_closure,
+                u_closure);
     }
 }
 
@@ -497,10 +494,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_row_ptrs_l(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
     IndexType* l_row_ptrs)
 {
-    const size_type num_rows{system_matrix->get_size()[0]};
+    const size_type num_rows{system_matrix.size[0]};
 
     const auto block_size = default_block_size;
     const uint32 number_blocks =
@@ -510,9 +507,8 @@ void initialize_row_ptrs_l(
     if (grid_dim > 0) {
         kernel::count_nnz_per_l_row<<<grid_dim, block_size, 0,
                                       exec->get_stream()>>>(
-            num_rows, system_matrix->get_const_row_ptrs(),
-            system_matrix->get_const_col_idxs(),
-            as_device_type(system_matrix->get_const_values()), l_row_ptrs);
+            num_rows, system_matrix.row_ptrs, system_matrix.col_idxs,
+            as_device_type(system_matrix.values), l_row_ptrs);
     }
 
     components::prefix_sum_nonnegative(exec, l_row_ptrs, num_rows + 1);
@@ -523,11 +519,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize_l(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType>* system_matrix,
-                  matrix::Csr<ValueType, IndexType>* csr_l, bool diag_sqrt)
+void initialize_l(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    matrix::view::csr<ValueType, IndexType> csr_l, bool diag_sqrt)
 {
-    const size_type num_rows{system_matrix->get_size()[0]};
+    const size_type num_rows{system_matrix.size[0]};
     const auto block_size = helpers::default_block_size;
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
@@ -536,11 +533,9 @@ void initialize_l(std::shared_ptr<const DefaultExecutor> exec,
         using namespace gko::factorization;
 
         helpers::initialize_l<<<grid_dim, block_size, 0, exec->get_stream()>>>(
-            num_rows, system_matrix->get_const_row_ptrs(),
-            system_matrix->get_const_col_idxs(),
-            as_device_type(system_matrix->get_const_values()),
-            csr_l->get_const_row_ptrs(), csr_l->get_col_idxs(),
-            as_device_type(csr_l->get_values()),
+            num_rows, system_matrix.row_ptrs, system_matrix.col_idxs,
+            as_device_type(system_matrix.values), csr_l.row_ptrs,
+            csr_l.col_idxs, as_device_type(csr_l.values),
             triangular_mtx_closure(
                 [diag_sqrt] __device__(auto val) {
                     if (diag_sqrt) {
@@ -562,18 +557,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void symbolic_validate(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
-    const matrix::Csr<ValueType, IndexType>* factors,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    matrix::view::csr<const ValueType, const IndexType> factors,
     const matrix::csr::lookup_data<IndexType>& factors_lookup, bool& valid)
 {
-    const auto size = system_matrix->get_size()[0];
-    const auto row_ptrs = system_matrix->get_const_row_ptrs();
-    const auto col_idxs = system_matrix->get_const_col_idxs();
-    const auto factor_row_ptrs = factors->get_const_row_ptrs();
-    const auto factor_col_idxs = factors->get_const_col_idxs();
+    const auto size = system_matrix.size[0];
+    const auto row_ptrs = system_matrix.row_ptrs;
+    const auto col_idxs = system_matrix.col_idxs;
+    const auto factor_row_ptrs = factors.row_ptrs;
+    const auto factor_col_idxs = factors.col_idxs;
     // this stores for each factor nonzero whether it occurred as part of the
     // factorization.
-    array<bool> found(exec, factors->get_num_stored_elements());
+    array<bool> found(exec, factors.num_stored_elements);
     components::fill_array(exec, found.get_data(), found.get_size(), false);
     // this stores for each row whether there were any elements missing
     array<bool> missing(exec, size);

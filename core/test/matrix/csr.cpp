@@ -115,6 +115,30 @@ TYPED_TEST(Csr, CanBeEmpty)
 }
 
 
+TYPED_TEST(Csr, CanCreateDeviceView)
+{
+    auto view = this->mtx->get_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.num_stored_elements, this->mtx->get_num_stored_elements());
+    EXPECT_EQ(view.values, this->mtx->get_values());
+    EXPECT_EQ(view.row_ptrs, this->mtx->get_row_ptrs());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_col_idxs());
+}
+
+
+TYPED_TEST(Csr, CanCreateConstDeviceView)
+{
+    auto view = this->mtx->get_const_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.num_stored_elements, this->mtx->get_num_stored_elements());
+    EXPECT_EQ(view.values, this->mtx->get_values());
+    EXPECT_EQ(view.row_ptrs, this->mtx->get_row_ptrs());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_col_idxs());
+}
+
+
 TYPED_TEST(Csr, CanBeCreatedFromExistingData)
 {
     using Mtx = typename TestFixture::Mtx;

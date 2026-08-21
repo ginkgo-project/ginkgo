@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -62,14 +62,13 @@ __global__ __launch_bounds__(default_block_size) void apply_to_csr(
 template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                   const matrix::Diagonal<ValueType>* a,
-                  const matrix::Csr<ValueType, IndexType>* b,
-                  matrix::Csr<ValueType, IndexType>* c, bool inverse)
+                  matrix::view::csr<const ValueType, const IndexType> b,
+                  matrix::view::csr<ValueType, IndexType> c, bool inverse)
 {
-    const auto num_rows = b->get_size()[0];
+    const auto num_rows = b.size[0];
     const auto diag_values = a->get_const_values();
-    c->copy_from(b);
-    auto csr_values = c->get_values();
-    const auto csr_row_ptrs = c->get_const_row_ptrs();
+    auto csr_values = c.values;
+    const auto csr_row_ptrs = c.row_ptrs;
 
     const auto grid_dim =
         ceildiv(num_rows * config::warp_size, default_block_size);

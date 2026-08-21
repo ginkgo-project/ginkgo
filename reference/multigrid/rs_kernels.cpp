@@ -26,13 +26,13 @@ namespace rs {
 
 template <typename ValueType, typename IndexType>
 void check_m_matrix(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* matrix,
+                    matrix::view::csr<const ValueType, const IndexType> matrix,
                     array<bool>& is_m_matrix_array)
 {
-    const auto num_rows = matrix->get_size()[0];
-    const auto row_ptrs = matrix->get_const_row_ptrs();
-    const auto col_idxs = matrix->get_const_col_idxs();
-    const auto values = matrix->get_const_values();
+    const auto num_rows = matrix.size[0];
+    const auto row_ptrs = matrix.row_ptrs;
+    const auto col_idxs = matrix.col_idxs;
+    const auto values = matrix.values;
 
     auto is_m_matrix = is_m_matrix_array.get_data();
 
@@ -69,17 +69,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_soc_and_run_rs(std::shared_ptr<const ReferenceExecutor> exec,
-                            const matrix::Csr<ValueType, IndexType>* A,
-                            double theta, array<bool>& is_strong,
-                            array<IndexType>& lambda,
-                            array<IndexType>& cf_marker, IndexType& coarse_size)
+void compute_soc_and_run_rs(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> A, double theta,
+    array<bool>& is_strong, array<IndexType>& lambda,
+    array<IndexType>& cf_marker, IndexType& coarse_size)
 {
     using real_type = remove_complex<ValueType>;
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-    const auto* a_col_idxs = A->get_const_col_idxs();
-    const auto* a_vals = A->get_const_values();
+    const auto n = A.size[0];
+    const auto* a_row_ptrs = A.row_ptrs;
+    const auto* a_col_idxs = A.col_idxs;
+    const auto* a_vals = A.values;
     bool* is_strong_vals = is_strong.get_data();
     auto* lambda_vals = lambda.get_data();
     auto* cf = cf_marker.get_data();
@@ -91,14 +91,14 @@ void compute_soc_and_run_rs(std::shared_ptr<const ReferenceExecutor> exec,
 
         // pass 1: find max off-diagonal
         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-            if (A->get_const_col_idxs()[jj] != i) {
+            if (A.col_idxs[jj] != i) {
                 max_offdiag = std::max(max_offdiag, -real(a_vals[jj]));
             }
         }
 
         // pass 2: set mask
         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-            const auto j = A->get_const_col_idxs()[jj];
+            const auto j = A.col_idxs[jj];
             is_strong_vals[jj] =
                 (j != i && -real(a_vals[jj]) >= theta * max_offdiag);
         }
@@ -178,17 +178,17 @@ void fill_coarse_and_compute_prolong_row_ptrs(
     std::shared_ptr<const ReferenceExecutor> exec,
     const array<IndexType>& cf_marker, array<IndexType>& coarse_rows,
     array<IndexType>& fine_to_coarse,
-    const matrix::Csr<ValueType, IndexType>* A, const array<bool>& is_strong,
-    array<IndexType>& row_ptrs)
+    matrix::view::csr<const ValueType, const IndexType> A,
+    const array<bool>& is_strong, array<IndexType>& row_ptrs)
 {
     const auto* cf = cf_marker.get_const_data();
     auto* coarse_rows_vals = coarse_rows.get_data();
     auto* fine_to_coarse_vals = fine_to_coarse.get_data();
     auto* row_ptrs_vals = row_ptrs.get_data();
     const bool* is_strong_vals = is_strong.get_const_data();
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-    const auto* a_col_idxs = A->get_const_col_idxs();
+    const auto n = A.size[0];
+    const auto* a_row_ptrs = A.row_ptrs;
+    const auto* a_col_idxs = A.col_idxs;
 
     /// 1. FILL COARSE ROW INDEX ARRAY
     IndexType idx = 0;
@@ -231,21 +231,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_interpolation(std::shared_ptr<const ReferenceExecutor> exec,
-                           const matrix::Csr<ValueType, IndexType>* A,
-                           const bool* is_strong,
-                           const array<IndexType>& cf_marker,
-                           const IndexType* fine_to_coarse,
-                           matrix::Csr<ValueType, IndexType>* P)
+void compute_interpolation(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> A,
+    const bool* is_strong, const array<IndexType>& cf_marker,
+    const IndexType* fine_to_coarse, matrix::view::csr<ValueType, IndexType> P)
 {
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-    const auto* a_col_idxs = A->get_const_col_idxs();
-    const auto* a_vals = A->get_const_values();
+    const auto n = A.size[0];
+    const auto* a_row_ptrs = A.row_ptrs;
+    const auto* a_col_idxs = A.col_idxs;
+    const auto* a_vals = A.values;
     const auto* cf = cf_marker.get_const_data();
-    auto* p_row_ptrs = P->get_const_row_ptrs();
-    auto* p_col_idxs = P->get_col_idxs();
-    auto* p_vals = P->get_values();
+    auto* p_row_ptrs = P.row_ptrs;
+    auto* p_col_idxs = P.col_idxs;
+    auto* p_vals = P.values;
 
     for (IndexType i = 0; i < n; ++i) {
         auto p_idx = p_row_ptrs[i];

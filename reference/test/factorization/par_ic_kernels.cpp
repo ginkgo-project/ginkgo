@@ -111,7 +111,7 @@ TYPED_TEST(ParIc, KernelCompute)
 {
     gko::kernels::reference::par_ic_factorization::compute_factor(
         this->ref, 1, this->mtx_l_system_coo->get_const_device_view(),
-        this->mtx_l_system.get());
+        this->mtx_l_system->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_it_expect, this->tol);
 }
@@ -120,7 +120,7 @@ TYPED_TEST(ParIc, KernelCompute)
 TYPED_TEST(ParIc, KernelInit)
 {
     gko::kernels::reference::par_ic_factorization::init_factor(
-        this->ref, this->mtx_l_system.get());
+        this->ref, this->mtx_l_system->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_init_expect, this->tol);
 }

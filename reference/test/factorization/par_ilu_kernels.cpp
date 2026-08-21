@@ -289,7 +289,8 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLU)
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
     gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-        this->ref, this->mtx_csr_small.get(), l_row_ptrs, u_row_ptrs);
+        this->ref, this->mtx_csr_small->get_const_device_view(), l_row_ptrs,
+        u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
                            small_csr_l_expected->get_const_row_ptrs()));
@@ -317,7 +318,7 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
     gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-        this->ref, empty_mtx.get(), l_row_ptrs, u_row_ptrs);
+        this->ref, empty_mtx->get_const_device_view(), l_row_ptrs, u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
                            empty_mtx_l_expected->get_const_row_ptrs()));
@@ -352,7 +353,8 @@ TYPED_TEST(ParIlu, KernelInitializeLU)
     std::copy(u_row_ptrs.begin(), u_row_ptrs.end(), actual_u->get_row_ptrs());
 
     gko::kernels::reference::factorization::initialize_l_u(
-        this->ref, this->mtx_csr_small.get(), actual_l.get(), actual_u.get());
+        this->ref, this->mtx_csr_small->get_const_device_view(),
+        actual_l->get_device_view(), actual_u->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(actual_l, expected_l, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(actual_u, expected_u, r<value_type>::value);
@@ -369,7 +371,8 @@ TYPED_TEST(ParIlu, KernelInitializeLUZeroMatrix)
     actual_u->copy_from(this->identity);
 
     gko::kernels::reference::factorization::initialize_l_u(
-        this->ref, this->empty_csr.get(), actual_l.get(), actual_u.get());
+        this->ref, this->empty_csr->get_const_device_view(),
+        actual_l->get_device_view(), actual_u->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(actual_l, this->identity, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(actual_u, this->identity, r<value_type>::value);
@@ -407,8 +410,8 @@ TYPED_TEST(ParIlu, KernelComputeLU)
         static_cast<Dense*>(u_expected_lin_op.release()));
 
     gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-        this->ref, iterations, mtx_coo->get_const_device_view(), l_csr.get(),
-        u_csr.get());
+        this->ref, iterations, mtx_coo->get_const_device_view(),
+        l_csr->get_device_view(), u_csr->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(l_csr, this->small_l_expected, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(u_csr, u_expected, r<value_type>::value);

@@ -26,11 +26,11 @@ namespace csr {
 template <typename ValueType, typename IndexType>
 void inv_col_permute(std::shared_ptr<const DefaultExecutor> exec,
                      const IndexType* perm,
-                     const matrix::Csr<ValueType, IndexType>* orig,
-                     matrix::Csr<ValueType, IndexType>* col_permuted)
+                     matrix::view::csr<const ValueType, const IndexType> orig,
+                     matrix::view::csr<ValueType, IndexType> col_permuted)
 {
-    auto num_rows = orig->get_size()[0];
-    auto nnz = orig->get_num_stored_elements();
+    auto num_rows = orig.size[0];
+    auto nnz = orig.num_stored_elements;
     auto size = std::max(num_rows + 1, nnz);
     run_kernel(
         exec,
@@ -46,10 +46,8 @@ void inv_col_permute(std::shared_ptr<const DefaultExecutor> exec,
                 out_row_ptrs[tid] = in_row_ptrs[tid];
             }
         },
-        size, num_rows, nnz, perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), orig->get_const_values(),
-        col_permuted->get_row_ptrs(), col_permuted->get_col_idxs(),
-        col_permuted->get_values());
+        size, num_rows, nnz, perm, orig.row_ptrs, orig.col_idxs, orig.values,
+        col_permuted.row_ptrs, col_permuted.col_idxs, col_permuted.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -57,13 +55,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
-                           const ValueType* scale, const IndexType* perm,
-                           const matrix::Csr<ValueType, IndexType>* orig,
-                           matrix::Csr<ValueType, IndexType>* col_permuted)
+void inv_col_scale_permute(
+    std::shared_ptr<const DefaultExecutor> exec, const ValueType* scale,
+    const IndexType* perm,
+    matrix::view::csr<const ValueType, const IndexType> orig,
+    matrix::view::csr<ValueType, IndexType> col_permuted)
 {
-    auto num_rows = orig->get_size()[0];
-    auto nnz = orig->get_num_stored_elements();
+    auto num_rows = orig.size[0];
+    auto nnz = orig.num_stored_elements;
     auto size = std::max(num_rows + 1, nnz);
     run_kernel(
         exec,
@@ -80,10 +79,9 @@ void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
                 out_row_ptrs[tid] = in_row_ptrs[tid];
             }
         },
-        size, num_rows, nnz, scale, perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), orig->get_const_values(),
-        col_permuted->get_row_ptrs(), col_permuted->get_col_idxs(),
-        col_permuted->get_values());
+        size, num_rows, nnz, scale, perm, orig.row_ptrs, orig.col_idxs,
+        orig.values, col_permuted.row_ptrs, col_permuted.col_idxs,
+        col_permuted.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -93,12 +91,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void scale(std::shared_ptr<const DefaultExecutor> exec,
            matrix::view::dense<const ValueType> alpha,
-           matrix::Csr<ValueType, IndexType>* x)
+           matrix::view::csr<ValueType, IndexType> x)
 {
     run_kernel(
         exec,
         [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] *= alpha[0]; },
-        x->get_num_stored_elements(), alpha.values, x->get_values());
+        x.num_stored_elements, alpha.values, x.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SCALE_KERNEL);
@@ -107,21 +105,22 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SCALE_KERNEL);
 template <typename ValueType, typename IndexType>
 void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
                matrix::view::dense<const ValueType> alpha,
-               matrix::Csr<ValueType, IndexType>* x)
+               matrix::view::csr<ValueType, IndexType> x)
 {
     run_kernel(
         exec,
         [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] /= alpha[0]; },
-        x->get_num_stored_elements(), alpha.values, x->get_values());
+        x.num_stored_elements, alpha.values, x.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* matrix,
-                      matrix::view::sellp<ValueType, IndexType> output)
+void convert_to_sellp(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> matrix,
+    matrix::view::sellp<ValueType, IndexType> output)
 {
     run_kernel(
         exec,
@@ -144,8 +143,7 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
                 out_idx += slice_size;
             }
         },
-        output.size[0], matrix->get_const_col_idxs(),
-        matrix->get_const_values(), matrix->get_const_row_ptrs(),
+        output.size[0], matrix.col_idxs, matrix.values, matrix.row_ptrs,
         output.slice_size, output.slice_sets, output.col_idxs, output.values);
 }
 
@@ -155,7 +153,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* matrix,
+                    matrix::view::csr<const ValueType, const IndexType> matrix,
                     matrix::view::ell<ValueType, IndexType> output)
 {
     run_kernel(
@@ -174,8 +172,7 @@ void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,
                 out_idx += ell_stride;
             }
         },
-        output.size[0], matrix->get_const_col_idxs(),
-        matrix->get_const_values(), matrix->get_const_row_ptrs(),
+        output.size[0], matrix.col_idxs, matrix.values, matrix.row_ptrs,
         output.num_stored_elements_per_row, output.stride, output.col_idxs,
         output.values);
 }
@@ -185,10 +182,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* source,
-                       const int64* coo_row_ptrs,
-                       matrix::view::hybrid<ValueType, IndexType> result)
+void convert_to_hybrid(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> source,
+    const int64* coo_row_ptrs,
+    matrix::view::hybrid<ValueType, IndexType> result)
 {
     run_kernel(
         exec,
@@ -216,8 +214,7 @@ void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,
                 coo_vals[out_idx] = vals[in_idx];
             }
         },
-        source->get_size()[0], source->get_const_row_ptrs(),
-        source->get_const_col_idxs(), source->get_const_values(),
+        source.size[0], source.row_ptrs, source.col_idxs, source.values,
         result.ell_part.stride, result.ell_part.num_stored_elements_per_row,
         result.ell_part.col_idxs, result.ell_part.values, coo_row_ptrs,
         result.coo_part.row_idxs, result.coo_part.col_idxs,
@@ -311,9 +308,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CSR_BENCHMARK_LOOKUP_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void row_wise_absolute_sum(std::shared_ptr<const DefaultExecutor> exec,
-                           const matrix::Csr<ValueType, IndexType>* orig,
-                           array<ValueType>& sum)
+void row_wise_absolute_sum(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> orig,
+    array<ValueType>& sum)
 {
     run_kernel(
         exec,
@@ -323,8 +321,7 @@ void row_wise_absolute_sum(std::shared_ptr<const DefaultExecutor> exec,
                 sum_ptr[row] += abs(value_ptr[k]);
             }
         },
-        sum.get_size(), orig->get_const_row_ptrs(), orig->get_const_values(),
-        sum.get_data());
+        sum.get_size(), orig.row_ptrs, orig.values, sum.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

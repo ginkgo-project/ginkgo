@@ -314,7 +314,7 @@ void Sellp<ValueType, IndexType>::convert_to(
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
         exec->run(sellp::make_convert_to_csr(this->get_const_device_view(),
-                                             tmp.get()));
+                                             tmp->get_device_view()));
     }
     result->make_srow();
 }

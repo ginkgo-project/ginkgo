@@ -47,8 +47,8 @@ void forall_matching(const IndexType* fst, IndexType fst_size,
 
 template <typename ValueType, typename IndexType, typename Callable>
 void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* mtx,
-                      matrix::Csr<ValueType, IndexType>* inverse_mtx,
+                      matrix::view::csr<const ValueType, const IndexType> mtx,
+                      matrix::view::csr<ValueType, IndexType> inverse_mtx,
                       IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs,
                       Callable direct_solve, bool tri)
 {
@@ -66,13 +66,13 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
     <=> D(i)^T * aiM[i, :]^T = e(i)   =^ Triangular system (Trs)
     Solve Trs, fill in aiM row by row (coalesced access)
     */
-    const auto num_rows = mtx->get_size()[0];
-    const auto m_row_ptrs = mtx->get_const_row_ptrs();
-    const auto m_cols = mtx->get_const_col_idxs();
-    const auto m_vals = mtx->get_const_values();
-    const auto i_row_ptrs = inverse_mtx->get_const_row_ptrs();
-    const auto i_cols = inverse_mtx->get_const_col_idxs();
-    auto i_vals = inverse_mtx->get_values();
+    const auto num_rows = mtx.size[0];
+    const auto m_row_ptrs = mtx.row_ptrs;
+    const auto m_cols = mtx.col_idxs;
+    const auto m_vals = mtx.values;
+    const auto i_row_ptrs = inverse_mtx.row_ptrs;
+    const auto i_cols = inverse_mtx.col_idxs;
+    auto i_vals = inverse_mtx.values;
     // RHS for local dense system
     gko::array<ValueType> rhs_array{exec, row_size_limit};
     auto rhs = rhs_array.get_data();
@@ -173,11 +173,11 @@ void generic_generate(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void generate_tri_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType>* mtx,
-                          matrix::Csr<ValueType, IndexType>* inverse_mtx,
-                          IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs,
-                          bool lower)
+void generate_tri_inverse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> mtx,
+    matrix::view::csr<ValueType, IndexType> inverse_mtx,
+    IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs, bool lower)
 {
     auto trs_solve =
         [lower](const range<accessor::row_major<ValueType, 2>> trisystem,
@@ -249,11 +249,11 @@ inline void swap_rows(IndexType row1, IndexType row2, IndexType block_size,
 
 
 template <typename ValueType, typename IndexType>
-void generate_general_inverse(std::shared_ptr<const DefaultExecutor> exec,
-                              const matrix::Csr<ValueType, IndexType>* mtx,
-                              matrix::Csr<ValueType, IndexType>* inverse_mtx,
-                              IndexType* excess_rhs_ptrs,
-                              IndexType* excess_nz_ptrs, bool spd)
+void generate_general_inverse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> mtx,
+    matrix::view::csr<ValueType, IndexType> inverse_mtx,
+    IndexType* excess_rhs_ptrs, IndexType* excess_nz_ptrs, bool spd)
 {
     using std::swap;
     auto general_solve = [spd](const range<accessor::row_major<ValueType, 2>>
@@ -319,25 +319,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void generate_excess_system(std::shared_ptr<const DefaultExecutor>,
-                            const matrix::Csr<ValueType, IndexType>* input,
-                            const matrix::Csr<ValueType, IndexType>* inverse,
-                            const IndexType* excess_rhs_ptrs,
-                            const IndexType* excess_nz_ptrs,
-                            matrix::Csr<ValueType, IndexType>* excess_system,
-                            matrix::view::dense<ValueType> excess_rhs,
-                            size_type e_start, size_type e_end)
+void generate_excess_system(
+    std::shared_ptr<const DefaultExecutor>,
+    matrix::view::csr<const ValueType, const IndexType> input,
+    matrix::view::csr<const ValueType, const IndexType> inverse,
+    const IndexType* excess_rhs_ptrs, const IndexType* excess_nz_ptrs,
+    matrix::view::csr<ValueType, IndexType> excess_system,
+    matrix::view::dense<ValueType> excess_rhs, size_type e_start,
+    size_type e_end)
 {
-    const auto num_rows = input->get_size()[0];
-    const auto m_row_ptrs = input->get_const_row_ptrs();
-    const auto m_cols = input->get_const_col_idxs();
-    const auto m_vals = input->get_const_values();
-    const auto i_row_ptrs = inverse->get_const_row_ptrs();
-    const auto i_cols = inverse->get_const_col_idxs();
+    const auto num_rows = input.size[0];
+    const auto m_row_ptrs = input.row_ptrs;
+    const auto m_cols = input.col_idxs;
+    const auto m_vals = input.values;
+    const auto i_row_ptrs = inverse.row_ptrs;
+    const auto i_cols = inverse.col_idxs;
     const auto e_dim = excess_rhs.size[0];
-    auto e_row_ptrs = excess_system->get_row_ptrs();
-    auto e_cols = excess_system->get_col_idxs();
-    auto e_vals = excess_system->get_values();
+    auto e_row_ptrs = excess_system.row_ptrs;
+    auto e_cols = excess_system.col_idxs;
+    auto e_vals = excess_system.values;
     auto e_rhs = excess_rhs.values;
 
     for (size_type row = e_start; row < e_end; ++row) {
@@ -413,12 +413,12 @@ template <typename ValueType, typename IndexType>
 void scatter_excess_solution(
     std::shared_ptr<const DefaultExecutor>, const IndexType* excess_block_ptrs,
     matrix::view::dense<const ValueType> excess_solution,
-    matrix::Csr<ValueType, IndexType>* inverse, size_type e_start,
+    matrix::view::csr<ValueType, IndexType> inverse, size_type e_start,
     size_type e_end)
 {
     auto excess_values = excess_solution.values;
-    auto values = inverse->get_values();
-    auto row_ptrs = inverse->get_const_row_ptrs();
+    auto values = inverse.values;
+    auto row_ptrs = inverse.row_ptrs;
     auto offset = excess_block_ptrs[e_start];
     for (size_type row = e_start; row < e_end; ++row) {
         const auto excess_begin =

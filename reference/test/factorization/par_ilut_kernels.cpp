@@ -190,7 +190,7 @@ protected:
         gko::array<ValueType> tmp(ref);
         gko::array<gko::remove_complex<ValueType>> tmp2(ref);
         gko::kernels::reference::par_ilut_factorization::threshold_select(
-            ref, mtx.get(), rank, tmp, tmp2, result);
+            ref, mtx->get_const_device_view(), rank, tmp, tmp2, result);
 
         ASSERT_NEAR(result, expected, tolerance);
     }
@@ -213,8 +213,8 @@ protected:
             gko::as<Mtx>(lower ? expected->clone() : expected->transpose());
 
         gko::kernels::reference::par_ilut_factorization::threshold_filter(
-            ref, local_mtx.get(), threshold, &res_mtx_builder,
-            res_mtx_coo.get(), lower);
+            ref, local_mtx->get_const_device_view(), threshold,
+            &res_mtx_builder, res_mtx_coo.get(), lower);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(local_expected, res_mtx);
         GKO_ASSERT_MTX_NEAR(local_expected, res_mtx, 0);
@@ -242,11 +242,12 @@ protected:
         auto tmp = gko::array<typename Mtx::value_type>{exec};
         gko::remove_complex<typename Mtx::value_type> threshold{};
         gko::kernels::reference::par_ilut_factorization::
-            threshold_filter_approx(ref, mtx.get(), rank, tmp, threshold,
-                                    &res_mtx_builder, res_mtx_coo.get());
+            threshold_filter_approx(ref, mtx->get_const_device_view(), rank,
+                                    tmp, threshold, &res_mtx_builder,
+                                    res_mtx_coo.get());
         gko::kernels::reference::par_ilut_factorization::threshold_filter(
-            ref, mtx.get(), threshold, &res_mtx2_builder, res_mtx_coo2.get(),
-            true);
+            ref, mtx->get_const_device_view(), threshold, &res_mtx2_builder,
+            res_mtx_coo2.get(), true);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(expected, res_mtx);
         GKO_ASSERT_MTX_EQ_SPARSITY(expected, res_mtx2);
@@ -334,7 +335,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterNullptrCoo)
     Coo* null_coo = nullptr;
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter(
-        this->ref, this->mtx1.get(), 0.0,
+        this->ref, this->mtx1->get_const_device_view(), 0.0,
         gko::matrix::make_builder_unique_ptr(res_mtx).get(), null_coo, true);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(this->mtx1, res_mtx);
@@ -417,7 +418,7 @@ TYPED_TEST(ParIlut, KernelThresholdFilterApproxNullptrCoo)
     index_type rank{};
 
     gko::kernels::reference::par_ilut_factorization::threshold_filter_approx(
-        this->ref, this->mtx1.get(), rank, tmp, threshold,
+        this->ref, this->mtx1->get_const_device_view(), rank, tmp, threshold,
         gko::matrix::make_builder_unique_ptr(res_mtx).get(), null_coo);
 
     GKO_ASSERT_MTX_EQ_SPARSITY(this->mtx1, res_mtx);
@@ -463,8 +464,10 @@ TYPED_TEST(ParIlut, KernelAddCandidates)
     auto res_mtx_u = Csr::create(this->exec, this->mtx_system->get_size());
 
     gko::kernels::reference::par_ilut_factorization::add_candidates(
-        this->ref, this->mtx_lu.get(), this->mtx_system.get(),
-        this->mtx_l.get(), this->mtx_u.get(),
+        this->ref, this->mtx_lu->get_const_device_view(),
+        this->mtx_system->get_const_device_view(),
+        this->mtx_l->get_const_device_view(),
+        this->mtx_u->get_const_device_view(),
         gko::matrix::make_builder_unique_ptr(res_mtx_l).get(),
         gko::matrix::make_builder_unique_ptr(res_mtx_u).get());
 
@@ -487,9 +490,11 @@ TYPED_TEST(ParIlut, KernelComputeLU)
     auto mtx_u_csc = gko::as<Csr>(mtx_u_transp.get());
 
     gko::kernels::reference::par_ilut_factorization::compute_l_u_factors(
-        this->ref, this->mtx_system.get(), this->mtx_l_system.get(),
-        mtx_l_coo->get_const_device_view(), this->mtx_u_system.get(),
-        mtx_u_coo->get_const_device_view(), mtx_u_csc);
+        this->ref, this->mtx_system->get_const_device_view(),
+        this->mtx_l_system->get_device_view(),
+        mtx_l_coo->get_const_device_view(),
+        this->mtx_u_system->get_device_view(),
+        mtx_u_coo->get_const_device_view(), mtx_u_csc->get_device_view());
     auto mtx_utt = gko::as<Csr>(mtx_u_csc->transpose());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_it_expect, this->tol);

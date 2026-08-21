@@ -40,13 +40,13 @@ namespace par_ilut_factorization {
  */
 template <typename ValueType, typename IndexType>
 void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* m,
+                      matrix::view::csr<const ValueType, const IndexType> m,
                       IndexType rank, array<ValueType>& tmp,
                       array<remove_complex<ValueType>>&,
                       remove_complex<ValueType>& threshold)
 {
-    auto values = m->get_const_values();
-    IndexType size = m->get_num_stored_elements();
+    auto values = m.values;
+    IndexType size = m.num_stored_elements;
     tmp.resize_and_reset(size);
     std::copy_n(values, size, tmp.get_data());
 
@@ -70,15 +70,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename Predicate, typename ValueType, typename IndexType>
 void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType>* m,
+                     matrix::view::csr<const ValueType, const IndexType> m,
                      matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
                      matrix::Coo<ValueType, IndexType>* m_out_coo,
                      Predicate pred)
 {
-    auto num_rows = m->get_size()[0];
-    auto row_ptrs = m->get_const_row_ptrs();
-    auto col_idxs = m->get_const_col_idxs();
-    auto vals = m->get_const_values();
+    auto num_rows = m.size[0];
+    auto row_ptrs = m.row_ptrs;
+    auto col_idxs = m.col_idxs;
+    auto vals = m.values;
 
     auto m_out = m_out_builder->get_matrix();
     // first sweep: count nnz for each row
@@ -137,13 +137,13 @@ void abstract_filter(std::shared_ptr<const DefaultExecutor> exec,
  */
 template <typename ValueType, typename IndexType>
 void threshold_filter(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* m,
+                      matrix::view::csr<const ValueType, const IndexType> m,
                       remove_complex<ValueType> threshold,
                       matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
                       matrix::Coo<ValueType, IndexType>* m_out_coo, bool)
 {
-    auto col_idxs = m->get_const_col_idxs();
-    auto vals = m->get_const_values();
+    auto col_idxs = m.col_idxs;
+    auto vals = m.values;
     abstract_filter(
         exec, m, m_out_builder, m_out_coo, [&](IndexType row, IndexType nz) {
             return abs(vals[nz]) >= threshold || col_idxs[nz] == row;
@@ -167,14 +167,14 @@ constexpr auto sample_size = bucket_count * sampleselect_oversampling;
 template <typename ValueType, typename IndexType>
 void threshold_filter_approx(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* m, IndexType rank,
+    matrix::view::csr<const ValueType, const IndexType> m, IndexType rank,
     array<ValueType>& tmp, remove_complex<ValueType>& threshold,
     matrix::CsrBuilder<ValueType, IndexType>* m_out_builder,
     matrix::Coo<ValueType, IndexType>* m_out_coo)
 {
-    auto vals = m->get_const_values();
-    auto col_idxs = m->get_const_col_idxs();
-    auto size = static_cast<IndexType>(m->get_num_stored_elements());
+    auto vals = m.values;
+    auto col_idxs = m.col_idxs;
+    auto size = static_cast<IndexType>(m.num_stored_elements);
     using AbsType = remove_complex<ValueType>;
     constexpr auto storage_size = ceildiv(
         sample_size * sizeof(AbsType) + bucket_count * sizeof(IndexType),
@@ -237,26 +237,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename ValueType, typename IndexType>
 void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType>* a,
-                         matrix::Csr<ValueType, IndexType>* l,
+                         matrix::view::csr<const ValueType, const IndexType> a,
+                         matrix::view::csr<ValueType, IndexType> l,
                          matrix::view::coo<const ValueType, const IndexType>,
-                         matrix::Csr<ValueType, IndexType>* u,
+                         matrix::view::csr<ValueType, IndexType> u,
                          matrix::view::coo<const ValueType, const IndexType>,
-                         matrix::Csr<ValueType, IndexType>* u_csc)
+                         matrix::view::csr<ValueType, IndexType> u_csc)
 {
-    auto num_rows = a->get_size()[0];
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_col_idxs = l->get_const_col_idxs();
-    auto l_vals = l->get_values();
-    auto u_row_ptrs = u->get_const_row_ptrs();
-    auto u_col_idxs = u->get_const_col_idxs();
-    auto u_vals = u->get_values();
-    auto ut_col_ptrs = u_csc->get_const_row_ptrs();
-    auto ut_row_idxs = u_csc->get_const_col_idxs();
-    auto ut_vals = u_csc->get_values();
-    auto a_row_ptrs = a->get_const_row_ptrs();
-    auto a_col_idxs = a->get_const_col_idxs();
-    auto a_vals = a->get_const_values();
+    auto num_rows = a.size[0];
+    auto l_row_ptrs = l.row_ptrs;
+    auto l_col_idxs = l.col_idxs;
+    auto l_vals = l.values;
+    auto u_row_ptrs = u.row_ptrs;
+    auto u_col_idxs = u.col_idxs;
+    auto u_vals = u.values;
+    auto ut_col_ptrs = u_csc.row_ptrs;
+    auto ut_row_idxs = u_csc.col_idxs;
+    auto ut_vals = u_csc.values;
+    auto a_row_ptrs = a.row_ptrs;
+    auto a_col_idxs = a.col_idxs;
+    auto a_vals = a.values;
 
     auto compute_sum = [&](IndexType row, IndexType col) {
         // find value from A
@@ -327,20 +327,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  */
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* lu,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    const matrix::Csr<ValueType, IndexType>* l,
-                    const matrix::Csr<ValueType, IndexType>* u,
+                    matrix::view::csr<const ValueType, const IndexType> lu,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::csr<const ValueType, const IndexType> l,
+                    matrix::view::csr<const ValueType, const IndexType> u,
                     matrix::CsrBuilder<ValueType, IndexType>* l_new_builder,
                     matrix::CsrBuilder<ValueType, IndexType>* u_new_builder)
 {
-    auto num_rows = a->get_size()[0];
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_col_idxs = l->get_const_col_idxs();
-    auto l_vals = l->get_const_values();
-    auto u_row_ptrs = u->get_const_row_ptrs();
-    auto u_col_idxs = u->get_const_col_idxs();
-    auto u_vals = u->get_const_values();
+    auto num_rows = a.size[0];
+    auto l_row_ptrs = l.row_ptrs;
+    auto l_col_idxs = l.col_idxs;
+    auto l_vals = l.values;
+    auto u_row_ptrs = u.row_ptrs;
+    auto u_col_idxs = u.col_idxs;
+    auto u_vals = u.values;
     auto l_new = l_new_builder->get_matrix();
     auto u_new = u_new_builder->get_matrix();
     auto l_new_row_ptrs = l_new->get_row_ptrs();

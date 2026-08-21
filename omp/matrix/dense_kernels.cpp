@@ -174,15 +174,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::dense<const ValueType> source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
-    auto num_rows = result->get_size()[0];
-    auto num_cols = result->get_size()[1];
-    auto num_nonzeros = result->get_num_stored_elements();
+    auto num_rows = result.size[0];
+    auto num_cols = result.size[1];
+    auto num_nonzeros = result.num_stored_elements;
 
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
+    auto row_ptrs = result.row_ptrs;
+    auto col_idxs = result.col_idxs;
+    auto values = result.values;
 
 #pragma omp parallel for
     for (size_type row = 0; row < num_rows; ++row) {

@@ -356,7 +356,7 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Fbcsr<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
     constexpr auto warps_per_block = default_block_size / config::warp_size;
     const auto num_blocks =
@@ -365,8 +365,8 @@ void convert_to_csr(const std::shared_ptr<const DefaultExecutor> exec,
         kernel::convert_to_csr<<<num_blocks, default_block_size, 0,
                                  exec->get_stream()>>>(
             source->get_const_row_ptrs(), source->get_const_col_idxs(),
-            as_device_type(source->get_const_values()), result->get_row_ptrs(),
-            result->get_col_idxs(), as_device_type(result->get_values()),
+            as_device_type(source->get_const_values()), result.row_ptrs,
+            result.col_idxs, as_device_type(result.values),
             source->get_num_block_rows(), source->get_block_size());
     }
 }

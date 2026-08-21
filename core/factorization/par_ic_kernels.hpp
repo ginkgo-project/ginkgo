@@ -23,14 +23,14 @@ namespace kernels {
 
 #define GKO_DECLARE_PAR_IC_INIT_FACTOR_KERNEL(ValueType, IndexType) \
     void init_factor(std::shared_ptr<const DefaultExecutor> exec,   \
-                     matrix::Csr<ValueType, IndexType>* l_factor)
+                     matrix::view::csr<ValueType, IndexType> l_factor)
 
 #define GKO_DECLARE_PAR_IC_COMPUTE_FACTOR_KERNEL(ValueType, IndexType)      \
     void compute_factor(std::shared_ptr<const DefaultExecutor> exec,        \
                         size_type iterations,                               \
                         matrix::view::coo<const ValueType, const IndexType> \
                             lower_system_matrix,                            \
-                        matrix::Csr<ValueType, IndexType>* l_factor)
+                        matrix::view::csr<ValueType, IndexType> l_factor)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                             \
     template <typename ValueType, typename IndexType>            \

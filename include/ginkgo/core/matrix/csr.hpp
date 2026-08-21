@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
@@ -203,6 +204,8 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Csr>;
+    using device_view = view::csr<value_type, index_type>;
+    using const_device_view = view::csr<const value_type, const index_type>;
 
     class GKO_DEPRECATED(
         "please use enum gko::matrix::csr::spmv_strategy::<strategy>")
@@ -349,6 +352,20 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    /**
+     * Returns a non-owning device view of this matrix.
+     *
+     * @return a device view of this matrix.
+     */
+    device_view get_device_view();
+
+    /**
+     * Returns a non-owning const device view of this matrix.
+     *
+     * @return a const device view of this matrix.
+     */
+    const_device_view get_const_device_view() const;
 
     /**
      * Class describing the internal lookup structures created by

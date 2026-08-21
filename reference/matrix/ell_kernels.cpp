@@ -203,14 +203,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_COPY_KERNEL);
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::view::ell<const ValueType, const IndexType> source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
     const auto num_rows = source.size[0];
     const auto max_nnz_per_row = source.num_stored_elements_per_row;
 
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto values = result->get_values();
+    auto row_ptrs = result.row_ptrs;
+    auto col_idxs = result.col_idxs;
+    auto values = result.values;
 
     size_type cur_ptr = 0;
     row_ptrs[0] = 0;

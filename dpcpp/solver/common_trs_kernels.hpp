@@ -39,9 +39,10 @@ struct OneMklSolveStruct : gko::solver::SolveStruct {
     oneapi::mkl::uplo uplo;
     oneapi::mkl::diag diag;
 
-    OneMklSolveStruct(std::shared_ptr<const gko::DpcppExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* matrix,
-                      size_type num_rhs, bool is_upper, bool unit_diag)
+    OneMklSolveStruct(
+        std::shared_ptr<const gko::DpcppExecutor> exec,
+        matrix::view::csr<const ValueType, const IndexType> matrix,
+        size_type num_rhs, bool is_upper, bool unit_diag)
         : exec{exec}, mat_handle{nullptr}, num_rhs{num_rhs}
     {
         if (num_rhs == 0) {
@@ -52,15 +53,15 @@ struct OneMklSolveStruct : gko::solver::SolveStruct {
         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
         oneapi::mkl::sparse::set_csr_data(
             *exec->get_queue(), mat_handle,
-            static_cast<IndexType>(matrix->get_size()[0]),
-            static_cast<IndexType>(matrix->get_size()[1]),
+            static_cast<IndexType>(matrix.size[0]),
+            static_cast<IndexType>(matrix.size[1]),
 #if INTEL_MKL_VERSION >= 20250300
-            static_cast<std::int64_t>(matrix->get_num_stored_elements()),
+            static_cast<std::int64_t>(matrix.num_stored_elements),
 #endif
             oneapi::mkl::index_base::zero,
-            const_cast<IndexType*>(matrix->get_const_row_ptrs()),
-            const_cast<IndexType*>(matrix->get_const_col_idxs()),
-            const_cast<ValueType*>(matrix->get_const_values()));
+            const_cast<IndexType*>(matrix.row_ptrs),
+            const_cast<IndexType*>(matrix.col_idxs),
+            const_cast<ValueType*>(matrix.values));
 
         oneapi::mkl::sparse::optimize_trsm(
             *exec->get_queue(), oneapi::mkl::layout::row_major, uplo,
@@ -68,8 +69,7 @@ struct OneMklSolveStruct : gko::solver::SolveStruct {
             static_cast<int64>(num_rhs));
     }
 
-    void solve(const matrix::Csr<ValueType, IndexType>* matrix,
-               matrix::view::dense<const ValueType> input,
+    void solve(matrix::view::dense<const ValueType> input,
                matrix::view::dense<ValueType> output) const
     {
         if (input.size[1] != num_rhs) {
@@ -111,12 +111,12 @@ struct OneMklSolveStruct : gko::solver::SolveStruct {
 
 template <typename ValueType, typename IndexType>
 void generate_kernel(std::shared_ptr<const DpcppExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType>* matrix,
+                     matrix::view::csr<const ValueType, const IndexType> matrix,
                      std::shared_ptr<solver::SolveStruct>& solve_struct,
                      const gko::size_type num_rhs, bool is_upper,
                      bool unit_diag)
 {
-    if (matrix->get_size()[0] == 0) {
+    if (matrix.size[0] == 0) {
         return;
     }
     if constexpr (onemkl::is_supported<ValueType>::value) {
@@ -131,12 +131,12 @@ void generate_kernel(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void solve_kernel(std::shared_ptr<const DpcppExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType>* matrix,
+                  matrix::view::csr<const ValueType, const IndexType> matrix,
                   const solver::SolveStruct* solve_struct,
                   matrix::view::dense<const ValueType> b,
                   matrix::view::dense<ValueType> x)
 {
-    if (matrix->get_size()[0] == 0 || b.size[1] == 0) {
+    if (matrix.size[0] == 0 || b.size[1] == 0) {
         return;
     }
     using vec = matrix::Dense<ValueType>;
@@ -145,7 +145,7 @@ void solve_kernel(std::shared_ptr<const DpcppExecutor> exec,
         if (auto onemkl_solve_struct =
                 dynamic_cast<const OneMklSolveStruct<ValueType, IndexType>*>(
                     solve_struct)) {
-            onemkl_solve_struct->solve(matrix, b, x);
+            onemkl_solve_struct->solve(b, x);
         } else {
             GKO_NOT_SUPPORTED(solve_struct);
         }
