@@ -1239,7 +1239,7 @@ void merge_path_spmv(
     array<arithmetic_type> val_out(exec, grid_num);
 
     const auto a_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(a.device_view);
+        acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
 
     for (IndexType column_id = 0; column_id < b.size[1]; column_id++) {
         const auto column_span =
@@ -1433,11 +1433,10 @@ bool try_general_sparselib_spmv(
         oneapi::mkl::sparse::matrix_handle_t mat_handle;
         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
         oneapi::mkl::sparse::set_csr_data(
-            *exec->get_queue(), mat_handle,
-            static_cast<IndexType>(a->get_size()[0]),
-            static_cast<IndexType>(a->get_size()[1]),
+            *exec->get_queue(), mat_handle, static_cast<IndexType>(a.size[0]),
+            static_cast<IndexType>(a.size[1]),
 #if INTEL_MKL_VERSION >= 20250300
-            static_cast<std::int64_t>(a->get_num_stored_elements()),
+            static_cast<std::int64_t>(a.num_stored_elements),
 #endif
             oneapi::mkl::index_base::zero, const_cast<IndexType*>(a.row_ptrs),
             const_cast<IndexType*>(a.col_idxs),
@@ -1522,7 +1521,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         // empty output: nothing to do
         return;
     }
-    if (b.size[0] == 0 || a->get_num_stored_elements() == 0) {
+    if (b.size[0] == 0 || a.num_stored_elements == 0) {
         // empty input: zero output
         dense::fill(exec, c, zero<OutputValueType>());
         return;
@@ -1578,7 +1577,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         // empty output: nothing to do
         return;
     }
-    if (b.size[0] == 0 || a->get_num_stored_elements() == 0) {
+    if (b.size[0] == 0 || a.num_stored_elements == 0) {
         // empty input: scale output
         dense::scale(exec, beta, c);
         return;
@@ -1958,7 +1957,7 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
 
     using device_value_type = device_type<ValueType>;
     array<val_heap_element<device_value_type, IndexType>> heap_array(
-        exec, a->get_num_stored_elements());
+        exec, a.num_stored_elements);
 
     auto heap = heap_array.get_data();
     auto col_heap =
@@ -2033,9 +2032,9 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     const auto b_row_ptrs = b.row_ptrs;
     const auto b_cols = b.col_idxs;
     const auto b_vals = as_device_type(b.values);
-    const auto d_row_ptrs = d->get_const_row_ptrs();
-    const auto d_cols = d->get_const_col_idxs();
-    const auto d_vals = as_device_type(d->get_const_values());
+    const auto d_row_ptrs = d.row_ptrs;
+    const auto d_cols = d.col_idxs;
+    const auto d_vals = as_device_type(d.values);
     auto c_row_ptrs = c->get_row_ptrs();
     const auto alpha_vals = as_device_type(alpha.values);
     const auto beta_vals = as_device_type(beta.values);
@@ -2045,7 +2044,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     // first sweep: count nnz for each row
     using device_value_type = device_type<ValueType>;
     array<val_heap_element<device_value_type, IndexType>> heap_array(
-        exec, a->get_num_stored_elements());
+        exec, a.num_stored_elements);
 
     auto heap = heap_array.get_data();
     auto col_heap =
