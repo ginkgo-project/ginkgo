@@ -77,6 +77,8 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
         /**
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
@@ -92,6 +94,8 @@ public:
             }
             return *this;
         }
+
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
 
         /**
          * Strategy which will be used by the L matrix. The default value is

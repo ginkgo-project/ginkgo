@@ -170,6 +170,8 @@ public:
          */
         double GKO_FACTORY_PARAMETER_SCALAR(fill_in_limit, 2.0);
 
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
         /**
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
@@ -185,6 +187,8 @@ public:
             }
             return *this;
         }
+
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
 
         /**
          * Strategy which will be used by the L matrix. The default value is
