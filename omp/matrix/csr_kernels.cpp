@@ -204,7 +204,9 @@ void classical_spmv(std::shared_ptr<const OmpExecutor> exec,
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::csr::spmv_strategy strategy, const IndexType,
+          const matrix::csr::spmv_strategy strategy,
+          const IndexType /* max_nnz_per_row */,
+          size_type /* num_srow_elements */, const IndexType* /*srow*/,
           matrix::view::csr<const MatrixValueType, const IndexType> a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
@@ -229,7 +231,9 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::csr::spmv_strategy strategy, const IndexType,
+                   const matrix::csr::spmv_strategy strategy,
+                   const IndexType /* max_nnz_per_row */,
+                   size_type /* num_srow_elements */, const IndexType* /*srow*/,
                    matrix::view::dense<const MatrixValueType> alpha,
                    matrix::view::csr<const MatrixValueType, const IndexType> a,
                    matrix::view::dense<const InputValueType> b,

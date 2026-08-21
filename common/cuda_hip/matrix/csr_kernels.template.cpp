@@ -361,9 +361,8 @@ template <int items_per_thread, typename matrix_accessor,
 __device__ void merge_path_spmv(
     const IndexType num_rows, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    acc::range<input_accessor> b, acc::range<output_accessor> c,
-    IndexType* __restrict__ row_out,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    acc::range<output_accessor> c, IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
     Alpha_op alpha_op, Beta_op beta_op)
 {
@@ -438,14 +437,13 @@ template <int items_per_thread, typename matrix_accessor,
 __global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
     const IndexType num_rows, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    acc::range<input_accessor> b, acc::range<output_accessor> c,
-    IndexType* __restrict__ row_out,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    acc::range<output_accessor> c, IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out)
 {
     using type = typename output_accessor::arithmetic_type;
     merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+        num_rows, val, col_idxs, row_ptrs, b, c, row_out, val_out,
         [](const type& x) { return x; },
         [](const type& x) { return zero<type>(); });
 }
@@ -457,8 +455,7 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
     const IndexType num_rows,
     const typename matrix_accessor::storage_type* __restrict__ alpha,
     acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    acc::range<input_accessor> b,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
     const typename output_accessor::storage_type* __restrict__ beta,
     acc::range<output_accessor> c, IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out)
@@ -468,12 +465,12 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
     const type beta_val = beta[0];
     if (is_zero(beta_val)) {
         merge_path_spmv<items_per_thread>(
-            num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+            num_rows, val, col_idxs, row_ptrs, b, c, row_out, val_out,
             [&alpha_val](const type& x) { return alpha_val * x; },
             [](const type& x) { return zero<type>(); });
     } else {
         merge_path_spmv<items_per_thread>(
-            num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+            num_rows, val, col_idxs, row_ptrs, b, c, row_out, val_out,
             [&alpha_val](const type& x) { return alpha_val * x; },
             [&beta_val](const type& x) { return beta_val * x; });
     }
@@ -1965,7 +1962,7 @@ void merge_path_spmv(
                     <<<grid, block, 0, exec->get_stream()>>>(
                         static_cast<IndexType>(a.size[0]),
                         acc::as_device_range(a_vals), a.col_idxs,
-                        as_device_type(a.row_ptrs), as_device_type(a.srow),
+                        as_device_type(a.row_ptrs),
                         acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals),
                         as_device_type(row_out.get_data()),
@@ -1984,7 +1981,7 @@ void merge_path_spmv(
                         static_cast<IndexType>(a.size[0]),
                         as_device_type(alpha->values),
                         acc::as_device_range(a_vals), a.col_idxs,
-                        as_device_type(a.row_ptrs), as_device_type(a.srow),
+                        as_device_type(a.row_ptrs),
                         acc::as_device_range(b_vals),
                         as_device_type(beta->values),
                         acc::as_device_range(c_vals),
@@ -2121,7 +2118,8 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 bool load_balance_spmv(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_srow_elements,
+    const IndexType* srow,
     matrix::view::csr<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
@@ -2156,7 +2154,7 @@ bool load_balance_spmv(
         } else {
             dense::fill(exec, c, zero<OutputValueType>());
         }
-        const IndexType nwarps = a.num_srow_elements;
+        const IndexType nwarps = num_srow_elements;
         if (nwarps > 0) {
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b.size[1]);
@@ -2172,7 +2170,7 @@ bool load_balance_spmv(
                         nwarps, static_cast<IndexType>(a.size[0]),
                         as_device_type(alpha->values),
                         acc::as_device_range(a_vals), a.col_idxs,
-                        as_device_type(a.row_ptrs), as_device_type(a.srow),
+                        as_device_type(a.row_ptrs), as_device_type(srow),
                         acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals));
                 }
@@ -2182,7 +2180,7 @@ bool load_balance_spmv(
                                             exec->get_stream()>>>(
                         nwarps, static_cast<IndexType>(a.size[0]),
                         acc::as_device_range(a_vals), a.col_idxs,
-                        as_device_type(a.row_ptrs), as_device_type(a.srow),
+                        as_device_type(a.row_ptrs), as_device_type(srow),
                         acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals));
                 }
@@ -2333,7 +2331,8 @@ template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DefaultExecutor> exec,
           const matrix::csr::spmv_strategy strategy,
-          const IndexType max_nnz_per_row,
+          const IndexType max_nnz_per_row, size_type num_srow_elements,
+          const IndexType* srow,
           matrix::view::csr<const MatrixValueType, const IndexType> a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
@@ -2362,7 +2361,8 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         bool use_classical = true;
         if (strategy == matrix::csr::spmv_strategy::load_balance) {
-            use_classical = !host_kernel::load_balance_spmv(exec, a, b, c);
+            use_classical = !host_kernel::load_balance_spmv(
+                exec, num_srow_elements, srow, a, b, c);
         } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
             use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
         }
@@ -2382,7 +2382,8 @@ template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
                    const matrix::csr::spmv_strategy strategy,
-                   const IndexType max_nnz_per_row,
+                   const IndexType max_nnz_per_row, size_type num_srow_elements,
+                   const IndexType* srow,
                    matrix::view::dense<const MatrixValueType> alpha,
                    matrix::view::csr<const MatrixValueType, const IndexType> a,
                    matrix::view::dense<const InputValueType> b,
@@ -2414,8 +2415,8 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
     } else {
         bool use_classical = true;
         if (strategy == matrix::csr::spmv_strategy::load_balance) {
-            use_classical =
-                !host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
+            use_classical = !host_kernel::load_balance_spmv(
+                exec, num_srow_elements, srow, a, b, c, alpha, beta);
         } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
             use_classical =
                 !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);

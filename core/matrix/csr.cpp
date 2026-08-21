@@ -386,6 +386,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             [this](auto dense_b, auto dense_x) {
                 this->get_executor()->run(csr::make_spmv(
                     this->get_actual_strategy(), max_nnz_per_row_,
+                    this->get_num_srow_elements(), this->get_const_srow(),
                     this->get_const_device_view(),
                     dense_b->get_const_device_view(),
                     dense_x->get_device_view()));
@@ -528,6 +529,7 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                     beta);
                 this->get_executor()->run(csr::make_advanced_spmv(
                     this->get_actual_strategy(), max_nnz_per_row_,
+                    this->get_num_srow_elements(), this->get_const_srow(),
                     dense_alpha->get_const_device_view(),
                     this->get_const_device_view(),
                     dense_b->get_const_device_view(),
@@ -1896,10 +1898,9 @@ csr::spmv_strategy Csr<ValueType, IndexType>::get_actual_strategy()
 template <typename ValueType, typename IndexType>
 auto Csr<ValueType, IndexType>::get_device_view() -> device_view
 {
-    return device_view{this->get_size(),     this->get_num_stored_elements(),
-                       this->get_values(),   this->get_row_ptrs(),
-                       this->get_col_idxs(), this->get_num_srow_elements(),
-                       this->get_srow()};
+    return device_view{this->get_size(), this->get_num_stored_elements(),
+                       this->get_values(), this->get_row_ptrs(),
+                       this->get_col_idxs()};
 }
 
 
@@ -1907,11 +1908,10 @@ template <typename ValueType, typename IndexType>
 auto Csr<ValueType, IndexType>::get_const_device_view() const
     -> const_device_view
 {
-    return const_device_view{
-        this->get_size(),           this->get_num_stored_elements(),
-        this->get_const_values(),   this->get_const_row_ptrs(),
-        this->get_const_col_idxs(), this->get_num_srow_elements(),
-        this->get_const_srow()};
+    return const_device_view{this->get_size(), this->get_num_stored_elements(),
+                             this->get_const_values(),
+                             this->get_const_row_ptrs(),
+                             this->get_const_col_idxs()};
 }
 
 

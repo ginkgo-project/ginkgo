@@ -24,13 +24,14 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_CSR_SPMV_KERNEL(MatrixValueType, InputValueType,       \
-                                    OutputValueType, IndexType)            \
-    void spmv(std::shared_ptr<const DefaultExecutor> exec,                 \
-              const matrix::csr::spmv_strategy strategy,                   \
-              const IndexType max_nnz_per_row,                             \
-              matrix::view::csr<const MatrixValueType, const IndexType> a, \
-              matrix::view::dense<const InputValueType> b,                 \
+#define GKO_DECLARE_CSR_SPMV_KERNEL(MatrixValueType, InputValueType,        \
+                                    OutputValueType, IndexType)             \
+    void spmv(std::shared_ptr<const DefaultExecutor> exec,                  \
+              const matrix::csr::spmv_strategy strategy,                    \
+              const IndexType max_nnz_per_row, size_type num_srow_elements, \
+              const IndexType* srow,                                        \
+              matrix::view::csr<const MatrixValueType, const IndexType> a,  \
+              matrix::view::dense<const InputValueType> b,                  \
               matrix::view::dense<OutputValueType> c)
 
 #define GKO_DECLARE_CSR_ADVANCED_SPMV_KERNEL(MatrixValueType, InputValueType, \
@@ -38,7 +39,8 @@ namespace kernels {
     void advanced_spmv(                                                       \
         std::shared_ptr<const DefaultExecutor> exec,                          \
         const matrix::csr::spmv_strategy strategy,                            \
-        const IndexType max_nnz_per_row,                                      \
+        const IndexType max_nnz_per_row, size_type num_srow_elements,         \
+        const IndexType* srow,                                                \
         matrix::view::dense<const MatrixValueType> alpha,                     \
         matrix::view::csr<const MatrixValueType, const IndexType> a,          \
         matrix::view::dense<const InputValueType> b,                          \
