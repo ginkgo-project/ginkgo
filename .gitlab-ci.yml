@@ -465,22 +465,41 @@ build/nogpu/mpi/gcc13/noomp/release/shared:
     BUILD_MPI: "ON"
     MODULE_LOAD: "cmake/3.18.6 gcc/13.3.0 openmpi/5.0.7"
 
-build/icpx202421/gpu/release/shared:
+build/icpx202421/gpu-fp32/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
     - .full_test_condition
-    - .use_tum-intel
+    - .use_tum-intel-fp32
   variables:
     CXX_COMPILER: "icpx"
     CXX_FLAGS: "-Wpedantic -ffp-model=precise -Wno-deprecated-declarations"
     BUILD_SYCL: "ON"
     BUILD_OMP: "ON"
     BUILD_TYPE: "Release"
+    DPCPP_SINGLE_MODE: "ON"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "OFF"
+    ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
+    MODULE_LOAD: "cmake/3.31.6 intel-oneapi-compilers/2024.2.1 intel-oneapi-dpl/2022.6.1 intel-oneapi-tbb/2021.13.1 intel-oneapi-mkl/2024.2.1"
+
+build/icpx202521/gpu/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_tum-intel
+  variables:
+    CXX_COMPILER: "icpx"
+    CXX_FLAGS: "-Wpedantic -ffp-model=precise -Wno-deprecated-declarations"
+    BUILD_SYCL: "ON"
+    BUILD_OMP: "OFF"
+    BUILD_HWLOC: "OFF"
+    BUILD_TYPE: "Release"
     ENABLE_HALF: "ON"
     ENABLE_BFLOAT16: "ON"
     ONEAPI_DEVICE_SELECTOR: "level_zero:gpu"
-    MODULE_LOAD: "cmake/3.28.6 intel-oneapi-compilers/2024.2.1 intel-oneapi-dpl/2022.6.1 intel-oneapi-tbb/2021.13.1 intel-oneapi-mkl/2024.2.1"
+    MODULE_LOAD: "cmake/3.28.6 intel-oneapi-compilers/2025.2.1 intel-oneapi-dpl/2022.9.0 intel-oneapi-tbb/2022.2.0 intel-oneapi-mkl/2025.2.0"
 
 # TODO: Enable when debug shared library size issues are fixed
 # build/dpcpp/level_zero_igpu/debug/shared:

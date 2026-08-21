@@ -355,8 +355,8 @@ void add_candidates(syn::value_list<int, subgroup_size>,
     auto num_rows = static_cast<IndexType>(lu->get_size()[0]);
     auto subwarps_per_block = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(num_rows, subwarps_per_block);
-    auto l_new = l_new->get_matrix();
-    auto u_new = u_new->get_matrix();
+    auto l_new = l_new_builder->get_matrix();
+    auto u_new = u_new_builder->get_matrix();
     auto lu_row_ptrs = lu->get_const_row_ptrs();
     auto lu_col_idxs = lu->get_const_col_idxs();
     auto lu_vals = as_device_type(lu->get_const_values());

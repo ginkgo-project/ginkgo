@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -63,15 +63,14 @@ void build_searchtree(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       IndexType size, remove_complex<ValueType>* tree_output)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<remove_complex<ValueType>, 1> sh_samples_acc_ct1(
+        sycl::local_accessor<remove_complex<ValueType>, 1> sh_samples(
             sycl::range<1>(1024 /*sample_size*/), cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1)
                              [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                                 build_searchtree(
-                                     input, size, tree_output, item_ct1,
-                                     sh_samples_acc_ct1.get_pointer());
+                                 build_searchtree(input, size, tree_output,
+                                                  item_ct1, &sh_samples[0]);
                              });
     });
 }
@@ -143,19 +142,17 @@ void count_buckets(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                    unsigned char* oracles, int items_per_thread)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<remove_complex<ValueType>, 1> sh_tree_acc_ct1(
+        sycl::local_accessor<remove_complex<ValueType>, 1> sh_tree(
             sycl::range<1>(255 /*searchtree_inner_size*/), cgh);
-        sycl::local_accessor<IndexType, 1> sh_counter_acc_ct1(
+        sycl::local_accessor<IndexType, 1> sh_counter(
             sycl::range<1>(256 /*searchtree_width*/), cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                count_buckets(
-                    input, size, tree, counter, oracles, items_per_thread,
-                    item_ct1,
-                    (remove_complex<ValueType>*)sh_tree_acc_ct1.get_pointer(),
-                    (IndexType*)sh_counter_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             count_buckets(input, size, tree, counter, oracles,
+                                           items_per_thread, item_ct1,
+                                           &sh_tree[0], &sh_counter[0]);
+                         });
     });
 }
 
@@ -244,19 +241,17 @@ void block_prefix_sum(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                       IndexType* totals, IndexType num_blocks)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<IndexType, 1> warp_sums_acc_ct1(
+        sycl::local_accessor<IndexType, 1> warp_sums(
             sycl::range<1>(default_block_size /
                            config::warp_size /*num_warps*/),
             cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    block_prefix_sum(
-                        counters, totals, num_blocks, item_ct1,
-                        (IndexType*)warp_sums_acc_ct1.get_pointer());
-                });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                                 block_prefix_sum(counters, totals, num_blocks,
+                                                  item_ct1, &warp_sums[0]);
+                             });
     });
 }
 
@@ -295,7 +290,7 @@ void filter_bucket(const ValueType* __restrict__ input, IndexType size,
     for (IndexType i = begin; i < end; i += default_block_size) {
         // only copy the element when it belongs to the target bucket
         auto found = bucket == oracles[i];
-        auto ofs = atomic_add<atomic::local_space>(&*counter, IndexType{found});
+        auto ofs = atomic_add<atomic::local_space>(counter, IndexType{found});
         if (found) {
             output[ofs] = gko::abs(input[i]);
         }
@@ -310,13 +305,12 @@ void filter_bucket(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                    remove_complex<ValueType>* output, int items_per_thread)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<IndexType, 0> counter_acc_ct1(cgh);
+        sycl::local_accessor<IndexType, 1> counter(1, cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 filter_bucket(input, size, bucket, oracles, block_offsets,
-                              output, items_per_thread, item_ct1,
-                              (IndexType*)counter_acc_ct1.get_pointer());
+                              output, items_per_thread, item_ct1, &counter[0]);
             });
     });
 }
@@ -351,16 +345,15 @@ void basecase_select(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      IndexType rank, ValueType* out)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<ValueType, 1> sh_local_acc_ct1(
+        sycl::local_accessor<ValueType, 1> sh_local(
             sycl::range<1>(1024 /*basecase_size*/), cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1)
-                [[sycl::reqd_sub_group_size(config::warp_size)]] {
-                    basecase_select(input, size, rank, out, item_ct1,
-                                    (ValueType*)sh_local_acc_ct1.get_pointer());
-                });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1)
+                             [[sycl::reqd_sub_group_size(config::warp_size)]] {
+                                 basecase_select(input, size, rank, out,
+                                                 item_ct1, &sh_local[0]);
+                             });
     });
 }
 

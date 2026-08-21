@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -65,7 +65,7 @@ void launch_apply_kernel(
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
-            [=](sycl::nd_item<3> item_ct1) [[intel::reqd_sub_group_size(
+            [=](sycl::nd_item<3> item_ct1) [[sycl::reqd_sub_group_size(
                 subgroup_size)]] [[intel::kernel_args_restrict]] {
                 auto batch_id = item_ct1.get_group_linear_id();
                 const auto mat_global_entry =
@@ -80,8 +80,7 @@ void launch_apply_kernel(
                     sconf, max_iters, res_tol, logger, prec, mat_global_entry,
                     b_global_entry, x_global_entry, num_rows,
                     mat.get_single_item_num_nnz(),
-                    static_cast<device_type<ValueType>*>(
-                        slm_values.get_pointer()),
+                    static_cast<device_type<ValueType>*>(&slm_values[0]),
                     item_ct1, workspace);
             });
     });

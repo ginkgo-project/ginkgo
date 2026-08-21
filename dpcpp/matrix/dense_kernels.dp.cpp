@@ -25,7 +25,6 @@
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 #include "dpcpp/synthesizer/implementation_selection.hpp"
 
 
@@ -57,7 +56,7 @@ void transpose(const size_type nrows, const size_type ncols,
                const ValueType* __restrict__ in, const size_type in_stride,
                ValueType* __restrict__ out, const size_type out_stride,
                Closure op, sycl::nd_item<3> item_ct1,
-               uninitialized_array<ValueType, sg_size*(sg_size + 1)>& space)
+               sycl::local_accessor<device_type<ValueType>, 1> space)
 {
     auto local_x = item_ct1.get_local_id(2);
     auto local_y = item_ct1.get_local_id(1);
@@ -76,13 +75,11 @@ void transpose(const size_type nrows, const size_type ncols,
 }
 
 template <typename DeviceConfig, typename ValueType>
-void transpose(
-    const size_type nrows, const size_type ncols,
-    const ValueType* __restrict__ in, const size_type in_stride,
-    ValueType* __restrict__ out, const size_type out_stride,
-    sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, DeviceConfig::subgroup_size*(
-                                       DeviceConfig::subgroup_size + 1)>& space)
+void transpose(const size_type nrows, const size_type ncols,
+               const ValueType* __restrict__ in, const size_type in_stride,
+               ValueType* __restrict__ out, const size_type out_stride,
+               sycl::nd_item<3> item_ct1,
+               sycl::local_accessor<device_type<ValueType>, 1> space)
 {
     transpose<DeviceConfig::subgroup_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -99,10 +96,8 @@ void transpose(sycl::queue* queue, matrix::view::dense<const ValueType> orig,
     dim3 block(sg_size, sg_size);
 
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<device_type<ValueType>, sg_size*(sg_size + 1)>,
-            0>
-            space_acc_ct1(cgh);
+        sycl::local_accessor<device_type<ValueType>, 1> space_acc(
+            sg_size * (sg_size + 1), cgh);
         // Can not pass the member to device function directly
         auto in = as_device_type(orig.values);
         auto in_stride = orig.stride;
@@ -111,8 +106,7 @@ void transpose(sycl::queue* queue, matrix::view::dense<const ValueType> orig,
         cgh.parallel_for(
             sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
                 transpose<DeviceConfig>(size[0], size[1], in, in_stride, out,
-                                        out_stride, item_ct1,
-                                        *space_acc_ct1.get_pointer());
+                                        out_stride, item_ct1, space_acc);
             });
     });
 }
@@ -122,13 +116,11 @@ GKO_ENABLE_DEFAULT_CONFIG_CALL_TYPE(transpose_call, transpose);
 
 
 template <typename DeviceConfig, typename ValueType>
-void conj_transpose(
-    const size_type nrows, const size_type ncols,
-    const ValueType* __restrict__ in, const size_type in_stride,
-    ValueType* __restrict__ out, const size_type out_stride,
-    sycl::nd_item<3> item_ct1,
-    uninitialized_array<ValueType, DeviceConfig::subgroup_size*(
-                                       DeviceConfig::subgroup_size + 1)>& space)
+void conj_transpose(const size_type nrows, const size_type ncols,
+                    const ValueType* __restrict__ in, const size_type in_stride,
+                    ValueType* __restrict__ out, const size_type out_stride,
+                    sycl::nd_item<3> item_ct1,
+                    sycl::local_accessor<device_type<ValueType>, 1> space)
 {
     transpose<DeviceConfig::subgroup_size>(
         nrows, ncols, in, in_stride, out, out_stride,
@@ -144,16 +136,14 @@ void conj_transpose(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 {
     constexpr auto sg_size = DeviceConfig::subgroup_size;
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<ValueType, sg_size*(sg_size + 1)>, 0>
-            space_acc_ct1(cgh);
+        sycl::local_accessor<device_type<ValueType>, 1> space_acc(
+            sg_size * (sg_size + 1), cgh);
 
         cgh.parallel_for(
             sycl_nd_range(grid, block),
             [=](sycl::nd_item<3> item_ct1) __WG_BOUND__(sg_size, sg_size) {
                 conj_transpose<DeviceConfig>(nrows, ncols, in, in_stride, out,
-                                             out_stride, item_ct1,
-                                             *space_acc_ct1.get_pointer());
+                                             out_stride, item_ct1, space_acc);
             });
     });
 }

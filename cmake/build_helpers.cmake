@@ -214,3 +214,16 @@ function(
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver.cpp)
     file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/extract_dpcpp_ver)
 endfunction()
+
+# Add `-fsycl-device-lib=all` before icpx 2026 (before GINKGO_DPCPP_MAJOR_VERSION 9).
+# Intel mark `-fsycl-device-lib` deprecated in 2025.3. 
+# The 2025.3 compiler's detectable version is 8.0.0 which is the same as the 2025.2 compiler.
+# However, `-fsycl-device-lib` is not deprecated in 2025.2, so we can only remove it from 2026 not 2025.3
+function(ginkgo_add_sycl_device_lib target)
+    if(GINKGO_DPCPP_MAJOR_VERSION VERSION_LESS_EQUAL "8")
+        # Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
+        # find_package(MKL) everywhere when linking ginkgo (see the MKL example
+        # https://software.intel.com/content/www/us/en/develop/documentation/onemkl-windows-developer-guide/top/getting-started/cmake-config-for-onemkl.html)
+        target_link_options(${target} PRIVATE -fsycl-device-lib=all)
+    endif()
+endfunction()

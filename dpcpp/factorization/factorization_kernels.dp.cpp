@@ -480,9 +480,8 @@ void add_diagonal_elements(
                             exec->get_queue(), num_rows + 1, dpcpp_old_row_ptrs,
                             dpcpp_row_ptrs_add);
 
-    matrix::CsrBuilder<ValueType, IndexType> mtx_builder{mtx};
-    mtx_builder.get_value_array() = std::move(new_values);
-    mtx_builder.get_col_idx_array() = std::move(new_col_idxs);
+    mtx_builder->get_value_array() = std::move(new_values);
+    mtx_builder->get_col_idx_array() = std::move(new_col_idxs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
