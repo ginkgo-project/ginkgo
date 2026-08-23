@@ -260,9 +260,6 @@ void fill_coarse_and_compute_prolong_row_ptrs(
         },
         num_elements, cf, coarse_map.get_data());
 
-    run_kernel(
-        exec, [] GKO_KERNEL(auto i, auto coarse_map) { coarse_map[i] = 0; }, 1,
-        coarse_map.get_data() + num_elements);
 
     components::prefix_sum_nonnegative(exec, coarse_map.get_data(),
                                        coarse_map.get_size());
@@ -301,9 +298,6 @@ void fill_coarse_and_compute_prolong_row_ptrs(
         },
         n, cf, a_row_ptrs, a_col_idxs, is_strong_vals, row_ptrs_vals);
 
-    run_kernel(
-        exec, [] GKO_KERNEL(auto i, auto row_ptrs) { row_ptrs[0] = 0; }, 1,
-        row_ptrs_vals + n);
 
     components::prefix_sum_nonnegative(exec, row_ptrs_vals, n + 1);
 }
