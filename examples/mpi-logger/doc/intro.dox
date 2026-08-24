@@ -1,0 +1,23 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This example shows how to observe the MPI communication that happens inside a distributed Ginkgo run.
+
+Ginkgo's logging framework, normally used to instrument executors, operators and solvers, also covers the MPI
+communication layer. By attaching a custom logger to an <code>mpi::communicator</code>, the <code>all_reduce</code>
+and <code>all_to_all_v</code> operations issued through that communicator emit a pair of <code>_started</code> and
+<code>_completed</code> events.
+
+The example implements a small <code>MpiLogger</code> that derives from <code>gko::log::Logger</code>, subscribes to
+<code>gko::log::Logger::mpi_events_mask</code> (which enables these MPI events), and prints a per-rank message for
+each event. It then exercises the communicator in two ways:
+<ol>
+  <li> by applying a distributed solver, whose internal row-gather communication uses <code>all_to_all_v</code>;
+  <li> by computing a distributed dot product, which triggers an <code>all_reduce</code>.
+</ol>
+
+For the non-blocking calls, note that the <code>_completed</code> event is reported when <code>request::wait()</code>
+returns on the issuing rank, reflecting when the application observes the operation as finished rather than when the MPI
+runtime internally completes the transfer.
+
+To run the example with multiple processes, use
+`mpirun -n NUM_PROCS ./mpi-logger [executor]`, where the optional executor is `reference` (default) or `omp`.
