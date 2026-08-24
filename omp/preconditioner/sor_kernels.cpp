@@ -28,7 +28,7 @@ void initialize_weighted_l(
         factorization::helpers::triangular_mtx_closure(
             [inv_weight](auto val) { return val * inv_weight; },
             [](auto val) { return val; }));
-};
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L);

@@ -2032,7 +2032,7 @@ auto Dense<ValueType>::get_device_view() -> device_view
 {
     return device_view{this->get_size(), this->get_stride(),
                        this->get_values()};
-};
+}
 
 
 template <typename ValueType>
@@ -2040,7 +2040,7 @@ auto Dense<ValueType>::get_const_device_view() const -> const_device_view
 {
     return const_device_view{this->get_size(), this->get_stride(),
                              this->get_const_values()};
-};
+}
 
 
 template <typename ValueType>
