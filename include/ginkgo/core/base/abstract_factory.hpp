@@ -23,6 +23,9 @@ namespace detail {
 /**
  * workaround for nvcc 13.3 complains `typename decltype(_name)::element_type`
  * needs `typename` before `decltype`.
+ *
+ * TODO: remove workaround for nvcc 13.3. see
+ * https://github.com/ginkgo-project/ginkgo/pull/2076
  */
 template <typename T>
 using element_type_t = typename T::element_type;
@@ -31,6 +34,9 @@ using element_type_t = typename T::element_type;
 /**
  * workaround for nvcc 13.3 complains `typename decltype(_name)::element_type`
  * needs `typename` before `decltype`.
+ *
+ * TODO: remove workaround for nvcc 13.3. see
+ * https://github.com/ginkgo-project/ginkgo/pull/2076
  */
 template <typename T>
 using value_element_type_t = typename T::value_type::element_type;
