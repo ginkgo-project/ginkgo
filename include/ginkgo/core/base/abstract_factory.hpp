@@ -26,9 +26,17 @@ namespace detail {
  *
  * TODO: remove workaround for nvcc 13.3. see
  * https://github.com/ginkgo-project/ginkgo/pull/2076
+ *
+ * @note can not use `using element_type_t = typename T::element_type`.
+ * cuda 13.1 has difficulty to resolve it in Isai.
  */
 template <typename T>
-using element_type_t = typename T::element_type;
+struct element_type {
+    using type = typename T::element_type;
+};
+
+template <typename T>
+using element_type_t = typename element_type<T>::type;
 
 
 /**
