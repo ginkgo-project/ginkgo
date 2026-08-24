@@ -89,18 +89,19 @@ TEST_F(Rs, CheckMMatrixIsEquivalentToRef)
     gko::array<bool> is_m_exec(exec, 1);
 
     // Test on a valid M-matrix
-    gko::kernels::reference::rs::check_m_matrix(ref, m_matrix.get(), is_m_ref);
+    gko::kernels::reference::rs::check_m_matrix(
+        ref, m_matrix->get_const_device_view(), is_m_ref);
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::check_m_matrix(
-        exec, d_m_matrix.get(), is_m_exec);
+        exec, d_m_matrix->get_const_device_view(), is_m_exec);
     EXPECT_TRUE(is_m_ref.get_const_data()[0]);
     // is_m_exec may live in device memory, it cannot be dereferenced on host
     EXPECT_TRUE(exec->copy_val_to_host(is_m_exec.get_const_data()));
 
     // Test on an invalid M-matrix
-    gko::kernels::reference::rs::check_m_matrix(ref, non_m_matrix.get(),
-                                                is_m_ref);
+    gko::kernels::reference::rs::check_m_matrix(
+        ref, non_m_matrix->get_const_device_view(), is_m_ref);
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::check_m_matrix(
-        exec, d_non_m_matrix.get(), is_m_exec);
+        exec, d_non_m_matrix->get_const_device_view(), is_m_exec);
     EXPECT_FALSE(is_m_ref.get_const_data()[0]);
     EXPECT_FALSE(exec->copy_val_to_host(is_m_exec.get_const_data()));
 }
@@ -123,12 +124,12 @@ TEST_F(Rs, ComputeSocAndRunRsIsEquivalentToRef)
     index_type coarse_size_exec = 0;
 
     gko::kernels::reference::rs::compute_soc_and_run_rs(
-        ref, m_matrix.get(), theta, is_strong_ref, lambda_ref, cf_marker_ref,
-        coarse_size_ref);
+        ref, m_matrix->get_const_device_view(), theta, is_strong_ref,
+        lambda_ref, cf_marker_ref, coarse_size_ref);
 
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::compute_soc_and_run_rs(
-        exec, d_m_matrix.get(), theta, is_strong_exec, lambda_exec,
-        cf_marker_exec, coarse_size_exec);
+        exec, d_m_matrix->get_const_device_view(), theta, is_strong_exec,
+        lambda_exec, cf_marker_exec, coarse_size_exec);
 
     GKO_ASSERT_ARRAY_EQ(is_strong_ref, is_strong_exec);
     GKO_ASSERT_ARRAY_EQ(lambda_ref, lambda_exec);
@@ -149,8 +150,8 @@ TEST_F(Rs, FillCoarseAndComputeProlongRowPtrsIsEquivalentToRef)
     index_type coarse_size = 0;
 
     gko::kernels::reference::rs::compute_soc_and_run_rs(
-        ref, m_matrix.get(), theta, is_strong_ref, lambda_ref, cf_marker_ref,
-        coarse_size);
+        ref, m_matrix->get_const_device_view(), theta, is_strong_ref,
+        lambda_ref, cf_marker_ref, coarse_size);
 
     gko::array<bool> is_strong_exec(exec, is_strong_ref);
     gko::array<index_type> cf_marker_exec(exec, cf_marker_ref);
@@ -164,13 +165,13 @@ TEST_F(Rs, FillCoarseAndComputeProlongRowPtrsIsEquivalentToRef)
     gko::array<index_type> row_ptrs_exec(exec, num_rows + 1);
 
     gko::kernels::reference::rs::fill_coarse_and_compute_prolong_row_ptrs(
-        ref, cf_marker_ref, coarse_rows_ref, fine_to_coarse_ref, m_matrix.get(),
-        is_strong_ref, row_ptrs_ref);
+        ref, cf_marker_ref, coarse_rows_ref, fine_to_coarse_ref,
+        m_matrix->get_const_device_view(), is_strong_ref, row_ptrs_ref);
 
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::
         fill_coarse_and_compute_prolong_row_ptrs(
             exec, cf_marker_exec, coarse_rows_exec, fine_to_coarse_exec,
-            d_m_matrix.get(), is_strong_exec, row_ptrs_exec);
+            d_m_matrix->get_const_device_view(), is_strong_exec, row_ptrs_exec);
 
     GKO_ASSERT_ARRAY_EQ(coarse_rows_ref, coarse_rows_exec);
     GKO_ASSERT_ARRAY_EQ(fine_to_coarse_ref, fine_to_coarse_exec);
@@ -190,16 +191,16 @@ TEST_F(Rs, ComputeInterpolationIsEquivalentToRef)
     index_type coarse_size = 0;
 
     gko::kernels::reference::rs::compute_soc_and_run_rs(
-        ref, m_matrix.get(), theta, is_strong_ref, lambda_ref, cf_marker_ref,
-        coarse_size);
+        ref, m_matrix->get_const_device_view(), theta, is_strong_ref,
+        lambda_ref, cf_marker_ref, coarse_size);
 
     gko::array<index_type> coarse_rows_ref(ref, coarse_size);
     gko::array<index_type> fine_to_coarse_ref(ref, num_rows);
     gko::array<index_type> row_ptrs_ref(ref, num_rows + 1);
 
     gko::kernels::reference::rs::fill_coarse_and_compute_prolong_row_ptrs(
-        ref, cf_marker_ref, coarse_rows_ref, fine_to_coarse_ref, m_matrix.get(),
-        is_strong_ref, row_ptrs_ref);
+        ref, cf_marker_ref, coarse_rows_ref, fine_to_coarse_ref,
+        m_matrix->get_const_device_view(), is_strong_ref, row_ptrs_ref);
 
     index_type p_nnz = row_ptrs_ref.get_const_data()[num_rows];
 
@@ -217,12 +218,14 @@ TEST_F(Rs, ComputeInterpolationIsEquivalentToRef)
     gko::array<index_type> fine_to_coarse_exec(exec, fine_to_coarse_ref);
 
     gko::kernels::reference::rs::compute_interpolation(
-        ref, m_matrix.get(), is_strong_ref.get_const_data(), cf_marker_ref,
-        fine_to_coarse_ref.get_const_data(), P_ref.get());
+        ref, m_matrix->get_const_device_view(), is_strong_ref.get_const_data(),
+        cf_marker_ref, fine_to_coarse_ref.get_const_data(),
+        P_ref->get_device_view());
 
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::compute_interpolation(
-        exec, d_m_matrix.get(), is_strong_exec.get_const_data(), cf_marker_exec,
-        fine_to_coarse_exec.get_const_data(), P_exec.get());
+        exec, d_m_matrix->get_const_device_view(),
+        is_strong_exec.get_const_data(), cf_marker_exec,
+        fine_to_coarse_exec.get_const_data(), P_exec->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(P_ref, P_exec, r<value_type>::value);
 }
