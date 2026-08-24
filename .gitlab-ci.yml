@@ -219,6 +219,19 @@ build/cuda131/nompi/gcc/cuda/release/shared:
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.30.8 cuda/13.1.1 gcc/14.3.0"
 
+build/cuda133/nompi/gcc/cuda/release/shared:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-nvidia
+  variables:
+    BUILD_CUDA: "ON"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+    BUILD_TYPE: "Release"
+    MODULE_LOAD: "cmake/3.31.6 cuda/13.3.0 gcc/14.3.0"
+
 build/amd/openmpi/gcc/rocm620/debug/shared:
   extends:
     - .build_and_test_tum_template
