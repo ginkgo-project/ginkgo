@@ -18,6 +18,25 @@
  * @ingroup gko
  */
 namespace gko {
+namespace detail {
+
+/**
+ * workaround for nvcc 13.3 complains `typename decltype(_name)::element_type`
+ * needs `typename` before `decltype`.
+ */
+template <typename T>
+using element_type_t = typename T::element_type;
+
+
+/**
+ * workaround for nvcc 13.3 complains `typename decltype(_name)::element_type`
+ * needs `typename` before `decltype`.
+ */
+template <typename T>
+using value_element_type_t = typename T::value_type::element_type;
+
+
+}  // namespace detail
 
 
 /**
@@ -514,7 +533,7 @@ private:
     _name{};                                                                   \
                                                                                \
 private:                                                                       \
-    using _name##_type = typename decltype(_name)::element_type;               \
+    using _name##_type = ::gko::detail::element_type_t<decltype(_name)>;       \
                                                                                \
 public:                                                                        \
     auto with_##_name(::gko::deferred_factory_parameter<_name##_type> factory) \
@@ -552,7 +571,7 @@ public:                                                                        \
     _name{};                                                                   \
                                                                                \
 private:                                                                       \
-    using _name##_type = typename decltype(_name)::value_type::element_type;   \
+    using _name##_type = ::gko::detail::value_element_type_t<decltype(_name)>; \
                                                                                \
 public:                                                                        \
     template <typename... Args,                                                \
