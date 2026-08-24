@@ -107,7 +107,6 @@ __global__ __launch_bounds__(default_block_size) void factorize(
     const auto lane = warp.thread_rank();
     const auto row_begin = row_ptrs[row];
     const auto row_diag = diag_idxs[row];
-    const auto row_end = row_ptrs[row + 1];
     gko::matrix::csr::device_sparsity_lookup<IndexType> lookup{
         row_ptrs, cols,      storage_offsets,
         storage,  row_descs, static_cast<size_type>(row)};

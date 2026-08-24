@@ -618,7 +618,6 @@ void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,
     auto slice_sets = result->get_slice_sets();
 
     const auto slice_size = result->get_slice_size();
-    const auto stride_factor = result->get_stride_factor();
 
     auto grid_dim = ceildiv(num_rows, default_block_size / config::warp_size);
     if (grid_dim > 0) {
