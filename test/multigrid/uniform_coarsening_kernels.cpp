@@ -41,8 +41,8 @@ protected:
     {
         gko::array<index_type> coarse_array(ref, num);
         coarse_array.fill(-1);
-        // the aggregated group must contain the identifier-th element
-        // agg_val[i] == i holds in the aggregated group whose identifier is i
+        // select every coarse_skip-th row as a coarse point: coarse_array[i]
+        // holds the coarse index i / coarse_skip, and -1 for non-coarse rows
         for (gko::size_type i = 0; i < num; i += coarse_skip) {
             coarse_array.get_data()[i] = i / coarse_skip;
         }

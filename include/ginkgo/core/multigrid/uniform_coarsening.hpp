@@ -44,7 +44,7 @@ namespace multigrid {
  * space and builds the coarse system from them. The choice is purely
  * index-based — neither matrix values nor mesh geometry are consulted. Fine
  * row `i` either contributes only when it is itself a selected coarse row
- * (injection-style), or is mapped to its nearest coarse row
+ * (injection-style), or is mapped to its coarse row
  * `floor(i / coarse_skip)` (aggregation-style), depending on the
  * `aggregation` parameter.
  *
@@ -102,7 +102,7 @@ public:
 
         /**
          * When set to `true` (the default), every fine row `i` is mapped to
-         * its nearest coarse row `floor(i / coarse_skip)` (aggregation-style),
+         * its coarse row `floor(i / coarse_skip)` (aggregation-style),
          * so that the Galerkin coarse matrix R·A·P preserves graph
          * connectivity. When `false`, only the selected coarse rows
          * (`i % coarse_skip == 0`) participate (injection-style), which can

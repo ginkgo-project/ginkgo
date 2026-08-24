@@ -243,22 +243,21 @@ UniformCoarsening<ValueType, IndexType>::generate_local(
         // matrix: R[c, f] = 1 for all f where coarse_rows_[f] == c.
         {
             auto host = exec->get_master();
+            // Coarse row c owns the contiguous fine-row block
+            // [c * skip, min((c + 1) * skip, num_rows)), so row_ptrs follow
+            // directly and col_idxs are the identity sequence.
+            const auto total_nnz = num_rows;
             std::vector<IndexType> row_ptrs(coarse_dim + 1, 0);
-            for (size_type i = 0; i < num_rows; ++i) {
-                row_ptrs[i / skip + 1]++;
+            for (size_type c = 0; c < coarse_dim; ++c) {
+                const auto block_end = (c + 1) * skip;
+                row_ptrs[c + 1] = static_cast<IndexType>(
+                    block_end < num_rows ? block_end : num_rows);
             }
-            for (size_type i = 0; i < coarse_dim; ++i) {
-                row_ptrs[i + 1] += row_ptrs[i];
-            }
-            auto total_nnz = static_cast<size_type>(row_ptrs[coarse_dim]);
             std::vector<IndexType> col_idxs(total_nnz);
-            std::vector<ValueType> values(total_nnz, one<ValueType>());
-            std::vector<IndexType> offsets(coarse_dim, 0);
-            for (size_type i = 0; i < num_rows; ++i) {
-                auto c = static_cast<size_type>(i / skip);
-                col_idxs[row_ptrs[c] + offsets[c]] = static_cast<IndexType>(i);
-                offsets[c]++;
+            for (size_type i = 0; i < total_nnz; ++i) {
+                col_idxs[i] = static_cast<IndexType>(i);
             }
+            std::vector<ValueType> values(total_nnz, one<ValueType>());
             restrict_op = share(csr_type::create(
                 exec, gko::dim<2>{coarse_dim, fine_dim}, total_nnz,
                 uniform_coarsening_op->get_strategy()));
