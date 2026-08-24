@@ -274,7 +274,7 @@ build/amd/nompi/gcc/rocm644/debug/static:
     BUILD_SHARED_LIBS: "OFF"
     MODULE_LOAD: "cmake/3.29.6 rocm/6.4.4 gcc/14.3.0"
 
-build/amd/nompi/gcc/rocm710/release/shared:
+build/amd/nompi/gcc/rocm711/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
@@ -285,7 +285,7 @@ build/amd/nompi/gcc/rocm710/release/shared:
     BUILD_MPI: "OFF"
     BUILD_OMP: "OFF"
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.29.6 rocm/7.1.0 gcc/14.3.0"
+    MODULE_LOAD: "cmake/3.29.6 rocm/7.1.1 gcc/14.3.0"
 
 build/amd/nompi/gcc/rocm720/release/shared:
   extends:
