@@ -10,6 +10,7 @@
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/multigrid/rs_helpers.hpp"
 
 namespace gko {
 namespace kernels {
@@ -27,10 +28,10 @@ void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::csr<const ValueType, const IndexType> matrix,
                     array<bool>& is_m_matrix_array)
 {
-    const auto num_rows = matrix->get_size()[0];
-    const auto row_ptrs = matrix->get_const_row_ptrs();
-    const auto col_idxs = matrix->get_const_col_idxs();
-    const auto values = matrix->get_const_values();
+    const auto num_rows = matrix.size[0];
+    const auto row_ptrs = matrix.row_ptrs;
+    const auto col_idxs = matrix.col_idxs;
+    const auto values = matrix.values;
 
     // reduce into a 0/1 integer bc the reduction needs a type
     // with well-defined arithmetic/shuffle support on all backends
@@ -58,9 +59,10 @@ void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto a) { return a; }, int32{1}, d_result.get_data(),
         num_rows, row_ptrs, col_idxs, values);
 
-    const bool is_m_matrix = get_element(d_result, 0) != 0;
-    exec->copy_from(exec->get_master(), 1, &is_m_matrix,
-                    is_m_matrix_array.get_data());
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto src, auto dst) { dst[i] = src[i] != 0; }, 1,
+        d_result.get_const_data(), is_m_matrix_array.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -74,10 +76,10 @@ void compute_soc_and_run_rs(
     array<bool>& is_strong, array<IndexType>& lambda,
     array<IndexType>& cf_marker, IndexType& coarse_size)
 {
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-    const auto* a_col_idxs = A->get_const_col_idxs();
-    const auto* a_vals = A->get_const_values();
+    const auto n = A.size[0];
+    const auto* a_row_ptrs = A.row_ptrs;
+    const auto* a_col_idxs = A.col_idxs;
+    const auto* a_vals = A.values;
     bool* is_strong_vals = is_strong.get_data();
     auto* lambda_vals = lambda.get_data();
     auto* cf = cf_marker.get_data();
@@ -118,19 +120,14 @@ void compute_soc_and_run_rs(
         },
         n, a_row_ptrs, is_strong_vals, lambda_vals);
 
-    /// 3. INIT ALL NODES AS UNDECIDED (0)
-    run_kernel(
-        exec, [] GKO_KERNEL(auto i, auto cf) { cf[i] = 0; },
-        cf_marker.get_size(), cf);
-
-    /// 4. RS-COARSENING (on host. inherently sequential algorithm?)
+    /// 3. RS-COARSENING (on host. inherently sequential algorithm?)
     {
         auto host_exec = exec->get_master();
-        const auto nnz = A->get_num_stored_elements();
+        const auto nnz = A.num_stored_elements;
         const bool needs_copy = exec != host_exec;
 
         // host mirrors of the device data: these must outlive the coarsening
-        // loop below, so they are declared in its scope (empty when exec
+        // below, so they are declared in its scope (empty when exec
         // already is a host executor)
         array<IndexType> h_row_ptrs(host_exec, needs_copy ? n + 1 : 0);
         array<IndexType> h_col_idxs(host_exec, needs_copy ? nnz : 0);
@@ -138,10 +135,11 @@ void compute_soc_and_run_rs(
         array<IndexType> h_lambda(host_exec, needs_copy ? n : 0);
         array<IndexType> h_cf(host_exec, needs_copy ? n : 0);
 
-        // the pointers the sequential loop below dereferences on the host.
+        // the pointers the sequential splitting below dereferences on the host.
         // for a device executor they always point into the host mirrors above,
         // filled by explicit device-to-host copies; only for a host executor
         // do they alias the original data, and then no copy happens at all.
+        // cf_marker is not copied in either case, the splitting overwrites it.
         const IndexType* hr_ptrs{};
         const IndexType* hc_idxs{};
         const bool* h_is_str{};
@@ -155,7 +153,6 @@ void compute_soc_and_run_rs(
             host_exec->copy_from(exec, nnz, is_strong.get_const_data(),
                                  h_is_strong.get_data());
             host_exec->copy_from(exec, n, lambda_vals, h_lambda.get_data());
-            host_exec->copy_from(exec, n, cf, h_cf.get_data());
 
             hr_ptrs = h_row_ptrs.get_const_data();
             hc_idxs = h_col_idxs.get_const_data();
@@ -170,32 +167,9 @@ void compute_soc_and_run_rs(
             h_cf_v = cf;
         }
 
-        while (true) {
-            IndexType max_idx = -1;
-            IndexType max_val = -1;
-            for (IndexType i = 0; i < static_cast<IndexType>(n); ++i) {
-                if (h_cf_v[i] == 0 && h_lam[i] > max_val) {
-                    max_val = h_lam[i];
-                    max_idx = i;
-                }
-            }
-            if (max_idx == -1) break;
-
-            h_cf_v[max_idx] = 1;  // C-point
-            for (auto jj = hr_ptrs[max_idx]; jj < hr_ptrs[max_idx + 1]; ++jj) {
-                if (h_is_str[jj]) {
-                    const auto j = hc_idxs[jj];
-                    if (h_cf_v[j] == 0) {
-                        h_cf_v[j] = -1;  // F-point
-                        for (auto kk = hr_ptrs[j]; kk < hr_ptrs[j + 1]; ++kk) {
-                            if (h_is_str[kk] && h_cf_v[hc_idxs[kk]] == 0) {
-                                h_lam[hc_idxs[kk]]--;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        // 0 = undecided, 1 = C, -1 = F
+        gko::multigrid::rs::greedy_cf_splitting(host_exec, n, hr_ptrs, hc_idxs,
+                                                h_is_str, h_lam, h_cf_v);
 
         // Copy results back to device. Never rebind cf_marker/lambda to
         // borrowed memory here: the array constructor takes ownership of the
@@ -206,7 +180,7 @@ void compute_soc_and_run_rs(
         }
     }
 
-    /// 5. CLEANUP, MAKE SURE NO UNDECIDED REMAIN
+    /// 4. CLEANUP, MAKE SURE NO UNDECIDED REMAIN
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto cf) {
@@ -216,7 +190,7 @@ void compute_soc_and_run_rs(
         },
         cf_marker.get_size(), cf);
 
-    /// 6. COUNT C-POINTS
+    /// 5. COUNT C-POINTS
     array<IndexType> d_coarse_size(exec, 1);
     run_kernel_reduction(
         exec,
@@ -246,9 +220,9 @@ void fill_coarse_and_compute_prolong_row_ptrs(
     auto* fine_to_coarse_vals = fine_to_coarse.get_data();
     auto* row_ptrs_vals = row_ptrs.get_data();
     const bool* is_strong_vals = is_strong.get_const_data();
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-    const auto* a_col_idxs = A->get_const_col_idxs();
+    const auto n = A.size[0];
+    const auto* a_row_ptrs = A.row_ptrs;
+    const auto* a_col_idxs = A.col_idxs;
     const auto num_elements = cf_marker.get_size();
 
     /// 1 & 2. PARALLELISED COARSE MAPPING VIA EXCLUSIVE PREFIX SUM
@@ -313,14 +287,14 @@ void compute_interpolation(
     const bool* is_strong, const array<IndexType>& cf_marker,
     const IndexType* fine_to_coarse, matrix::view::csr<ValueType, IndexType> P)
 {
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-    const auto* a_col_idxs = A->get_const_col_idxs();
-    const auto* a_vals = A->get_const_values();
+    const auto n = A.size[0];
+    const auto* a_row_ptrs = A.row_ptrs;
+    const auto* a_col_idxs = A.col_idxs;
+    const auto* a_vals = A.values;
     const auto* cf = cf_marker.get_const_data();
-    auto* p_row_ptrs = P->get_const_row_ptrs();
-    auto* p_col_idxs = P->get_col_idxs();
-    auto* p_vals = P->get_values();
+    const auto* p_row_ptrs = P.row_ptrs;
+    auto* p_col_idxs = P.col_idxs;
+    auto* p_vals = P.values;
 
     run_kernel(
         exec,

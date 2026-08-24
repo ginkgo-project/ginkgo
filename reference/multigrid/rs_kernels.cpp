@@ -14,6 +14,8 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
+#include "core/multigrid/rs_helpers.hpp"
+
 namespace gko {
 namespace kernels {
 namespace reference {
@@ -114,53 +116,18 @@ void compute_soc_and_run_rs(
         lambda_vals[i] = count;
     }
 
-    /// 3. INIT ALL NODES AS UNDECIDED (0)
-    for (size_type i = 0; i < cf_marker.get_size(); ++i) {
-        cf[i] = 0;  // 0 = undecided
-    }
+    /// 3. RS-COARSENING (0 = undecided, 1 = C-point, -1 = F-point)
+    gko::multigrid::rs::greedy_cf_splitting(exec, n, a_row_ptrs, a_col_idxs,
+                                            is_strong_vals, lambda_vals, cf);
 
-    /// 4. RS-COARSENING
-    while (true) {
-        // Find max lambda among undecided (cf == 0)
-        IndexType max_idx = -1;
-        IndexType max_val = -1;
-
-        for (IndexType i = 0; i < n; ++i) {
-            if (cf[i] == 0 && lambda_vals[i] > max_val) {
-                max_val = lambda_vals[i];
-                max_idx = i;
-            }
-        }
-        if (max_idx == -1) break;
-
-        cf[max_idx] = 1;  // C-point
-
-        for (IndexType jj = a_row_ptrs[max_idx]; jj < a_row_ptrs[max_idx + 1];
-             ++jj) {
-            if (is_strong_vals[jj]) {
-                const auto j = a_col_idxs[jj];
-                if (cf[j] == 0) {
-                    cf[j] = -1;  // F-point
-                    // update neighbors of the newly marked F-point
-                    for (IndexType kk = a_row_ptrs[j]; kk < a_row_ptrs[j + 1];
-                         ++kk) {
-                        if (is_strong_vals[kk] && cf[a_col_idxs[kk]] == 0) {
-                            lambda_vals[a_col_idxs[kk]]--;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// 5. CLEANUP, MAKE SURE NO UNDECIDED REMAIN
+    /// 4. CLEANUP, MAKE SURE NO UNDECIDED REMAIN
     for (size_type i = 0; i < cf_marker.get_size(); ++i) {
         if (cf[i] == 0) {  // undecided
             cf[i] = -1;    // make F
         }
     }
 
-    /// 6. COUNT C-POINTS
+    /// 5. COUNT C-POINTS
     IndexType count = 0;
     for (size_type i = 0; i < cf_marker.get_size(); ++i) {
         if (cf[i] == 1) {
