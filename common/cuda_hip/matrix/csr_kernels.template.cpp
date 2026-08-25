@@ -1741,7 +1741,6 @@ void compute_submatrix(
     auto col_offset = col_span.begin;
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
-    auto row_ptrs = source.row_ptrs;
     auto grid_dim = ceildiv(num_rows, default_block_size);
     if (grid_dim > 0) {
         kernel::compute_submatrix_idxs_and_vals<<<grid_dim, default_block_size,
@@ -2683,7 +2682,6 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto b_row_ptrs = b.row_ptrs;
     auto b_col_idxs = b.col_idxs;
     auto vbeta = exec->copy_val_to_host(beta.values);
-    auto d_nnz = IndexType(d.num_stored_elements);
     auto d_vals = d.values;
     auto d_row_ptrs = d.row_ptrs;
     auto d_col_idxs = d.col_idxs;

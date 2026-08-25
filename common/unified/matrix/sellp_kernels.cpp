@@ -168,8 +168,6 @@ void convert_to_csr(
             const auto slice = row / slice_size;
             const auto local_row = row % slice_size;
             const auto slice_begin = slice_sets[slice];
-            const auto slice_end = slice_sets[slice + 1];
-            const auto slice_length = slice_end - slice_begin;
             auto in_idx = slice_begin * slice_size + local_row;
             for (auto i = row_begin; i < row_end; i++) {
                 out_cols[i] = cols[in_idx];

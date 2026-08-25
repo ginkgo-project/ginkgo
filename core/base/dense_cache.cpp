@@ -106,7 +106,8 @@ ScalarCacheAccessor::get_scalars(const ScalarCache& cache)
 
 ScalarCache::ScalarCache(std::shared_ptr<const Executor> executor,
                          double scalar_value)
-    : exec(std::move(executor)), value(scalar_value){};
+    : exec(std::move(executor)), value(scalar_value)
+{}
 
 ScalarCache::ScalarCache(const ScalarCache& other) { *this = other; }
 
