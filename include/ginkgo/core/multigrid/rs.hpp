@@ -6,11 +6,14 @@
 #define GKO_PUBLIC_CORE_MULTIGRID_RS_HPP_
 
 
+#include <tuple>
+
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
@@ -117,8 +120,63 @@ protected:
 
     void generate();
 
+    /**
+     * Generates the coarsening operators for a single, process-local matrix.
+     *
+     * @param local_matrix  the local (diagonal) block to coarsen
+     * @param off_diag_matrix  the off-diagonal block of a distributed matrix,
+     *                         or nullptr. It only enters the
+     *                         strength-of-connection threshold, see
+     *                         GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL.
+     * @param num_forced_c_points  number of rows in `forced_c_points`
+     * @param forced_c_points  local rows that must end up in the coarse set,
+     *                         regardless of what the greedy pass decided
+     *
+     * @return a tuple with prolongation, coarse, and restriction linop
+     */
+    std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
+               std::shared_ptr<LinOp>>
+    generate_local(
+        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix,
+        const matrix::Csr<ValueType, IndexType>* off_diag_matrix = nullptr,
+        size_type num_forced_c_points = 0,
+        const IndexType* forced_c_points = nullptr);
+
+#if GINKGO_BUILD_MPI
+    /**
+     * Communicates the coarse index of every local row a neighboring rank
+     * couples to, in the coarse matrix' global indexing.
+     *
+     * All of those rows are forced C-points, so each of them has exactly one
+     * coarse index - which is what keeps the prolongation block-diagonal and
+     * this exchange down to a single index per halo entry.
+     *
+     * @tparam GlobalIndexType  Global index type
+     *
+     * @param matrix  a distributed matrix
+     * @param coarse_partition  the coarse partition, used to compute the new
+     *                          global indices
+     * @param local_fine_to_coarse  the local fine-to-coarse map
+     *
+     * @return the coarse global index of every off-diag column
+     */
+    template <typename GlobalIndexType>
+    array<GlobalIndexType> communicate_off_diag_coarse_idxs(
+        std::shared_ptr<const experimental::distributed::Matrix<
+            ValueType, IndexType, GlobalIndexType>>
+            matrix,
+        std::shared_ptr<
+            experimental::distributed::Partition<IndexType, GlobalIndexType>>
+            coarse_partition,
+        const array<IndexType>& local_fine_to_coarse);
+#endif
+
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
+    // the fine-to-coarse map of the last generate_local call. The distributed
+    // path needs it after generate_local returned, to tell the neighbors which
+    // coarse index their halo rows became.
+    array<IndexType> fine_to_coarse_{};
 };
 
 

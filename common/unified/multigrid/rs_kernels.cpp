@@ -72,7 +72,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_soc_and_run_rs(
     std::shared_ptr<const DefaultExecutor> exec,
-    matrix::view::csr<const ValueType, const IndexType> A, double theta,
+    matrix::view::csr<const ValueType, const IndexType> A,
+    matrix::view::csr<const ValueType, const IndexType> off_diag, double theta,
     array<bool>& is_strong, array<IndexType>& lambda,
     array<IndexType>& cf_marker, IndexType& coarse_size)
 {
@@ -80,6 +81,11 @@ void compute_soc_and_run_rs(
     const auto* a_row_ptrs = A.row_ptrs;
     const auto* a_col_idxs = A.col_idxs;
     const auto* a_vals = A.values;
+    // the off-diagonal block of a distributed matrix is stored on this rank
+    // and has the same rows as A, so it contributes to the strength threshold
+    // without any communication. It is empty for a non-distributed matrix.
+    const auto* od_row_ptrs = off_diag.row_ptrs;
+    const auto* od_vals = off_diag.values;
     bool* is_strong_vals = is_strong.get_data();
     auto* lambda_vals = lambda.get_data();
     auto* cf = cf_marker.get_data();
@@ -88,11 +94,19 @@ void compute_soc_and_run_rs(
     run_kernel(
         exec,
         [theta] GKO_KERNEL(auto i, auto row_ptrs, auto col_idxs, auto vals,
+                           auto od_row_ptrs, auto od_vals,
                            auto is_strong_vals) {
             auto max_offdiag = zero<decltype(real(vals[0]))>();
             for (auto jj = row_ptrs[i]; jj < row_ptrs[i + 1]; ++jj) {
                 if (col_idxs[jj] != i) {
                     max_offdiag = gko::max(max_offdiag, -real(vals[jj]));
+                }
+            }
+            // remote couplings of this row. None of them can be the diagonal
+            // entry, since they all live in other ranks' row ranges.
+            if (od_row_ptrs != nullptr) {
+                for (auto jj = od_row_ptrs[i]; jj < od_row_ptrs[i + 1]; ++jj) {
+                    max_offdiag = gko::max(max_offdiag, -real(od_vals[jj]));
                 }
             }
             const auto threshold = theta * static_cast<double>(max_offdiag);
@@ -103,7 +117,8 @@ void compute_soc_and_run_rs(
                      static_cast<double>(-real(vals[jj])) >= threshold);
             }
         },
-        n, a_row_ptrs, a_col_idxs, a_vals, is_strong_vals);
+        n, a_row_ptrs, a_col_idxs, a_vals, od_row_ptrs, od_vals,
+        is_strong_vals);
 
     /// 2. COMPUTE lambda_i = number of strong nbrs
     run_kernel(
@@ -205,6 +220,34 @@ void compute_soc_and_run_rs(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL);
+
+
+template <typename IndexType>
+void mark_forced_c_points(std::shared_ptr<const DefaultExecutor> exec,
+                          size_type num_forced, const IndexType* forced_rows,
+                          array<IndexType>& cf_marker, IndexType& coarse_size)
+{
+    auto* cf = cf_marker.get_data();
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto forced_rows, auto cf) {
+            cf[forced_rows[i]] = 1;  // C-point
+        },
+        num_forced, forced_rows, cf);
+
+    array<IndexType> d_coarse_size(exec, 1);
+    run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto cf) {
+            return cf[i] == 1 ? IndexType{1} : IndexType{0};
+        },
+        GKO_KERNEL_REDUCE_SUM(IndexType), d_coarse_size.get_data(),
+        cf_marker.get_size(), cf);
+
+    coarse_size = get_element(d_coarse_size, 0);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_MARK_FORCED_C_POINTS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

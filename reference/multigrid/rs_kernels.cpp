@@ -74,7 +74,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_soc_and_run_rs(
     std::shared_ptr<const ReferenceExecutor> exec,
-    matrix::view::csr<const ValueType, const IndexType> A, double theta,
+    matrix::view::csr<const ValueType, const IndexType> A,
+    matrix::view::csr<const ValueType, const IndexType> off_diag, double theta,
     array<bool>& is_strong, array<IndexType>& lambda,
     array<IndexType>& cf_marker, IndexType& coarse_size)
 {
@@ -83,6 +84,11 @@ void compute_soc_and_run_rs(
     const auto* a_row_ptrs = A.row_ptrs;
     const auto* a_col_idxs = A.col_idxs;
     const auto* a_vals = A.values;
+    // the off-diagonal block of a distributed matrix is stored on this rank
+    // and has the same rows as A, so it contributes to the strength threshold
+    // without any communication. It is empty for a non-distributed matrix.
+    const auto* od_row_ptrs = off_diag.row_ptrs;
+    const auto* od_vals = off_diag.values;
     bool* is_strong_vals = is_strong.get_data();
     auto* lambda_vals = lambda.get_data();
     auto* cf = cf_marker.get_data();
@@ -92,10 +98,17 @@ void compute_soc_and_run_rs(
     for (IndexType i = 0; i < n; ++i) {
         real_type max_offdiag = zero<real_type>();
 
-        // pass 1: find max off-diagonal
+        // pass 1a: find max off-diagonal
         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
             if (A.col_idxs[jj] != i) {
                 max_offdiag = std::max(max_offdiag, -real(a_vals[jj]));
+            }
+        }
+        // pass 1b: the remote couplings of this row. None of them can be the
+        // diagonal entry, since they all live in other ranks' row ranges.
+        if (od_row_ptrs) {
+            for (IndexType jj = od_row_ptrs[i]; jj < od_row_ptrs[i + 1]; ++jj) {
+                max_offdiag = std::max(max_offdiag, -real(od_vals[jj]));
             }
         }
 
@@ -139,6 +152,28 @@ void compute_soc_and_run_rs(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL);
+
+
+template <typename IndexType>
+void mark_forced_c_points(std::shared_ptr<const ReferenceExecutor> exec,
+                          size_type num_forced, const IndexType* forced_rows,
+                          array<IndexType>& cf_marker, IndexType& coarse_size)
+{
+    auto* cf = cf_marker.get_data();
+    for (size_type i = 0; i < num_forced; ++i) {
+        cf[forced_rows[i]] = 1;  // C-point
+    }
+
+    IndexType count = 0;
+    for (size_type i = 0; i < cf_marker.get_size(); ++i) {
+        if (cf[i] == 1) {
+            count++;
+        }
+    }
+    coarse_size = count;
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_RS_MARK_FORCED_C_POINTS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
