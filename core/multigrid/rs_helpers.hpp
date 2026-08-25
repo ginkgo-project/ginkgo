@@ -10,13 +10,30 @@
 #include <memory>
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 
 namespace gko {
 namespace multigrid {
 namespace rs {
+
+
+/**
+ * Returns the empty CSR view that stands in for a missing off-diagonal block.
+ *
+ * The RS kernels take the off-diagonal block of a distributed matrix as a
+ * device view, which - unlike a pointer - cannot be null. A non-distributed
+ * matrix has no such block and passes this view instead: its null row pointers
+ * tell the kernels that the local rows have no remote couplings.
+ */
+template <typename ValueType, typename IndexType>
+constexpr matrix::view::csr<const ValueType, const IndexType> no_off_diag_view()
+{
+    return {dim<2>{}, 0, nullptr, nullptr, nullptr};
+}
 
 
 /**
