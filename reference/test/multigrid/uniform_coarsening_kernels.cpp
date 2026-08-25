@@ -14,8 +14,6 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/row_gatherer.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -34,11 +32,8 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
-    using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using MgLevel = gko::multigrid::UniformCoarsening<value_type, index_type>;
-    using RowGatherer = gko::matrix::RowGatherer<index_type>;
     using VT = value_type;
-    using real_type = gko::remove_complex<value_type>;
 
     UniformCoarsening()
         : exec(gko::ReferenceExecutor::create()),
@@ -47,34 +42,32 @@ protected:
                                          .with_skip_sorting(true)
                                          .with_aggregation(false)
                                          .on(exec)),
-          fine_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
-               I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
-              exec)),
-          coarse_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
-              exec)),
-          restrict_ans(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({-2.0, 1.0})},
-              exec)),
-          prolong_ans(gko::initialize<Vec>(
-              {I<VT>({0.0, -2.0}), I<VT>({1.0, -1.0}), I<VT>({2.0, 0.0}),
-               I<VT>({0.0, 0.0}), I<VT>({0.0, 1.0})},
-              exec)),
-          prolong_applyans(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, 0.0}), I<VT>({3.0, 1.0}),
-               I<VT>({0.0, 0.0}), I<VT>({0.0, -1.0})},
-              exec)),
-          fine_x(gko::initialize<Vec>(
-              {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
-               I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
-              exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
                           gko::matrix::csr::spmv_strategy::classical)),
           coarse(Mtx::create(exec, gko::dim<2>(3, 3), 7,
                              gko::matrix::csr::spmv_strategy::classical)),
           coarse_rows(exec, 5)
     {
+        fine_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
+             I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
+            exec);
+        coarse_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})}, exec);
+        restrict_ans = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({-2.0, 1.0})}, exec);
+        prolong_ans = gko::initialize<Vec>(
+            {I<VT>({0.0, -2.0}), I<VT>({1.0, -1.0}), I<VT>({2.0, 0.0}),
+             I<VT>({0.0, 0.0}), I<VT>({0.0, 1.0})},
+            exec);
+        prolong_applyans = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({0.0, 0.0}), I<VT>({3.0, 1.0}),
+             I<VT>({0.0, 0.0}), I<VT>({0.0, -1.0})},
+            exec);
+        fine_x = gko::initialize<Vec>(
+            {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
+             I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
+            exec);
         this->create_mtx(mtx.get(), &coarse_rows, coarse.get());
         mg_level = uniform_coarsening_factory->generate(mtx);
     }
@@ -192,6 +185,23 @@ TYPED_TEST(UniformCoarsening, FillIncrementalIndicesWorks)
     gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
         this->exec, 5, &c_rows);
     GKO_ASSERT_ARRAY_EQ(c_rows, c5_rows);
+}
+
+
+TYPED_TEST(UniformCoarsening, FillRestrictOpWorks)
+{
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto coarse_rows = gko::array<index_type>(this->exec, {0, -1, 1, -1, 2});
+    auto restrict_op = Mtx::create(this->exec, gko::dim<2>(3, 5), 3);
+
+    gko::kernels::reference::uniform_coarsening::fill_restrict_op(
+        this->exec, &coarse_rows, restrict_op.get());
+
+    auto col_idxs = restrict_op->get_const_col_idxs();
+    ASSERT_EQ(col_idxs[0], index_type{0});
+    ASSERT_EQ(col_idxs[1], index_type{2});
+    ASSERT_EQ(col_idxs[2], index_type{4});
 }
 
 
@@ -358,28 +368,26 @@ protected:
                                          .with_skip_sorting(true)
                                          .with_aggregation(true)
                                          .on(exec)),
-          fine_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
-               I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
-              exec)),
-          coarse_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
-              exec)),
-          // R = [[1,1,0,0,0],[0,0,1,1,0],[0,0,0,0,1]], R*fine_b
-          restrict_ans(gko::initialize<Vec>(
-              {I<VT>({1.0, 1.0}), I<VT>({3.0, -3.0}), I<VT>({-2.0, 1.0})},
-              exec)),
-          // P*coarse_b (P = R^T duplicates entries within each aggregate)
-          prolong_applyans(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}),
-               I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
-              exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
                           gko::matrix::csr::spmv_strategy::classical)),
           coarse(Mtx::create(exec, gko::dim<2>(3, 3), 9,
                              gko::matrix::csr::spmv_strategy::classical)),
           coarse_rows(exec, 5)
     {
+        fine_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
+             I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
+            exec);
+        coarse_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})}, exec);
+        // R = [[1,1,0,0,0],[0,0,1,1,0],[0,0,0,0,1]], R*fine_b
+        restrict_ans = gko::initialize<Vec>(
+            {I<VT>({1.0, 1.0}), I<VT>({3.0, -3.0}), I<VT>({-2.0, 1.0})}, exec);
+        // P*coarse_b (P = R^T duplicates entries within each aggregate)
+        prolong_applyans = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}),
+             I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
+            exec);
         // Expected aggregates for coarse_skip=2, num_rows=5: every fine row
         // maps to floor(i/2).
         auto cr = coarse_rows.get_data();
