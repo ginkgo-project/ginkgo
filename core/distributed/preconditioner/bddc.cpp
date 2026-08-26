@@ -1220,6 +1220,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
                 min_size, static_cast<int>(local_sizes.get_const_data()[i]));
         }
         int nparts = 1;
+        int new_part = 0;
         // int nparts = std::pow(
         //     2,
         //     std::ceil(std::log(std::ceil(
@@ -1232,17 +1233,17 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         // << nparts << std::endl;
         // int nparts = std::pow(2, std::floor(std::log(comm.size() / 2) /
         // std::log(2)));
-        std::vector<float> tpwgts(ncon * nparts, 1. / nparts);
-        std::vector<float> ubvec(ncon, 1.05);
-        int options = 0;
-        int edgecut;
-        int new_part = comm.rank();
-        MPI_Comm commptr = comm.get();
+        // std::vector<float> tpwgts(ncon * nparts, 1. / nparts);
+        // std::vector<float> ubvec(ncon, 1.05);
+        // int options = 0;
+        // int edgecut;
+        // int new_part = comm.rank();
+        // MPI_Comm commptr = comm.get();
 
-        int ret = ParMETIS_V3_PartMeshKway(
-            elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt, &numflag,
-            &ncon, &ncommonnodes, &nparts, tpwgts.data(), ubvec.data(),
-            &options, &edgecut, &new_part, &commptr);
+        // int ret = ParMETIS_V3_PartMeshKway(
+        //     elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt, &numflag,
+        //     &ncon, &ncommonnodes, &nparts, tpwgts.data(), ubvec.data(),
+        //     &options, &edgecut, &new_part, &commptr);
 
         std::cout << comm.rank() << " ==> " << new_part << std::endl;
 
