@@ -67,24 +67,25 @@ protected:
                {5, 5, 5},
                {6, 6, 5},
                {7, 7, 5},
-               // local connections within partitions
-               {0, 1, -1},
-               {1, 0, -1},  // rank 0
-               {2, 3, -2},
-               {3, 2, -2},  // rank 1
-               {4, 5, -1},
-               {5, 4, -1},  // rank 2
-               {6, 7, -1},
-               {7, 6, -1},  // rank 2
-               {4, 6, -2},
-               {6, 4, -2},  // rank 2 cross
+               // local connections within partitions (distinct primes so
+               // every Galerkin sum is traceable to its source entries)
+               {0, 1, -2},
+               {1, 0, -2},  // rank 0
+               {2, 3, -3},
+               {3, 2, -3},  // rank 1
+               {4, 5, -2},
+               {5, 4, -2},  // rank 2
+               {6, 7, -3},
+               {7, 6, -3},  // rank 2
+               {4, 6, -7},
+               {6, 4, -7},  // rank 2 cross
                             // non-local connections (only between coarse rows)
-               {0, 2, -1},
-               {2, 0, -1},  // rank 0 <-> rank 1
-               {0, 4, -1},
-               {4, 0, -1},  // rank 0 <-> rank 2
-               {2, 6, -1},
-               {6, 2, -1}}}  // rank 1 <-> rank 2
+               {0, 2, -11},
+               {2, 0, -11},  // rank 0 <-> rank 1
+               {0, 4, -13},
+               {4, 0, -13},  // rank 0 <-> rank 2
+               {2, 6, -17},
+               {6, 2, -17}}}  // rank 1 <-> rank 2
     {
         row_part = Partition::build_from_contiguous(
             exec, gko::array<global_index_type>(
@@ -123,20 +124,20 @@ TYPED_TEST(UniformCoarsening, CanGenerateFromDistributedMatrix)
     // Rank 0: coarse rows={0}, local A[0,0]=5 -> [[5]]
     // Rank 1: coarse rows={0}, local A[2,2]=5 -> [[5]]
     // Rank 2: coarse rows={0,2}, local submatrix at {4,6}:
-    //         [[5,-2],[-2,5]]
-    I<I<value_type>> res_local[] = {{{5}}, {{5}}, {{5, -2}, {-2, 5}}};
+    //         [[5,-7],[-7,5]]
+    I<I<value_type>> res_local[] = {{{5}}, {{5}}, {{5, -7}, {-7, 5}}};
 
     // Expected coarse non-local matrices per rank:
     // Rank 0: 1 coarse row, non-local to coarse global 1(row2), 2(row4)
-    //         A[0,2]=-1, A[0,4]=-1 -> [[-1, -1]]
+    //         A[0,2]=-11, A[0,4]=-13 -> [[-11, -13]]
     // Rank 1: 1 coarse row, non-local to coarse global 0(row0), 3(row6)
-    //         A[2,0]=-1, A[2,6]=-1 -> [[-1, -1]]
+    //         A[2,0]=-11, A[2,6]=-17 -> [[-11, -17]]
     // Rank 2: 2 coarse rows, non-local to coarse global 0(row0), 1(row2)
-    //         Coarse row 0(fine 4): A[4,0]=-1, A[4,2]=0
-    //         Coarse row 1(fine 6): A[6,0]=0,  A[6,2]=-1
-    //         -> [[-1, 0], [0, -1]]
+    //         Coarse row 0(fine 4): A[4,0]=-13, A[4,2]=0
+    //         Coarse row 1(fine 6): A[6,0]=0,   A[6,2]=-17
+    //         -> [[-13, 0], [0, -17]]
     I<I<value_type>> res_non_local[] = {
-        {{-1, -1}}, {{-1, -1}}, {{-1, 0}, {0, -1}}};
+        {{-11, -13}}, {{-11, -17}}, {{-13, 0}, {0, -17}}};
 
     auto result = uc_factory->generate(this->dist_mat);
 
@@ -161,15 +162,15 @@ TYPED_TEST(UniformCoarsening, CanGenerateAggregationFromDistributedMatrix)
 
     // Aggregation mode. R aggregates rows pairwise per rank, P = R^T,
     // local Ac = R*A_local*P.
-    // Rank 0: agg of rows {0,1}; A_local=[[5,-1],[-1,5]] -> Ac=[[8]]
-    // Rank 1: agg of rows {2,3}; A_local=[[5,-2],[-2,5]] -> Ac=[[6]]
-    // Rank 2: aggs {4,5},{6,7}; A_local 4x4 -> Ac=[[8,-2],[-2,8]]
-    I<I<value_type>> res_local[] = {{{8}}, {{6}}, {{8, -2}, {-2, 8}}};
+    // Rank 0: agg of rows {0,1}; A_local=[[5,-2],[-2,5]] -> Ac=[[6]]
+    // Rank 1: agg of rows {2,3}; A_local=[[5,-3],[-3,5]] -> Ac=[[4]]
+    // Rank 2: aggs {4,5},{6,7}; A_local 4x4 -> Ac=[[6,-7],[-7,4]]
+    I<I<value_type>> res_local[] = {{{6}}, {{4}}, {{6, -7}, {-7, 4}}};
 
     // Off-block entries only exist in aggregate coarse rows (0,2,4,6),
     // so the non-local sums per aggregate equal the injection-mode values.
     I<I<value_type>> res_non_local[] = {
-        {{-1, -1}}, {{-1, -1}}, {{-1, 0}, {0, -1}}};
+        {{-11, -13}}, {{-11, -17}}, {{-13, 0}, {0, -17}}};
 
     auto result = uc_factory->generate(this->dist_mat);
 
@@ -213,33 +214,34 @@ protected:
                      {5, 5, 5},
                      {6, 6, 5},
                      {7, 7, 5},
-                     // local
-                     {0, 1, -1},
-                     {1, 0, -1},
-                     {2, 3, -2},
-                     {3, 2, -2},
-                     {4, 5, -1},
-                     {5, 4, -1},
-                     {6, 7, -1},
-                     {7, 6, -1},
-                     {4, 6, -2},
-                     {6, 4, -2},
+                     // local (distinct primes so every Galerkin sum is
+                     // traceable to its source entries)
+                     {0, 1, -2},
+                     {1, 0, -2},
+                     {2, 3, -3},
+                     {3, 2, -3},
+                     {4, 5, -2},
+                     {5, 4, -2},
+                     {6, 7, -3},
+                     {7, 6, -3},
+                     {4, 6, -5},
+                     {6, 4, -5},
                      // rank0 <-> rank1, both rows of each agg (row-sum +
                      // column-collapse: cols 2 and 3 are both in rank1 agg 0)
-                     {0, 2, -1},
-                     {2, 0, -1},
-                     {1, 3, -1},
-                     {3, 1, -1},
+                     {0, 2, -7},
+                     {2, 0, -7},
+                     {1, 3, -11},
+                     {3, 1, -11},
                      // rank0 <-> rank2 agg 0 (rows 4,5)
-                     {0, 4, -1},
-                     {4, 0, -1},
-                     {1, 5, -1},
-                     {5, 1, -1},
+                     {0, 4, -13},
+                     {4, 0, -13},
+                     {1, 5, -17},
+                     {5, 1, -17},
                      // rank1 <-> rank2 agg 1 (rows 6,7)
-                     {2, 6, -1},
-                     {6, 2, -1},
-                     {3, 7, -1},
-                     {7, 3, -1}}}
+                     {2, 6, -19},
+                     {6, 2, -19},
+                     {3, 7, -23},
+                     {7, 3, -23}}}
     {
         row_part = Partition::build_from_contiguous(
             exec, gko::array<global_index_type>(
@@ -275,19 +277,19 @@ TYPED_TEST(UniformCoarseningOffDiagAgg, AggregatesOffDiagonalEntries)
 
     // Local Ac is unchanged by the extra non-local entries (matches
     // UniformCoarsening.CanGenerateAggregationFromDistributedMatrix).
-    I<I<value_type>> res_local[] = {{{8}}, {{6}}, {{8, -2}, {-2, 8}}};
+    I<I<value_type>> res_local[] = {{{6}}, {{4}}, {{6, -5}, {-5, 4}}};
 
     // Off-diagonal aggregation:
     // - Rank 0 coarse row 0 sums over both local rows. Cols collapse:
     //   rank1 rows {2,3} -> one coarse col; rank2 rows {4,5} -> one coarse
-    //   col. Sums: A[0,2]+A[1,3]=-2 and A[0,4]+A[1,5]=-2.
-    // - Rank 1 symmetric.
+    //   col. Sums: A[0,2]+A[1,3]=-7+-11=-18, A[0,4]+A[1,5]=-13+-17=-30.
+    // - Rank 1 symmetric to rank 0 (-18), plus A[2,6]+A[3,7]=-19+-23=-42.
     // - Rank 2 has 2 coarse rows: coarse row 0 (rows 4,5) only touches
-    //   rank 0 (sum -2); coarse row 1 (rows 6,7) only touches rank 1
-    //   (sum -2). Off-diagonal sees 2 coarse non-local cols (rank0 agg 0,
+    //   rank 0 (sum -30); coarse row 1 (rows 6,7) only touches rank 1
+    //   (sum -42). Off-diagonal sees 2 coarse non-local cols (rank0 agg 0,
     //   rank1 agg 0).
     I<I<value_type>> res_non_local[] = {
-        {{-2, -2}}, {{-2, -2}}, {{-2, 0}, {0, -2}}};
+        {{-18, -30}}, {{-18, -42}}, {{-30, 0}, {0, -42}}};
 
     auto result = uc_factory->generate(this->dist_mat);
 
@@ -312,13 +314,15 @@ TYPED_TEST(UniformCoarseningOffDiagAgg, InjectionDropsNonCoarseEntries)
 
     // Injection keeps only coarse rows (0,2,4,6). Local Ac is the
     // row-selection submatrix; entries from non-coarse rows vanish.
-    I<I<value_type>> res_local[] = {{{5}}, {{5}}, {{5, -2}, {-2, 5}}};
+    I<I<value_type>> res_local[] = {{{5}}, {{5}}, {{5, -5}, {-5, 5}}};
 
     // Off-diagonals: only entries from coarse rows that also point to
-    // coarse rows on the remote side survive. The fixture's non-coarse-row
-    // non-local entries must be dropped.
+    // coarse rows on the remote side survive; the non-coarse-row entries
+    // drop out. Each value is thus a single edge (e.g. rank 0 keeps
+    // A[0,2]=-7, A[0,4]=-13), not the aggregated -18/-30 sums of
+    // AggregatesOffDiagonalEntries.
     I<I<value_type>> res_non_local[] = {
-        {{-1, -1}}, {{-1, -1}}, {{-1, 0}, {0, -1}}};
+        {{-7, -13}}, {{-7, -19}}, {{-13, 0}, {0, -19}}};
 
     auto result = uc_factory->generate(this->dist_mat);
 
@@ -368,28 +372,29 @@ protected:
                      {7, 7, 5},
                      {8, 8, 5},
                      {9, 9, 5},
-                     // tri-diag couplings (-1 on each off-diagonal)
-                     {0, 1, -1},
-                     {1, 0, -1},
-                     {1, 2, -1},
-                     {2, 1, -1},
-                     {2, 3, -1},
-                     {3, 2, -1},
-                     {3, 4, -1},
-                     {4, 3, -1},
-                     {4, 5, -1},
-                     {5, 4, -1},
-                     {5, 6, -1},
-                     {6, 5, -1},
-                     {6, 7, -1},
-                     {7, 6, -1},
-                     {7, 8, -1},
-                     {8, 7, -1},
-                     {8, 9, -1},
-                     {9, 8, -1},
+                     // tri-diag couplings (distinct primes so every Galerkin
+                     // sum is traceable to its source entries)
+                     {0, 1, -2},
+                     {1, 0, -2},
+                     {1, 2, -3},
+                     {2, 1, -3},
+                     {2, 3, -7},
+                     {3, 2, -7},
+                     {3, 4, -2},
+                     {4, 3, -2},
+                     {4, 5, -3},
+                     {5, 4, -3},
+                     {5, 6, -5},
+                     {6, 5, -5},
+                     {6, 7, -13},
+                     {7, 6, -13},
+                     {7, 8, -2},
+                     {8, 7, -2},
+                     {8, 9, -3},
+                     {9, 8, -3},
                      // extra cross-rank edge: rank 0 <-> rank 1 coarse pair
-                     {0, 3, -1},
-                     {3, 0, -1}}}
+                     {0, 3, -11},
+                     {3, 0, -11}}}
     {
         row_part = Partition::build_from_contiguous(
             exec, gko::array<global_index_type>(
@@ -424,18 +429,18 @@ TYPED_TEST(UniformCoarseningNonDivisible, AggregationWithCoarseSkipThree)
     auto rank = this->comm.rank();
 
     // Aggregation, coarse_skip=3:
-    // Rank 0 (3 rows): all -> coarse 0. R*A*R^T on tri-diag(3x3) = [[11]].
+    // Rank 0 (3 rows): all -> coarse 0. R*A*R^T on tri-diag(3x3) = [[5]].
     // Rank 1 (4 rows): rows 0..2 -> coarse 0, row 3 -> coarse 1.
-    //   Ac = [[11,-1],[-1,5]].
-    // Rank 2 (3 rows): all -> coarse 0. Ac = [[11]].
-    I<I<value_type>> res_local[] = {{{11}}, {{11, -1}, {-1, 5}}, {{11}}};
+    //   Ac = [[5,-5],[-5,5]].
+    // Rank 2 (3 rows): all -> coarse 0. Ac = [[5]].
+    I<I<value_type>> res_local[] = {{{5}}, {{5, -5}, {-5, 5}}, {{5}}};
 
     // Off-diagonals (aggregated):
-    // Rank 0 coarse 0 -> rank 1 coarse 0: edges (0,3) + (2,3) = -2.
-    // Rank 1 coarse 0 -> rank 0 coarse 0: edges (3,0) + (3,2) = -2.
-    // Rank 1 coarse 1 -> rank 2 coarse 0: edge (6,7) = -1.
-    // Rank 2 coarse 0 -> rank 1 coarse 1: edge (7,6) = -1.
-    I<I<value_type>> res_non_local[] = {{{-2}}, {{-2, 0}, {0, -1}}, {{-1}}};
+    // Rank 0 coarse 0 -> rank 1 coarse 0: edges (0,3) + (2,3) = -11 + -7 = -18.
+    // Rank 1 coarse 0 -> rank 0 coarse 0: edges (3,0) + (3,2) = -11 + -7 = -18.
+    // Rank 1 coarse 1 -> rank 2 coarse 0: edge (6,7) = -13.
+    // Rank 2 coarse 0 -> rank 1 coarse 1: edge (7,6) = -13.
+    I<I<value_type>> res_non_local[] = {{{-18}}, {{-18, 0}, {0, -13}}, {{-13}}};
 
     auto result = uc_factory->generate(this->dist_mat);
 
@@ -466,12 +471,12 @@ TYPED_TEST(UniformCoarseningNonDivisible, InjectionWithCoarseSkipThree)
     I<I<value_type>> res_local[] = {{{5}}, {{5, 0}, {0, 5}}, {{5}}};
 
     // Off-diagonals: only coarse-coarse cross-rank edges survive.
-    // Rank 0 coarse 0 -> rank 1 coarse 0 via edge (0,3) -> -1.
-    // Rank 1 coarse 0 -> rank 0 coarse 0 via edge (3,0) -> -1.
+    // Rank 0 coarse 0 -> rank 1 coarse 0 via edge (0,3) -> -11.
+    // Rank 1 coarse 0 -> rank 0 coarse 0 via edge (3,0) -> -11.
     //   (edge (3,2) drops: col 2 is not coarse.)
-    // Rank 1 coarse 1 -> rank 2 coarse 0 via edge (6,7) -> -1.
-    // Rank 2 coarse 0 -> rank 1 coarse 1 via edge (7,6) -> -1.
-    I<I<value_type>> res_non_local[] = {{{-1}}, {{-1, 0}, {0, -1}}, {{-1}}};
+    // Rank 1 coarse 1 -> rank 2 coarse 0 via edge (6,7) -> -13.
+    // Rank 2 coarse 0 -> rank 1 coarse 1 via edge (7,6) -> -13.
+    I<I<value_type>> res_non_local[] = {{{-11}}, {{-11, 0}, {0, -13}}, {{-13}}};
 
     auto result = uc_factory->generate(this->dist_mat);
 
