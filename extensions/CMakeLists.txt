@@ -1,5 +1,5 @@
 if(GINKGO_BUILD_CUDA)
-    find_package(cudss 0.7.1 CONFIG)
+    find_package(cudss 0.8.0 CONFIG)
 endif()
 
 add_subdirectory(cuda)
