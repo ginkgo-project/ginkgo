@@ -119,14 +119,12 @@ TYPED_TEST(UniformCoarsening, CanGenerateFromDistributedMatrix)
     auto uc_factory =
         uc::build().with_coarse_skip(2).with_aggregation(false).on(this->exec);
     auto rank = this->comm.rank();
-
     // Injection mode. Expected coarse local matrices per rank:
     // Rank 0: coarse rows={0}, local A[0,0]=5 -> [[5]]
     // Rank 1: coarse rows={0}, local A[2,2]=5 -> [[5]]
     // Rank 2: coarse rows={0,2}, local submatrix at {4,6}:
     //         [[5,-7],[-7,5]]
     I<I<value_type>> res_local[] = {{{5}}, {{5}}, {{5, -7}, {-7, 5}}};
-
     // Expected coarse non-local matrices per rank:
     // Rank 0: 1 coarse row, non-local to coarse global 1(row2), 2(row4)
     //         A[0,2]=-11, A[0,4]=-13 -> [[-11, -13]]
@@ -159,14 +157,12 @@ TYPED_TEST(UniformCoarsening, CanGenerateAggregationFromDistributedMatrix)
     auto uc_factory =
         uc::build().with_coarse_skip(2).with_aggregation(true).on(this->exec);
     auto rank = this->comm.rank();
-
     // Aggregation mode. R aggregates rows pairwise per rank, P = R^T,
     // local Ac = R*A_local*P.
     // Rank 0: agg of rows {0,1}; A_local=[[5,-2],[-2,5]] -> Ac=[[6]]
     // Rank 1: agg of rows {2,3}; A_local=[[5,-3],[-3,5]] -> Ac=[[4]]
     // Rank 2: aggs {4,5},{6,7}; A_local 4x4 -> Ac=[[6,-7],[-7,4]]
     I<I<value_type>> res_local[] = {{{6}}, {{4}}, {{6, -7}, {-7, 4}}};
-
     // Off-block entries only exist in aggregate coarse rows (0,2,4,6),
     // so the non-local sums per aggregate equal the injection-mode values.
     I<I<value_type>> res_non_local[] = {
@@ -274,11 +270,9 @@ TYPED_TEST(UniformCoarseningOffDiagAgg, AggregatesOffDiagonalEntries)
     auto uc_factory =
         uc::build().with_coarse_skip(2).with_aggregation(true).on(this->exec);
     auto rank = this->comm.rank();
-
     // Local Ac is unchanged by the extra non-local entries (matches
     // UniformCoarsening.CanGenerateAggregationFromDistributedMatrix).
     I<I<value_type>> res_local[] = {{{6}}, {{4}}, {{6, -5}, {-5, 4}}};
-
     // Off-diagonal aggregation:
     // - Rank 0 coarse row 0 sums over both local rows. Cols collapse:
     //   rank1 rows {2,3} -> one coarse col; rank2 rows {4,5} -> one coarse
@@ -311,11 +305,9 @@ TYPED_TEST(UniformCoarseningOffDiagAgg, InjectionDropsNonCoarseEntries)
     auto uc_factory =
         uc::build().with_coarse_skip(2).with_aggregation(false).on(this->exec);
     auto rank = this->comm.rank();
-
     // Injection keeps only coarse rows (0,2,4,6). Local Ac is the
     // row-selection submatrix; entries from non-coarse rows vanish.
     I<I<value_type>> res_local[] = {{{5}}, {{5}}, {{5, -5}, {-5, 5}}};
-
     // Off-diagonals: only entries from coarse rows that also point to
     // coarse rows on the remote side survive; the non-coarse-row entries
     // drop out. Each value is thus a single edge (e.g. rank 0 keeps
@@ -427,14 +419,12 @@ TYPED_TEST(UniformCoarseningNonDivisible, AggregationWithCoarseSkipThree)
     auto uc_factory =
         uc::build().with_coarse_skip(3).with_aggregation(true).on(this->exec);
     auto rank = this->comm.rank();
-
     // Aggregation, coarse_skip=3:
     // Rank 0 (3 rows): all -> coarse 0. R*A*R^T on tri-diag(3x3) = [[5]].
     // Rank 1 (4 rows): rows 0..2 -> coarse 0, row 3 -> coarse 1.
     //   Ac = [[5,-5],[-5,5]].
     // Rank 2 (3 rows): all -> coarse 0. Ac = [[5]].
     I<I<value_type>> res_local[] = {{{5}}, {{5, -5}, {-5, 5}}, {{5}}};
-
     // Off-diagonals (aggregated):
     // Rank 0 coarse 0 -> rank 1 coarse 0: edges (0,3) + (2,3) = -11 + -7 = -18.
     // Rank 1 coarse 0 -> rank 0 coarse 0: edges (3,0) + (3,2) = -11 + -7 = -18.
@@ -462,14 +452,12 @@ TYPED_TEST(UniformCoarseningNonDivisible, InjectionWithCoarseSkipThree)
     auto uc_factory =
         uc::build().with_coarse_skip(3).with_aggregation(false).on(this->exec);
     auto rank = this->comm.rank();
-
     // Injection, coarse_skip=3:
     // Rank 0 coarse rows {local 0 = global 0}. Ac = [[5]].
     // Rank 1 coarse rows {local 0 = global 3, local 3 = global 6}. Diagonal
     //   submatrix has no coarse-coarse local edges, so Ac = [[5,0],[0,5]].
     // Rank 2 coarse rows {local 0 = global 7}. Ac = [[5]].
     I<I<value_type>> res_local[] = {{{5}}, {{5, 0}, {0, 5}}, {{5}}};
-
     // Off-diagonals: only coarse-coarse cross-rank edges survive.
     // Rank 0 coarse 0 -> rank 1 coarse 0 via edge (0,3) -> -11.
     // Rank 1 coarse 0 -> rank 0 coarse 0 via edge (3,0) -> -11.
