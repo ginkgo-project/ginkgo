@@ -4,7 +4,6 @@
 
 #include <algorithm>
 
-
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -184,13 +183,14 @@ UniformCoarsening<ValueType, IndexType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = UniformCoarsening<ValueType, IndexType>::build();
-    if (auto& obj = config.get("coarse_skip")) {
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("coarse_skip")) {
         params.with_coarse_skip(gko::config::get_value<int>(obj));
     }
-    if (auto& obj = config.get("aggregation")) {
+    if (auto& obj = config_check.get("aggregation")) {
         params.with_aggregation(gko::config::get_value<bool>(obj));
     }
-    if (auto& obj = config.get("skip_sorting")) {
+    if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(gko::config::get_value<bool>(obj));
     }
 
@@ -292,6 +292,7 @@ UniformCoarsening<ValueType, IndexType>::generate_local(
             restrict_op->get_values(), coarse_dim, one<ValueType>()));
         exec->run(uniform_coarsening::make_fill_seq_array(
             restrict_op->get_row_ptrs(), coarse_dim + 1));
+        restrict_op->set_strategy(restrict_op->get_strategy());
 
         prolong_op = gko::as<csr_type>(share(restrict_op->transpose()));
 

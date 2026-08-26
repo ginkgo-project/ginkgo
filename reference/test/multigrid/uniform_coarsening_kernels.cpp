@@ -5,6 +5,7 @@
 #include "core/multigrid/uniform_coarsening_kernels.hpp"
 
 #include <memory>
+#include <string>
 
 #include <gtest/gtest.h>
 
@@ -156,35 +157,24 @@ TYPED_TEST(UniformCoarsening, Generate)
 TYPED_TEST(UniformCoarsening, FillIncrementalIndicesWorks)
 {
     using index_type = typename TestFixture::index_type;
-    auto c2_rows =
-        gko::array<index_type>(this->exec, {0, -1, 1, -1, 2, -1, 3, -1, 4, -1});
-    auto c3_rows = gko::array<index_type>(this->exec,
-                                          {0, -1, -1, 1, -1, -1, 2, -1, -1, 3});
-    auto c4_rows = gko::array<index_type>(
-        this->exec, {0, -1, -1, -1, 1, -1, -1, -1, 2, -1});
-    auto c5_rows = gko::array<index_type>(
-        this->exec, {0, -1, -1, -1, -1, 1, -1, -1, -1, -1});
+    struct {
+        int coarse_skip;
+        gko::array<index_type> expected;
+    } cases[] = {{2, {this->exec, {0, -1, 1, -1, 2, -1, 3, -1, 4, -1}}},
+                 {3, {this->exec, {0, -1, -1, 1, -1, -1, 2, -1, -1, 3}}},
+                 {4, {this->exec, {0, -1, -1, -1, 1, -1, -1, -1, 2, -1}}},
+                 {5, {this->exec, {0, -1, -1, -1, -1, 1, -1, -1, -1, -1}}}};
     auto c_rows = gko::array<index_type>(this->exec, 10);
 
-    c_rows.fill(-gko::one<index_type>());
-    gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-        this->exec, 2, &c_rows);
-    GKO_ASSERT_ARRAY_EQ(c_rows, c2_rows);
+    for (auto& c : cases) {
+        SCOPED_TRACE("coarse_skip = " + std::to_string(c.coarse_skip));
+        c_rows.fill(-gko::one<index_type>());
 
-    c_rows.fill(-gko::one<index_type>());
-    gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-        this->exec, 3, &c_rows);
-    GKO_ASSERT_ARRAY_EQ(c_rows, c3_rows);
+        gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
+            this->exec, c.coarse_skip, &c_rows);
 
-    c_rows.fill(-gko::one<index_type>());
-    gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-        this->exec, 4, &c_rows);
-    GKO_ASSERT_ARRAY_EQ(c_rows, c4_rows);
-
-    c_rows.fill(-gko::one<index_type>());
-    gko::kernels::reference::uniform_coarsening::fill_incremental_indices(
-        this->exec, 5, &c_rows);
-    GKO_ASSERT_ARRAY_EQ(c_rows, c5_rows);
+        GKO_ASSERT_ARRAY_EQ(c_rows, c.expected);
+    }
 }
 
 
