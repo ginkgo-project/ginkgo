@@ -675,7 +675,7 @@ private:
  */
 template <typename ValueType, typename VecValueType>
 class OperatorWrapper
-    : public gko::EnableLinOp<OperatorWrapper<ValueType, VecValueType>>,
+    : public gko::LinOp,
       public gko::EnableCreateMethod<OperatorWrapper<ValueType, VecValueType>> {
 public:
     using MVec = gko::batch::MultiVector<VecValueType>;
@@ -683,7 +683,7 @@ public:
 
     OperatorWrapper(std::shared_ptr<const gko::Executor> exec,
                     gko::size_type size = 0, const gko::LinOp* oper = NULL)
-        : gko::EnableLinOp<OperatorWrapper>(exec, gko::dim<2>{size, size}),
+        : gko::LinOp(exec, gko::dim<2>{size, size}),
           gko::EnableCreateMethod<OperatorWrapper>()
     {
         this->wrapped_oper = oper;
