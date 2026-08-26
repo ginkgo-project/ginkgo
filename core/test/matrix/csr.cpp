@@ -579,7 +579,7 @@ TYPED_TEST(Csr, RecognizesInfiniteValue)
     values.get_data()[2] = INFINITY;
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         gko::matrix::csr::spmv_strategy::load_balance);
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
@@ -600,7 +600,7 @@ TYPED_TEST(Csr, RecognizesUnboundedRowIndex)
     values.fill(0);
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         gko::matrix::csr::spmv_strategy::load_balance);
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
@@ -622,7 +622,7 @@ TYPED_TEST(Csr, RecognizesUnboundedColumnIndex)
     values.fill(0);
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         gko::matrix::csr::spmv_strategy::load_balance);
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
@@ -643,9 +643,18 @@ TYPED_TEST(Csr, RecognizesUnorderedRowPointer)
     values.fill(0);
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         gko::matrix::csr::spmv_strategy::load_balance);
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Csr, PermutingReuseInfoDefaultUpdateException)
+{
+    using Mtx = typename TestFixture::Mtx;
+    typename Mtx::permuting_reuse_info reuse;
+
+    ASSERT_THROW(reuse.update_values(this->mtx, this->mtx), gko::NotSupported);
 }
 
 
