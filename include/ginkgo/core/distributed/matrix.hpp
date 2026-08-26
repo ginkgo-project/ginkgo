@@ -540,7 +540,7 @@ public:
      *
      * @note This is a convenience wrapper around the `create` overload
      *       that takes an already-constructed `LinOp` template; the
-     *       `matrix_template` argument here is materialised internally.
+     *       `matrix_template` argument here is materialized internally.
      *
      * @tparam MatrixType  A type that has a `create<ValueType,
      *                     IndexType>(exec)` function to create a smart pointer
@@ -573,7 +573,7 @@ public:
      * @note This is a convenience wrapper around the `create` overload
      *       that takes already-constructed `LinOp` templates for the
      *       diagonal and off-diagonal blocks; the two template
-     *       arguments here are materialised internally.
+     *       arguments here are materialized internally.
      *
      * @tparam DiagMatrixType  A type that has a `create<ValueType,
      *                         IndexType>(exec)` function to create a smart

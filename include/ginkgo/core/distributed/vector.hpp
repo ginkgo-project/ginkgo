@@ -41,8 +41,8 @@ class Partition;
  * vectors in a dense storage format.
  *
  * The (multi-)vector is distributed by row, which is described by a
- * Partition. The local vectors are stored using the Dense format. The
- * vector should be filled using the read_distributed method, e.g.
+ * Partition. The local vectors are stored using the matrix::Dense format.
+ * The vector should be filled using the read_distributed method, e.g.
  * ```
  * auto part = Partition<...>::build_from_mapping(...);
  * auto vector = Vector<...>::create(exec, comm);

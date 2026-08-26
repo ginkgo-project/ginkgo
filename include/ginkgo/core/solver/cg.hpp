@@ -37,10 +37,10 @@ namespace solver {
  *
  * CG constructs a sequence of search directions \f$ p_0, p_1, \ldots \f$
  * that are mutually \f$ A \f$-conjugate (\f$ \langle p_i, A p_j \rangle = 0
- * \f$ for \f$ i \ne j \f$).  The iterate chosen along these directions
- * minimises the error in the energy norm over the affine Krylov subspace,
+ * \f$ for \f$ i \ne j \f$). The iterate chosen along these directions
+ * minimizes the error in the energy norm over the affine Krylov subspace,
  * \f[
- *   x_k = \arg\min_{x \,\in\, x_0 + \mathcal{K}_k(A, r_0)}
+ *   x_k = \arg\min_{x \in x_0 + \mathcal{K}_k(A, r_0)}
  *         \| x - x^{*} \|_A,
  *   \qquad \| e \|_A = \sqrt{\langle e, A e \rangle},
  * \f]
@@ -48,10 +48,10 @@ namespace solver {
  * is built from the preconditioned residual \f$ z_k = M r_k \f$ and the
  * previous direction via the Fletcher-Reeves coefficient
  * \f[
- *   \beta_k = \frac{\langle r_k,\, z_k \rangle}
- *                  {\langle r_{k-1},\, z_{k-1} \rangle},
+ *   \beta_k = \frac{\langle r_k, z_k \rangle}
+ *                  {\langle r_{k-1}, z_{k-1} \rangle},
  *   \qquad
- *   p_k = z_k + \beta_k\, p_{k-1}.
+ *   p_k = z_k + \beta_k p_{k-1}.
  * \f]
  * This formula assumes that \f$ M \f$ stays fixed across iterations; for a
  * varying preconditioner use the Polak-Ribière variant in

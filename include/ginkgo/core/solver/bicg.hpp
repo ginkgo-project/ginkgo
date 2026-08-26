@@ -42,12 +42,12 @@ namespace solver {
  * It couples two Krylov sequences and maintains residuals \f$ r_k \f$,
  * shadow residuals \f$ \tilde r_k \f$, and search directions
  * \f$ p_k, \tilde p_k \f$ that satisfy the biorthogonality conditions
- * \f$ \tilde r_i^H r_j = 0 \f$ for \f$ i \ne j \f$.  Each iteration
+ * \f$ \tilde r_i^H r_j = 0 \f$ for \f$ i \ne j \f$. Each iteration
  * performs the coupled update
  * \f[
  *   \alpha_k = \frac{\tilde r_k^H r_k}{\tilde p_k^H A p_k}, \qquad
- *   r_{k+1}       = r_k       - \alpha_k\, A\, p_k, \qquad
- *   \tilde r_{k+1} = \tilde r_k - \alpha_k\, A^H\, \tilde p_k.
+ *   r_{k+1}       = r_k       - \alpha_k A p_k, \qquad
+ *   \tilde r_{k+1} = \tilde r_k - \alpha_k A^H \tilde p_k.
  * \f]
  * It forms the basis of cheaper variants such as BiCGSTAB and CGS, which
  * avoid the explicit \f$ A^H \f$ apply.

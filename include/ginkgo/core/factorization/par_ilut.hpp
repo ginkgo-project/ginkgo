@@ -38,17 +38,17 @@ namespace factorization {
  * One iteration of the ParILUT algorithm consists of the following steps:
  *
  * 1. Calculate the residual \f$R = A - LU\f$.
- * 2. Add new non-zero locations from \f$R\f$ to \f$L\f$ and \f$U\f$.  The new
- *    non-zero locations are initialised from the corresponding residual
+ * 2. Add new non-zero locations from \f$R\f$ to \f$L\f$ and \f$U\f$. The new
+ *    non-zero locations are initialized from the corresponding residual
  *    entries.
  * 3. Execute a fixed-point iteration on \f$L\f$ and \f$U\f$ according to
  *
  *    \f[
  *      F(L, U)_{ij} = \begin{cases}
  *        \frac{1}{u_{jj}}
- *          \left( a_{ij} - \sum_{k=1}^{j-1} l_{ik}\, u_{kj} \right),
+ *          \left( a_{ij} - \sum_{k=1}^{j-1} l_{ik} u_{kj} \right),
  *          & i > j, \\
- *        a_{ij} - \sum_{k=1}^{i-1} l_{ik}\, u_{kj},
+ *        a_{ij} - \sum_{k=1}^{i-1} l_{ik} u_{kj},
  *          & i \leq j.
  *      \end{cases}
  *    \f]

@@ -38,7 +38,7 @@ namespace factorization {
  * \f[
  *   F(L)_{ij} = \begin{cases}
  *     \sqrt{a_{ii} - \sum_{k=1}^{i-1} |l_{ik}|^2}, & i = j, \\
- *     a_{ij} - \sum_{k=1}^{i-1} l_{ik}\, \overline{l_{jk}}, & i < j.
+ *     a_{ij} - \sum_{k=1}^{i-1} l_{ik} \overline{l_{jk}}, & i < j.
  *   \end{cases}
  * \f]
  *
@@ -47,11 +47,11 @@ namespace factorization {
  * factors \f$L\f$ and \f$L^H\f$ fulfilling
  * \f$ (R = A - L L^H)\vert_\mathcal{S} = 0\vert_\mathcal{S} \f$
  * where \f$\mathcal{S}\f$ is the pre-defined sparsity pattern (in case of
- * IC(0), the sparsity pattern of the system matrix \f$A\f$).  The number of
+ * IC(0), the sparsity pattern of the system matrix \f$A\f$). The number of
  * ParIC sweeps needed for convergence depends on the parallelism level: for
  * sequential execution, a single sweep is sufficient; for fine-grained
  * parallelism, the number of sweeps necessary to get a good approximation
- * of the incomplete factors depends heavily on the problem.  On the OpenMP
+ * of the incomplete factors depends heavily on the problem. On the OpenMP
  * executor, 3 sweeps usually give a decent approximation in our experiments,
  * while GPU executors can take 10 or more iterations.
  *

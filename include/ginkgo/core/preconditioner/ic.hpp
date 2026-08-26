@@ -53,9 +53,9 @@ namespace preconditioner {
  * orders the factors in the correct way.
  *
  * @note When providing a gko::Composition, the first matrix must be the lower
- *       matrix (\f$L\f$), and the second matrix must be its conjugate-transpose
- * (\f$L^H\f$). If they are swapped, solving might crash or return the wrong
- * result.
+ *       matrix (\f$L\f$), and the second matrix must be its
+ *       conjugate-transpose (\f$L^H\f$). If they are swapped, solving might
+ *       crash or return the wrong result.
  *
  * @note Do not use symmetric solvers (like CG) for the L solver since both
  *       matrices (L and L^H) are, by design, not symmetric.

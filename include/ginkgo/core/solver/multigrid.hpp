@@ -86,13 +86,13 @@ class MultigridState;
 /**
  * Multigrid solves a linear system by combining cheap iterative sweeps
  * (smoothers) on a hierarchy of progressively coarser representations of
- * the operator with corrections transferred between adjacent levels.  A
+ * the operator with corrections transferred between adjacent levels. A
  * smoother on the fine level removes the high-frequency components of the
  * error quickly; the remaining low-frequency error is well-resolved on a
  * coarser space, where it is computed by a cheaper solve — or, recursively,
- * by another multigrid call.  The correction is prolongated back to the
+ * by another multigrid call. The correction is prolongated back to the
  * fine level and a second smoothing sweep removes any high-frequency error
- * introduced by the transfer.  Because each coarser level holds only a
+ * introduced by the transfer. Because each coarser level holds only a
  * fraction of the unknowns of the next, the total work per cycle stays
  * close to that of a single fine-level matrix-vector apply.
  *
@@ -100,20 +100,20 @@ class MultigridState;
  * \f$ S_\ell \f$, a restriction operator
  * \f$ R_\ell : \mathbb{R}^{n_\ell} \to \mathbb{R}^{n_{\ell+1}} \f$ and a
  * prolongation operator
- * \f$ P_\ell : \mathbb{R}^{n_{\ell+1}} \to \mathbb{R}^{n_\ell} \f$.  The
+ * \f$ P_\ell : \mathbb{R}^{n_{\ell+1}} \to \mathbb{R}^{n_\ell} \f$. The
  * Galerkin coarse operator is
- * \f$ A_{\ell+1} = R_\ell\, A_\ell\, P_\ell \f$.  One V-cycle step at
+ * \f$ A_{\ell+1} = R_\ell A_\ell P_\ell \f$. One V-cycle step at
  * level \f$ \ell \f$ on a fine-level system \f$ A_\ell x = b \f$ is:
  *
  * \f[
  *   \begin{aligned}
  *     x &\leftarrow x + S_\ell^{\mathrm{pre}}(b - A_\ell x)
  *       && \text{(pre-smooth)}, \\
- *     r_{\ell+1} &= R_\ell\, (b - A_\ell x)
+ *     r_{\ell+1} &= R_\ell (b - A_\ell x)
  *       && \text{(restrict)}, \\
- *     e_{\ell+1} &\approx A_{\ell+1}^{-1}\, r_{\ell+1}
+ *     e_{\ell+1} &\approx A_{\ell+1}^{-1} r_{\ell+1}
  *       && \text{(recursive coarse solve)}, \\
- *     x &\leftarrow x + P_\ell\, e_{\ell+1}
+ *     x &\leftarrow x + P_\ell e_{\ell+1}
  *       && \text{(prolongate and correct)}, \\
  *     x &\leftarrow x + S_\ell^{\mathrm{post}}(b - A_\ell x)
  *       && \text{(post-smooth)}.
@@ -121,7 +121,7 @@ class MultigridState;
  * \f]
  *
  * At the coarsest level the recursive call is replaced by a direct or
- * iterative coarse solver.  W- and F-cycles differ from V only in how
+ * iterative coarse solver. W- and F-cycles differ from V only in how
  * many recursive coarse-solves are performed per level (see the
  * `cycle` enum above).
  *

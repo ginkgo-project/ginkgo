@@ -39,9 +39,9 @@ namespace factorization {
  * \f[
  *   F(L, U)_{ij} = \begin{cases}
  *     \frac{1}{u_{jj}}
- *       \left( a_{ij} - \sum_{k=1}^{j-1} l_{ik}\, u_{kj} \right),
+ *       \left( a_{ij} - \sum_{k=1}^{j-1} l_{ik} u_{kj} \right),
  *       & i > j, \\
- *     a_{ij} - \sum_{k=1}^{i-1} l_{ik}\, u_{kj},
+ *     a_{ij} - \sum_{k=1}^{i-1} l_{ik} u_{kj},
  *       & i \leq j.
  *   \end{cases}
  * \f]
@@ -51,11 +51,11 @@ namespace factorization {
  * incomplete factors \f$L\f$ and \f$U\f$ fulfilling
  * \f$ (R = A - L U)\vert_\mathcal{S} = 0\vert_\mathcal{S} \f$
  * where \f$\mathcal{S}\f$ is the pre-defined sparsity pattern (in case of
- * ILU(0), the sparsity pattern of the system matrix \f$A\f$).  The number of
+ * ILU(0), the sparsity pattern of the system matrix \f$A\f$). The number of
  * ParILU sweeps needed for convergence depends on the parallelism level: for
  * sequential execution, a single sweep is sufficient; for fine-grained
  * parallelism, the number of sweeps necessary to get a good approximation
- * of the incomplete factors depends heavily on the problem.  On the OpenMP
+ * of the incomplete factors depends heavily on the problem. On the OpenMP
  * executor, 3 sweeps usually give a decent approximation in our experiments,
  * while GPU executors can take 10 or more iterations.
  *

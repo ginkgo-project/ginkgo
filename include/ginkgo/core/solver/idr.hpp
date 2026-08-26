@@ -39,18 +39,26 @@ namespace solver {
  * linear equations. The implementation follows the elegant variant that
  * exploits the biorthogonality of the shadow vectors.
  *
- * The method is based on the induced dimension reduction theorem.  Fixing a
- * full-rank shadow space \f$ R = \mathrm{span}(r_1, \ldots, r_s) \f$ — the
- * \f$ s \f$ random orthonormal vectors stored in a dense matrix — the
- * theorem guarantees the existence of a sequence of nested subspaces
+ * The method is based on the induced dimension reduction (IDR) theorem.
+ * Let \f$ P = [p_1, \ldots, p_s] \f$ be the shadow matrix — the \f$ s \f$
+ * random, orthonormalized vectors that Ginkgo stores in a dense matrix —
+ * and let
  * \f[
- *   \mathcal{G}_{j+1} = (I - \omega_j A)\, (\mathcal{G}_j \cap R^{\perp}),
- *   \qquad \mathcal{G}_0 = \mathbb{R}^N,
+ *   \mathcal{S} = \{ v \in \mathbb{C}^N : P^H v = 0 \}
  * \f]
- * each strictly contained in its predecessor.  Successive residuals are
- * forced into these shrinking spaces and become identically zero after at
- * most \f$ N + N/s \f$ iterations in exact arithmetic — substantially fewer
- * matrix-vector products than the \f$ 2N \f$ BiCG would require.
+ * be its left null space, that is, the orthogonal complement of the space
+ * spanned by the shadow vectors. Starting from the full Krylov space
+ * \f$ \mathcal{G}_0 = \mathcal{K}_N(A, r_0) \f$, the theorem states that
+ * the subspaces
+ * \f[
+ *   \mathcal{G}_j = (I - \omega_j A) (\mathcal{G}_{j-1} \cap \mathcal{S}),
+ *   \qquad \omega_j \ne 0,
+ * \f]
+ * are nested, \f$ \mathcal{G}_j \subset \mathcal{G}_{j-1} \f$, and that
+ * \f$ \mathcal{G}_j = \{0\} \f$ for some \f$ j \le N \f$. IDR(s) forces
+ * the residuals into these shrinking spaces; in exact arithmetic it
+ * therefore reaches the true solution after at most \f$ N + N/s \f$
+ * matrix-vector products.
  *
  * @par References
  * - Van Gijzen, M. B., Sonneveld, P.
@@ -58,6 +66,13 @@ namespace solver {
  *   Biorthogonality Properties.*
  *   ACM Transactions on Mathematical Software, 38 (1), Article 5, 2011.
  *   <https://doi.org/10.1145/2049662.2049667>
+ *   (the implemented variant; the IDR theorem is Theorem 2.1 in Section 2.1)
+ * - Sonneveld, P., Van Gijzen, M. B.
+ *   *IDR(s): A Family of Simple and Fast Algorithms for Solving Large
+ *   Nonsymmetric Systems of Linear Equations.*
+ *   SIAM Journal on Scientific Computing, 31 (2), 1035–1062, 2008.
+ *   <https://doi.org/10.1137/070685804>
+ *   (proof of the IDR theorem and of the \f$ N + N/s \f$ bound)
  *
  * @tparam ValueType  precision of the elements of the system matrix.
  *

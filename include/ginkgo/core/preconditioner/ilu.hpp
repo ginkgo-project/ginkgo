@@ -52,8 +52,8 @@ namespace preconditioner {
  *
  * @note When providing a gko::Composition, the first matrix must be the lower
  *       matrix (\f$L\f$), and the second matrix must be the upper matrix
- * (\f$U\f$). If they are swapped, solving might crash or return the wrong
- * result.
+ *       (\f$U\f$). If they are swapped, solving might crash or return the
+ *       wrong result.
  *
  * @note Do not use symmetric solvers (like CG) for L or U solvers since both
  *       matrices (L and U) are, by design, not symmetric.
@@ -62,6 +62,7 @@ namespace preconditioner {
  *       uses an internal cache to accelerate multiple (sequential) applies.
  *       Using it in parallel can lead to segmentation faults, wrong results
  *       and other unwanted behavior.
+ *
  * @note The default template during parse is <ValueType, IndexType> not
  *       <LowerTrs, IndexType>. Only the variants with ValueType are supported
  *       in parse.

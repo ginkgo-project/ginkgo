@@ -36,17 +36,25 @@ namespace solver {
  *
  * In contrast to the standard CG, which uses the Fletcher-Reeves formula
  * \f[
- *   \beta_k = \frac{\langle r_k,\, z_k \rangle}
- *                  {\langle r_{k-1},\, z_{k-1} \rangle},
+ *   \beta_k = \frac{\langle r_k, z_k \rangle}
+ *                  {\langle r_{k-1}, z_{k-1} \rangle},
  * \f]
  * the flexible CG uses the Polak-Ribière formula
  * \f[
- *   \beta_k = \frac{\langle r_k - r_{k-1},\, z_k \rangle}
- *                  {\langle r_{k-1},\, z_{k-1} \rangle}
+ *   \beta_k = \frac{\langle r_k - r_{k-1}, z_k \rangle}
+ *                  {\langle r_{k-1}, z_{k-1} \rangle}
  * \f]
- * for the next search direction.  This requires one additional inner
- * product per iteration but allows the preconditioner \f$ M \f$ (and
- * therefore \f$ z = M r \f$) to change between iterations — useful when
+ * for the next search direction. In CG the denominator
+ * \f$ \langle r_{k-1}, z_{k-1} \rangle \f$ is exactly the numerator that
+ * the previous iteration already computed, so a single dot product per
+ * iteration is enough. FCG still needs \f$ \langle r_k, z_k \rangle \f$
+ * as the denominator of the next iteration, and has to compute
+ * \f$ \langle r_k - r_{k-1}, z_k \rangle \f$ on top of it — one extra dot
+ * product, and therefore one extra global reduction, per iteration.
+ *
+ * In exchange, \f$ \beta_k \f$ no longer relies on the search directions
+ * staying \f$ A \f$-conjugate, so the preconditioner \f$ M \f$ (and
+ * therefore \f$ z = M r \f$) may change between iterations — useful when
  * the preconditioner is itself an inner iterative solve, a randomized
  * smoother, or otherwise not a fixed linear operator.
  *

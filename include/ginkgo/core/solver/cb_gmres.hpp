@@ -92,17 +92,17 @@ enum class storage_precision {
  * \f$ \bar H_m \f$ with
  * \f$ A V_m = V_{m+1} \bar H_m \f$, and the iterate is chosen as
  * \f[
- *   x_m = x_0 + V_m\, y_m,
+ *   x_m = x_0 + V_m y_m,
  *   \qquad
- *   y_m = \arg\min_{y} \| \beta\, e_1 - \bar H_m\, y \|_2.
+ *   y_m = \arg\min_{y} \| \beta e_1 - \bar H_m y \|_2.
  * \f]
  * The "compressed basis" variant stores the columns of \f$ V_m \f$ in a
  * precision lower than ValueType: each basis vector is cast down to the
- * storage type when written and cast back up when read.  The Hessenberg
+ * storage type when written and cast back up when read. The Hessenberg
  * matrix, the Givens rotations, and the working residual all stay in
  * full ValueType precision, so the final approximation has the same
  * accuracy as standard GMRES while the basis storage and the bandwidth
- * needed to apply it are reduced.  See the `storage_precision` enum for
+ * needed to apply it are reduced. See the `storage_precision` enum for
  * the supported compression options.
  *
  * @tparam ValueType  the arithmetic precision and the precision of matrix

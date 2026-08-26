@@ -62,16 +62,16 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho);
  * The Arnoldi process builds an orthonormal basis \f$ V_m \f$ of the Krylov
  * subspace
  * \f[
- *   \mathcal{K}_m(A, r_0) = \mathrm{span}\{r_0,\, A r_0,\, A^2 r_0,\, \ldots,\,
+ *   \mathcal{K}_m(A, r_0) = \mathrm{span}\{r_0, A r_0, A^2 r_0, \ldots,
  *                                          A^{m-1} r_0\},
  * \f]
  * and produces an upper Hessenberg matrix \f$ \bar H_m \f$ satisfying the
- * Arnoldi relation \f$ A V_m = V_{m+1} \bar H_m \f$.  GMRES then chooses the
+ * Arnoldi relation \f$ A V_m = V_{m+1} \bar H_m \f$. GMRES then chooses the
  * approximate solution
- * \f$ x_m = x_0 + V_m y_m \f$ with \f$ y_m \f$ minimising the residual norm
+ * \f$ x_m = x_0 + V_m y_m \f$ with \f$ y_m \f$ minimizing the residual norm
  * over the subspace,
  * \f[
- *   y_m = \arg\min_{y \in \mathbb{R}^m} \| \beta\, e_1 - \bar H_m\, y \|_2,
+ *   y_m = \arg\min_{y \in \mathbb{R}^m} \| \beta e_1 - \bar H_m y \|_2,
  *   \qquad \beta = \| r_0 \|_2.
  * \f]
  *

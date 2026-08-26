@@ -37,19 +37,19 @@ constexpr size_type gcr_default_krylov_dim = 100u;
  *
  * GCR maintains a sequence of search directions \f$ p_0, p_1, \ldots \f$
  * chosen so that the vectors \f$ A p_k \f$ are mutually orthogonal,
- * \f$ \langle A p_i, A p_j \rangle = 0 \f$ for \f$ i \ne j \f$.  At each
+ * \f$ \langle A p_i, A p_j \rangle = 0 \f$ for \f$ i \ne j \f$. At each
  * iteration the residual is updated by orthogonal projection along
  * \f$ A p_k \f$,
  * \f[
- *   \alpha_k = \frac{\langle r_k,\, A p_k \rangle}
- *                   {\langle A p_k,\, A p_k \rangle},
+ *   \alpha_k = \frac{\langle r_k, A p_k \rangle}
+ *                   {\langle A p_k, A p_k \rangle},
  *   \qquad
- *   r_{k+1} = r_k - \alpha_k\, A p_k,
+ *   r_{k+1} = r_k - \alpha_k A p_k,
  * \f]
  * so the iterate
- * \f$ x_k = x_0 + \sum_{j<k} \alpha_j\, p_j \f$ minimises
+ * \f$ x_k = x_0 + \sum_{j<k} \alpha_j p_j \f$ minimizes
  * \f$ \| r \|_2 \f$ over \f$ x_0 + \mathcal{K}_k(A, r_0) \f$ — the same
- * minimisation property as GMRES, but with a long recurrence over the
+ * minimization property as GMRES, but with a long recurrence over the
  * search directions instead of an Arnoldi basis and Hessenberg solve.
  * The memory cost grows linearly with the iteration count, so GCR is
  * typically run with a restart parameter (`krylov_dim`).

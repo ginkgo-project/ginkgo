@@ -27,10 +27,10 @@ namespace reorder {
 
 /**
  * Computes an Approximate Minimum Degree (AMD) reordering of an input
- * matrix.  The implementation reuses the AMD routine from the
+ * matrix. The implementation reuses the AMD routine from the
  * [SuiteSparse](https://github.com/DrTimothyAldenDavis/SuiteSparse) suite
  * (Tim Davis et al.) — Ginkgo wraps it in a `LinOpFactory` that produces
- * a `gko::matrix::Permutation`.  The system matrix must therefore be a
+ * a `gko::matrix::Permutation`. The system matrix must therefore be a
  * structurally-symmetric CSR matrix.
  *
  * @par References

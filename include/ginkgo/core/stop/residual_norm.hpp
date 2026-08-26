@@ -27,7 +27,7 @@ namespace stop {
  *                    \f$ || r || \leq \tau \f$
  *
  * - initial_resnorm: Check for tolerance relative to the initial residual norm.
- *                    \f$ || r || \leq \tau \times || r_0|| \f$
+ *                    \f$ || r || \leq \tau \times || r_0 || \f$
  *
  * - rhs_norm:        Check for tolerance relative to the rhs norm.
  *                    \f$ || r || \leq \tau \times || b || \f$
@@ -87,24 +87,24 @@ private:
 
 /**
  * Stopping criterion based on the explicit residual norm
- * \f$ \| r_k \| = \| b - A x_k \| \f$.  The iteration halts once
+ * \f$ \| r_k \| = \| b - A x_k \| \f$. The iteration halts once
  * \f$ \| r_k \| \le \tau \cdot \beta \f$, where \f$\tau\f$ is the
  * factory parameter `reduction_factor` and the baseline \f$\beta\f$ is
  * selected by the `baseline` factory parameter:
  *
  * - `mode::rhs_norm` (default) — relative to the right-hand side:
  *   \f$ \beta = \| b \| \f$, so the condition is
- *   \f$ \| r_k \| \le \tau \, \| b \| \f$.
+ *   \f$ \| r_k \| \le \tau \| b \| \f$.
  * - `mode::initial_resnorm` — relative to the initial residual:
  *   \f$ \beta = \| r_0 \| \f$, so the condition is
- *   \f$ \| r_k \| \le \tau \, \| r_0 \| \f$.
+ *   \f$ \| r_k \| \le \tau \| r_0 \| \f$.
  * - `mode::absolute` — absolute threshold:
  *   \f$ \beta = 1 \f$, so the condition is \f$ \| r_k \| \le \tau \f$.
  *
  * Per-iteration, the criterion prefers a pre-computed residual norm
  * passed by the solver (via `Updater::residual_norm`); otherwise it
  * falls back to computing the 2-norm of the residual vector itself
- * (via `Updater::residual`), which costs one global reduction.  When
+ * (via `Updater::residual`), which costs one global reduction. When
  * even cheaper checks are needed and the solver maintains an internal
  * squared-norm estimate, use \ref ImplicitResidualNorm instead.
  *
@@ -112,7 +112,7 @@ private:
  *       - `mode::rhs_norm` requires the right-hand side \f$ b \f$.
  *       - `mode::initial_resnorm` requires either the initial residual
  *         \f$ r_0 \f$ explicitly, or the triple
- *         \f$ (A,\, b,\, x_0) \f$ from which it is computed as
+ *         \f$ (A, b, x_0) \f$ from which it is computed as
  *         \f$ r_0 = b - A x_0 \f$.
  *       - `mode::absolute` requires \f$ b \f$ as well — to determine the
  *         number of right-hand sides; its baseline is then filled with
@@ -169,17 +169,17 @@ protected:
 
 /**
  * Stopping criterion based on a solver-maintained squared residual-norm
- * estimate \f$ \rho_k^2 \approx \| r_k \|^2 \f$.  Several Krylov methods
+ * estimate \f$ \rho_k^2 \approx \| r_k \|^2 \f$. Several Krylov methods
  * (CG, BiCGSTAB, …) already compute this quantity per iteration as a
  * by-product of their inner-product recurrences, so the criterion can
  * check convergence without computing a norm of its own — saving the
  * global reduction the explicit \ref ResidualNorm form needs when the
- * solver only passes \f$ r_k \f$.  The iteration halts once
+ * solver only passes \f$ r_k \f$. The iteration halts once
  * \f$ \rho_k \le \tau \cdot \beta \f$, with the same `reduction_factor`
  * and `baseline` factory parameters as \ref ResidualNorm:
  *
- * - `mode::rhs_norm` (default) — \f$ \rho_k \le \tau \, \| b \| \f$.
- * - `mode::initial_resnorm` — \f$ \rho_k \le \tau \, \| r_0 \| \f$.
+ * - `mode::rhs_norm` (default) — \f$ \rho_k \le \tau \| b \| \f$.
+ * - `mode::initial_resnorm` — \f$ \rho_k \le \tau \| r_0 \| \f$.
  * - `mode::absolute` — \f$ \rho_k \le \tau \f$.
  *
  * Because \f$ \rho_k^2 \f$ is updated by short recurrences rather than
@@ -189,14 +189,14 @@ protected:
  *
  * @note The solver must pass the squared estimate through
  *       `Updater::implicit_sq_residual_norm` on every check — there is
- *       no fallback path.  If it is missing, ::gko::NotSupported() is
+ *       no fallback path. If it is missing, ::gko::NotSupported() is
  *       thrown at check time.
  *
  * @note Baseline prerequisites at construction time mirror
  *       \ref ResidualNorm:
  *       - `mode::rhs_norm` requires \f$ b \f$.
  *       - `mode::initial_resnorm` requires either \f$ r_0 \f$ explicitly
- *         or the triple \f$ (A,\, b,\, x_0) \f$ to derive it.
+ *         or the triple \f$ (A, b, x_0) \f$ to derive it.
  *       - `mode::absolute` requires \f$ b \f$ for sizing the per-RHS
  *         baseline.
  *       If the required arguments are missing, ::gko::NotSupported() is
@@ -275,14 +275,15 @@ protected:
  * ```
  *
  * @param tolerance  the value the residual norm needs to be below.
- *     With residual \f$r\f$, initial guess \f$x_0\f$, right-hand side \f$b\f$,
- * matrix \f$A\f$, `absolute` means the exact value of the norm \f$||r||\f$,
- *     `relative` means the norm relative to the right-hand side
- * \f$||r||/||b||\f$, `initial` means the norm relative to the initial residual
- *     \f$||r||/||b - A x_0||\f$.
+ *     With residual \f$r\f$, initial guess \f$x_0\f$, right-hand side
+ *     \f$b\f$ and matrix \f$A\f$, `absolute` means the exact value of the
+ *     norm \f$||r||\f$, `relative` means the norm relative to the right-hand
+ *     side \f$||r||/||b||\f$, `initial` means the norm relative to the
+ *     initial residual \f$||r||/||b - A x_0||\f$.
  *     An implicit stopping criterion is only available with some solvers, and
  *     refers to either the energy norm \f$||r||_A\f$ in short-recurrence
- * solvers like Cg or the euclidian norm \f$||r||\f$ in solvers like GMRES.
+ *     solvers like Cg or the euclidian norm \f$||r||\f$ in solvers like
+ *     GMRES.
  *     Implicit residual norms are cheaper to compute, but may be less precise
  *     due to accumulating rounding errors.
  * @return a deferred_factory_parameter that can be passed to the

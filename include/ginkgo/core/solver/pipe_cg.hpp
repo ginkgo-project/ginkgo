@@ -38,18 +38,33 @@ namespace solver {
  * magnitude earlier, as suggested in the referenced paper (see below).
  *
  * Mathematically the iterates \f$ x_k \f$ are the same as those produced
- * by \ref gko::solver::Cg "CG": the algorithm minimises the energy-norm
- * error over the Krylov subspace
- * \f$ x_0 + \mathcal{K}_k(A, r_0) \f$ and uses the same Fletcher-Reeves
- * \f$ \beta_k \f$.  The pipelining rearrangement maintains additional
- * auxiliary vectors \f$ s_k = A p_k \f$, \f$ w_k = A z_k \f$ and updates
- * them via short recurrences so that the global reductions for
- * \f$ \langle r_k, z_k \rangle \f$, \f$ \langle s_k, p_k \rangle \f$ and
- * \f$ \langle w_k, z_k \rangle \f$ can be merged and overlapped with the
- * next matrix-vector product and preconditioner apply.  In exact
- * arithmetic the trajectory is identical to CG; in finite arithmetic the
- * decoupling of dependencies amplifies round-off and the residuals can
- * deviate from the classical iterates.
+ * by \ref gko::solver::Cg "CG": the algorithm minimizes the energy-norm
+ * error over the Krylov subspace \f$ x_0 + \mathcal{K}_k(A, r_0) \f$ and
+ * uses the same Fletcher-Reeves \f$ \beta_k \f$. CG, however, needs two
+ * global reductions per iteration that cannot be merged:
+ * \f$ \rho_k = \langle r_k, z_k \rangle \f$ is needed to build
+ * \f$ p_k \f$, and only afterwards can \f$ q_k = A p_k \f$ and the second
+ * reduction \f$ \langle p_k, q_k \rangle \f$ be computed.
+ *
+ * The pipelined variant removes that second synchronization point by
+ * carrying an extra vector \f$ w_k = A z_k \f$ — the operator applied to
+ * the preconditioned residual \f$ z_k = M r_k \f$, which plain CG never
+ * forms. It gives access to \f$ \delta_k = \langle w_k, z_k \rangle =
+ * \langle A z_k, z_k \rangle \f$, from which the denominator of
+ * \f$ \alpha_k \f$ follows by a recurrence instead of a second reduction:
+ * \f[
+ *   \langle p_k, A p_k \rangle = \delta_k
+ *     - \left| \frac{\rho_k}{\rho_{k-1}} \right|^2
+ *       \langle p_{k-1}, A p_{k-1} \rangle .
+ * \f]
+ * Because \f$ \rho_k \f$ and \f$ \delta_k \f$ are available at the same
+ * point of the iteration, they are computed in a single global reduction
+ * that can be overlapped with the operator and preconditioner applies
+ * updating the auxiliary vectors \f$ w_k \f$, \f$ q_k = A p_k \f$,
+ * \f$ m_k = M w_k \f$ and \f$ n_k = A m_k \f$, all of which are advanced
+ * by short recurrences. In exact arithmetic the trajectory is identical to
+ * CG; in finite arithmetic the decoupling of dependencies amplifies
+ * round-off and the residuals can deviate from the classical iterates.
  *
  * Possible issues:
  * 1. Numerical instability: Due to the rearrangement of the operations, the

@@ -112,15 +112,15 @@ enum class spmv_strategy {
  *
  * - Against a `Dense` operand `b`, `apply` computes a sparse matrix-vector
  *   (or matrix-multivector) product:
- *   \f[ x = A b, \qquad x = \alpha\, A b + \beta\, x. \f]
+ *   \f[ x = A b, \qquad x = \alpha A b + \beta x. \f]
  *
  * - Against another `Csr` operand `B`, `apply` computes a sparse-sparse
  *   matrix product (SpGEMM):
- *   \f[ C = A B, \qquad C = \alpha\, A B + \beta\, C. \f]
+ *   \f[ C = A B, \qquad C = \alpha A B + \beta C. \f]
  *
  * - Against an `Identity` operand, `apply` reduces to a sparse-sparse
  *   matrix addition (SpGEAM):
- *   \f[ B = \alpha\, A + \beta\, B. \f]
+ *   \f[ B = \alpha A + \beta B. \f]
  *
  * In code:
  *

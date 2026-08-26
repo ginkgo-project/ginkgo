@@ -29,16 +29,15 @@ namespace matrix {
  * For the effect of the different permutation
  * modes, see the following table.
  *
- * mode              | entry mapping              | matrix representation
- * ------------------|----------------------------|----------------------
- * none              | \f$A'(i, j) = A(i, j)\f$       | \f$A' = A\f$
- * rows              | \f$A'(i, j) = A(p[i], j)\f$    | \f$A' = P A\f$
- * columns           | \f$A'(i, j) = A(i, p[j])\f$    | \f$A' = A P^T\f$
- * inverse_rows      | \f$A'(p[i], j) = A(i, j)\f$    | \f$A' = P^{-1} A\f$
- * inverse_columns   | \f$A'(i, p[j]) = A(i, j)\f$    | \f$A' = A P^{-T}\f$
- * symmetric         | \f$A'(i, j) = A(p[i], p[j])\f$ | \f$A' = P A P^T\f$
- * inverse_symmetric | \f$A'(p[i], p[j]) = A(i, j)\f$ | \f$A' = P^{-1} A
- * P^{-T}\f$
+ * mode              | entry mapping                | matrix representation
+ * ------------------|------------------------------|----------------------
+ * none              | \f$A'(i,j) = A(i,j)\f$       | \f$A' = A\f$
+ * rows              | \f$A'(i,j) = A(p[i],j)\f$    | \f$A' = P A\f$
+ * columns           | \f$A'(i,j) = A(i,p[j])\f$    | \f$A' = A P^T\f$
+ * inverse_rows      | \f$A'(p[i],j) = A(i,j)\f$    | \f$A' = P^{-1} A\f$
+ * inverse_columns   | \f$A'(i,p[j]) = A(i,j)\f$    | \f$A' = A P^{-T}\f$
+ * symmetric         | \f$A'(i,j) = A(p[i],p[j])\f$ | \f$A' = P A P^T\f$
+ * inverse_symmetric | \f$A'(p[i],p[j]) = A(i,j)\f$ | \f$A' = P^{-1} A P^{-T}\f$
  */
 enum class permute_mode : unsigned {
     /** Neither rows nor columns will be permuted. */

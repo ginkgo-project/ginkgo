@@ -45,17 +45,20 @@ enum struct isai_type { lower, upper, general, spd };
  * \f$ M_U \approx U^{-1} \f$ for lower and upper triangular matrices, and
  * \f$ M_C \approx C^{-1} \f$ for the Cholesky factor of an SPD matrix
  * \f$ B = C^T C \f$ (the last case is commonly called a Factorized Sparse
- * Approximate Inverse, FSPAI).  Applying the preconditioner then computes,
- * depending on the type of the Isai,
+ * Approximate Inverse, FSPAI). For a given vector \f$ x \f$ (which may
+ * carry multiple right-hand sides), applying the preconditioner computes
  * \f[
- *   M_A\, x, \qquad M_U\, x, \qquad M_L\, x, \qquad
- *   \text{or} \qquad M_C^{T}\, M_C\, x,
+ *   \begin{aligned}
+ *     \texttt{isai\_type::general} &: \quad M_A x, \\
+ *     \texttt{isai\_type::lower}   &: \quad M_L x, \\
+ *     \texttt{isai\_type::upper}   &: \quad M_U x, \\
+ *     \texttt{isai\_type::spd}     &: \quad M_C^{T} M_C x.
+ *   \end{aligned}
  * \f]
- * for a given vector \f$ x \f$ (which may carry multiple right-hand sides).
  *
  * The sparsity pattern used for the approximate inverse of \f$ A \f$,
  * \f$ L \f$ and \f$ U \f$ is the same as the sparsity pattern of the
- * respective matrix.  For \f$ B \f$, the sparsity pattern of \f$ M_C \f$
+ * respective matrix. For \f$ B \f$, the sparsity pattern of \f$ M_C \f$
  * matches the sparsity pattern of the lower triangular half of \f$ B \f$.
  *
  * Note that, except for the SPD case, in general
