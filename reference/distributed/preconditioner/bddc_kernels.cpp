@@ -8,7 +8,9 @@
 #include <cmath>
 #include <cstring>
 #include <map>
+#include <set>
 #include <string>
+#include <vector>
 
 #include "core/components/disjoint_sets.hpp"
 #include "ginkgo/core/distributed/preconditioner/bddc.hpp"
@@ -57,6 +59,173 @@ bool key_contains_rank(size_type rank, std::vector<ValueType>& key,
     auto col = rank / n_significand_bits;
     auto significant_bit = rank % n_significand_bits;
     return key[col] & ((ValueType)1 << significant_bit);
+}
+
+
+/**
+ * Cuts ring-shaped interfaces open by removing some of their dofs from the
+ * interface graph @p kept_edges.
+ *
+ * An interface that forms a closed loop has no endpoint dof, so the endpoint
+ * analysis never promotes one of its dofs to a primal vertex and the whole
+ * ring stays a single coarse dof with a deficient coarse space. For every such
+ * ring we take the dof with the smallest global index as an artificial vertex,
+ * walk along the ring roughly half way to pick a second one, and remove both
+ * from the graph, which cuts the ring into two arcs. If the ring is not
+ * actually cut by that (e.g. because the interface is more than one dof wide),
+ * we keep removing the dofs surrounding the two chosen ones until it is.
+ *
+ * The removed dofs are dropped from @p kept_edges, so the connected component
+ * analysis run afterwards sees them as singletons and turns them into vertices,
+ * and it sees the remaining arcs as separate coarse dofs.
+ *
+ * Only components containing a dof from @p local_edge_dofs are considered.
+ * Every rank sharing an interface holds all of that interface's dofs and all
+ * ranks build the same graph, so all sharing ranks cut a ring in the same way,
+ * while ranks not taking part in it have nothing to decide.
+ */
+template <typename IndexType, typename GlobalIndexType>
+void cut_interface_rings(
+    std::vector<std::pair<GlobalIndexType, GlobalIndexType>>& kept_edges,
+    const std::set<GlobalIndexType>& local_edge_dofs)
+{
+    // Dense node ids in ascending global index order, so comparing ids is the
+    // same as comparing global indices.
+    std::map<GlobalIndexType, IndexType> ids;
+    for (const auto& e : kept_edges) {
+        ids.emplace(e.first, IndexType{});
+        ids.emplace(e.second, IndexType{});
+    }
+    IndexType n_nodes = 0;
+    std::vector<bool> is_edge_dof(ids.size(), false);
+    for (auto& kv : ids) {
+        kv.second = n_nodes;
+        is_edge_dof[n_nodes] =
+            local_edge_dofs.find(kv.first) != local_edge_dofs.end();
+        n_nodes++;
+    }
+    std::vector<std::vector<IndexType>> adj(n_nodes);
+    for (const auto& e : kept_edges) {
+        auto a = ids.at(e.first);
+        auto b = ids.at(e.second);
+        adj[a].emplace_back(b);
+        adj[b].emplace_back(a);
+    }
+
+    // Dofs that have been turned into artificial vertices are no longer part
+    // of the graph.
+    std::vector<bool> alive(n_nodes, true);
+    auto degree = [&](IndexType v) {
+        IndexType deg = 0;
+        for (auto w : adj[v]) {
+            deg += alive[w] ? 1 : 0;
+        }
+        return deg;
+    };
+    // Collects the alive dofs connected to v, marking them in seen.
+    auto collect = [&](IndexType v, std::vector<bool>& seen) {
+        std::vector<IndexType> comp{v};
+        seen[v] = true;
+        for (size_type head = 0; head < comp.size(); head++) {
+            for (auto w : adj[comp[head]]) {
+                if (alive[w] && !seen[w]) {
+                    seen[w] = true;
+                    comp.emplace_back(w);
+                }
+            }
+        }
+        return comp;
+    };
+    // A component without any dof that has a single neighbor has no endpoint,
+    // i.e. it is a ring.
+    auto is_ring = [&](const std::vector<IndexType>& comp) {
+        if (comp.size() < 3) {
+            return false;
+        }
+        for (auto v : comp) {
+            if (degree(v) < 2) {
+                return false;
+            }
+        }
+        return true;
+    };
+    // True if any part of a partially removed component is still a ring.
+    auto contains_ring = [&](const std::vector<IndexType>& comp) {
+        std::vector<bool> seen(n_nodes, false);
+        for (auto v : comp) {
+            if (alive[v] && !seen[v] && is_ring(collect(v, seen))) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    bool cut_ring = true;
+    while (cut_ring) {
+        cut_ring = false;
+        std::vector<bool> seen(n_nodes, false);
+        for (IndexType v = 0; v < n_nodes; v++) {
+            if (!alive[v] || seen[v] || !is_edge_dof[v]) {
+                continue;
+            }
+            auto comp = collect(v, seen);
+            if (!is_ring(comp)) {
+                continue;
+            }
+
+            // The dof with the smallest global index becomes the first
+            // artificial vertex, the one farthest away from it, i.e. about
+            // half way along the ring, the second one.
+            auto first = *std::min_element(comp.begin(), comp.end());
+            std::vector<IndexType> dist(n_nodes, IndexType{-1});
+            std::vector<IndexType> queue{first};
+            auto second = first;
+            dist[first] = 0;
+            for (size_type head = 0; head < queue.size(); head++) {
+                auto u = queue[head];
+                for (auto w : adj[u]) {
+                    if (alive[w] && dist[w] < 0) {
+                        dist[w] = dist[u] + 1;
+                        queue.emplace_back(w);
+                        if (dist[w] > dist[second] ||
+                            (dist[w] == dist[second] && w < second)) {
+                            second = w;
+                        }
+                    }
+                }
+            }
+            alive[first] = false;
+            alive[second] = false;
+            cut_ring = true;
+
+            // If the ring was not cut into separate arcs by this, remove the
+            // dofs around the two chosen ones until it is.
+            std::vector<IndexType> frontier{first, second};
+            while (contains_ring(comp)) {
+                std::vector<IndexType> next_frontier;
+                for (auto u : frontier) {
+                    for (auto w : adj[u]) {
+                        if (alive[w]) {
+                            alive[w] = false;
+                            next_frontier.emplace_back(w);
+                        }
+                    }
+                }
+                if (next_frontier.empty()) {
+                    break;
+                }
+                frontier = std::move(next_frontier);
+            }
+        }
+    }
+
+    kept_edges.erase(
+        std::remove_if(
+            kept_edges.begin(), kept_edges.end(),
+            [&](const std::pair<GlobalIndexType, GlobalIndexType>& e) {
+                return !alive[ids.at(e.first)] || !alive[ids.at(e.second)];
+            }),
+        kept_edges.end());
 }
 
 
@@ -431,6 +600,26 @@ void classify_dofs_3(
             entry.second = global_edge_expected.get_const_data()[e];
         }
 
+        std::vector<std::pair<GlobalIndexType, GlobalIndexType>> kept_edges;
+        for (const auto& kv : edge_counts) {
+            if (kv.second.first == kv.second.second) {
+                kept_edges.emplace_back(kv.first);
+            }
+        }
+
+        // Interfaces that form a closed ring have no endpoint, so the endpoint
+        // analysis could not create any vertex for them. Cut them open by
+        // removing some of their dofs from the graph, which makes those dofs
+        // artificial vertices below and splits the ring into arcs.
+        std::set<GlobalIndexType> local_edge_dofs;
+        for (size_type i = 0; i < n_rows; i++) {
+            if (dof_types.get_const_data()[i] == dof_type::edge) {
+                local_edge_dofs.emplace(global_idxs.get_const_data()[i]);
+            }
+        }
+        cut_interface_rings<IndexType, GlobalIndexType>(kept_edges,
+                                                        local_edge_dofs);
+
         // Map the global indices appearing in kept edges to dense ids for the
         // union-find, then join the kept edges.
         std::map<GlobalIndexType, IndexType> g2l;
@@ -443,13 +632,9 @@ void classify_dofs_3(
             g2l.emplace(g, id);
             return id;
         };
-        std::vector<std::pair<GlobalIndexType, GlobalIndexType>> kept_edges;
-        for (const auto& kv : edge_counts) {
-            if (kv.second.first == kv.second.second) {
-                get_id(kv.first.first);
-                get_id(kv.first.second);
-                kept_edges.emplace_back(kv.first);
-            }
+        for (const auto& e : kept_edges) {
+            get_id(e.first);
+            get_id(e.second);
         }
         gko::disjoint_sets<IndexType> sets(exec,
                                            static_cast<IndexType>(g2l.size()));
@@ -494,8 +679,10 @@ void classify_dofs_3(
         // when one rank sees an interior vertex it stops reporting that dof's
         // edges, so the dof becomes a singleton (hence a vertex) on every rank,
         // and the surrounding interface splits into one component on either
-        // side. The vertex tag convention (tag == own global index) is already
-        // satisfied, since singletons were assigned tag == gi above.
+        // side. It also (c) turns the dofs removed by the ring cut above into
+        // the artificial vertices they are meant to be. The vertex tag
+        // convention (tag == own global index) is already satisfied, since
+        // singletons were assigned tag == gi above.
         for (size_type i = 0; i < n_rows; i++) {
             auto type = dof_types.get_const_data()[i];
             if (type != dof_type::face && type != dof_type::edge) {

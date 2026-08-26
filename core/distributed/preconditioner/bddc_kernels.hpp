@@ -6,6 +6,10 @@
 #define GKO_CORE_DISTRIBUTED_PRECONDITIONER_BDDC_KERNELS_HPP_
 
 
+#include <map>
+#include <utility>
+#include <vector>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
