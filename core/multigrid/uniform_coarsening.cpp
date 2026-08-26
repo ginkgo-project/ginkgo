@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <algorithm>
+
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -242,31 +245,31 @@ UniformCoarsening<ValueType, IndexType>::generate_local(
         // Build restriction R (coarse_dim × fine_dim) as aggregation
         // matrix: R[c, f] = 1 for all f where coarse_rows_[f] == c.
         {
-            auto host = exec->get_master();
             // Coarse row c owns the contiguous fine-row block
             // [c * skip, min((c + 1) * skip, num_rows)), so row_ptrs follow
             // directly and col_idxs are the identity sequence.
             const auto total_nnz = num_rows;
-            std::vector<IndexType> row_ptrs(coarse_dim + 1, 0);
-            for (size_type c = 0; c < coarse_dim; ++c) {
-                const auto block_end = (c + 1) * skip;
-                row_ptrs[c + 1] = static_cast<IndexType>(
-                    block_end < num_rows ? block_end : num_rows);
+            gko::array<IndexType> row_ptrs(exec, coarse_dim + 1);
+            {
+                auto host = exec->get_master();
+                gko::array<IndexType> host_row_ptrs(host, coarse_dim + 1);
+                host_row_ptrs.get_data()[0] = 0;
+                for (size_type c = 0; c < coarse_dim; ++c) {
+                    host_row_ptrs.get_data()[c + 1] = static_cast<IndexType>(
+                        std::min((c + 1) * skip, num_rows));
+                }
+                row_ptrs = host_row_ptrs;
             }
-            std::vector<IndexType> col_idxs(total_nnz);
-            for (size_type i = 0; i < total_nnz; ++i) {
-                col_idxs[i] = static_cast<IndexType>(i);
-            }
-            std::vector<ValueType> values(total_nnz, one<ValueType>());
+            gko::array<IndexType> col_idxs(exec, total_nnz);
+            exec->run(uniform_coarsening::make_fill_seq_array(
+                col_idxs.get_data(), total_nnz));
+            gko::array<ValueType> values(exec, total_nnz);
+            exec->run(uniform_coarsening::make_fill_array(
+                values.get_data(), total_nnz, one<ValueType>()));
             restrict_op = share(csr_type::create(
-                exec, gko::dim<2>{coarse_dim, fine_dim}, total_nnz,
+                exec, gko::dim<2>{coarse_dim, fine_dim}, std::move(values),
+                std::move(col_idxs), std::move(row_ptrs),
                 uniform_coarsening_op->get_strategy()));
-            exec->copy_from(host, coarse_dim + 1, row_ptrs.data(),
-                            restrict_op->get_row_ptrs());
-            exec->copy_from(host, total_nnz, col_idxs.data(),
-                            restrict_op->get_col_idxs());
-            exec->copy_from(host, total_nnz, values.data(),
-                            restrict_op->get_values());
 
             prolong_op = gko::as<csr_type>(share(restrict_op->transpose()));
 

@@ -52,7 +52,7 @@ protected:
     // 8x8 symmetric matrix with partition [0,2), [2,4), [4,8).
     // coarse_skip=2 either selects rows 0,2,4,6 (injection mode) or
     // aggregates {0,1},{2,3},{4,5},{6,7} (aggregation mode). Non-local
-    // entries live only in the "leader" row of each aggregate (0,2,4,6),
+    // entries live only in the "coarse" row of each aggregate (0,2,4,6),
     // so the off-block coarse matrices are identical in both modes.
     UniformCoarsening()
         : size{8, 8},
@@ -166,7 +166,7 @@ TYPED_TEST(UniformCoarsening, CanGenerateAggregationFromDistributedMatrix)
     // Rank 2: aggs {4,5},{6,7}; A_local 4x4 -> Ac=[[8,-2],[-2,8]]
     I<I<value_type>> res_local[] = {{{8}}, {{6}}, {{8, -2}, {-2, 8}}};
 
-    // Off-block entries only exist in aggregate leader rows (0,2,4,6),
+    // Off-block entries only exist in aggregate coarse rows (0,2,4,6),
     // so the non-local sums per aggregate equal the injection-mode values.
     I<I<value_type>> res_non_local[] = {
         {{-1, -1}}, {{-1, -1}}, {{-1, 0}, {0, -1}}};
@@ -300,7 +300,7 @@ TYPED_TEST(UniformCoarseningOffDiagAgg, AggregatesOffDiagonalEntries)
 }
 
 
-TYPED_TEST(UniformCoarseningOffDiagAgg, InjectionDropsNonLeaderEntries)
+TYPED_TEST(UniformCoarseningOffDiagAgg, InjectionDropsNonCoarseEntries)
 {
     using uc = typename TestFixture::uniform_coarsening;
     using value_type = typename TestFixture::value_type;
@@ -310,12 +310,12 @@ TYPED_TEST(UniformCoarseningOffDiagAgg, InjectionDropsNonLeaderEntries)
         uc::build().with_coarse_skip(2).with_aggregation(false).on(this->exec);
     auto rank = this->comm.rank();
 
-    // Injection keeps only leader rows (0,2,4,6). Local Ac is the
-    // row-selection submatrix; entries from non-leader rows vanish.
+    // Injection keeps only coarse rows (0,2,4,6). Local Ac is the
+    // row-selection submatrix; entries from non-coarse rows vanish.
     I<I<value_type>> res_local[] = {{{5}}, {{5}}, {{5, -2}, {-2, 5}}};
 
-    // Off-diagonals: only entries from leader rows that also point to
-    // leader rows on the remote side survive. The fixture's non-leader-row
+    // Off-diagonals: only entries from coarse rows that also point to
+    // coarse rows on the remote side survive. The fixture's non-coarse-row
     // non-local entries must be dropped.
     I<I<value_type>> res_non_local[] = {
         {{-1, -1}}, {{-1, -1}}, {{-1, 0}, {0, -1}}};
@@ -387,7 +387,7 @@ protected:
                      {8, 7, -1},
                      {8, 9, -1},
                      {9, 8, -1},
-                     // extra cross-rank edge: rank 0 <-> rank 1 leader pair
+                     // extra cross-rank edge: rank 0 <-> rank 1 coarse pair
                      {0, 3, -1},
                      {3, 0, -1}}}
     {
@@ -459,18 +459,18 @@ TYPED_TEST(UniformCoarseningNonDivisible, InjectionWithCoarseSkipThree)
     auto rank = this->comm.rank();
 
     // Injection, coarse_skip=3:
-    // Rank 0 leaders {local 0 = global 0}. Ac = [[5]].
-    // Rank 1 leaders {local 0 = global 3, local 3 = global 6}. Diagonal
-    //   submatrix has no leader-leader local edges, so Ac = [[5,0],[0,5]].
-    // Rank 2 leaders {local 0 = global 7}. Ac = [[5]].
+    // Rank 0 coarse rows {local 0 = global 0}. Ac = [[5]].
+    // Rank 1 coarse rows {local 0 = global 3, local 3 = global 6}. Diagonal
+    //   submatrix has no coarse-coarse local edges, so Ac = [[5,0],[0,5]].
+    // Rank 2 coarse rows {local 0 = global 7}. Ac = [[5]].
     I<I<value_type>> res_local[] = {{{5}}, {{5, 0}, {0, 5}}, {{5}}};
 
-    // Off-diagonals: only leader-leader cross-rank edges survive.
-    // Rank 0 leader 0 -> rank 1 leader 0 via edge (0,3) -> -1.
-    // Rank 1 leader 0 -> rank 0 leader 0 via edge (3,0) -> -1.
-    //   (edge (3,2) drops: col 2 is not a leader.)
-    // Rank 1 leader 1 -> rank 2 leader 0 via edge (6,7) -> -1.
-    // Rank 2 leader 0 -> rank 1 leader 1 via edge (7,6) -> -1.
+    // Off-diagonals: only coarse-coarse cross-rank edges survive.
+    // Rank 0 coarse 0 -> rank 1 coarse 0 via edge (0,3) -> -1.
+    // Rank 1 coarse 0 -> rank 0 coarse 0 via edge (3,0) -> -1.
+    //   (edge (3,2) drops: col 2 is not coarse.)
+    // Rank 1 coarse 1 -> rank 2 coarse 0 via edge (6,7) -> -1.
+    // Rank 2 coarse 0 -> rank 1 coarse 1 via edge (7,6) -> -1.
     I<I<value_type>> res_non_local[] = {{{-1}}, {{-1, 0}, {0, -1}}, {{-1}}};
 
     auto result = uc_factory->generate(this->dist_mat);
