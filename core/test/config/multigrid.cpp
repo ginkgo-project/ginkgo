@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/multigrid/fixed_coarsening.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -71,6 +72,39 @@ struct Pgm : MultigridLevelConfigTest<gko::multigrid::Pgm<float, int>,
 };
 
 
+struct UniformCoarsening
+    : MultigridLevelConfigTest<gko::multigrid::UniformCoarsening<float, int>,
+                               gko::multigrid::UniformCoarsening<double, int>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"multigrid::UniformCoarsening"}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
+                    std::shared_ptr<const gko::Executor> exec)
+    {
+        config_map["coarse_skip"] = pnode{3};
+        param.with_coarse_skip(3);
+        config_map["aggregation"] = pnode{false};
+        param.with_aggregation(false);
+        config_map["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.coarse_skip, ans_param.coarse_skip);
+        ASSERT_EQ(res_param.aggregation, ans_param.aggregation);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+    }
+};
+
+
 template <typename T>
 class MultigridLevel : public ::testing::Test {
 protected:
@@ -86,7 +120,7 @@ protected:
 };
 
 
-using MultigridLevelTypes = ::testing::Types<::Pgm>;
+using MultigridLevelTypes = ::testing::Types<::Pgm, ::UniformCoarsening>;
 
 
 TYPED_TEST_SUITE(MultigridLevel, MultigridLevelTypes, TypenameNameGenerator);
