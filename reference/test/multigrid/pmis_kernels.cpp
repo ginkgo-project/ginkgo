@@ -227,11 +227,12 @@ TYPED_TEST(Pmis, Classify)
     std::array<gko::array<real_type>, 2> weight{
         gko::array<real_type>(this->exec, {0.1, 2.2, 2.1, 1.2}),
         gko::array<real_type>(this->exec, {0.0, 1.0, 2.0, 0.0, 3.0})};
-    std::array<gko::array<int>, 4> status_ans{
+    std::array<gko::array<int>, 3> status_ans{
         gko::array<int>(this->exec, {f, c, f, u}),
         gko::array<int>(this->exec, {f, c, f, c}),
         gko::array<int>(this->exec, {f, f, c, f, c})};
     std::array<int, 2> required_step{2, 1};
+    int status_idx = 0;
     for (int i = 0; i < 2; i++) {
         SCOPED_TRACE(i);
         auto strong_dep =
@@ -248,9 +249,33 @@ TYPED_TEST(Pmis, Classify)
                 trans_strong_dep.get(), status.get_const_data(),
                 new_status.get_data());
 
-            GKO_ASSERT_ARRAY_EQ(new_status, status_ans.at(i * 2 + step));
+            GKO_ASSERT_ARRAY_EQ(new_status, status_ans.at(status_idx));
+            status_idx++;
         }
     }
+}
+
+
+TYPED_TEST(Pmis, ClassifyOnSameWeight)
+{
+    using real_type = typename TestFixture::real_type;
+    using SparsityCsr = typename TestFixture::SparsityCsr;
+    // when weight + rand are still the same, we use index to compare
+    gko::array<real_type> weight(this->exec, {0.1, 2.0, 2.0, 1.2});
+    auto strong_dep =
+        SparsityCsr::create(this->exec, this->mtx.at(0)->get_size(),
+                            std::move(this->dep_col_idxs.at(0)),
+                            std::move(this->dep_row_ptrs.at(0)));
+    auto trans_strong_dep = gko::as<SparsityCsr>(strong_dep->transpose());
+    gko::array<int> status_ans(this->exec, {f, c, c, f});
+    auto new_status = this->expected_status.at(0);
+    auto status = new_status;
+
+    gko::kernels::reference::pmis::classify(
+        this->exec, weight.get_data(), strong_dep.get(), trans_strong_dep.get(),
+        status.get_const_data(), new_status.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(new_status, status_ans);
 }
 
 

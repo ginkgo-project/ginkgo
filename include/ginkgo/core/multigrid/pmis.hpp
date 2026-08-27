@@ -6,8 +6,6 @@
 #define GKO_PUBLIC_CORE_MULTIGRID_PMIS_HPP_
 
 
-#include <vector>
-
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -31,7 +29,7 @@ namespace multigrid {
  * not the structure.
  *
  * @tparam ValueType  precision of matrix elements
- * @tparam IndexType  precision of matrix indexes
+ * @tparam IndexType  precision of matrix indices
  *
  * @ingroup MultigridLevel
  * @ingroup Multigrid
@@ -106,7 +104,7 @@ protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const;
+                    LinOp* x) const override;
 
     explicit Pmis(std::shared_ptr<const Executor> exec);
 

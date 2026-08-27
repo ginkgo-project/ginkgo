@@ -170,7 +170,8 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
             bool is_coarse = true;
             for (IndexType idx = row_start; idx < row_end; idx++) {
                 auto col = col_idxs[idx];
-                if (status[col] == -1 && weight[col] >= weight[row]) {
+                if (status[col] == kernels::pmis::unassigned &&
+                    std::tie(weight[col], col) > std::tie(weight[row], row)) {
                     is_coarse = false;
                     break;
                 }
@@ -223,7 +224,7 @@ void direct_interpolation_row_count(
 {
     for (size_type row = 0; row < strong_dep->get_size()[0]; row++) {
         IndexType num = 0;
-        if (status[row] == 1) {
+        if (status[row] == kernels::pmis::coarse) {
             prolong_row_ptr[row] = 1;
             continue;
         }
