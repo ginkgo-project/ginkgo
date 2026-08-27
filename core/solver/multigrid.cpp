@@ -376,6 +376,40 @@ void MultigridState::generate(const LinOp* system_matrix_in,
 }
 
 
+template <template <typename> class VectorType, typename ValueType,
+          typename... Args>
+std::unique_ptr<LinOp> create_vector_on_precision(
+    precision p, std::shared_ptr<const Executor> exec, Args... args)
+{
+    GKO_THROW_IF_INVALID(p != precision::none, "precision must not be none.");
+    switch (p) {
+    case precision::any:
+        return VectorType<ValueType>::create(exec, args...);
+    case precision::fp32:
+        return VectorType<float>::create(exec, args...);
+    case precision::complex_fp32:
+        return VectorType<std::complex<float>>::create(exec, args...);
+    case precision::fp64:
+        return VectorType<double>::create(exec, args...);
+    case precision::complex_fp64:
+        return VectorType<std::complex<double>>::create(exec, args...);
+#if GINKGO_ENABLE_HALF
+    case precision::fp16:
+        return VectorType<half>::create(exec, args...);
+    case precision::complex_fp16:
+        return VectorType<std::complex<half>>::create(exec, args...);
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    case precision::bf16:
+        return VectorType<bfloat16>::create(exec, args...);
+    case precision::complex_bf16:
+        return VectorType<std::complex<bfloat16>>::create(exec, args...);
+#endif
+    default:
+        GKO_INVALID_STATE("unsupported precision");
+    }
+}
+
 template <class VectorType>
 void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
                                      size_type current_nrows,
@@ -383,20 +417,32 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
 {
     using value_type = typename VectorType::value_type;
     using vec = matrix::Dense<value_type>;
+    const auto& precision_list = multigrid->get_parameters().precision;
+    auto precision_index = (precision_list.size() == 1) ? 0 : level;
+    auto precision = precision_list.at(precision_index);
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+    r_list.emplace_back(create_vector_on_precision<matrix::Dense, value_type>(
+        precision, exec, dim<2>{current_nrows, nrhs}));
     if (level != 0) {
         // allocate the previous level
-        g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
+        g_list.emplace_back(
+            create_vector_on_precision<matrix::Dense, value_type>(
+                precision, exec, dim<2>{current_nrows, nrhs}));
+        e_list.emplace_back(
+            create_vector_on_precision<matrix::Dense, value_type>(
+                precision, exec, dim<2>{current_nrows, nrhs}));
         next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
     }
     if (level + 1 == multigrid->get_mg_level_list().size()) {
         // the last level allocate the g, e for coarsest solver
-        g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
+        g_list.emplace_back(
+            create_vector_on_precision<matrix::Dense, value_type>(
+                precision, exec, dim<2>{next_nrows, nrhs}));
+        e_list.emplace_back(
+            create_vector_on_precision<matrix::Dense, value_type>(
+                precision, exec, dim<2>{next_nrows, nrhs}));
         next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
     }
     one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
@@ -418,31 +464,44 @@ void MultigridState::allocate_memory(
     using value_type = typename VectorType::value_type;
     using vec = VectorType;
     using dense_vec = matrix::Dense<value_type>;
+    const auto& precision_list = multigrid->get_parameters().precision;
+    auto precision_index = (precision_list.size() == 1) ? 0 : level;
+    auto precision = precision_list.at(precision_index);
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    r_list.emplace_back(vec::create(exec, current_comm,
-                                    dim<2>{current_nrows, nrhs},
-                                    dim<2>{current_local_nrows, nrhs}));
+    r_list.emplace_back(
+        create_vector_on_precision<experimental::distributed::Vector,
+                                   value_type>(
+            precision, exec, current_comm, dim<2>{current_nrows, nrhs},
+            dim<2>{current_local_nrows, nrhs}));
     if (level != 0) {
         // allocate the previous level
-        g_list.emplace_back(vec::create(exec, current_comm,
-                                        dim<2>{current_nrows, nrhs},
-                                        dim<2>{current_local_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, current_comm,
-                                        dim<2>{current_nrows, nrhs},
-                                        dim<2>{current_local_nrows, nrhs}));
+        g_list.emplace_back(
+            create_vector_on_precision<experimental::distributed::Vector,
+                                       value_type>(
+                precision, exec, current_comm, dim<2>{current_nrows, nrhs},
+                dim<2>{current_local_nrows, nrhs}));
+        e_list.emplace_back(
+            create_vector_on_precision<experimental::distributed::Vector,
+                                       value_type>(
+                precision, exec, current_comm, dim<2>{current_nrows, nrhs},
+                dim<2>{current_local_nrows, nrhs}));
         next_one_list.emplace_back(
             initialize<dense_vec>({one<value_type>()}, exec));
     }
     if (level + 1 == multigrid->get_mg_level_list().size()) {
         // the last level allocate the g, e for coarsest solver
-        g_list.emplace_back(vec::create(exec, next_comm,
-                                        dim<2>{next_nrows, nrhs},
-                                        dim<2>{next_local_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, next_comm,
-                                        dim<2>{next_nrows, nrhs},
-                                        dim<2>{next_local_nrows, nrhs}));
+        g_list.emplace_back(
+            create_vector_on_precision<experimental::distributed::Vector,
+                                       value_type>(
+                precision, exec, next_comm, dim<2>{next_nrows, nrhs},
+                dim<2>{next_local_nrows, nrhs}));
+        e_list.emplace_back(
+            create_vector_on_precision<experimental::distributed::Vector,
+                                       value_type>(
+                precision, exec, next_comm, dim<2>{next_nrows, nrhs},
+                dim<2>{next_local_nrows, nrhs}));
         next_one_list.emplace_back(
             initialize<dense_vec>({one<value_type>()}, exec));
     }
