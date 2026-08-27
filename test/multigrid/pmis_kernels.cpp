@@ -32,7 +32,6 @@
 
 class Pmis : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using SparsityCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using real_type = gko::remove_complex<value_type>;

@@ -10,9 +10,9 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-#include "common/hipda_hip/base/math.hpp"
-#include "common/hipda_hip/base/runtime.hpp"
-#include "common/hipda_hip/base/types.hpp"
+#include "common/cuda_hip/base/math.hpp"
+#include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/base/types.hpp"
 
 
 namespace gko {
