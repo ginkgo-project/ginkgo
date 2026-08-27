@@ -194,6 +194,8 @@ void Pmis<ValueType, IndexType>::generate()
                                                 this->get_size()[0] + 1));
     auto num_coarse =
         static_cast<size_type>(get_element(coarse_map, this->get_size()[0]));
+    GKO_THROW_IF_INVALID(num_coarse > 0,
+                         "Pmis produced an empty coarse level.");
 
     // the following implements direct interpolation, c is coarse_map, which map
     // the fine grid index k to coarse grid index c[k] if k will appear in
