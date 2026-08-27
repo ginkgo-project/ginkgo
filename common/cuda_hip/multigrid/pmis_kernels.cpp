@@ -25,6 +25,7 @@ void initialize_random_weight(std::shared_ptr<const DefaultExecutor> exec,
     randlib::uniform_rand_vector(gen, num, weight);
     randlib::destroy(gen);
 }
+
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(
     GKO_DECLARE_PMIS_INITIALIZE_RANDOM_WEIGHT_KERNEL);
 

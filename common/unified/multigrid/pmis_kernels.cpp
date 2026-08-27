@@ -145,6 +145,14 @@ void initialize_weight_and_status(
 {
     auto num = trans_strong_dep->get_size()[0];
     array<float> random(exec, num);
+    // note. range setting 0, 1 has different meaning in different backend
+    // for range(l, r)
+    // std include `l` but exclude `r`
+    // cuda/hip exclude `l` but include `r`
+    // dpcpp does not mentioned it in the documentation but the code should
+    // include `l` but exclude `r`. We only use float here because dpcpp device
+    // may lack of double precision support and random generator does not
+    // support 16-bit.
     initialize_random_weight(exec, num, random.get_data());
     run_kernel(
         exec,
@@ -154,7 +162,8 @@ void initialize_weight_and_status(
             auto w = static_cast<float>(row_ptrs[row + 1] - row_ptrs[row]);
             status[row] =
                 (w == 0.0f ? kernels::pmis::fine : kernels::pmis::unassigned);
-            weight[row] = static_cast<type>(random[row] + w);
+            // avoid random value to be 1
+            weight[row] = static_cast<type>(random[row] * 0.99f + w);
         },
         num, trans_strong_dep->get_const_row_ptrs(), random.get_const_data(),
         weight, status);
@@ -185,7 +194,8 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
                  idx += width) {
                 auto col = col_idxs[idx];
                 if (status[col] == kernels::pmis::unassigned &&
-                    weight[col] >= weight[row]) {
+                    device_std::tie(weight[col], col) >
+                        device_std::tie(weight[row], row)) {
                     return kernels::pmis::unassigned;
                 }
             }
