@@ -82,10 +82,38 @@ validation::ValidationResult ell_has_unique_idxs(
 
 
 template <typename ValueType, typename IndexType>
+validation::ValidationResult ell_matrix_values_are_finite(
+    const array<ValueType>& values, const array<IndexType>& col_idxs,
+    const dim<2>& size, const size_type num_stored_elements_per_row,
+    const size_type stride)
+{
+    const auto host_values = values.copy_to_host();
+    const auto host_col_idxs = col_idxs.copy_to_host();
+
+    for (size_type row = 0; row < size[0]; ++row) {
+        for (size_type slot = 0; slot < num_stored_elements_per_row; ++slot) {
+            const auto storage_idx = row + stride * slot;
+            const auto col = host_col_idxs[storage_idx];
+            const auto valid_col = col != invalid_index<IndexType>() &&
+                                   static_cast<size_type>(col) < size[1];
+            if (valid_col && !is_finite(host_values[storage_idx])) {
+                return {false, "index " + std::to_string(slot) + " in row " +
+                                   std::to_string(row) + " with stride " +
+                                   std::to_string(stride)};
+            }
+        }
+    }
+    return {true, ""};
+}
+
+
+template <typename ValueType, typename IndexType>
 void Ell<ValueType, IndexType>::validate_data() const
 {
-    GKO_VALIDATE(validation::sparse_matrix_values_are_finite(values_),
-                 "matrix must contain only finite values");
+    GKO_VALIDATE(
+        ell_matrix_values_are_finite(values_, col_idxs_, this->get_size(),
+                                     num_stored_elements_per_row_, stride_),
+        "matrix must contain only finite values");
     GKO_VALIDATE(ell_has_unique_idxs(col_idxs_, this->get_size(),
                                      num_stored_elements_per_row_, stride_),
                  "col_idxs must contain unique indices");

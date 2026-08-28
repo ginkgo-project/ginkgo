@@ -182,7 +182,7 @@ void Csr<ValueType, IndexType>::validate_data() const
                  "col_idxs must be within bounds");
     GKO_VALIDATE(validation::sparse_matrix_values_are_finite(values_),
                  "matrix must contain only finite values");
-    GKO_VALIDATE(validation::has_unique_idxs(row_ptrs_, col_idxs_),
+    GKO_VALIDATE(validation::has_unique_idxs_in_row(row_ptrs_, col_idxs_),
                  "each row of col_idxs must contain unique values");
 }
 

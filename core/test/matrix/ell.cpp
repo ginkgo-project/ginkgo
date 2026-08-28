@@ -291,7 +291,7 @@ TYPED_TEST(Ell, RecognizesUnboundedColumnIndex)
 }
 
 
-TYPED_TEST(Ell, RecognizesInfinitePaddingValue)
+TYPED_TEST(Ell, NoThrowInfinitePaddingValue)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;

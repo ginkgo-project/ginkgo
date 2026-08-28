@@ -7,6 +7,7 @@
 
 
 #include <cmath>
+#include <string>
 #include <unordered_set>
 
 #include <ginkgo/core/base/array.hpp>
@@ -100,8 +101,8 @@ ValidationResult sparse_matrix_values_are_finite(
 
 
 template <typename IndexType>
-ValidationResult has_unique_idxs(const gko::array<IndexType>& row_ptrs,
-                                 const gko::array<IndexType>& col_idxs)
+ValidationResult has_unique_idxs_in_row(const gko::array<IndexType>& row_ptrs,
+                                        const gko::array<IndexType>& col_idxs)
 {
     const auto host_row_ptrs = row_ptrs.copy_to_host();
     const auto host_col_idxs = col_idxs.copy_to_host();
