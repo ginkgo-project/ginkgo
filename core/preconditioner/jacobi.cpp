@@ -56,14 +56,36 @@ GKO_REGISTER_OPERATION(add_diagonal_elements,
 }  // namespace jacobi
 
 
+template <typename IndexType>
+validation::ValidationResult is_valid_block_pointers(
+    const gko::array<IndexType>& block_ptrs, const size_t max_block_size)
+{
+    const auto host_ptrs = block_ptrs.copy_to_host();
+    for (size_t i = 0; i + 1 < host_ptrs.size(); ++i) {
+        const auto start = host_ptrs[i];
+        const auto end = host_ptrs[i + 1];
+
+        if (end < start) {
+            return {false, "index: " + std::to_string(i)};
+        }
+
+        const size_type gap = static_cast<size_type>(end - start);
+        if (gap > max_block_size) {
+            return {false, "index: " + std::to_string(i)};
+        }
+    }
+    return {true, ""};
+}
+
+
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::validate_data() const
 {
     const auto max_bs = this->get_parameters().max_block_size;
 
     GKO_VALIDATE(
-        validation::is_valid_block_pointers<IndexType>(
-            this->parameters_.block_pointers, static_cast<size_type>(max_bs)),
+        is_valid_block_pointers<IndexType>(this->parameters_.block_pointers,
+                                           static_cast<size_type>(max_bs)),
         "Block pointers are not ascending or a block exceeds max_block_size.");
     GKO_VALIDATE(
         validation::sparse_matrix_values_are_finite<ValueType>(this->blocks_),

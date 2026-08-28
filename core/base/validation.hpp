@@ -140,13 +140,6 @@ void validate_system_matrix(std::shared_ptr<const LinOp> mtx)
         throw InvalidData(__FILE__, __LINE__, typeid(LinOp),
                           "System matrix is null.");
     }
-    try {
-        typed->validate_data();
-        return true;
-    } catch (const InvalidData& e) {
-        throw InvalidData(__FILE__, __LINE__, typeid(LinOp),
-                          "Invalid system matrix. Inner error: " + e.what());
-    }
     auto try_validate = [&](auto&& ptr, const char* name) {
         using PtrType = typename std::remove_reference<decltype(ptr)>::type;
         if (auto typed =
@@ -265,33 +258,11 @@ ValidationResult has_all_non_zero_diagonal(
 }
 
 
-template <typename IndexType>
-ValidationResult is_valid_block_pointers(
-    const gko::array<IndexType>& block_ptrs, const size_t max_block_size)
-{
-    const auto host_ptrs = block_ptrs.copy_to_host();
-    for (size_t i = 0; i + 1 < host_ptrs.size(); ++i) {
-        const auto start = host_ptrs[i];
-        const auto end = host_ptrs[i + 1];
-
-        if (end < start) {
-            return {false, "index: " + std::to_string(i)};
-        }
-
-        const size_type gap = static_cast<size_type>(end - start);
-        if (gap > max_block_size) {
-            return {false, "index: " + std::to_string(i)};
-        }
-    }
-    return {true, ""};
-}
-
-
-template <typename ValueType>
-ValidationResult is_finite_block(const gko::array<ValueType>& blocks)
-{
-    return sparse_matrix_values_are_finite(blocks);
-}
+// template <typename ValueType>
+// ValidationResult is_finite_block(const gko::array<ValueType>& blocks)
+// {
+//     return sparse_matrix_values_are_finite(blocks);
+// }
 
 
 }  // namespace validation

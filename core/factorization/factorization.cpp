@@ -31,13 +31,34 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 
 template <typename ValueType, typename IndexType>
-validation::ValidationResult has_valid_output();
+validation::ValidationResult has_valid_output(
+    const Composition<ValueType>& factors)
+{
+    for (const auto& op : factors.get_operators()) {
+        if (auto csr_mtx =
+                dynamic_cast<const matrix::Csr<ValueType, IndexType>*>(
+                    op.get())) {
+            try {
+                csr_mtx->validate_data();
+            } catch (const gko::InvalidData& e) {
+                return {false, "Invalid CSR matrix: " + std::string(e.what())};
+            }
+            auto result = validation::has_all_non_zero_diagonal(csr_mtx);
+            if (!result.isValid) {
+                return result;
+            }
+        }
+    }
+    return {true, ""};
+}
 
 
 template <typename ValueType, typename IndexType>
 void Factorization<ValueType, IndexType>::validate_data() const
 {
-    GKO_VALIDATE(this->has_valid_output(), "Invalid output.");
+    const auto unpacked = this->unpack();
+    GKO_VALIDATE((has_valid_output<ValueType, IndexType>(*unpacked->factors_)),
+                 "Invalid output.");
 }
 
 
@@ -384,30 +405,6 @@ void Factorization<ValueType, IndexType>::apply_impl(const LinOp* alpha,
     default:
         GKO_NOT_SUPPORTED(storage_type_);
     }
-}
-
-
-template <typename ValueType, typename IndexType>
-validation::ValidationResult
-Factorization<ValueType, IndexType>::has_valid_output() const
-{
-    auto unpacked = this->unpack();
-    for (const auto& op : unpacked->factors_->get_operators()) {
-        if (auto csr_mtx =
-                dynamic_cast<const matrix::Csr<ValueType, IndexType>*>(
-                    op.get())) {
-            try {
-                csr_mtx->validate_data();
-            } catch (const gko::InvalidData& e) {
-                return {false, "Invalid CSR matrix: " + std::string(e.what())};
-            }
-            auto result = validation::has_all_non_zero_diagonal(csr_mtx);
-            if (!result.isValid) {
-                return result;
-            }
-        }
-    }
-    return {true, ""};
 }
 
 
