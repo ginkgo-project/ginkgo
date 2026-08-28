@@ -606,7 +606,7 @@ TYPED_TEST(Csr, RecognizesUnboundedRowPtr)
     row_ptrs.get_data()[2] = 2;
     row_ptrs.get_data()[3] = 3;
     row_ptrs.get_data()[4] = 4;
-    row_ptrs.get_data()[5] = 4;
+    row_ptrs.get_data()[5] = 5;
     col_idxs.fill(0);
     values.fill(0);
     auto m = Mtx::create(this->exec, gko::dim<2>{5, 3}, values.as_view(),

@@ -63,12 +63,11 @@ validation::ValidationResult ell_has_unique_valid_idxs(
 {
     const auto host_col_idxs = col_idxs.copy_to_host();
     const auto num_rows = size[0];
-    const auto num_cols = size[1];
     for (size_type row = 0; row < num_rows; ++row) {
         std::unordered_set<IndexType> unique_idxs;
         for (size_type j = 0; j < num_stored_elements_per_row; ++j) {
             const auto col = host_col_idxs[row + stride * j];
-            if (col >= num_cols) {
+            if (col >= static_cast<IndexType>(size[1])) {
                 return {false, "column index " + std::to_string(col) + " at " +
                                    std::to_string(j) + " in row " +
                                    std::to_string(row) + " with stride " +
