@@ -13,8 +13,8 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
-#include "core/config/config_helper.hpp"
 #include "core/base/validation.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/idr_kernels.hpp"
@@ -42,8 +42,7 @@ void Idr<ValueType>::validate_data() const
 {
     validation::validate_system_matrix<ValueType, int32>(
         this->get_system_matrix());
-    validation::is_valid_preconditioner<ValueType, int32>(
-        this->get_preconditioner());
+    this->get_preconditioner()->validate_data();
 }
 
 

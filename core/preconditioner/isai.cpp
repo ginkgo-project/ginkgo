@@ -22,7 +22,6 @@
 
 #include "core/base/array_access.hpp"
 #include "core/base/utils.hpp"
-#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/dispatch.hpp"
 #include "core/factorization/factorization_kernels.hpp"
@@ -48,6 +47,7 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 }  // anonymous namespace
 }  // namespace isai
+
 
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 void Isai<IsaiType, ValueType, IndexType>::validate_data() const
