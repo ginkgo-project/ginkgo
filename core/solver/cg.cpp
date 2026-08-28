@@ -273,10 +273,8 @@ template <typename ValueType>
 validation::ValidationResult is_symmetric(const LinOp* mat)
 {
     using Mtx = matrix::Csr<ValueType>;
-
     auto exec = mat->get_executor();
     auto master = exec->get_master();
-
     auto cg_mtx = gko::copy_and_convert_to<Mtx>(exec, mat);
 
     if (cg_mtx->get_size()[0] != cg_mtx->get_size()[1]) {
@@ -286,9 +284,14 @@ validation::ValidationResult is_symmetric(const LinOp* mat)
     auto trans_cg_mtx =
         gko::copy_and_convert_to<Mtx>(exec, cg_mtx.get()->transpose().get());
 
-    auto host_cg_mtx = gko::copy_and_convert_to<Mtx>(master, cg_mtx.get());
-    auto host_trans_cg_mtx =
-        gko::copy_and_convert_to<Mtx>(master, trans_cg_mtx.get());
+    auto host_cg_mtx = Mtx::create(master);
+    host_cg_mtx->copy_from(cg_mtx.get());
+
+    auto host_trans_cg_mtx = Mtx::create(master);
+    host_trans_cg_mtx->copy_from(trans_cg_mtx.get());
+
+    host_cg_mtx->sort_by_column_index();
+    host_trans_cg_mtx->sort_by_column_index();
 
     auto row_ptrs = host_cg_mtx->get_const_row_ptrs();
     auto col_idxs = host_cg_mtx->get_const_col_idxs();
