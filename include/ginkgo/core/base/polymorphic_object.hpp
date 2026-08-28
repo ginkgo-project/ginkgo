@@ -52,8 +52,9 @@ public:
     }
 
     /**
-     * Throws gko::InvalidData exception if the data inside the arrays is
-     * invalid.
+     * Throws gko::InvalidData exception if
+     * we found the data inside the object
+     * does not fulfill certain property up to our knowledge.
      */
     virtual void validate_data() const {}
 

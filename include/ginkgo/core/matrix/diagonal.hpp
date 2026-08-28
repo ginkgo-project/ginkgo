@@ -194,7 +194,6 @@ public:
 
     void validate_data() const override;
 
-
     /**
      * Creates an Diagonal matrix of the specified size.
      *
