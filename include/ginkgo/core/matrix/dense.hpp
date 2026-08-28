@@ -725,6 +725,24 @@ public:
                     ptr_param<const LinOp> beta,
                     ptr_param<LinOp> row_collection) const;
 
+    /**
+     * Accumulates rows from `source` into this matrix at scattered positions:
+     *     `this(scatter_indices(i), j) += source(i, j)`
+     *
+     * @param scatter_indices  pointer to an array containing target row
+     *                         indices in this matrix. May contain duplicates
+     *                         (contributions are summed).
+     * @param source  the source matrix whose rows are scattered into this.
+     *                Must have the same number of columns as this matrix
+     *                and `scatter_indices->get_size()` rows.
+     */
+    void scatter_add(const array<int32>* scatter_indices, const Dense* source);
+
+    /**
+     * @copydoc scatter_add(const array<int32>*, const Dense*)
+     */
+    void scatter_add(const array<int64>* scatter_indices, const Dense* source);
+
     std::unique_ptr<LinOp> column_permute(
         const array<int32>* permutation_indices) const override;
 
@@ -1511,6 +1529,10 @@ protected:
                          const array<IndexType>* row_idxs,
                          const Dense<ValueType>* beta,
                          Dense<OutputType>* row_collection) const;
+
+    template <typename IndexType>
+    void scatter_add_impl(const array<IndexType>* scatter_indices,
+                          const Dense* source);
 
 private:
     size_type stride_;

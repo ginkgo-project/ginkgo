@@ -74,6 +74,7 @@ GKO_REGISTER_OPERATION(nonsymm_permute, dense::nonsymm_permute);
 GKO_REGISTER_OPERATION(inv_nonsymm_permute, dense::inv_nonsymm_permute);
 GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
 GKO_REGISTER_OPERATION(advanced_row_gather, dense::advanced_row_gather);
+GKO_REGISTER_OPERATION(scatter_add, dense::scatter_add);
 GKO_REGISTER_OPERATION(col_permute, dense::col_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, dense::inv_row_permute);
 GKO_REGISTER_OPERATION(inverse_col_permute, dense::inv_col_permute);
@@ -1699,6 +1700,38 @@ void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
                                   dense_beta.get(), dense);
         },
         out.get());
+}
+
+
+template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::scatter_add_impl(const array<IndexType>* scatter_indices,
+                                        const Dense* source)
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQ(source->get_size()[1], this->get_size()[1]);
+    GKO_ASSERT_EQ(scatter_indices->get_size(), source->get_size()[0]);
+
+    exec->run(dense::make_scatter_add(
+        make_temporary_clone(exec, scatter_indices)->get_const_data(),
+        make_temporary_clone(exec, source)->get_const_device_view(),
+        this->get_device_view()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::scatter_add(const array<int32>* scatter_indices,
+                                   const Dense* source)
+{
+    scatter_add_impl(scatter_indices, source);
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::scatter_add(const array<int64>* scatter_indices,
+                                   const Dense* source)
+{
+    scatter_add_impl(scatter_indices, source);
 }
 
 

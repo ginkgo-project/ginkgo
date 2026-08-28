@@ -22,6 +22,7 @@
 #include "dpcpp/base/math.hpp"
 #include "dpcpp/base/onemkl_bindings.hpp"
 #include "dpcpp/base/types.hpp"
+#include "dpcpp/components/atomic.dp.hpp"
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -568,6 +569,44 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scatter_add(std::shared_ptr<const DpcppExecutor> exec,
+                 const IndexType* scatter_indices,
+                 matrix::view::dense<const ValueType> source,
+                 matrix::view::dense<ValueType> target)
+{
+    if constexpr (sizeof(remove_complex<ValueType>) >= sizeof(float)) {
+        auto nrows = source.size[0];
+        auto ncols = source.size[1];
+        if (nrows == 0 || ncols == 0) {
+            return;
+        }
+        auto total = nrows * ncols;
+        auto queue = exec->get_queue();
+        // Use const copies for capture
+        auto src_vals = source.values;
+        auto src_stride = source.stride;
+        auto tgt_vals = target.values;
+        auto tgt_stride = target.stride;
+        queue->submit([&](sycl::handler& cgh) {
+            cgh.parallel_for(sycl::range<1>(total), [=](sycl::id<1> idx_id) {
+                auto idx = idx_id[0];
+                auto row = idx / ncols;
+                auto col = idx % ncols;
+                auto target_row = static_cast<size_type>(scatter_indices[row]);
+                atomic_add(tgt_vals + target_row * tgt_stride + col,
+                           src_vals[row * src_stride + col]);
+            });
+        });
+    } else {
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SCATTER_ADD_KERNEL);
 
 
 }  // namespace dense
