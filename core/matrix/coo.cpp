@@ -55,7 +55,7 @@ template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::validate_data() const
 {
     GKO_VALIDATE(validation::is_sorted(row_idxs_),
-                 "row_idxs must be non-decending");
+                 "row_idxs must be non-descending");
     GKO_VALIDATE(validation::is_within_nonegative_bounds(
                      row_idxs_, static_cast<IndexType>(this->get_size()[0])),
                  "row_idxs must be within bounds");
