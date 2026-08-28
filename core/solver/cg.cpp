@@ -4,11 +4,8 @@
 
 #include "ginkgo/core/solver/cg.hpp"
 
+#include <memory>
 #include <string>
-
-#include <memory>
-
-#include <memory>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -18,11 +15,9 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
-#include "core/base/validation.hpp"
-#include "core/base/validation.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/cg_kernels.hpp"
@@ -285,7 +280,7 @@ validation::ValidationResult is_symmetric(const LinOp* mat)
     auto cg_mtx = gko::copy_and_convert_to<Mtx>(exec, mat);
 
     if (cg_mtx->get_size()[0] != cg_mtx->get_size()[1]) {
-        return {false, 0};
+        return {false, "Matrix is not square."};
     }
 
     auto trans_cg_mtx =
@@ -307,20 +302,20 @@ validation::ValidationResult is_symmetric(const LinOp* mat)
 
     for (size_type i = 0; i < host_cg_mtx->get_size()[0]; ++i) {
         if (row_ptrs[i] != trans_row_ptrs[i]) {
-            return {false, i};
+            return {false, "Row pointers at index " + std::to_string(i)};
         }
     }
 
     for (size_type i = 0; i < nnz; ++i) {
         if (col_idxs[i] != trans_col_idxs[i]) {
-            return {false, i};
+            return {false, "Column index at index " + std::to_string(i)};
         }
         if (values[i] != trans_values[i]) {
-            return {false, i};
+            return {false, "Value at index " + std::to_string(i)};
         }
     }
 
-    return {true, 0};
+    return {true, ""};
 }
 
 #define GKO_DECLARE_CG(ValueType) class Cg<ValueType>
