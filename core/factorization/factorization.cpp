@@ -402,7 +402,7 @@ Factorization<ValueType, IndexType>::has_valid_output() const
             try {
                 csr_mtx->validate_data();
             } catch (const gko::InvalidData& e) {
-                return {false, 0};
+                return {false, "Invalid CSR matrix: " + std::string(e.what())};
             }
             auto result = validation::has_non_zero_diagonal(csr_mtx);
             if (!result.isValid) {
@@ -410,7 +410,7 @@ Factorization<ValueType, IndexType>::has_valid_output() const
             }
         }
     }
-    return {true, 0};
+    return {true, ""};
 }
 
 

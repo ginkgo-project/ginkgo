@@ -1,5 +1,4 @@
 // SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
-// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -182,7 +181,7 @@ void validate_system_matrix(std::shared_ptr<const LinOp> mtx)
 template <typename ValueType, typename IndexType>
 ValidationResult is_valid_preconditioner(std::shared_ptr<const LinOp> prec)
 {
-    return {true, 0};
+    return {true, ""};
 }
 
 
@@ -211,7 +210,7 @@ ValidationResult is_triangular_system_matrix(std::shared_ptr<const LinOp> mtx)
 
             if (col == i) {
                 if (gko::is_zero(val)) {
-                    return {false, static_cast<size_t>(i)};
+                    return {false, "zero diagonal."};
                 }
                 diagonal_found = true;
             } else if (col > i) {
@@ -220,14 +219,14 @@ ValidationResult is_triangular_system_matrix(std::shared_ptr<const LinOp> mtx)
                 is_upper = false;
             }
             if (!is_lower && !is_upper) {
-                return {false, static_cast<size_t>(i)};
+                return {false, "Not triangular."};
             }
         }
         if (!diagonal_found) {
-            return {false, static_cast<size_t>(i)};
+            return {false, "Missing diagonal."};
         }
     }
-    return {true, 0};
+    return {true, ""};
 }
 
 
@@ -248,17 +247,17 @@ ValidationResult has_non_zero_diagonal(
         for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
             if (col_idxs[j] == i) {
                 if (gko::is_zero(values[j])) {
-                    return {false, static_cast<size_t>(i)};
+                    return {false, "zero diagonal at row " + std::to_string(i)};
                 }
                 diagonal_found = true;
                 break;
             }
         }
         if (!diagonal_found) {
-            return {false, static_cast<size_t>(i)};
+            return {false, "Missing diagonal at row " + std::to_string(i)};
         }
     }
-    return {true, 0};
+    return {true, ""};
 }
 
 
@@ -272,15 +271,15 @@ ValidationResult is_valid_block_pointers(
         const auto end = host_ptrs[i + 1];
 
         if (end < start) {
-            return {false, i};
+            return {false, "index: " + std::to_string(i)};
         }
 
         const size_type gap = static_cast<size_type>(end - start);
         if (gap > max_block_size) {
-            return {false, i};
+            return {false, "index: " + std::to_string(i)};
         }
     }
-    return {true, 0};
+    return {true, ""};
 }
 
 
