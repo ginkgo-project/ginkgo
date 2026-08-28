@@ -19,22 +19,24 @@ namespace gko {
 namespace validation {
 
 
-#define GKO_VALIDATE(_expression, _message)                    \
-    {                                                          \
-        auto result = (_expression);                           \
-        if (!result.isValid) {                                 \
-            throw gko::InvalidData(                            \
-                __FILE__, __LINE__, typeid(decltype(*this)),   \
-                "Exception occurs at index " +                 \
-                    std::to_string(result.exception_message) + \
-                    ". " _message " (" #_expression ")");      \
-        }                                                      \
+#define GKO_VALIDATE(_expression, _message)                           \
+    {                                                                 \
+        auto result = (_expression);                                  \
+        if (!result.isValid) {                                        \
+            throw gko::InvalidData(                                   \
+                __FILE__, __LINE__, typeid(decltype(*this)),          \
+                "Exception occurs at index " +                        \
+                    std::to_string(result.exception_message) +        \
+                    "Exception occurs: " + result.exception_message + \
+                    " [" _message "](" #_expression ")");             \
+            \;                                                        \
+        }                                                             \
     }
 
 
 struct ValidationResult {
     bool isValid;
-    size_t exception_message;
+    std::string exception_message;
 
     explicit operator bool() const noexcept { return isValid; }
 };

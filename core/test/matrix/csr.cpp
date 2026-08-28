@@ -587,8 +587,7 @@ TYPED_TEST(Csr, RecognizesInfiniteValue)
     values.fill(1.0);
     values.get_data()[2] = INFINITY;
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
-                         col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         col_idxs.as_view(), row_ptrs.as_view());
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
 }
