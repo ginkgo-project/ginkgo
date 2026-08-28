@@ -593,20 +593,23 @@ TYPED_TEST(Csr, RecognizesInfiniteValue)
 }
 
 
-TYPED_TEST(Csr, RecognizesUnboundedRowIndex)
+TYPED_TEST(Csr, RecognizesUnboundedRowPtr)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto row_ptrs = gko::array<index_type>(this->exec, 6);
     auto col_idxs = gko::array<index_type>(this->exec, 4);
     auto values = gko::array<value_type>(this->exec, 4);
-    row_ptrs.get_data()[0] = 1;
+    row_ptrs.get_data()[0] = 0;
     row_ptrs.get_data()[1] = 1;
-    row_ptrs.get_data()[2] = 4;
+    row_ptrs.get_data()[2] = 2;
+    row_ptrs.get_data()[3] = 3;
+    row_ptrs.get_data()[4] = 4;
+    row_ptrs.get_data()[5] = 4;
     col_idxs.fill(0);
     values.fill(0);
-    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+    auto m = Mtx::create(this->exec, gko::dim<2>{5, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view());
 
     ASSERT_THROW(m->validate_data(), gko::InvalidData);
@@ -642,7 +645,7 @@ TYPED_TEST(Csr, RecognizesUnorderedRowPointer)
     auto row_ptrs = gko::array<index_type>(this->exec, 3);
     auto col_idxs = gko::array<index_type>(this->exec, 4);
     auto values = gko::array<value_type>(this->exec, 4);
-    row_ptrs.get_data()[0] = 1;
+    row_ptrs.get_data()[0] = 0;
     row_ptrs.get_data()[1] = 1;
     row_ptrs.get_data()[2] = 0;
     col_idxs.fill(0);
@@ -654,4 +657,29 @@ TYPED_TEST(Csr, RecognizesUnorderedRowPointer)
 }
 
 
+TYPED_TEST(Csr, AllowsRowPtrsGreaterThanNumRows)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+
+    row_ptrs.get_data()[0] = 0;
+    row_ptrs.get_data()[1] = 3;
+    row_ptrs.get_data()[2] = 4;
+
+    col_idxs.get_data()[0] = 0;
+    col_idxs.get_data()[1] = 1;
+    col_idxs.get_data()[2] = 2;
+    col_idxs.get_data()[3] = 0;
+    values.fill(1.0);
+
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view());
+
+    ASSERT_NO_THROW(m->validate_data());
+}
 }  // namespace

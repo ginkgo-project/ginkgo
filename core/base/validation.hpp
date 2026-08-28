@@ -43,7 +43,7 @@ template <typename IndexType>
 ValidationResult is_sorted(const gko::array<IndexType>& idxs_array)
 {
     const auto host_idxs_array = idxs_array.copy_to_host();
-    for (size_t i = 0; i + 1 < host_idxs_array.size(); ++i) {
+    for (size_type i = 0; i + 1 < host_idxs_array.size(); ++i) {
         if (host_idxs_array[i] > host_idxs_array[i + 1]) {
             return {false, "index: " + std::to_string(i)};
         }
@@ -57,10 +57,10 @@ ValidationResult is_within_nonegative_bounds(
     const gko::array<IndexType>& idxs_array, const IndexType upper_bound)
 {
     const auto host_idxs_array = idxs_array.copy_to_host();
-    auto min_pos = 0;
-    auto max_pos = 0;
+    size_type min_pos = 0;
+    size_type max_pos = 0;
 
-    for (size_t i = 1; i < host_idxs_array.size(); ++i) {
+    for (size_type i = 1; i < host_idxs_array.size(); ++i) {
         if (host_idxs_array[i] < host_idxs_array[min_pos]) {
             min_pos = i;
         }
@@ -70,11 +70,15 @@ ValidationResult is_within_nonegative_bounds(
     }
     if (host_idxs_array[min_pos] < 0) {
         return {false,
-                "lower bound: " + std::to_string(host_idxs_array[min_pos])};
+                "The minimum " + std::to_string(host_idxs_array[min_pos]) +
+                    " at index " + std::to_string(min_pos) + " is less than 0"};
     }
     if (host_idxs_array[max_pos] >= upper_bound) {
-        return {false,
-                "upper bound: " + std::to_string(host_idxs_array[max_pos])};
+        return {false, "The maximum " +
+                           std::to_string(host_idxs_array[max_pos]) +
+                           " at index " + std::to_string(max_pos) +
+                           " is greater than or equal to the upper bound " +
+                           std::to_string(upper_bound)};
     }
 
     return {true, ""};
@@ -86,7 +90,7 @@ ValidationResult sparse_matrix_values_are_finite(
     const gko::array<ValueType>& values)
 {
     const auto host_values = values.copy_to_host();
-    for (size_t i = 0; i < host_values.size(); ++i) {
+    for (size_type i = 0; i < host_values.size(); ++i) {
         if (!is_finite(host_values[i])) {
             return {false, "index: " + std::to_string(i)};
         }
@@ -102,9 +106,13 @@ ValidationResult has_unique_idxs(const gko::array<IndexType>& row_ptrs,
     const auto host_row_ptrs = row_ptrs.copy_to_host();
     const auto host_col_idxs = col_idxs.copy_to_host();
 
-    const auto num_rows_ = host_row_ptrs.size() - 1;
+    const auto num_rows = host_row_ptrs.size() - 1;
 
-    for (IndexType row = 0; row < num_rows_; row++) {
+    if (host_row_ptrs.size() == 0) {
+        return {true, ""};
+    }
+
+    for (IndexType row = 0; row < num_rows; row++) {
         const auto begin = host_row_ptrs[row];
         const auto end = host_row_ptrs[row + 1];
         const auto size = end - begin;

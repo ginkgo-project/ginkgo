@@ -28,15 +28,29 @@ GKO_REGISTER_OPERATION(compose, permutation::compose);
 
 
 template <typename IndexType>
-validation::ValidationResult permutation_has_unique_idxs(
-    const gko::array<IndexType>& permutation_);
+validation::ValidationResult permutation_is_bijection(
+    const gko::array<IndexType>& permutation_)
+{
+    const auto host_perm_idxs = permutation_.copy_to_host();
+    const auto size = host_perm_idxs.size();
+    std::unordered_set<IndexType> unique_idxs(host_perm_idxs.begin(),
+                                              host_perm_idxs.end());
+
+    for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
+        if (unique_idxs.find(i) == unique_idxs.end()) {
+            return {false, "index: " + std::to_string(i)};
+        }
+    }
+
+    return {true, ""};
+}
 
 
 template <typename IndexType>
 void Permutation<IndexType>::validate_data() const
 {
-    GKO_VALIDATE(permutation_has_unique_idxs(permutation_),
-                 "Permutation indices must be unique");
+    GKO_VALIDATE(permutation_is_bijection(permutation_),
+                 "Permutation indices must be a bijection");
 }
 
 
@@ -314,25 +328,6 @@ void Permutation<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
         dense_out->scale(beta);
         dense_out->add_scaled(alpha, tmp);
     });
-}
-
-
-template <typename IndexType>
-validation::ValidationResult permutation_has_unique_idxs(
-    const gko::array<IndexType>& permutation_)
-{
-    const auto host_perm_idxs = permutation_.copy_to_host();
-    const auto size = host_perm_idxs.size();
-    std::unordered_set<IndexType> unique_idxs(host_perm_idxs.begin(),
-                                              host_perm_idxs.end());
-
-    for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
-        if (unique_idxs.find(i) == unique_idxs.end()) {
-            return {false, "index: " + std::to_string(i)};
-        }
-    }
-
-    return {true, ""};
 }
 
 

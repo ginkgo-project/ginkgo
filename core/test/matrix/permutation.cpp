@@ -147,7 +147,7 @@ TYPED_TEST(Permutation, CanBeCloned)
 }
 
 
-TYPED_TEST(Permutation, RecognizesDuplicatePermutationIndices)
+TYPED_TEST(Permutation, RecognizesNotBijection)
 {
     using index_type = typename TestFixture::index_type;
     index_type data[] = {1, 0, 2, 2};

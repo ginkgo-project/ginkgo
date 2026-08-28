@@ -536,7 +536,6 @@ TYPED_TEST(Dense, RecognizesInfiniteValue)
         3.0, 4.0, -1.0,
         5.0, 6.0, -1.0};
     // clang-format on
-
     auto m = gko::matrix::Dense<TypeParam>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::make_array_view(this->exec, 9, data), 3);
@@ -554,7 +553,6 @@ TYPED_TEST(Dense, AllowsInfinitePaddingValue)
         3.0, 4.0, -1.0,
         5.0, 6.0, -1.0};
     // clang-format on
-
     auto m = gko::matrix::Dense<TypeParam>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::make_array_view(this->exec, 9, data), 3);

@@ -36,6 +36,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 }  // anonymous namespace
 }  // namespace diagonal
 
+
 template <typename ValueType>
 void Diagonal<ValueType>::validate_data() const
 {
