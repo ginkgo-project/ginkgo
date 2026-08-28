@@ -4,10 +4,7 @@
 
 #include "ginkgo/core/factorization/factorization.hpp"
 
-#include <iostream>
-
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
@@ -404,7 +401,7 @@ Factorization<ValueType, IndexType>::has_valid_output() const
             } catch (const gko::InvalidData& e) {
                 return {false, "Invalid CSR matrix: " + std::string(e.what())};
             }
-            auto result = validation::has_non_zero_diagonal(csr_mtx);
+            auto result = validation::has_all_non_zero_diagonal(csr_mtx);
             if (!result.isValid) {
                 return result;
             }

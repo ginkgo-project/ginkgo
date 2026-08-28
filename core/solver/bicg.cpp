@@ -13,8 +13,8 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 
-#include "core/config/config_helper.hpp"
 #include "core/base/validation.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/solver/bicg_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -39,8 +39,7 @@ void Bicg<ValueType>::validate_data() const
 {
     validation::validate_system_matrix<ValueType, int32>(
         this->get_system_matrix());
-    validation::is_valid_preconditioner<ValueType, int32>(
-        this->get_preconditioner());
+    this->get_preconditioner()->validate_data();
 }
 
 

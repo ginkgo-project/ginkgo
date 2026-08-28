@@ -140,7 +140,13 @@ void validate_system_matrix(std::shared_ptr<const LinOp> mtx)
         throw InvalidData(__FILE__, __LINE__, typeid(LinOp),
                           "System matrix is null.");
     }
-
+    try {
+        typed->validate_data();
+        return true;
+    } catch (const InvalidData& e) {
+        throw InvalidData(__FILE__, __LINE__, typeid(LinOp),
+                          "Invalid system matrix. Inner error: " + e.what());
+    }
     auto try_validate = [&](auto&& ptr, const char* name) {
         using PtrType = typename std::remove_reference<decltype(ptr)>::type;
         if (auto typed =
@@ -172,9 +178,6 @@ void validate_system_matrix(std::shared_ptr<const LinOp> mtx)
                      "Permutation")) {
         return;
     }
-
-    throw InvalidData(__FILE__, __LINE__, typeid(LinOp),
-                      "Unsupported system matrix type.");
 }
 
 
@@ -201,21 +204,21 @@ ValidationResult is_triangular_system_matrix(std::shared_ptr<const LinOp> mtx)
     bool is_upper = true;
     bool is_lower = true;
 
-    for (size_type i = 0; i < mtx_dim; i++) {
+    for (size_type row = 0; row < mtx_dim; row++) {
         bool diagonal_found = false;
 
-        for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
+        for (size_type j = row_ptrs[row]; j < row_ptrs[row + 1]; ++j) {
             const auto col = col_idxs[j];
             const auto val = values[j];
 
-            if (col == i) {
+            if (col == row) {
                 if (gko::is_zero(val)) {
                     return {false, "zero diagonal."};
                 }
                 diagonal_found = true;
-            } else if (col > i) {
+            } else if (col > row) {
                 is_lower = false;
-            } else if (col < i) {
+            } else if (col < row) {
                 is_upper = false;
             }
             if (!is_lower && !is_upper) {
@@ -231,7 +234,7 @@ ValidationResult is_triangular_system_matrix(std::shared_ptr<const LinOp> mtx)
 
 
 template <typename ValueType, typename IndexType>
-ValidationResult has_non_zero_diagonal(
+ValidationResult has_all_non_zero_diagonal(
     const matrix::Csr<ValueType, IndexType>* mtx)
 {
     const auto exec = mtx->get_executor();
@@ -242,19 +245,20 @@ ValidationResult has_non_zero_diagonal(
     const auto values = host_mtx->get_const_values();
     const auto num_rows = host_mtx->get_size()[0];
 
-    for (size_type i = 0; i < num_rows; i++) {
+    for (size_type row = 0; row < num_rows; row++) {
         bool diagonal_found = false;
-        for (size_type j = row_ptrs[i]; j < row_ptrs[i + 1]; ++j) {
-            if (col_idxs[j] == i) {
+        for (size_type j = row_ptrs[row]; j < row_ptrs[row + 1]; ++j) {
+            if (col_idxs[j] == row) {
                 if (gko::is_zero(values[j])) {
-                    return {false, "zero diagonal at row " + std::to_string(i)};
+                    return {false,
+                            "zero diagonal at row " + std::to_string(row)};
                 }
                 diagonal_found = true;
                 break;
             }
         }
         if (!diagonal_found) {
-            return {false, "Missing diagonal at row " + std::to_string(i)};
+            return {false, "Missing diagonal at row " + std::to_string(row)};
         }
     }
     return {true, ""};
