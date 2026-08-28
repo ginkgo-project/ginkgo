@@ -328,11 +328,11 @@ validation::ValidationResult permutation_has_unique_idxs(
 
     for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
         if (unique_idxs.find(i) == unique_idxs.end()) {
-            return {false, static_cast<size_t>(i)};
+            return {false, "index: " + std::to_string(i)};
         }
     }
 
-    return {true, 0};
+    return {true, ""};
 }
 
 

@@ -514,12 +514,14 @@ validation::ValidationResult ell_has_unique_idxs(
             const auto idx = host_col_idxs[i + stride * j];
             if (idx != -1 && idx < num_rows) {
                 if (!unique_idxs.insert(idx).second) {
-                    return {false, static_cast<size_t>(i + stride * j)};
+                    return {false, "index " + std::to_string(j) + " in row " +
+                                       std::to_string(i) + " with stride " +
+                                       std::to_string(stride)};
                 }
             }
         }
     }
-    return {true, 0};
+    return {true, ""};
 }
 
 
@@ -536,11 +538,13 @@ validation::ValidationResult is_well_padded(
             if (idx == invalid_index<IndexType>()) {
                 padding = true;
             } else if (padding) {
-                return {false, static_cast<size_t>(i)};
+                return {false, "index " + std::to_string(j) + " in row " +
+                                   std::to_string(i) + " with stride " +
+                                   std::to_string(stride)};
             }
         }
     }
-    return {true, 0};
+    return {true, ""};
 }
 
 

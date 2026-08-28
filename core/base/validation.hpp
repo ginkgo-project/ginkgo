@@ -19,18 +19,15 @@ namespace gko {
 namespace validation {
 
 
-#define GKO_VALIDATE(_expression, _message)                           \
-    {                                                                 \
-        auto result = (_expression);                                  \
-        if (!result.isValid) {                                        \
-            throw gko::InvalidData(                                   \
-                __FILE__, __LINE__, typeid(decltype(*this)),          \
-                "Exception occurs at index " +                        \
-                    std::to_string(result.exception_message) +        \
-                    "Exception occurs: " + result.exception_message + \
-                    " [" _message "](" #_expression ")");             \
-            \;                                                        \
-        }                                                             \
+#define GKO_VALIDATE(_expression, _message)                       \
+    {                                                             \
+        auto result = (_expression);                              \
+        if (!result.isValid) {                                    \
+            throw gko::InvalidData(                               \
+                __FILE__, __LINE__, typeid(decltype(*this)),      \
+                "Exception occurs: " + result.exception_message + \
+                    " [" _message "](" #_expression ")");         \
+        }                                                         \
     }
 
 
@@ -48,10 +45,10 @@ ValidationResult is_sorted(const gko::array<IndexType>& idxs_array)
     const auto host_idxs_array = idxs_array.copy_to_host();
     for (size_t i = 0; i + 1 < host_idxs_array.size(); ++i) {
         if (host_idxs_array[i] > host_idxs_array[i + 1]) {
-            return {false, static_cast<size_t>(i)};
+            return {false, "index: " + std::to_string(i)};
         }
     }
-    return {true, 0};
+    return {true, ""};
 }
 
 
@@ -72,13 +69,15 @@ ValidationResult is_within_nonegative_bounds(
         }
     }
     if (host_idxs_array[min_pos] < 0) {
-        return {false, static_cast<size_t>(min_pos)};
+        return {false,
+                "lower bound: " + std::to_string(host_idxs_array[min_pos])};
     }
     if (host_idxs_array[max_pos] >= upper_bound) {
-        return {false, static_cast<size_t>(max_pos)};
+        return {false,
+                "upper bound: " + std::to_string(host_idxs_array[max_pos])};
     }
 
-    return {true, 0};
+    return {true, ""};
 }
 
 
@@ -89,10 +88,10 @@ ValidationResult sparse_matrix_values_are_finite(
     const auto host_values = values.copy_to_host();
     for (size_t i = 0; i < host_values.size(); ++i) {
         if (!is_finite(host_values[i])) {
-            return {false, static_cast<size_t>(i)};
+            return {false, "index: " + std::to_string(i)};
         }
     }
-    return {true, 0};
+    return {true, ""};
 }
 
 
@@ -113,10 +112,10 @@ ValidationResult has_unique_idxs(const gko::array<IndexType>& row_ptrs,
                                                   host_col_idxs.begin() + end);
 
         if (unique_ptrs.size() < size) {
-            return {false, static_cast<size_t>(row)};
+            return {false, "row: " + std::to_string(row)};
         }
     }
-    return {true, 0};
+    return {true, ""};
 }
 
 

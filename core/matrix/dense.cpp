@@ -2185,7 +2185,7 @@ validation::ValidationResult dense_matrix_values_are_finite(
     const Dense<ValueType>* mtx)
 {
     if constexpr (std::is_integral<ValueType>::value) {
-        return {true, 0};
+        return {true, ""};
     } else {
         const auto host_mtx = mtx->clone(mtx->get_executor()->get_master());
         const auto num_rows = host_mtx->get_size()[0];
@@ -2195,11 +2195,13 @@ validation::ValidationResult dense_matrix_values_are_finite(
         for (size_t i = 0; i < num_rows; ++i) {
             for (size_t j = 0; j < num_cols; ++j) {
                 if (!is_finite(host_values[i * stride + j])) {
-                    return {false, static_cast<size_t>(i * stride + j)};
+                    return {false, "index " + std::to_string(j) + " in row " +
+                                       std::to_string(i) + " with stride " +
+                                       std::to_string(stride)};
                 }
             }
         }
-        return {true, 0};
+        return {true, ""};
     }
 }
 
