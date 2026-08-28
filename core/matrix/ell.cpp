@@ -64,14 +64,23 @@ validation::ValidationResult ell_has_unique_valid_idxs(
     const auto host_col_idxs = col_idxs.copy_to_host();
     const auto num_rows = size[0];
     const auto num_cols = size[1];
-    for (size_type i = 0; i < num_rows; ++i) {
+    for (size_type row = 0; row < num_rows; ++row) {
         std::unordered_set<IndexType> unique_idxs;
         for (size_type j = 0; j < num_stored_elements_per_row; ++j) {
-            const auto idx = host_col_idxs[i + stride * j];
-            if (idx != invalid_index<IndexType>() && idx < num_cols) {
-                if (!unique_idxs.insert(idx).second) {
-                    return {false, "index " + std::to_string(j) + " in row " +
-                                       std::to_string(i) + " with stride " +
+            const auto col = host_col_idxs[row + stride * j];
+            if (col >= num_cols) {
+                return {false, "column index " + std::to_string(col) + " at " +
+                                   std::to_string(j) + " in row " +
+                                   std::to_string(row) + " with stride " +
+                                   std::to_string(stride) +
+                                   " exceeds the number of columns"};
+            }
+            if (col != invalid_index<IndexType>()) {
+                if (!unique_idxs.insert(col).second) {
+                    return {false, "duplicate column index " +
+                                       std::to_string(col) + " at " +
+                                       std::to_string(j) + " in row " +
+                                       std::to_string(row) + " with stride " +
                                        std::to_string(stride)};
                 }
             }
