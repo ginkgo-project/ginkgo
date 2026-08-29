@@ -40,9 +40,10 @@ GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
 template <typename ValueType>
 void Idr<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
-    this->get_preconditioner()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Idr must have system matrix");
+    GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
+                 "Idr must have preconditioner");
 }
 
 

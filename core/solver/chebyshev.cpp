@@ -48,8 +48,8 @@ GKO_REGISTER_OPERATION(update, chebyshev::update);
 template <typename ValueType>
 void Chebyshev<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Chebyshev must have system matrix");
 }
 
 

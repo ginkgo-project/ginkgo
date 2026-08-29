@@ -37,9 +37,9 @@ GKO_REGISTER_OPERATION(step_2, bicg::step_2);
 template <typename ValueType>
 void Bicg<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
-    this->get_preconditioner()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Bicg must have system matrix");
+    this->get_system_matrix()->validate_data();
 }
 
 

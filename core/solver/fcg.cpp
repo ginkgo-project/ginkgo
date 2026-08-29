@@ -37,8 +37,10 @@ GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 template <typename ValueType>
 void Fcg<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Fcg must have system matrix");
+    GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
+                 "Fcg must have preconditioner");
     this->get_preconditioner()->validate_data();
 }
 

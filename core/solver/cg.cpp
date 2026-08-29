@@ -93,8 +93,8 @@ validation::ValidationResult is_symmetric(const LinOp* mat)
 template <typename ValueType>
 void Cg<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Cg must have system matrix");
     GKO_VALIDATE(is_symmetric<ValueType>(this->get_system_matrix().get()),
                  "The system matrix is not symmetric.");
 }

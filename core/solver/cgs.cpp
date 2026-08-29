@@ -39,8 +39,10 @@ GKO_REGISTER_OPERATION(step_3, cgs::step_3);
 template <typename ValueType>
 void Cgs<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Cgs must have system matrix");
+    GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
+                 "Cgs must have preconditioner");
     this->get_preconditioner()->validate_data();
 }
 
