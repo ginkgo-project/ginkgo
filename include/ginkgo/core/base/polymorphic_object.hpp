@@ -51,6 +51,13 @@ public:
                                                                     this);
     }
 
+    /**
+     * Throws gko::InvalidData exception if
+     * we found the data inside the object
+     * does not fulfill certain property up to our knowledge.
+     */
+    virtual void validate_data() const {}
+
     // preserve the executor of the object
     PolymorphicObject& operator=(const PolymorphicObject&) { return *this; }
 

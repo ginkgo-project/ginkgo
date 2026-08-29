@@ -19,6 +19,7 @@
 #include "core/base/allocator.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -53,6 +54,78 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 }  // anonymous namespace
 }  // namespace ell
+
+
+template <typename IndexType>
+validation::ValidationResult ell_has_unique_valid_idxs(
+    const array<IndexType>& col_idxs, const dim<2>& size,
+    const size_type num_stored_elements_per_row, const size_type stride)
+{
+    const auto host_col_idxs = col_idxs.copy_to_host();
+    const auto num_rows = size[0];
+    for (size_type row = 0; row < num_rows; ++row) {
+        std::unordered_set<IndexType> unique_idxs;
+        for (size_type j = 0; j < num_stored_elements_per_row; ++j) {
+            const auto col = host_col_idxs[row + stride * j];
+            if (col >= static_cast<IndexType>(size[1])) {
+                return {false, "column index " + std::to_string(col) + " at " +
+                                   std::to_string(j) + " in row " +
+                                   std::to_string(row) + " with stride " +
+                                   std::to_string(stride) +
+                                   " exceeds the number of columns"};
+            }
+            if (col != invalid_index<IndexType>()) {
+                if (!unique_idxs.insert(col).second) {
+                    return {false, "duplicate column index " +
+                                       std::to_string(col) + " at " +
+                                       std::to_string(j) + " in row " +
+                                       std::to_string(row) + " with stride " +
+                                       std::to_string(stride)};
+                }
+            }
+        }
+    }
+    return {true, ""};
+}
+
+
+template <typename ValueType, typename IndexType>
+validation::ValidationResult ell_matrix_values_are_finite(
+    const array<ValueType>& values, const array<IndexType>& col_idxs,
+    const dim<2>& size, const size_type num_stored_elements_per_row,
+    const size_type stride)
+{
+    const auto host_values = values.copy_to_host();
+    const auto host_col_idxs = col_idxs.copy_to_host();
+
+    for (size_type row = 0; row < size[0]; ++row) {
+        for (size_type slot = 0; slot < num_stored_elements_per_row; ++slot) {
+            const auto storage_idx = row + stride * slot;
+            const auto col = host_col_idxs[storage_idx];
+            const auto valid_col = col != invalid_index<IndexType>();
+            if (valid_col && !is_finite(host_values[storage_idx])) {
+                return {false, "index " + std::to_string(slot) + " in row " +
+                                   std::to_string(row) + " with stride " +
+                                   std::to_string(stride)};
+            }
+        }
+    }
+    return {true, ""};
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(
+        ell_has_unique_valid_idxs(col_idxs_, this->get_size(),
+                                  num_stored_elements_per_row_, stride_),
+        "col_idxs must contain unique indices");
+    GKO_VALIDATE(
+        ell_matrix_values_are_finite(values_, col_idxs_, this->get_size(),
+                                     num_stored_elements_per_row_, stride_),
+        "matrix must contain only finite values");
+}
 
 
 template <typename ValueType, typename IndexType>

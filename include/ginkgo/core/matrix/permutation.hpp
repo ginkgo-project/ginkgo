@@ -177,6 +177,8 @@ public:
 
     void write(gko::matrix_data<value_type, index_type>& data) const override;
 
+    void validate_data() const override;
+
     /**
      * Creates an uninitialized Permutation arrays on the specified executor.
      *

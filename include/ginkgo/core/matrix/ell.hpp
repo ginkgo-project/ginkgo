@@ -263,6 +263,8 @@ public:
     /** get the const non-owning device view */
     const_device_view get_const_device_view() const;
 
+    void validate_data() const override;
+
     /**
      * Creates an uninitialized Ell matrix of the specified size.
      *

@@ -192,6 +192,8 @@ public:
 
     void write(mat_data32& data) const override;
 
+    void validate_data() const override;
+
     /**
      * Creates an Diagonal matrix of the specified size.
      *
