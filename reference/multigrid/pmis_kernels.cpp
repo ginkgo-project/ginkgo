@@ -122,6 +122,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL);
 
 
+template <typename ValueType>
+void initialize_random_weight(std::shared_ptr<const DefaultExecutor> exec,
+                              size_type num, ValueType* weight)
+{
+    std::default_random_engine gen(42);
+    std::uniform_real_distribution<ValueType> dist(0.0, 1.0);
+    for (size_type row = 0; row < num; row++) {
+        weight[row] = dist(gen);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(
+    GKO_DECLARE_PMIS_INITIALIZE_RANDOM_WEIGHT_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void initialize_weight_and_status(
     std::shared_ptr<const DefaultExecutor> exec,
@@ -153,7 +168,6 @@ template <typename ValueType, typename IndexType>
 void classify(std::shared_ptr<const DefaultExecutor> exec,
               const remove_complex<ValueType>* weight,
               const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
-              const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
               const int* status, int* new_status)
 {
     const auto nrows = static_cast<IndexType>(strong_dep->get_size()[0]);
@@ -182,18 +196,15 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
         }
         new_status[row] = ans;
     }
-    // mark all points strongly influenced by the new coarse points to fine
-    // group
+    // mark new fine point strongly influenced by the new coarse points
     for (IndexType row = 0; row < nrows; row++) {
-        if (new_status[row] == kernels::pmis::coarse &&
-            new_status[row] != status[row]) {
-            for (auto idx = trans_strong_dep->get_const_row_ptrs()[row];
-                 idx < trans_strong_dep->get_const_row_ptrs()[row + 1]; idx++) {
-                // It is correct even if more than one threads might assign the
-                // value
-                auto col = trans_strong_dep->get_const_col_idxs()[idx];
-                if (new_status[col] == kernels::pmis::unassigned) {
-                    new_status[col] = kernels::pmis::fine;
+        if (new_status[row] == kernels::pmis::unassigned) {
+            for (auto idx = strong_dep->get_const_row_ptrs()[row];
+                 idx < strong_dep->get_const_row_ptrs()[row + 1]; idx++) {
+                if (new_status[strong_dep->get_const_col_idxs()[idx]] ==
+                    kernels::pmis::coarse) {
+                    new_status[row] = kernels::pmis::fine;
+                    break;
                 }
             }
         }
