@@ -220,10 +220,10 @@ TYPED_TEST(Cg, RecognizesInvalidSystemMatrix)
 {
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
-    std::shared_ptr<const gko::LinOp> m = std::shared_ptr<const gko::LinOp>(
-        gko::initialize<Mtx>({{value_type{1.0}, value_type{2.0}},
-                              {value_type{3.0}, value_type{4.0}}},
-                             this->exec));
+    std::shared_ptr<const gko::LinOp> m =
+        std::shared_ptr<const gko::LinOp>(gko::initialize<Mtx>(
+            {{value_type{1.0}, INFINITY}, {value_type{3.0}, value_type{4.0}}},
+            this->exec));
 
     ASSERT_THROW(this->cg_factory->generate(m)->validate_data(),
                  gko::InvalidData);
