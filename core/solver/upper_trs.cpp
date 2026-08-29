@@ -41,9 +41,10 @@ GKO_REGISTER_OPERATION(solve, upper_trs::solve);
 template <typename ValueType, typename IndexType>
 void UpperTrs<ValueType, IndexType>::validate_data() const
 {
-    GKO_VALIDATE((validation::is_triangular_system_matrix<ValueType, IndexType>(
-                     this->get_system_matrix())),
-                 "System matrix is not triangular.");
+    GKO_VALIDATE(
+        (validation::is_upper_triangular_system_matrix<ValueType, IndexType>(
+            this->get_system_matrix())),
+        "System matrix is not upper triangular.");
 }
 
 

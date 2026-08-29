@@ -40,9 +40,10 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 template <typename ValueType, typename IndexType>
 void LowerTrs<ValueType, IndexType>::validate_data() const
 {
-    GKO_VALIDATE((validation::is_triangular_system_matrix<ValueType, IndexType>(
-                     this->get_system_matrix())),
-                 "System matrix is not triangular.");
+    GKO_VALIDATE(
+        (validation::is_lower_triangular_system_matrix<ValueType, IndexType>(
+            this->get_system_matrix())),
+        "System matrix is not lower triangular.");
 }
 
 

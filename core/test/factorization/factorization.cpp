@@ -43,11 +43,9 @@ TYPED_TEST(Factorization, ZeroDiagonal)
     using Csr = typename TestFixture::Csr;
     using fact_type = typename TestFixture::fact_type;
     auto mtx = Csr::create(this->ref, gko::dim<2>{2, 2}, 2);
-
     auto row_ptrs = mtx->get_row_ptrs();
     auto col_idxs = mtx->get_col_idxs();
     auto values = mtx->get_values();
-
     row_ptrs[0] = 0;
     row_ptrs[1] = 1;
     row_ptrs[2] = 2;

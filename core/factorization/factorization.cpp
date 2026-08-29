@@ -16,6 +16,7 @@
 namespace gko {
 namespace experimental {
 namespace factorization {
+namespace {
 
 
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
@@ -47,6 +48,9 @@ validation::ValidationResult has_valid_output(
     }
     return {true, ""};
 }
+
+
+}  // namespace
 
 
 template <typename ValueType, typename IndexType>

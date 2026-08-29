@@ -45,6 +45,7 @@ void Idr<ValueType>::validate_data() const
     this->get_system_matrix()->validate_data();
     GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
                  "Idr must have preconditioner");
+    this->get_preconditioner()->validate_data();
 }
 
 
