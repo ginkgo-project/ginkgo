@@ -46,7 +46,7 @@ void compute_row_maxabs(std::shared_ptr<const DefaultExecutor> exec,
                 if (row == col_idxs[idx]) {
                     continue;
                 }
-                maxabs = max(maxabs, abs(values[idx]));
+                maxabs = gko::max(maxabs, abs(values[idx]));
             }
             return maxabs;
         },
@@ -321,7 +321,7 @@ void direct_interpolation_fill(
                     diag = val;
                     continue;
                 }
-                if (real(val) >= 0) {
+                if (real(val) >= zero(real(val))) {
                     pos += val;
                     if (coarse_map[col] != coarse_map[col + 1] &&
                         abs(val) >= strength_threshold * max_abs) {
@@ -350,13 +350,13 @@ void direct_interpolation_fill(
                 if (col == row || abs(val) < strength_threshold * max_abs) {
                     continue;
                 }
-                if (real(val) >= 0 && enable_pos &&
+                if (real(val) >= zero(real(val)) && enable_pos &&
                     coarse_map[col] != coarse_map[col + 1]) {
                     prolong_col_idxs[p_idx] = coarse_map[col];
                     prolong_values[p_idx] = -pos * val / diag;
                     p_idx++;
                 }
-                if (real(val) < 0 && enable_neg &&
+                if (real(val) < zero(real(val)) && enable_neg &&
                     coarse_map[col] != coarse_map[col + 1]) {
                     prolong_col_idxs[p_idx] = coarse_map[col];
                     prolong_values[p_idx] = -neg * val / diag;
