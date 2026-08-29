@@ -409,7 +409,6 @@ TYPED_TEST(Ir, PassExplicitFactory)
 
 TYPED_TEST(Ir, RecognizesInvalidSystemMatrix)
 {
-    using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
 
