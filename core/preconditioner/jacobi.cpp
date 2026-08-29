@@ -58,7 +58,7 @@ GKO_REGISTER_OPERATION(add_diagonal_elements,
 
 template <typename IndexType>
 validation::ValidationResult is_valid_block_pointers(
-    const gko::array<IndexType>& block_ptrs, const size_t max_block_size)
+    const gko::array<IndexType>& block_ptrs, const uint32 max_block_size)
 {
     const auto host_ptrs = block_ptrs.copy_to_host();
     for (size_t i = 0; i + 1 < host_ptrs.size(); ++i) {
@@ -85,11 +85,16 @@ void Jacobi<ValueType, IndexType>::validate_data() const
 
     GKO_VALIDATE(
         is_valid_block_pointers<IndexType>(this->parameters_.block_pointers,
-                                           static_cast<size_type>(max_bs)),
+                                           max_bs),
         "Block pointers are not ascending or a block exceeds max_block_size.");
-    GKO_VALIDATE(
-        validation::sparse_matrix_values_are_finite<ValueType>(this->blocks_),
-        "Jacobi blocks contain non-finite values (NaN/Inf).");
+    // TODO: Validate adaptive mixed-precision blocks according to each block's
+    // actual storage precision.
+    if (this->parameters_.storage_optimization.block_wise.get_const_data() ==
+        nullptr) {
+        GKO_VALIDATE(validation::sparse_matrix_values_are_finite<ValueType>(
+                         this->blocks_),
+                     "Jacobi blocks contain non-finite values (NaN/Inf).");
+    }
 }
 
 
