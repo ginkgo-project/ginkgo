@@ -37,6 +37,9 @@ void Ir<ValueType>::validate_data() const
 {
     GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
                  "Ir must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(this->get_solver()),
+                 "Ir must have inner solver");
     this->get_solver()->validate_data();
 }
 

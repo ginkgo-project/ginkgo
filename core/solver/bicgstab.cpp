@@ -43,6 +43,7 @@ void Bicgstab<ValueType>::validate_data() const
 {
     GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
                  "Bicgstab must have system matrix");
+    this->get_system_matrix()->validate_data();
     GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
                  "Bicgstab must have preconditioner");
     this->get_preconditioner()->validate_data();
