@@ -49,9 +49,8 @@ validation::ValidationResult is_symmetric(const LinOp* mat)
     if (cg_mtx->get_size()[0] != cg_mtx->get_size()[1]) {
         return {false, "Matrix is not square."};
     }
-
-    auto trans_cg_mtx =
-        gko::copy_and_convert_to<Mtx>(exec, cg_mtx.get()->transpose().get());
+    auto transposed = cg_mtx.get()->transpose();
+    auto trans_cg_mtx = gko::copy_and_convert_to<Mtx>(exec, transposed.get());
 
     auto host_cg_mtx = Mtx::create(master);
     host_cg_mtx->copy_from(cg_mtx.get());
