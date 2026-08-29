@@ -18,8 +18,8 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/extended_float.hpp"
-#include "core/config/config_helper.hpp"
 #include "core/base/validation.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
@@ -44,8 +44,8 @@ GKO_REGISTER_OPERATION(solve_krylov, cb_gmres::solve_krylov);
 template <typename ValueType>
 void CbGmres<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "CbGmres must have system matrix");
 }
 
 

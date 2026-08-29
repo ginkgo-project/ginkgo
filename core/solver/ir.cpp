@@ -35,8 +35,8 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 template <typename ValueType>
 void Ir<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Ir must have system matrix");
     this->get_solver()->validate_data();
 }
 

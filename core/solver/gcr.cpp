@@ -16,8 +16,8 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
-#include "core/config/config_helper.hpp"
 #include "core/base/validation.hpp"
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"
@@ -40,8 +40,8 @@ GKO_REGISTER_OPERATION(step_1, gcr::step_1);
 template <typename ValueType>
 void Gcr<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Gcr must have system matrix");
 }
 
 

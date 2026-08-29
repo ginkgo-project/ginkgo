@@ -41,8 +41,10 @@ GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
 template <typename ValueType>
 void Bicgstab<ValueType>::validate_data() const
 {
-    validation::validate_system_matrix<ValueType, int32>(
-        this->get_system_matrix());
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Bicgstab must have system matrix");
+    GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
+                 "Bicgstab must have preconditioner");
     this->get_preconditioner()->validate_data();
 }
 

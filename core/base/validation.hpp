@@ -258,11 +258,14 @@ ValidationResult has_all_non_zero_diagonal(
 }
 
 
-// template <typename ValueType>
-// ValidationResult is_finite_block(const gko::array<ValueType>& blocks)
-// {
-//     return sparse_matrix_values_are_finite(blocks);
-// }
+template <typename Pointer>
+ValidationResult not_nullptr(const Pointer& ptr)
+{
+    if (!ptr) {
+        return {false, "pointer must not be null"};
+    }
+    return {true, ""};
+}
 
 
 }  // namespace validation
