@@ -37,6 +37,7 @@ void Ir<ValueType>::validate_data() const
 {
     validation::validate_system_matrix<ValueType, int32>(
         this->get_system_matrix());
+    this->get_solver()->validate_data();
 }
 
 

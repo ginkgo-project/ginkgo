@@ -16,7 +16,6 @@
 namespace gko {
 namespace experimental {
 namespace factorization {
-namespace {
 
 
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l_u,
@@ -25,9 +24,6 @@ GKO_REGISTER_OPERATION(initialize_l_u, factorization::initialize_l_u);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
                        factorization::initialize_row_ptrs_l);
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
-
-
-}  // namespace
 
 
 template <typename ValueType, typename IndexType>
