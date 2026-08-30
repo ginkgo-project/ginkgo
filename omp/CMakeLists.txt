@@ -91,6 +91,10 @@ endif()
 # reference counters.
 target_link_libraries(ginkgo_omp PUBLIC Threads::Threads)
 target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
+if(GINKGO_OMP_WITH_HIGHWAY)
+    target_link_libraries(ginkgo_omp PRIVATE hwy)
+    target_compile_definitions(ginkgo_omp PRIVATE GKO_OMP_HIGHWAY)
+endif()
 target_include_directories(ginkgo_omp PRIVATE "${OpenMP_CXX_INCLUDE_DIRS}")
 # We first separate the arguments, otherwise, the target_compile_options adds it as a string
 # and the compiler is unhappy with the quotation marks.

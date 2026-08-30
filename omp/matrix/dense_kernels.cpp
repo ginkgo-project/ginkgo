@@ -7,6 +7,9 @@
 #include <algorithm>
 
 #include <omp.h>
+#ifdef GKO_OMP_HIGHWAY
+#include <hwy/highway.h>
+#endif
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -462,6 +465,61 @@ void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
+
+
+template <typename ValueType, typename ScalarType>
+void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
+                matrix::view::dense<const ScalarType> alpha,
+                matrix::view::dense<const ValueType> x,
+                matrix::view::dense<ValueType> y)
+{
+    // It is not eqaul to the original unified omp kernel
+    if (alpha.size[1] > 1) {
+#pragma omp parallel for collapse(2)
+        for (size_type row = 0; row < x.size[0]; row++) {
+            for (size_type col = 0; col < x.size[1]; col++) {
+                y(row, col) += alpha(0, col) * x(row, col);
+            }
+        }
+    } else if (is_nonzero(alpha(0, 0))) {
+#ifdef GKO_OMP_HIGHWAY
+        if (x.size[1] == 1) {
+            if constexpr (!is_complex<ValueType>()) {
+                auto x_vals = x.values;
+                auto y_vals = y.values;
+                const hwy::HWY_NAMESPACE::ScalableTag<ValueType> d;
+                hwy::HWY_NAMESPACE::Vec<decltype(d)> va, vx, vy;
+                // Broadcast alpha to all lanes
+                va = hwy::HWY_NAMESPACE::Set(d, alpha(0, 0));
+                size_type i = 0;
+                const auto n = x.size[0];
+                while (i < n) {
+                    // Mask active vector lanes
+                    const auto mask = hwy::HWY_NAMESPACE::FirstN(d, n - i);
+                    // Load x and y
+                    vx = hwy::HWY_NAMESPACE::MaskedLoad(mask, d, &x_vals[i]);
+                    vy = hwy::HWY_NAMESPACE::MaskedLoad(mask, d, &y_vals[i]);
+                    // y = alpha * x + y
+                    vy = hwy::HWY_NAMESPACE::MaskedMulAdd(mask, vx, va, vy);
+                    // Store result
+                    hwy::HWY_NAMESPACE::BlendedStore(vy, mask, d, &y_vals[i]);
+                    i += hwy::HWY_NAMESPACE::Lanes(d);  // Advance by vlen
+                }
+                return;
+            }
+        }
+#endif
+#pragma omp parallel for collapse(2)
+        for (size_type row = 0; row < x.size[0]; row++) {
+            for (size_type col = 0; col < x.size[1]; col++) {
+                y(row, col) += alpha(0, 0) * x(row, col);
+            }
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
+    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
 
 
 }  // namespace dense
