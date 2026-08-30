@@ -2,10 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <string>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
@@ -1296,6 +1300,42 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByFCycle)
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
+}
+
+std::pair<gko::log::ProfilerHook::hook_function,
+          gko::log::ProfilerHook::hook_function>
+make_hooks(std::vector<std::string>& output)
+{
+    return std::make_pair(
+        [&output](const char* msg, gko::log::profile_event_category) {
+            output.push_back(std::string{"begin:"} + msg);
+        },
+        [&output](const char* msg, gko::log::profile_event_category) {
+            output.push_back(std::string{"end:"} + msg);
+        });
+}
+
+TYPED_TEST(Multigrid, CheckApply)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::v);
+    auto solver = multigrid_factory->generate(this->mtx);
+    solver->set_stop_criterion_factory(
+        gko::stop::Iteration::build().with_max_iters(1u));
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    std::vector<std::string> output;
+    auto hooks = make_hooks(output);
+    auto logger = gko::log::ProfilerHook::create_custom(
+        std::move(hooks.first), std::move(hooks.second));
+    this->exec->add_logger(logger);
+    solver->apply(b, x);
+    for (const auto& s : output) {
+        std::cout << s << std::endl;
+    }
 }
 
 
