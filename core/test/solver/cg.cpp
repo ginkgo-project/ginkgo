@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -235,6 +236,20 @@ TYPED_TEST(Cg, Cg_RecognizesNonSymmetricSystemMatrix)
     using value_type = typename TestFixture::value_type;
     using Mtx = typename TestFixture::Mtx;
 
+    std::shared_ptr<const gko::LinOp> mtx =
+        gko::initialize<Mtx>({{value_type{1.0}, value_type{2.0}},
+                              {value_type{3.0}, value_type{4.0}}},
+                             this->exec);
+
+    ASSERT_THROW(this->cg_factory->generate(mtx)->validate_data(),
+                 gko::InvalidData);
+}
+
+
+TYPED_TEST(Cg, RecognizesNonSymmetricInt64CsrSystemMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = gko::matrix::Csr<value_type, gko::int64>;
     std::shared_ptr<const gko::LinOp> mtx =
         gko::initialize<Mtx>({{value_type{1.0}, value_type{2.0}},
                               {value_type{3.0}, value_type{4.0}}},

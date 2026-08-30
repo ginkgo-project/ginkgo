@@ -38,22 +38,22 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 }  // namespace cg
 
 
-template <typename ValueType>
-validation::ValidationResult is_symmetric(const LinOp* mat)
+template <typename ValueType, typename IndexType>
+validation::ValidationResult is_symmetric(
+    const matrix::Csr<ValueType, IndexType>* mat)
 {
-    using Mtx = matrix::Csr<ValueType>;
+    using Mtx = matrix::Csr<ValueType, IndexType>;
     auto exec = mat->get_executor();
     auto master = exec->get_master();
-    auto cg_mtx = gko::copy_and_convert_to<Mtx>(exec, mat);
 
-    if (cg_mtx->get_size()[0] != cg_mtx->get_size()[1]) {
+    if (mat->get_size()[0] != mat->get_size()[1]) {
         return {false, "Matrix is not square."};
     }
-    auto transposed = cg_mtx.get()->transpose();
+    auto transposed = mat->transpose();
     auto trans_cg_mtx = gko::copy_and_convert_to<Mtx>(exec, transposed.get());
 
     auto host_cg_mtx = Mtx::create(master);
-    host_cg_mtx->copy_from(cg_mtx.get());
+    host_cg_mtx->copy_from(mat);
 
     auto host_trans_cg_mtx = Mtx::create(master);
     host_trans_cg_mtx->copy_from(trans_cg_mtx.get());
@@ -87,6 +87,25 @@ validation::ValidationResult is_symmetric(const LinOp* mat)
     }
 
     return {true, ""};
+}
+
+
+template <typename ValueType>
+validation::ValidationResult is_symmetric(const LinOp* mat)
+{
+    using Mtx32 = matrix::Csr<ValueType, int32>;
+    using Mtx64 = matrix::Csr<ValueType, int64>;
+    auto exec = mat->get_executor();
+
+    if (dynamic_cast<const ConvertibleTo<Mtx32>*>(mat)) {
+        auto csr = gko::copy_and_convert_to<Mtx32>(exec, mat);
+        return is_symmetric(csr.get());
+    }
+    if (dynamic_cast<const ConvertibleTo<Mtx64>*>(mat)) {
+        auto csr = gko::copy_and_convert_to<Mtx64>(exec, mat);
+        return is_symmetric(csr.get());
+    }
+    return {false, "Matrix cannot be converted to CSR."};
 }
 
 
