@@ -283,9 +283,11 @@ TYPED_TEST(Chebyshev, RecognizesInvalidPreconditioner)
                              this->exec);
     std::shared_ptr<Solver> invalid_preconditioner =
         this->chebyshev_factory->generate(invalid_mtx);
-    auto factory = Solver::build()
-                       .with_generated_preconditioner(invalid_preconditioner)
-                       .on(this->exec);
+    auto factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .with_generated_preconditioner(invalid_preconditioner)
+            .on(this->exec);
     auto solver = factory->generate(this->mtx);
 
     ASSERT_THROW(solver->validate_data(), gko::InvalidData);
