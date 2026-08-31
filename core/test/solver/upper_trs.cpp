@@ -59,7 +59,7 @@ TYPED_TEST(UpperTrs, ThrowsOnRectangularMatrixInFactory)
 TYPED_TEST(UpperTrs, RecognizesNonUpperTriangularSystemMatrix)
 {
     using value_type = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
+    using Mtx = gko::matrix::Dense<value_type>;
 
     std::shared_ptr<const gko::LinOp> m =
         gko::initialize<Mtx>({{value_type{1.0}, value_type{2.0}},

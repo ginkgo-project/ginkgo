@@ -269,3 +269,24 @@ TYPED_TEST(Chebyshev, RecognizesInvalidSystemMatrix)
     ASSERT_THROW(this->chebyshev_factory->generate(m)->validate_data(),
                  gko::InvalidData);
 }
+
+
+TYPED_TEST(Chebyshev, RecognizesInvalidPreconditioner)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<const gko::LinOp> invalid_mtx =
+        gko::initialize<Mtx>({{value_type{1.0}, INFINITY, value_type{}},
+                              {value_type{3.0}, value_type{4.0}, value_type{}},
+                              {value_type{}, value_type{}, value_type{5.0}}},
+                             this->exec);
+    std::shared_ptr<Solver> invalid_preconditioner =
+        this->chebyshev_factory->generate(invalid_mtx);
+    auto factory = Solver::build()
+                       .with_generated_preconditioner(invalid_preconditioner)
+                       .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+
+    ASSERT_THROW(solver->validate_data(), gko::InvalidData);
+}

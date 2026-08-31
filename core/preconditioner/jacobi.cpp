@@ -57,7 +57,7 @@ GKO_REGISTER_OPERATION(add_diagonal_elements,
 
 
 template <typename IndexType>
-validation::ValidationResult is_valid_block_pointers(
+validation::validation_result is_valid_block_pointers(
     const gko::array<IndexType>& block_ptrs, const uint32 max_block_size)
 {
     const auto host_ptrs = block_ptrs.copy_to_host();

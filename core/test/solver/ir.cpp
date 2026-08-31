@@ -421,4 +421,25 @@ TYPED_TEST(Ir, RecognizesInvalidSystemMatrix)
 }
 
 
+TYPED_TEST(Ir, RecognizesInvalidInnerSolver)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<const gko::LinOp> invalid_mtx =
+        gko::initialize<Mtx>({{value_type{1.0}, INFINITY, value_type{}},
+                              {value_type{3.0}, value_type{4.0}, value_type{}},
+                              {value_type{}, value_type{}, value_type{5.0}}},
+                             this->exec);
+    std::shared_ptr<Solver> invalid_inner_solver =
+        this->ir_factory->generate(invalid_mtx);
+    auto factory = Solver::build()
+                       .with_generated_solver(invalid_inner_solver)
+                       .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+
+    ASSERT_THROW(solver->validate_data(), gko::InvalidData);
+}
+
+
 }  // namespace

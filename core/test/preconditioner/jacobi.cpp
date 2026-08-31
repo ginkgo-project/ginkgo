@@ -175,9 +175,7 @@ TYPED_TEST(JacobiFactory, ValidateBlockPointers)
 {
     using Bj = typename TestFixture::Bj;
     using index_type = typename TestFixture::index_type;
-
     gko::array<index_type> ptrs(this->exec, {0, 2, 4, 5});
-
     auto bj = Bj::build()
                   .with_max_block_size(3u)
                   .with_block_pointers(ptrs)
@@ -194,7 +192,6 @@ TYPED_TEST(JacobiFactory, ValidateFiniteBlocks)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-
     auto dist_mtx = Csr::create(this->exec, gko::dim<2>{2, 2}, 2);
     dist_mtx->get_row_ptrs()[0] = 0;
     dist_mtx->get_row_ptrs()[1] = 1;
@@ -203,7 +200,6 @@ TYPED_TEST(JacobiFactory, ValidateFiniteBlocks)
     dist_mtx->get_col_idxs()[1] = 1;
     dist_mtx->get_values()[0] = 1.0;
     dist_mtx->get_values()[1] = 1.0;
-
     auto bj = Bj::build()
                   .with_max_block_size(2u)
                   .on(this->exec)

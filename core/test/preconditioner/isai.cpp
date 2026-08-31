@@ -362,9 +362,8 @@ TYPED_TEST(IsaiFactory, ValidateIsaiMatrix)
                                         this->exec));
     auto isai = this->general_isai_factory->generate(mtx);
 
-    EXPECT_NO_THROW(isai->validate_data());
-
     // TODO: find a way to generate invalid result for checking
+    EXPECT_NO_THROW(isai->validate_data());
 }
 
 
