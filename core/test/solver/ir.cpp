@@ -433,9 +433,11 @@ TYPED_TEST(Ir, RecognizesInvalidInnerSolver)
                              this->exec);
     std::shared_ptr<Solver> invalid_inner_solver =
         this->ir_factory->generate(invalid_mtx);
-    auto factory = Solver::build()
-                       .with_generated_solver(invalid_inner_solver)
-                       .on(this->exec);
+    auto factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .with_generated_solver(invalid_inner_solver)
+            .on(this->exec);
     auto solver = factory->generate(this->mtx);
 
     ASSERT_THROW(solver->validate_data(), gko::InvalidData);
