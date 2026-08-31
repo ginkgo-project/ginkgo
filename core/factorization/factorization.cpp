@@ -28,7 +28,7 @@ GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 
 template <typename ValueType, typename IndexType>
-validation::ValidationResult has_valid_output(
+validation::validation_result has_valid_output(
     const Composition<ValueType>& factors)
 {
     for (const auto& op : factors.get_operators()) {
@@ -41,7 +41,7 @@ validation::ValidationResult has_valid_output(
                 return {false, "Invalid CSR matrix: " + std::string(e.what())};
             }
             auto result = validation::has_all_non_zero_diagonal(csr_mtx);
-            if (!result.isValid) {
+            if (!result.is_valid) {
                 return result;
             }
         }

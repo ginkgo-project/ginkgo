@@ -24,7 +24,6 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Solver = gko::solver::LowerTrs<value_type, index_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
 
     LowerTrs()
         : exec(gko::ReferenceExecutor::create()),
@@ -59,7 +58,7 @@ TYPED_TEST(LowerTrs, ThrowsOnRectangularMatrixInFactory)
 TYPED_TEST(LowerTrs, RecognizesNonLowerTriangularSystemMatrix)
 {
     using value_type = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
+    using Mtx = typename gko::matrix::Dense<value_type>;
 
     std::shared_ptr<const gko::LinOp> m =
         gko::initialize<Mtx>({{value_type{1.0}, value_type{2.0}},
