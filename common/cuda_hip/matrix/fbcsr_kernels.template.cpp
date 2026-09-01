@@ -551,6 +551,28 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
+template <typename ValueType, typename IndexType>
+void spmm(std::shared_ptr<const DefaultExecutor> exec,
+          const matrix::Fbcsr<ValueType, IndexType>* a,
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
+{
+    spmv(exec, a, b, c);
+}
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmm(std::shared_ptr<const DefaultExecutor> exec,
+                   matrix::view::dense<const ValueType> alpha,
+                   const matrix::Fbcsr<ValueType, IndexType>* a,
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
+{
+    advanced_spmv(exec, alpha, a, b, beta, c);
+}
+
+
 namespace {
 
 

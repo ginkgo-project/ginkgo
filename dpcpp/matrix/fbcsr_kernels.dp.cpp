@@ -48,6 +48,33 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void spmm(std::shared_ptr<const DpcppExecutor> exec,
+          const matrix::Fbcsr<ValueType, IndexType>* a,
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
+{
+    spmv(exec, a, b, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmm(std::shared_ptr<const DpcppExecutor> exec,
+                   matrix::view::dense<const ValueType> alpha,
+                   const matrix::Fbcsr<ValueType, IndexType>* a,
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
+{
+    advanced_spmv(exec, alpha, a, b, beta, c);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_ADVANCED_SPMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          device_matrix_data<ValueType, IndexType>& data,
                          int block_size, array<IndexType>& row_ptrs,

@@ -127,6 +127,219 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL);
 
 
+namespace {
+
+
+template <typename ValueType, typename IndexType>
+void spmm_tiled(std::shared_ptr<const OmpExecutor> exec,
+                const matrix::Fbcsr<ValueType, IndexType>* a,
+                matrix::view::dense<const ValueType> b,
+                matrix::view::dense<ValueType> c)
+{
+    constexpr int R = 2;
+    GKO_ASSERT(a->get_block_size() == R);
+    const auto K = static_cast<IndexType>(b.size[1]);
+
+    const IndexType nbrows = a->get_num_block_rows();
+    const size_type nbnz = a->get_num_stored_blocks();
+    const auto row_ptrs = a->get_const_row_ptrs();
+    const auto col_idxs = a->get_const_col_idxs();
+    const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
+        to_std_array<acc::size_type>(nbnz, R, R), a->get_const_values()};
+    const auto acc_size = static_cast<size_type>(R) * static_cast<size_type>(K);
+
+#pragma omp parallel
+    {
+        array<ValueType> cacc{exec, acc_size};
+        array<ValueType> brow{exec, acc_size};
+        auto* cacc_vals = cacc.get_data();
+        auto* brow_vals = brow.get_data();
+
+#pragma omp for schedule(static)
+        for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
+            std::fill_n(cacc_vals, acc_size, zero<ValueType>());
+            for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
+                 ++inz) {
+                const IndexType bcol = col_idxs[inz] * R;
+
+                ValueType aval[R][R];
+                for (int ib = 0; ib < R; ++ib) {
+                    for (int jb = 0; jb < R; ++jb) {
+                        aval[ib][jb] = avalues(inz, ib, jb);
+                    }
+                }
+
+                for (int jb = 0; jb < R; ++jb) {
+#pragma omp simd
+                    for (IndexType j = 0; j < K; ++j) {
+                        brow_vals[static_cast<size_type>(jb) *
+                                      static_cast<size_type>(K) +
+                                  j] = b(bcol + jb, j);
+                    }
+                }
+
+                for (int ib = 0; ib < R; ++ib) {
+                    for (int jb = 0; jb < R; ++jb) {
+#pragma omp simd
+                        for (IndexType j = 0; j < K; ++j) {
+                            cacc_vals[static_cast<size_type>(ib) *
+                                          static_cast<size_type>(K) +
+                                      j] +=
+                                aval[ib][jb] *
+                                brow_vals[static_cast<size_type>(jb) *
+                                              static_cast<size_type>(K) +
+                                          j];
+                        }
+                    }
+                }
+            }
+
+            for (int ib = 0; ib < R; ++ib) {
+#pragma omp simd
+                for (IndexType j = 0; j < K; ++j) {
+                    c(ibrow * R + ib, j) =
+                        cacc_vals[static_cast<size_type>(ib) *
+                                      static_cast<size_type>(K) +
+                                  j];
+                }
+            }
+        }
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmm_tiled(std::shared_ptr<const OmpExecutor> exec,
+                         ValueType valpha, ValueType vbeta,
+                         const matrix::Fbcsr<ValueType, IndexType>* a,
+                         matrix::view::dense<const ValueType> b,
+                         matrix::view::dense<ValueType> c)
+{
+    constexpr int R = 2;
+    GKO_ASSERT(a->get_block_size() == R);
+    const auto K = static_cast<IndexType>(b.size[1]);
+
+    const IndexType nbrows = a->get_num_block_rows();
+    const size_type nbnz = a->get_num_stored_blocks();
+    const auto row_ptrs = a->get_const_row_ptrs();
+    const auto col_idxs = a->get_const_col_idxs();
+    const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
+        to_std_array<acc::size_type>(nbnz, R, R), a->get_const_values()};
+    const auto acc_size = static_cast<size_type>(R) * static_cast<size_type>(K);
+
+#pragma omp parallel
+    {
+        array<ValueType> cacc{exec, acc_size};
+        array<ValueType> brow{exec, acc_size};
+        auto* cacc_vals = cacc.get_data();
+        auto* brow_vals = brow.get_data();
+
+#pragma omp for schedule(static)
+        for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
+            std::fill_n(cacc_vals, acc_size, zero<ValueType>());
+            for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
+                 ++inz) {
+                const IndexType bcol = col_idxs[inz] * R;
+
+                ValueType aval[R][R];
+                for (int ib = 0; ib < R; ++ib) {
+                    for (int jb = 0; jb < R; ++jb) {
+                        aval[ib][jb] = avalues(inz, ib, jb);
+                    }
+                }
+
+                for (int jb = 0; jb < R; ++jb) {
+#pragma omp simd
+                    for (IndexType j = 0; j < K; ++j) {
+                        brow_vals[static_cast<size_type>(jb) *
+                                      static_cast<size_type>(K) +
+                                  j] = b(bcol + jb, j);
+                    }
+                }
+
+                for (int ib = 0; ib < R; ++ib) {
+                    for (int jb = 0; jb < R; ++jb) {
+#pragma omp simd
+                        for (IndexType j = 0; j < K; ++j) {
+                            cacc_vals[static_cast<size_type>(ib) *
+                                          static_cast<size_type>(K) +
+                                      j] +=
+                                aval[ib][jb] *
+                                brow_vals[static_cast<size_type>(jb) *
+                                              static_cast<size_type>(K) +
+                                          j];
+                        }
+                    }
+                }
+            }
+
+            if (is_zero(vbeta)) {
+                for (int ib = 0; ib < R; ++ib) {
+#pragma omp simd
+                    for (IndexType j = 0; j < K; ++j) {
+                        c(ibrow * R + ib, j) =
+                            valpha * cacc_vals[static_cast<size_type>(ib) *
+                                                   static_cast<size_type>(K) +
+                                               j];
+                    }
+                }
+            } else {
+                for (int ib = 0; ib < R; ++ib) {
+#pragma omp simd
+                    for (IndexType j = 0; j < K; ++j) {
+                        c(ibrow * R + ib, j) =
+                            valpha * cacc_vals[static_cast<size_type>(ib) *
+                                                   static_cast<size_type>(K) +
+                                               j] +
+                            vbeta * c(ibrow * R + ib, j);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void spmm(std::shared_ptr<const OmpExecutor> exec,
+          const matrix::Fbcsr<ValueType, IndexType>* a,
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
+{
+    if (a->get_block_size() == 2) {
+        spmm_tiled(exec, a, b, c);
+    } else {
+        spmv(exec, a, b, c);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spmm(std::shared_ptr<const OmpExecutor> exec,
+                   matrix::view::dense<const ValueType> alpha,
+                   const matrix::Fbcsr<ValueType, IndexType>* a,
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
+{
+    const auto valpha = alpha(0, 0);
+    const auto vbeta = beta(0, 0);
+    if (a->get_block_size() == 2) {
+        advanced_spmm_tiled(exec, valpha, vbeta, a, b, c);
+    } else {
+        advanced_spmv(exec, alpha, a, b, beta, c);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_FBCSR_ADVANCED_SPMM_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          device_matrix_data<ValueType, IndexType>& data,
