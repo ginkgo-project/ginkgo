@@ -375,6 +375,42 @@ public:
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::zero);
+
+        /**
+         * Per-level Rayleigh-quotient scale correction (mirrors OpenFOAM's
+         * scaleCorrection_ flag). When enabled, at each level l up to but not
+         * including the level immediately above the coarsest:
+         *
+         * Pre-smooth: the pre-smoother correction δ_pre is Rayleigh-scaled
+         * before restriction, deflating the component it already captures.
+         *   Aδ    = A_l * δ_pre
+         *   sf    = (δ_pre · r_l) / (δ_pre · Aδ)
+         *   δ_pre = sf * δ_pre + smoother_l(r_l − sf * Aδ)
+         *   r_l  -= A_l * δ_pre               [restrict deflated r down]
+         *
+         * Post-smooth: the prolonged coarse correction δ_c is Rayleigh-scaled
+         * before being merged with δ_pre and post-smoothed.
+         *   Aδ  = A_l * δ_c
+         *   sf  = (δ_c · r_l) / (δ_c · Aδ)   [r_l = deflated residual]
+         *   δ_c = sf * δ_c + smoother_l(r_l − sf * Aδ)
+         *   x   = δ_pre + δ_c
+         *
+         * Mirrors OpenFOAM GAMGSolverSolve.C::Vcycle() +
+         * GAMGSolverScale.C::scale(), replacing the hardcoded Jacobi (÷D)
+         * step with the configured pre_smoother.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(scale_correction, false);
+
+        /**
+         * When scale_correction is enabled, also apply the *pre-smooth*
+         * (downward pass) Rayleigh scaling described above. When false, only
+         * the post-smooth (coarse-correction) scaling is applied -- this is the
+         * "post-only" mode, which in practice captures nearly all of the
+         * benefit at half the extra work. Has no effect when scale_correction
+         * is false. Enabled by default so that scale_correction alone
+         * reproduces the full OpenFOAM-style pre+post behavior.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(scale_correction_pre_smooth, true);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
