@@ -25,18 +25,22 @@
 #ifndef GKO_COMPILING_DPCPP
 
 
-#ifdef GKO_COMPILING_HIP
-#define SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type)                        \
-    if (sizeof(local_index_type) > 4) {                                      \
-        GTEST_SKIP() << "distributed spgemm with 64-bit local indices is "   \
-                        "unsupported on HIP (rocSPARSE has no 64-bit "       \
-                        "spgemm)";                                           \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+// The vendor sparse libraries (cuSPARSE and rocSPARSE) only support 32-bit
+// indices for spgemm, so on the CUDA/HIP backends the distributed spgemm (which
+// runs a local csr::spgemm in LocalIndexType) is unsupported when the local
+// index type is 64-bit; skip those instantiations there.
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
+#define SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type)                      \
+    if (sizeof(local_index_type) > 4) {                                       \
+        GTEST_SKIP() << "distributed spgemm with 64-bit local indices is "    \
+                        "unsupported on CUDA/HIP (cuSPARSE/rocSPARSE spgemm " \
+                        "requires 32-bit indices)";                           \
+    }                                                                         \
+    static_assert(true,                                                       \
+                  "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 #else
-#define SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type)                        \
+#define SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type)                     \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
@@ -128,7 +132,7 @@ TYPED_TEST(DistSpgemm, IdentityTimesMatrixIsMatrix)
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
     using local_index_type = typename TestFixture::local_index_type;
-    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type n = 6;
     auto nprocs = this->comm.size();
@@ -180,7 +184,7 @@ TYPED_TEST(DistSpgemm, MatrixTimesIdentityIsMatrix)
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
     using local_index_type = typename TestFixture::local_index_type;
-    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type n = 6;
     auto nprocs = this->comm.size();
@@ -233,7 +237,7 @@ TYPED_TEST(DistSpgemm, RandomSparseMatchesSequential)
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
     using local_index_type = typename TestFixture::local_index_type;
-    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type n = 12;
     auto nprocs = this->comm.size();
@@ -319,7 +323,7 @@ TYPED_TEST(DistSpgemm, NonSquareMismatchedPartitions)
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
     using local_index_type = typename TestFixture::local_index_type;
-    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type m = 6;   // A rows
     const gko::size_type k = 9;   // A cols = B rows
@@ -415,7 +419,7 @@ TYPED_TEST(DistSpgemm, NonContiguousInnerPartitionMatchesSequential)
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
     using local_index_type = typename TestFixture::local_index_type;
-    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type m = 6;  // A rows
     const gko::size_type k = 9;  // A cols = B rows (shared inner dimension)
@@ -521,7 +525,7 @@ TYPED_TEST(DistSpgemm, EmptyLocalRowsMatchesSequential)
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
     using local_index_type = typename TestFixture::local_index_type;
-    SKIP_IF_HIP_NO_INT64_SPGEMM(local_index_type);
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type);
 
     const gko::size_type m = 6;  // A rows (= C rows)
     const gko::size_type k = 8;  // A cols = B rows (shared inner dimension)
