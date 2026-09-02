@@ -18,7 +18,6 @@
 
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
-#include "core/matrix/csr_kernels.hpp"
 #include "ginkgo/core/distributed/matrix.hpp"
 
 
@@ -28,7 +27,6 @@ namespace distributed {
 namespace {
 
 
-GKO_REGISTER_OPERATION(local_spgemm, csr::spgemm);
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(separate_diag_off_diag_local_rows,
                        distributed_matrix::separate_diag_off_diag_local_rows);
@@ -491,8 +489,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
         // The local csr::spgemm requires column-sorted inputs.
         a_remapped->sort_by_column_index();
         b_augmented->sort_by_column_index();
-        exec->run(make_local_spgemm(a_remapped.get(), b_augmented.get(),
-                                    c_local.get()));
+        c_local = a_remapped->multiply(b_augmented);
     }
 
     // Reassemble the output entirely on the executor. c_local has this rank's
