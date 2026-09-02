@@ -32,7 +32,7 @@ namespace solver {
  * specialization of the Gmres method for symmetric/hermitian operators, and can
  * be computed using short recurrences, similar to the CG method.
  *
- * For symmetric \f$ A \f$ the Arnoldi process collapses to a three-term
+ * For symmetric \f$ A \f$, the Arnoldi process collapses to a three-term
  * Lanczos recurrence and the Hessenberg matrix \f$ \bar H_m \f$ becomes
  * tridiagonal \f$ \bar T_m \f$. Minres exploits this structure to
  * minimize the residual norm
@@ -63,11 +63,11 @@ namespace solver {
  *   <https://web.stanford.edu/group/SOL/dissertations/sou-cheng-choi-thesis.pdf>
  *
  * @note The Minres solver only reports an approximation of the residual norm
- *        directly to the stopping criteria. Neither the actual residual, nor
- *        the actual residual norm are reported. Thus, to get the minimal
- *        overhead, the gko::stop::ImplicitResidualNorm criteria should be used.
- *        The gko::stop::ResidualNorm criteria will require an additional
- *        matrix-vector product and global reduction.
+ *       directly to the stopping criteria. Neither the actual residual, nor
+ *       the actual residual norm are reported. Thus, to get the minimal
+ *       overhead, the gko::stop::ImplicitResidualNorm criteria should be
+ *       used. The gko::stop::ResidualNorm criteria will require an additional
+ *       matrix-vector product and global reduction.
  *
  * @tparam ValueType  precision of matrix elements
  *

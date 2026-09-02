@@ -102,7 +102,7 @@ struct cartesian_tree {
         // triangle simultaneously
         // This is Algorithm 1 from J. Fischer and V. Heun, "Space-Efficient
         // Preprocessing Schemes for Range Minimum Queries on Static Arrays,"
-        // doi: 10.1137/090779759.
+        // <https://doi.org/10.1137/090779759>.
         int rightmost[num_nodes + 1]{};
         rightmost[0] = std::numeric_limits<int>::lowest();
         int number = 0;
@@ -526,7 +526,7 @@ private:
  * This is a non-owning view.
  *
  * J. Fischer and V. Heun, "Space-Efficient Preprocessing Schemes for Range
- * Minimum Queries on Static Arrays," doi: 10.1137/090779759.
+ * Minimum Queries on Static Arrays," <https://doi.org/10.1137/090779759>.
  */
 template <int block_size, typename IndexType>
 class device_range_minimum_query {

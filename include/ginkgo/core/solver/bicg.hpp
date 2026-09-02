@@ -38,7 +38,8 @@ namespace solver {
  *
  * BiCG is based on the bi-Lanczos tridiagonalization method and in exact
  * arithmetic should terminate in at most \f$ N \f$ iterations (\f$ 2N \f$
- * matrix-vector products — one with \f$ A \f$ and one with \f$ A^H \f$).
+ * matrix-vector products — one per iteration with \f$ A \f$ and
+ * \f$ A^H \f$ each).
  * It couples two Krylov sequences and maintains residuals \f$ r_k \f$,
  * shadow residuals \f$ \tilde r_k \f$, and search directions
  * \f$ p_k, \tilde p_k \f$ that satisfy the biorthogonality conditions

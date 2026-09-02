@@ -192,8 +192,8 @@ public:
         size_type GKO_FACTORY_PARAMETER_SCALAR(subspace_dim, 2u);
 
         /**
-         * Threshold to determine if Av_n and v_n are too close to being
-         * perpendicular.
+         * Threshold to determine if \f$Av_n\f$ and \f$v_n\f$ are too close
+         * to being perpendicular.
          * This is considered to be the case if
          * \f$|(Av_n)^H * v_n / (norm(Av_n) * norm(v_n))| < kappa\f$
          */

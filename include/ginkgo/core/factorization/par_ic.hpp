@@ -48,7 +48,7 @@ namespace factorization {
  * \f$ (R = A - L L^H)\vert_\mathcal{S} = 0\vert_\mathcal{S} \f$
  * where \f$\mathcal{S}\f$ is the pre-defined sparsity pattern (in case of
  * IC(0), the sparsity pattern of the system matrix \f$A\f$). The number of
- * ParIC sweeps needed for convergence depends on the parallelism level: for
+ * ParIC sweeps needed for convergence depends on the parallelism level: For
  * sequential execution, a single sweep is sufficient; for fine-grained
  * parallelism, the number of sweeps necessary to get a good approximation
  * of the incomplete factors depends heavily on the problem. On the OpenMP

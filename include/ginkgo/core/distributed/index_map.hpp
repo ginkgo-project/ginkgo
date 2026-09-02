@@ -30,6 +30,8 @@ enum class index_space {
 /**
  * \brief This class defines mappings between global and local indices.
  *
+ * This class splits up the global index space and differentiates between
+ * locally owned and non-locally owned index spaces.
  * Given an index space \f$I = [0, \dots, N)\f$ that is partitioned into \f$P\f$
  * disjoint subsets \f$I_k, k = 1, \dots, P\f$, this class defines for each
  * subset an extended global index set \f$\hat{I}_k \supset I_K\f$. The extended

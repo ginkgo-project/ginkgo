@@ -54,7 +54,7 @@ namespace solver {
  *   p_k = z_k + \beta_k p_{k-1}.
  * \f]
  * This formula assumes that \f$ M \f$ stays fixed across iterations; for a
- * varying preconditioner use the Polak-Ribière variant in
+ * varying preconditioner, use the Polak-Ribière variant in
  * \ref gko::solver::Fcg "FCG".
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best

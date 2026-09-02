@@ -107,7 +107,7 @@ class Diagonal;
  * product, and `L->apply(a, b)` computes \f$b = L \cdot a\f$.
  * `x->add_scaled(one, b)` is the `axpy` vector update \f$x:=x+b\f$.
  *
- * The interesting part of this example is the apply() routine at line 4 of the
+ * The interesting part of this example is the apply() routine at line 5 of the
  * function body. Since this routine is part of the LinOp base class, the
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.

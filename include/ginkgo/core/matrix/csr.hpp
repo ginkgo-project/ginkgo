@@ -67,14 +67,14 @@ enum class spmv_strategy {
      * load_balance is the strategy trying to distribute the work equally in
      * terms of the number of matrix entries. More detail can be checked in
      * Goran and Enrique: Balanced CSR sparse matrix-vector product on graphics
-     * processors (doi: 10.1007/978-3-319-64203-1_50).
+     * processors (<https://doi.org/10.1007/978-3-319-64203-1_50>).
      */
     load_balance,
     /**
      * merge_path is the strategy trying to distribute the work equally in terms
      * of the number of matrix entries and row pointers. More detail can be
      * checked in Merrill and Garland: Merge-Based Parallel Sparse Matrix-Vector
-     * Multiplication (doi: 10.1109/SC.2016.57).
+     * Multiplication (<https://doi.org/10.1109/SC.2016.57>).
      */
     merge_path,
     /**
@@ -668,14 +668,10 @@ public:
      * Creates a permuted copy \f$A'\f$ of this matrix \f$A\f$ with the given
      * permutation \f$P\f$. By default, this computes a symmetric permutation
      * (permute_mode::symmetric). For the effect of the different permutation
-     * modes, see @ref permute_mode
+     * modes, see @ref permute_mode.
      *
      * @param permutation  The input permutation.
-     * @param mode  The permutation mode. If permute_mode::inverse is set, we
-     *              use the inverse permutation \f$P^{-1}\f$ instead of \f$P\f$.
-     *              If permute_mode::rows is set, the rows will be permuted.
-     *              If permute_mode::columns is set, the columns will be
-     *              permuted.
+     * @param mode  The permutation mode, see @ref permute_mode.
      * @return  The permuted matrix.
      */
     std::unique_ptr<Csr> permute(
@@ -713,11 +709,7 @@ public:
      * reuse->update_values(matrix, permuted);
      * ```
      * @param permutation  The input permutation.
-     * @param mode  The permutation mode. If permute_mode::inverse is set, we
-     *              use the inverse permutation \f$P^{-1}\f$ instead of \f$P\f$.
-     *              If permute_mode::rows is set, the rows will be permuted.
-     *              If permute_mode::columns is set, the columns will be
-     *              permuted.
+     * @param mode  The permutation mode, see @ref permute_mode.
      * @return an std::pair consisting of the permuted matrix and the reuse info
      *         that can be used to update values in the permuted matrix.
      */

@@ -31,7 +31,7 @@ namespace factorization {
  *
  * More specifically, it consists of a lower unitriangular factor \f$L\f$ and
  * an upper triangular factor \f$U\f$ with sparsity pattern
- * \f$\mathcal S(L + U)\f$ = \f$\mathcal S(A)\f$
+ * \f$\mathcal S(L + U) = \mathcal S(A)\f$
  * fulfilling \f$LU = A\f$ at every non-zero location of \f$A\f$.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class

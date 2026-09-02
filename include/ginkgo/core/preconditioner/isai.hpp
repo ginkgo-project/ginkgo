@@ -31,19 +31,20 @@ namespace preconditioner {
  * This enum lists the types of the ISAI preconditioner.
  *
  * ISAI can either be generated for a general square matrix, a lower triangular
- * matrix, an upper triangular matrix or an spd matrix.
+ * matrix, an upper triangular matrix or an s.p.d matrix.
  */
 enum struct isai_type { lower, upper, general, spd };
 
 /**
  * The Incomplete Sparse Approximate Inverse (ISAI) Preconditioner generates
- * an approximate inverse matrix for a given square matrix A, lower triangular
- * matrix L, upper triangular matrix U or symmetric positive (spd) matrix B.
+ * an approximate inverse matrix for a given square matrix \f$A\f$, lower
+ * triangular matrix \f$L\f$, upper triangular matrix \f$U\f$ or symmetric
+ * positive definite (s.p.d) matrix \f$B\f$.
  *
  * Let \f$ M_A \approx A^{-1} \f$ denote the approximate inverse of a
  * general matrix \f$ A \f$, and similarly \f$ M_L \approx L^{-1} \f$,
  * \f$ M_U \approx U^{-1} \f$ for lower and upper triangular matrices, and
- * \f$ M_C \approx C^{-1} \f$ for the Cholesky factor of an SPD matrix
+ * \f$ M_C \approx C^{-1} \f$ for the Cholesky factor of an s.p.d matrix
  * \f$ B = C^T C \f$ (the last case is commonly called a Factorized Sparse
  * Approximate Inverse, FSPAI). For a given vector \f$ x \f$ (which may
  * carry multiple right-hand sides), applying the preconditioner computes
@@ -61,7 +62,7 @@ enum struct isai_type { lower, upper, general, spd };
  * respective matrix. For \f$ B \f$, the sparsity pattern of \f$ M_C \f$
  * matches the sparsity pattern of the lower triangular half of \f$ B \f$.
  *
- * Note that, except for the SPD case, in general
+ * Note that, except for the s.p.d case, in general
  * \f$ \mathrm{ISAI}(A)^T \ne \mathrm{ISAI}(A^T) \f$.
  *
  * @note GPU implementations can only handle the vector unit width `width`
@@ -77,7 +78,7 @@ enum struct isai_type { lower, upper, general, spd };
  *
  * @tparam IsaiType  determines if the ISAI is generated for a general square
  *         matrix, a lower triangular matrix, an upper triangular matrix or an
- *         spd matrix
+ *         s.p.d matrix
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *

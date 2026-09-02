@@ -31,7 +31,7 @@ namespace factorization {
  *
  * More specifically, it consists of a lower triangular factor \f$L\f$ and
  * its conjugate transpose \f$L^H\f$ with sparsity pattern
- * \f$\mathcal S(L + L^H)\f$ = \f$\mathcal S(A)\f$
+ * \f$\mathcal S(L + L^H) = \mathcal S(A)\f$
  * fulfilling \f$LL^H = A\f$ at every non-zero location of \f$A\f$.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class

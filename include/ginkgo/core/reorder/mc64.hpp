@@ -52,8 +52,8 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  * perfect matching on a weighted edge bipartite graph of the matrix. It is
  * described in detail in "On Algorithms for Permuting Large Entries to the
  * Diagonal of a Sparse Matrix" (Duff, Koster, 2001,
- * DOI: 10.1137/S0895479899358443). There are two strategies for choosing the
- * weights supported:
+ * <https://doi.org/10.1137/S0895479899358443>). There are two strategies for
+ * choosing the weights supported:
  *  - Maximizing the product of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
  *    \f$c(i, j) = \log_2(a_i) - \log_2(|a(i, j)|)\f$ if \f$a(i, j) \neq 0\f$

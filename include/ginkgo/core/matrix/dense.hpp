@@ -419,11 +419,7 @@ public:
      * modes, see @ref permute_mode.
      *
      * @param permutation  The input permutation.
-     * @param mode  The permutation mode. If permute_mode::inverse is set, we
-     *              use the inverse permutation \f$P^{-1}\f$ instead of \f$P\f$.
-     *              If permute_mode::rows is set, the rows will be permuted.
-     *              If permute_mode::columns is set, the columns will be
-     *              permuted.
+     * @param mode  The permutation mode, see @ref permute_mode.
      * @return  The permuted matrix.
      */
     std::unique_ptr<Dense> permute(
