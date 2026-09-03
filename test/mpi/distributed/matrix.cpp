@@ -124,6 +124,16 @@ TYPED_TEST(MatrixCreation, ReadsDistributedGlobalData)
 }
 
 
+TYPED_TEST(MatrixCreation, RetainsRowPartitionAfterRead)
+{
+    this->dist_mat->read_distributed(this->mat_input, this->row_part);
+
+    ASSERT_NE(this->dist_mat->get_row_partition(), nullptr);
+    ASSERT_EQ(this->dist_mat->get_row_partition()->get_size(),
+              this->row_part->get_size());
+}
+
+
 TYPED_TEST(MatrixCreation, ReadsDistributedLocalData)
 {
     using value_type = typename TestFixture::value_type;
