@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,13 +32,13 @@ std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
                      [do_print](const char* name,
                                 gko::log::profile_event_category) {
                          if (do_print) {
-                             std::cerr << "DEBUG: begin " << name << '\n';
+                             print_line("DEBUG: begin " + std::string{name});
                          }
                      },
                      [do_print](const char* name,
                                 gko::log::profile_event_category) {
                          if (do_print) {
-                             std::cerr << "DEBUG: end   " << name << '\n';
+                             print_line("DEBUG: end   " + std::string{name});
                          }
                      });
              }}};
@@ -119,8 +119,7 @@ void run_test_cases(const Benchmark<State>& benchmark,
             }
             auto test_case_desc = benchmark.describe_config(test_case);
             if (benchmark.should_print()) {
-                std::cerr << "Running test case " << test_case_desc
-                          << std::endl;
+                print_line("Running test case " + test_case_desc);
             }
             auto test_case_state = benchmark.setup(exec, test_case);
             auto test_case_range = annotate(test_case_desc.c_str());
@@ -132,8 +131,8 @@ void run_test_cases(const Benchmark<State>& benchmark,
                 }
                 benchmark_case[operation_name] = json::object();
                 if (benchmark.should_print()) {
-                    std::cerr << "\tRunning " << benchmark.get_name() << ": "
-                              << operation_name << std::endl;
+                    print_line("\tRunning " + benchmark.get_name() + ": " +
+                               operation_name);
                 }
                 auto& operation_case = benchmark_case[operation_name];
                 try {

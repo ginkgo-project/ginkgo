@@ -1,10 +1,12 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GINKGO_BENCHMARK_SPMV_SPMV_COMMON_HPP
 #define GINKGO_BENCHMARK_SPMV_SPMV_COMMON_HPP
 
+
+#include <sstream>
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
@@ -89,9 +91,11 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             exec, gko::dim<2>{state.data.first.size[0], nrhs},
             gko::dim<2>{state.data.second[0], nrhs});
         if (do_print) {
-            std::cerr << "Matrix is of size (" << state.data.first.size[0]
-                      << ", " << state.data.first.size[1] << "), "
-                      << state.data.first.nonzeros.size() << std::endl;
+            std::ostringstream ss;
+            ss << "Matrix is of size (" << state.data.first.size[0] << ", "
+               << state.data.first.size[1] << "), "
+               << state.data.first.nonzeros.size();
+            print_line(ss.str());
         }
         test_case["rows"] = state.data.first.size[0];
         test_case["cols"] = state.data.first.size[1];
