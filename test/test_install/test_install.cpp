@@ -417,6 +417,11 @@ int main()
         auto test = gko::multigrid::Pgm<>::build().on(exec);
     }
 
+    // core/multigrid/rs.hpp
+    {
+        auto test = gko::multigrid::Rs<>::build().on(exec);
+    }
+
     // core/multigrid/uniform_coarsening.hpp
     {
         auto test = gko::multigrid::UniformCoarsening<>::build().on(exec);

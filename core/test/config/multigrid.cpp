@@ -10,6 +10,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/multigrid/fixed_coarsening.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/rs.hpp>
 #include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
@@ -72,6 +73,38 @@ struct Pgm : MultigridLevelConfigTest<gko::multigrid::Pgm<float, int>,
 };
 
 
+struct Rs : MultigridLevelConfigTest<gko::multigrid::Rs<float, int>,
+                                     gko::multigrid::Rs<double, int>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"multigrid::Rs"}}};
+    }
+
+    template <typename ParamType>
+    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
+                    std::shared_ptr<const gko::Executor> exec)
+    {
+        config_map["strength_threshold"] = pnode{0.5};
+        param.with_strength_threshold(0.5);
+        config_map["skip_sorting"] = pnode{true};
+        param.with_skip_sorting(true);
+        config_map["skip_m_matrix_check"] = pnode{true};
+        param.with_skip_m_matrix_check(true);
+    }
+
+    template <typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.strength_threshold, ans_param.strength_threshold);
+        ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.skip_m_matrix_check, ans_param.skip_m_matrix_check);
+    }
+};
+
+
 struct UniformCoarsening
     : MultigridLevelConfigTest<gko::multigrid::UniformCoarsening<float, int>,
                                gko::multigrid::UniformCoarsening<double, int>> {
@@ -120,7 +153,7 @@ protected:
 };
 
 
-using MultigridLevelTypes = ::testing::Types<::Pgm, ::UniformCoarsening>;
+using MultigridLevelTypes = ::testing::Types<::Pgm, ::Rs, ::UniformCoarsening>;
 
 
 TYPED_TEST_SUITE(MultigridLevel, MultigridLevelTypes, TypenameNameGenerator);
