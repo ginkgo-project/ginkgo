@@ -25,19 +25,35 @@
 #ifndef GKO_COMPILING_DPCPP
 
 
-// The vendor sparse libraries (cuSPARSE and rocSPARSE) only support 32-bit
-// indices for spgemm, so on the CUDA/HIP backends the distributed spgemm (which
-// runs a local csr::spgemm in LocalIndexType) is unsupported when the local
-// index type is 64-bit; skip those instantiations there.
-#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
-#define SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type)                      \
-    if (sizeof(local_index_type) > 4) {                                       \
-        GTEST_SKIP() << "distributed spgemm with 64-bit local indices is "    \
-                        "unsupported on CUDA/HIP (cuSPARSE/rocSPARSE spgemm " \
-                        "requires 32-bit indices)";                           \
-    }                                                                         \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
+// The distributed spgemm runs a local csr::spgemm in LocalIndexType, so it can
+// only support 64-bit local indices where the backend's spgemm does: rocSPARSE
+// has no 64-bit spgemm at all, and cuSPARSE only gained one in CUDA 13.
+// GKO_CUDA_TOOLKIT_VERSION_MAJOR is set by this test's CMakeLists, since the
+// common test is host-compiled and cannot see CUDA_VERSION itself; if it is
+// missing we conservatively assume no 64-bit support.
+#if defined(GKO_COMPILING_HIP)
+#define GKO_DEVICE_HAS_INT64_SPGEMM 0
+#elif defined(GKO_COMPILING_CUDA)
+#if defined(GKO_CUDA_TOOLKIT_VERSION_MAJOR) && \
+    (GKO_CUDA_TOOLKIT_VERSION_MAJOR >= 13)
+#define GKO_DEVICE_HAS_INT64_SPGEMM 1
+#else
+#define GKO_DEVICE_HAS_INT64_SPGEMM 0
+#endif
+#else
+#define GKO_DEVICE_HAS_INT64_SPGEMM 1
+#endif
+
+
+#if !GKO_DEVICE_HAS_INT64_SPGEMM
+#define SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type)                     \
+    if (sizeof(local_index_type) > 4) {                                      \
+        GTEST_SKIP() << "distributed spgemm with 64-bit local indices is "   \
+                        "unsupported on this backend (rocSPARSE has no "     \
+                        "64-bit spgemm, cuSPARSE requires CUDA 13)";         \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 #else
 #define SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type)                     \

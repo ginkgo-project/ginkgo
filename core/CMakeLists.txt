@@ -163,6 +163,15 @@ if(GINKGO_BUILD_MPI)
     )
 endif()
 
+# The distributed spgemm runs its local csr::spgemm in LocalIndexType, and
+# cuSPARSE only supports 64-bit indices in spgemm from CUDA 13 on.
+if(GINKGO_BUILD_MPI AND GINKGO_BUILD_CUDA)
+    target_compile_definitions(
+        ${ginkgo_core}
+        PRIVATE GKO_CUDA_TOOLKIT_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR}
+    )
+endif()
+
 # MSVC or CLANG/msys2 with shared: make ginkgo be the major library
 if((MSVC OR MINGW) AND BUILD_SHARED_LIBS)
     add_library(ginkgo "")
