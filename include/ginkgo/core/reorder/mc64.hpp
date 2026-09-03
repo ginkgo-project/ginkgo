@@ -52,20 +52,22 @@ enum class mc64_strategy { max_diagonal_product, max_diagonal_sum };
  * perfect matching on a weighted edge bipartite graph of the matrix. It is
  * described in detail in "On Algorithms for Permuting Large Entries to the
  * Diagonal of a Sparse Matrix" (Duff, Koster, 2001,
- * DOI: 10.1137/S0895479899358443). There are two strategies for choosing the
- * weights supported:
+ * <https://doi.org/10.1137/S0895479899358443>). There are two strategies for
+ * choosing the weights supported:
  *  - Maximizing the product of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *    $c(i, j) = \log_2(a_i) - \log_2(|a(i, j)|)$ if $a(i, j) \neq 0 $ and
- *    $c(i, j) = \infty$ otherwise. Here, a_i is the maximum absolute value in
- *    row i of the matrix A. In this case, the implementation computes a row
- *    permutation P and row and column scaling coefficients L and R such that
- *    the matrix P*L*A*R has values with unity absolute value on the diagonal
- *    and smaller or equal entries everywhere else.
+ *    \f$c(i, j) = \log_2(a_i) - \log_2(|a(i, j)|)\f$ if \f$a(i, j) \neq 0\f$
+ *    and \f$c(i, j) = \infty\f$ otherwise. Here, \f$a_i\f$ is the maximum
+ *    absolute value in row \f$i\f$ of the matrix \f$A\f$. In this case, the
+ *    implementation computes a row permutation \f$P\f$ and row and column
+ *    scaling coefficients \f$L\f$ and \f$R\f$ such that the matrix
+ *    \f$P L A R\f$ has values with unity absolute value on the diagonal and
+ *    smaller or equal entries everywhere else.
  *  - Maximizing the sum of the absolute values on the diagonal.
  *    For this strategy, the weights are computed as
- *    $c(i, j) = a_i - |a(i, j)|$ if $a(i, j) \neq 0$ and $c(i, j) =
- *    \infty$ otherwise. In this case, no scaling coefficients are computed.
+ *    \f$c(i, j) = a_i - |a(i, j)|\f$ if \f$a(i, j) \neq 0\f$ and
+ *    \f$c(i, j) = \infty\f$ otherwise. In this case, no scaling coefficients
+ *    are computed.
  *
  * This class creates a Combination of two ScaledPermutations representing the
  * row and column permutation and scaling factors computed by this algorithm.

@@ -69,22 +69,22 @@ class Diagonal;
  * and preconditioners is that the most common operation performed on all of
  * them can be expressed as an application of a linear operator to a vector:
  *
- * +   the sparse matrix-vector product with a matrix $A$ is a linear
- *     operator application $y = Ax$;
+ * +   the sparse matrix-vector product with a matrix \f$A\f$ is a linear
+ *     operator application \f$y = Ax\f$;
  * +   the application of a preconditioner is a linear operator application
- *     $y = M^{-1}x$, where $M$ is an approximation of the original
- *     system matrix $A$ (thus a preconditioner represents an "approximate
- *     inverse" operator $M^{-1}$).
- * +   the system solve $Ax = b$ can be viewed as linear operator
+ *     \f$y = M^{-1}x\f$, where \f$M\f$ is an approximation of the original
+ *     system matrix \f$A\f$ (thus a preconditioner represents an "approximate
+ *     inverse" operator \f$M^{-1}\f$).
+ * +   the system solve \f$Ax = b\f$ can be viewed as linear operator
  *     application
- *     $x = A^{-1}b$ (it goes without saying that the implementation of
+ *     \f$x = A^{-1}b\f$ (it goes without saying that the implementation of
  *     linear system solves does not follow this conceptual idea), so a linear
  *     system solver can be viewed as a representation of the operator
- *     $A^{-1}$.
+ *     \f$A^{-1}\f$.
  *
  * Finally, direct manipulation of LinOp objects is rarely required in
  * simple scenarios. As an illustrative example, one could construct a
- * fixed-point iteration routine $x_{k+1} = Lx_k + b$ as follows:
+ * fixed-point iteration routine \f$x_{k+1} = Lx_k + b\f$ as follows:
  *
  * ```cpp
  * std::unique_ptr<matrix::Dense<>> calculate_fixed_point(
@@ -103,11 +103,11 @@ class Diagonal;
  * }
  * ```
  *
- * Here, if $L$ is a matrix, LinOp::apply() refers to the matrix vector
- * product, and `L->apply(a, b)` computes $b = L \cdot a$.
- * `x->add_scaled(one, b)` is the `axpy` vector update $x:=x+b$.
+ * Here, if \f$L\f$ is a matrix, LinOp::apply() refers to the matrix vector
+ * product, and `L->apply(a, b)` computes \f$b = L \cdot a\f$.
+ * `x->add_scaled(one, b)` is the `axpy` vector update \f$x:=x+b\f$.
  *
- * The interesting part of this example is the apply() routine at line 4 of the
+ * The interesting part of this example is the apply() routine at line 5 of the
  * function body. Since this routine is part of the LinOp base class, the
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
@@ -291,34 +291,34 @@ private:
  * linear operator into another.
  *
  * In Ginkgo, every linear solver is viewed as a mapping. For example,
- * given an s.p.d linear system $Ax = b$, the solution $x = A^{-1}b$
+ * given an s.p.d linear system \f$Ax = b\f$, the solution \f$x = A^{-1}b\f$
  * can be computed using the CG method. This algorithm can be represented in
  * terms of linear operators and mappings between them as follows:
  *
  * -   A Cg::Factory is a higher order mapping which, given an input operator
- *     $A$, returns a new linear operator $A^{-1}$ stored in "CG
+ *     \f$A\f$, returns a new linear operator \f$A^{-1}\f$ stored in "CG
  *     format"
- * -   Storing the operator $A^{-1}$ in "CG format" means that the data
+ * -   Storing the operator \f$A^{-1}\f$ in "CG format" means that the data
  *     structure used to store the operator is just a simple pointer to the
- *     original matrix $A$. The application $x = A^{-1}b$ of such an
+ *     original matrix \f$A\f$. The application \f$x = A^{-1}b\f$ of such an
  *     operator can then be implemented by solving the linear system
- *     $Ax = b$ using the CG method. This is achieved in code by having a
+ *     \f$Ax = b\f$ using the CG method. This is achieved in code by having a
  *     special class for each of those "formats" (e.g. the "Cg" class defines
  *     such a format for the CG solver).
  *
  * Another example of a LinOpFactory is a preconditioner. A preconditioner for
- * a linear operator $A$ is a linear operator $M^{-1}$, which
- * approximates $A^{-1}$. In addition, it is stored in a way such that
- * both the data of $M^{-1}$ is cheap to compute from $A$, and the
- * operation $x = M^{-1}b$ can be computed quickly. These operators are
+ * a linear operator \f$A\f$ is a linear operator \f$M^{-1}\f$, which
+ * approximates \f$A^{-1}\f$. In addition, it is stored in a way such that
+ * both the data of \f$M^{-1}\f$ is cheap to compute from \f$A\f$, and the
+ * operation \f$x = M^{-1}b\f$ can be computed quickly. These operators are
  * useful to accelerate the convergence of  Krylov solvers.
  * Thus, a preconditioner also fits into the LinOpFactory framework:
  *
- * -   The factory maps a linear operator $A$ into a preconditioner
- *     $M^{-1}$ which is stored in suitable format (e.g. as a product of
+ * -   The factory maps a linear operator \f$A\f$ into a preconditioner
+ *     \f$M^{-1}\f$ which is stored in suitable format (e.g. as a product of
  *     two factors in case of ILU preconditioners).
  * -   The resulting linear operator implements the application operation
- *     $x = M^{-1}b$ depending on the format the preconditioner is stored
+ *     \f$x = M^{-1}b\f$ depending on the format the preconditioner is stored
  *     in (e.g. as two triangular solves in case of ILU)
  *
  * Example: using CG in Ginkgo
@@ -372,11 +372,11 @@ public:
  * conjugate transpose.
  *
  * The normal transpose returns the transpose of the linear operator without
- * changing any of its elements representing the operation, $B = A^{T}$.
+ * changing any of its elements representing the operation, \f$B = A^{T}\f$.
  *
  * The conjugate transpose returns the conjugate of each of the elements and
- * additionally transposes the linear operator representing the operation, $B
- * = A^{H}$.
+ * additionally transposes the linear operator representing the operation, \f$B
+ * = A^{H}\f$.
  *
  * Example: Transposing a Csr matrix:
  * ------------------------------------
@@ -450,8 +450,8 @@ public:
      * In the resulting LinOp, the entry at location `(i,j)` contains the input
      * value `(perm[i],perm[j])`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $P A P^T$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P A P^T\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -471,8 +471,8 @@ public:
      * In the resulting LinOp, the entry at location `(perm[i],perm[j])`
      * contains the input value `(i,j)`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $P^{-1} A P^{-T}$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P^{-1} A P^{-T}\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -491,8 +491,8 @@ public:
      * object.
      * In the resulting LinOp, the row `i` contains the input row `perm[i]`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $P A$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P A\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -508,8 +508,8 @@ public:
      * In the resulting LinOp, the column `i` contains the input column
      * `perm[i]`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $A P^T$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$A P^T\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.
@@ -524,8 +524,8 @@ public:
      * object.
      * In the resulting LinOp, the row `perm[i]` contains the input row `i`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $P^{-1} A$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P^{-1} A\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.
@@ -541,8 +541,8 @@ public:
      * In the resulting LinOp, the column `perm[i]` contains the input column
      * `i`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $A P^{-T}$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$A P^{-T}\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.

@@ -32,21 +32,42 @@ namespace solver {
  * specialization of the Gmres method for symmetric/hermitian operators, and can
  * be computed using short recurrences, similar to the CG method.
  *
+ * For symmetric \f$ A \f$, the Arnoldi process collapses to a three-term
+ * Lanczos recurrence and the Hessenberg matrix \f$ \bar H_m \f$ becomes
+ * tridiagonal \f$ \bar T_m \f$. Minres exploits this structure to
+ * minimize the residual norm
+ * \f[
+ *   y_m = \arg\min_{y \in \mathbb{R}^m} \| \beta e_1 - \bar T_m y \|_2,
+ *   \qquad \beta = \| r_0 \|_2,
+ * \f]
+ * The least-squares problem is not re-solved from scratch: a QR
+ * factorization of \f$ \bar T_m \f$ is carried along and extended in every
+ * iteration. Since \f$ \bar T_m \f$ is tridiagonal, a new column is
+ * brought to upper-triangular form by re-applying the two previous Givens
+ * rotations and then one freshly computed rotation, so only those
+ * rotations, three basis vectors and three update directions have to be
+ * kept. Each iteration therefore costs one matrix-vector product and a
+ * constant amount of memory, in contrast to GMRES's growing Krylov basis.
+ *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of Minres are
  * merged into 2 separate steps.
  *
- * For more details see Anne Grennbaum's 'Iterative Methods
- * for Solving Linear Systems' (DOI: 10.1137/1.9781611970937), and Sou-Cheng
- * (Terrya) Choi's 'ITERATIVE METHODS FOR SINGULAR LINEAR EQUATIONS AND
- * LEAST-SQUARES PROBLEMS'.
+ * @par References
+ * - Greenbaum, A. *Iterative Methods for Solving Linear Systems.*
+ *   SIAM Frontiers in Applied Mathematics, 17, 1997.
+ *   <https://doi.org/10.1137/1.9781611970937>
+ * - Choi, S.-C. T. *Iterative Methods for Singular Linear Equations and
+ *   Least-Squares Problems.*
+ *   PhD thesis, Stanford University, 2006.
+ *   <https://web.stanford.edu/group/SOL/dissertations/sou-cheng-choi-thesis.pdf>
  *
- * @note: The Minres solver only reports an approximation of the residual norm
- *        directly to the stopping criteria. Neither the actual residual, nor
- *        the actual residual norm are reported. Thus, to get the minimal
- *        overhead, the gko::stop::ImplicitResidualNorm criteria should be used.
- *        The gko::stop::ResidualNorm criteria will require an additional
- *        matrix-vector product and global reduction.
+ * @note The Minres solver only reports an approximation of the residual norm
+ *       directly to the stopping criteria. Neither the actual residual, nor
+ *       the actual residual norm are reported. Thus, to get the minimal
+ *       overhead, the gko::stop::ImplicitResidualNorm criteria should be
+ *       used. The gko::stop::ResidualNorm criteria will require an additional
+ *       matrix-vector product and global reduction.
  *
  * @tparam ValueType  precision of matrix elements
  *

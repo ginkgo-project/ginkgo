@@ -64,7 +64,7 @@ protected:
  * iterations of the solver have finished.
  *
  * Full usage example: Stop after 100 iterations or when the relative residual
- * norm is below $10^{-10}$, whichever happens first.
+ * norm is below \f$10^{-10}\f$, whichever happens first.
  * ```cpp
  * auto factory = gko::solver::Cg<double>::build()
  *                    .with_criteria(
@@ -88,7 +88,7 @@ deferred_factory_parameter<const Iteration::Factory> max_iters(size_type count);
  * iterations finished.
  *
  * Full usage example: Stop when the relative residual
- * norm is below $10^{-10}$, but with at least 100 iterations.
+ * norm is below \f$10^{-10}\f$, but with at least 100 iterations.
  * ```cpp
  * auto factory = gko::solver::Cg<double>::build()
  *                    .with_criteria(gko::stop::min_iters(100,

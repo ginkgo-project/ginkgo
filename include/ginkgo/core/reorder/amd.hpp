@@ -26,8 +26,19 @@ namespace reorder {
 
 
 /**
- * Computes a Approximate Minimum Degree (AMD) reordering of an input
- * matrix.
+ * Computes an Approximate Minimum Degree (AMD) reordering of an input
+ * matrix. The implementation reuses the AMD routine from the
+ * [SuiteSparse](https://github.com/DrTimothyAldenDavis/SuiteSparse) suite
+ * (Tim Davis et al.) — Ginkgo wraps it in a `LinOpFactory` that produces
+ * a `gko::matrix::Permutation`. The system matrix must therefore be a
+ * structurally-symmetric CSR matrix.
+ *
+ * @par References
+ * - Amestoy, P. R., Davis, T. A., Duff, I. S.
+ *   *Algorithm 837: AMD, an Approximate Minimum Degree Ordering
+ *   Algorithm.*
+ *   ACM Transactions on Mathematical Software, 30 (3), 381–388, 2004.
+ *   <https://doi.org/10.1145/1024074.1024081>
  *
  * @tparam IndexType  the type used to store sparsity pattern indices of the
  *                    system matrix

@@ -20,8 +20,8 @@ namespace matrix {
  * It implements forward and inverse DFT.
  *
  * For a power-of-two size n with corresponding root of unity
- * $\omega = e^{-2\pi i / n}$ for forward DFT and $\omega = e^{2 \pi i / n}$
- * for inverse DFT it computes
+ * \f$\omega = e^{-2\pi i / n}\f$ for forward DFT and \f$\omega = e^{2 \pi i /
+ * n}\f$ for inverse DFT it computes
  *
  * \f[
  *     x_k = \sum_{j=0}^{n-1} \omega^{jk} b_j
@@ -33,7 +33,7 @@ namespace matrix {
  * sizes, as they use the Radix-2 algorithm by J. W. Cooley and J. W. Tukey,
  * "An Algorithm for the Machine Calculation of Complex Fourier Series,"
  * Mathematics of Computation, vol. 19, no. 90, pp. 297–301, 1965,
- * doi: 10.2307/2003354.
+ * <https://doi.org/10.2307/2003354>.
  * The CUDA and HIP implementations use cuSPARSE/hipSPARSE with full support for
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
@@ -117,9 +117,9 @@ private:
  *
  * It implements complex-to-complex forward and inverse FFT.
  *
- * For a power-of-two sizes $n_1, n_2$ with corresponding root of unity
- * $\omega = e^{-2\pi i / (n_1 n_2)}$ for forward DFT and
- * $\omega = e^{2 \pi i / (n_1 n_2)}$ for inverse DFT it computes
+ * For a power-of-two sizes \f$n_1, n_2\f$ with corresponding root of unity
+ * \f$\omega = e^{-2\pi i / (n_1 n_2)}\f$ for forward DFT and
+ * \f$\omega = e^{2 \pi i / (n_1 n_2)}\f$ for inverse DFT it computes
  *
  * \f[
  *     x_{k_1 n_2 + k_2} = \sum_{i_1=0}^{n_1-1} \sum_{i_2=0}^{n_2-1}
@@ -132,7 +132,7 @@ private:
  * sizes, as they use the Radix-2 algorithm by J. W. Cooley and J. W. Tukey,
  * "An Algorithm for the Machine Calculation of Complex Fourier Series,"
  * Mathematics of Computation, vol. 19, no. 90, pp. 297–301, 1965,
- * doi: 10.2307/2003354.
+ * <https://doi.org/10.2307/2003354>.
  * The CUDA and HIP implementations use cuSPARSE/hipSPARSE with full support for
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
@@ -228,9 +228,9 @@ private:
  *
  * It implements complex-to-complex forward and inverse FFT.
  *
- * For a power-of-two sizes $n_1, n_2, n_3$ with corresponding root of unity
- * $\omega = e^{-2\pi i / (n_1 n_2 n_3)}$ for forward DFT and
- * $\omega = e^{2 \pi i / (n_1 n_2 n_3)}$ for inverse DFT it computes
+ * For a power-of-two sizes \f$n_1, n_2, n_3\f$ with corresponding root of unity
+ * \f$\omega = e^{-2\pi i / (n_1 n_2 n_3)}\f$ for forward DFT and
+ * \f$\omega = e^{2 \pi i / (n_1 n_2 n_3)}\f$ for inverse DFT it computes
  *
  * \f[
  *     x_{k_1 n_2 n_3 + k_2 n_3 + k_3} = \sum_{i_1=0}^{n_1-1}
@@ -245,7 +245,7 @@ private:
  * sizes, as they use the Radix-2 algorithm by J. W. Cooley and J. W. Tukey,
  * "An Algorithm for the Machine Calculation of Complex Fourier Series,"
  * Mathematics of Computation, vol. 19, no. 90, pp. 297–301, 1965,
- * doi: 10.2307/2003354.
+ * <https://doi.org/10.2307/2003354>.
  * The CUDA and HIP implementations use cuSPARSE/hipSPARSE with full support for
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.

@@ -39,7 +39,20 @@ namespace solver {
  * non-s.p.d matrices. Though, the memory and the computational requirement of
  * the BiCGSTAB solver are higher than of its s.p.d solver counterpart, it has
  * the capability to solve generic systems. It was developed by stabilizing the
- * BiCG method.
+ * BiCG method: both operator applications of an iteration use \f$ A \f$
+ * itself, so no \f$ A^H \f$ apply (nor a transposed preconditioner) is
+ * needed, at the cost of one additional inner product per iteration.
+ *
+ * Each iteration interleaves a BiCG-style step with a one-dimensional GMRES
+ * minimization: an intermediate residual
+ * \f$ s = r_k - \alpha_k A p_k \f$ is constructed, then the stabilizing
+ * coefficient is chosen to minimize \f$ \| r_{k+1} \|_2 \f$ along
+ * \f$ A s \f$:
+ * \f[
+ *   \omega_k = \frac{(A s)^H s}{(A s)^H (A s)}, \qquad
+ *   x_{k+1}  = x_k + \alpha_k p_k + \omega_k s, \qquad
+ *   r_{k+1}  = s - \omega_k A s.
+ * \f]
  *
  * @tparam ValueType precision of the elements of the system matrix.
  *

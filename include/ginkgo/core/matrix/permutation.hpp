@@ -29,15 +29,15 @@ namespace matrix {
  * For the effect of the different permutation
  * modes, see the following table.
  *
- * mode              | entry mapping              | matrix representation
- * ------------------|----------------------------|----------------------
- * none              | $A'(i, j) = A(i, j)$       | $A' = A$
- * rows              | $A'(i, j) = A(p[i], j)$    | $A' = P A$
- * columns           | $A'(i, j) = A(i, p[j])$    | $A' = A P^T$
- * inverse_rows      | $A'(p[i], j) = A(i, j)$    | $A' = P^{-1} A$
- * inverse_columns   | $A'(i, p[j]) = A(i, j)$    | $A' = A P^{-T}$
- * symmetric         | $A'(i, j) = A(p[i], p[j])$ | $A' = P A P^T$
- * inverse_symmetric | $A'(p[i], p[j]) = A(i, j)$ | $A' = P^{-1} A P^{-T}$
+ * mode              | entry mapping                | matrix representation
+ * ------------------|------------------------------|----------------------
+ * none              | \f$A'(i,j) = A(i,j)\f$       | \f$A' = A\f$
+ * rows              | \f$A'(i,j) = A(p[i],j)\f$    | \f$A' = P A\f$
+ * columns           | \f$A'(i,j) = A(i,p[j])\f$    | \f$A' = A P^T\f$
+ * inverse_rows      | \f$A'(p[i],j) = A(i,j)\f$    | \f$A' = P^{-1} A\f$
+ * inverse_columns   | \f$A'(i,p[j]) = A(i,j)\f$    | \f$A' = A P^{-T}\f$
+ * symmetric         | \f$A'(i,j) = A(p[i],p[j])\f$ | \f$A' = P A P^T\f$
+ * inverse_symmetric | \f$A'(p[i],p[j]) = A(i,j)\f$ | \f$A' = P^{-1} A P^{-T}\f$
  */
 enum class permute_mode : unsigned {
     /** Neither rows nor columns will be permuted. */
@@ -99,7 +99,7 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  * Permutation is a matrix format that represents a permutation matrix,
  * i.e. a matrix where each row and column has exactly one entry.
  * The matrix can only be applied to Dense inputs, where it represents
- * a row permutation: $A' = PA$ means $A'(i, j) = A(p[i], j)$.
+ * a row permutation: \f$A' = PA\f$ means \f$A'(i, j) = A(p[i], j)\f$.
  *
  * @tparam IndexType  precision of permutation array indices.
  *
@@ -166,8 +166,9 @@ public:
      * The resulting permutation fulfills `result[i] = this[other[i]]`
      * or `result = other * this` from the matrix perspective, which is
      * equivalent to first permuting by `this` and then by `other`:
-     * Combining permutations $P_1$ and $P_2$ with `P = P_1.combine(P_2)`
-     * performs the operation permute(A, P) = permute(permute(A, P_1), P_2).
+     * Combining permutations \f$P_1\f$ and \f$P_2\f$ with `P =
+     * P_1.combine(P_2)` performs the operation permute(A, P) =
+     * permute(permute(A, P_1), P_2).
      *
      * @param other  the other permutation
      * @return the combined permutation

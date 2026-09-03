@@ -37,6 +37,35 @@ namespace solver {
  * exascale machine, while its standard counterpart level off about one order of
  * magnitude earlier, as suggested in the referenced paper (see below).
  *
+ * Mathematically the iterates \f$ x_k \f$ are the same as those produced
+ * by \ref gko::solver::Cg "CG": the algorithm minimizes the energy-norm
+ * error over the Krylov subspace \f$ x_0 + \mathcal{K}_k(A, r_0) \f$ and
+ * uses the same Fletcher-Reeves \f$ \beta_k \f$. CG, however, needs two
+ * global reductions per iteration that cannot be merged:
+ * \f$ \rho_k = \langle r_k, z_k \rangle \f$ is needed to build
+ * \f$ p_k \f$, and only afterwards can \f$ q_k = A p_k \f$ and the second
+ * reduction \f$ \langle p_k, q_k \rangle \f$ be computed.
+ *
+ * The pipelined variant removes that second synchronization point by
+ * carrying an extra vector \f$ w_k = A z_k \f$ — the operator applied to
+ * the preconditioned residual \f$ z_k = M r_k \f$, which plain CG never
+ * forms. It gives access to \f$ \delta_k = \langle w_k, z_k \rangle =
+ * \langle A z_k, z_k \rangle \f$, from which the denominator of
+ * \f$ \alpha_k \f$ follows by a recurrence instead of a second reduction:
+ * \f[
+ *   \langle p_k, A p_k \rangle = \delta_k
+ *     - \left| \frac{\rho_k}{\rho_{k-1}} \right|^2
+ *       \langle p_{k-1}, A p_{k-1} \rangle .
+ * \f]
+ * Because \f$ \rho_k \f$ and \f$ \delta_k \f$ are available at the same
+ * point of the iteration, they are computed in a single global reduction
+ * that can be overlapped with the operator and preconditioner applies
+ * updating the auxiliary vectors \f$ w_k \f$, \f$ q_k = A p_k \f$,
+ * \f$ m_k = M w_k \f$ and \f$ n_k = A m_k \f$, all of which are advanced
+ * by short recurrences. In exact arithmetic the trajectory is identical to
+ * CG; in finite arithmetic the decoupling of dependencies amplifies
+ * round-off and the residuals can deviate from the classical iterates.
+ *
  * Possible issues:
  * 1. Numerical instability: Due to the rearrangement of the operations, the
  * method is known to be less stable than standard PCG.
@@ -48,9 +77,11 @@ namespace solver {
  * 3. As the CG itself, this method performs very well for symmetric positive
  * definite matrices but it is in general not suitable for general matrices.
  *
- * The implementation in Ginkgo is based on the following paper:
- * Pipelined, Flexible Krylov Subspace Methods, P. Sanan et. al, SISC, 2016,
- * doi: 10.1137/15M1049130
+ * @par References
+ * - Sanan, P., Schnepp, S. M., May, D. A.
+ *   *Pipelined, Flexible Krylov Subspace Methods.*
+ *   SIAM Journal on Scientific Computing, 38 (5), 2016.
+ *   <https://doi.org/10.1137/15M1049130>
  *
  * @tparam ValueType  precision of matrix elements
  *

@@ -28,36 +28,38 @@ namespace factorization {
 /**
  * ParIC is an incomplete Cholesky factorization which is computed in parallel.
  *
- * $L$ is a lower triangular matrix, which approximates a given matrix $A$ with
- * $A \approx LL^H$. Here, $L + L^H$ has the same sparsity pattern as $A$, which
- * is also called IC(0).
+ * \f$L\f$ is a lower triangular matrix, which approximates a given matrix
+ * \f$A\f$ with \f$A \approx LL^H\f$. Here, \f$L + L^H\f$ has the same sparsity
+ * pattern as \f$A\f$, which is also called IC(0).
  *
- * The ParIC algorithm generates the incomplete factors iteratively, using a
+ * The ParIC algorithm generates the incomplete factor iteratively, using a
  * fixed-point iteration of the form
  *
- * $
- * F(L) =
- * \begin{cases}
- *     \sqrt{a_{ii}-\sum_{k=1}^{i-1}|l_{ik}|^2}, \quad & i == j \\
- *     a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i < j
- * \end{cases}
- * $
+ * \f[
+ *   F(L)_{ij} = \begin{cases}
+ *     \sqrt{a_{ii} - \sum_{k=1}^{i-1} |l_{ik}|^2}, & i = j, \\
+ *     a_{ij} - \sum_{k=1}^{i-1} l_{ik} \overline{l_{jk}}, & i < j.
+ *   \end{cases}
+ * \f]
  *
- * In general, the entries of $L$ can be iterated in parallel and in
- * asynchronous fashion, the algorithm asymptotically converges to the
- * incomplete factors $L$ and $L^H$ fulfilling $\left(R = A - L \cdot
- * L^H\right)\vert_\mathcal{S} = 0\vert_\mathcal{S}$ where $\mathcal{S}$ is the
- * pre-defined sparsity pattern (in case of IC(0) the sparsity pattern of the
- * system matrix $A$). The number of ParIC sweeps needed for convergence
- * depends on the parallelism level: For sequential execution, a single sweep
- * is sufficient, for fine-grained parallelism, the number of sweeps necessary
- * to get a good approximation of the incomplete factors depends heavily on the
- * problem. On the OpenMP executor, 3 sweeps usually give a decent approximation
- * in our experiments, while GPU executors can take 10 or more iterations.
+ * In general, the entries of \f$L\f$ can be iterated in parallel and in
+ * asynchronous fashion; the algorithm asymptotically converges to incomplete
+ * factors \f$L\f$ and \f$L^H\f$ fulfilling
+ * \f$ (R = A - L L^H)\vert_\mathcal{S} = 0\vert_\mathcal{S} \f$
+ * where \f$\mathcal{S}\f$ is the pre-defined sparsity pattern (in case of
+ * IC(0), the sparsity pattern of the system matrix \f$A\f$). The number of
+ * ParIC sweeps needed for convergence depends on the parallelism level: For
+ * sequential execution, a single sweep is sufficient; for fine-grained
+ * parallelism, the number of sweeps necessary to get a good approximation
+ * of the incomplete factors depends heavily on the problem. On the OpenMP
+ * executor, 3 sweeps usually give a decent approximation in our experiments,
+ * while GPU executors can take 10 or more iterations.
  *
- * The ParIC algorithm in Ginkgo follows the design of E. Chow and A. Patel,
- * Fine-grained Parallel Incomplete LU Factorization, SIAM Journal on Scientific
- * Computing, 37, C169-C193 (2015).
+ * @par References
+ * - Chow, E., Patel, A.
+ *   *Fine-Grained Parallel Incomplete LU Factorization.*
+ *   SIAM Journal on Scientific Computing, 37 (2), C169–C193, 2015.
+ *   <https://doi.org/10.1137/140968896>
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class

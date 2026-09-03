@@ -67,14 +67,14 @@ enum class spmv_strategy {
      * load_balance is the strategy trying to distribute the work equally in
      * terms of the number of matrix entries. More detail can be checked in
      * Goran and Enrique: Balanced CSR sparse matrix-vector product on graphics
-     * processors (doi: 10.1007/978-3-319-64203-1_50).
+     * processors (<https://doi.org/10.1007/978-3-319-64203-1_50>).
      */
     load_balance,
     /**
      * merge_path is the strategy trying to distribute the work equally in terms
      * of the number of matrix entries and row pointers. More detail can be
      * checked in Merrill and Garland: Merge-Based Parallel Sparse Matrix-Vector
-     * Multiplication (doi: 10.1109/SC.2016.57).
+     * Multiplication (<https://doi.org/10.1109/SC.2016.57>).
      */
     merge_path,
     /**
@@ -107,7 +107,22 @@ enum class spmv_strategy {
  * An additional column index array is used to identify the column of each
  * nonzero element.
  *
- * The Csr LinOp supports different operations:
+ * The Csr LinOp supports three families of `apply` operations,
+ * dispatched on the type of the right operand:
+ *
+ * - Against a `Dense` operand `b`, `apply` computes a sparse matrix-vector
+ *   (or matrix-multivector) product:
+ *   \f[ x = A b, \qquad x = \alpha A b + \beta x. \f]
+ *
+ * - Against another `Csr` operand `B`, `apply` computes a sparse-sparse
+ *   matrix product (SpGEMM):
+ *   \f[ C = A B, \qquad C = \alpha A B + \beta C. \f]
+ *
+ * - Against an `Identity` operand, `apply` reduces to a sparse-sparse
+ *   matrix addition (SpGEAM):
+ *   \f[ B = \alpha A + \beta B. \f]
+ *
+ * In code:
  *
  * ```cpp
  * matrix::Csr *A, *B, *C;      // matrices
@@ -650,17 +665,13 @@ public:
         const;
 
     /**
-     * Creates a permuted copy $A'$ of this matrix $A$ with the given
-     * permutation $P$. By default, this computes a symmetric permutation
+     * Creates a permuted copy \f$A'\f$ of this matrix \f$A\f$ with the given
+     * permutation \f$P\f$. By default, this computes a symmetric permutation
      * (permute_mode::symmetric). For the effect of the different permutation
-     * modes, see @ref permute_mode
+     * modes, see @ref permute_mode.
      *
      * @param permutation  The input permutation.
-     * @param mode  The permutation mode. If permute_mode::inverse is set, we
-     *              use the inverse permutation $P^{-1}$ instead of $P$.
-     *              If permute_mode::rows is set, the rows will be permuted.
-     *              If permute_mode::columns is set, the columns will be
-     *              permuted.
+     * @param mode  The permutation mode, see @ref permute_mode.
      * @return  The permuted matrix.
      */
     std::unique_ptr<Csr> permute(
@@ -668,16 +679,17 @@ public:
         permute_mode mode = permute_mode::symmetric) const;
 
     /**
-     * Creates a non-symmetrically permuted copy $A'$ of this matrix $A$ with
-     * the given row and column permutations $P$ and $Q$. The operation will
-     * compute $A'(i, j) = A(p[i], q[j])$, or $A' = P A Q^T$ if `invert` is
-     * `false`, and $A'(p[i], q[j]) = A(i,j)$, or $A' = P^{-1} A Q^{-T}$ if
-     * `invert` is `true`.
+     * Creates a non-symmetrically permuted copy \f$A'\f$ of this matrix \f$A\f$
+     * with the given row and column permutations \f$P\f$ and \f$Q\f$. The
+     * operation will compute \f$A'(i, j) = A(p[i], q[j])\f$, or \f$A' = P A
+     * Q^T\f$ if `invert` is `false`, and \f$A'(p[i], q[j]) = A(i,j)\f$, or
+     * \f$A' = P^{-1} A Q^{-T}\f$ if `invert` is `true`.
      *
-     * @param row_permutation  The permutation $P$ to apply to the rows
-     * @param column_permutation  The permutation $Q$ to apply to the columns
+     * @param row_permutation  The permutation \f$P\f$ to apply to the rows
+     * @param column_permutation  The permutation \f$Q\f$ to apply to the
+     * columns
      * @param invert  If set to `false`, uses the input permutations, otherwise
-     *                uses their inverses $P^{-1}, Q^{-1}$
+     *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return  The permuted matrix.
      */
     std::unique_ptr<Csr> permute(
@@ -697,11 +709,7 @@ public:
      * reuse->update_values(matrix, permuted);
      * ```
      * @param permutation  The input permutation.
-     * @param mode  The permutation mode. If permute_mode::inverse is set, we
-     *              use the inverse permutation $P^{-1}$ instead of $P$.
-     *              If permute_mode::rows is set, the rows will be permuted.
-     *              If permute_mode::columns is set, the columns will be
-     *              permuted.
+     * @param mode  The permutation mode, see @ref permute_mode.
      * @return an std::pair consisting of the permuted matrix and the reuse info
      *         that can be used to update values in the permuted matrix.
      */
@@ -720,10 +728,11 @@ public:
      * change_values(matrix);
      * reuse->update_values(matrix, permuted);
      * ```
-     * @param row_permutation  The permutation $P$ to apply to the rows
-     * @param column_permutation  The permutation $Q$ to apply to the columns
+     * @param row_permutation  The permutation \f$P\f$ to apply to the rows
+     * @param column_permutation  The permutation \f$Q\f$ to apply to the
+     * columns
      * @param invert  If set to `false`, uses the input permutations, otherwise
-     *                uses their inverses $P^{-1}, Q^{-1}$
+     *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return an std::pair consisting of the permuted matrix and the reuse info
      *         that can be used to update values in the permuted matrix.
      */
@@ -754,7 +763,7 @@ public:
      * @param row_permutation  The scaled row permutation.
      * @param column_permutation  The scaled column permutation.
      * @param invert  If set to `false`, uses the input permutations, otherwise
-     *                uses their inverses $P^{-1}, Q^{-1}$
+     *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return The permuted matrix.
      */
     std::unique_ptr<Csr> scale_permute(

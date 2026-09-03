@@ -59,6 +59,22 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho);
  * GMRES or the generalized minimal residual method is an iterative type Krylov
  * subspace method which is suitable for nonsymmetric linear systems.
  *
+ * The Arnoldi process builds an orthonormal basis \f$ V_m \f$ of the Krylov
+ * subspace
+ * \f[
+ *   \mathcal{K}_m(A, r_0) = \mathrm{span}\{r_0, A r_0, A^2 r_0, \ldots,
+ *                                          A^{m-1} r_0\},
+ * \f]
+ * and produces an upper Hessenberg matrix \f$ \bar H_m \f$ satisfying the
+ * Arnoldi relation \f$ A V_m = V_{m+1} \bar H_m \f$. GMRES then chooses the
+ * approximate solution
+ * \f$ x_m = x_0 + V_m y_m \f$ with \f$ y_m \f$ minimizing the residual norm
+ * over the subspace,
+ * \f[
+ *   y_m = \arg\min_{y \in \mathbb{R}^m} \| \beta e_1 - \bar H_m y \|_2,
+ *   \qquad \beta = \| r_0 \|_2.
+ * \f]
+ *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of GMRES are
  * merged into 2 separate steps. Modified Gram-Schmidt is used.

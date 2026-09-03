@@ -538,9 +538,9 @@ public:
      * Creates an empty distributed matrix with specified type
      * for local matrices.
      *
-     * @note This is mainly a convenience wrapper for
-     *       Matrix(std::shared_ptr<const Executor>, mpi::communicator, const
-     *       LinOp*)
+     * @note This is a convenience wrapper around the `create` overload
+     *       that takes an already-constructed `LinOp` template; the
+     *       `matrix_template` argument here is materialized internally.
      *
      * @tparam MatrixType  A type that has a `create<ValueType,
      *                     IndexType>(exec)` function to create a smart pointer
@@ -570,9 +570,10 @@ public:
      * Creates an empty distributed matrix with specified types for the
      * diagonal matrix and the off-diagonal matrix.
      *
-     * @note This is mainly a convenience wrapper for
-     *       Matrix(std::shared_ptr<const Executor>, mpi::communicator,
-     *       const LinOp*, const LinOp*)
+     * @note This is a convenience wrapper around the `create` overload
+     *       that takes already-constructed `LinOp` templates for the
+     *       diagonal and off-diagonal blocks; the two template
+     *       arguments here are materialized internally.
      *
      * @tparam DiagMatrixType  A type that has a `create<ValueType,
      *                         IndexType>(exec)` function to create a smart

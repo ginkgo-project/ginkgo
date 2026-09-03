@@ -45,11 +45,13 @@ namespace multigrid {
 /**
  * cycle defines which kind of multigrid cycle can be used.
  * It contains V, W, and F cycle.
- * - V, W cycle uses the algorithm according to Briggs, Henson, and McCormick: A
- *   multigrid tutorial 2nd Edition.
- * - F cycle uses the algorithm according to Trottenberg, Oosterlee, and
- *   Schuller: Multigrid 1st Edition. F cycle first uses the recursive call but
- *   second uses the V-cycle call such that F-cycle is between V and W cycle.
+ * - V, W cycles use the algorithm from Briggs–Henson–McCormick
+ *   (*A Multigrid Tutorial*, 2nd ed., SIAM 2000).
+ * - F cycle uses the algorithm from Trottenberg–Oosterlee–Schüller
+ *   (*Multigrid*, 1st ed., Academic Press 2001); F-cycle first does the
+ *   recursive call then a V-cycle call, sitting between V and W in cost.
+ *
+ * See the @ref Multigrid class for the full reference list with DOIs.
  */
 enum class cycle { v, f, w };
 
@@ -82,23 +84,57 @@ class MultigridState;
 
 
 /**
- * Multigrid methods have a hierarchy of many levels, whose corase level is a
- * subset of the fine level, of the problem. The coarse level solves the system
- * on the residual of fine level and fine level will use the coarse solution to
- * correct its own result. Multigrid solves the problem by relatively cheap step
- * in each level and refining the result when prolongating back.
+ * Multigrid solves a linear system by combining cheap iterative sweeps
+ * (smoothers) on a hierarchy of progressively coarser representations of
+ * the operator with corrections transferred between adjacent levels. A
+ * smoother on the fine level removes the high-frequency components of the
+ * error quickly; the remaining low-frequency error is well-resolved on a
+ * coarser space, where it is computed by a cheaper solve — or, recursively,
+ * by another multigrid call. The correction is prolongated back to the
+ * fine level and a second smoothing sweep removes any high-frequency error
+ * introduced by the transfer. Because each coarser level holds only a
+ * fraction of the unknowns of the next, the total work per cycle stays
+ * close to that of a single fine-level matrix-vector apply.
  *
- * The main step of each level
- * - Presmooth (solve on the fine level)
- * - Calculate residual
- * - Restrict (reduce the problem dimension)
- * - Solve residual in next level
- * - Prolongate (return to the fine level size)
- * - Postsmooth (correct the answer in fine level)
+ * Each level \f$ \ell \f$ holds a system matrix \f$ A_\ell \f$, a smoother
+ * \f$ S_\ell \f$, a restriction operator
+ * \f$ R_\ell : \mathbb{R}^{n_\ell} \to \mathbb{R}^{n_{\ell+1}} \f$ and a
+ * prolongation operator
+ * \f$ P_\ell : \mathbb{R}^{n_{\ell+1}} \to \mathbb{R}^{n_\ell} \f$. The
+ * Galerkin coarse operator is
+ * \f$ A_{\ell+1} = R_\ell A_\ell P_\ell \f$. One V-cycle step at
+ * level \f$ \ell \f$ on a fine-level system \f$ A_\ell x = b \f$ is:
+ *
+ * \f[
+ *   \begin{aligned}
+ *     x &\leftarrow x + S_\ell^{\mathrm{pre}}(b - A_\ell x)
+ *       && \text{(pre-smooth)}, \\
+ *     r_{\ell+1} &= R_\ell (b - A_\ell x)
+ *       && \text{(restrict)}, \\
+ *     e_{\ell+1} &\approx A_{\ell+1}^{-1} r_{\ell+1}
+ *       && \text{(recursive coarse solve)}, \\
+ *     x &\leftarrow x + P_\ell e_{\ell+1}
+ *       && \text{(prolongate and correct)}, \\
+ *     x &\leftarrow x + S_\ell^{\mathrm{post}}(b - A_\ell x)
+ *       && \text{(post-smooth)}.
+ *   \end{aligned}
+ * \f]
+ *
+ * At the coarsest level the recursive call is replaced by a direct or
+ * iterative coarse solver. W- and F-cycles differ from V only in how
+ * many recursive coarse-solves are performed per level (see the
+ * `cycle` enum above).
  *
  * Ginkgo uses the index from 0 for finest level (original problem size) ~ N for
  * the coarsest level (the coarsest solver), and its level counts is N (N
  * multigrid level generation).
+ *
+ * @par References
+ * - Briggs, W. L., Henson, V. E., McCormick, S. F.
+ *   *A %Multigrid Tutorial.* 2nd ed. SIAM, 2000.
+ *   <https://doi.org/10.1137/1.9780898719505>
+ * - Trottenberg, U., Oosterlee, C. W., Schüller, A.
+ *   *%Multigrid.* 1st ed. Academic Press, 2001. ISBN 978-0-12-701070-0.
  *
  * @ingroup Multigrid
  * @ingroup solvers

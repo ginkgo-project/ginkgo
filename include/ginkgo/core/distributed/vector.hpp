@@ -40,9 +40,9 @@ class Partition;
  * Vector is a format which explicitly stores (multiple) distributed column
  * vectors in a dense storage format.
  *
- * The (multi-)vector is distributed by row, which is described by a @see
- * Partition. The local vectors are stored using the @see Dense format. The
- * vector should be filled using the read_distributed method, e.g.
+ * The (multi-)vector is distributed by row, which is described by a
+ * Partition. The local vectors are stored using the matrix::Dense format.
+ * The vector should be filled using the read_distributed method, e.g.
  * ```
  * auto part = Partition<...>::build_from_mapping(...);
  * auto vector = Vector<...>::create(exec, comm);
@@ -162,7 +162,7 @@ public:
      * Reads a vector from the matrix_data structure and a global row
      * partition.
      *
-     * See @read_distributed
+     * See read_distributed().
      *
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
@@ -346,7 +346,7 @@ public:
                           array<char>& tmp) const;
 
     /**
-     * Computes the square of the column-wise Euclidean ($L^2$) norm of this
+     * Computes the square of the column-wise Euclidean (\f$L^2\f$) norm of this
      * (multi-)vector using a global reduction.
      *
      * @param result  a Dense row vector, used to store the norm
@@ -356,7 +356,7 @@ public:
     void compute_squared_norm2(ptr_param<LinOp> result) const;
 
     /**
-     * Computes the square of the column-wise Euclidean ($L^2$) norm of this
+     * Computes the square of the column-wise Euclidean (\f$L^2\f$) norm of this
      * (multi-)vector using a global reduction.
      *
      * @param result  a Dense row vector, used to store the norm

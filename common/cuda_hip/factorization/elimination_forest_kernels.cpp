@@ -204,7 +204,7 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     // This is a minimum spanning tree algorithm implementation based on
     // A. Fallin, A. Gonzalez, J. Seo, and M. Burtscher,
     // "A High-Performance MST Implementation for GPUs,”
-    // doi: 10.1145/3581784.3607093
+    // <https://doi.org/10.1145/3581784.3607093>
     // we don't filter heavy edges since the heaviest edges are necessary to
     // reach the last node and we don't need to sort since the COO format
     // already sorts by row index.

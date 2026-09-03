@@ -22,8 +22,8 @@ namespace preconditioner {
 /**
  * This class generates the Gauss-Seidel preconditioner.
  *
- * This is the special case of the relaxation factor $\omega = 1$ of the (S)SOR
- * preconditioner.
+ * This is the special case of the relaxation factor \f$\omega = 1\f$ of the
+ * (S)SOR preconditioner.
  *
  * @see Sor
  *

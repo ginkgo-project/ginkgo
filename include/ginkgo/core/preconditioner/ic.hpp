@@ -32,32 +32,34 @@ namespace preconditioner {
 
 
 /**
- * The Incomplete Cholesky (IC) preconditioner solves the equation $LL^H*x = b$
- * for a given lower triangular matrix L and the right hand side b (can contain
- * multiple right hand sides).
+ * The Incomplete Cholesky (IC) preconditioner solves the equation
+ * \f$L L^H x = b\f$ for a given lower triangular matrix \f$L\f$ and the
+ * right hand side \f$b\f$ (can contain multiple right hand sides).
  *
- * It allows setting the solver for L, defaulting to solver::LowerTrs, which is
- * a direct triangular solvers. The solver for L^H is the
- * conjugate-transposed solver for L, ensuring that the preconditioner is
- * symmetric and positive-definite. For this L solver, a factory can be provided
- * (using `with_l_solver`) to have more control over their behavior. In
- * particular, it is possible to use an iterative method for solving the
- * triangular systems.
+ * It allows setting the solver for \f$L\f$, defaulting to solver::LowerTrs,
+ * which is a direct triangular solver. The solver for \f$L^H\f$ is the
+ * conjugate-transposed solver for \f$L\f$, ensuring that the preconditioner
+ * is symmetric and positive-definite. For this \f$L\f$ solver, a factory can
+ * be provided (using `with_l_solver`) to have more control over their
+ * behavior. In particular, it is possible to use an iterative method for
+ * solving the triangular systems.
  *
  * An object of this class can be created with a matrix or a gko::Composition
  * containing two matrices. If created with a matrix, it is factorized before
  * creating the solver. If a gko::Composition (containing two matrices) is
- * used, the first operand will be taken as the L matrix, the second will be
- * considered the L^H matrix, which helps to avoid the otherwise necessary
- * transposition of L inside the solver. ParIc can be directly used, since it
- * orders the factors in the correct way.
+ * used, the first operand will be taken as the \f$L\f$ matrix, the second
+ * will be considered the \f$L^H\f$ matrix, which helps to avoid the
+ * otherwise necessary transposition of \f$L\f$ inside the solver. ParIc can
+ * be directly used, since it orders the factors in the correct way.
  *
  * @note When providing a gko::Composition, the first matrix must be the lower
- *       matrix ($L$), and the second matrix must be its conjugate-transpose
- * ($L^H$). If they are swapped, solving might crash or return the wrong result.
+ *       matrix (\f$L\f$), and the second matrix must be its
+ *       conjugate-transpose (\f$L^H\f$). If they are swapped, solving might
+ *       crash or return the wrong result.
  *
- * @note Do not use symmetric solvers (like CG) for the L solver since both
- *       matrices (L and L^H) are, by design, not symmetric.
+ * @note Do not use symmetric solvers (like CG) for the \f$L\f$ solver since
+ *       both matrices (\f$L\f$ and \f$L^H\f$) are, by design, not
+ *       symmetric.
  *
  * @note This class is not thread safe (even a const object is not) because it
  *       uses an internal cache to accelerate multiple (sequential) applies.
@@ -68,9 +70,10 @@ namespace preconditioner {
  *       <LowerTrs, IndexType>. Only the variants with ValueType are supported
  *       in parse.
  *
- * @tparam ValueType  the value type used for the L matrix.
+ * @tparam ValueType  the value type used for the \f$L\f$ matrix.
  * @tparam IndexType  type of the indices when ParIc is used to generate
- *                    the L and L^H factors. Irrelevant otherwise.
+ *                    the \f$L\f$ and \f$L^H\f$ factors. Irrelevant
+ *                    otherwise.
  *
  * @ingroup precond
  * @ingroup LinOp
@@ -87,7 +90,7 @@ public:
     struct parameters_type
         : public enable_parameters_type<parameters_type, Factory> {
         /**
-         * Factory for the L solver
+         * Factory for the \f$L\f$ solver
          */
         std::shared_ptr<const LinOpFactory> l_solver_factory{};
 
@@ -162,16 +165,16 @@ public:
             config::make_type_descriptor<value_type, index_type>());
 
     /**
-     * Returns the solver which is used for the provided L matrix.
+     * Returns the solver which is used for the provided \f$L\f$ matrix.
      *
-     * @returns  the solver which is used for the provided L matrix
+     * @returns  the solver which is used for the provided \f$L\f$ matrix
      */
     std::shared_ptr<const LinOp> get_l_solver() const { return l_solver_; }
 
     /**
-     * Returns the solver which is used for the L^H matrix.
+     * Returns the solver which is used for the \f$L^H\f$ matrix.
      *
-     * @returns  the solver which is used for the L^H matrix
+     * @returns  the solver which is used for the \f$L^H\f$ matrix
      */
     std::shared_ptr<const LinOp> get_lh_solver() const { return lh_solver_; }
 

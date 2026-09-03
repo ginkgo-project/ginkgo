@@ -95,8 +95,9 @@ typename Minres<ValueType>::parameters_type Minres<ValueType>::parse(
 
 
 /**
- * This Minres implementation is based on Anne Grennbaum's 'Iterative Methods
- * for Solving Linear Systems' (DOI: 10.1137/1.9781611970937) Ch. 2 and Ch. 8.
+ * This Minres implementation is based on Anne Greenbaum's *Iterative Methods
+ * for Solving Linear Systems* (<https://doi.org/10.1137/1.9781611970937>),
+ * Ch. 2 and Ch. 8.
  * Most variable names are taken from that reference, with the exception that
  * the vector `w` and `w_tilde` from the reference are called `z` and `z_tilde`.
  * The variable declaration have a comment to specify the name used in the

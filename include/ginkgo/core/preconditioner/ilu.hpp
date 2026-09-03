@@ -32,13 +32,14 @@ namespace preconditioner {
 
 
 /**
- * The Incomplete LU (ILU) preconditioner solves the equation $LUx = b$ for a
- * given lower triangular matrix L, an upper triangular matrix U and the right
- * hand side b (can contain multiple right hand sides).
+ * The Incomplete LU (ILU) preconditioner solves the equation \f$LUx = b\f$ for
+ * a given lower triangular matrix \f$L\f$, an upper triangular matrix
+ * \f$U\f$ and the right hand side \f$b\f$ (can contain multiple right hand
+ * sides).
  *
- * It allows to set both the solver for L and the solver for U independently,
- * while providing the defaults solver::LowerTrs and solver::UpperTrs, which
- * are direct triangular solvers.
+ * It allows to set both the solver for \f$L\f$ and the solver for \f$U\f$
+ * independently, while providing the defaults solver::LowerTrs and
+ * solver::UpperTrs, which are direct triangular solvers.
  * For these solvers, a factory can be provided (with `with_l_solver` and
  * `with_u_solver`) to have more control over their behavior. In particular, it
  * is possible to use an iterative method for solving the triangular systems.
@@ -46,32 +47,37 @@ namespace preconditioner {
  * An object of this class can be created with a matrix or a gko::Composition
  * containing two matrices. If created with a matrix, it is factorized before
  * creating the solver. If a gko::Composition (containing two matrices) is
- * used, the first operand will be taken as the L matrix, the second will be
- * considered the U matrix. ParIlu can be directly used, since it orders the
- * factors in the correct way.
+ * used, the first operand will be taken as the \f$L\f$ matrix, the second
+ * will be considered the \f$U\f$ matrix. ParIlu can be directly used, since
+ * it orders the factors in the correct way.
  *
  * @note When providing a gko::Composition, the first matrix must be the lower
- *       matrix ($L$), and the second matrix must be the upper matrix ($U$).
- *       If they are swapped, solving might crash or return the wrong result.
+ *       matrix (\f$L\f$), and the second matrix must be the upper matrix
+ *       (\f$U\f$). If they are swapped, solving might crash or return the
+ *       wrong result.
  *
- * @note Do not use symmetric solvers (like CG) for L or U solvers since both
- *       matrices (L and U) are, by design, not symmetric.
+ * @note Do not use symmetric solvers (like CG) for \f$L\f$ or \f$U\f$
+ *       solvers since both matrices (\f$L\f$ and \f$U\f$) are, by design,
+ *       not symmetric.
  *
  * @note This class is not thread safe (even a const object is not) because it
  *       uses an internal cache to accelerate multiple (sequential) applies.
  *       Using it in parallel can lead to segmentation faults, wrong results
  *       and other unwanted behavior.
+ *
  * @note The default template during parse is <ValueType, IndexType> not
  *       <LowerTrs, IndexType>. Only the variants with ValueType are supported
  *       in parse.
  *
- * @tparam ValueType  the value type used for the L and U matrices.
+ * @tparam ValueType  the value type used for the \f$L\f$ and \f$U\f$
+ *                    matrices.
  * @tparam ReverseApply  default behavior (ReverseApply = false) is first to
- *                       solve with L (Ly = b) and then with U (Ux = y).
- *                       When set to true, it will solve first with U, and then
- *                       with L.
+ *                       solve with \f$L\f$ (\f$Ly = b\f$) and then with
+ *                       \f$U\f$ (\f$Ux = y\f$). When set to true, it will
+ *                       solve first with \f$U\f$, and then with \f$L\f$.
  * @tparam IndexType  Type of the indices when ParIlu is used to generate
- *                    both L and U factors. Irrelevant otherwise.
+ *                    both \f$L\f$ and \f$U\f$ factors. Irrelevant
+ *                    otherwise.
  *
  * @ingroup precond
  * @ingroup LinOp
@@ -90,12 +96,12 @@ public:
     struct parameters_type
         : public enable_parameters_type<parameters_type, Factory> {
         /**
-         * Factory for the L solver
+         * Factory for the \f$L\f$ solver
          */
         std::shared_ptr<const LinOpFactory> l_solver_factory{};
 
         /**
-         * Factory for the U solver
+         * Factory for the \f$U\f$ solver
          */
         std::shared_ptr<const LinOpFactory> u_solver_factory{};
 
@@ -177,16 +183,16 @@ public:
             config::make_type_descriptor<value_type, index_type>());
 
     /**
-     * Returns the solver which is used for the provided L matrix.
+     * Returns the solver which is used for the provided \f$L\f$ matrix.
      *
-     * @returns  the solver which is used for the provided L matrix
+     * @returns  the solver which is used for the provided \f$L\f$ matrix
      */
     std::shared_ptr<const LinOp> get_l_solver() const { return l_solver_; }
 
     /**
-     * Returns the solver which is used for the provided U matrix.
+     * Returns the solver which is used for the provided \f$U\f$ matrix.
      *
-     * @returns  the solver which is used for the provided U matrix
+     * @returns  the solver which is used for the provided \f$U\f$ matrix
      */
     std::shared_ptr<const LinOp> get_u_solver() const { return u_solver_; }
 

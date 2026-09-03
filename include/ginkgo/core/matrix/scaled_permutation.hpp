@@ -23,7 +23,7 @@ namespace matrix {
 /**
  * ScaledPermutation is a matrix combining a permutation with scaling factors.
  * It is a combination of Diagonal and Permutation, and can be read as
- * $SP = P \cdot S$, i.e. the scaling gets applied before the permutation.
+ * \f$SP = P \cdot S\f$, i.e. the scaling gets applied before the permutation.
  *
  * @tparam IndexType  index type of permutation indices
  * @tparam ValueType  value type of the scaling factors
@@ -84,7 +84,7 @@ public:
 
     /**
      * Returns the inverse of this operator as a scaled permutation.
-     * It is computed via $(P S)^-1 = P^{-1} (P S P^{-1})$.
+     * It is computed via \f$(P S)^-1 = P^{-1} (P S P^{-1})\f$.
      *
      * @return a newly created ScaledPermutation object storing the inverse
      *         of the permutation and scaling factors of this

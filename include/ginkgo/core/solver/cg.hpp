@@ -35,6 +35,28 @@ namespace solver {
  * Though this method performs very well for symmetric positive definite
  * matrices, it is in general not suitable for general matrices.
  *
+ * CG constructs a sequence of search directions \f$ p_0, p_1, \ldots \f$
+ * that are mutually \f$ A \f$-conjugate (\f$ \langle p_i, A p_j \rangle = 0
+ * \f$ for \f$ i \ne j \f$). The iterate chosen along these directions
+ * minimizes the error in the energy norm over the affine Krylov subspace,
+ * \f[
+ *   x_k = \arg\min_{x \in x_0 + \mathcal{K}_k(A, r_0)}
+ *         \| x - x^{*} \|_A,
+ *   \qquad \| e \|_A = \sqrt{\langle e, A e \rangle},
+ * \f]
+ * which yields a short recurrence: at each step the new search direction
+ * is built from the preconditioned residual \f$ z_k = M r_k \f$ and the
+ * previous direction via the Fletcher-Reeves coefficient
+ * \f[
+ *   \beta_k = \frac{\langle r_k, z_k \rangle}
+ *                  {\langle r_{k-1}, z_{k-1} \rangle},
+ *   \qquad
+ *   p_k = z_k + \beta_k p_{k-1}.
+ * \f]
+ * This formula assumes that \f$ M \f$ stays fixed across iterations; for a
+ * varying preconditioner, use the Polak-Ribière variant in
+ * \ref gko::solver::Fcg "FCG".
+ *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of CG are merged
  * into 2 separate steps.
