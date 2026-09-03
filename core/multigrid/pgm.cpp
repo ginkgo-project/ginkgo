@@ -176,6 +176,9 @@ Pgm<ValueType, IndexType>::parse(const config::pnode& config,
     if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
+    if (auto& obj = config_check.get("weight_symmetrization")) {
+        params.with_weight_symmetrization(config::get_value<bool>(obj));
+    }
 
     return params;
 }
@@ -202,15 +205,19 @@ Pgm<ValueType, IndexType>::generate_local(
                                    -one<IndexType>()));
     IndexType num_unagg = num_rows;
     IndexType num_unagg_prev = num_rows;
-    // TODO: if mtx is a hermitian matrix, weight_mtx = abs(mtx)
-    // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
-    auto abs_mtx = local_matrix->compute_absolute();
-    // abs_mtx is already real valuetype, so transpose is enough
-    auto weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
-    auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
-    auto identity = matrix::Identity<real_type>::create(exec, num_rows);
-    // W = (abs_mtx + transpose(abs_mtx))/2
-    abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
+    std::shared_ptr<weight_csr_type> weight_mtx = nullptr;
+    if (parameters_.weight_symmetrization) {
+        // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
+        auto abs_mtx = local_matrix->compute_absolute();
+        // abs_mtx is already real valuetype, so transpose is enough
+        weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
+        auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
+        auto identity = matrix::Identity<real_type>::create(exec, num_rows);
+        // W = (abs_mtx + transpose(abs_mtx))/2
+        abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
+    } else {
+        weight_mtx = local_matrix->compute_absolute();
+    }
     // Extract the diagonal value of matrix
     auto diag = weight_mtx->extract_diagonal();
     for (int i = 0; i < parameters_.max_iterations; i++) {
