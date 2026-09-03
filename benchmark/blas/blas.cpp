@@ -77,6 +77,16 @@ std::map<std::string, std::function<std::unique_ptr<BenchmarkOperation>(
                  exec, Generator{}, dims.n, dims.k, dims.m, dims.stride_A,
                  dims.stride_B, dims.stride_C);
          }},
+        {"add_diag",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<AddDiagOperation<Generator>>(
+                 exec, Generator{}, dims.n, dims.stride_A);
+         }},
+        {"sub_diag",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<SubDiagOperation<Generator>>(
+                 exec, Generator{}, dims.n, dims.stride_A);
+         }},
         {"prefix_sum32",
          [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
              return std::make_unique<PrefixSumOperation<gko::int32>>(exec,

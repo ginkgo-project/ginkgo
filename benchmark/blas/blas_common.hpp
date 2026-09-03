@@ -36,6 +36,8 @@ DEFINE_string(
     "   norm (a = sqrt(x' * x)),\n"
     "   mm (C = A * B),\n"
     "   gemm (C = a * A * B + b * C)\n"
+    "   add_diag (A = A + a * D)\n"
+    "   sub_diag (A = A - a * D)\n"
     "Non-numerical algorithms:\n"
     "   prefix_sum32 (x_i <- sum_{j=0}^{i-1} x_i, 32 bit indices)\n"
     "   prefix_sum64 (                            64 bit indices)\n"
@@ -370,6 +372,78 @@ private:
     std::unique_ptr<gko::LinOp> A_;
     std::unique_ptr<gko::LinOp> B_;
     std::unique_ptr<gko::LinOp> C_;
+};
+
+
+template <typename Generator>
+class AddDiagOperation : public BenchmarkOperation {
+public:
+    AddDiagOperation(std::shared_ptr<const gko::Executor> exec,
+                     const Generator& generator, gko::size_type n,
+                     gko::size_type stride)
+    {
+        // Since dense distributed matrices are not supported we can use
+        // local_size == global_size
+        A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, n},
+                                                   gko::dim<2>{n, n}, stride);
+        D_ = gko::matrix::Diagonal<etype>::create(exec, n);
+        alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
+
+        as_vector<Generator>(A_)->fill(1);
+        D_->read(gko::matrix_data<etype, itype>::diag(gko::dim<2>{n, n},
+                                                      etype{2.2}));
+        alpha_->fill(1);
+    }
+
+    gko::size_type get_flops() const override { return A_->get_size()[0] * 2; }
+
+    gko::size_type get_memory() const override
+    {
+        return A_->get_size()[0] * 3 * sizeof(etype);
+    }
+
+    void run() override { as_vector<Generator>(A_)->add_scaled(alpha_, D_); }
+
+private:
+    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
+    std::unique_ptr<gko::LinOp> A_;
+    std::unique_ptr<gko::matrix::Diagonal<etype>> D_;
+};
+
+
+template <typename Generator>
+class SubDiagOperation : public BenchmarkOperation {
+public:
+    SubDiagOperation(std::shared_ptr<const gko::Executor> exec,
+                     const Generator& generator, gko::size_type n,
+                     gko::size_type stride)
+    {
+        // Since dense distributed matrices are not supported we can use
+        // local_size == global_size
+        A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, n},
+                                                   gko::dim<2>{n, n}, stride);
+        D_ = gko::matrix::Diagonal<etype>::create(exec, n);
+        alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
+
+        as_vector<Generator>(A_)->fill(1);
+        D_->read(gko::matrix_data<etype, itype>::diag(gko::dim<2>{n, n},
+                                                      etype{2.2}));
+        alpha_->fill(1);
+    }
+
+    gko::size_type get_flops() const override { return A_->get_size()[0] * 2; }
+
+    gko::size_type get_memory() const override
+    {
+        return A_->get_size()[0] * 3 * sizeof(etype);
+    }
+
+    void run() override { as_vector<Generator>(A_)->sub_scaled(alpha_, D_); }
+
+private:
+    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
+    std::unique_ptr<gko::LinOp> A_;
+    std::unique_ptr<gko::matrix::Diagonal<etype>> D_;
 };
 
 
