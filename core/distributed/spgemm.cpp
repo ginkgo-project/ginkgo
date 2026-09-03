@@ -17,6 +17,7 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/base/allocator.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/distributed/matrix_kernels.hpp"
 #include "ginkgo/core/distributed/matrix.hpp"
@@ -46,9 +47,9 @@ GKO_REGISTER_OPERATION(compress_columns, distributed_matrix::compress_columns);
 
 // Turns a per-rank counts vector into the corresponding exclusive-prefix-sum
 // offsets vector (as used for all_to_all_v send/recv displacement arrays).
-std::vector<int> counts_to_offsets(const std::vector<int>& counts)
+gko::vector<int> counts_to_offsets(const gko::vector<int>& counts)
 {
-    std::vector<int> offsets(counts.size());
+    gko::vector<int> offsets(counts.size(), counts.get_allocator());
     std::exclusive_scan(counts.begin(), counts.end(), offsets.begin(), 0);
     return offsets;
 }
@@ -76,7 +77,8 @@ std::unique_ptr<matrix::Csr<ValueType, GlobalIndexType>> merge_to_global_csr(
 
     auto host = exec->get_master();
 
-    // Clone the input blocks to host for index manipulation.
+    // The row_ptrs and values are read by the merge loop below, which runs on
+    // the host, so the blocks themselves have to be available there.
     auto local_host = make_temporary_clone(host, local);
     auto non_local_host = make_temporary_clone(host, non_local);
 
@@ -87,23 +89,20 @@ std::unique_ptr<matrix::Csr<ValueType, GlobalIndexType>> merge_to_global_csr(
     auto non_local_nnz = non_local_host->get_num_stored_elements();
     auto total_nnz = local_nnz + non_local_nnz;
 
-    // Collect the block column indices on host.
-    auto local_cols_host = array<LocalIndexType>(host, local_nnz);
-    if (local_nnz > 0) {
-        std::copy_n(local_host->get_const_col_idxs(), local_nnz,
-                    local_cols_host.get_data());
-    }
-    auto non_local_cols_host = array<LocalIndexType>(host, non_local_nnz);
-    if (non_local_nnz > 0) {
-        std::copy_n(non_local_host->get_const_col_idxs(), non_local_nnz,
-                    non_local_cols_host.get_data());
-    }
-
-    // map_to_global runs on the index map's executor: place the inputs there
-    // and bring the mapped global columns back to host for the merge below.
+    // The column indices, on the other hand, are only fed to map_to_global,
+    // which runs on the index map's executor. View them on the blocks' own
+    // executor instead of copying them through the host; the clone below is a
+    // no-op in the usual case where both live on the same executor. Only the
+    // mapped global columns are brought back for the merge.
     auto imap_exec = imap.get_executor();
-    auto local_cols = make_temporary_clone(imap_exec, &local_cols_host);
-    auto non_local_cols = make_temporary_clone(imap_exec, &non_local_cols_host);
+    const auto local_cols_view =
+        gko::detail::array_const_cast(make_const_array_view(
+            local->get_executor(), local_nnz, local->get_const_col_idxs()));
+    const auto non_local_cols_view = gko::detail::array_const_cast(
+        make_const_array_view(non_local->get_executor(), non_local_nnz,
+                              non_local->get_const_col_idxs()));
+    auto local_cols = make_temporary_clone(imap_exec, &local_cols_view);
+    auto non_local_cols = make_temporary_clone(imap_exec, &non_local_cols_view);
     const auto global_local_cols_dev =
         imap.map_to_global(*local_cols, index_space::local);
     const auto global_non_local_cols_dev =
@@ -196,37 +195,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
                            "spgemm, cuSPARSE requires CUDA 13)");
     }
 
-    // A's column partition must equal B's row partition. The common case is
-    // that they are the same partition object; only otherwise do we compare
-    // range bounds and owners.
+    // A's column partition must equal B's row partition. Partition::equals
+    // short-circuits when both operands share the same partition object, which
+    // is the common case.
     auto a_col_partition = this->imap_.get_partition();
     auto b_row_partition = b_ptr->get_row_partition();
-    if (a_col_partition != b_row_partition) {
-        auto a_col_partition_host = a_col_partition->clone(host);
-        auto b_row_partition_host = b_row_partition->clone(host);
-        bool partitions_match = a_col_partition_host->get_size() ==
-                                    b_row_partition_host->get_size() &&
-                                a_col_partition_host->get_num_ranges() ==
-                                    b_row_partition_host->get_num_ranges();
-        if (partitions_match) {
-            auto num_ranges = a_col_partition_host->get_num_ranges();
-            auto a_bounds = a_col_partition_host->get_range_bounds();
-            auto b_bounds = b_row_partition_host->get_range_bounds();
-            auto a_ids = a_col_partition_host->get_part_ids();
-            auto b_ids = b_row_partition_host->get_part_ids();
-            for (size_type r = 0; r < num_ranges && partitions_match; ++r) {
-                partitions_match = partitions_match &&
-                                   a_bounds[r] == b_bounds[r] &&
-                                   a_ids[r] == b_ids[r];
-            }
-            partitions_match = partitions_match &&
-                               a_bounds[num_ranges] == b_bounds[num_ranges];
-        }
-        if (!partitions_match) {
-            GKO_INVALID_STATE(
-                "distributed spgemm requires the column partition of the left "
-                "operand to match the row partition of the right operand");
-        }
+    if (!a_col_partition->equals(*b_row_partition)) {
+        GKO_INVALID_STATE(
+            "distributed spgemm requires the column partition of the left "
+            "operand to match the row partition of the right operand");
     }
 
     // Merge A and B to global-column CSR
@@ -264,7 +241,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     auto remote_flat = remote_flat_host.get_const_data();
 
     // Per-rank count of B rows to request from each owner.
-    std::vector<int> send_row_counts(nprocs, 0);
+    gko::vector<int> send_row_counts(nprocs, 0, host);
     for (int t = 0; t < n_remote_targets; ++t) {
         auto target_rank = remote_target_ids_ptr[t];
         auto seg_begin = remote_offsets_ptr[t];
@@ -274,7 +251,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     auto send_row_offsets = counts_to_offsets(send_row_counts);
 
     // Exchange request counts
-    std::vector<int> recv_row_counts(nprocs, 0);
+    gko::vector<int> recv_row_counts(nprocs, 0, host);
     comm.all_to_all(host, send_row_counts.data(), 1, recv_row_counts.data(), 1);
 
     auto recv_row_offsets = counts_to_offsets(recv_row_counts);
@@ -283,7 +260,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
 
     // Pack the requested global row indices, grouped by owner rank.
     auto total_send_rows = static_cast<int>(remote_global_idxs.get_size());
-    std::vector<GlobalIndexType> send_row_idxs(total_send_rows);
+    gko::vector<GlobalIndexType> send_row_idxs(total_send_rows, host);
     for (int t = 0; t < n_remote_targets; ++t) {
         auto target_rank = remote_target_ids_ptr[t];
         auto seg_begin = remote_offsets_ptr[t];
@@ -293,7 +270,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     }
 
     // Exchange the actual row index requests
-    std::vector<GlobalIndexType> recv_row_idxs(total_recv_rows);
+    gko::vector<GlobalIndexType> recv_row_idxs(total_recv_rows, host);
     comm.all_to_all_v(host, send_row_idxs.data(), send_row_counts.data(),
                       send_row_offsets.data(), recv_row_idxs.data(),
                       recv_row_counts.data(), recv_row_offsets.data());
@@ -319,8 +296,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     auto recv_local_rows_map_ptr = recv_local_rows_map_host->get_const_data();
 
     // Local row and nnz count for each requested row.
-    std::vector<GlobalIndexType> recv_local_rows(total_recv_rows);
-    std::vector<int> send_nnz_counts(total_recv_rows);
+    gko::vector<GlobalIndexType> recv_local_rows(total_recv_rows, host);
+    gko::vector<int> send_nnz_counts(total_recv_rows, host);
     for (int i = 0; i < total_recv_rows; ++i) {
         auto mapped = recv_local_rows_map_ptr[i];
         auto local_row = (mapped == invalid_index<LocalIndexType>())
@@ -337,13 +314,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
 
     // Exchange nnz counts (send/recv roles swapped: we reply for the rows
     // others requested from us).
-    std::vector<int> recv_nnz_counts(total_send_rows);
+    gko::vector<int> recv_nnz_counts(total_send_rows, host);
     comm.all_to_all_v(host, send_nnz_counts.data(), recv_row_counts.data(),
                       recv_row_offsets.data(), recv_nnz_counts.data(),
                       send_row_counts.data(), send_row_offsets.data());
 
     // Per-rank data (nnz) counts to send and receive.
-    std::vector<int> send_data_counts(nprocs, 0);
+    gko::vector<int> send_data_counts(nprocs, 0, host);
     for (int r = 0; r < nprocs; ++r) {
         for (int i = recv_row_offsets[r];
              i < recv_row_offsets[r] + recv_row_counts[r]; ++i) {
@@ -354,7 +331,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     int total_send_data =
         send_data_offsets[nprocs - 1] + send_data_counts[nprocs - 1];
 
-    std::vector<int> recv_data_counts(nprocs, 0);
+    gko::vector<int> recv_data_counts(nprocs, 0, host);
     for (int r = 0; r < nprocs; ++r) {
         for (int i = send_row_offsets[r];
              i < send_row_offsets[r] + send_row_counts[r]; ++i) {
@@ -366,8 +343,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
         recv_data_offsets[nprocs - 1] + recv_data_counts[nprocs - 1];
 
     // Pack the column indices and values of the requested rows.
-    std::vector<GlobalIndexType> send_col_idxs(total_send_data);
-    std::vector<ValueType> send_vals(total_send_data);
+    gko::vector<GlobalIndexType> send_col_idxs(total_send_data, host);
+    gko::vector<ValueType> send_vals(total_send_data, host);
     {
         int pos = 0;
         for (int i = 0; i < total_recv_rows; ++i) {
@@ -385,13 +362,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     }
 
     // Exchange column indices
-    std::vector<GlobalIndexType> recv_col_idxs(total_recv_data);
+    gko::vector<GlobalIndexType> recv_col_idxs(total_recv_data, host);
     comm.all_to_all_v(host, send_col_idxs.data(), send_data_counts.data(),
                       send_data_offsets.data(), recv_col_idxs.data(),
                       recv_data_counts.data(), recv_data_offsets.data());
 
     // Exchange values
-    std::vector<ValueType> recv_vals(total_recv_data);
+    gko::vector<ValueType> recv_vals(total_recv_data, host);
     comm.all_to_all_v(host, send_vals.data(), send_data_counts.data(),
                       send_data_offsets.data(), recv_vals.data(),
                       recv_data_counts.data(), recv_data_offsets.data());
@@ -409,7 +386,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
 
     // B_augmented row_ptrs: local-row lengths from b_merged, then remote-row
     // nnz counts.
-    std::vector<GlobalIndexType> b_aug_row_ptrs(b_aug_nrows + 1, 0);
+    gko::vector<GlobalIndexType> b_aug_row_ptrs(b_aug_nrows + 1, 0, host);
     for (GlobalIndexType row = 0; row < b_local_nrows; ++row) {
         b_aug_row_ptrs[row + 1] =
             static_cast<GlobalIndexType>(b_row_ptrs[row + 1] - b_row_ptrs[0]);
@@ -424,8 +401,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
                      b_aug_row_ptrs.begin() + b_local_nrows);
 
     auto b_aug_nnz = b_aug_row_ptrs[b_aug_nrows];
-    std::vector<GlobalIndexType> b_aug_col_idxs(b_aug_nnz);
-    std::vector<ValueType> b_aug_vals(b_aug_nnz);
+    gko::vector<GlobalIndexType> b_aug_col_idxs(b_aug_nnz, host);
+    gko::vector<ValueType> b_aug_vals(b_aug_nnz, host);
 
     // Copy local B data
     auto b_local_nnz = b_row_ptrs[b_local_nrows] - b_row_ptrs[0];
@@ -466,7 +443,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     // unmapped one would be written out as invalid_index and then read as an
     // out-of-bounds row of B_augmented, so check it rather than corrupt the
     // product. The flag keeps the branch out of the assignment path.
-    std::vector<LocalIndexType> a_remap_col_idxs(a_nnz);
+    gko::vector<LocalIndexType> a_remap_col_idxs(a_nnz, host);
     bool all_cols_mapped = true;
     for (size_type k = 0; k < a_nnz; ++k) {
         const auto mapped = a_remap_local_ptr[k];
@@ -507,11 +484,12 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
 
     // Local SpGEMM (LocalIndexType). a_remapped's columns index B_augmented's
     // rows; B_augmented's columns are the compact column space.
-    std::vector<LocalIndexType> a_row_ptrs_local(a_nrows + 1);
+    gko::vector<LocalIndexType> a_row_ptrs_local(a_nrows + 1, host);
     for (GlobalIndexType i = 0; i <= a_nrows; ++i) {
         a_row_ptrs_local[i] = static_cast<LocalIndexType>(a_row_ptrs[i]);
     }
-    std::vector<LocalIndexType> b_aug_row_ptrs_local(b_aug_row_ptrs.size());
+    gko::vector<LocalIndexType> b_aug_row_ptrs_local(b_aug_row_ptrs.size(),
+                                                     host);
     for (size_type i = 0; i < b_aug_row_ptrs.size(); ++i) {
         b_aug_row_ptrs_local[i] =
             static_cast<LocalIndexType>(b_aug_row_ptrs[i]);
