@@ -149,32 +149,34 @@ public:
         /**
          * Krylov subspace dimension/restart value.
          *
-         * With restart_tol positive this is a cap on the basis size rather than
-         * the restart length, and a cycle ends at whichever criterion is met
-         * first.
+         * With restart_tol positive this caps the basis size rather than
+         * setting the restart length, and a cycle ends at whichever criterion
+         * is met first. It remains the memory bound.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
 
         /**
          * Restart tolerance.
          *
-         * If positive, a cycle ends as soon as
+         * If positive, a cycle ends once
          * \f$ \|r_i - A d_i\| \leq \text{restart\_tol} \cdot \|r_i\| \f$
-         * holds for every right-hand side that has not already stopped, where
-         * \f$r_i\f$ is the residual at the start of the cycle. Since
-         * \f$\|A\|_F \|d_i\| \geq 0\f$ enlarges the denominator of the
-         * backward error, this bounds the normwise backward error of the
-         * correction by restart_tol, which is what admits a backward error
-         * analysis of the restarted method.
+         * holds for every right-hand side still running, where \f$r_i\f$ is
+         * the residual at the start of the cycle and \f$d_i\f$ the correction
+         * built so far. This bounds the normwise backward error of the
+         * correction by restart_tol, which is what makes the restarted method
+         * analyzable as iterative refinement. A cycle cut short by krylov_dim
+         * carries no such bound.
          *
-         * Must lie in [0, 1), with 0.9 to 0.95 the useful range. Well below one
-         * the test is only met after the cycle has done most of the work of a
-         * full solve, so krylov_dim governs the restart again. Close to one the
-         * cycles are too short for the subspace to make progress; at exactly
-         * one the non-increasing GMRES residual satisfies the test at every
-         * iteration, so values outside [0, 1) are rejected.
+         * Must lie in [0, 1), and must exceed the reduction a krylov_dim-step
+         * cycle achieves, or it never fires. Use 1e-3 to 1e-1 when a cycle
+         * gains orders of magnitude, and around 0.9 when it gains only a few
+         * percent.
          *
          * Zero, the default, disables the criterion.
+         *
+         * For the criterion and its analysis, see sec. 4.2 of
+         * <a href="https://doi.org/10.1093/imanum/draf049">A Modular Framework
+         * for the Backward Error Analysis of GMRES</a>.
          */
         remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(restart_tol,
                                                                0.0);
@@ -231,12 +233,11 @@ protected:
         if (!parameters_.krylov_dim) {
             parameters_.krylov_dim = gmres_default_krylov_dim;
         }
-        if (parameters_.restart_tol < zero<remove_complex<ValueType>>() ||
-            parameters_.restart_tol >= one<remove_complex<ValueType>>()) {
-            GKO_INVALID_STATE(
-                "restart_tol must lie in [0, 1); zero disables the criterion "
-                "and values close to but below one are the useful range");
-        }
+        GKO_THROW_IF_INVALID(
+            parameters_.restart_tol >= zero<remove_complex<ValueType>>() &&
+                parameters_.restart_tol < one<remove_complex<ValueType>>(),
+            "restart_tol must lie in [0, 1); zero disables the criterion "
+            "and values close to but below one are the useful range");
     }
 };
 

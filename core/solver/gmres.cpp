@@ -416,41 +416,45 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // With one rhs the loop has already been left if it stopped, so the
     // synchronizing copy of its status is not needed.
     const bool need_host_stop_status = use_restart_tol && num_rhs > 1;
+    // ||r_i||, the residual norm when the current cycle started, and the
+    // current ||r_i - A d_i||, both kept on the host.
+    std::unique_ptr<NormVector> cycle_start_norm;
     std::unique_ptr<NormVector> host_residual_norm;
-    std::vector<remove_complex<ValueType>> cycle_start_norm;
     array<stopping_status> host_stop_status(exec->get_master());
     if (use_restart_tol) {
+        cycle_start_norm =
+            NormVector::create(exec->get_master(), dim<2>{1, num_rhs});
         host_residual_norm =
             NormVector::create(exec->get_master(), dim<2>{1, num_rhs});
-        cycle_start_norm.resize(num_rhs, zero<remove_complex<ValueType>>());
         if (need_host_stop_status) {
             host_stop_status.resize_and_reset(num_rhs);
         }
     }
-    auto record_cycle_start = [&] {
+    auto record_cycle_start = [&](const NormVector* res_norm) {
         if (use_restart_tol) {
-            host_residual_norm->copy_from(residual_norm);
-            for (size_type i = 0; i < num_rhs; ++i) {
-                cycle_start_norm[i] = host_residual_norm->at(0, i);
-            }
+            cycle_start_norm->copy_from(res_norm);
         }
     };
-    // ||r_i - A d_i|| <= restart_tol * ||r_i|| for every unstopped rhs.
-    auto cycle_tolerance_met = [&] {
+    // Returns true if ||r_i - A d_i|| <= restart_tol * ||r_i|| for every rhs
+    // that has not stopped, where r_i is the residual at the start of the
+    // cycle and d_i the correction the cycle has built so far.
+    auto cycle_tolerance_met = [&](const NormVector* res_norm,
+                                   const array<stopping_status>& stop) {
         if (!use_restart_tol) {
             return false;
         }
-        host_residual_norm->copy_from(residual_norm);
+        host_residual_norm->copy_from(res_norm);
         if (need_host_stop_status) {
-            host_stop_status = stop_status;
+            host_stop_status = stop;
         }
         for (size_type i = 0; i < num_rhs; ++i) {
             if (need_host_stop_status &&
                 host_stop_status.get_const_data()[i].has_stopped()) {
                 continue;
             }
+            // Negated so a non-finite norm does not count as meeting it.
             if (!(host_residual_norm->at(0, i) <=
-                  restart_tol * cycle_start_norm[i])) {
+                  restart_tol * cycle_start_norm->at(0, i))) {
                 return false;
             }
         }
@@ -480,7 +484,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         residual_norm_collection->get_device_view(),
         gko::detail::get_local(krylov_bases)->get_device_view(),
         final_iter_nums.get_data()));
-    record_cycle_start();
+    record_cycle_start(residual_norm);
 
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
@@ -489,7 +493,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     int total_iter = -1;
     size_type restart_iter = 0;
-    bool perform_reset = false;
 
     /* Memory movement summary for average iteration with krylov_dim d:
      * (5/2d+21/2+14/d)n * values + (1+1/d) * matrix/preconditioner storage
@@ -525,9 +528,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             break;
         }
 
-        if (restart_iter == krylov_dim || perform_reset) {
+        if (restart_iter == krylov_dim ||
+            cycle_tolerance_met(residual_norm, stop_status)) {
             // Restart
-            perform_reset = false;
             // Solve upper triangular.
             // y = hessenberg \ residual_norm_collection
             exec->run(gmres::make_solve_krylov(
@@ -564,7 +567,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 gko::detail::get_local(krylov_bases)->get_device_view(),
                 final_iter_nums.get_data()));
             restart_iter = 0;
-            record_cycle_start();
+            record_cycle_start(residual_norm);
         }
         auto this_krylov = krylov_bases->create_submatrix(
             local_span{local_num_rows * restart_iter,
@@ -660,11 +663,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             final_iter_nums.get_data(), stop_status.get_const_data()));
 
         restart_iter++;
-
-        // The restart is then taken at the top of the next iteration.
-        if (restart_iter < krylov_dim && cycle_tolerance_met()) {
-            perform_reset = true;
-        }
     }
 
     auto hessenberg_small = hessenberg->create_submatrix(
