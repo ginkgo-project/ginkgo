@@ -128,8 +128,9 @@ __device__ __forceinline__ void apply_gauss_jordan_transform_with_rhs(
  * done in-place, so the original matrix will be overridden with the inverse.
  * The inversion routine uses implicit pivoting, so the returned matrix will be
  * a permuted inverse (from both sides). To obtain the correct inverse, the
- * rows of the result should be permuted with $P$, and the columns with
- * $ P^T $ (i.e. $ A^{-1} = P X P $, where $ X $ is the returned matrix). These
+ * rows of the result should be permuted with \f$P\f$, and the columns with
+ * \f$ P^T \f$ (i.e. \f$ A^{-1} = P X P \f$, where \f$ X \f$ is the
+ * returned matrix). These
  * permutation matrices are returned compressed as vectors `perm`
  * and`trans_perm`, respectively. `i`-th value of each of the vectors is
  * returned to thread of the group with rank `i`.
@@ -146,8 +147,9 @@ __device__ __forceinline__ void apply_gauss_jordan_transform_with_rhs(
  * @param row  a pointer to the matrix row (i-th thread in the group should
  *             pass the pointer to the i-th row), has to have at least
  *             max_problem_size elements
- * @param perm  a value to hold an element of permutation matrix $ P $
- * @param trans_perm  a value to hold an element of permutation matrix $ P^T $
+ * @param perm  a value to hold an element of permutation matrix \f$ P \f$
+ * @param trans_perm  a value to hold an element of permutation matrix
+ *                    \f$ P^T \f$
  *
  * @return true if the inversion succeeded, false otherwise
  */
@@ -275,7 +277,8 @@ __device__ __forceinline__ void copy_matrix(
  *
  * Multiplies a transposed vector and a matrix stored in column-major order.
  *
- * In mathematical terms, performs the operation $ res^T = vec^T \cdot mtx$.
+ * In mathematical terms, performs the operation
+ * \f$ res^T = vec^T \cdot mtx\f$.
  *
  * @tparam max_problem_size  maximum problem size passed to the routine
  * @tparam Group  type of the group of threads
@@ -330,7 +333,7 @@ __device__ __forceinline__ void multiply_transposed_vec(
  *
  * Multiplies a matrix and a vector stored in column-major order.
  *
- * In mathematical terms, performs the operation $res = mtx \cdot vec$.
+ * In mathematical terms, performs the operation \f$res = mtx \cdot vec\f$.
  *
  * @tparam max_problem_size  maximum problem size passed to the routine
  * @tparam Group  type of the group of threads
@@ -353,7 +356,7 @@ __device__ __forceinline__ void multiply_transposed_vec(
  * @param closure_op  Operation that is performed when writing to
                      `res[group.thread_rank() * res_increment]` as
                      `closure_op(res[group.thread_rank() * res_increment], out)`
-                      where `out` is the result of $mtx \cdot vec$.
+                      where `out` is the result of \f$mtx \cdot vec\f$.
  */
 template <
     int max_problem_size, typename Group, typename MatrixValueType,
