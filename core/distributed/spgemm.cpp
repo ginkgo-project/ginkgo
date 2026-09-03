@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -25,6 +26,16 @@ namespace gko {
 namespace experimental {
 namespace distributed {
 namespace {
+
+
+// Whether cuSPARSE provides a 64-bit index spgemm, which it only does from
+// CUDA 13 on.
+#if defined(GKO_CUDA_TOOLKIT_VERSION_MAJOR) && \
+    (GKO_CUDA_TOOLKIT_VERSION_MAJOR >= 13)
+constexpr bool cuda_has_int64_spgemm = true;
+#else
+constexpr bool cuda_has_int64_spgemm = false;
+#endif
 
 
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
@@ -160,6 +171,22 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     GKO_ASSERT(this->get_row_partition() != nullptr);
     GKO_ASSERT(b_ptr->get_row_partition() != nullptr);
     GKO_ASSERT_CONFORMANT(this, b_ptr);
+
+    // The local product below runs in LocalIndexType, so 64-bit local indices
+    // are only usable where the backend's spgemm supports them: rocSPARSE has
+    // no 64-bit spgemm at all, and cuSPARSE only gained one in CUDA 13. Reject
+    // those combinations here, before any communication happens, instead of
+    // letting the vendor library fail with an opaque status code deep inside
+    // the local product. Every rank runs the same check, so they all throw
+    // together and none is left waiting in a collective.
+    if (sizeof(LocalIndexType) > 4 &&
+        (dynamic_cast<const HipExecutor*>(exec.get()) != nullptr ||
+         (!cuda_has_int64_spgemm &&
+          dynamic_cast<const CudaExecutor*>(exec.get()) != nullptr))) {
+        throw NotSupported(__FILE__, __LINE__, __func__,
+                           "64-bit LocalIndexType (rocSPARSE has no 64-bit "
+                           "spgemm, cuSPARSE requires CUDA 13)");
+    }
 
     // A's column partition must equal B's row partition. The common case is
     // that they are the same partition object; only otherwise do we compare
