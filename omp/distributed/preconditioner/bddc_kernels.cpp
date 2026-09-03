@@ -292,7 +292,8 @@ void classify_dofs_2(
     size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
     size_type& n_vertices, size_type& n_faces, size_type& n_edges,
     size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
-    bool use_edges, bool use_connected_components) GKO_NOT_IMPLEMENTED;
+    bool use_edges, bool use_connected_components,
+    bool unanimous_connectivity) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_CLASSIFY_DOFS2);
@@ -317,7 +318,8 @@ void classify_dofs_3(
     size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
     size_type& n_vertices, size_type& n_faces, size_type& n_edges,
     size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
-    bool use_edges, bool use_connected_components) GKO_NOT_IMPLEMENTED;
+    bool use_edges, bool use_connected_components,
+    bool unanimous_connectivity) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
     GKO_DECLARE_CLASSIFY_DOFS3);

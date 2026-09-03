@@ -401,7 +401,7 @@ void classify_dofs_2(
     size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
     size_type& n_vertices, size_type& n_faces, size_type& n_edges,
     size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
-    bool use_edges, bool use_connected_components)
+    bool use_edges, bool use_connected_components, bool unanimous_connectivity)
 {
     using uint_type = typename gko::detail::float_traits<ValueType>::bits_type;
     using dof_type = experimental::distributed::preconditioner::dof_type;
@@ -409,13 +409,37 @@ void classify_dofs_2(
     auto n_rows = labels->get_size()[0];
     auto n_cols = labels->get_size()[1];
     std::vector<uint_type> key(n_cols, zero<ValueType>());
+
+    // vertex_flags holds, per dof, the number of sharing ranks that saw it as
+    // an endpoint of its interface, summed by the exchange in classify_dofs.
+    // With unanimous_connectivity, a single such rank makes the dof a vertex on
+    // all of them, so a rank that does not see an interface's connectivity
+    // reports its dofs as endpoints and turns them into vertices everywhere.
+    // Without it, connectivity beats isolation: the dof is only promoted if
+    // every sharing rank sees it as an endpoint, so one that any rank still
+    // sees connected to its interface stays part of it and is reconnected by
+    // the connected component analysis from the ranks that do see the
+    // adjacency. That analysis is what replaces the promotion here, so without
+    // it the unanimous rule is kept and an interface cannot end up with no
+    // vertex at all. `key` must hold the dof's label.
+    auto is_endpoint = [&](size_type i) {
+        if (unanimous_connectivity || !use_connected_components) {
+            return vertex_flags[i] > 0;
+        }
+        IndexType n_ranks = 0;
+        for (size_type c = 0; c < n_cols; c++) {
+            n_ranks += static_cast<IndexType>(gko::detail::popcount(key[c]));
+        }
+        return vertex_flags[i] >= static_cast<ValueType>(n_ranks);
+    };
+
     for (size_type i = 0; i < n_rows; i++) {
         if (dof_types.get_data()[i] ==
             experimental::distributed::preconditioner::dof_type::edge) {
             std::memcpy(key.data(), local_labels + n_cols * i,
                         n_cols * sizeof(uint_type));
             auto keypair = std::make_pair(key, tags.get_const_data()[i]);
-            if (vertex_flags[i] > 0) {
+            if (is_endpoint(i)) {
                 n_vertices++;
                 n_edge_idxs--;
                 dof_types.get_data()[i] =
@@ -441,7 +465,7 @@ void classify_dofs_2(
             std::memcpy(key.data(), local_labels + n_cols * i,
                         n_cols * sizeof(uint_type));
             auto keypair = std::make_pair(key, tags.get_const_data()[i]);
-            if (vertex_flags[i] > 0) {
+            if (is_endpoint(i)) {
                 n_vertices++;
                 n_face_idxs--;
                 dof_types.get_data()[i] = dof_type::vertex;
@@ -491,15 +515,12 @@ void classify_dofs_2(
 
     if (use_connected_components) {
         // Emit this rank's local interface adjacency as global index pairs.
-        // classify_dofs gathers these across all ranks; an edge is kept only if
-        // *every* rank sharing it reports it (see classify_dofs_3), so the
-        // resulting graph is identical on all ranks and its connected
-        // components define globally consistent coarse dofs. Unlike a purely
-        // local component analysis, this requires a single adjacency path that
-        // all sharing subdomains agree on, which is what splits interfaces that
-        // are only connected via rank-specific paths. We attach, per edge, the
-        // number of ranks sharing it (popcount of the shared label) as the
-        // agreement threshold.
+        // classify_dofs gathers these across all ranks and applies the same
+        // keep rule everywhere (see classify_dofs_3), so the resulting graph is
+        // identical on all ranks and its connected components define globally
+        // consistent coarse dofs. We attach, per edge, the number of ranks
+        // sharing it (popcount of the shared label) as the agreement
+        // threshold, which the unanimous keep rule compares against.
         std::vector<GlobalIndexType> src;
         std::vector<GlobalIndexType> dst;
         std::vector<IndexType> expected;
@@ -569,7 +590,7 @@ void classify_dofs_3(
     size_type& n_inner_idxs, size_type& n_face_idxs, size_type& n_edge_idxs,
     size_type& n_vertices, size_type& n_faces, size_type& n_edges,
     size_type& n_constraints, int& n_owning_interfaces, bool use_faces,
-    bool use_edges, bool use_connected_components)
+    bool use_edges, bool use_connected_components, bool unanimous_connectivity)
 {
     using uint_type = typename gko::detail::float_traits<ValueType>::bits_type;
     using dof_type = experimental::distributed::preconditioner::dof_type;
@@ -582,12 +603,11 @@ void classify_dofs_3(
 
     if (use_connected_components) {
         // Build the cross-rank-consistent interface adjacency graph from the
-        // gathered local edges: an edge is kept only if the number of ranks
-        // that reported it equals the number of ranks sharing it (its expected
-        // agreement count). Because every rank receives the full edge multiset,
-        // every rank builds the identical graph and hence identical connected
-        // components. Each component is identified by the minimum global index
-        // it contains, which becomes the coarse-dof tag of all its dofs.
+        // gathered local edges. Because every rank receives the full edge
+        // multiset and applies the same keep rule, every rank builds the
+        // identical graph and hence identical connected components. Each
+        // component is identified by the minimum global index it contains,
+        // which becomes the coarse-dof tag of all its dofs.
         auto n_global_edges = global_edge_src.get_size();
         std::map<std::pair<GlobalIndexType, GlobalIndexType>,
                  std::pair<IndexType, IndexType>>
@@ -600,9 +620,17 @@ void classify_dofs_3(
             entry.second = global_edge_expected.get_const_data()[e];
         }
 
+        // With unanimous_connectivity, an adjacency is only kept if the
+        // number of ranks that reported it equals the number of ranks sharing
+        // it (its expected agreement count), so a single rank seeing two dofs
+        // as disconnected separates them on all ranks. Without it, every
+        // gathered adjacency is kept - each of them was reported by at least
+        // one rank - so connectivity beats isolation and a dof that a single
+        // rank sees as connected to its interface stays part of it everywhere.
         std::vector<std::pair<GlobalIndexType, GlobalIndexType>> kept_edges;
         for (const auto& kv : edge_counts) {
-            if (kv.second.first == kv.second.second) {
+            if (!unanimous_connectivity ||
+                kv.second.first == kv.second.second) {
                 kept_edges.emplace_back(kv.first);
             }
         }

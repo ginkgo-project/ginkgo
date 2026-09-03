@@ -126,6 +126,33 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(connected_components, true);
 
+        /**
+         * Policy resolving disagreement about interface connectivity. Since
+         * the subdomains have different local matrices, the ranks sharing an
+         * interface do not necessarily agree on whether two of its dofs are
+         * connected. Both the endpoint analysis, which turns the dofs at the
+         * ends of an interface into vertices, and the connected component
+         * analysis, which splits an interface into coarse dofs, depend on that
+         * connectivity.
+         *
+         * If true, isolation beats connectivity: a dof is made a vertex as
+         * soon as a single rank sees it as an endpoint of its interface, and
+         * an adjacency is only used if all sharing ranks report it. A rank
+         * that does not see an interface's connectivity therefore breaks it up
+         * into vertices on all of them.
+         *
+         * If false, connectivity beats isolation: a dof is only made a vertex
+         * if all sharing ranks see it as an endpoint, and an adjacency
+         * reported by any sharing rank is used. A dof that a single rank sees
+         * as connected to its interface hence stays part of that interface's
+         * coarse dof on all of them.
+         *
+         * Only has an effect if connected_components is set, since the
+         * component analysis is what reconnects the dofs that are no longer
+         * turned into vertices.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(unanimous_connectivity, true);
+
         std::shared_ptr<const stop::CriterionFactory>
             GKO_DEFERRED_FACTORY_PARAMETER(local_criterion);
 
