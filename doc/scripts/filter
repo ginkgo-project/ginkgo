@@ -26,8 +26,12 @@ while (<>)
     ########################################################
 
 
-    # make sure we can just write $...$ for formulas.
-    s/\$/\@f\$/g;
+    # make sure we can just write $...$ for formulas. The negative lookbehind
+    # keeps doxygen's own \f$...\f$ delimiters intact: without it, \f$A\f$
+    # would become \f@f$A\f@f$, doxygen would read the @f$ as the delimiter
+    # and capture "A\f" as the formula body, and latex would then fail with
+    # "Undefined control sequence" while generating the formula images.
+    s/(?<!\\f)\$/\@f\$/g;
 
     # however, undo that change if the dollar sign was escaped with a backslash
     s/\\\@f\$/\$/g;

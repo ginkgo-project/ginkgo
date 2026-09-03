@@ -1,0 +1,135 @@
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
+#include "core/multigrid/pmis_kernels.hpp"
+
+#include <random>
+
+#include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
+
+#include "common/unified/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/array_access.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
+
+
+namespace gko {
+namespace kernels {
+namespace GKO_DEVICE_NAMESPACE {
+/**
+ * @brief The Pmis namespace.
+ *
+ * @ingroup pmis
+ */
+namespace pmis {
+
+
+template <typename ValueType, typename IndexType>
+void compute_row_maxabs(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType>* csr,
+                        remove_complex<ValueType>* row_maxabs)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PMIS_COMPUTE_ROW_MAXABS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,
+                            const matrix::Csr<ValueType, IndexType>* csr,
+                            const remove_complex<ValueType>* row_maxabs,
+                            remove_complex<ValueType> strength_threshold,
+                            IndexType* sparsity_rows)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void compute_strong_dep(std::shared_ptr<const DefaultExecutor> exec,
+                        const matrix::Csr<ValueType, IndexType>* csr,
+                        const remove_complex<ValueType>* row_maxabs,
+                        remove_complex<ValueType> strength_threshold,
+                        matrix::SparsityCsr<ValueType, IndexType>* strong_dep)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void initialize_weight_and_status(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
+    remove_complex<ValueType>* weight, int* status)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void classify(std::shared_ptr<const DefaultExecutor> exec,
+              const remove_complex<ValueType>* weight,
+              const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
+              const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
+              const int* status, int* new_status)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_CLASSIFY_KERNEL);
+
+
+void count(std::shared_ptr<const DefaultExecutor> exec, size_type num,
+           const int* status, size_type* num_unassigned)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+
+template <typename ValueType, typename IndexType>
+void direct_interpolation_row_count(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
+    const int* status, IndexType* prolong_row_ptr)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIRECT_INTERPOLATION_ROW_COUNT);
+
+
+template <typename ValueType, typename IndexType>
+void direct_interpolation_fill(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* csr,
+    const remove_complex<ValueType>* row_maxabs,
+    const remove_complex<ValueType> strength_threshold,
+    const IndexType* coarse_map, const IndexType* prolong_row_ptrs,
+    IndexType* prolong_col_idxs, ValueType* prolong_values)
+{
+    GKO_NOT_IMPLEMENTED;
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIRECT_INTERPOLATION_FILL);
+
+
+}  // namespace pmis
+}  // namespace GKO_DEVICE_NAMESPACE
+}  // namespace kernels
+}  // namespace gko
