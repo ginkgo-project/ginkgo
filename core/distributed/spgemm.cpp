@@ -168,8 +168,16 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     auto rank = comm.rank();
     auto nprocs = comm.size();
 
-    GKO_ASSERT(this->get_row_partition() != nullptr);
-    GKO_ASSERT(b_ptr->get_row_partition() != nullptr);
+    if (this->get_row_partition() == nullptr) {
+        GKO_INVALID_STATE(
+            "distributed spgemm requires a row partition on the left operand, "
+            "which is only set when the matrix is filled by read_distributed");
+    }
+    if (b_ptr->get_row_partition() == nullptr) {
+        GKO_INVALID_STATE(
+            "distributed spgemm requires a row partition on the right operand, "
+            "which is only set when the matrix is filled by read_distributed");
+    }
     GKO_ASSERT_CONFORMANT(this, b_ptr);
 
     // The local product below runs in LocalIndexType, so 64-bit local indices
@@ -214,7 +222,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
             partitions_match = partitions_match &&
                                a_bounds[num_ranges] == b_bounds[num_ranges];
         }
-        GKO_ASSERT(partitions_match);
+        if (!partitions_match) {
+            GKO_INVALID_STATE(
+                "distributed spgemm requires the column partition of the left "
+                "operand to match the row partition of the right operand");
+        }
     }
 
     // Merge A and B to global-column CSR
@@ -450,10 +462,23 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     auto a_remap_local_host = make_temporary_clone(host, &a_remap_local);
     auto a_remap_local_ptr = a_remap_local_host->get_const_data();
 
+    // Every column of A has to resolve in the combined index space; an
+    // unmapped one would be written out as invalid_index and then read as an
+    // out-of-bounds row of B_augmented, so check it rather than corrupt the
+    // product. The flag keeps the branch out of the assignment path.
     std::vector<LocalIndexType> a_remap_col_idxs(a_nnz);
+    bool all_cols_mapped = true;
     for (size_type k = 0; k < a_nnz; ++k) {
-        GKO_ASSERT(a_remap_local_ptr[k] != invalid_index<LocalIndexType>());
-        a_remap_col_idxs[k] = a_remap_local_ptr[k];
+        const auto mapped = a_remap_local_ptr[k];
+        if (mapped == invalid_index<LocalIndexType>()) {
+            all_cols_mapped = false;
+        }
+        a_remap_col_idxs[k] = mapped;
+    }
+    if (!all_cols_mapped) {
+        GKO_INVALID_STATE(
+            "a column of the left operand could not be mapped into the "
+            "combined index space of its column index map");
     }
 
     // The local spgemm runs with LocalIndexType (32-bit) indices, which every
@@ -525,8 +550,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     // splits into c's diagonal (local columns) and off-diagonal (remote
     // columns) blocks, from which we build c's column index map and row
     // gatherer -- all with device kernels, avoiding any host round-trip.
+    // Already checked for null at function entry, and this is a const member
+    // function, so the partition cannot have changed since.
     auto a_row_partition = this->get_row_partition();
-    GKO_ASSERT(a_row_partition != nullptr);
     auto b_col_partition = b_ptr->imap_.get_partition();
     auto c_num_local_rows = c_local->get_size()[0];
     auto c_nnz = c_local->get_num_stored_elements();

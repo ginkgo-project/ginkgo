@@ -639,4 +639,71 @@ TYPED_TEST(DistSpgemm, EmptyLocalRowsMatchesSequential)
 }
 
 
+TYPED_TEST(DistSpgemm, ThrowsIfLeftOperandHasNoRowPartition)
+{
+    using dist_mtx = typename TestFixture::dist_mtx;
+    using Partition = typename TestFixture::Partition;
+
+    const gko::size_type n = 6;
+    auto nprocs = this->comm.size();
+    auto partition = gko::share(
+        Partition::build_from_global_size_uniform(this->exec, nprocs, n));
+    // Never filled by read_distributed, so it carries no row partition.
+    auto a_mat = dist_mtx::create(this->exec, this->comm);
+    auto b_mat = dist_mtx::create(this->exec, this->comm);
+    b_mat->read_distributed(this->build_identity(n), partition);
+    auto c_mat = dist_mtx::create(this->exec, this->comm);
+
+    ASSERT_THROW(a_mat->multiply(b_mat, c_mat), gko::InvalidStateError);
+}
+
+
+TYPED_TEST(DistSpgemm, ThrowsIfRightOperandHasNoRowPartition)
+{
+    using dist_mtx = typename TestFixture::dist_mtx;
+    using Partition = typename TestFixture::Partition;
+
+    const gko::size_type n = 6;
+    auto nprocs = this->comm.size();
+    auto partition = gko::share(
+        Partition::build_from_global_size_uniform(this->exec, nprocs, n));
+    auto a_mat = dist_mtx::create(this->exec, this->comm);
+    a_mat->read_distributed(this->build_identity(n), partition);
+    // Never filled by read_distributed, so it carries no row partition.
+    auto b_mat = dist_mtx::create(this->exec, this->comm);
+    auto c_mat = dist_mtx::create(this->exec, this->comm);
+
+    ASSERT_THROW(a_mat->multiply(b_mat, c_mat), gko::InvalidStateError);
+}
+
+
+TYPED_TEST(DistSpgemm, ThrowsIfColumnPartitionDoesNotMatchRowPartition)
+{
+    using dist_mtx = typename TestFixture::dist_mtx;
+    using Partition = typename TestFixture::Partition;
+    using local_index_type = typename TestFixture::local_index_type;
+    // The unsupported-backend check runs before the partition comparison.
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type);
+
+    const gko::size_type n = 6;
+    auto nprocs = this->comm.size();
+    // Same global size, but different range bounds, so A's column partition
+    // and B's row partition describe genuinely different distributions.
+    auto uniform_part = gko::share(
+        Partition::build_from_global_size_uniform(this->exec, nprocs, n));
+    gko::array<gko::experimental::mpi::comm_index_type> skewed_mapping{
+        this->exec, {0, 0, 0, 1, 1, 2}};
+    auto skewed_part = gko::share(
+        Partition::build_from_mapping(this->exec, skewed_mapping, nprocs));
+
+    auto a_mat = dist_mtx::create(this->exec, this->comm);
+    a_mat->read_distributed(this->build_identity(n), uniform_part);
+    auto b_mat = dist_mtx::create(this->exec, this->comm);
+    b_mat->read_distributed(this->build_identity(n), skewed_part);
+    auto c_mat = dist_mtx::create(this->exec, this->comm);
+
+    ASSERT_THROW(a_mat->multiply(b_mat, c_mat), gko::InvalidStateError);
+}
+
+
 #endif
