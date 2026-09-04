@@ -35,7 +35,7 @@ add_instantiation_files(
 list(
     APPEND
     GKO_UNIFIED_COMMON_SOURCES
-    ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp
+    ${PROJECT_SOURCE_DIR}/common/unified/matrix/multivector_kernels.instantiate.cpp
 )
 target_sources(
     ginkgo_cuda

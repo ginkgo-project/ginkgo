@@ -826,10 +826,10 @@ void AdvectionProblem<dim>::solve()
     std::copy(system_rhs.begin(), system_rhs.begin() + num_rows, rhs.begin());
 
     // Ginkgo setup
-    // Some shortcuts: A vector is a Dense matrix with co-dimension 1.
+    // Some shortcuts: A vector is a MultiVector with co-dimension 1.
     // The matrix is setup in CSR. But various formats can be used. Look at
     // Ginkgo's documentation.
-    using vec = gko::matrix::Dense<>;
+    using vec = gko::matrix::MultiVector<>;
     using mtx = gko::matrix::Csr<>;
     using bicgstab = gko::solver::Bicgstab<>;
     using bj = gko::preconditioner::Jacobi<>;

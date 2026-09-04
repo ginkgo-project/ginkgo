@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -106,8 +106,8 @@ void output_timestep(std::pair<cv::VideoWriter, cv::Mat>& output, int n,
 
 int main(int argc, char* argv[])
 {
-    using vec = gko::matrix::Dense<std::complex<double>>;
-    using real_vec = gko::matrix::Dense<double>;
+    using vec = gko::matrix::MultiVector<std::complex<double>>;
+    using real_vec = gko::matrix::MultiVector<double>;
     using fft2 = gko::matrix::Fft2;
 
     // Problem parameters:

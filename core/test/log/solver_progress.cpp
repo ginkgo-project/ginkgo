@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,15 +19,15 @@
 template <typename T>
 class SolverProgress : public ::testing::Test {
 public:
-    using Dense = gko::matrix::Dense<T>;
+    using MultiVector = gko::matrix::MultiVector<T>;
     using Cg = gko::solver::Cg<T>;
 
     SolverProgress() : ref{gko::ReferenceExecutor::create()}
     {
-        mtx = gko::initialize<Dense>({T{1.0}}, ref);
-        in = gko::initialize<Dense>({T{2.0}}, ref);
-        out = gko::initialize<Dense>({T{4.0}}, ref);
-        zero = gko::initialize<Dense>({T{0.0}}, ref);
+        mtx = gko::initialize<MultiVector>({T{1.0}}, ref);
+        in = gko::initialize<MultiVector>({T{2.0}}, ref);
+        out = gko::initialize<MultiVector>({T{4.0}}, ref);
+        zero = gko::initialize<MultiVector>({T{0.0}}, ref);
         solver =
             Cg::build()
                 .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -53,18 +53,18 @@ public:
             return;
         }
         // check that the files have the correct contents
-        auto mtx = gko::read<Dense>(stream_mtx, ref);
-        auto mtx_bin = gko::read_binary<Dense>(stream_bin, ref);
+        auto mtx = gko::read<MultiVector>(stream_mtx, ref);
+        auto mtx_bin = gko::read_binary<MultiVector>(stream_bin, ref);
         cleanup();
         GKO_ASSERT_MTX_NEAR(mtx, ref_mtx, 0.0);
         GKO_ASSERT_MTX_NEAR(mtx_bin, ref_mtx, 0.0);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<Dense> mtx;
-    std::shared_ptr<Dense> in;
-    std::unique_ptr<Dense> out;
-    std::unique_ptr<Dense> zero;
+    std::shared_ptr<MultiVector> mtx;
+    std::shared_ptr<MultiVector> in;
+    std::unique_ptr<MultiVector> out;
+    std::unique_ptr<MultiVector> zero;
     std::unique_ptr<Cg> solver;
 };
 
@@ -138,10 +138,10 @@ TYPED_TEST(SolverProgress, CsvWorks)
 TYPED_TEST(SolverProgress, StorageWorks)
 {
     using T = TypeParam;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     auto orig_out = this->out->clone();
-    auto init_residual = gko::initialize<Dense>({T{-2.0}}, this->ref);
-    std::vector<std::pair<std::string, Dense*>> files{
+    auto init_residual = gko::initialize<MultiVector>({T{-2.0}}, this->ref);
+    std::vector<std::pair<std::string, MultiVector*>> files{
         {"solver_progress_test_0_beta", nullptr},
         {"solver_progress_test_0_implicit_sq_residual_norm", orig_out.get()},
         {"solver_progress_test_0_minus_one", nullptr},

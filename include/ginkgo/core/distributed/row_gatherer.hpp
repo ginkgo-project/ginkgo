@@ -72,7 +72,7 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
  * auto rg = distributed::RowGatherer<int32>::create(exec, coll_comm, imap);
  *
  * auto b = distributed::Vector<double>::create(...);
- * auto x = matrix::Dense<double>::create(...);
+ * auto x = matrix::MultiVector<double>::create(...);
  *
  * auto req = rg->apply_async(b, x);
  * // users can do some computation that doesn't modify b, or access x
@@ -118,9 +118,9 @@ public:
      *          will lead to undefined behavior.
      *
      * @param b  the input distributed::Vector.
-     * @param x  the output matrix::Dense with the rows gathered from b. Its
-     *           executor has to be compatible with the MPI implementation, see
-     *           the class documentation.
+     * @param x  the output matrix::MultiVector with the rows gathered from b.
+     * Its executor has to be compatible with the MPI implementation, see the
+     * class documentation.
      *
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
@@ -136,9 +136,9 @@ public:
      *          data transfers.
      *
      * @param b  the input distributed::Vector.
-     * @param x  the output matrix::Dense with the rows gathered from b. Its
-     *           executor has to be compatible with the MPI implementation, see
-     *           the class documentation.
+     * @param x  the output matrix::MultiVector with the rows gathered from b.
+     * Its executor has to be compatible with the MPI implementation, see the
+     * class documentation.
      * @param workspace  a workspace to store temporary data for the operation.
      *                   This might not be modified before the request is
      *                   waited on.

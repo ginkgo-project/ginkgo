@@ -14,7 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "core/base/array_access.hpp"
@@ -26,7 +26,7 @@
 class Csr : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Csr<value_type, index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
 
     Csr() : rand_engine(15) {}
 

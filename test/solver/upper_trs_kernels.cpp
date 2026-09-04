@@ -10,7 +10,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
 #include "core/test/utils.hpp"
@@ -21,7 +21,7 @@
 class UpperTrs : public CommonTestFixture {
 protected:
     using mtx_type = gko::matrix::Csr<value_type, index_type>;
-    using vec_type = gko::matrix::Dense<value_type>;
+    using vec_type = gko::matrix::MultiVector<value_type>;
     using solver_type = gko::solver::UpperTrs<value_type, index_type>;
 
     UpperTrs() : rand_engine(30) {}
@@ -77,7 +77,7 @@ protected:
 };
 
 
-TEST_F(UpperTrs, ApplyFullDenseMtxIsEquivalentToRef)
+TEST_F(UpperTrs, ApplyFullMultiVectorMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
     auto upper_trs_factory = solver_type::build().on(ref);
@@ -92,7 +92,7 @@ TEST_F(UpperTrs, ApplyFullDenseMtxIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ApplyFullDenseMtxUnitDiagIsEquivalentToRef)
+TEST_F(UpperTrs, ApplyFullMultiVectorMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
     auto upper_trs_factory =
@@ -141,7 +141,7 @@ TEST_F(UpperTrs, ApplyFullSparseMtxUnitDiagIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ApplyTriangularDenseMtxIsEquivalentToRef)
+TEST_F(UpperTrs, ApplyTriangularMultiVectorMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
     auto upper_trs_factory = solver_type::build().on(ref);
@@ -156,7 +156,7 @@ TEST_F(UpperTrs, ApplyTriangularDenseMtxIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
+TEST_F(UpperTrs, ApplyTriangularMultiVectorMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
     auto upper_trs_factory =
@@ -205,7 +205,7 @@ TEST_F(UpperTrs, ApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
+TEST_F(UpperTrs, ApplyFullMultiVectorMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 4, 50);
     auto upper_trs_factory = solver_type::build().with_num_rhs(4u).on(ref);
@@ -220,7 +220,7 @@ TEST_F(UpperTrs, ApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
+TEST_F(UpperTrs, ApplyFullMultiVectorMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 5, 50);
     auto upper_trs_factory =
@@ -269,7 +269,7 @@ TEST_F(UpperTrs, ApplyFullSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
+TEST_F(UpperTrs, ApplyTriangularMultiVectorMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 8, 50);
     auto upper_trs_factory = solver_type::build().with_num_rhs(8u).on(ref);
@@ -284,7 +284,8 @@ TEST_F(UpperTrs, ApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
+TEST_F(UpperTrs,
+       ApplyTriangularMultiVectorMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 9, 50);
     auto upper_trs_factory =
@@ -337,7 +338,7 @@ TEST_F(UpperTrs, ApplyTriangularSparseMtxUnitDiagMultipleRhsIsEquivalentToRef)
 #ifdef GKO_COMPILING_CUDA
 
 
-TEST_F(UpperTrs, ClassicalApplyFullDenseMtxIsEquivalentToRef)
+TEST_F(UpperTrs, ClassicalApplyFullMultiVectorMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
     dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
@@ -353,7 +354,7 @@ TEST_F(UpperTrs, ClassicalApplyFullDenseMtxIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ClassicalApplyFullDenseMtxUnitDiagIsEquivalentToRef)
+TEST_F(UpperTrs, ClassicalApplyFullMultiVectorMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
     dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
@@ -405,7 +406,7 @@ TEST_F(UpperTrs, ClassicalApplyFullSparseMtxUnitDiagIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxIsEquivalentToRef)
+TEST_F(UpperTrs, ClassicalApplyTriangularMultiVectorMtxIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
     dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
@@ -421,7 +422,8 @@ TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxUnitDiagIsEquivalentToRef)
+TEST_F(UpperTrs,
+       ClassicalApplyTriangularMultiVectorMtxUnitDiagIsEquivalentToRef)
 {
     initialize_data(50, 1, 50);
     dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
@@ -473,7 +475,7 @@ TEST_F(UpperTrs, ClassicalApplyTriangularSparseMtxUnitDiagIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ClassicalApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
+TEST_F(UpperTrs, ClassicalApplyFullMultiVectorMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 4, 50);
     dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
@@ -489,7 +491,8 @@ TEST_F(UpperTrs, ClassicalApplyFullDenseMtxMultipleRhsIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs, ClassicalApplyFullDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
+TEST_F(UpperTrs,
+       ClassicalApplyFullMultiVectorMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 5, 50);
     dmtx->set_strategy(gko::matrix::csr::spmv_strategy::classical);
@@ -542,7 +545,8 @@ TEST_F(UpperTrs,
 }
 
 
-TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
+TEST_F(UpperTrs,
+       ClassicalApplyTriangularMultiVectorMtxMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 8, 50);
     dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);
@@ -558,8 +562,9 @@ TEST_F(UpperTrs, ClassicalApplyTriangularDenseMtxMultipleRhsIsEquivalentToRef)
 }
 
 
-TEST_F(UpperTrs,
-       ClassicalApplyTriangularDenseMtxUnitDiagMultipleRhsIsEquivalentToRef)
+TEST_F(
+    UpperTrs,
+    ClassicalApplyTriangularMultiVectorMtxUnitDiagMultipleRhsIsEquivalentToRef)
 {
     initialize_data(50, 9, 50);
     dmtx_u->set_strategy(gko::matrix::csr::spmv_strategy::classical);

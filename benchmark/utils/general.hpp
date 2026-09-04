@@ -399,7 +399,7 @@ std::shared_ptr<gko::Executor> get_executor(bool use_gpu_timer)
 
 // ginkgo shortcuts
 template <typename ValueType>
-using vec = gko::matrix::Dense<ValueType>;
+using vec = gko::matrix::MultiVector<ValueType>;
 
 
 // Create a matrix with value indices s[i, j] = sin(i)
@@ -529,7 +529,7 @@ std::unique_ptr<VectorType> create_normalized_manufactured_rhs(
 
     auto vec_size = solution->get_size();
     auto scaled_solution = gko::clone(solution);
-    auto scalar = gko::matrix::Dense<rc_etype>::create(
+    auto scalar = gko::matrix::MultiVector<rc_etype>::create(
         exec->get_master(), gko::dim<2>{1, vec_size[1]});
     solution->compute_norm2(scalar);
     for (gko::size_type i = 0; i < vec_size[1]; ++i) {

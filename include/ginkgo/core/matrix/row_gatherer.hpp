@@ -32,8 +32,8 @@ namespace matrix {
  *
  * @note This format is used mainly to allow for an abstraction of the
  * rowgatherer and provides the user with an apply method which
- * calls the respective Dense rowgatherer operation. As such it only stores an
- * array of the rowgatherer indices.
+ * calls the respective MultiVector rowgatherer operation. As such it only
+ * stores an array of the rowgatherer indices.
  *
  * @ingroup rowgatherer
  * @ingroup matrix

@@ -131,8 +131,8 @@ public:
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
-        auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
-        auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
+        auto dense_b = gko::as<gko::matrix::MultiVector<ValueType>>(b);
+        auto dense_x = gko::as<gko::matrix::MultiVector<ValueType>>(x);
         auto db = dense_b->get_const_values();
         auto dx = dense_x->get_values();
         ValueType alpha = gko::one<ValueType>();
@@ -197,8 +197,8 @@ void cusparse_generic_spmv(std::shared_ptr<const gko::CudaExecutor> gpu_exec,
 {
     cudaDataType_t cu_value = gko::kernels::cuda::cuda_data_type<ValueType>();
     using gko::kernels::cuda::as_culibs_type;
-    auto dense_b = gko::as<gko::matrix::Dense<ValueType>>(b);
-    auto dense_x = gko::as<gko::matrix::Dense<ValueType>>(x);
+    auto dense_b = gko::as<gko::matrix::MultiVector<ValueType>>(b);
+    auto dense_x = gko::as<gko::matrix::MultiVector<ValueType>>(x);
     auto db = dense_b->get_const_values();
     auto dx = dense_x->get_values();
     auto guard = gpu_exec->get_scoped_device_id_guard();

@@ -13,8 +13,8 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -229,7 +229,7 @@ protected:
                                        initial_guess_mode guess) const override;
 
     void set_relaxation_factor(
-        std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
+        std::shared_ptr<const matrix::MultiVector<ValueType>> new_factor);
 
     explicit Ir(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
@@ -253,13 +253,13 @@ protected:
                 this->get_executor(), this->get_size()[0]));
         }
         this->set_default_initial_guess(parameters_.default_initial_guess);
-        relaxation_factor_ = gko::initialize<matrix::Dense<ValueType>>(
+        relaxation_factor_ = gko::initialize<matrix::MultiVector<ValueType>>(
             {parameters_.relaxation_factor}, this->get_executor());
     }
 
 private:
     std::shared_ptr<const LinOp> solver_{};
-    std::shared_ptr<const matrix::Dense<ValueType>> relaxation_factor_{};
+    std::shared_ptr<const matrix::MultiVector<ValueType>> relaxation_factor_{};
 };
 
 

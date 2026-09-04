@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,11 +21,11 @@
 
 
 template <typename ValueType>
-using vec = gko::matrix::Dense<ValueType>;
+using vec = gko::matrix::MultiVector<ValueType>;
 
 
 template <typename ValueType>
-using real_vec = gko::matrix::Dense<gko::remove_complex<ValueType>>;
+using real_vec = gko::matrix::MultiVector<gko::remove_complex<ValueType>>;
 
 
 namespace utils {
@@ -291,7 +291,7 @@ void print_usage(const char* filename)
 
 
 template <typename ValueType>
-void print_vector(const gko::matrix::Dense<ValueType>* vec)
+void print_vector(const gko::matrix::MultiVector<ValueType>* vec)
 {
     auto elements_to_print = std::min(gko::size_type(10), vec->get_size()[0]);
     std::cout << "[" << std::endl;
@@ -324,7 +324,7 @@ int main(int argc, char* argv[])
 
 
     // Simple shortcut
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;

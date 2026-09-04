@@ -14,11 +14,11 @@
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
@@ -393,7 +393,7 @@ Csr<ValueType, IndexType>::Csr(Csr<ValueType, IndexType>&& other)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
+    using ComplexMultiVector = MultiVector<to_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
@@ -517,17 +517,17 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                            const LinOp* beta, LinOp* x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using RealDense = Dense<remove_complex<ValueType>>;
+    using ComplexMultiVector = MultiVector<to_complex<ValueType>>;
+    using RealMultiVector = MultiVector<remove_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
         this->get_executor()->run(csr::make_advanced_spgemm(
-            as<Dense<ValueType>>(alpha)->get_const_device_view(),
+            as<MultiVector<ValueType>>(alpha)->get_const_device_view(),
             this->get_const_device_view(), b_csr->get_const_device_view(),
-            as<Dense<ValueType>>(beta)->get_const_device_view(),
+            as<MultiVector<ValueType>>(beta)->get_const_device_view(),
             x_copy->get_const_device_view(),
             make_builder_unique_ptr(x_csr).get()));
     } else if (dynamic_cast<const Identity<ValueType>*>(b)) {
@@ -535,9 +535,9 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         auto x_csr = as<TCsr>(x);
         auto x_copy = x_csr->clone();
         this->get_executor()->run(csr::make_spgeam(
-            as<Dense<ValueType>>(alpha)->get_const_device_view(),
+            as<MultiVector<ValueType>>(alpha)->get_const_device_view(),
             this->get_const_device_view(),
-            as<Dense<ValueType>>(beta)->get_const_device_view(),
+            as<MultiVector<ValueType>>(beta)->get_const_device_view(),
             x_copy->get_const_device_view(),
             make_builder_unique_ptr(x_csr).get()));
     } else {
@@ -647,7 +647,7 @@ void Csr<ValueType, IndexType>::move_to(Coo<ValueType, IndexType>* result)
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
+void Csr<ValueType, IndexType>::convert_to(MultiVector<ValueType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp_result = make_temporary_output_clone(exec, result);
@@ -659,7 +659,7 @@ void Csr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 
 
 template <typename ValueType, typename IndexType>
-void Csr<ValueType, IndexType>::move_to(Dense<ValueType>* result)
+void Csr<ValueType, IndexType>::move_to(MultiVector<ValueType>* result)
 {
     this->convert_to(result);
 }
@@ -1016,8 +1016,9 @@ Csr<ValueType, IndexType>::multiply_reuse(ptr_param<const Csr> other) const
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>>
 Csr<ValueType, IndexType>::multiply_add(
-    ptr_param<const Dense<value_type>> scale_mult,
-    ptr_param<const Csr> mtx_mult, ptr_param<const Dense<value_type>> scale_add,
+    ptr_param<const MultiVector<value_type>> scale_mult,
+    ptr_param<const Csr> mtx_mult,
+    ptr_param<const MultiVector<value_type>> scale_add,
     ptr_param<const Csr> mtx_add) const
 {
     GKO_ASSERT_CONFORMANT(this, mtx_mult);
@@ -1085,8 +1086,8 @@ Csr<ValueType, IndexType>::multiply_add_reuse_info::multiply_add_reuse_info(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::multiply_add_reuse_info::update_values(
-    ptr_param<const Csr> mtx1, ptr_param<const Dense<value_type>> alpha,
-    ptr_param<const Csr> mtx2, ptr_param<const Dense<value_type>> beta,
+    ptr_param<const Csr> mtx1, ptr_param<const MultiVector<value_type>> alpha,
+    ptr_param<const Csr> mtx2, ptr_param<const MultiVector<value_type>> beta,
     ptr_param<const Csr> mtx3, ptr_param<Csr> out) const
 {
     if (!internal) {
@@ -1125,8 +1126,9 @@ template <typename ValueType, typename IndexType>
 std::pair<std::unique_ptr<Csr<ValueType, IndexType>>,
           typename Csr<ValueType, IndexType>::multiply_add_reuse_info>
 Csr<ValueType, IndexType>::multiply_add_reuse(
-    ptr_param<const Dense<value_type>> scale_mult,
-    ptr_param<const Csr> mtx_mult, ptr_param<const Dense<value_type>> scale_add,
+    ptr_param<const MultiVector<value_type>> scale_mult,
+    ptr_param<const Csr> mtx_mult,
+    ptr_param<const MultiVector<value_type>> scale_add,
     ptr_param<const Csr> mtx_add) const
 {
     GKO_ASSERT_CONFORMANT(this, mtx_mult);
@@ -1162,8 +1164,8 @@ Csr<ValueType, IndexType>::multiply_add_reuse(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::scale_add(
-    ptr_param<const Dense<value_type>> scale_this,
-    ptr_param<const Dense<value_type>> scale_other,
+    ptr_param<const MultiVector<value_type>> scale_this,
+    ptr_param<const MultiVector<value_type>> scale_other,
     ptr_param<const Csr> mtx_other) const
 {
     auto exec = this->get_executor();
@@ -1213,8 +1215,8 @@ Csr<ValueType, IndexType>::scale_add_reuse_info::operator=(
 
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::scale_add_reuse_info::update_values(
-    ptr_param<const Dense<value_type>> scale1, ptr_param<const Csr> mtx1,
-    ptr_param<const Dense<value_type>> scale2, ptr_param<const Csr> mtx2,
+    ptr_param<const MultiVector<value_type>> scale1, ptr_param<const Csr> mtx1,
+    ptr_param<const MultiVector<value_type>> scale2, ptr_param<const Csr> mtx2,
     ptr_param<Csr> out) const
 {
     if (!internal) {
@@ -1259,8 +1261,8 @@ template <typename ValueType, typename IndexType>
 std::pair<std::unique_ptr<Csr<ValueType, IndexType>>,
           typename Csr<ValueType, IndexType>::scale_add_reuse_info>
 Csr<ValueType, IndexType>::add_scale_reuse(
-    ptr_param<const Dense<value_type>> scale_this,
-    ptr_param<const Dense<value_type>> scale_other,
+    ptr_param<const MultiVector<value_type>> scale_this,
+    ptr_param<const MultiVector<value_type>> scale_other,
     ptr_param<const Csr> mtx_other) const
 {
     auto exec = this->get_executor();
@@ -1792,23 +1794,24 @@ Csr<ValueType, IndexType>::create_submatrix(
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Dense<ValueType>> Csr<ValueType, IndexType>::create_value_view()
+std::unique_ptr<MultiVector<ValueType>>
+Csr<ValueType, IndexType>::create_value_view()
 {
     const auto nnz = this->get_num_stored_elements();
     const auto exec = this->get_executor();
-    return Dense<ValueType>::create(
+    return MultiVector<ValueType>::create(
         exec, gko::dim<2>{nnz, 1},
         make_array_view(exec, nnz, this->get_values()), 1);
 }
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<const Dense<ValueType>>
+std::unique_ptr<const MultiVector<ValueType>>
 Csr<ValueType, IndexType>::create_const_value_view() const
 {
     const auto nnz = this->get_num_stored_elements();
     const auto exec = this->get_executor();
-    return Dense<ValueType>::create_const(
+    return MultiVector<ValueType>::create_const(
         exec, gko::dim<2>{nnz, 1},
         make_const_array_view(exec, nnz, this->get_const_values()), 1);
 }

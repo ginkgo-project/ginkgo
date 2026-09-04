@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -160,7 +160,7 @@ TYPED_TEST(VectorCache, CanInitFromVector)
 }
 
 
-TYPED_TEST(VectorCache, SecondInitFromSameDenseIsNoOp)
+TYPED_TEST(VectorCache, SecondInitFromSameMultiVectorIsNoOp)
 {
     this->cache.init_from(this->default_vector.get());
     auto first_ptr = this->cache.get();
@@ -176,7 +176,7 @@ TYPED_TEST(VectorCache, SecondInitFromSameDenseIsNoOp)
 }
 
 
-TYPED_TEST(VectorCache, SecondInitFromDifferentDenseWithSameSizeIsNoOp)
+TYPED_TEST(VectorCache, SecondInitFromDifferentMultiVectorWithSameSizeIsNoOp)
 {
     using vector_type = typename TestFixture::vector_type;
     this->cache.init_from(this->default_vector.get());

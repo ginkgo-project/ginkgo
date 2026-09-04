@@ -11,7 +11,7 @@
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/sor.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
@@ -62,8 +62,8 @@ TYPED_TEST(Sor, CanInitializeLFactor)
 {
     using value_type = typename TestFixture::value_type;
     auto result = gko::clone(this->expected_l);
-    result->scale(
-        gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
+    result->scale(gko::initialize<gko::matrix::MultiVector<value_type>>(
+        {0.0}, this->exec));
 
     gko::kernels::reference::sor::initialize_weighted_l(
         this->exec, this->mtx->get_const_device_view(), 1.0,
@@ -78,8 +78,8 @@ TYPED_TEST(Sor, CanInitializeLFactorWithWeight)
     using value_type = typename TestFixture::value_type;
     using csr_type = typename TestFixture::csr_type;
     auto result = gko::clone(this->expected_l);
-    result->scale(
-        gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
+    result->scale(gko::initialize<gko::matrix::MultiVector<value_type>>(
+        {0.0}, this->exec));
     std::shared_ptr<csr_type> expected_l =
         gko::initialize<csr_type>({{2 * this->diag_value, 0, 0, 0, 0},
                                    {-2, 2 * this->diag_value, 0, 0, 0},
@@ -101,10 +101,10 @@ TYPED_TEST(Sor, CanInitializeLAndUFactor)
     using value_type = typename TestFixture::value_type;
     auto result_l = gko::clone(this->expected_l);
     auto result_u = gko::clone(this->expected_u);
-    result_l->scale(
-        gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
-    result_u->scale(
-        gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
+    result_l->scale(gko::initialize<gko::matrix::MultiVector<value_type>>(
+        {0.0}, this->exec));
+    result_u->scale(gko::initialize<gko::matrix::MultiVector<value_type>>(
+        {0.0}, this->exec));
 
     gko::kernels::reference::sor::initialize_weighted_l_u(
         this->exec, this->mtx->get_const_device_view(), 1.0,
@@ -121,10 +121,10 @@ TYPED_TEST(Sor, CanInitializeLAndUFactorWithWeight)
     using csr_type = typename TestFixture::csr_type;
     auto result_l = gko::clone(this->expected_l);
     auto result_u = gko::clone(this->expected_u);
-    result_l->scale(
-        gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
-    result_u->scale(
-        gko::initialize<gko::matrix::Dense<value_type>>({0.0}, this->exec));
+    result_l->scale(gko::initialize<gko::matrix::MultiVector<value_type>>(
+        {0.0}, this->exec));
+    result_u->scale(gko::initialize<gko::matrix::MultiVector<value_type>>(
+        {0.0}, this->exec));
     auto factor = static_cast<gko::remove_complex<value_type>>(0.5);
     auto diag_weight =
         static_cast<gko::remove_complex<value_type>>(1.0 / (2 - factor));
@@ -202,7 +202,7 @@ TYPED_TEST(Sor, CanGenerateSymmetric)
     auto result_l = gko::as<l_trs_type>(ops[1])->get_system_matrix();
     GKO_ASSERT_MTX_NEAR(result_l, this->expected_l, 0.0);
     auto expected_u = gko::clone(this->expected_u);
-    expected_u->inv_scale(gko::initialize<gko::matrix::Dense<value_type>>(
+    expected_u->inv_scale(gko::initialize<gko::matrix::MultiVector<value_type>>(
         {this->diag_value}, this->exec));
     GKO_ASSERT_MTX_NEAR(result_u, expected_u, r<value_type>::value);
 }

@@ -16,7 +16,7 @@ namespace matrix {
 
 
 template <typename ValueType>
-class Dense;
+class MultiVector;
 
 template <typename ValueType, typename IndexType>
 class Coo;
@@ -59,7 +59,7 @@ class Ell : public LinOp,
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Ell<next_precision<ValueType, 3>, IndexType>>,
 #endif
-            public ConvertibleTo<Dense<ValueType>>,
+            public ConvertibleTo<MultiVector<ValueType>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
@@ -67,7 +67,7 @@ class Ell : public LinOp,
             public EnableAbsoluteComputation<
                 remove_complex<Ell<ValueType, IndexType>>> {
     friend class EnableCloneable<Ell>;
-    friend class Dense<ValueType>;
+    friend class MultiVector<ValueType>;
     friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;
     friend class Ell<to_complex<ValueType>, IndexType>;
@@ -80,8 +80,8 @@ public:
     using EnableCloneable<Ell>::move_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::move_to;
-    using ConvertibleTo<Dense<ValueType>>::convert_to;
-    using ConvertibleTo<Dense<ValueType>>::move_to;
+    using ConvertibleTo<MultiVector<ValueType>>::convert_to;
+    using ConvertibleTo<MultiVector<ValueType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
@@ -124,9 +124,9 @@ public:
     void move_to(Ell<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(Dense<ValueType>* other) const override;
+    void convert_to(MultiVector<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    void move_to(MultiVector<ValueType>* other) override;
 
     void convert_to(Csr<ValueType, IndexType>* other) const override;
 

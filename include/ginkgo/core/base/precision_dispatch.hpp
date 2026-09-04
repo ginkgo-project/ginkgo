@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,52 +10,54 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace gko {
 
 
 /**
- * Convert the given LinOp from matrix::Dense<...> to matrix::Dense<ValueType>.
- * The conversion tries to convert the input LinOp to all Dense types with value
- * type recursively reachable by next_precision_base<...> starting from the
- * ValueType template parameter. This means that all real-to-real and
- * complex-to-complex conversions for default precisions are being considered.
- * If the input matrix is non-const, the contents of the modified converted
- * object will be converted back to the input matrix when the returned object is
- * destroyed. This may lead to a loss of precision!
+ * Convert the given LinOp from matrix::MultiVector<...> to
+ * matrix::MultiVector<ValueType>. The conversion tries to convert the input
+ * LinOp to all MultiVector types with value type recursively reachable by
+ * next_precision_base<...> starting from the ValueType template parameter. This
+ * means that all real-to-real and complex-to-complex conversions for default
+ * precisions are being considered. If the input matrix is non-const, the
+ * contents of the modified converted object will be converted back to the input
+ * matrix when the returned object is destroyed. This may lead to a loss of
+ * precision!
  *
  * @param matrix  the input matrix which is supposed to be converted. It is
  *                wrapped unchanged if it is already of type
- *                matrix::Dense<ValueType>, otherwise it will be converted to
- *                this type if possible.
+ *                matrix::MultiVector<ValueType>, otherwise it will be converted
+ * to this type if possible.
  *
  * @returns  a detail::temporary_conversion pointing to the (potentially
  *           converted) object.
  *
  * @throws NotSupported  if the input matrix cannot be converted to
- *                       matrix::Dense<ValueType>
+ *                       matrix::MultiVector<ValueType>
  *
- * @tparam ValueType  the value type into whose associated matrix::Dense type to
- *                    convert the input LinOp.
+ * @tparam ValueType  the value type into whose associated matrix::MultiVector
+ *                    type to convert the input LinOp.
  */
 template <typename ValueType, typename Ptr>
 detail::temporary_conversion<std::conditional_t<
-    std::is_const<detail::pointee<Ptr>>::value, const matrix::Dense<ValueType>,
-    matrix::Dense<ValueType>>>
+    std::is_const<detail::pointee<Ptr>>::value,
+    const matrix::MultiVector<ValueType>, matrix::MultiVector<ValueType>>>
 make_temporary_conversion(Ptr&& matrix)
 {
     using Pointee = detail::pointee<Ptr>;
-    using Dense = matrix::Dense<ValueType>;
-    using NextDense = matrix::Dense<next_precision<ValueType>>;
-    using Next2Dense = matrix::Dense<next_precision<ValueType, 2>>;
-    using Next3Dense = matrix::Dense<next_precision<ValueType, 3>>;
-    using MaybeConstDense =
-        std::conditional_t<std::is_const<Pointee>::value, const Dense, Dense>;
+    using MultiVector = matrix::MultiVector<ValueType>;
+    using NextMultiVector = matrix::MultiVector<next_precision<ValueType>>;
+    using Next2MultiVector = matrix::MultiVector<next_precision<ValueType, 2>>;
+    using Next3MultiVector = matrix::MultiVector<next_precision<ValueType, 3>>;
+    using MaybeConstMultiVector =
+        std::conditional_t<std::is_const<Pointee>::value, const MultiVector,
+                           MultiVector>;
     auto result =
-        detail::temporary_conversion<MaybeConstDense>::template create<
-            NextDense, Next2Dense, Next3Dense>(matrix);
+        detail::temporary_conversion<MaybeConstMultiVector>::template create<
+            NextMultiVector, Next2MultiVector, Next3MultiVector>(matrix);
     if (!result) {
         GKO_NOT_SUPPORTED(matrix);
     }
@@ -65,11 +67,11 @@ make_temporary_conversion(Ptr&& matrix)
 
 /**
  * Calls the given function with each given argument LinOp temporarily
- * converted into matrix::Dense<ValueType> as parameters.
+ * converted into matrix::MultiVector<ValueType> as parameters.
  *
  * @param fn  the given function. It will be passed one (potentially const)
- *            matrix::Dense<ValueType>* parameter per parameter in the parameter
- *            pack `linops`.
+ *            matrix::MultiVector<ValueType>* parameter per parameter in the
+ * parameter pack `linops`.
  * @param linops  the given arguments to be converted and passed on to fn.
  *
  * @tparam ValueType  the value type to use for the parameters of `fn`.
@@ -86,32 +88,32 @@ void precision_dispatch(Function fn, Args*... linops)
 
 /**
  * Calls the given function with the given LinOps temporarily converted to
- * matrix::Dense<ValueType>* as parameters.
+ * matrix::MultiVector<ValueType>* as parameters.
  * If ValueType is real and both input vectors are complex, uses
- * matrix::Dense::create_real_view() to convert them into real matrices after
- * precision conversion.
+ * matrix::MultiVector::create_real_view() to convert them into real matrices
+ * after precision conversion.
  *
  * @see precision_dispatch()
  */
 template <typename ValueType, typename Function>
 void precision_dispatch_real_complex(Function fn, const LinOp* in, LinOp* out)
 {
-    // do we need to convert complex Dense to real Dense?
+    // do we need to convert complex MultiVector to real MultiVector?
     // all real dense vectors are intra-convertible, thus by casting to
-    // ConvertibleTo<matrix::Dense<>>, we can check whether a LinOp is a real
-    // dense matrix:
+    // ConvertibleTo<matrix::MultiVector<>>, we can check whether a LinOp is a
+    // real dense matrix:
     auto complex_to_real =
         !(is_complex<ValueType>() ||
-          dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in));
+          dynamic_cast<const ConvertibleTo<matrix::MultiVector<>>*>(in));
     if (complex_to_real) {
         auto dense_in = make_temporary_conversion<to_complex<ValueType>>(in);
         auto dense_out = make_temporary_conversion<to_complex<ValueType>>(out);
-        using Dense = matrix::Dense<ValueType>;
+        using MultiVector = matrix::MultiVector<ValueType>;
         // These dynamic_casts are only needed to make the code compile
         // If ValueType is complex, this branch will never be taken
         // If ValueType is real, the cast is a no-op
-        fn(dynamic_cast<const Dense*>(dense_in->create_real_view().get()),
-           dynamic_cast<Dense*>(dense_out->create_real_view().get()));
+        fn(dynamic_cast<const MultiVector*>(dense_in->create_real_view().get()),
+           dynamic_cast<MultiVector*>(dense_out->create_real_view().get()));
     } else {
         precision_dispatch<ValueType>(fn, in, out);
     }
@@ -120,10 +122,10 @@ void precision_dispatch_real_complex(Function fn, const LinOp* in, LinOp* out)
 
 /**
  * Calls the given function with the given LinOps temporarily converted to
- * matrix::Dense<ValueType>* as parameters.
+ * matrix::MultiVector<ValueType>* as parameters.
  * If ValueType is real and both `in` and `out` are complex, uses
- * matrix::Dense::create_real_view() to convert them into real matrices after
- * precision conversion.
+ * matrix::MultiVector::create_real_view() to convert them into real matrices
+ * after precision conversion.
  *
  * @see precision_dispatch()
  */
@@ -131,24 +133,24 @@ template <typename ValueType, typename Function>
 void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
                                      const LinOp* in, LinOp* out)
 {
-    // do we need to convert complex Dense to real Dense?
+    // do we need to convert complex MultiVector to real MultiVector?
     // all real dense vectors are intra-convertible, thus by casting to
-    // ConvertibleTo<matrix::Dense<>>, we can check whether a LinOp is a real
-    // dense matrix:
+    // ConvertibleTo<matrix::MultiVector<>>, we can check whether a LinOp is a
+    // real dense matrix:
     auto complex_to_real =
         !(is_complex<ValueType>() ||
-          dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in));
+          dynamic_cast<const ConvertibleTo<matrix::MultiVector<>>*>(in));
     if (complex_to_real) {
         auto dense_in = make_temporary_conversion<to_complex<ValueType>>(in);
         auto dense_out = make_temporary_conversion<to_complex<ValueType>>(out);
         auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
-        using Dense = matrix::Dense<ValueType>;
+        using MultiVector = matrix::MultiVector<ValueType>;
         // These dynamic_casts are only needed to make the code compile
         // If ValueType is complex, this branch will never be taken
         // If ValueType is real, the cast is a no-op
         fn(dense_alpha.get(),
-           dynamic_cast<const Dense*>(dense_in->create_real_view().get()),
-           dynamic_cast<Dense*>(dense_out->create_real_view().get()));
+           dynamic_cast<const MultiVector*>(dense_in->create_real_view().get()),
+           dynamic_cast<MultiVector*>(dense_out->create_real_view().get()));
     } else {
         precision_dispatch<ValueType>(fn, alpha, in, out);
     }
@@ -157,9 +159,9 @@ void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
 
 /**
  * Calls the given function with the given LinOps temporarily converted to
- * matrix::Dense<ValueType>* as parameters.
+ * matrix::MultiVector<ValueType>* as parameters.
  * If ValueType is real and both `in` and `out` are complex, uses
- * matrix::Dense::get_real_view() to convert them into real matrices after
+ * matrix::MultiVector::get_real_view() to convert them into real matrices after
  * precision conversion.
  *
  * @see precision_dispatch()
@@ -169,26 +171,26 @@ void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
                                      const LinOp* in, const LinOp* beta,
                                      LinOp* out)
 {
-    // do we need to convert complex Dense to real Dense?
+    // do we need to convert complex MultiVector to real MultiVector?
     // all real dense vectors are intra-convertible, thus by casting to
-    // ConvertibleTo<matrix::Dense<>>, we can check whether a LinOp is a real
-    // dense matrix:
+    // ConvertibleTo<matrix::MultiVector<>>, we can check whether a LinOp is a
+    // real dense matrix:
     auto complex_to_real =
         !(is_complex<ValueType>() ||
-          dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in));
+          dynamic_cast<const ConvertibleTo<matrix::MultiVector<>>*>(in));
     if (complex_to_real) {
         auto dense_in = make_temporary_conversion<to_complex<ValueType>>(in);
         auto dense_out = make_temporary_conversion<to_complex<ValueType>>(out);
         auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
         auto dense_beta = make_temporary_conversion<ValueType>(beta);
-        using Dense = matrix::Dense<ValueType>;
+        using MultiVector = matrix::MultiVector<ValueType>;
         // These dynamic_casts are only needed to make the code compile
         // If ValueType is complex, this branch will never be taken
         // If ValueType is real, the cast is a no-op
         fn(dense_alpha.get(),
-           dynamic_cast<const Dense*>(dense_in->create_real_view().get()),
+           dynamic_cast<const MultiVector*>(dense_in->create_real_view().get()),
            dense_beta.get(),
-           dynamic_cast<Dense*>(dense_out->create_real_view().get()));
+           dynamic_cast<MultiVector*>(dense_out->create_real_view().get()));
     } else {
         precision_dispatch<ValueType>(fn, alpha, in, beta, out);
     }
@@ -197,21 +199,22 @@ void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
 
 /**
  * Calls the given function with each given argument LinOp
- * converted into matrix::Dense<ValueType> as parameters.
+ * converted into matrix::MultiVector<ValueType> as parameters.
  *
  * If GINKGO_MIXED_PRECISION is defined, this means that the function will be
  * called with its dynamic type as a static type, so the (templated/generic)
- * function will be instantiated with all pairs of Dense<ValueType> and
- * Dense<next_precision_base<ValueType>> parameter types, and the appropriate
- * overload will be called based on the dynamic type of the parameter.
+ * function will be instantiated with all pairs of MultiVector<ValueType> and
+ * MultiVector<next_precision_base<ValueType>> parameter types, and the
+ * appropriate overload will be called based on the dynamic type of the
+ * parameter.
  *
  * If GINKGO_MIXED_PRECISION is not defined, it will behave exactly like
  * precision_dispatch.
  *
  * @param fn  the given function. It will be called with one const and one
- *            non-const matrix::Dense<...> parameter based on the dynamic type
- *            of the inputs (GINKGO_MIXED_PRECISION) or of type
- *            matrix::Dense<ValueType> (no GINKGO_MIXED_PRECISION).
+ *            non-const matrix::MultiVector<...> parameter based on the dynamic
+ * type of the inputs (GINKGO_MIXED_PRECISION) or of type
+ *            matrix::MultiVector<ValueType> (no GINKGO_MIXED_PRECISION).
  * @param in  The first parameter to be cast (GINKGO_MIXED_PRECISION) or
  *            converted (no GINKGO_MIXED_PRECISION) and used to call `fn`.
  * @param out  The second parameter to be cast (GINKGO_MIXED_PRECISION) or
@@ -228,10 +231,10 @@ template <typename ValueType, typename Function>
 void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
-    using fst_type = matrix::Dense<ValueType>;
-    using snd_type = matrix::Dense<next_precision<ValueType>>;
-    using trd_type = matrix::Dense<next_precision<ValueType, 2>>;
-    using fth_type = matrix::Dense<next_precision<ValueType, 3>>;
+    using fst_type = matrix::MultiVector<ValueType>;
+    using snd_type = matrix::MultiVector<next_precision<ValueType>>;
+    using trd_type = matrix::MultiVector<next_precision<ValueType, 2>>;
+    using fth_type = matrix::MultiVector<next_precision<ValueType, 3>>;
     auto dispatch_out_vector = [&](auto dense_in) {
         if (auto dense_out = dynamic_cast<fst_type*>(out)) {
             fn(dense_in, dense_out);
@@ -264,9 +267,9 @@ void mixed_precision_dispatch(Function fn, const LinOp* in, LinOp* out)
 
 /**
  * Calls the given function with the given LinOps cast to their dynamic type
- * matrix::Dense<ValueType>* as parameters.
+ * matrix::MultiVector<ValueType>* as parameters.
  * If ValueType is real and both `in` and `out` are complex, uses
- * matrix::Dense::get_real_view() to convert them into real matrices after
+ * matrix::MultiVector::get_real_view() to convert them into real matrices after
  * precision conversion.
  *
  * @see mixed_precision_dispatch()
@@ -290,7 +293,7 @@ void mixed_precision_dispatch_real_complex(Function fn, const LinOp* in,
                                            LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
-    if (!dynamic_cast<const ConvertibleTo<matrix::Dense<>>*>(in)) {
+    if (!dynamic_cast<const ConvertibleTo<matrix::MultiVector<>>*>(in)) {
         mixed_precision_dispatch<to_complex<ValueType>>(
             [&fn](auto dense_in, auto dense_out) {
                 fn(dense_in->create_real_view().get(),
@@ -318,13 +321,13 @@ namespace distributed {
 /**
  * Convert the given LinOp from experimental::distributed::Vector<...> to
  * experimental::distributed::Vector<ValueType>. The conversion tries to convert
- * the input LinOp to all Dense types with value type recursively reachable by
- * next_precision_base<...> starting from the ValueType template parameter. This
- * means that all real-to-real and complex-to-complex conversions for default
- * precisions are being considered. If the input matrix is non-const, the
- * contents of the modified converted object will be converted back to the input
- * matrix when the returned object is destroyed. This may lead to a loss of
- * precision!
+ * the input LinOp to all MultiVector types with value type recursively
+ * reachable by next_precision_base<...> starting from the ValueType template
+ * parameter. This means that all real-to-real and complex-to-complex
+ * conversions for default precisions are being considered. If the input matrix
+ * is non-const, the contents of the modified converted object will be converted
+ * back to the input matrix when the returned object is destroyed. This may lead
+ * to a loss of precision!
  *
  * @param matrix  the input matrix which is supposed to be converted. It is
  *                wrapped unchanged if it is already of type
@@ -557,11 +560,11 @@ void precision_dispatch_real_complex(Function fn, const LinOp* alpha,
 /**
  * Calls the given function with the given LinOps temporarily converted to
  * either experimental::distributed::Vector<ValueType>* or
- * matrix::Dense<ValueType> as parameters. The choice depends on the runtime
- * type of `in` and `out` is assumed to fall into the same category. If
+ * matrix::MultiVector<ValueType> as parameters. The choice depends on the
+ * runtime type of `in` and `out` is assumed to fall into the same category. If
  * ValueType is real and both input vectors are complex, uses
  * experimental::distributed::Vector::get_real_view(), or
- * matrix::Dense::get_real_view() to convert them into real matrices after
+ * matrix::MultiVector::get_real_view() to convert them into real matrices after
  * precision conversion.
  *
  * @see precision_dispatch()
@@ -624,10 +627,10 @@ void precision_dispatch_real_complex_distributed(Function fn,
 
 /**
  * Calls the given function with the given LinOps temporarily converted to
- * matrix::Dense<ValueType> as parameters.
+ * matrix::MultiVector<ValueType> as parameters.
  * If ValueType is real and both input vectors are complex, uses
  * experimental::distributed::Vector::get_real_view(), or
- * matrix::Dense::get_real_view() to convert them into real matrices after
+ * matrix::MultiVector::get_real_view() to convert them into real matrices after
  * precision conversion.
  *
  * @see precision_dispatch()

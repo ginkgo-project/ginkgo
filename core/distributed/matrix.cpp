@@ -536,7 +536,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             using b_value_type =
                 typename std::decay_t<decltype(*dense_b)>::value_type;
             auto x_exec = dense_x->get_executor();
-            auto local_x = gko::matrix::Dense<x_value_type>::create(
+            auto local_x = gko::matrix::MultiVector<x_value_type>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
                     x_exec,
@@ -602,7 +602,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             auto local_alpha = gko::make_temporary_conversion<ValueType>(alpha);
             auto local_beta =
                 gko::make_temporary_conversion<x_value_type>(beta);
-            auto local_x = gko::matrix::Dense<x_value_type>::create(
+            auto local_x = gko::matrix::MultiVector<x_value_type>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
                     x_exec,

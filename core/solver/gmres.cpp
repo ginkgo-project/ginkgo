@@ -14,8 +14,9 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
@@ -143,8 +144,9 @@ struct help_compute_norm {
     template <typename VectorType>
     static void compute_next_krylov_norm_into_hessenberg(
         const VectorType* next_krylov,
-        matrix::Dense<ValueType>* hessenberg_norm_entry,
-        matrix::Dense<remove_complex<ValueType>>*, array<char>& reduction_tmp)
+        matrix::MultiVector<ValueType>* hessenberg_norm_entry,
+        matrix::MultiVector<remove_complex<ValueType>>*,
+        array<char>& reduction_tmp)
     {
         next_krylov->compute_norm2(hessenberg_norm_entry, reduction_tmp);
     }
@@ -153,7 +155,7 @@ struct help_compute_norm {
 
 // Orthogonalization helper functions
 template <typename ValueType, typename VectorType>
-void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
+void orthogonalize_mgs(matrix::MultiVector<ValueType>* hessenberg_iter,
                        VectorType* krylov_bases, VectorType* next_krylov,
                        array<char>& reduction_tmp, size_type restart_iter,
                        size_type num_rows, size_type num_rhs,
@@ -178,8 +180,8 @@ void orthogonalize_mgs(matrix::Dense<ValueType>* hessenberg_iter,
 
 
 template <typename ValueType>
-void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
-                   matrix::Dense<ValueType>* next_krylov,
+void finish_reduce(matrix::MultiVector<ValueType>* hessenberg_iter,
+                   matrix::MultiVector<ValueType>* next_krylov,
                    const size_type num_rhs, const size_type restart_iter)
 {
     return;
@@ -188,7 +190,7 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
 
 #if GINKGO_BUILD_MPI
 template <typename ValueType>
-void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
+void finish_reduce(matrix::MultiVector<ValueType>* hessenberg_iter,
                    experimental::distributed::Vector<ValueType>* next_krylov,
                    const size_type num_rhs, const size_type restart_iter)
 {
@@ -220,7 +222,7 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
 
 
 template <typename ValueType, typename VectorType>
-void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
+void orthogonalize_cgs(matrix::MultiVector<ValueType>* hessenberg_iter,
                        VectorType* krylov_bases, VectorType* next_krylov,
                        size_type restart_iter, size_type num_rows,
                        size_type num_rhs, size_type local_num_rows)
@@ -251,10 +253,10 @@ void orthogonalize_cgs(matrix::Dense<ValueType>* hessenberg_iter,
 
 
 template <typename ValueType, typename VectorType>
-void orthogonalize_cgs2(matrix::Dense<ValueType>* hessenberg_iter,
+void orthogonalize_cgs2(matrix::MultiVector<ValueType>* hessenberg_iter,
                         VectorType* krylov_bases, VectorType* next_krylov,
-                        matrix::Dense<ValueType>* hessenberg_aux,
-                        const matrix::Dense<ValueType>* one_op,
+                        matrix::MultiVector<ValueType>* hessenberg_aux,
+                        const matrix::MultiVector<ValueType>* one_op,
                         size_type restart_iter, size_type num_rows,
                         size_type num_rhs, size_type local_num_rows)
 {
@@ -312,8 +314,8 @@ struct help_compute_norm<ValueType,
     template <typename VectorType>
     static void compute_next_krylov_norm_into_hessenberg(
         const VectorType* next_krylov,
-        matrix::Dense<ValueType>* hessenberg_norm_entry,
-        matrix::Dense<remove_complex<ValueType>>* next_krylov_norm_tmp,
+        matrix::MultiVector<ValueType>* hessenberg_norm_entry,
+        matrix::MultiVector<remove_complex<ValueType>>* next_krylov_norm_tmp,
         array<char>& reduction_tmp)
     {
         next_krylov->compute_norm2(next_krylov_norm_tmp, reduction_tmp);
@@ -328,7 +330,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                         VectorType* dense_x) const
 {
     using Vector = VectorType;
-    using LocalVector = matrix::Dense<typename Vector::value_type>;
+    using LocalVector = matrix::MultiVector<typename Vector::value_type>;
     using NormVector = typename LocalVector::absolute_type;
     using ws = workspace_traits<Gmres>;
 
