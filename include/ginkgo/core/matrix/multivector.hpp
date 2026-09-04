@@ -13,12 +13,15 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/multivector_mixin.hpp>
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
+
+#include "ginkgo/core/base/multivector_mixin.hpp"
 
 
 namespace gko {
@@ -67,8 +70,7 @@ class Dense;
  */
 template <typename ValueType = default_precision>
 class MultiVector
-    : public LinOp,
-      public EnableCloneable<MultiVector<ValueType>>,
+    : public EnableMultiVector<MultiVector<ValueType>>,
       public ConvertibleTo<MultiVector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>,
@@ -80,21 +82,17 @@ class MultiVector
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public WritableToMatrixData<ValueType, int32>,
-      public WritableToMatrixData<ValueType, int64>,
-      public Transposable,
-      public Permutable<int32>,
-      public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>> {
+      public WritableToMatrixData<ValueType, int64> {
     friend class Dense<ValueType>;
     friend class MultiVector<to_complex<ValueType>>;
-    friend class EnableCloneable<MultiVector>;
+    friend class EnableMultiVector<MultiVector>;
     friend class experimental::distributed::Vector<ValueType>;
     friend class experimental::distributed::detail::VectorCache<ValueType>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<MultiVector>::convert_to;
-    using EnableCloneable<MultiVector>::move_to;
+    using EnableMultiVector<MultiVector>::convert_to;
+    using EnableMultiVector<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -102,118 +100,28 @@ public:
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
 
-    using value_type = ValueType;
+    using value_type = typename EnableMultiVector<MultiVector>::value_type;
     using index_type = int64;
     using transposed_type = MultiVector<value_type>;
     using mat_data64 = matrix_data<value_type, int64>;
     using mat_data32 = matrix_data<value_type, int32>;
     using device_mat_data64 = device_matrix_data<value_type, int64>;
     using device_mat_data32 = device_matrix_data<value_type, int32>;
-    using absolute_type = remove_complex<MultiVector>;
-    using real_type = absolute_type;
-    using complex_type = to_complex<MultiVector>;
-    using device_view = matrix::view::dense<value_type>;
-    using const_device_view = matrix::view::dense<const value_type>;
+    using absolute_type =
+        typename EnableMultiVector<MultiVector>::absolute_type;
+    using real_type = typename EnableMultiVector<MultiVector>::real_type;
+    using complex_type = typename EnableMultiVector<MultiVector>::complex_type;
+    using norm_type = typename EnableMultiVector<MultiVector>::norm_type;
+    using device_view = typename EnableMultiVector<MultiVector>::device_view;
+    using const_device_view =
+        typename EnableMultiVector<MultiVector>::const_device_view;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
-    /**
-     * Creates a MultiVector with the same size and stride as another
-     * MultiVector matrix.
-     *
-     * @param other  The other matrix whose configuration needs to copied.
-     */
-    static std::unique_ptr<MultiVector> create_with_config_of(
-        ptr_param<const MultiVector> other)
-    {
-        // De-referencing `other` before calling the functions (instead of
-        // using operator `->`) is currently required to be compatible with
-        // CUDA 10.1.
-        // Otherwise, it results in a compile error.
-        return (*other).create_with_same_config();
-    }
-
-    /**
-     * Creates a MultiVector with the same type as another MultiVector
-     * matrix but on a different executor and with a different size.
-     *
-     * @param other  The other matrix whose type we target.
-     * @param exec  The executor of the new matrix.
-     * @param size  The size of the new matrix.
-     * @param stride  The stride of the new matrix.
-     *
-     * @returns a MultiVector with the type of other.
-     */
-    static std::unique_ptr<MultiVector> create_with_type_of(
-        ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, size[1]);
-    }
-
-    /**
-     * @copydoc create_with_type_of(const MultiVector*, std::shared_ptr<const
-     * Executor>, const dim<2>)
-     *
-     * @param stride  The stride of the new matrix.
-     *
-     * @note This is an overload which allows full parameter specification.
-     */
-    static std::unique_ptr<MultiVector> create_with_type_of(
+    [[nodiscard]] static std::unique_ptr<MultiVector> create_with_type_of(
         ptr_param<const MultiVector> other,
         std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type stride)
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, stride);
-    }
-
-    /**
-     * @copydoc create_with_type_of(const MultiVector*, std::shared_ptr<const
-     * Executor>, const dim<2>)
-     *
-     * @param local_size  Unused
-     * @param stride  The stride of the new matrix.
-     *
-     * @note This is an overload to stay consistent with
-     *       gko::experimental::distributed::Vector
-     */
-    static std::unique_ptr<MultiVector> create_with_type_of(
-        ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        const dim<2>& local_size, size_type stride)
-    {
-        // See create_with_config_of()
-        return (*other).create_with_type_of_impl(exec, size, stride);
-    }
-
-    /**
-     * Creates a MultiVector, where the underlying array is a view of another
-     * MultiVector' array.
-     *
-     * @param other  The other matrix on which to create the view
-     *
-     * @return  A MultiVector that is a view of other
-     */
-    static std::unique_ptr<MultiVector> create_view_of(
-        ptr_param<MultiVector> other)
-    {
-        return other->create_view_of_impl();
-    }
-
-    /**
-     * Creates a immutable MultiVector, where the underlying array is a view of
-     * another MultiVector' array.
-     *
-     * @param other  The other matrix on which to create the view
-     * @return  A immutable MultiVector that is a view of other
-     */
-    static std::unique_ptr<const MultiVector> create_const_view_of(
-        ptr_param<const MultiVector> other)
-    {
-        return other->create_const_view_of_impl();
-    }
+        size_type stride);
 
     friend class MultiVector<previous_precision<ValueType>>;
 
@@ -264,9 +172,9 @@ public:
 
     void write(mat_data32& data) const override;
 
-    std::unique_ptr<LinOp> transpose() const override;
+    std::unique_ptr<MultiVector> transpose() const;
 
-    std::unique_ptr<LinOp> conj_transpose() const override;
+    std::unique_ptr<MultiVector> conj_transpose() const;
 
     /**
      * Writes the transposed matrix into the given output matrix.
@@ -283,13 +191,6 @@ public:
      *                `gko::transpose(this->get_size())`
      */
     void conj_transpose(ptr_param<MultiVector> output) const;
-
-    /**
-     * Fill the dense matrix with a given value.
-     *
-     * @param value  the value to be filled
-     */
-    void fill(const ValueType value);
 
     /**
      * Creates a permuted copy \f$A'\f$ of this matrix \f$A\f$ with the given
@@ -463,11 +364,11 @@ public:
             column_permutation,
         ptr_param<MultiVector> output, bool invert = false) const;
 
-    std::unique_ptr<LinOp> permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the symmetrically permuted matrix into the given output matrix.
@@ -487,11 +388,11 @@ public:
     void permute(const array<int64>* permutation_indices,
                  ptr_param<MultiVector> output) const;
 
-    std::unique_ptr<LinOp> inverse_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> inverse_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the inverse symmetrically permuted matrix into the given output
@@ -512,11 +413,11 @@ public:
     void inverse_permute(const array<int64>* permutation_indices,
                          ptr_param<MultiVector> output) const;
 
-    std::unique_ptr<LinOp> row_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> row_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> row_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> row_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the row-permuted matrix into the given output matrix.
@@ -569,13 +470,13 @@ public:
      *                        matrix and `gather_indices->get_size()` rows.
      */
     void row_gather(const array<int32>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const array<int32>*, LinOp*) const
      */
     void row_gather(const array<int64>* gather_indices,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * Copies the given rows from this matrix into `row_collection` with scaling
@@ -593,7 +494,7 @@ public:
     void row_gather(ptr_param<const LinOp> alpha,
                     const array<int32>* gather_indices,
                     ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const LinOp*, const array<int32>*, const LinOp*,
@@ -602,13 +503,13 @@ public:
     void row_gather(ptr_param<const LinOp> alpha,
                     const array<int64>* gather_indices,
                     ptr_param<const LinOp> beta,
-                    ptr_param<LinOp> row_collection) const;
+                    ptr_param<AbstractMultiVector> row_collection) const;
 
-    std::unique_ptr<LinOp> column_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> column_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> column_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> column_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the column-permuted matrix into the given output matrix.
@@ -628,11 +529,11 @@ public:
     void column_permute(const array<int64>* permutation_indices,
                         ptr_param<MultiVector> output) const;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_row_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> inverse_row_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_row_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the inverse row-permuted matrix into the given output matrix.
@@ -653,11 +554,11 @@ public:
     void inverse_row_permute(const array<int64>* permutation_indices,
                              ptr_param<MultiVector> output) const;
 
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const array<int32>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_column_permute(
+        const array<int32>* permutation_indices) const;
 
-    std::unique_ptr<LinOp> inverse_column_permute(
-        const array<int64>* permutation_indices) const override;
+    std::unique_ptr<MultiVector> inverse_column_permute(
+        const array<int64>* permutation_indices) const;
 
     /**
      * Writes the inverse column-permuted matrix into the given output matrix.
@@ -677,55 +578,6 @@ public:
      */
     void inverse_column_permute(const array<int64>* permutation_indices,
                                 ptr_param<MultiVector> output) const;
-
-    std::unique_ptr<absolute_type> compute_absolute() const override;
-
-    /**
-     * Writes the absolute values of this matrix into an existing matrix.
-     *
-     * @param output  The output matrix. Its size must match the size of this
-     *                matrix.
-     * @see MultiVector::compute_absolute()
-     */
-    void compute_absolute(ptr_param<absolute_type> output) const;
-
-    void compute_absolute_inplace() override;
-
-    /**
-     * Creates a complex copy of the original matrix. If the original matrix
-     * was real, the imaginary part of the result will be zero.
-     */
-    std::unique_ptr<complex_type> make_complex() const;
-
-    /**
-     * Writes a complex copy of the original matrix to a given complex matrix.
-     * If the original matrix was real, the imaginary part of the result will
-     * be zero.
-     */
-    void make_complex(ptr_param<complex_type> result) const;
-
-    /**
-     * Creates a new real matrix and extracts the real part of the original
-     * matrix into that.
-     */
-    std::unique_ptr<real_type> get_real() const;
-
-    /**
-     * Extracts the real part of the original matrix into a given real matrix.
-     */
-    void get_real(ptr_param<real_type> result) const;
-
-    /**
-     * Creates a new real matrix and extracts the imaginary part of the
-     * original matrix into that.
-     */
-    std::unique_ptr<real_type> get_imag() const;
-
-    /**
-     * Extracts the imaginary part of the original matrix into a given real
-     * matrix.
-     */
-    void get_imag(ptr_param<real_type> result) const;
 
     /**
      * Returns a pointer to the array of values of the matrix.
@@ -818,248 +670,28 @@ public:
     }
 
     /**
-     * Scales the matrix with a scalar (aka: BLAS scal).
+     * Computes the column-wise arithmetic mean of this matrix.
      *
-     * @param alpha  If alpha is 1x1 MultiVector is scaled
-     *               by alpha. If it is a MultiVector row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
+     * @param result  a MultiVector row vector, used to store the mean
+     *                (the number of columns in the vector must match the number
+     *                of columns of this)
      */
-    void scale(ptr_param<const LinOp> alpha);
+    void compute_mean(ptr_param<AbstractMultiVector> result) const;
 
     /**
-     * Scales the matrix with the inverse of a scalar.
+     * Computes the column-wise arithmetic mean of this matrix.
      *
-     * @param alpha  If alpha is 1x1 MultiVector is scaled
-     *               by 1 / alpha. If it is a MultiVector row vector of values,
-     *               then i-th column of the matrix is scaled with the inverse
-     *               of the i-th element of alpha (the number of columns of
-     *               alpha has to match the number of columns of the matrix).
+     * @param result  a MultiVector row vector, used to store the mean
+     *                (the number of columns in the vector must match the
+     *                number of columns of this)
+     * @param tmp  the temporary storage to use for partial sums during the
+     *             reduction computation. It may be resized and/or reset to the
+     *             correct executor.
      */
-    void inv_scale(ptr_param<const LinOp> alpha);
+    void compute_mean(ptr_param<AbstractMultiVector> result,
+                      array<char>& tmp) const;
 
     void validate_data() const override;
-
-    /**
-     * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 MultiVector is scaled
-     *               by alpha. If it is a MultiVector row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
-     * @param b  a matrix of the same dimension as this
-     */
-    void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Subtracts `b` scaled by `alpha` from the matrix (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 MultiVector, b is scaled
-     *               by alpha. If it is a MultiVector row vector of values,
-     *               then i-th column of b is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
-     * @param b  a matrix of the same dimension as this
-     */
-    void sub_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Computes the column-wise dot product of this matrix and `b`.
-     *
-     * @param b  a MultiVector of same dimension as this
-     * @param result  a MultiVector row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of this matrix and `b`.
-     *
-     * @param b  a MultiVector of same dimension as this
-     * @param result  a MultiVector row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                     array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
-     *
-     * @param b  a MultiVector of same dimension as this
-     * @param result  a MultiVector row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b,
-                          ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of `conj(this matrix)` and `b`.
-     *
-     * @param b  a MultiVector of same dimension as this
-     * @param result  a MultiVector row vector, used to store the dot product
-     *                (the number of column in the vector must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                          array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise Euclidean (L^2) norm of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise Euclidean (L^2) norm of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_norm1(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean (L^2) norm of this
-     * matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean (L^2) norm of this
-     * matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise arithmetic mean of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the mean
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_mean(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise arithmetic mean of this matrix.
-     *
-     * @param result  a MultiVector row vector, used to store the mean
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Create a submatrix from the original matrix.
-     * Warning: defining stride for this create_submatrix method might cause
-     * wrong memory access. Better use the create_submatrix(rows, columns)
-     * method instead.
-     *
-     * @param rows     row span
-     * @param columns  column span
-     * @param stride   stride of the new submatrix.
-     */
-    std::unique_ptr<MultiVector> create_submatrix(const span& rows,
-                                                  const span& columns,
-                                                  const size_type stride)
-    {
-        return this->create_submatrix_impl(rows, columns, stride);
-    }
-
-    /**
-     * Create a submatrix from the original matrix.
-     *
-     * @param rows     row span
-     * @param columns  column span
-     */
-    std::unique_ptr<MultiVector> create_submatrix(const span& rows,
-                                                  const span& columns)
-    {
-        return create_submatrix(rows, columns, this->get_stride());
-    }
-
-
-    /**
-     * Create a submatrix from the original matrix.
-     *
-     * @param rows  row span
-     * @param columns  column span
-     * @param size  size of the submatrix (only used for consistency with
-     *              distributed::Vector)
-     */
-    std::unique_ptr<MultiVector> create_submatrix(const local_span& rows,
-                                                  const local_span& columns,
-                                                  dim<2> size)
-    {
-        dim<2> deduced_size{rows.length(), columns.length()};
-        GKO_ASSERT_EQUAL_DIMENSIONS(deduced_size, size);
-        return create_submatrix(rows, columns, this->get_stride());
-    }
-
-    /**
-     * Create a real view of the (potentially) complex original matrix.
-     * If the original matrix is real, nothing changes. If the original matrix
-     * is complex, the result is created by viewing the complex matrix with as
-     * real with a reinterpret_cast with twice the number of columns and
-     * double the stride.
-     */
-    std::unique_ptr<real_type> create_real_view();
-
-    /**
-     * @copydoc create_real_view()
-     */
-    std::unique_ptr<const real_type> create_real_view() const;
 
     /**
      * Creates an uninitialized MultiVector of the specified size.
@@ -1135,6 +767,39 @@ public:
     [[nodiscard]] std::unique_ptr<Dense<ValueType>> as_dense_view();
 
     /**
+     * Converts the vector to the target precision type.
+     *
+     * @note This overload will include a copy-back operation when the temporary
+     *       conversion is destroyed, if OtherValueType != ValueType.
+     *
+     * @tparam OtherValueType The target precision type. If ValueType is real,
+     *                         OtherValueType must be real. If ValueType is
+     *                         complex, OtherValueType must be complex.
+     *
+     * @return Temporary conversion to the target precision type.
+     */
+    template <typename OtherValueType,
+              typename = std::enable_if_t<is_complex<ValueType>() ==
+                                          is_complex<OtherValueType>()>>
+    [[nodiscard]] temporary_conversion<MultiVector<OtherValueType>>
+    as_precision();
+
+    /**
+     * Converts the vector to the target precision type.
+     *
+     * @tparam OtherValueType The target precision type. If ValueType is real,
+     *                         OtherValueType must be real. If ValueType is
+     *                         complex, OtherValueType must be complex.
+     *
+     * @return Temporary conversion to the target precision type.
+     */
+    template <typename OtherValueType,
+              typename = std::enable_if_t<is_complex<ValueType>() ==
+                                          is_complex<OtherValueType>()>>
+    [[nodiscard]] temporary_conversion<const MultiVector<OtherValueType>>
+    as_precision() const;
+
+    /**
      * Copy-assigns a MultiVector. Preserves the executor, reallocates
      * the matrix with minimal stride if the dimensions don't match, then copies
      * the data over, ignoring padding.
@@ -1168,19 +833,6 @@ protected:
                 array<value_type> values, size_type stride);
 
     /**
-     * Creates a MultiVector with the same size and stride as the callers
-     * matrix.
-     *
-     * @returns a MultiVector with the same size and stride as the
-     * caller.
-     */
-    virtual std::unique_ptr<MultiVector> create_with_same_config() const
-    {
-        return MultiVector::create(this->get_executor(), this->get_size(),
-                                   this->get_stride());
-    }
-
-    /**
      * Creates a MultiVector with the same type as the callers matrix.
      *
      * @param size  size of the matrix
@@ -1195,113 +847,9 @@ protected:
     }
 
     /**
-     * Creates a MultiVector where the underlying array is a view of
-     * this' array.
-     *
-     * @return  A MultiVector that is a view of this.
-     */
-    virtual std::unique_ptr<MultiVector> create_view_of_impl()
-    {
-        auto exec = this->get_executor();
-        return MultiVector::create(
-            exec, this->get_size(),
-            gko::make_array_view(exec, this->get_num_stored_elements(),
-                                 this->get_values()),
-            this->get_stride());
-    }
-
-    /**
-     * Creates a immutable MultiVector where the underlying array is a
-     * view of this' array.
-     *
-     * @return  A immutable MultiVector that is a view of this.
-     */
-    virtual std::unique_ptr<const MultiVector> create_const_view_of_impl() const
-    {
-        auto exec = this->get_executor();
-        return MultiVector::create_const(
-            exec, this->get_size(),
-            gko::make_const_array_view(exec, this->get_num_stored_elements(),
-                                       this->get_const_values()),
-            this->get_stride());
-    }
-
-    /**
-     * @copydoc scale(const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void scale_impl(const LinOp* alpha);
-
-    /**
-     * @copydoc inv_scale(const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void inv_scale_impl(const LinOp* alpha);
-
-    /**
-     * @copydoc add_scaled(const LinOp *, const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void add_scaled_impl(const LinOp* alpha, const LinOp* b);
-
-    /**
-     * @copydoc sub_scaled(const LinOp *, const LinOp *)
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void sub_scaled_impl(const LinOp* alpha, const LinOp* b);
-
-    /**
-     * @copydoc compute_dot(const LinOp*, LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_dot_impl(const LinOp* b, LinOp* result) const;
-
-    /**
-     * @copydoc compute_conj_dot(const LinOp*, LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_conj_dot_impl(const LinOp* b, LinOp* result) const;
-
-    /**
-     * @copydoc compute_norm2(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_norm2_impl(LinOp* result) const;
-
-    /**
-     * @copydoc compute_norm1(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_norm1_impl(LinOp* result) const;
-
-    /**
-     * @copydoc compute_squared_norm2(LinOp*) const
-     *
-     * @deprecated  This function will be removed in the future,
-     *              we will instead always use Ginkgo's implementation.
-     */
-    virtual void compute_squared_norm2_impl(LinOp* result) const;
-
-    /**
      * @copydoc compute_mean(LinOp*) const
      */
-    virtual void compute_mean_impl(LinOp* result) const;
+    virtual void compute_mean_impl(AbstractMultiVector* result) const;
 
     /**
      * Resizes the matrix to the given size.
@@ -1312,21 +860,6 @@ protected:
      * @param new_size  the new matrix dimensions
      */
     void resize(gko::dim<2> new_size);
-
-    /**
-     * @copydoc create_submatrix(const span, const span, const size_type)
-     *
-     * @note  Other implementations of dense should override this function
-     *        instead of create_submatrix(const span, const span, const
-     *        size_type).
-     */
-    virtual std::unique_ptr<MultiVector> create_submatrix_impl(
-        const span& rows, const span& columns, const size_type stride);
-
-    void apply_impl(const LinOp* b, LinOp* x) const override;
-
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
 
     size_type linearize_index(size_type row, size_type col) const noexcept
     {
@@ -1368,6 +901,82 @@ protected:
                          const array<IndexType>* row_idxs,
                          const MultiVector<ValueType>* beta,
                          MultiVector<OutputType>* row_collection) const;
+
+    void compute_absolute_inplace_impl() override;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_with_same_config_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_with_type_of_impl(
+        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+        const dim<2>& local_size, size_type stride) const override;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_subview_impl(
+        local_span rows, local_span columns) override;
+
+    [[nodiscard]] std::unique_ptr<const MultiVector> create_subview_impl(
+        local_span rows, local_span columns) const override;
+
+    [[nodiscard]] std::unique_ptr<MultiVector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) override;
+
+    [[nodiscard]] std::unique_ptr<const MultiVector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) const override;
+
+    [[nodiscard]] std::unique_ptr<const real_type> create_real_view_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> create_real_view_impl() override;
+
+    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute_impl()
+        const override;
+
+    void compute_absolute_impl(absolute_type* result) const override;
+
+    [[nodiscard]] std::unique_ptr<complex_type> make_complex_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_real_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_imag_impl() const override;
+
+    void make_complex_impl(complex_type* result) const override;
+
+    void get_real_impl(real_type* result) const override;
+
+    void get_imag_impl(real_type* result) const override;
+
+    void fill_impl(value_type value) override;
+
+    void scale_impl(scaling_param<value_type> alpha) override;
+
+    void inv_scale_impl(scaling_param<value_type> alpha) override;
+
+    void add_scaled_impl(scaling_param<value_type> alpha,
+                         const MultiVector* b) override;
+
+    void sub_scaled_impl(scaling_param<value_type> alpha,
+                         const MultiVector* b) override;
+
+    void compute_dot_impl(const MultiVector* b,
+                          matrix::MultiVector<value_type>* result,
+                          array<char>& tmp) const override;
+
+    void compute_conj_dot_impl(const MultiVector* b,
+                               matrix::MultiVector<value_type>* result,
+                               array<char>& tmp) const override;
+
+    void compute_norm2_impl(norm_type* result, array<char>& tmp) const override;
+
+    void compute_squared_norm2_impl(norm_type* result,
+                                    array<char>& tmp) const override;
+
+    void compute_norm1_impl(norm_type* result, array<char>& tmp) const override;
+    AbstractMultiVector::device_view<value_type> get_local_device_view_impl()
+        override;
+
+    AbstractMultiVector::device_view<const value_type>
+    get_const_local_device_view_impl() const override;
 
 private:
     size_type stride_;
@@ -1412,8 +1021,8 @@ std::unique_ptr<
     matrix::MultiVector<typename detail::pointee<VecPtr>::value_type>>
 make_dense_view(VecPtr&& vector)
 {
-    using value_type = typename detail::pointee<VecPtr>::value_type;
-    return matrix::MultiVector<value_type>::create_view_of(vector);
+    return vector->create_subview({0, vector->get_size()[0]},
+                                  {0, vector->get_size()[1]});
 }
 
 
@@ -1429,8 +1038,8 @@ std::unique_ptr<
     const matrix::MultiVector<typename detail::pointee<VecPtr>::value_type>>
 make_const_dense_view(VecPtr&& vector)
 {
-    using value_type = typename detail::pointee<VecPtr>::value_type;
-    return matrix::MultiVector<value_type>::create_const_view_of(vector);
+    return vector->create_subview({0, vector->get_size()[0]},
+                                  {0, vector->get_size()[1]});
 }
 
 

@@ -28,11 +28,7 @@ public:
 protected:
     Cloneable* copy_from_impl(const Cloneable* other) override
         GKO_NOT_IMPLEMENTED;
-    Cloneable* copy_from_impl(std::unique_ptr<Cloneable> other) override
-        GKO_NOT_IMPLEMENTED;
     Cloneable* move_from_impl(Cloneable* other) override GKO_NOT_IMPLEMENTED;
-    Cloneable* move_from_impl(std::unique_ptr<Cloneable> other) override
-        GKO_NOT_IMPLEMENTED;
     [[nodiscard]] std::unique_ptr<Cloneable> clone_impl(
         std::shared_ptr<const gko::Executor> exec) const override
         GKO_NOT_IMPLEMENTED;
