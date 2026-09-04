@@ -11,7 +11,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -24,13 +24,13 @@
 
 class Gcr : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Gcr<value_type>;
     using norm_type = gko::remove_complex<value_type>;
-    using NormVector = gko::matrix::Dense<norm_type>;
+    using NormVector = gko::matrix::MultiVector<norm_type>;
     using mtx_data = gko::matrix_data<value_type, int>;
     template <typename T>
-    using Dense = typename gko::matrix::Dense<T>;
+    using MultiVector = typename gko::matrix::MultiVector<T>;
 
     Gcr() : rand_engine(30)
     {
@@ -57,9 +57,9 @@ protected:
     }
 
     template <typename ValueType = value_type, typename IndexType = index_type>
-    std::unique_ptr<Dense<ValueType>> gen_mtx(int num_rows, int num_cols)
+    std::unique_ptr<MultiVector<ValueType>> gen_mtx(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<Dense<ValueType>>(
+        return gko::test::generate_random_matrix<MultiVector<ValueType>>(
             num_rows, num_cols,
             std::uniform_int_distribution<IndexType>(num_cols, num_cols),
             std::normal_distribution<ValueType>(-1.0, 1.0), rand_engine, ref);

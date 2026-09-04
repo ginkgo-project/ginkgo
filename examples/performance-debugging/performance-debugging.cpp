@@ -21,11 +21,11 @@
 
 
 template <typename ValueType>
-using vec = gko::matrix::Dense<ValueType>;
+using vec = gko::matrix::MultiVector<ValueType>;
 
 
 template <typename ValueType>
-using real_vec = gko::matrix::Dense<gko::remove_complex<ValueType>>;
+using real_vec = gko::matrix::MultiVector<gko::remove_complex<ValueType>>;
 
 
 namespace utils {
@@ -291,7 +291,7 @@ void print_usage(const char* filename)
 
 
 template <typename ValueType>
-void print_vector(const gko::matrix::Dense<ValueType>* vec)
+void print_vector(const gko::matrix::MultiVector<ValueType>* vec)
 {
     auto elements_to_print = std::min(gko::size_type(10), vec->get_size()[0]);
     std::cout << "[" << std::endl;

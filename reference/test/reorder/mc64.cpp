@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -36,7 +36,7 @@ protected:
     using reorder_type = gko::experimental::reorder::Mc64<v_type, i_type>;
     using perm_type = gko::matrix::ScaledPermutation<v_type, i_type>;
     using result_type = gko::Composition<v_type>;
-    using Mtx = gko::matrix::Dense<v_type>;
+    using Mtx = gko::matrix::MultiVector<v_type>;
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     Mc64()
         : exec(gko::ReferenceExecutor::create()),

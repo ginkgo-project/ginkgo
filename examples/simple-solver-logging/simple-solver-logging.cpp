@@ -16,7 +16,7 @@ namespace {
 
 template <typename ValueType>
 void print_vector(const std::string& name,
-                  const gko::matrix::Dense<ValueType>* vec)
+                  const gko::matrix::MultiVector<ValueType>* vec)
 {
     std::cout << name << " = [" << std::endl;
     for (int i = 0; i < vec->get_size()[0]; ++i) {
@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
 

@@ -12,9 +12,9 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
@@ -23,9 +23,9 @@
 class Ell : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Ell<value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
-    using Vec2 = gko::matrix::Dense<float>;
-    using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
+    using Vec = gko::matrix::MultiVector<value_type>;
+    using Vec2 = gko::matrix::MultiVector<float>;
+    using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
 
     Ell()
         : rand_engine(42), size{532, 231}, num_els_rowwise{300}, ell_stride{600}
@@ -281,7 +281,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideIsEquivalentToRef3)
 }
 
 
-TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
+TEST_F(Ell, SimpleApplyWithStrideToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
@@ -292,7 +292,7 @@ TEST_F(Ell, SimpleApplyWithStrideToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef1)
+TEST_F(Ell, MixedSimpleApplyWithStrideToMultiVectorMatrixIsEquivalentToRef1)
 {
     SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 4, num_els_rowwise, ell_stride);
@@ -304,7 +304,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 }
 
 
-TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef2)
+TEST_F(Ell, MixedSimpleApplyWithStrideToMultiVectorMatrixIsEquivalentToRef2)
 {
     SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 5, num_els_rowwise, ell_stride);
@@ -316,7 +316,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 }
 
 
-TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef3)
+TEST_F(Ell, MixedSimpleApplyWithStrideToMultiVectorMatrixIsEquivalentToRef3)
 {
     SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 6, num_els_rowwise, ell_stride);
@@ -328,7 +328,7 @@ TEST_F(Ell, MixedSimpleApplyWithStrideToDenseMatrixIsEquivalentToRef3)
 }
 
 
-TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
+TEST_F(Ell, AdvancedApplyWithStrideToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(size[0], size[1], 3, num_els_rowwise, ell_stride);
 
@@ -339,7 +339,7 @@ TEST_F(Ell, AdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef1)
+TEST_F(Ell, MixedAdvancedApplyWithStrideToMultiVectorMatrixIsEquivalentToRef1)
 {
     SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 4, num_els_rowwise, ell_stride);
@@ -351,7 +351,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef1)
 }
 
 
-TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef2)
+TEST_F(Ell, MixedAdvancedApplyWithStrideToMultiVectorMatrixIsEquivalentToRef2)
 {
     SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 5, num_els_rowwise, ell_stride);
@@ -363,7 +363,7 @@ TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef2)
 }
 
 
-TEST_F(Ell, MixedAdvancedApplyWithStrideToDenseMatrixIsEquivalentToRef3)
+TEST_F(Ell, MixedAdvancedApplyWithStrideToMultiVectorMatrixIsEquivalentToRef3)
 {
     SKIP_IF_SINGLE_MODE;
     set_up_apply_data(size[0], size[1], 6, num_els_rowwise, ell_stride);
@@ -397,7 +397,7 @@ TEST_F(Ell, AdvancedByAtomicApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, SimpleApplyByAtomicToDenseMatrixIsEquivalentToRef)
+TEST_F(Ell, SimpleApplyByAtomicToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(10, 10000, 3);
 
@@ -408,7 +408,7 @@ TEST_F(Ell, SimpleApplyByAtomicToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, AdvancedByAtomicToDenseMatrixApplyIsEquivalentToRef)
+TEST_F(Ell, AdvancedByAtomicToMultiVectorMatrixApplyIsEquivalentToRef)
 {
     set_up_apply_data(10, 10000, 3);
 
@@ -430,7 +430,7 @@ TEST_F(Ell, SimpleApplyOnSmallMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, AdvancedApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
+TEST_F(Ell, AdvancedApplyOnSmallMatrixToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(1, 10, 3);
 
@@ -441,7 +441,7 @@ TEST_F(Ell, AdvancedApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, SimpleApplyOnSmallMatrixToDenseMatrixIsEquivalentToRef)
+TEST_F(Ell, SimpleApplyOnSmallMatrixToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(1, 10, 3);
 
@@ -493,12 +493,12 @@ TEST_F(Ell, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
+TEST_F(Ell, ConvertToMultiVectorIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx);
     dmtx->convert_to(ddense_mtx);

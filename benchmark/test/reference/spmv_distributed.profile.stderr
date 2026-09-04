@@ -6,16 +6,16 @@ The number of right hand sides is 1
 Running test case stencil(100, 7pt, stencil)
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill_in_matrix_data
-DEBUG: end   dense::fill_in_matrix_data
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
+DEBUG: begin multivector::fill_in_matrix_data
+DEBUG: end   multivector::fill_in_matrix_data
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill_in_matrix_data
-DEBUG: end   dense::fill_in_matrix_data
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
+DEBUG: begin multivector::fill_in_matrix_data
+DEBUG: end   multivector::fill_in_matrix_data
 Matrix is of size (125, 125), 285
 DEBUG: begin stencil(100, 7pt, stencil)
 	Running spmv: csr-csr
@@ -119,21 +119,21 @@ DEBUG: end   components::convert_idxs_to_ptrs
 DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
 DEBUG: begin copy(<typename>)
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
+DEBUG: begin multivector::copy
+DEBUG: end   multivector::copy
 DEBUG: end   copy(<typename>)
 DEBUG: begin repetition
 DEBUG: begin apply(<typename>)
-DEBUG: begin dense::row_gather
-DEBUG: end   dense::row_gather
+DEBUG: begin multivector::row_gather
+DEBUG: end   multivector::row_gather
 DEBUG: begin event::record_event
 DEBUG: end   event::record_event
 DEBUG: begin apply(<typename>)
 DEBUG: begin csr::spmv
 DEBUG: end   csr::spmv
 DEBUG: end   apply(<typename>)
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
 DEBUG: begin advanced_apply(<typename>)
 DEBUG: begin csr::advanced_spmv
 DEBUG: end   csr::advanced_spmv

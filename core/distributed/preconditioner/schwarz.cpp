@@ -16,8 +16,8 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 #include "core/base/utils.hpp"
@@ -228,7 +228,7 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
         l1_diag->move_to(l1_diag_csr);
         auto id = matrix::Identity<ValueType>::create(
             exec, diag_matrix->get_size()[0]);
-        auto one = initialize<matrix::Dense<ValueType>>(
+        auto one = initialize<matrix::MultiVector<ValueType>>(
             {::gko::one<ValueType>()}, exec);
         l1_diag_csr->apply(one, id, one, diag_matrix_copy);
 
@@ -242,17 +242,17 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     gko::remove_complex<ValueType> cweight =
         gko::detail::real_impl(parameters_.coarse_weight);
     if (cweight >= 0.0 && cweight <= 1.0) {
-        this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+        this->local_weight_ = gko::initialize<matrix::MultiVector<ValueType>>(
             {one<ValueType>() -
              static_cast<ValueType>(parameters_.coarse_weight)},
             this->get_executor());
-        this->coarse_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+        this->coarse_weight_ = gko::initialize<matrix::MultiVector<ValueType>>(
             {static_cast<ValueType>(parameters_.coarse_weight)},
             this->get_executor());
     } else {
-        this->local_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+        this->local_weight_ = gko::initialize<matrix::MultiVector<ValueType>>(
             {one<ValueType>()}, this->get_executor());
-        this->coarse_weight_ = gko::initialize<matrix::Dense<ValueType>>(
+        this->coarse_weight_ = gko::initialize<matrix::MultiVector<ValueType>>(
             {one<ValueType>()}, this->get_executor());
     }
 

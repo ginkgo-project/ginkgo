@@ -5,7 +5,7 @@
 #include "ginkgo/core/log/papi.hpp"
 
 #include <ginkgo/core/base/dim.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/distributed/helpers.hpp"
 
@@ -209,7 +209,7 @@ void Papi<ValueType>::on_criterion_check_completed(
     const array<stopping_status>* status, const bool& oneChanged,
     const bool& converged) const
 {
-    using Vector = matrix::Dense<ValueType>;
+    using Vector = matrix::MultiVector<ValueType>;
     double residual_norm_d = 0.0;
     if (residual_norm != nullptr) {
         auto dense_r_norm = as<Vector>(residual_norm);

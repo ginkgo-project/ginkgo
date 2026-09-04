@@ -35,7 +35,7 @@ template <typename T>
 class Nullspace : public ::testing::Test {
 protected:
     using value_type = T;
-    using vec = gko::matrix::Dense<value_type>;
+    using vec = gko::matrix::MultiVector<value_type>;
     using real = gko::remove_complex<value_type>;
 
     Nullspace() : exec(gko::ReferenceExecutor::create()) {}
@@ -178,7 +178,7 @@ TYPED_TEST(Nullspace, ProjectConvertsPrecision)
 {
     using value_type = typename TestFixture::value_type;
     using other_type = gko::next_precision<value_type>;
-    using other_vec = gko::matrix::Dense<other_type>;
+    using other_vec = gko::matrix::MultiVector<other_type>;
     auto ns = gko::solver::Nullspace<value_type>::create_from_constant(
         this->exec, gko::dim<2>{4, 4});
     auto v = gko::initialize<other_vec>(
@@ -305,8 +305,8 @@ TYPED_TEST(Nullspace, OrthonormalizesComplexBasis)
         GKO_ASSERT_MTX_NEAR(gram,
                             gko::initialize<vec>({{o, z}, {z, o}}, this->exec),
                             r<value_type>::value);
-        auto norm =
-            gko::matrix::Dense<real>::create(this->exec, gko::dim<2>{1, 1});
+        auto norm = gko::matrix::MultiVector<real>::create(this->exec,
+                                                           gko::dim<2>{1, 1});
         v->compute_norm2(norm);
         ASSERT_LT(norm->at(0, 0), r<value_type>::value);
     }
@@ -658,8 +658,9 @@ TYPED_TEST(Nullspace, SolverRejectsBasisOfOtherValueType)
     const auto z = gko::zero<other_type>();
     auto mtx = this->laplacian(4);
     auto ns = gko::share(gko::solver::Nullspace<other_type>::create(
-        this->exec, {gko::share(gko::initialize<gko::matrix::Dense<other_type>>(
-                        {o, o, z, z}, this->exec))}));
+        this->exec,
+        {gko::share(gko::initialize<gko::matrix::MultiVector<other_type>>(
+            {o, o, z, z}, this->exec))}));
     auto factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))

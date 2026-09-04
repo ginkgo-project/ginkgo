@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/config/registry.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -23,7 +23,7 @@ using namespace gko::config;
 
 class Registry : public ::testing::Test {
 protected:
-    using Matrix = gko::matrix::Dense<float>;
+    using Matrix = gko::matrix::MultiVector<float>;
     using Solver = gko::solver::Cg<float>;
     using Stop = gko::stop::Iteration;
 
@@ -173,7 +173,7 @@ TEST_F(Registry, ThrowWithWrongType)
     reg.emplace("stop_factory", stop_factory);
 
     ASSERT_THROW(
-        detail::registry_accessor::get_data<gko::matrix::Dense<double>>(
+        detail::registry_accessor::get_data<gko::matrix::MultiVector<double>>(
             reg, "matrix"),
         gko::NotSupported);
     ASSERT_THROW(

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -221,7 +221,7 @@ namespace matrix {
 
 
 template <typename ValueType>
-class Dense;
+class MultiVector;
 
 
 class Fft;
@@ -255,7 +255,7 @@ struct mtx_io_traits {
 
 
 template <typename ValueType>
-struct mtx_io_traits<gko::matrix::Dense<ValueType>> {
+struct mtx_io_traits<gko::matrix::MultiVector<ValueType>> {
     static constexpr auto default_layout = layout_type::array;
 };
 

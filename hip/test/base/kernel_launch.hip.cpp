@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
@@ -62,12 +62,14 @@ protected:
         : zero_array(ref, 16),
           iota_array(ref, 16),
           iota_transp_array(ref, 16),
-          iota_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4})),
-          zero_dense(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 6)),
-          zero_dense2(gko::matrix::Dense<>::create(exec, dim<2>{4, 4}, 5)),
-          vec_dense(gko::matrix::Dense<>::create(exec, dim<2>{1, 4}))
+          iota_dense(gko::matrix::MultiVector<>::create(exec, dim<2>{4, 4})),
+          zero_dense(gko::matrix::MultiVector<>::create(exec, dim<2>{4, 4}, 6)),
+          zero_dense2(
+              gko::matrix::MultiVector<>::create(exec, dim<2>{4, 4}, 5)),
+          vec_dense(gko::matrix::MultiVector<>::create(exec, dim<2>{1, 4}))
     {
-        auto ref_iota_dense = gko::matrix::Dense<>::create(ref, dim<2>{4, 4});
+        auto ref_iota_dense =
+            gko::matrix::MultiVector<>::create(ref, dim<2>{4, 4});
         for (int i = 0; i < 16; i++) {
             zero_array.get_data()[i] = 0;
             iota_array.get_data()[i] = i;
@@ -85,10 +87,10 @@ protected:
     gko::array<int> zero_array;
     gko::array<int> iota_array;
     gko::array<int> iota_transp_array;
-    std::unique_ptr<gko::matrix::Dense<>> iota_dense;
-    std::unique_ptr<gko::matrix::Dense<>> zero_dense;
-    std::unique_ptr<gko::matrix::Dense<>> zero_dense2;
-    std::unique_ptr<gko::matrix::Dense<>> vec_dense;
+    std::unique_ptr<gko::matrix::MultiVector<>> iota_dense;
+    std::unique_ptr<gko::matrix::MultiVector<>> zero_dense;
+    std::unique_ptr<gko::matrix::MultiVector<>> zero_dense2;
+    std::unique_ptr<gko::matrix::MultiVector<>> vec_dense;
 };
 
 
@@ -140,7 +142,8 @@ TEST_F(KernelLaunch, Runs1DArray)
 }
 
 
-void run1d(std::shared_ptr<gko::HipExecutor> exec, gko::matrix::Dense<>* m)
+void run1d(std::shared_ptr<gko::HipExecutor> exec,
+           gko::matrix::MultiVector<>* m)
 {
     gko::kernels::hip::run_kernel(
         exec,
@@ -169,7 +172,7 @@ void run1d(std::shared_ptr<gko::HipExecutor> exec, gko::matrix::Dense<>* m)
         m->get_const_values(), move_only_val);
 }
 
-TEST_F(KernelLaunch, Runs1DDense)
+TEST_F(KernelLaunch, Runs1DMultiVector)
 {
     run1d(exec, zero_dense2.get());
 
@@ -226,8 +229,9 @@ TEST_F(KernelLaunch, Runs2DArray)
 }
 
 
-void run2d(std::shared_ptr<gko::HipExecutor> exec, gko::matrix::Dense<>* m1,
-           gko::matrix::Dense<>* m2, gko::matrix::Dense<>* m3)
+void run2d(std::shared_ptr<gko::HipExecutor> exec,
+           gko::matrix::MultiVector<>* m1, gko::matrix::MultiVector<>* m2,
+           gko::matrix::MultiVector<>* m3)
 {
     gko::kernels::hip::run_kernel_solver(
         exec,
@@ -268,7 +272,7 @@ void run2d(std::shared_ptr<gko::HipExecutor> exec, gko::matrix::Dense<>* m1,
         m3->get_values(), move_only_val);
 }
 
-TEST_F(KernelLaunch, Runs2DDense)
+TEST_F(KernelLaunch, Runs2DMultiVector)
 {
     run2d(exec, zero_dense2.get(), zero_dense.get(), vec_dense.get());
 

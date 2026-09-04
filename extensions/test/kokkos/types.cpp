@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -78,10 +78,10 @@ TYPED_TEST(ArrayMapper, CanMapConst)
 
 
 template <typename ValueType>
-class DenseMapper : public ::testing::Test {
+class MultiVectorMapper : public ::testing::Test {
 protected:
     using value_type = ValueType;
-    using mtx_type = gko::matrix::Dense<value_type>;
+    using mtx_type = gko::matrix::MultiVector<value_type>;
 
     std::shared_ptr<gko::Executor> exec =
         gko::ext::kokkos::create_default_executor();
@@ -89,10 +89,11 @@ protected:
         gko::initialize<mtx_type>({1, 2, 3, 4}, exec);
 };
 
-TYPED_TEST_SUITE(DenseMapper, gko::test::ValueTypesBase, TypenameNameGenerator);
+TYPED_TEST_SUITE(MultiVectorMapper, gko::test::ValueTypesBase,
+                 TypenameNameGenerator);
 
 
-TYPED_TEST(DenseMapper, CanMapDefault)
+TYPED_TEST(MultiVectorMapper, CanMapDefault)
 {
     using value_type = typename TestFixture::value_type;
     using kokkos_value_type =
@@ -119,14 +120,15 @@ TYPED_TEST(DenseMapper, CanMapDefault)
 }
 
 
-TYPED_TEST(DenseMapper, CanMapConst)
+TYPED_TEST(MultiVectorMapper, CanMapConst)
 {
     using value_type = typename TestFixture::value_type;
     using kokkos_value_type =
         typename gko::ext::kokkos::detail::value_type<value_type>::type;
 
     auto mapped_mtx = gko::ext::kokkos::map_data(
-        const_cast<const gko::matrix::Dense<value_type>*>(this->mtx.get()));
+        const_cast<const gko::matrix::MultiVector<value_type>*>(
+            this->mtx.get()));
 
     using mapped_type =
         std::remove_cv_t<std::remove_reference_t<decltype(mapped_mtx)>>;
@@ -147,7 +149,7 @@ TYPED_TEST(DenseMapper, CanMapConst)
 }
 
 
-TYPED_TEST(DenseMapper, CanMapStrided)
+TYPED_TEST(MultiVectorMapper, CanMapStrided)
 {
     using mtx_type = typename TestFixture::mtx_type;
     using value_type = typename TestFixture::value_type;

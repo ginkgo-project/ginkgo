@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -23,7 +23,7 @@ TYPED_TEST_SUITE(MatricesNear, gko::test::ValueTypes, TypenameNameGenerator);
 TYPED_TEST(MatricesNear, CanPassAnyMatrixType)
 {
     auto exec = gko::ReferenceExecutor::create();
-    auto mtx = gko::initialize<gko::matrix::Dense<TypeParam>>(
+    auto mtx = gko::initialize<gko::matrix::MultiVector<TypeParam>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, exec);
 
     auto csr_mtx = gko::matrix::Csr<TypeParam>::create(exec);

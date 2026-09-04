@@ -8,7 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/chebyshev.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -21,7 +21,7 @@ template <typename T>
 class Chebyshev : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Chebyshev<value_type>;
     using coeff_type = gko::solver::detail::coeff_type<value_type>;
     Chebyshev()
@@ -124,7 +124,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystem)
 TYPED_TEST(Chebyshev, SolvesTriangularSystemMixed)
 {
     using mixed_type = gko::next_precision<typename TestFixture::value_type>;
-    using MixedMtx = gko::matrix::Dense<mixed_type>;
+    using MixedMtx = gko::matrix::MultiVector<mixed_type>;
     auto solver = this->chebyshev_factory->generate(this->mtx);
     auto b = gko::initialize<MixedMtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<MixedMtx>({0.0, 0.0, 0.0}, this->exec);
@@ -161,7 +161,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemMixedComplex)
 {
     using mixed_complex_type =
         gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using MixedMtx = gko::matrix::Dense<mixed_complex_type>;
+    using MixedMtx = gko::matrix::MultiVector<mixed_complex_type>;
     auto solver = this->chebyshev_factory->generate(this->mtx);
     auto b = gko::initialize<MixedMtx>(
         {mixed_complex_type{3.9, -7.8}, mixed_complex_type{9.0, -18.0},
@@ -247,7 +247,7 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApply)
 TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyMixed)
 {
     using mixed_type = gko::next_precision<typename TestFixture::value_type>;
-    using MixedMtx = gko::matrix::Dense<mixed_type>;
+    using MixedMtx = gko::matrix::MultiVector<mixed_type>;
     auto solver = this->chebyshev_factory->generate(this->mtx);
     auto alpha = gko::initialize<MixedMtx>({2.0}, this->exec);
     auto beta = gko::initialize<MixedMtx>({-1.0}, this->exec);
@@ -289,8 +289,8 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
 {
     using mixed_type = gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_type>;
-    using Scalar = gko::matrix::Dense<mixed_type>;
-    using MixedMtx = gko::matrix::Dense<mixed_complex_type>;
+    using Scalar = gko::matrix::MultiVector<mixed_type>;
+    using MixedMtx = gko::matrix::MultiVector<mixed_complex_type>;
     auto solver = this->chebyshev_factory->generate(this->mtx);
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
     auto beta = gko::initialize<Scalar>({-1.0}, this->exec);

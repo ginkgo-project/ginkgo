@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
@@ -286,7 +286,8 @@ void Hybrid<ValueType, IndexType>::move_to(
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
+void Hybrid<ValueType, IndexType>::convert_to(
+    MultiVector<ValueType>* result) const
 {
     auto exec = this->get_executor();
     result->resize(this->get_size());
@@ -302,7 +303,7 @@ void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::move_to(Dense<ValueType>* result)
+void Hybrid<ValueType, IndexType>::move_to(MultiVector<ValueType>* result)
 {
     this->convert_to(result);
 }

@@ -186,7 +186,7 @@ void solve_system(const std::string& executor_string,
                   ValueType* u, gko::remove_complex<ValueType> reduction_factor)
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;

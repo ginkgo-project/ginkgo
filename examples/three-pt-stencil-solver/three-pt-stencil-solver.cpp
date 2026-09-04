@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -124,7 +124,7 @@ void solve_system(const std::string& executor_string,
                   ValueType* u, gko::remove_complex<ValueType> reduction_factor)
 {
     // Some shortcuts
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType, IndexType>;

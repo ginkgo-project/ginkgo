@@ -42,7 +42,7 @@ namespace detail {
 
 template <typename ValueType>
 batch_dim<2> compute_batch_size(
-    const std::vector<gko::matrix::Dense<ValueType>*>& matrices)
+    const std::vector<gko::matrix::MultiVector<ValueType>*>& matrices)
 {
     auto common_size = matrices[0]->get_size();
     for (size_type i = 1; i < matrices.size(); ++i) {
@@ -56,7 +56,7 @@ batch_dim<2> compute_batch_size(
 
 
 template <typename ValueType>
-std::unique_ptr<gko::matrix::Dense<ValueType>>
+std::unique_ptr<gko::matrix::MultiVector<ValueType>>
 MultiVector<ValueType>::create_view_for_item(size_type item_id)
 {
     auto exec = this->get_executor();
@@ -72,7 +72,7 @@ MultiVector<ValueType>::create_view_for_item(size_type item_id)
 
 
 template <typename ValueType>
-std::unique_ptr<const gko::matrix::Dense<ValueType>>
+std::unique_ptr<const gko::matrix::MultiVector<ValueType>>
 MultiVector<ValueType>::create_const_view_for_item(size_type item_id) const
 {
     auto exec = this->get_executor();
