@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     using dist_mtx =
         gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
                                                GlobalIndexType>;
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
     using part_type =
         gko::experimental::distributed::Partition<LocalIndexType,
                                                   GlobalIndexType>;

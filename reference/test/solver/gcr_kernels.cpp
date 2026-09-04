@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/gcr.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -31,8 +31,8 @@ class Gcr : public ::testing::Test {
 protected:
     using value_type = T;
     using rc_value_type = gko::remove_complex<value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
-    using rc_Mtx = gko::matrix::Dense<rc_value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
+    using rc_Mtx = gko::matrix::MultiVector<rc_value_type>;
     using Solver = gko::solver::Gcr<value_type>;
     Gcr()
         : exec(gko::ReferenceExecutor::create()),
@@ -229,7 +229,7 @@ TYPED_TEST(Gcr, SolvesStencilSystem)
 TYPED_TEST(Gcr, SolvesStencilSystemMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->gcr_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -267,7 +267,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemMixedComplex)
 {
     using value_type =
         gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->gcr_factory->generate(this->mtx);
     auto b =
         gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
@@ -323,7 +323,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApply)
 TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApplyMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->gcr_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
@@ -364,7 +364,7 @@ TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApplyComplex)
 
 TYPED_TEST(Gcr, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
+    using Scalar = gko::matrix::MultiVector<
         gko::next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
@@ -408,7 +408,7 @@ TYPED_TEST(Gcr, SolvesMultipleStencilSystemsUsingAdvancedApply)
 }
 
 
-TYPED_TEST(Gcr, SolvesBigDenseSystem1)
+TYPED_TEST(Gcr, SolvesBigMultiVectorSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -427,7 +427,7 @@ TYPED_TEST(Gcr, SolvesBigDenseSystem1)
 }
 
 
-TYPED_TEST(Gcr, SolvesBigDenseSystem2)
+TYPED_TEST(Gcr, SolvesBigMultiVectorSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -463,7 +463,7 @@ TYPED_TEST(Gcr, SolveWithImplicitResNormCritIsDisabled)
 
 
 template <typename T>
-gko::remove_complex<T> infNorm(gko::matrix::Dense<T>* mat, size_t col = 0)
+gko::remove_complex<T> infNorm(gko::matrix::MultiVector<T>* mat, size_t col = 0)
 {
     using gko::abs;
     using no_cpx_t = gko::remove_complex<T>;
@@ -476,7 +476,7 @@ gko::remove_complex<T> infNorm(gko::matrix::Dense<T>* mat, size_t col = 0)
 }
 
 
-TYPED_TEST(Gcr, SolvesMultipleDenseSystemForDivergenceCheck)
+TYPED_TEST(Gcr, SolvesMultipleMultiVectorSystemForDivergenceCheck)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -543,7 +543,7 @@ TYPED_TEST(Gcr, SolvesMultipleDenseSystemForDivergenceCheck)
 }
 
 
-TYPED_TEST(Gcr, SolvesBigDenseSystem1WithRestart)
+TYPED_TEST(Gcr, SolvesBigMultiVectorSystem1WithRestart)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
@@ -599,7 +599,7 @@ TYPED_TEST(Gcr, SolvesWithPreconditioner)
 }
 
 
-TYPED_TEST(Gcr, SolvesTransposedBigDenseSystem)
+TYPED_TEST(Gcr, SolvesTransposedBigMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -618,7 +618,7 @@ TYPED_TEST(Gcr, SolvesTransposedBigDenseSystem)
 }
 
 
-TYPED_TEST(Gcr, SolvesConjTransposedBigDenseSystem)
+TYPED_TEST(Gcr, SolvesConjTransposedBigMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;

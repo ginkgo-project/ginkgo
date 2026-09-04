@@ -20,8 +20,8 @@ namespace {
 template <typename T>
 class ResidualNorm : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
     using ValueType = T;
 
     ResidualNorm()
@@ -607,8 +607,8 @@ TYPED_TEST(ResidualNorm, SimplifiedInterface)
 template <typename T>
 class ResidualNormWithInitialResnorm : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
 
     ResidualNormWithInitialResnorm()
     {
@@ -748,8 +748,8 @@ TYPED_TEST(ResidualNormWithInitialResnorm, WaitsTillResidualGoalMultipleRHS)
 template <typename T>
 class ResidualNormWithRhsNorm : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
 
     ResidualNormWithRhsNorm()
     {
@@ -872,8 +872,8 @@ TYPED_TEST(ResidualNormWithRhsNorm, WaitsTillResidualGoalMultipleRHS)
 template <typename T>
 class ImplicitResidualNorm : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
     using ValueType = T;
 
     ImplicitResidualNorm()
@@ -1098,8 +1098,8 @@ TYPED_TEST(ImplicitResidualNorm, SimplifiedInterface)
 template <typename T>
 class ResidualNormWithAbsolute : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
 
     ResidualNormWithAbsolute()
     {

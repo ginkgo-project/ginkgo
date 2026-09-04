@@ -185,16 +185,16 @@ TYPED_TEST(RowScatterer, MovedScattererScattersLikeOriginal)
 
 TYPED_TEST(RowScatterer, ScatterIsGatherTranspose)
 {
-    using Dense = gko::matrix::Dense<double>;
+    using LocalVector = gko::matrix::MultiVector<double>;
     using Vector = gko::experimental::distributed::Vector<double>;
     int rank = this->comm.rank();
     auto offset = static_cast<double>(rank * 3);
     auto num_local_rows = static_cast<gko::int64>(3);
 
     // Create distributed vector with known values
-    auto b = Vector::create(
-        this->exec, this->comm, gko::dim<2>{18, 1},
-        gko::initialize<Dense>({offset, offset + 1, offset + 2}, this->exec));
+    auto b = Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
+                            gko::initialize<LocalVector>(
+                                {offset, offset + 1, offset + 2}, this->exec));
 
     // Gather ghost values
     auto recv_size = this->rg->get_collective_communicator()->get_recv_size();
@@ -207,7 +207,7 @@ TYPED_TEST(RowScatterer, ScatterIsGatherTranspose)
     auto target = Vector::create(
         this->exec, this->comm, gko::dim<2>{18, 1},
         gko::dim<2>{static_cast<gko::size_type>(num_local_rows), 1});
-    auto target_local = const_cast<Dense*>(target->get_local_vector());
+    auto target_local = const_cast<LocalVector*>(target->get_local_vector());
     target_local->fill(0.0);
 
     this->rs->apply_async(ghost_vals);
@@ -251,14 +251,14 @@ TYPED_TEST(RowScatterer, ScatterIsGatherTranspose)
 
 TYPED_TEST(RowScatterer, CanScatterConsecutively)
 {
-    using Dense = gko::matrix::Dense<double>;
+    using LocalVector = gko::matrix::MultiVector<double>;
     using Vector = gko::experimental::distributed::Vector<double>;
     int rank = this->comm.rank();
     auto num_local_rows = static_cast<gko::int64>(3);
 
-    auto b =
-        Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
-                       gko::initialize<Dense>({1.0, 1.0, 1.0}, this->exec));
+    auto b = Vector::create(
+        this->exec, this->comm, gko::dim<2>{18, 1},
+        gko::initialize<LocalVector>({1.0, 1.0, 1.0}, this->exec));
 
     auto recv_size = this->rg->get_collective_communicator()->get_recv_size();
     auto ghost_vals = Vector::create(
@@ -271,7 +271,7 @@ TYPED_TEST(RowScatterer, CanScatterConsecutively)
         gko::dim<2>{static_cast<gko::size_type>(num_local_rows), 1});
 
     // Scatter twice consecutively — should work without errors
-    auto target_local = const_cast<Dense*>(target->get_local_vector());
+    auto target_local = const_cast<LocalVector*>(target->get_local_vector());
     target_local->fill(0.0);
     this->rs->apply_async(ghost_vals);
     this->rs->wait_and_accumulate(target);
@@ -377,13 +377,13 @@ TYPED_TEST(RowScatterer, ThrowsOnApplyWhileScatterIsPending)
 
 TYPED_TEST(RowScatterer, CanScatterFromVectorOnDifferentExecutor)
 {
-    using Dense = gko::matrix::Dense<double>;
+    using LocalVector = gko::matrix::MultiVector<double>;
     using Vector = gko::experimental::distributed::Vector<double>;
     int rank = this->comm.rank();
     auto offset = static_cast<double>(rank * 3);
-    auto b = Vector::create(
-        this->exec, this->comm, gko::dim<2>{18, 1},
-        gko::initialize<Dense>({offset, offset + 1, offset + 2}, this->exec));
+    auto b = Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
+                            gko::initialize<LocalVector>(
+                                {offset, offset + 1, offset + 2}, this->exec));
     auto recv_size = this->rg->get_collective_communicator()->get_recv_size();
     auto ghost_vals = Vector::create(
         this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},

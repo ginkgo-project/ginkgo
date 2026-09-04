@@ -28,7 +28,7 @@ template <typename T>
 class NullspaceProjection : public ::testing::Test {
 protected:
     using value_type = T;
-    using vec = gko::matrix::Dense<value_type>;
+    using vec = gko::matrix::MultiVector<value_type>;
     using Csr = gko::matrix::Csr<value_type, int>;
     using Nullspace = gko::solver::Nullspace<value_type>;
     using Projection = gko::preconditioner::NullspaceProjection<value_type>;

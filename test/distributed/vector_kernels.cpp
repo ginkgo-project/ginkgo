@@ -31,7 +31,7 @@ protected:
     using global_index_type = typename std::tuple_element<
         2, decltype(ValueLocalGlobalIndexType())>::type;
     using global_entry = gko::matrix_data_entry<value_type, global_index_type>;
-    using mtx = gko::matrix::Dense<value_type>;
+    using mtx = gko::matrix::MultiVector<value_type>;
 
     Vector() : engine(42) {}
 

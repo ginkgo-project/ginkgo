@@ -9,8 +9,8 @@ This is the expected output:
 .
 .
 .
-[LOG] >>> iteration 22516 completed with solver LinOp[gko::solver::Bicgstab<double>,0x7fe6a4003710] with residual LinOp[gko::matrix::Dense<double>,0x7fe6a40050b0], solution LinOp[gko::matrix::Dense<double>,0x7fe6a40048e0] and residual_norm LinOp[gko::LinOp const*,0]
-LinOp[gko::matrix::Dense<double>,0x7fe6a40050b0][
+[LOG] >>> iteration 22516 completed with solver LinOp[gko::solver::Bicgstab<double>,0x7fe6a4003710] with residual LinOp[gko::matrix::MultiVector<double>,0x7fe6a40050b0], solution LinOp[gko::matrix::MultiVector<double>,0x7fe6a40048e0] and residual_norm LinOp[gko::LinOp const*,0]
+LinOp[gko::matrix::MultiVector<double>,0x7fe6a40050b0][
 	5.17803e-164
 	-7.6865e-165
 	-2.06149e-164
@@ -35,7 +35,7 @@ LinOp[gko::matrix::Dense<double>,0x7fe6a40050b0][
 // Typing 'stop' stops the solver.
 User input command 'stop' - The solver will stop
 
-LinOp[gko::matrix::Dense<double>,0x7fe6a40048e0][
+LinOp[gko::matrix::MultiVector<double>,0x7fe6a40048e0][
 	0.252218
 	0.108645
 	0.0662811

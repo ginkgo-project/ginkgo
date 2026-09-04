@@ -1,11 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <gtest/gtest.h>
 
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -18,8 +18,8 @@ class Identity : public ::testing::Test {
 protected:
     using value_type = T;
     using Id = gko::matrix::Identity<value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
-    using MixedVec = gko::matrix::Dense<gko::next_precision<value_type>>;
+    using Vec = gko::matrix::MultiVector<value_type>;
+    using MixedVec = gko::matrix::MultiVector<gko::next_precision<value_type>>;
     using ComplexVec = gko::to_complex<Vec>;
     using MixedComplexVec = gko::to_complex<MixedVec>;
 

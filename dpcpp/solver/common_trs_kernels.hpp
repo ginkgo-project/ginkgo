@@ -139,7 +139,7 @@ void solve_kernel(std::shared_ptr<const DpcppExecutor> exec,
     if (matrix.size[0] == 0 || b.size[1] == 0) {
         return;
     }
-    using vec = matrix::Dense<ValueType>;
+    using vec = matrix::MultiVector<ValueType>;
 
     if constexpr (onemkl::is_supported<ValueType>::value) {
         if (auto onemkl_solve_struct =

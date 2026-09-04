@@ -13,7 +13,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -164,7 +164,7 @@ std::unique_ptr<LinOp> Rcm<IndexType>::generate_impl(
         using ValueType = std::decay_t<decltype(value_type)>;
         using Identity = matrix::Identity<ValueType>;
         using Mtx = matrix::Csr<ValueType, IndexType>;
-        using Scalar = matrix::Dense<ValueType>;
+        using Scalar = matrix::MultiVector<ValueType>;
         auto conv_csr = Mtx::create(work_exec);
         as<ConvertibleTo<Mtx>>(op)->convert_to(conv_csr);
         if (!parameters_.skip_symmetrize) {

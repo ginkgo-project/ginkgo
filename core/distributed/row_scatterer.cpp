@@ -107,7 +107,7 @@ void RowScatterer<LocalIndexType>::wait_and_accumulate(
             auto target_dense = gko::detail::get_local(target_global);
             // throws if apply_async used a different value type
             auto recv_buffer =
-                gko::as<matrix::Dense<ValueType>>(recv_buffer_op);
+                gko::as<matrix::MultiVector<ValueType>>(recv_buffer_op);
             GKO_ASSERT_EQUAL_COLS(recv_buffer, target_dense);
 
             // scatter_add handles cross-executor copies via

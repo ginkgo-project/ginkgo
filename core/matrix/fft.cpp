@@ -6,7 +6,7 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/matrix/fft_kernels.hpp"
 
@@ -152,14 +152,15 @@ bool Fft::is_inverse() const { return inverse_; }
 
 void Fft::apply_impl(const LinOp* b, LinOp* x) const
 {
-    if (auto float_b = dynamic_cast<const Dense<std::complex<float>>*>(b)) {
-        auto dense_x = as<Dense<std::complex<float>>>(x);
+    if (auto float_b =
+            dynamic_cast<const MultiVector<std::complex<float>>*>(b)) {
+        auto dense_x = as<MultiVector<std::complex<float>>>(x);
         get_executor()->run(fft::make_fft(float_b->get_const_device_view(),
                                           dense_x->get_device_view(), inverse_,
                                           buffer_));
     } else {
-        auto dense_b = as<Dense<std::complex<double>>>(b);
-        auto dense_x = as<Dense<std::complex<double>>>(x);
+        auto dense_b = as<MultiVector<std::complex<double>>>(b);
+        auto dense_x = as<MultiVector<std::complex<double>>>(x);
         get_executor()->run(fft::make_fft(dense_b->get_const_device_view(),
                                           dense_x->get_device_view(), inverse_,
                                           buffer_));
@@ -170,13 +171,13 @@ void Fft::apply_impl(const LinOp* b, LinOp* x) const
 void Fft::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                      LinOp* x) const
 {
-    if (auto float_x = dynamic_cast<Dense<std::complex<float>>*>(x)) {
+    if (auto float_x = dynamic_cast<MultiVector<std::complex<float>>*>(x)) {
         auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         float_x->scale(beta);
         float_x->add_scaled(alpha, clone_x);
     } else {
-        auto dense_x = as<Dense<std::complex<double>>>(x);
+        auto dense_x = as<MultiVector<std::complex<double>>>(x);
         auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
@@ -249,14 +250,15 @@ bool Fft2::is_inverse() const { return inverse_; }
 
 void Fft2::apply_impl(const LinOp* b, LinOp* x) const
 {
-    if (auto float_b = dynamic_cast<const Dense<std::complex<float>>*>(b)) {
-        auto dense_x = as<Dense<std::complex<float>>>(x);
+    if (auto float_b =
+            dynamic_cast<const MultiVector<std::complex<float>>*>(b)) {
+        auto dense_x = as<MultiVector<std::complex<float>>>(x);
         get_executor()->run(fft::make_fft2(
             float_b->get_const_device_view(), dense_x->get_device_view(),
             fft_size_[0], fft_size_[1], inverse_, buffer_));
     } else {
-        auto dense_b = as<Dense<std::complex<double>>>(b);
-        auto dense_x = as<Dense<std::complex<double>>>(x);
+        auto dense_b = as<MultiVector<std::complex<double>>>(b);
+        auto dense_x = as<MultiVector<std::complex<double>>>(x);
         get_executor()->run(fft::make_fft2(
             dense_b->get_const_device_view(), dense_x->get_device_view(),
             fft_size_[0], fft_size_[1], inverse_, buffer_));
@@ -267,13 +269,13 @@ void Fft2::apply_impl(const LinOp* b, LinOp* x) const
 void Fft2::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                       LinOp* x) const
 {
-    if (auto float_x = dynamic_cast<Dense<std::complex<float>>*>(x)) {
+    if (auto float_x = dynamic_cast<MultiVector<std::complex<float>>*>(x)) {
         auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         float_x->scale(beta);
         float_x->add_scaled(alpha, clone_x);
     } else {
-        auto dense_x = as<Dense<std::complex<double>>>(x);
+        auto dense_x = as<MultiVector<std::complex<double>>>(x);
         auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
@@ -362,14 +364,15 @@ bool Fft3::is_inverse() const { return inverse_; }
 
 void Fft3::apply_impl(const LinOp* b, LinOp* x) const
 {
-    if (auto float_b = dynamic_cast<const Dense<std::complex<float>>*>(b)) {
-        auto dense_x = as<Dense<std::complex<float>>>(x);
+    if (auto float_b =
+            dynamic_cast<const MultiVector<std::complex<float>>*>(b)) {
+        auto dense_x = as<MultiVector<std::complex<float>>>(x);
         get_executor()->run(fft::make_fft3(
             float_b->get_const_device_view(), dense_x->get_device_view(),
             fft_size_[0], fft_size_[1], fft_size_[2], inverse_, buffer_));
     } else {
-        auto dense_b = as<Dense<std::complex<double>>>(b);
-        auto dense_x = as<Dense<std::complex<double>>>(x);
+        auto dense_b = as<MultiVector<std::complex<double>>>(b);
+        auto dense_x = as<MultiVector<std::complex<double>>>(x);
         get_executor()->run(fft::make_fft3(
             dense_b->get_const_device_view(), dense_x->get_device_view(),
             fft_size_[0], fft_size_[1], fft_size_[2], inverse_, buffer_));
@@ -380,13 +383,13 @@ void Fft3::apply_impl(const LinOp* b, LinOp* x) const
 void Fft3::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                       LinOp* x) const
 {
-    if (auto float_x = dynamic_cast<Dense<std::complex<float>>*>(x)) {
+    if (auto float_x = dynamic_cast<MultiVector<std::complex<float>>*>(x)) {
         auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         float_x->scale(beta);
         float_x->add_scaled(alpha, clone_x);
     } else {
-        auto dense_x = as<Dense<std::complex<double>>>(x);
+        auto dense_x = as<MultiVector<std::complex<double>>>(x);
         auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
