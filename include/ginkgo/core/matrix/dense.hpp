@@ -289,10 +289,10 @@ public:
      */
     void conj_transpose(ptr_param<Dense> output) const;
 
-    void add_scaled(ptr_param<const LinOp> alpha,
+    void add_scaled(ptr_param<const AbstractMultiVector> alpha,
                     ptr_param<const Diagonal<value_type>> diag);
 
-    void sub_scaled(ptr_param<const LinOp> alpha,
+    void sub_scaled(ptr_param<const AbstractMultiVector> alpha,
                     ptr_param<const Diagonal<value_type>> diag);
 
     [[nodiscard]] static std::unique_ptr<Dense> create(
@@ -354,10 +354,13 @@ protected:
     Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
           array<value_type> values, size_type stride);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     [[nodiscard]] size_type linearize_index(size_type row,
                                             size_type col) const noexcept;

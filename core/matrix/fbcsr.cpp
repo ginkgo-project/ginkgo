@@ -12,7 +12,6 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -23,6 +22,7 @@
 
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/fbcsr_kernels.hpp"
@@ -104,47 +104,30 @@ Fbcsr<ValueType, IndexType>::Fbcsr(Fbcsr&& other) : Fbcsr{other.get_executor()}
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Fbcsr<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                             AbstractMultiVector* x) const
 {
-    if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType>*>(b)) {
-        // if b is a FBCSR matrix, we need an SpGeMM
-        GKO_NOT_SUPPORTED(b_fbcsr);
-    } else {
-        // otherwise we assume that b is dense and compute a SpMV/SpMM
-        precision_dispatch_real_complex<ValueType>(
-            [this](auto dense_b, auto dense_x) {
-                this->get_executor()->run(
-                    fbcsr::make_spmv(this, dense_b->get_const_device_view(),
-                                     dense_x->get_device_view()));
-            },
-            b, x);
-    }
+    apply_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x) {
+            this->get_executor()->run(fbcsr::make_spmv(this, view_b, view_x));
+        },
+        b, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                             const LinOp* beta, LinOp* x) const
+void Fbcsr<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                             const AbstractMultiVector* b,
+                                             const AbstractMultiVector* beta,
+                                             AbstractMultiVector* x) const
 {
-    if (auto b_fbcsr = dynamic_cast<const Fbcsr<ValueType, IndexType>*>(b)) {
-        // if b is a FBCSR matrix, we need an SpGeMM
-        GKO_NOT_SUPPORTED(b_fbcsr);
-    } else if (auto b_ident = dynamic_cast<const Identity<ValueType>*>(b)) {
-        // if b is an identity matrix, we need an SpGEAM
-        GKO_NOT_SUPPORTED(b_ident);
-    } else {
-        // otherwise we assume that b is dense and compute a SpMV/SpMM
-        precision_dispatch_real_complex<ValueType>(
-            [this](auto dense_alpha, auto dense_b, auto dense_beta,
-                   auto dense_x) {
-                this->get_executor()->run(fbcsr::make_advanced_spmv(
-                    dense_alpha->get_const_device_view(), this,
-                    dense_b->get_const_device_view(),
-                    dense_beta->get_const_device_view(),
-                    dense_x->get_device_view()));
-            },
-            alpha, b, beta, x);
-    }
+    apply_precision_dispatch<ValueType>(
+        [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x) {
+            this->get_executor()->run(fbcsr::make_advanced_spmv(
+                dense_alpha->get_const_device_view(), this, view_b,
+                dense_beta->get_const_device_view(), view_x));
+        },
+        alpha, b, beta, x);
 }
 
 
