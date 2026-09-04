@@ -563,8 +563,7 @@ void run2d_col_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         // check different edge cases: subwarp sizes, blocked mode
         for (auto num_cols :
              {0, 1, 2, 3, 4, 5, 7, 8, 9, 16, 31, 32, 63, 127, 128, 129,
-              65535 * 128 +
-                  1 /* check we do not exceed the gridDim.y limit */}) {
+              65535 * 128 + 1 /* check for exceeding the gridDim.y limit */}) {
             SCOPED_TRACE(std::to_string(num_rows) + " rows, " +
                          std::to_string(num_cols) + " cols");
             gko::array<int64> host_ref{exec->get_master(),

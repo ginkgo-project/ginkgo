@@ -493,7 +493,7 @@ void run_kernel_col_reduction_cached(
             syn::value_list<int>(), syn::type_list<>(), max_blocks, exec, fn,
             op, finalize, identity, result, size, tmp, map_to_device(args)...);
     } else {
-        // cuda only accept up to 65545 for grid's y-axix
+        // cuda only accept up to 65535 for grid's y-axis
         constexpr int64 max_grid_y = 65535;
         const auto col_blocks =
             std::min(ceildiv(cols, config::warp_size), max_grid_y);
