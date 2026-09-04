@@ -95,6 +95,8 @@ public:
 
     Direct& operator=(Direct&&);
 
+    void validate_data() const override;
+
 protected:
     explicit Direct(std::shared_ptr<const Executor> exec);
 

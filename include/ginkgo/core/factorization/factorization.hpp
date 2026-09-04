@@ -178,6 +178,8 @@ public:
     static std::unique_ptr<Factorization> create_from_combined_ldl(
         std::unique_ptr<matrix_type> matrix);
 
+    void validate_data() const override;
+
 protected:
     explicit Factorization(std::shared_ptr<const Executor> exec);
 

@@ -28,7 +28,7 @@ GKO_REGISTER_OPERATION(compose, permutation::compose);
 
 
 template <typename IndexType>
-validation::ValidationResult permutation_is_bijection(
+validation::validation_result permutation_is_bijection(
     const gko::array<IndexType>& permutation_)
 {
     const auto host_perm_idxs = permutation_.copy_to_host();

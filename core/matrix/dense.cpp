@@ -109,7 +109,7 @@ GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
 
 
 template <typename ValueType>
-validation::ValidationResult dense_matrix_values_are_finite(
+validation::validation_result dense_matrix_values_are_finite(
     const Dense<ValueType>* mtx)
 {
     if constexpr (std::is_integral<ValueType>::value) {
