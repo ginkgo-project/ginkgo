@@ -775,7 +775,7 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
 }
 
 
-TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestartTol)
+TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestartRatio)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
@@ -787,7 +787,7 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestartTol)
     auto gmres_factory_restart =
         Solver::build()
             .with_krylov_dim(4u)
-            .with_restart_tol(rc_value_type{0.9})
+            .with_restart_ratio(rc_value_type{0.9})
             .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
                            gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(r<value_type>::value))
@@ -840,7 +840,7 @@ private:
 };
 
 
-TYPED_TEST(Gmres, RestartTolRestartsBeforeKrylovDim)
+TYPED_TEST(Gmres, RestartRatioRestartsBeforeKrylovDim)
 {
     using Mtx = typename TestFixture::Mtx;
     using Solver = typename TestFixture::Solver;
@@ -850,10 +850,10 @@ TYPED_TEST(Gmres, RestartTolRestartsBeforeKrylovDim)
     SKIP_IF_HALF(value_type);
     auto half_tol = std::sqrt(r<value_type>::value);
     // krylov_dim is out of reach, so any restart comes from the tolerance.
-    auto build_factory = [this](rc_value_type restart_tol) {
+    auto build_factory = [this](rc_value_type restart_ratio) {
         return Solver::build()
             .with_krylov_dim(100u)
-            .with_restart_tol(restart_tol)
+            .with_restart_ratio(restart_ratio)
             .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
                            gko::stop::ResidualNorm<value_type>::build()
                                .with_reduction_factor(r<value_type>::value))

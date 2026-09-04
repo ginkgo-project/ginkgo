@@ -171,7 +171,7 @@ TYPED_TEST(Gmres, CanSetKrylovDimAgain)
 }
 
 
-TYPED_TEST(Gmres, RestartTolIsZeroByDefault)
+TYPED_TEST(Gmres, RestartRatioIsZeroByDefault)
 {
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
@@ -182,54 +182,54 @@ TYPED_TEST(Gmres, RestartTolIsZeroByDefault)
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
 
-    ASSERT_EQ(solver->get_restart_tol(), real_type{0});
+    ASSERT_EQ(solver->get_restart_ratio(), real_type{0});
 }
 
 
-TYPED_TEST(Gmres, CanSetRestartTol)
+TYPED_TEST(Gmres, CanSetRestartRatio)
 {
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
-    const real_type new_restart_tol{0.9};
+    const real_type new_restart_ratio{0.9};
 
     auto gmres_factory =
         Solver::build()
-            .with_restart_tol(new_restart_tol)
+            .with_restart_ratio(new_restart_ratio)
             .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
 
-    ASSERT_EQ(solver->get_restart_tol(), new_restart_tol);
+    ASSERT_EQ(solver->get_restart_ratio(), new_restart_ratio);
 }
 
 
-TYPED_TEST(Gmres, CanSetRestartTolAgain)
+TYPED_TEST(Gmres, CanSetRestartRatioAgain)
 {
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
-    const real_type new_restart_tol{0.95};
+    const real_type new_restart_ratio{0.95};
     auto gmres_factory =
         Solver::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(this->exec);
     auto solver = gmres_factory->generate(this->mtx);
 
-    solver->set_restart_tol(new_restart_tol);
+    solver->set_restart_ratio(new_restart_ratio);
 
-    ASSERT_EQ(solver->get_restart_tol(), new_restart_tol);
+    ASSERT_EQ(solver->get_restart_ratio(), new_restart_ratio);
 }
 
 
-TYPED_TEST(Gmres, RejectsRestartTolOutsideUnitInterval)
+TYPED_TEST(Gmres, RejectsRestartRatioOutsideUnitInterval)
 {
     using Solver = typename TestFixture::Solver;
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
     auto build_with = [this](real_type tol) {
         return Solver::build()
-            .with_restart_tol(tol)
+            .with_restart_ratio(tol)
             .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
             .on(this->exec);
     };
