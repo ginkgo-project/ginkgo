@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -215,8 +216,7 @@ void Fbcsr<ValueType, IndexType>::move_to(
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::convert_to(
-    MultiVector<ValueType>* result) const
+void Fbcsr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp_result = make_temporary_output_clone(exec, result);
@@ -227,7 +227,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Fbcsr<ValueType, IndexType>::move_to(MultiVector<ValueType>* result)
+void Fbcsr<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 {
     this->convert_to(result);
 }

@@ -131,74 +131,6 @@ namespace kernels {
     void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec, \
                       matrix::view::dense<ValueType> data)
 
-#define GKO_DECLARE_MULTIVECTOR_CONVERT_TO_COO_KERNEL(ValueType, IndexType) \
-    void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,        \
-                        matrix::view::dense<const ValueType> source,        \
-                        const int64* row_ptrs,                              \
-                        matrix::view::coo<ValueType, IndexType> other)
-
-#define GKO_DECLARE_MULTIVECTOR_CONVERT_TO_CSR_KERNEL(ValueType, IndexType) \
-    void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,        \
-                        matrix::view::dense<const ValueType> source,        \
-                        matrix::view::csr<ValueType, IndexType> other)
-
-#define GKO_DECLARE_MULTIVECTOR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType) \
-    void convert_to_ell(std::shared_ptr<const DefaultExecutor> exec,        \
-                        matrix::view::dense<const ValueType> source,        \
-                        matrix::view::ell<ValueType, IndexType> other)
-
-#define GKO_DECLARE_MULTIVECTOR_CONVERT_TO_FBCSR_KERNEL(ValueType, IndexType) \
-    void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,        \
-                          matrix::view::dense<const ValueType> source,        \
-                          matrix::Fbcsr<ValueType, IndexType>* other)
-
-#define GKO_DECLARE_MULTIVECTOR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType) \
-    void convert_to_hybrid(std::shared_ptr<const DefaultExecutor> exec,        \
-                           matrix::view::dense<const ValueType> source,        \
-                           const int64* coo_row_ptrs,                          \
-                           matrix::view::hybrid<ValueType, IndexType> other)
-
-#define GKO_DECLARE_MULTIVECTOR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType) \
-    void convert_to_sellp(std::shared_ptr<const DefaultExecutor> exec,        \
-                          matrix::view::dense<const ValueType> source,        \
-                          matrix::view::sellp<ValueType, IndexType> other)
-
-#define GKO_DECLARE_MULTIVECTOR_CONVERT_TO_SPARSITY_CSR_KERNEL(ValueType, \
-                                                               IndexType) \
-    void convert_to_sparsity_csr(                                         \
-        std::shared_ptr<const DefaultExecutor> exec,                      \
-        matrix::view::dense<const ValueType> source,                      \
-        matrix::SparsityCsr<ValueType, IndexType>* other)
-
-#define GKO_DECLARE_MULTIVECTOR_COMPUTE_MAX_NNZ_PER_ROW_KERNEL(ValueType)     \
-    void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec, \
-                                 matrix::view::dense<const ValueType> source, \
-                                 size_type& result)
-
-#define GKO_DECLARE_MULTIVECTOR_COMPUTE_SLICE_SETS_KERNEL(ValueType)       \
-    void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,   \
-                            matrix::view::dense<const ValueType> source,   \
-                            size_type slice_size, size_type stride_factor, \
-                            size_type* slice_sets, size_type* slice_lengths)
-
-#define GKO_DECLARE_MULTIVECTOR_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType,     \
-                                                              IndexType)     \
-    void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec, \
-                                matrix::view::dense<const ValueType> source, \
-                                IndexType* result)
-
-#define GKO_DECLARE_MULTIVECTOR_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL(ValueType, \
-                                                                    IndexType) \
-    void count_nonzero_blocks_per_row(                                         \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        matrix::view::dense<const ValueType> source, int block_size,           \
-        IndexType* result)
-
-#define GKO_DECLARE_MULTIVECTOR_COUNT_NONZEROS_PER_ROW_KERNEL_SIZE_T( \
-    ValueType)                                                        \
-    GKO_DECLARE_MULTIVECTOR_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType,  \
-                                                          ::gko::size_type)
-
 #define GKO_DECLARE_MULTIVECTOR_TRANSPOSE_KERNEL(ValueType)     \
     void transpose(std::shared_ptr<const DefaultExecutor> exec, \
                    matrix::view::dense<const ValueType> orig,   \
@@ -413,31 +345,6 @@ namespace kernels {
     GKO_DECLARE_MULTIVECTOR_COMPUTE_SQUARED_NORM2_KERNEL(ValueType);          \
     template <typename ValueType>                                             \
     GKO_DECLARE_MULTIVECTOR_COMPUTE_SQRT_KERNEL(ValueType);                   \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_COO_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_CSR_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_ELL_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_FBCSR_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_HYBRID_KERNEL(ValueType, IndexType);   \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_SELLP_KERNEL(ValueType, IndexType);    \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_SPARSITY_CSR_KERNEL(ValueType,         \
-                                                           IndexType);        \
-    template <typename ValueType>                                             \
-    GKO_DECLARE_MULTIVECTOR_COMPUTE_MAX_NNZ_PER_ROW_KERNEL(ValueType);        \
-    template <typename ValueType>                                             \
-    GKO_DECLARE_MULTIVECTOR_COMPUTE_SLICE_SETS_KERNEL(ValueType);             \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_MULTIVECTOR_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType,          \
-                                                          IndexType);         \
-    template <typename ValueType, typename IndexType>                         \
-    GKO_DECLARE_MULTIVECTOR_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL(ValueType,    \
-                                                                IndexType);   \
     template <typename ValueType>                                             \
     GKO_DECLARE_MULTIVECTOR_TRANSPOSE_KERNEL(ValueType);                      \
     template <typename ValueType>                                             \

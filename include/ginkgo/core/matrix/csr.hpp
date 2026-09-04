@@ -23,6 +23,9 @@ template <typename ValueType>
 class MultiVector;
 
 template <typename ValueType>
+class Dense;
+
+template <typename ValueType>
 class Diagonal;
 
 template <typename ValueType, typename IndexType>
@@ -161,7 +164,7 @@ class Csr : public LinOp,
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Csr<next_precision<ValueType, 3>, IndexType>>,
 #endif
-            public ConvertibleTo<MultiVector<ValueType>>,
+            public ConvertibleTo<Dense<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Fbcsr<ValueType, IndexType>>,
@@ -178,7 +181,7 @@ class Csr : public LinOp,
             public ScaledIdentityAddable {
     friend class EnableCloneable<Csr>;
     friend class Coo<ValueType, IndexType>;
-    friend class MultiVector<ValueType>;
+    friend class Dense<ValueType>;
     friend class Diagonal<ValueType>;
     friend class Ell<ValueType, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
@@ -194,8 +197,8 @@ public:
     using EnableCloneable<Csr>::move_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::move_to;
-    using ConvertibleTo<MultiVector<ValueType>>::convert_to;
-    using ConvertibleTo<MultiVector<ValueType>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
     using ConvertibleTo<Coo<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Coo<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Ell<ValueType, IndexType>>::convert_to;
@@ -325,9 +328,9 @@ public:
     void move_to(Csr<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(MultiVector<ValueType>* other) const override;
+    void convert_to(Dense<ValueType>* other) const override;
 
-    void move_to(MultiVector<ValueType>* other) override;
+    void move_to(Dense<ValueType>* other) override;
 
     void convert_to(Coo<ValueType, IndexType>* result) const override;
 
