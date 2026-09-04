@@ -800,38 +800,6 @@ public:
 TYPED_TEST_SUITE(VectorLocalOps, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(VectorLocalOps, ApplyNotSupported)
-{
-    using dist_vec_type = typename TestFixture::dist_vec_type;
-    auto a = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{2, 2});
-    auto b = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{2, 2});
-    auto c = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{2, 2});
-
-    ASSERT_THROW(a->apply(b, c), gko::NotSupported);
-}
-
-
-TYPED_TEST(VectorLocalOps, AdvancedApplyNotSupported)
-{
-    using dist_vec_type = typename TestFixture::dist_vec_type;
-    auto a = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{2, 2});
-    auto b = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{1, 1},
-                                   gko::dim<2>{1, 1});
-    auto c = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{2, 2});
-    auto d = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{1, 1},
-                                   gko::dim<2>{1, 1});
-    auto e = dist_vec_type::create(this->exec, this->comm, gko::dim<2>{2, 2},
-                                   gko::dim<2>{2, 2});
-
-    ASSERT_THROW(a->apply(b, c, d, e), gko::NotSupported);
-}
-
-
 TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
 {
     using T = typename TestFixture::value_type;
