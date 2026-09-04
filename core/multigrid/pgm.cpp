@@ -21,8 +21,8 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/row_gatherer.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -227,12 +227,12 @@ void update_coarse_values(
     const matrix::Csr<ValueType, IndexType>* fine,
     matrix::Csr<ValueType, IndexType>* coarse)
 {
-    auto fine_vals = matrix::Dense<ValueType>::create_const(
+    auto fine_vals = matrix::MultiVector<ValueType>::create_const(
         exec, dim<2>{fine->get_num_stored_elements(), 1},
         make_const_array_view(exec, fine->get_num_stored_elements(),
                               fine->get_const_values()),
         1);
-    auto coarse_vals = matrix::Dense<ValueType>::create(
+    auto coarse_vals = matrix::MultiVector<ValueType>::create(
         exec, dim<2>{coarse->get_num_stored_elements(), 1},
         make_array_view(exec, coarse->get_num_stored_elements(),
                         coarse->get_values()),
@@ -337,7 +337,7 @@ Pgm<ValueType, IndexType>::generate_local(
     auto abs_mtx = local_matrix->compute_absolute();
     // abs_mtx is already real valuetype, so transpose is enough
     auto weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
-    auto half_scalar = initialize<matrix::Dense<real_type>>({0.5}, exec);
+    auto half_scalar = initialize<matrix::MultiVector<real_type>>({0.5}, exec);
     auto identity = matrix::Identity<real_type>::create(exec, num_rows);
     // W = (abs_mtx + transpose(abs_mtx))/2
     abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);

@@ -293,9 +293,9 @@ void Permutation<IndexType>::write(
 template <typename Functor>
 void dispatch_dense(const LinOp* op, Functor fn)
 {
-    using matrix::Dense;
+    using matrix::MultiVector;
     using std::complex;
-    run<Dense,
+    run<MultiVector,
 #if GINKGO_ENABLE_HALF
         gko::float16, std::complex<gko::float16>,
 #endif

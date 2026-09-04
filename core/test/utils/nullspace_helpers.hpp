@@ -25,7 +25,7 @@ namespace test {
  *
  * @param op  the operator whose (right) nullspace `ns` should be
  * @param ns  the nullspace
- * @param like  a single-column vector (matrix::Dense or
+ * @param like  a single-column vector (matrix::MultiVector or
  *              experimental::distributed::Vector) with the layout of the
  *              columns of `op`, which is used for the constant vector
  *
@@ -42,7 +42,7 @@ remove_complex<ValueType> compute_nullspace_residual(
     auto update = [&](const VectorType* vectors) {
         auto op_vectors = gko::clone(vectors);
         op->apply(vectors, op_vectors);
-        auto norms = matrix::Dense<real_type>::create(
+        auto norms = matrix::MultiVector<real_type>::create(
             exec, dim<2>{1, vectors->get_size()[1]});
         op_vectors->compute_norm2(norms);
         auto host_norms = gko::clone(exec->get_master(), norms);

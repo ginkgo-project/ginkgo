@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,7 +15,7 @@
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -32,7 +32,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
     UnsortMatrix()
         : exec(gko::ReferenceExecutor::create()),
           rand_engine(42),

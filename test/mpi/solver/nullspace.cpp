@@ -45,7 +45,7 @@ protected:
     using part_type =
         gko::experimental::distributed::Partition<local_index_type,
                                                   global_index_type>;
-    using dense = gko::matrix::Dense<value_type>;
+    using multi_vector = gko::matrix::MultiVector<value_type>;
     using Nullspace = gko::solver::Nullspace<value_type>;
     using schwarz = gko::experimental::distributed::preconditioner::Schwarz<
         value_type, local_index_type, global_index_type>;
@@ -100,12 +100,13 @@ protected:
     }
 
     // the rows of a global n x k vector owned by this rank
-    std::unique_ptr<dense> local_rows(
+    std::unique_ptr<multi_vector> local_rows(
         const std::vector<std::vector<double>>& cols)
     {
         const auto begin = part->get_range_bounds()[comm.rank()];
         const auto end = part->get_range_bounds()[comm.rank() + 1];
-        auto result = dense::create(ref, gko::dim<2>(end - begin, cols.size()));
+        auto result =
+            multi_vector::create(ref, gko::dim<2>(end - begin, cols.size()));
         for (gko::size_type j = 0; j < cols.size(); ++j) {
             for (auto i = begin; i < end; ++i) {
                 result->at(i - begin, j) = cols[j][i];
@@ -118,7 +119,7 @@ protected:
     {
         auto b = distributed(x_star);
         mtx->apply(distributed(x_star), b);
-        b->add_scaled(gko::initialize<dense>({offset}, exec),
+        b->add_scaled(gko::initialize<multi_vector>({offset}, exec),
                       distributed({std::vector<double>(n, 1.0)}));
         return b;
     }
@@ -182,13 +183,13 @@ TEST_F(NullspaceDistributed, ProjectionMatchesSerial)
                                      true);
     auto serial_ns =
         Nullspace::create(ref,
-                          {gko::share(gko::initialize<dense>(
+                          {gko::share(gko::initialize<multi_vector>(
                                {1., 1., 1., 1., 0., 0., 0., 0., 0.}, ref)),
-                           gko::share(gko::initialize<dense>(
+                           gko::share(gko::initialize<multi_vector>(
                                {0., 1., 2., 3., 4., 5., 6., 7., 8.}, ref))},
                           true);
     auto dist_v = distributed(data);
-    auto serial_v = dense::create(ref, gko::dim<2>(n, 2));
+    auto serial_v = multi_vector::create(ref, gko::dim<2>(n, 2));
     for (gko::size_type i = 0; i < n; ++i) {
         serial_v->at(i, 0) = data[0][i];
         serial_v->at(i, 1) = data[1][i];
@@ -261,7 +262,7 @@ TEST_F(NullspaceDistributed, RejectsNonDistributedBasis)
 {
     auto mtx = laplacian({5, 4});
     auto nullspace = gko::share(Nullspace::create(
-        exec, {gko::share(gko::initialize<dense>(
+        exec, {gko::share(gko::initialize<multi_vector>(
                   {1., 1., 1., 1., 1., 0., 0., 0., 0.}, exec))}));
     auto v = distributed(x_star);
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "cuda/test/utils.hpp"
 
@@ -20,7 +20,7 @@ class MatricesNear : public CudaTestFixture {};
 
 TEST_F(MatricesNear, CanPassCudaMatrix)
 {
-    auto mtx = gko::initialize<gko::matrix::Dense<>>(
+    auto mtx = gko::initialize<gko::matrix::MultiVector<>>(
         {{1.0, 2.0, 3.0}, {0.0, 4.0, 0.0}}, ref);
     auto csr_ref = gko::matrix::Csr<>::create(ref);
     csr_ref->copy_from(mtx);

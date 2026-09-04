@@ -10,7 +10,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/chebyshev.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -23,7 +23,7 @@
 
 class Chebyshev : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using coeff_type = gko::solver::detail::coeff_type<value_type>;
 
     Chebyshev() : rand_engine(30) {}

@@ -95,7 +95,7 @@ void output_timestep(std::pair<cv::VideoWriter, cv::Mat>& output, int n,
 int main(int argc, char* argv[])
 {
     using mtx = gko::matrix::Csr<>;
-    using vec = gko::matrix::Dense<>;
+    using vec = gko::matrix::MultiVector<>;
 
     // Problem parameters:
     // simulation length

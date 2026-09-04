@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/block_operator.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -185,7 +185,7 @@ TEST_F(BlockOperator, ThrowsOnOutOfBoundsBlockAccess)
 
 TEST_F(BlockOperator, CanBeCopied)
 {
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::MultiVector<>;
     auto bop = gko::BlockOperator::create(
         exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec), nullptr},
                {nullptr, gko::initialize<Mtx>({{3, 4}, {4, 3}}, exec)}});
@@ -211,7 +211,7 @@ TEST_F(BlockOperator, CanBeCopied)
 
 TEST_F(BlockOperator, CanBeMoved)
 {
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::MultiVector<>;
     auto bop = gko::BlockOperator::create(
         exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec), nullptr},
                {nullptr, gko::initialize<Mtx>({{3, 4}, {4, 3}}, exec)}});
@@ -240,7 +240,7 @@ TEST_F(BlockOperator, CanBeMoved)
 TEST_F(BlockOperator, CanApply)
 {
     using vtype = double;
-    using Mtx = gko::matrix::Dense<vtype>;
+    using Mtx = gko::matrix::MultiVector<vtype>;
     auto bop = gko::BlockOperator::create(
         exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec),
                 gko::initialize<Mtx>({{5, 6}, {6, 5}}, exec)},
@@ -259,7 +259,7 @@ TEST_F(BlockOperator, CanApply)
 TEST_F(BlockOperator, CanAdvancedApply)
 {
     using vtype = double;
-    using Mtx = gko::matrix::Dense<vtype>;
+    using Mtx = gko::matrix::MultiVector<vtype>;
     auto bop = gko::BlockOperator::create(
         exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec),
                 gko::initialize<Mtx>({{5, 6}, {6, 5}}, exec)},
@@ -278,7 +278,7 @@ TEST_F(BlockOperator, CanAdvancedApply)
 TEST_F(BlockOperator, CanApplyAndAdvancedApplyLarge)
 {
     using vtype = double;
-    using Mtx = gko::matrix::Dense<vtype>;
+    using Mtx = gko::matrix::MultiVector<vtype>;
     gko::size_type local_num_rows = 4;
     gko::size_type local_num_cols = 6;
     gko::size_type block_num_rows = 8;

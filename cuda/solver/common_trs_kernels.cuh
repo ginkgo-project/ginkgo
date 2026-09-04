@@ -27,7 +27,7 @@
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/array_access.hpp"
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 
 
@@ -248,7 +248,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
                 ".with_num_rhs(...)."};
         }
         sparselib::pointer_mode_guard pm_guard(handle);
-        dense::copy(exec, input, output);
+        multivector::copy(exec, input, output);
         sparselib::csrsm2_solve(
             handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
             SPARSELIB_OPERATION_TRANSPOSE, matrix.size[0], output.stride,
@@ -318,7 +318,7 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
     if (matrix.size[0] == 0 || b.size[1] == 0) {
         return;
     }
-    using vec = matrix::Dense<ValueType>;
+    using vec = matrix::MultiVector<ValueType>;
 
     if (sparselib::is_supported<ValueType, IndexType>::value) {
         if (auto cuda_solve_struct =
@@ -607,7 +607,7 @@ void sptrsv_naive_caching(
     const auto nrhs = b.size[1];
 
     // Initialize x to all NaNs.
-    dense::fill(exec, x, nan<ValueType>());
+    multivector::fill(exec, x, nan<ValueType>());
 
     array<bool> nan_produced(exec, 1);
     array<IndexType> atomic_counter(exec, 1);

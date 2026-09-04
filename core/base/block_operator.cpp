@@ -7,7 +7,7 @@
 #include <utility>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/dispatch_helper.hpp"
 
@@ -19,7 +19,7 @@ namespace {
 template <typename Fn>
 auto dispatch_dense(Fn&& fn, LinOp* v)
 {
-    return run<matrix::Dense, float, double,
+    return run<matrix::MultiVector, float, double,
 #if GINKGO_ENABLE_HALF
                float16, std::complex<float16>,
 #endif

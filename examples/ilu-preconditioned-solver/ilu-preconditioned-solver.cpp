@@ -18,8 +18,8 @@ int main(int argc, char* argv[])
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
+    using real_vec = gko::matrix::MultiVector<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using gmres = gko::solver::Gmres<ValueType>;
 

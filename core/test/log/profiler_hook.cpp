@@ -11,7 +11,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -20,10 +20,10 @@
 #ifdef __APPLE__
 // APPLE has different name for the dense<std::complex<>>
 const std::string dense_complex_double =
-    "gko::matrix::Dense<std::__1::complex<double>>";
+    "gko::matrix::MultiVector<std::__1::complex<double>>";
 #else
 const std::string dense_complex_double =
-    "gko::matrix::Dense<std::complex<double> >";
+    "gko::matrix::MultiVector<std::complex<double> >";
 #endif
 
 
@@ -196,22 +196,22 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
 {
     // clang-format off
     std::vector<std::string> expected{
-        "begin:apply(obj * gko::matrix::Dense<float> = " + dense_complex_double + ")",
+        "begin:apply(obj * gko::matrix::MultiVector<float> = " + dense_complex_double + ")",
         "begin:op",
         "end:op",
-        "end:apply(obj * gko::matrix::Dense<float> = " + dense_complex_double + ")",
-        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * " + dense_complex_double + ")",
+        "end:apply(obj * gko::matrix::MultiVector<float> = " + dense_complex_double + ")",
+        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::MultiVector<float> + gko::matrix::MultiVector<float> * " + dense_complex_double + ")",
         "begin:op",
         "end:op",
-        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + gko::matrix::Dense<float> * " + dense_complex_double + ")",
+        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::MultiVector<float> + gko::matrix::MultiVector<float> * " + dense_complex_double + ")",
         "begin:apply(obj * obj = " + dense_complex_double + ")",
         "begin:op",
         "end:op",
         "end:apply(obj * obj = " + dense_complex_double + ")",
-        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + DummyLinOp * obj)",
+        "begin:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::MultiVector<float> + DummyLinOp * obj)",
         "begin:op",
         "end:op",
-        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::Dense<float> + DummyLinOp * obj)"};
+        "end:advanced_apply(" + dense_complex_double + " * obj * gko::matrix::MultiVector<float> + DummyLinOp * obj)"};
     // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);
@@ -219,13 +219,14 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
     auto logger = gko::log::ProfilerHook::create_custom(
         std::move(hooks.first), std::move(hooks.second));
     auto linop = gko::share(DummyLinOp::create(exec));
-    auto alpha = gko::share(gko::matrix::Dense<std::complex<double>>::create(
-        exec, gko::dim<2>{1, 1}));
-    auto beta =
-        gko::share(gko::matrix::Dense<float>::create(exec, gko::dim<2>{1, 1}));
-    auto invec = gko::share(gko::matrix::Dense<float>::create(exec));
-    auto outvec =
-        gko::share(gko::matrix::Dense<std::complex<double>>::create(exec));
+    auto alpha =
+        gko::share(gko::matrix::MultiVector<std::complex<double>>::create(
+            exec, gko::dim<2>{1, 1}));
+    auto beta = gko::share(
+        gko::matrix::MultiVector<float>::create(exec, gko::dim<2>{1, 1}));
+    auto invec = gko::share(gko::matrix::MultiVector<float>::create(exec));
+    auto outvec = gko::share(
+        gko::matrix::MultiVector<std::complex<double>>::create(exec));
     auto scalar = DummyLinOp::create(exec, gko::dim<2>{1, 1});
     logger->set_object_name(linop, "obj");
     exec->add_logger(logger);
@@ -242,17 +243,17 @@ TEST(ProfilerHook, LogsPolymorphicObjectLinOpApplyWithType)
 
 TEST(ProfilerHook, LogsIteration)
 {
-    using Vec = gko::matrix::Dense<>;
+    using Vec = gko::matrix::MultiVector<>;
     // clang-format off
     std::vector<std::string> expected{
         "begin:apply(solver * mtx = mtx)",
         "begin:iteration",
         "end:iteration",
         "end:apply(solver * mtx = mtx)",
-        "begin:advanced_apply(gko::matrix::Dense<double> * solver * mtx + gko::matrix::Dense<double> * mtx)",
+        "begin:advanced_apply(gko::matrix::MultiVector<double> * solver * mtx + gko::matrix::MultiVector<double> * mtx)",
         "begin:iteration",
         "end:iteration",
-        "end:advanced_apply(gko::matrix::Dense<double> * solver * mtx + gko::matrix::Dense<double> * mtx)"};
+        "end:advanced_apply(gko::matrix::MultiVector<double> * solver * mtx + gko::matrix::MultiVector<double> * mtx)"};
     // clang-format on
     std::vector<std::string> output;
     auto hooks = make_hooks(output);

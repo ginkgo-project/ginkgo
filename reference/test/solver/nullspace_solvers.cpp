@@ -40,7 +40,7 @@ protected:
     using value_type = T;
     using real = gko::remove_complex<T>;
     using Csr = gko::matrix::Csr<value_type, int>;
-    using vec = gko::matrix::Dense<value_type>;
+    using vec = gko::matrix::MultiVector<value_type>;
     using Nullspace = gko::solver::Nullspace<value_type>;
 
     NullspaceSolvers()
@@ -293,7 +293,7 @@ TYPED_TEST(NullspaceSolvers, RealSolverSolvesComplexSystem)
 {
     using value_type = typename TestFixture::value_type;
     if constexpr (!gko::is_complex<value_type>()) {
-        using complex_vec = gko::matrix::Dense<std::complex<value_type>>;
+        using complex_vec = gko::matrix::MultiVector<std::complex<value_type>>;
         const auto n = this->mtx->get_size()[0];
         auto x_star = complex_vec::create(this->exec, gko::dim<2>{n, 1});
         auto x = complex_vec::create(this->exec, gko::dim<2>{n, 1});

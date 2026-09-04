@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,7 +24,7 @@ class MatrixUtils : public ::testing::Test {
 protected:
     using value_type = T;
     using real_type = gko::remove_complex<T>;
-    using mtx_type = gko::matrix::Dense<T>;
+    using mtx_type = gko::matrix::MultiVector<T>;
     using mtx_data = gko::matrix_data<value_type, int>;
 
     MatrixUtils()
