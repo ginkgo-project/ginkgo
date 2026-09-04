@@ -97,7 +97,7 @@ create instances of `A` and `B` inside the `AB` kernel files. This is to avoid
 the aforementioned circular dependency issue. An example for such a class is the
 `Hybrid` matrix format, which uses the `apply()` of the `Ell` and `Coo` matrix
 formats. Nevertheless, it is possible to call the kernels themselves directly
-within the same executor. For example, `cuda::dense::add_scaled()` can be called
+within the same executor. For example, `cuda::multivector::add_scaled()` can be called
 from any other `cuda` kernel.
 
 ## Git related

@@ -11,9 +11,9 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "omp/components/atomic.hpp"
 
 
@@ -39,7 +39,7 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
           matrix::view::dense<const ValueType> b,
           matrix::view::dense<ValueType> c)
 {
-    dense::fill(exec, c, zero<ValueType>());
+    multivector::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
 }
 
@@ -54,7 +54,7 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
                    matrix::view::dense<const ValueType> beta,
                    matrix::view::dense<ValueType> c)
 {
-    dense::scale(exec, beta, c);
+    multivector::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
 }
 

@@ -20,7 +20,7 @@ namespace matrix {
 
 
 template <typename ValueType>
-class Dense;
+class MultiVector;
 
 template <typename ValueType>
 class Diagonal;
@@ -126,11 +126,11 @@ enum class spmv_strategy {
  *
  * ```cpp
  * matrix::Csr *A, *B, *C;      // matrices
- * matrix::Dense *b, *x;        // vectors tall-and-skinny matrices
- * matrix::Dense *alpha, *beta; // scalars of dimension 1x1
+ * matrix::MultiVector *b, *x;        // vectors tall-and-skinny matrices
+ * matrix::MultiVector *alpha, *beta; // scalars of dimension 1x1
  * matrix::Identity *I;         // identity matrix
  *
- * // Applying to Dense matrices computes an SpMV/SpMM product
+ * // Applying to MultiVector matrices computes an SpMV/SpMM product
  * A->apply(b, x)              // x = A*b
  * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
  *
@@ -161,7 +161,7 @@ class Csr : public LinOp,
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Csr<next_precision<ValueType, 3>, IndexType>>,
 #endif
-            public ConvertibleTo<Dense<ValueType>>,
+            public ConvertibleTo<MultiVector<ValueType>>,
             public ConvertibleTo<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Fbcsr<ValueType, IndexType>>,
@@ -178,7 +178,7 @@ class Csr : public LinOp,
             public ScaledIdentityAddable {
     friend class EnableCloneable<Csr>;
     friend class Coo<ValueType, IndexType>;
-    friend class Dense<ValueType>;
+    friend class MultiVector<ValueType>;
     friend class Diagonal<ValueType>;
     friend class Ell<ValueType, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
@@ -194,8 +194,8 @@ public:
     using EnableCloneable<Csr>::move_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::move_to;
-    using ConvertibleTo<Dense<ValueType>>::convert_to;
-    using ConvertibleTo<Dense<ValueType>>::move_to;
+    using ConvertibleTo<MultiVector<ValueType>>::convert_to;
+    using ConvertibleTo<MultiVector<ValueType>>::move_to;
     using ConvertibleTo<Coo<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Coo<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Ell<ValueType, IndexType>>::convert_to;
@@ -325,9 +325,9 @@ public:
     void move_to(Csr<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(Dense<ValueType>* other) const override;
+    void convert_to(MultiVector<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    void move_to(MultiVector<ValueType>* other) override;
 
     void convert_to(Coo<ValueType, IndexType>* result) const override;
 
@@ -477,9 +477,9 @@ public:
          * unchanged.
          */
         void update_values(ptr_param<const Csr> mtx,
-                           ptr_param<const Dense<value_type>> scale_mult,
+                           ptr_param<const MultiVector<value_type>> scale_mult,
                            ptr_param<const Csr> mtx_mult,
-                           ptr_param<const Dense<value_type>> scale_add,
+                           ptr_param<const MultiVector<value_type>> scale_add,
                            ptr_param<const Csr> mtx_add,
                            ptr_param<Csr> out) const;
 
@@ -507,9 +507,9 @@ public:
      *          this matrix.
      */
     std::unique_ptr<Csr> multiply_add(
-        ptr_param<const Dense<value_type>> scale_mult,
+        ptr_param<const MultiVector<value_type>> scale_mult,
         ptr_param<const Csr> mtx_mult,
-        ptr_param<const Dense<value_type>> scale_add,
+        ptr_param<const MultiVector<value_type>> scale_add,
         ptr_param<const Csr> mtx_add) const;
 
     /**
@@ -534,9 +534,9 @@ public:
      *          object allowing value updates to the output matrix.
      */
     std::pair<std::unique_ptr<Csr>, multiply_add_reuse_info> multiply_add_reuse(
-        ptr_param<const Dense<value_type>> scale_mult,
+        ptr_param<const MultiVector<value_type>> scale_mult,
         ptr_param<const Csr> mtx_mult,
-        ptr_param<const Dense<value_type>> scale_add,
+        ptr_param<const MultiVector<value_type>> scale_add,
         ptr_param<const Csr> mtx_add) const;
 
     /**
@@ -566,9 +566,9 @@ public:
          * mtx1, scale1, mtx2, scale2 changed, but the sparsity patterns of
          * mtx1, mtx2 and out are unchanged.
          */
-        void update_values(ptr_param<const Dense<value_type>> scale1,
+        void update_values(ptr_param<const MultiVector<value_type>> scale1,
                            ptr_param<const Csr> mtx1,
-                           ptr_param<const Dense<value_type>> scale2,
+                           ptr_param<const MultiVector<value_type>> scale2,
                            ptr_param<const Csr> mtx2, ptr_param<Csr> out) const;
 
     private:
@@ -594,8 +594,8 @@ public:
      *          this matrix.
      */
     std::unique_ptr<Csr> scale_add(
-        ptr_param<const Dense<value_type>> scale_this,
-        ptr_param<const Dense<value_type>> scale_other,
+        ptr_param<const MultiVector<value_type>> scale_this,
+        ptr_param<const MultiVector<value_type>> scale_other,
         ptr_param<const Csr> mtx_other) const;
 
     /**
@@ -620,8 +620,8 @@ public:
      *          object allowing value updates to the output matrix.
      */
     std::pair<std::unique_ptr<Csr>, scale_add_reuse_info> add_scale_reuse(
-        ptr_param<const Dense<value_type>> scale_this,
-        ptr_param<const Dense<value_type>> scale_other,
+        ptr_param<const MultiVector<value_type>> scale_this,
+        ptr_param<const MultiVector<value_type>> scale_other,
         ptr_param<const Csr> mtx_other) const;
 
     /**
@@ -830,16 +830,17 @@ public:
     }
 
     /**
-     * Creates a Dense view of the value array of this matrix as a column
+     * Creates a MultiVector view of the value array of this matrix as a column
      * vector of dimensions nnz x 1.
      */
-    std::unique_ptr<Dense<ValueType>> create_value_view();
+    std::unique_ptr<MultiVector<ValueType>> create_value_view();
 
     /**
-     * Creates a const Dense view of the value array of this matrix as a column
-     * vector of dimensions nnz x 1.
+     * Creates a const MultiVector view of the value array of this matrix as a
+     * column vector of dimensions nnz x 1.
      */
-    std::unique_ptr<const Dense<ValueType>> create_const_value_view() const;
+    std::unique_ptr<const MultiVector<ValueType>> create_const_value_view()
+        const;
 
     /**
      * Returns the column indexes of the matrix.
@@ -940,7 +941,7 @@ public:
      * Scales the matrix with a scalar.
      *
      * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
-     * Dense matrix.
+     * MultiVector.
      */
     void scale(ptr_param<const LinOp> alpha)
     {
@@ -953,7 +954,7 @@ public:
      * Scales the matrix with the inverse of a scalar.
      *
      * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
-     * 1x1 Dense matrix.
+     * 1x1 MultiVector.
      */
     void inv_scale(ptr_param<const LinOp> alpha)
     {

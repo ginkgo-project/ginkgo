@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -45,7 +45,7 @@ TYPED_TEST(UpperTrs, UpperTrsFactoryKnowsItsExecutor)
 
 TYPED_TEST(UpperTrs, ThrowsOnRectangularMatrixInFactory)
 {
-    using Mtx = gko::matrix::Dense<typename TestFixture::value_type>;
+    using Mtx = gko::matrix::MultiVector<typename TestFixture::value_type>;
     std::shared_ptr<Mtx> rectangular_matrix =
         Mtx::create(this->exec, gko::dim<2>{1, 2});
 

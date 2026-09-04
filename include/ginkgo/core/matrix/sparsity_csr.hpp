@@ -22,7 +22,7 @@ class Csr;
 
 
 template <typename ValueType>
-class Dense;
+class MultiVector;
 
 
 template <typename ValueType, typename IndexType>
@@ -51,13 +51,13 @@ template <typename ValueType = default_precision, typename IndexType = int32>
 class SparsityCsr : public LinOp,
                     public EnableCloneable<SparsityCsr<ValueType, IndexType>>,
                     public ConvertibleTo<Csr<ValueType, IndexType>>,
-                    public ConvertibleTo<Dense<ValueType>>,
+                    public ConvertibleTo<MultiVector<ValueType>>,
                     public ReadableFromMatrixData<ValueType, IndexType>,
                     public WritableToMatrixData<ValueType, IndexType>,
                     public Transposable {
     friend class EnableCloneable<SparsityCsr>;
     friend class Csr<ValueType, IndexType>;
-    friend class Dense<ValueType>;
+    friend class MultiVector<ValueType>;
     friend class Fbcsr<ValueType, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
@@ -66,8 +66,8 @@ public:
     using EnableCloneable<SparsityCsr>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
-    using ConvertibleTo<Dense<ValueType>>::convert_to;
-    using ConvertibleTo<Dense<ValueType>>::move_to;
+    using ConvertibleTo<MultiVector<ValueType>>::convert_to;
+    using ConvertibleTo<MultiVector<ValueType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
@@ -80,9 +80,9 @@ public:
 
     void move_to(Csr<ValueType, IndexType>* result) override;
 
-    void convert_to(Dense<ValueType>* result) const override;
+    void convert_to(MultiVector<ValueType>* result) const override;
 
-    void move_to(Dense<ValueType>* result) override;
+    void move_to(MultiVector<ValueType>* result) override;
 
     void read(const mat_data& data) override;
 

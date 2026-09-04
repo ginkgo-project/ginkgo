@@ -10,9 +10,9 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
 #include "dpcpp/base/helper.hpp"
@@ -258,7 +258,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
           matrix::view::dense<const ValueType> b,
           matrix::view::dense<ValueType> c)
 {
-    dense::fill(exec, c, zero<ValueType>());
+    multivector::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
 }
 
@@ -273,7 +273,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
                    matrix::view::dense<const ValueType> beta,
                    matrix::view::dense<ValueType> c)
 {
-    dense::scale(exec, beta, c);
+    multivector::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
 }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,7 +8,7 @@
 
 #include <typeinfo>
 
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace gko {
@@ -100,7 +100,7 @@ public:
     {
         GKO_ASSERT(op_id >= 0 && op_id < operators_.size());
         // does the existing object have the wrong type?
-        // vector types may vary e.g. if users derive from Dense
+        // vector types may vary e.g. if users derive from MultiVector
         auto stored_op = operators_[op_id].get();
         LinOpType* op{};
         if (!stored_op || typeid(*stored_op) != expected_type) {

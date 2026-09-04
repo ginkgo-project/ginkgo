@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,9 +24,9 @@
 
 
 // Utility function which returns the first element (position [0, 0]) from a
-// given gko::matrix::Dense matrix / vector.
+// given gko::matrix::MultiVector.
 template <typename ValueType>
-ValueType get_first_element(const gko::matrix::Dense<ValueType>* mtx)
+ValueType get_first_element(const gko::matrix::MultiVector<ValueType>* mtx)
 {
     // Copy the matrix / vector to the host device before accessing the value in
     // case it is stored in a GPU.
@@ -34,18 +34,17 @@ ValueType get_first_element(const gko::matrix::Dense<ValueType>* mtx)
 }
 
 
-// Utility function which computes the norm of a Ginkgo gko::matrix::Dense
+// Utility function which computes the norm of a Ginkgo gko::matrix::MultiVector
 // vector.
 template <typename ValueType>
 gko::remove_complex<ValueType> compute_norm(
-    const gko::matrix::Dense<ValueType>* b)
+    const gko::matrix::MultiVector<ValueType>* b)
 {
     // Get the executor of the vector
     auto exec = b->get_executor();
     // Initialize a result scalar containing the value 0.0.
-    auto b_norm =
-        gko::initialize<gko::matrix::Dense<gko::remove_complex<ValueType>>>(
-            {0.0}, exec);
+    auto b_norm = gko::initialize<
+        gko::matrix::MultiVector<gko::remove_complex<ValueType>>>({0.0}, exec);
     // Use the dense `compute_norm2` function to compute the norm.
     b->compute_norm2(b_norm);
     // Use the other utility function to return the norm contained in `b_norm`
@@ -90,8 +89,8 @@ struct ResidualLogger : gko::log::Logger {
                   << std::setw(26) << '|' << std::setfill(' ') << std::endl;
     }
 
-    using gko_dense = gko::matrix::Dense<ValueType>;
-    using gko_real_dense = gko::matrix::Dense<RealValueType>;
+    using gko_dense = gko::matrix::MultiVector<ValueType>;
+    using gko_real_dense = gko::matrix::MultiVector<RealValueType>;
 
 
     // Customize the logging hook which is called everytime an iteration is
@@ -180,14 +179,14 @@ private:
 int main(int argc, char* argv[])
 {
     // Use some shortcuts. In Ginkgo, vectors are seen as a
-    // gko::matrix::Dense with one column/one row. The advantage of this
+    // gko::matrix::MultiVector with one column/one row. The advantage of this
     // concept is that using multiple vectors is a now a natural extension
     // of adding columns/rows are necessary.
     using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
+    using real_vec = gko::matrix::MultiVector<RealValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class
     // such as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.

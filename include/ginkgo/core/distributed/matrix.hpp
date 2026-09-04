@@ -249,7 +249,7 @@ class Vector;
  * ```cpp
  * experimental::distributed::Matrix *A;       // distributed matrix
  * experimental::distributed::Vector *b, *x;   // distributed multi-vectors
- * matrix::Dense *alpha, *beta;  // scalars of dimension 1x1
+ * matrix::MultiVector *alpha, *beta;  // scalars of dimension 1x1
  *
  * // Applying to distributed multi-vectors computes an SpMV/SpMM product
  * A->apply(b, x)              // x = A*b

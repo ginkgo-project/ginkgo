@@ -20,7 +20,7 @@ namespace gko {
  * The Composition class can be used to compose linear operators `op1, op2, ...,
  * opn` and obtain the operator `op1 * op2 * ... * opn`.
  *
- * All LinOps of the Composition must operate on Dense inputs.
+ * All LinOps of the Composition must operate on MultiVector inputs.
  * For an operator `op_k` that require an initial guess for their `apply`,
  * Composition provides either
  * * the output of the previous `op_{k+1}->apply` if `op_k` has square dimension

@@ -6,7 +6,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -15,18 +15,18 @@ namespace {
 
 
 template <typename T>
-class Dense : public ::testing::Test {
+class MultiVector : public ::testing::Test {
 protected:
     using value_type = T;
-    Dense()
+    MultiVector()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<gko::matrix::Dense<value_type>>(
+          mtx(gko::initialize<gko::matrix::MultiVector<value_type>>(
               4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}}, exec))
     {}
 
 
     static void assert_equal_to_original_mtx(
-        gko::ptr_param<gko::matrix::Dense<value_type>> m)
+        gko::ptr_param<gko::matrix::MultiVector<value_type>> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
         ASSERT_EQ(m->get_num_stored_elements(), 2 * m->get_stride());
@@ -38,37 +38,38 @@ protected:
         ASSERT_EQ(m->at(1, 2), value_type{3.5});
     }
 
-    static void assert_empty(gko::ptr_param<gko::matrix::Dense<value_type>> m)
+    static void assert_empty(
+        gko::ptr_param<gko::matrix::MultiVector<value_type>> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::unique_ptr<gko::matrix::Dense<value_type>> mtx;
+    std::unique_ptr<gko::matrix::MultiVector<value_type>> mtx;
 };
 
-TYPED_TEST_SUITE(Dense, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(MultiVector, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(Dense, CanBeEmpty)
+TYPED_TEST(MultiVector, CanBeEmpty)
 {
-    auto empty = gko::matrix::Dense<TypeParam>::create(this->exec);
+    auto empty = gko::matrix::MultiVector<TypeParam>::create(this->exec);
     this->assert_empty(empty.get());
 }
 
 
-TYPED_TEST(Dense, ReturnsNullValuesArrayWhenEmpty)
+TYPED_TEST(MultiVector, ReturnsNullValuesArrayWhenEmpty)
 {
-    auto empty = gko::matrix::Dense<TypeParam>::create(this->exec);
+    auto empty = gko::matrix::MultiVector<TypeParam>::create(this->exec);
     ASSERT_EQ(empty->get_const_values(), nullptr);
 }
 
 
-TYPED_TEST(Dense, CanBeConstructedWithSize)
+TYPED_TEST(MultiVector, CanBeConstructedWithSize)
 {
-    auto m =
-        gko::matrix::Dense<TypeParam>::create(this->exec, gko::dim<2>{2, 3});
+    auto m = gko::matrix::MultiVector<TypeParam>::create(this->exec,
+                                                         gko::dim<2>{2, 3});
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     EXPECT_EQ(m->get_stride(), 3);
@@ -76,10 +77,10 @@ TYPED_TEST(Dense, CanBeConstructedWithSize)
 }
 
 
-TYPED_TEST(Dense, CanBeConstructedWithSizeAndStride)
+TYPED_TEST(MultiVector, CanBeConstructedWithSizeAndStride)
 {
-    auto m =
-        gko::matrix::Dense<TypeParam>::create(this->exec, gko::dim<2>{2, 3}, 4);
+    auto m = gko::matrix::MultiVector<TypeParam>::create(this->exec,
+                                                         gko::dim<2>{2, 3}, 4);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 3));
     EXPECT_EQ(m->get_stride(), 4);
@@ -87,7 +88,7 @@ TYPED_TEST(Dense, CanBeConstructedWithSizeAndStride)
 }
 
 
-TYPED_TEST(Dense, CanBeConstructedFromExistingData)
+TYPED_TEST(MultiVector, CanBeConstructedFromExistingData)
 {
     using value_type = typename TestFixture::value_type;
     // clang-format off
@@ -97,7 +98,7 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingData)
         5.0, 6.0, -1.0};
     // clang-format on
 
-    auto m = gko::matrix::Dense<TypeParam>::create(
+    auto m = gko::matrix::MultiVector<TypeParam>::create(
         this->exec, gko::dim<2>{3, 2},
         gko::make_array_view(this->exec, 9, data), 3);
 
@@ -106,7 +107,7 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingData)
 }
 
 
-TYPED_TEST(Dense, CanBeConstructedFromExistingConstData)
+TYPED_TEST(MultiVector, CanBeConstructedFromExistingConstData)
 {
     using value_type = typename TestFixture::value_type;
     // clang-format off
@@ -116,7 +117,7 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingConstData)
         5.0, 6.0, -1.0};
     // clang-format on
 
-    auto m = gko::matrix::Dense<TypeParam>::create_const(
+    auto m = gko::matrix::MultiVector<TypeParam>::create_const(
         this->exec, gko::dim<2>{3, 2},
         gko::array<value_type>::const_view(this->exec, 9, data), 3);
 
@@ -125,11 +126,11 @@ TYPED_TEST(Dense, CanBeConstructedFromExistingConstData)
 }
 
 
-TYPED_TEST(Dense, CreateWithSameConfigKeepsStride)
+TYPED_TEST(MultiVector, CreateWithSameConfigKeepsStride)
 {
-    auto m =
-        gko::matrix::Dense<TypeParam>::create(this->exec, gko::dim<2>{2, 3}, 4);
-    auto m2 = gko::matrix::Dense<TypeParam>::create_with_config_of(m);
+    auto m = gko::matrix::MultiVector<TypeParam>::create(this->exec,
+                                                         gko::dim<2>{2, 3}, 4);
+    auto m2 = gko::matrix::MultiVector<TypeParam>::create_with_config_of(m);
 
     ASSERT_EQ(m2->get_size(), gko::dim<2>(2, 3));
     EXPECT_EQ(m2->get_stride(), 4);
@@ -137,18 +138,18 @@ TYPED_TEST(Dense, CreateWithSameConfigKeepsStride)
 }
 
 
-TYPED_TEST(Dense, KnowsItsSizeAndValues)
+TYPED_TEST(MultiVector, KnowsItsSizeAndValues)
 {
     this->assert_equal_to_original_mtx(this->mtx);
     ASSERT_EQ(this->mtx->get_stride(), 4);
 }
 
 
-TYPED_TEST(Dense, CanBeListConstructed)
+TYPED_TEST(MultiVector, CanBeListConstructed)
 {
     using value_type = typename TestFixture::value_type;
-    auto m =
-        gko::initialize<gko::matrix::Dense<TypeParam>>({1.0, 2.0}, this->exec);
+    auto m = gko::initialize<gko::matrix::MultiVector<TypeParam>>({1.0, 2.0},
+                                                                  this->exec);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 2);
@@ -157,11 +158,11 @@ TYPED_TEST(Dense, CanBeListConstructed)
 }
 
 
-TYPED_TEST(Dense, CanBeListConstructedWithstride)
+TYPED_TEST(MultiVector, CanBeListConstructedWithstride)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::initialize<gko::matrix::Dense<TypeParam>>(2, {1.0, 2.0},
-                                                            this->exec);
+    auto m = gko::initialize<gko::matrix::MultiVector<TypeParam>>(2, {1.0, 2.0},
+                                                                  this->exec);
     ASSERT_EQ(m->get_size(), gko::dim<2>(2, 1));
     ASSERT_EQ(m->get_num_stored_elements(), 4);
     EXPECT_EQ(m->at(0), value_type{1.0});
@@ -169,11 +170,11 @@ TYPED_TEST(Dense, CanBeListConstructedWithstride)
 }
 
 
-TYPED_TEST(Dense, CanBeDoubleListConstructed)
+TYPED_TEST(MultiVector, CanBeDoubleListConstructed)
 {
     using value_type = typename TestFixture::value_type;
     using T = value_type;
-    auto m = gko::initialize<gko::matrix::Dense<TypeParam>>(
+    auto m = gko::initialize<gko::matrix::MultiVector<TypeParam>>(
         {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, this->exec);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
@@ -186,11 +187,11 @@ TYPED_TEST(Dense, CanBeDoubleListConstructed)
 }
 
 
-TYPED_TEST(Dense, CanBeDoubleListConstructedWithstride)
+TYPED_TEST(MultiVector, CanBeDoubleListConstructedWithstride)
 {
     using value_type = typename TestFixture::value_type;
     using T = value_type;
-    auto m = gko::initialize<gko::matrix::Dense<TypeParam>>(
+    auto m = gko::initialize<gko::matrix::MultiVector<TypeParam>>(
         4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, this->exec);
 
     ASSERT_EQ(m->get_size(), gko::dim<2>(3, 2));
@@ -203,9 +204,9 @@ TYPED_TEST(Dense, CanBeDoubleListConstructedWithstride)
 }
 
 
-TYPED_TEST(Dense, CanBeCopied)
+TYPED_TEST(MultiVector, CanBeCopied)
 {
-    auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);
+    auto mtx_copy = gko::matrix::MultiVector<TypeParam>::create(this->exec);
     mtx_copy->copy_from(this->mtx);
     this->assert_equal_to_original_mtx(this->mtx);
     this->mtx->at(0) = 7;
@@ -215,16 +216,16 @@ TYPED_TEST(Dense, CanBeCopied)
 }
 
 
-TYPED_TEST(Dense, CanBeMoved)
+TYPED_TEST(MultiVector, CanBeMoved)
 {
-    auto mtx_copy = gko::matrix::Dense<TypeParam>::create(this->exec);
+    auto mtx_copy = gko::matrix::MultiVector<TypeParam>::create(this->exec);
     mtx_copy->move_from(this->mtx);
     this->assert_equal_to_original_mtx(mtx_copy);
     ASSERT_EQ(mtx_copy->get_stride(), 4);
 }
 
 
-TYPED_TEST(Dense, CanBeCloned)
+TYPED_TEST(MultiVector, CanBeCloned)
 {
     auto mtx_clone = this->mtx->clone();
     this->assert_equal_to_original_mtx(mtx_clone);
@@ -232,10 +233,10 @@ TYPED_TEST(Dense, CanBeCloned)
 }
 
 
-TYPED_TEST(Dense, CanBeReadFromMatrixData)
+TYPED_TEST(MultiVector, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::matrix::Dense<TypeParam>::create(this->exec);
+    auto m = gko::matrix::MultiVector<TypeParam>::create(this->exec);
     m->read(gko::matrix_data<TypeParam>{{2, 3},
                                         {{0, 0, 1.0},
                                          {0, 1, 3.0},
@@ -255,7 +256,7 @@ TYPED_TEST(Dense, CanBeReadFromMatrixData)
 }
 
 
-TYPED_TEST(Dense, GeneratesCorrectMatrixData)
+TYPED_TEST(MultiVector, GeneratesCorrectMatrixData)
 {
     using value_type = typename TestFixture::value_type;
     using tpl = typename gko::matrix_data<TypeParam>::nonzero_type;
@@ -274,10 +275,10 @@ TYPED_TEST(Dense, GeneratesCorrectMatrixData)
 }
 
 
-TYPED_TEST(Dense, CanBeReadFromMatrixAssemblyData)
+TYPED_TEST(MultiVector, CanBeReadFromMatrixAssemblyData)
 {
     using value_type = typename TestFixture::value_type;
-    auto m = gko::matrix::Dense<TypeParam>::create(this->exec);
+    auto m = gko::matrix::MultiVector<TypeParam>::create(this->exec);
     gko::matrix_assembly_data<TypeParam> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -299,7 +300,7 @@ TYPED_TEST(Dense, CanBeReadFromMatrixAssemblyData)
 }
 
 
-TYPED_TEST(Dense, CanCreateDeviceView)
+TYPED_TEST(MultiVector, CanCreateDeviceView)
 {
     auto view = this->mtx->get_device_view();
 
@@ -309,7 +310,7 @@ TYPED_TEST(Dense, CanCreateDeviceView)
 }
 
 
-TYPED_TEST(Dense, CanCreateConstDeviceView)
+TYPED_TEST(MultiVector, CanCreateConstDeviceView)
 {
     auto view = this->mtx->get_const_device_view();
 
@@ -319,7 +320,7 @@ TYPED_TEST(Dense, CanCreateConstDeviceView)
 }
 
 
-TYPED_TEST(Dense, CanCreateSubmatrix)
+TYPED_TEST(MultiVector, CanCreateSubmatrix)
 {
     using value_type = typename TestFixture::value_type;
     auto submtx = this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 3});
@@ -334,7 +335,7 @@ TYPED_TEST(Dense, CanCreateSubmatrix)
 }
 
 
-TYPED_TEST(Dense, CanCreateSubmatrixWithGlobalSize)
+TYPED_TEST(MultiVector, CanCreateSubmatrixWithGlobalSize)
 {
     using value_type = typename TestFixture::value_type;
     auto submtx_orig =
@@ -347,7 +348,7 @@ TYPED_TEST(Dense, CanCreateSubmatrixWithGlobalSize)
 }
 
 
-TYPED_TEST(Dense, CreateSubmatrixWithGlobalSizeThrowsOnIncorrectSize)
+TYPED_TEST(MultiVector, CreateSubmatrixWithGlobalSizeThrowsOnIncorrectSize)
 {
     EXPECT_THROW(
         this->mtx->create_submatrix(gko::local_span{0, 1},
@@ -356,7 +357,7 @@ TYPED_TEST(Dense, CreateSubmatrixWithGlobalSizeThrowsOnIncorrectSize)
 }
 
 
-TYPED_TEST(Dense, CanCreateEmptySubmatrix)
+TYPED_TEST(MultiVector, CanCreateEmptySubmatrix)
 {
     using value_type = typename TestFixture::value_type;
     auto submtx = this->mtx->create_submatrix(gko::span{0, 0}, gko::span{1, 1});
@@ -365,7 +366,7 @@ TYPED_TEST(Dense, CanCreateEmptySubmatrix)
 }
 
 
-TYPED_TEST(Dense, CanCreateSubmatrixWithStride)
+TYPED_TEST(MultiVector, CanCreateSubmatrixWithStride)
 {
     using value_type = typename TestFixture::value_type;
     auto submtx =
@@ -387,7 +388,7 @@ TYPED_TEST(Dense, CanCreateSubmatrixWithStride)
 }
 
 
-TYPED_TEST(Dense, CanCreateRealView)
+TYPED_TEST(MultiVector, CanCreateRealView)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
@@ -423,7 +424,7 @@ TYPED_TEST(Dense, CanCreateRealView)
 }
 
 
-TYPED_TEST(Dense, CanMakeMutableView)
+TYPED_TEST(MultiVector, CanMakeMutableView)
 {
     auto view = gko::make_dense_view(this->mtx);
 
@@ -433,7 +434,7 @@ TYPED_TEST(Dense, CanMakeMutableView)
 }
 
 
-TYPED_TEST(Dense, CanMakeConstView)
+TYPED_TEST(MultiVector, CanMakeConstView)
 {
     auto view = gko::make_const_dense_view(this->mtx);
 
@@ -443,37 +444,43 @@ TYPED_TEST(Dense, CanMakeConstView)
 }
 
 
-class CustomDense : public gko::matrix::Dense<>,
-                    public gko::ConvertibleTo<CustomDense> {
-    friend class gko::matrix::Dense<>;
+class CustomMultiVector : public gko::matrix::MultiVector<>,
+                          public gko::ConvertibleTo<CustomMultiVector> {
+    friend class gko::matrix::MultiVector<>;
 
 public:
-    static std::unique_ptr<CustomDense> create(
+    static std::unique_ptr<CustomMultiVector> create(
         std::shared_ptr<const gko::Executor> exec, gko::dim<2> size, int data)
     {
-        return std::unique_ptr<CustomDense>(
-            new CustomDense(std::move(exec), size, data));
+        return std::unique_ptr<CustomMultiVector>(
+            new CustomMultiVector(std::move(exec), size, data));
     }
 
     int get_data() const { return data_; }
 
-    void convert_to(CustomDense* result) const override { *result = *this; }
+    void convert_to(CustomMultiVector* result) const override
+    {
+        *result = *this;
+    }
 
-    void move_to(CustomDense* result) override { *result = std::move(*this); }
+    void move_to(CustomMultiVector* result) override
+    {
+        *result = std::move(*this);
+    }
 
-    CustomDense& operator=(const CustomDense& other)
+    CustomMultiVector& operator=(const CustomMultiVector& other)
     {
         if (&other != this) {
-            gko::matrix::Dense<>::operator=(other);
+            gko::matrix::MultiVector<>::operator=(other);
             data_ = other.data_;
         }
         return *this;
     }
 
-    CustomDense& operator=(CustomDense&& other)
+    CustomMultiVector& operator=(CustomMultiVector&& other)
     {
         if (&other != this) {
-            gko::matrix::Dense<>::operator=(std::move(other));
+            gko::matrix::MultiVector<>::operator=(std::move(other));
             data_ = std::exchange(other.data_, 0);
         }
         return *this;
@@ -487,15 +494,15 @@ protected:
     }
 
 private:
-    explicit CustomDense(std::shared_ptr<const gko::Executor> exec,
-                         gko::dim<2> size = {}, int data = 0)
-        : gko::matrix::Dense<>(std::move(exec), size), data_(data)
+    explicit CustomMultiVector(std::shared_ptr<const gko::Executor> exec,
+                               gko::dim<2> size = {}, int data = 0)
+        : gko::matrix::MultiVector<>(std::move(exec), size), data_(data)
     {}
 
-    std::unique_ptr<gko::matrix::Dense<>> create_view_of_impl() override
+    std::unique_ptr<gko::matrix::MultiVector<>> create_view_of_impl() override
     {
         auto view = create(this->get_executor(), {}, this->get_data());
-        gko::matrix::Dense<>::create_view_of_impl()->move_to(view);
+        gko::matrix::MultiVector<>::create_view_of_impl()->move_to(view);
         return view;
     }
 
@@ -503,27 +510,27 @@ private:
 };
 
 
-TEST(CustomDense, Clone)
+TEST(CustomMultiVector, Clone)
 {
-    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
-                                      gko::dim<2>{3, 4}, 2);
+    auto vector = CustomMultiVector::create(gko::ReferenceExecutor::create(),
+                                            gko::dim<2>{3, 4}, 2);
 
     auto v = gko::share(vector->clone());
 
-    GKO_ASSERT_EQ(gko::as<CustomDense>(v)->get_data(), 2);
+    GKO_ASSERT_EQ(gko::as<CustomMultiVector>(v)->get_data(), 2);
 }
 
 
-TEST(CustomDense, CustomViewKeepsRuntimeType)
+TEST(CustomMultiVector, CustomViewKeepsRuntimeType)
 {
-    auto vector = CustomDense::create(gko::ReferenceExecutor::create(),
-                                      gko::dim<2>{3, 4}, 2);
+    auto vector = CustomMultiVector::create(gko::ReferenceExecutor::create(),
+                                            gko::dim<2>{3, 4}, 2);
 
     auto view = gko::make_dense_view(vector);
 
     ASSERT_EQ(view->get_values(), vector->get_values());
-    EXPECT_TRUE(dynamic_cast<CustomDense*>(view.get()));
-    ASSERT_EQ(dynamic_cast<CustomDense*>(view.get())->get_data(), 2);
+    EXPECT_TRUE(dynamic_cast<CustomMultiVector*>(view.get()));
+    ASSERT_EQ(dynamic_cast<CustomMultiVector*>(view.get())->get_data(), 2);
 }
 
 

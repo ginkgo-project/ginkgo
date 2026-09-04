@@ -12,7 +12,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -30,8 +30,8 @@ protected:
     using Range3dHelper =
         gko::cb_gmres::Range3dHelper<value_type, storage_type>;
     using Range3d = typename Range3dHelper::Range;
-    using Dense = gko::matrix::Dense<value_type>;
-    using Mtx = Dense;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
+    using Mtx = MultiVector;
     static constexpr unsigned int default_krylov_dim_mixed{100};
 
     CbGmres() : rand_engine(30) {}
@@ -50,7 +50,7 @@ protected:
         auto& bases = helper.get_bases();
         const auto num_rows = size[0] * size[1];
         const auto num_cols = size[2];
-        auto temp_krylov_bases = gko::test::generate_random_matrix<Dense>(
+        auto temp_krylov_bases = gko::test::generate_random_matrix<MultiVector>(
             num_rows, num_cols,
             std::uniform_int_distribution<index_type>(num_cols, num_cols),
             std::normal_distribution<storage_type>(-1.0, 1.0), rand_engine,

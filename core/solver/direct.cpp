@@ -187,7 +187,7 @@ void Direct<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            using Vector = matrix::Dense<ValueType>;
+            using Vector = matrix::MultiVector<ValueType>;
             using ws = gko::solver::workspace_traits<Direct>;
             this->setup_workspace();
             auto intermediate = this->create_workspace_op_with_config_of(
@@ -210,7 +210,7 @@ void Direct<ValueType, IndexType>::apply_impl(const LinOp* alpha,
     }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            using Vector = matrix::Dense<ValueType>;
+            using Vector = matrix::MultiVector<ValueType>;
             using ws = gko::solver::workspace_traits<Direct>;
             this->setup_workspace();
             auto intermediate = this->create_workspace_op_with_config_of(

@@ -10,7 +10,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/gauss_seidel.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
@@ -501,7 +501,7 @@ protected:
           l_solver(DummyIr::build().on(exec)),
           u_solver(DummyIr::build().on(exec)),
           factorization(DummyIr::build().on(exec)),
-          linop(gko::matrix::Dense<>::create(exec)),
+          linop(gko::matrix::MultiVector<>::create(exec)),
           coarse_level(DummyMgLevel::build().on(exec)),
           reg()
     {

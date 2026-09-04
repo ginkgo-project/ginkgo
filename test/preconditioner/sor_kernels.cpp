@@ -11,7 +11,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/utils/matrix_utils.hpp"
@@ -22,7 +22,7 @@
 class Sor : public CommonTestFixture {
 protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
 
     Sor()
     {

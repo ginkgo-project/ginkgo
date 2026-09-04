@@ -18,7 +18,7 @@
 #include <ginkgo/core/base/range_accessors.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace gko {
@@ -80,7 +80,7 @@ public:
 
     using value_type = ValueType;
     using index_type = int32;
-    using unbatch_type = gko::matrix::Dense<ValueType>;
+    using unbatch_type = gko::matrix::MultiVector<ValueType>;
     using absolute_type = remove_complex<MultiVector<ValueType>>;
     using complex_type = to_complex<MultiVector<ValueType>>;
 
@@ -121,14 +121,14 @@ public:
 #endif
 
     /**
-     * Creates a mutable view (of matrix::Dense type) of one item of the Batch
-     * MultiVector object. Does not perform any deep copies, but only returns a
-     * view of the data.
+     * Creates a mutable view (of matrix::MultiVector type) of one item of the
+     * Batch MultiVector object. Does not perform any deep copies, but only
+     * returns a view of the data.
      *
      * @param item_id  The index of the batch item
      *
-     * @return  a matrix::Dense object with the data from the batch item at the
-     *          given index.
+     * @return  a matrix::MultiVector object with the data from the batch item
+     *          at the given index.
      */
     std::unique_ptr<unbatch_type> create_view_for_item(size_type item_id);
 
@@ -292,7 +292,7 @@ public:
      *
      * @param alpha  the scalar
      *
-     * @note If alpha is 1x1 MultiVector matrix, the entire multi-vector
+     * @note If alpha is 1x1 MultiVector, the entire multi-vector
      *      (all batches) is scaled by alpha.
      *      If it is a MultiVector row vector of values, then i-th column of the
      *      vector is scaled with the i-th element of alpha (the number of
@@ -309,7 +309,7 @@ public:
      * @param alpha  the scalar
      * @param b  a multi-vector of the same dimension as this
      *
-     * @note If alpha is 1x1 MultiVector matrix, the entire multi-vector
+     * @note If alpha is 1x1 MultiVector, the entire multi-vector
      *      (all batches) is scaled by alpha. If it is a MultiVector row
      *      vector of values, then i-th column of the vector is scaled with the
      *      i-th element of alpha (the number of columns of alpha has to match

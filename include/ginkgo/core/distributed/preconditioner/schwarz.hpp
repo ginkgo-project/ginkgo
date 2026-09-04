@@ -220,8 +220,8 @@ private:
 
     std::shared_ptr<const LinOp> coarse_level_;
     std::shared_ptr<const LinOp> coarse_solver_;
-    std::shared_ptr<const matrix::Dense<ValueType>> coarse_weight_;
-    std::shared_ptr<const matrix::Dense<ValueType>> local_weight_;
+    std::shared_ptr<const matrix::MultiVector<ValueType>> coarse_weight_;
+    std::shared_ptr<const matrix::MultiVector<ValueType>> local_weight_;
 };
 
 

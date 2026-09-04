@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,8 +14,8 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -29,19 +29,20 @@ protected:
     using value_type = ValueType;
     using Csr = gko::matrix::Csr<value_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
-    using Dense = gko::matrix::Dense<value_type>;
-    using MixedDense = gko::matrix::Dense<gko::next_precision<value_type>>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
+    using MixedMultiVector =
+        gko::matrix::MultiVector<gko::next_precision<value_type>>;
 
     Diagonal()
         : exec(gko::ReferenceExecutor::create()),
           diag1(Diag::create(exec, 2)),
           diag2(Diag::create(exec, 3)),
-          dense1(gko::initialize<Dense>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
-                                        exec)),
-          dense2(gko::initialize<Dense>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
-                                        exec)),
-          dense3(gko::initialize<Dense>(4, {{2.0, 3.0, 4.0}, {3.0, 4.5, 6.0}},
-                                        exec))
+          dense1(gko::initialize<MultiVector>(
+              4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}}, exec)),
+          dense2(gko::initialize<MultiVector>(
+              4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}}, exec)),
+          dense3(gko::initialize<MultiVector>(
+              4, {{2.0, 3.0, 4.0}, {3.0, 4.5, 6.0}}, exec))
     {
         csr1 = Csr::create(exec);
         csr1->copy_from(dense1);
@@ -74,9 +75,9 @@ protected:
     std::unique_ptr<Csr> csr3;
     std::unique_ptr<Diag> diag1;
     std::unique_ptr<Diag> diag2;
-    std::unique_ptr<Dense> dense1;
-    std::unique_ptr<Dense> dense2;
-    std::unique_ptr<Dense> dense3;
+    std::unique_ptr<MultiVector> dense1;
+    std::unique_ptr<MultiVector> dense2;
+    std::unique_ptr<MultiVector> dense3;
 };
 
 TYPED_TEST_SUITE(Diagonal, gko::test::ValueTypes, TypenameNameGenerator);
@@ -125,7 +126,7 @@ TYPED_TEST(Diagonal, MovesToPrecision)
 }
 
 
-TYPED_TEST(Diagonal, AppliesToDense)
+TYPED_TEST(Diagonal, AppliesToMultiVector)
 {
     using value_type = typename TestFixture::value_type;
     this->diag1->apply(this->dense1, this->dense2);
@@ -139,13 +140,13 @@ TYPED_TEST(Diagonal, AppliesToDense)
 }
 
 
-TYPED_TEST(Diagonal, AppliesToMixedDense)
+TYPED_TEST(Diagonal, AppliesToMixedMultiVector)
 {
     using value_type = typename TestFixture::value_type;
-    using MixedDense = typename TestFixture::MixedDense;
-    using mixed_value_type = typename MixedDense::value_type;
-    auto mdense1 = MixedDense::create(this->exec);
-    auto mdense2 = MixedDense::create(this->exec);
+    using MixedMultiVector = typename TestFixture::MixedMultiVector;
+    using mixed_value_type = typename MixedMultiVector::value_type;
+    auto mdense1 = MixedMultiVector::create(this->exec);
+    auto mdense2 = MixedMultiVector::create(this->exec);
     this->dense1->convert_to(mdense1);
     this->dense2->convert_to(mdense2);
 
@@ -160,7 +161,7 @@ TYPED_TEST(Diagonal, AppliesToMixedDense)
 }
 
 
-TYPED_TEST(Diagonal, RightAppliesToDense)
+TYPED_TEST(Diagonal, RightAppliesToMultiVector)
 {
     using value_type = typename TestFixture::value_type;
     this->diag2->rapply(this->dense1, this->dense2);
@@ -174,13 +175,13 @@ TYPED_TEST(Diagonal, RightAppliesToDense)
 }
 
 
-TYPED_TEST(Diagonal, RightAppliesToMixedDense)
+TYPED_TEST(Diagonal, RightAppliesToMixedMultiVector)
 {
     using value_type = typename TestFixture::value_type;
-    using MixedDense = typename TestFixture::MixedDense;
-    using mixed_value_type = typename MixedDense::value_type;
-    auto mdense1 = MixedDense::create(this->exec);
-    auto mdense2 = MixedDense::create(this->exec);
+    using MixedMultiVector = typename TestFixture::MixedMultiVector;
+    using mixed_value_type = typename MixedMultiVector::value_type;
+    auto mdense1 = MixedMultiVector::create(this->exec);
+    auto mdense2 = MixedMultiVector::create(this->exec);
     this->dense1->convert_to(mdense1);
     this->dense2->convert_to(mdense2);
 
@@ -195,7 +196,7 @@ TYPED_TEST(Diagonal, RightAppliesToMixedDense)
 }
 
 
-TYPED_TEST(Diagonal, InverseAppliesToDense)
+TYPED_TEST(Diagonal, InverseAppliesToMultiVector)
 {
     using value_type = typename TestFixture::value_type;
     this->diag1->inverse_apply(this->dense3, this->dense2);
@@ -209,13 +210,13 @@ TYPED_TEST(Diagonal, InverseAppliesToDense)
 }
 
 
-TYPED_TEST(Diagonal, InverseAppliesToMixedDense)
+TYPED_TEST(Diagonal, InverseAppliesToMixedMultiVector)
 {
     using value_type = typename TestFixture::value_type;
-    using MixedDense = typename TestFixture::MixedDense;
-    using mixed_value_type = typename MixedDense::value_type;
-    auto mdense2 = MixedDense::create(this->exec);
-    auto mdense3 = MixedDense::create(this->exec);
+    using MixedMultiVector = typename TestFixture::MixedMultiVector;
+    using mixed_value_type = typename MixedMultiVector::value_type;
+    auto mdense2 = MixedMultiVector::create(this->exec);
+    auto mdense3 = MixedMultiVector::create(this->exec);
     this->dense2->convert_to(mdense2);
     this->dense3->convert_to(mdense3);
 
@@ -230,12 +231,12 @@ TYPED_TEST(Diagonal, InverseAppliesToMixedDense)
 }
 
 
-TYPED_TEST(Diagonal, AppliesLinearCombinationToDense)
+TYPED_TEST(Diagonal, AppliesLinearCombinationToMultiVector)
 {
     using value_type = typename TestFixture::value_type;
-    using Dense = typename TestFixture::Dense;
-    auto alpha = gko::initialize<Dense>({-1.0}, this->exec);
-    auto beta = gko::initialize<Dense>({2.0}, this->exec);
+    using MultiVector = typename TestFixture::MultiVector;
+    auto alpha = gko::initialize<MultiVector>({-1.0}, this->exec);
+    auto beta = gko::initialize<MultiVector>({2.0}, this->exec);
 
     this->diag1->apply(alpha, this->dense1, beta, this->dense2);
 
@@ -248,15 +249,15 @@ TYPED_TEST(Diagonal, AppliesLinearCombinationToDense)
 }
 
 
-TYPED_TEST(Diagonal, AppliesLinearCombinationToMixedDense)
+TYPED_TEST(Diagonal, AppliesLinearCombinationToMixedMultiVector)
 {
     using value_type = typename TestFixture::value_type;
-    using MixedDense = typename TestFixture::MixedDense;
-    using mixed_value_type = typename MixedDense::value_type;
-    auto mdense1 = MixedDense::create(this->exec);
-    auto mdense2 = MixedDense::create(this->exec);
-    auto alpha = gko::initialize<MixedDense>({-1.0}, this->exec);
-    auto beta = gko::initialize<MixedDense>({2.0}, this->exec);
+    using MixedMultiVector = typename TestFixture::MixedMultiVector;
+    using mixed_value_type = typename MixedMultiVector::value_type;
+    auto mdense1 = MixedMultiVector::create(this->exec);
+    auto mdense2 = MixedMultiVector::create(this->exec);
+    auto alpha = gko::initialize<MixedMultiVector>({-1.0}, this->exec);
+    auto beta = gko::initialize<MixedMultiVector>({2.0}, this->exec);
     this->dense1->convert_to(mdense1);
     this->dense2->convert_to(mdense2);
 
@@ -271,11 +272,11 @@ TYPED_TEST(Diagonal, AppliesLinearCombinationToMixedDense)
 }
 
 
-TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongInnerDimensions)
+TYPED_TEST(Diagonal, ApplyToMultiVectorFailsForWrongInnerDimensions)
 {
     using value_type = typename TestFixture::value_type;
-    auto result =
-        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{3});
+    auto result = gko::matrix::MultiVector<value_type>::create(this->exec,
+                                                               gko::dim<2>{3});
 
     // 3x3 times 2x3 = 3x3 --> mismatch for inner dimensions
     ASSERT_THROW(this->diag2->apply(this->dense1, result),
@@ -283,11 +284,11 @@ TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongInnerDimensions)
 }
 
 
-TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongNumberOfRows)
+TYPED_TEST(Diagonal, ApplyToMultiVectorFailsForWrongNumberOfRows)
 {
     using value_type = typename TestFixture::value_type;
-    auto result =
-        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{3});
+    auto result = gko::matrix::MultiVector<value_type>::create(this->exec,
+                                                               gko::dim<2>{3});
 
     // 2x2 times 2x3 = 3x3 --> mismatch for rows of diagonal and result
     ASSERT_THROW(this->diag1->apply(this->dense1, result),
@@ -295,11 +296,11 @@ TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongNumberOfRows)
 }
 
 
-TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongNumberOfCols)
+TYPED_TEST(Diagonal, ApplyToMultiVectorFailsForWrongNumberOfCols)
 {
     using value_type = typename TestFixture::value_type;
-    auto result =
-        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{2});
+    auto result = gko::matrix::MultiVector<value_type>::create(this->exec,
+                                                               gko::dim<2>{2});
 
     // 2x2 times 2x3 = 2x2 --> mismatch for cols of dense1 and result
     ASSERT_THROW(this->diag1->apply(this->dense1, result),
@@ -307,11 +308,11 @@ TYPED_TEST(Diagonal, ApplyToDenseFailsForWrongNumberOfCols)
 }
 
 
-TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongInnerDimensions)
+TYPED_TEST(Diagonal, RightApplyToMultiVectorFailsForWrongInnerDimensions)
 {
     using value_type = typename TestFixture::value_type;
-    auto result =
-        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{2});
+    auto result = gko::matrix::MultiVector<value_type>::create(this->exec,
+                                                               gko::dim<2>{2});
 
     // 2x3 times 2x2 = 2x2 --> mismatch for inner DimensionMismatch
     ASSERT_THROW(this->diag1->rapply(this->dense1, result),
@@ -319,11 +320,11 @@ TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongInnerDimensions)
 }
 
 
-TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongNumberOfRows)
+TYPED_TEST(Diagonal, RightApplyToMultiVectorFailsForWrongNumberOfRows)
 {
     using value_type = typename TestFixture::value_type;
-    auto result =
-        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{3});
+    auto result = gko::matrix::MultiVector<value_type>::create(this->exec,
+                                                               gko::dim<2>{3});
 
     // 2x3 times 3x3 = 3x3 --> mismatch for rows of dense1 and result
     ASSERT_THROW(this->diag2->rapply(this->dense1, result),
@@ -331,11 +332,11 @@ TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongNumberOfRows)
 }
 
 
-TYPED_TEST(Diagonal, RightApplyToDenseFailsForWrongNumberOfCols)
+TYPED_TEST(Diagonal, RightApplyToMultiVectorFailsForWrongNumberOfCols)
 {
     using value_type = typename TestFixture::value_type;
-    auto result =
-        gko::matrix::Dense<value_type>::create(this->exec, gko::dim<2>{2});
+    auto result = gko::matrix::MultiVector<value_type>::create(this->exec,
+                                                               gko::dim<2>{2});
 
     // 2x3 times 3x3 = 2x2 --> mismatch for cols of diagonal and result
     ASSERT_THROW(this->diag2->rapply(this->dense1, result),
@@ -550,7 +551,7 @@ TYPED_TEST(Diagonal, AppliesToComplex)
 {
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
-    using Vec = gko::matrix::Dense<complex_type>;
+    using Vec = gko::matrix::MultiVector<complex_type>;
     auto exec = gko::ReferenceExecutor::create();
     auto dense1 =
         gko::initialize<Vec>({{complex_type{1.0, 2.0}, complex_type{2.0, 4.0},
@@ -576,7 +577,7 @@ TYPED_TEST(Diagonal, AppliesToMixedComplex)
     using mixed_value_type =
         gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using Vec = gko::matrix::Dense<mixed_complex_type>;
+    using Vec = gko::matrix::MultiVector<mixed_complex_type>;
     auto exec = gko::ReferenceExecutor::create();
     auto mdense1 = gko::initialize<Vec>(
         {{mixed_complex_type{1.0, 2.0}, mixed_complex_type{2.0, 4.0},
@@ -602,8 +603,8 @@ TYPED_TEST(Diagonal, AppliesLinearCombinationToComplex)
 {
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
-    using Vec = gko::matrix::Dense<complex_type>;
-    using Scalar = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<complex_type>;
+    using Scalar = gko::matrix::MultiVector<value_type>;
     auto exec = gko::ReferenceExecutor::create();
     auto dense1 =
         gko::initialize<Vec>({{complex_type{1.0, 2.0}, complex_type{2.0, 4.0},
@@ -636,8 +637,8 @@ TYPED_TEST(Diagonal, AppliesLinearCombinationToMixedComplex)
     using mixed_value_type =
         gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using Vec = gko::matrix::Dense<mixed_complex_type>;
-    using Scalar = gko::matrix::Dense<mixed_value_type>;
+    using Vec = gko::matrix::MultiVector<mixed_complex_type>;
+    using Scalar = gko::matrix::MultiVector<mixed_value_type>;
     auto exec = gko::ReferenceExecutor::create();
     auto dense1 = gko::initialize<Vec>(
         {{mixed_complex_type{1.0, 2.0}, mixed_complex_type{2.0, 4.0},

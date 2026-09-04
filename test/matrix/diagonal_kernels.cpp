@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,7 +12,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
@@ -24,7 +24,7 @@ protected:
     using ComplexValueType = std::complex<value_type>;
     using Csr = gko::matrix::Csr<ValueType>;
     using Diag = gko::matrix::Diagonal<ValueType>;
-    using Dense = gko::matrix::Dense<ValueType>;
+    using MultiVector = gko::matrix::MultiVector<ValueType>;
     using ComplexDiag = gko::matrix::Diagonal<ComplexValueType>;
 
     Diagonal()
@@ -75,10 +75,12 @@ protected:
     {
         diag = gen_diag(mtx_size[0]);
         ddiag = gko::clone(exec, diag);
-        dense1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[1]);
-        dense2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[0]);
-        denseexpected1 = gen_mtx<Dense>(mtx_size[0], mtx_size[1], mtx_size[1]);
-        denseexpected2 = gen_mtx<Dense>(mtx_size[1], mtx_size[0], mtx_size[0]);
+        dense1 = gen_mtx<MultiVector>(mtx_size[0], mtx_size[1], mtx_size[1]);
+        dense2 = gen_mtx<MultiVector>(mtx_size[1], mtx_size[0], mtx_size[0]);
+        denseexpected1 =
+            gen_mtx<MultiVector>(mtx_size[0], mtx_size[1], mtx_size[1]);
+        denseexpected2 =
+            gen_mtx<MultiVector>(mtx_size[1], mtx_size[0], mtx_size[0]);
         ddense1 = gko::clone(exec, dense1);
         ddense2 = gko::clone(exec, dense2);
         denseresult1 = gko::clone(exec, denseexpected1);
@@ -107,14 +109,14 @@ protected:
     std::unique_ptr<ComplexDiag> cdiag;
     std::unique_ptr<ComplexDiag> dcdiag;
 
-    std::unique_ptr<Dense> dense1;
-    std::unique_ptr<Dense> dense2;
-    std::unique_ptr<Dense> denseexpected1;
-    std::unique_ptr<Dense> denseexpected2;
-    std::unique_ptr<Dense> denseresult1;
-    std::unique_ptr<Dense> denseresult2;
-    std::unique_ptr<Dense> ddense1;
-    std::unique_ptr<Dense> ddense2;
+    std::unique_ptr<MultiVector> dense1;
+    std::unique_ptr<MultiVector> dense2;
+    std::unique_ptr<MultiVector> denseexpected1;
+    std::unique_ptr<MultiVector> denseexpected2;
+    std::unique_ptr<MultiVector> denseresult1;
+    std::unique_ptr<MultiVector> denseresult2;
+    std::unique_ptr<MultiVector> ddense1;
+    std::unique_ptr<MultiVector> ddense2;
     std::unique_ptr<Csr> csr1;
     std::unique_ptr<Csr> csr2;
     std::unique_ptr<Csr> dcsr1;
@@ -126,7 +128,7 @@ protected:
 };
 
 
-TEST_F(Diagonal, ApplyToDenseIsEquivalentToRef)
+TEST_F(Diagonal, ApplyToMultiVectorIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -137,7 +139,7 @@ TEST_F(Diagonal, ApplyToDenseIsEquivalentToRef)
 }
 
 
-TEST_F(Diagonal, RightApplyToDenseIsEquivalentToRef)
+TEST_F(Diagonal, RightApplyToMultiVectorIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -148,7 +150,7 @@ TEST_F(Diagonal, RightApplyToDenseIsEquivalentToRef)
 }
 
 
-TEST_F(Diagonal, InverseApplyToDenseIsEquivalentToRef)
+TEST_F(Diagonal, InverseApplyToMultiVectorIsEquivalentToRef)
 {
     set_up_apply_data();
 

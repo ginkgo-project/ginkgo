@@ -71,7 +71,8 @@ class SparsityCsr;
 
 
 /**
- * Dense is a matrix format which explicitly stores all values of the matrix.
+ * MultiVector is a matrix format which explicitly stores all values of the
+ * matrix.
  *
  * The values are stored in row-major format (values belonging to the same row
  * appear consecutive in the memory). Optionally, rows can be padded for better
@@ -86,15 +87,15 @@ class SparsityCsr;
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Dense
+class MultiVector
     : public LinOp,
-      public EnableCloneable<Dense<ValueType>>,
-      public ConvertibleTo<Dense<next_precision<ValueType>>>,
+      public EnableCloneable<MultiVector<ValueType>>,
+      public ConvertibleTo<MultiVector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
+      public ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
+      public ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>,
 #endif
       public ConvertibleTo<Coo<ValueType, int32>>,
       public ConvertibleTo<Coo<ValueType, int64>>,
@@ -118,9 +119,9 @@ class Dense
       public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<Dense<ValueType>>>,
+      public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>>,
       public ScaledIdentityAddable {
-    friend class EnableCloneable<Dense>;
+    friend class EnableCloneable<MultiVector>;
     friend class Coo<ValueType, int32>;
     friend class Coo<ValueType, int64>;
     friend class Csr<ValueType, int32>;
@@ -136,16 +137,17 @@ class Dense
     friend class Sellp<ValueType, int64>;
     friend class SparsityCsr<ValueType, int32>;
     friend class SparsityCsr<ValueType, int64>;
-    friend class Dense<to_complex<ValueType>>;
+    friend class MultiVector<to_complex<ValueType>>;
+    friend class EnableCloneable<MultiVector>;
     friend class experimental::distributed::Vector<ValueType>;
     friend class experimental::distributed::detail::VectorCache<ValueType>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Dense>::convert_to;
-    using EnableCloneable<Dense>::move_to;
-    using ConvertibleTo<Dense<next_precision<ValueType>>>::convert_to;
-    using ConvertibleTo<Dense<next_precision<ValueType>>>::move_to;
+    using EnableCloneable<MultiVector>::convert_to;
+    using EnableCloneable<MultiVector>::move_to;
+    using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
+    using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Coo<ValueType, int32>>::convert_to;
     using ConvertibleTo<Coo<ValueType, int32>>::move_to;
     using ConvertibleTo<Coo<ValueType, int64>>::convert_to;
@@ -179,27 +181,27 @@ public:
 
     using value_type = ValueType;
     using index_type = int64;
-    using transposed_type = Dense<value_type>;
-    using mat_data = matrix_data<value_type, int64>;
+    using transposed_type = MultiVector<value_type>;
+    using mat_data64 = matrix_data<value_type, int64>;
     using mat_data32 = matrix_data<value_type, int32>;
-    using device_mat_data = device_matrix_data<value_type, int64>;
+    using device_mat_data64 = device_matrix_data<value_type, int64>;
     using device_mat_data32 = device_matrix_data<value_type, int32>;
-    using absolute_type = remove_complex<Dense>;
+    using absolute_type = remove_complex<MultiVector>;
     using real_type = absolute_type;
-    using complex_type = to_complex<Dense>;
+    using complex_type = to_complex<MultiVector>;
     using device_view = matrix::view::dense<value_type>;
     using const_device_view = matrix::view::dense<const value_type>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
     /**
-     * Creates a Dense matrix with the same size and stride as another Dense
-     * matrix.
+     * Creates a MultiVector with the same size and stride as another
+     * MultiVector matrix.
      *
      * @param other  The other matrix whose configuration needs to copied.
      */
-    static std::unique_ptr<Dense> create_with_config_of(
-        ptr_param<const Dense> other)
+    static std::unique_ptr<MultiVector> create_with_config_of(
+        ptr_param<const MultiVector> other)
     {
         // De-referencing `other` before calling the functions (instead of
         // using operator `->`) is currently required to be compatible with
@@ -209,7 +211,7 @@ public:
     }
 
     /**
-     * Creates a Dense matrix with the same type as another Dense
+     * Creates a MultiVector with the same type as another MultiVector
      * matrix but on a different executor and with a different size.
      *
      * @param other  The other matrix whose type we target.
@@ -217,34 +219,35 @@ public:
      * @param size  The size of the new matrix.
      * @param stride  The stride of the new matrix.
      *
-     * @returns a Dense matrix with the type of other.
+     * @returns a MultiVector with the type of other.
      */
-    static std::unique_ptr<Dense> create_with_type_of(
-        ptr_param<const Dense> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size = dim<2>{})
+    static std::unique_ptr<MultiVector> create_with_type_of(
+        ptr_param<const MultiVector> other,
+        std::shared_ptr<const Executor> exec, const dim<2>& size = dim<2>{})
     {
         // See create_with_config_of()
         return (*other).create_with_type_of_impl(exec, size, size[1]);
     }
 
     /**
-     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
+     * @copydoc create_with_type_of(const MultiVector*, std::shared_ptr<const
      * Executor>, const dim<2>)
      *
      * @param stride  The stride of the new matrix.
      *
      * @note This is an overload which allows full parameter specification.
      */
-    static std::unique_ptr<Dense> create_with_type_of(
-        ptr_param<const Dense> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size, size_type stride)
+    static std::unique_ptr<MultiVector> create_with_type_of(
+        ptr_param<const MultiVector> other,
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        size_type stride)
     {
         // See create_with_config_of()
         return (*other).create_with_type_of_impl(exec, size, stride);
     }
 
     /**
-     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
+     * @copydoc create_with_type_of(const MultiVector*, std::shared_ptr<const
      * Executor>, const dim<2>)
      *
      * @param local_size  Unused
@@ -253,64 +256,69 @@ public:
      * @note This is an overload to stay consistent with
      *       gko::experimental::distributed::Vector
      */
-    static std::unique_ptr<Dense> create_with_type_of(
-        ptr_param<const Dense> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& size, const dim<2>& local_size, size_type stride)
+    static std::unique_ptr<MultiVector> create_with_type_of(
+        ptr_param<const MultiVector> other,
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        const dim<2>& local_size, size_type stride)
     {
         // See create_with_config_of()
         return (*other).create_with_type_of_impl(exec, size, stride);
     }
 
     /**
-     * Creates a Dense matrix, where the underlying array is a view of another
-     * Dense matrix' array.
+     * Creates a MultiVector, where the underlying array is a view of another
+     * MultiVector' array.
      *
      * @param other  The other matrix on which to create the view
      *
-     * @return  A Dense matrix that is a view of other
+     * @return  A MultiVector that is a view of other
      */
-    static std::unique_ptr<Dense> create_view_of(ptr_param<Dense> other)
+    static std::unique_ptr<MultiVector> create_view_of(
+        ptr_param<MultiVector> other)
     {
         return other->create_view_of_impl();
     }
 
     /**
-     * Creates a immutable Dense matrix, where the underlying array is a view of
-     * another Dense matrix' array.
+     * Creates a immutable MultiVector, where the underlying array is a view of
+     * another MultiVector' array.
      *
      * @param other  The other matrix on which to create the view
-     * @return  A immutable Dense matrix that is a view of other
+     * @return  A immutable MultiVector that is a view of other
      */
-    static std::unique_ptr<const Dense> create_const_view_of(
-        ptr_param<const Dense> other)
+    static std::unique_ptr<const MultiVector> create_const_view_of(
+        ptr_param<const MultiVector> other)
     {
         return other->create_const_view_of_impl();
     }
 
-    friend class Dense<previous_precision<ValueType>>;
+    friend class MultiVector<previous_precision<ValueType>>;
 
-    void convert_to(Dense<next_precision<ValueType>>* result) const override;
+    void convert_to(
+        MultiVector<next_precision<ValueType>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType>>* result) override;
+    void move_to(MultiVector<next_precision<ValueType>>* result) override;
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Dense<previous_precision<ValueType, 2>>;
-    using ConvertibleTo<Dense<next_precision<ValueType, 2>>>::convert_to;
-    using ConvertibleTo<Dense<next_precision<ValueType, 2>>>::move_to;
+    friend class MultiVector<previous_precision<ValueType, 2>>;
+    using ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>::convert_to;
+    using ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>::move_to;
 
-    void convert_to(Dense<next_precision<ValueType, 2>>* result) const override;
+    void convert_to(
+        MultiVector<next_precision<ValueType, 2>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType, 2>>* result) override;
+    void move_to(MultiVector<next_precision<ValueType, 2>>* result) override;
 #endif
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-    friend class Dense<previous_precision<ValueType, 3>>;
-    using ConvertibleTo<Dense<next_precision<ValueType, 3>>>::convert_to;
-    using ConvertibleTo<Dense<next_precision<ValueType, 3>>>::move_to;
+    friend class MultiVector<previous_precision<ValueType, 3>>;
+    using ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>::convert_to;
+    using ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>::move_to;
 
-    void convert_to(Dense<next_precision<ValueType, 3>>* result) const override;
+    void convert_to(
+        MultiVector<next_precision<ValueType, 3>>* result) const override;
 
-    void move_to(Dense<next_precision<ValueType, 3>>* result) override;
+    void move_to(MultiVector<next_precision<ValueType, 3>>* result) override;
 #endif
 
     void convert_to(Coo<ValueType, int32>* result) const override;
@@ -369,19 +377,19 @@ public:
 
     void move_to(SparsityCsr<ValueType, int64>* result) override;
 
-    void read(const mat_data& data) override;
+    void read(const mat_data64& data) override;
 
     void read(const mat_data32& data) override;
 
-    void read(const device_mat_data& data) override;
+    void read(const device_mat_data64& data) override;
 
     void read(const device_mat_data32& data) override;
 
-    void read(device_mat_data&& data) override;
+    void read(device_mat_data64&& data) override;
 
     void read(device_mat_data32&& data) override;
 
-    void write(mat_data& data) const override;
+    void write(mat_data64& data) const override;
 
     void write(mat_data32& data) const override;
 
@@ -395,7 +403,7 @@ public:
      * @param output  The output matrix. It must have the dimensions
      *                `gko::transpose(this->get_size())`
      */
-    void transpose(ptr_param<Dense> output) const;
+    void transpose(ptr_param<MultiVector> output) const;
 
     /**
      * Writes the conjugate-transposed matrix into the given output matrix.
@@ -403,7 +411,7 @@ public:
      * @param output  The output matrix. It must have the dimensions
      *                `gko::transpose(this->get_size())`
      */
-    void conj_transpose(ptr_param<Dense> output) const;
+    void conj_transpose(ptr_param<MultiVector> output) const;
 
     /**
      * Fill the dense matrix with a given value.
@@ -422,31 +430,31 @@ public:
      * @param mode  The permutation mode, see @ref permute_mode.
      * @return  The permuted matrix.
      */
-    std::unique_ptr<Dense> permute(
+    std::unique_ptr<MultiVector> permute(
         ptr_param<const Permutation<int32>> permutation,
         permute_mode mode = permute_mode::symmetric) const;
 
     /**
      * @copydoc permute(ptr_param<const Permutation<int32>>, permute_mode)
      */
-    std::unique_ptr<Dense> permute(
+    std::unique_ptr<MultiVector> permute(
         ptr_param<const Permutation<int64>> permutation,
         permute_mode mode = permute_mode::symmetric) const;
 
     /**
      * Overload of permute(ptr_param<const Permutation<int32>>, permute_mode)
-     * that writes the permuted copy into an existing Dense matrix.
+     * that writes the permuted copy into an existing MultiVector.
      * @param output  the output matrix.
      */
     void permute(ptr_param<const Permutation<int32>> permutation,
-                 ptr_param<Dense> output, permute_mode mode) const;
+                 ptr_param<MultiVector> output, permute_mode mode) const;
 
     /**
-     * @copydoc permute(ptr_param<const Permutation<int32>>, ptr_param<Dense>,
-     * permute_mode)
+     * @copydoc permute(ptr_param<const Permutation<int32>>,
+     * ptr_param<MultiVector>, permute_mode)
      */
     void permute(ptr_param<const Permutation<int64>> permutation,
-                 ptr_param<Dense> output, permute_mode mode) const;
+                 ptr_param<MultiVector> output, permute_mode mode) const;
 
     /**
      * Creates a non-symmetrically permuted copy \f$A'\f$ of this matrix \f$A\f$
@@ -462,7 +470,7 @@ public:
      *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return  The permuted matrix.
      */
-    std::unique_ptr<Dense> permute(
+    std::unique_ptr<MultiVector> permute(
         ptr_param<const Permutation<int32>> row_permutation,
         ptr_param<const Permutation<int32>> column_permutation,
         bool invert = false) const;
@@ -471,7 +479,7 @@ public:
      * @copydoc permute(ptr_param<const Permutation<int32>>, ptr_param<const
      * Permutation<int32>>, permute_mode)
      */
-    std::unique_ptr<Dense> permute(
+    std::unique_ptr<MultiVector> permute(
         ptr_param<const Permutation<int64>> row_permutation,
         ptr_param<const Permutation<int64>> column_permutation,
         bool invert = false) const;
@@ -479,20 +487,20 @@ public:
     /**
      * Overload of permute(ptr_param<const Permutation<int32>>, ptr_param<const
      * Permutation<int32>>, permute_mode) that writes the permuted copy into an
-     * existing Dense matrix.
+     * existing MultiVector.
      * @param output  the output matrix.
      */
     void permute(ptr_param<const Permutation<int32>> row_permutation,
                  ptr_param<const Permutation<int32>> column_permutation,
-                 ptr_param<Dense> output, bool invert = false) const;
+                 ptr_param<MultiVector> output, bool invert = false) const;
 
     /**
      * @copydoc permute(ptr_param<const Permutation<int32>>, ptr_param<const
-     * Permutation<int32>>, ptr_param<Dense>, permute_mode)
+     * Permutation<int32>>, ptr_param<MultiVector>, permute_mode)
      */
     void permute(ptr_param<const Permutation<int64>> row_permutation,
                  ptr_param<const Permutation<int64>> column_permutation,
-                 ptr_param<Dense> output, bool invert = false) const;
+                 ptr_param<MultiVector> output, bool invert = false) const;
 
     /**
      * Creates a scaled and permuted copy of this matrix.
@@ -503,7 +511,7 @@ public:
      * @param mode  The permutation mode.
      * @return The permuted matrix.
      */
-    std::unique_ptr<Dense> scale_permute(
+    std::unique_ptr<MultiVector> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> permutation,
         permute_mode mode = permute_mode::symmetric) const;
 
@@ -511,27 +519,27 @@ public:
      * @copydoc scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, permute_mode)
      */
-    std::unique_ptr<Dense> scale_permute(
+    std::unique_ptr<MultiVector> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> permutation,
         permute_mode mode = permute_mode::symmetric) const;
 
     /**
      * Overload of scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, permute_mode) that writes the permuted copy into an
-     * existing Dense matrix.
+     * existing MultiVector.
      * @param output  the output matrix.
      */
     void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> permutation,
-        ptr_param<Dense> output, permute_mode mode) const;
+        ptr_param<MultiVector> output, permute_mode mode) const;
 
     /**
      * @copydoc scale_permute(ptr_param<const ScaledPermutation<value_type,
-     * int32>>, ptr_param<Dense>, permute_mode)
+     * int32>>, ptr_param<MultiVector>, permute_mode)
      */
     void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> permutation,
-        ptr_param<Dense> output, permute_mode mode) const;
+        ptr_param<MultiVector> output, permute_mode mode) const;
 
     /**
      * Creates a scaled and permuted copy of this matrix.
@@ -545,7 +553,7 @@ public:
      *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return The permuted matrix.
      */
-    std::unique_ptr<Dense> scale_permute(
+    std::unique_ptr<MultiVector> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int32>>
             column_permutation,
@@ -555,7 +563,7 @@ public:
      * @copydoc scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, ptr_param<const ScaledPermutation<value_type, int32>>, bool)
      */
-    std::unique_ptr<Dense> scale_permute(
+    std::unique_ptr<MultiVector> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int64>>
             column_permutation,
@@ -564,25 +572,25 @@ public:
     /**
      * Overload of scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, ptr_param<const ScaledPermutation<value_type, int32>>, bool)
-     * that writes the permuted copy into an existing Dense matrix.
+     * that writes the permuted copy into an existing MultiVector.
      * @param output  the output matrix.
      */
     void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int32>>
             column_permutation,
-        ptr_param<Dense> output, bool invert = false) const;
+        ptr_param<MultiVector> output, bool invert = false) const;
 
     /**
      * @copydoc scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, ptr_param<const ScaledPermutation<value_type, int32>>,
-     * ptr_param<Dense>, bool)
+     * ptr_param<MultiVector>, bool)
      */
     void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int64>> row_permutation,
         ptr_param<const ScaledPermutation<value_type, int64>>
             column_permutation,
-        ptr_param<Dense> output, bool invert = false) const;
+        ptr_param<MultiVector> output, bool invert = false) const;
 
     std::unique_ptr<LinOp> permute(
         const array<int32>* permutation_indices) const override;
@@ -597,16 +605,16 @@ public:
      *                             It must have `this->get_size()[0]` elements.
      * @param output  The output matrix. It must have the dimensions
      *                `this->get_size()`
-     * @see Dense::permute(const array<int32>*)
+     * @see MultiVector::permute(const array<int32>*)
      */
     void permute(const array<int32>* permutation_indices,
-                 ptr_param<Dense> output) const;
+                 ptr_param<MultiVector> output) const;
 
     /**
-     * @copydoc Dense::permute(const array<int32>*, Dense*)
+     * @copydoc MultiVector::permute(const array<int32>*, MultiVector*)
      */
     void permute(const array<int64>* permutation_indices,
-                 ptr_param<Dense> output) const;
+                 ptr_param<MultiVector> output) const;
 
     std::unique_ptr<LinOp> inverse_permute(
         const array<int32>* permutation_indices) const override;
@@ -622,16 +630,16 @@ public:
      *                             It must have `this->get_size()[0]` elements.
      * @param output  The output matrix. It must have the dimensions
      *                `this->get_size()`
-     * @see Dense::inverse_permute(const array<int32>*)
+     * @see MultiVector::inverse_permute(const array<int32>*)
      */
     void inverse_permute(const array<int32>* permutation_indices,
-                         ptr_param<Dense> output) const;
+                         ptr_param<MultiVector> output) const;
 
     /**
-     * @copydoc Dense::inverse_permute(const array<int32>*, Dense*)
+     * @copydoc MultiVector::inverse_permute(const array<int32>*, MultiVector*)
      */
     void inverse_permute(const array<int64>* permutation_indices,
-                         ptr_param<Dense> output) const;
+                         ptr_param<MultiVector> output) const;
 
     std::unique_ptr<LinOp> row_permute(
         const array<int32>* permutation_indices) const override;
@@ -646,33 +654,36 @@ public:
      *                             It must have `this->get_size()[0]` elements.
      * @param output  The output matrix. It must have the dimensions
      *                `this->get_size()`
-     * @see Dense::row_permute(const array<int32>*)
+     * @see MultiVector::row_permute(const array<int32>*)
      */
     void row_permute(const array<int32>* permutation_indices,
-                     ptr_param<Dense> output) const;
+                     ptr_param<MultiVector> output) const;
 
     /**
-     * @copydoc Dense::row_permute(const array<int32>*, Dense*)
+     * @copydoc MultiVector::row_permute(const array<int32>*, MultiVector*)
      */
     void row_permute(const array<int64>* permutation_indices,
-                     ptr_param<Dense> output) const;
+                     ptr_param<MultiVector> output) const;
 
     /**
-     * Create a Dense matrix consisting of the given rows from this matrix.
+     * Create a MultiVector consisting of the given rows from this
+     * matrix.
      *
      * @param gather_indices  pointer to an array containing row indices
      *                        from this matrix. It may contain duplicates.
-     * @return  Dense matrix on the same executor with the same number of
+     * @return  MultiVector on the same executor with the same number of
      *          columns and `gather_indices->get_size()` rows containing
      *          the gathered rows from this matrix:
      *          `output(i,j) = input(gather_indices(i), j)`
      */
-    std::unique_ptr<Dense> row_gather(const array<int32>* gather_indices) const;
+    std::unique_ptr<MultiVector> row_gather(
+        const array<int32>* gather_indices) const;
 
     /**
      * @copydoc row_gather(const array<int32>*) const
      */
-    std::unique_ptr<Dense> row_gather(const array<int64>* gather_indices) const;
+    std::unique_ptr<MultiVector> row_gather(
+        const array<int64>* gather_indices) const;
 
     /**
      * Copies the given rows from this matrix into `row_collection`
@@ -735,16 +746,16 @@ public:
      *                             It must have `this->get_size()[1]` elements.
      * @param output  The output matrix. It must have the dimensions
      *                `this->get_size()`
-     * @see Dense::column_permute(const array<int32>*)
+     * @see MultiVector::column_permute(const array<int32>*)
      */
     void column_permute(const array<int32>* permutation_indices,
-                        ptr_param<Dense> output) const;
+                        ptr_param<MultiVector> output) const;
 
     /**
-     * @copydoc Dense::column_permute(const array<int32>*, Dense*)
+     * @copydoc MultiVector::column_permute(const array<int32>*, MultiVector*)
      */
     void column_permute(const array<int64>* permutation_indices,
-                        ptr_param<Dense> output) const;
+                        ptr_param<MultiVector> output) const;
 
     std::unique_ptr<LinOp> inverse_row_permute(
         const array<int32>* permutation_indices) const override;
@@ -759,16 +770,17 @@ public:
      *                             It must have `this->get_size()[0]` elements.
      * @param output  The output matrix. It must have the dimensions
      *                `this->get_size()`
-     * @see Dense::inverse_row_permute(const array<int32>*)
+     * @see MultiVector::inverse_row_permute(const array<int32>*)
      */
     void inverse_row_permute(const array<int32>* permutation_indices,
-                             ptr_param<Dense> output) const;
+                             ptr_param<MultiVector> output) const;
 
     /**
-     * @copydoc Dense::inverse_row_permute(const array<int32>*, Dense*)
+     * @copydoc MultiVector::inverse_row_permute(const array<int32>*,
+     * MultiVector*)
      */
     void inverse_row_permute(const array<int64>* permutation_indices,
-                             ptr_param<Dense> output) const;
+                             ptr_param<MultiVector> output) const;
 
     std::unique_ptr<LinOp> inverse_column_permute(
         const array<int32>* permutation_indices) const override;
@@ -783,16 +795,17 @@ public:
      *                             It must have `this->get_size()[1]` elements.
      * @param output  The output matrix. It must have the dimensions
      *                `this->get_size()`
-     * @see Dense::inverse_column_permute(const array<int32>*)
+     * @see MultiVector::inverse_column_permute(const array<int32>*)
      */
     void inverse_column_permute(const array<int32>* permutation_indices,
-                                ptr_param<Dense> output) const;
+                                ptr_param<MultiVector> output) const;
 
     /**
-     * @copydoc Dense::inverse_column_permute(const array<int32>*, Dense*)
+     * @copydoc MultiVector::inverse_column_permute(const array<int32>*,
+     * MultiVector*)
      */
     void inverse_column_permute(const array<int64>* permutation_indices,
-                                ptr_param<Dense> output) const;
+                                ptr_param<MultiVector> output) const;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
 
@@ -801,7 +814,7 @@ public:
      *
      * @param output  The output matrix. Its size must match the size of this
      *                matrix's diagonal.
-     * @see Dense::extract_diagonal()
+     * @see MultiVector::extract_diagonal()
      */
     void extract_diagonal(ptr_param<Diagonal<ValueType>> output) const;
 
@@ -812,7 +825,7 @@ public:
      *
      * @param output  The output matrix. Its size must match the size of this
      *                matrix.
-     * @see Dense::compute_absolute()
+     * @see MultiVector::compute_absolute()
      */
     void compute_absolute(ptr_param<absolute_type> output) const;
 
@@ -910,7 +923,7 @@ public:
     }
 
     /**
-     * @copydoc Dense::at(size_type, size_type)
+     * @copydoc MultiVector::at(size_type, size_type)
      */
     value_type at(size_type row, size_type col) const noexcept
     {
@@ -937,7 +950,7 @@ public:
     }
 
     /**
-     * @copydoc Dense::at(size_type)
+     * @copydoc MultiVector::at(size_type)
      */
     ValueType at(size_type idx) const noexcept
     {
@@ -947,8 +960,8 @@ public:
     /**
      * Scales the matrix with a scalar (aka: BLAS scal).
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense row vector of values,
+     * @param alpha  If alpha is 1x1 MultiVector is scaled
+     *               by alpha. If it is a MultiVector row vector of values,
      *               then i-th column of the matrix is scaled with the i-th
      *               element of alpha (the number of columns of alpha has to
      *               match the number of columns of the matrix).
@@ -958,8 +971,8 @@ public:
     /**
      * Scales the matrix with the inverse of a scalar.
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by 1 / alpha. If it is a Dense row vector of values,
+     * @param alpha  If alpha is 1x1 MultiVector is scaled
+     *               by 1 / alpha. If it is a MultiVector row vector of values,
      *               then i-th column of the matrix is scaled with the inverse
      *               of the i-th element of alpha (the number of columns of
      *               alpha has to match the number of columns of the matrix).
@@ -971,8 +984,8 @@ public:
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense row vector of values,
+     * @param alpha  If alpha is 1x1 MultiVector is scaled
+     *               by alpha. If it is a MultiVector row vector of values,
      *               then i-th column of the matrix is scaled with the i-th
      *               element of alpha (the number of columns of alpha has to
      *               match the number of columns of the matrix).
@@ -983,8 +996,8 @@ public:
     /**
      * Subtracts `b` scaled by `alpha` from the matrix (aka: BLAS axpy).
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, b is scaled
-     *               by alpha. If it is a Dense row vector of values,
+     * @param alpha  If alpha is 1x1 MultiVector, b is scaled
+     *               by alpha. If it is a MultiVector row vector of values,
      *               then i-th column of b is scaled with the i-th
      *               element of alpha (the number of columns of alpha has to
      *               match the number of columns of the matrix).
@@ -995,8 +1008,8 @@ public:
     /**
      * Computes the column-wise dot product of this matrix and `b`.
      *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
+     * @param b  a MultiVector of same dimension as this
+     * @param result  a MultiVector row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
@@ -1005,8 +1018,8 @@ public:
     /**
      * Computes the column-wise dot product of this matrix and `b`.
      *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
+     * @param b  a MultiVector of same dimension as this
+     * @param result  a MultiVector row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -1019,8 +1032,8 @@ public:
     /**
      * Computes the column-wise dot product of `conj(this matrix)` and `b`.
      *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
+     * @param b  a MultiVector of same dimension as this
+     * @param result  a MultiVector row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
      */
@@ -1030,8 +1043,8 @@ public:
     /**
      * Computes the column-wise dot product of `conj(this matrix)` and `b`.
      *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
+     * @param b  a MultiVector of same dimension as this
+     * @param result  a MultiVector row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -1044,7 +1057,7 @@ public:
     /**
      * Computes the column-wise Euclidean (L^2) norm of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a MultiVector row vector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
@@ -1053,7 +1066,7 @@ public:
     /**
      * Computes the column-wise Euclidean (L^2) norm of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a MultiVector row vector, used to store the norm
      *                (the number of columns in the vector must match the
      *                number of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -1065,7 +1078,7 @@ public:
     /**
      * Computes the column-wise (L^1) norm of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a MultiVector row vector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
@@ -1074,7 +1087,7 @@ public:
     /**
      * Computes the column-wise (L^1) norm of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a MultiVector row vector, used to store the norm
      *                (the number of columns in the vector must match the
      *                number of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -1087,7 +1100,7 @@ public:
      * Computes the square of the column-wise Euclidean (L^2) norm of this
      * matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a MultiVector row vector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
@@ -1097,7 +1110,7 @@ public:
      * Computes the square of the column-wise Euclidean (L^2) norm of this
      * matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a MultiVector row vector, used to store the norm
      *                (the number of columns in the vector must match the
      *                number of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -1109,7 +1122,7 @@ public:
     /**
      * Computes the column-wise arithmetic mean of this matrix.
      *
-     * @param result  a Dense row vector, used to store the mean
+     * @param result  a MultiVector row vector, used to store the mean
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
@@ -1118,7 +1131,7 @@ public:
     /**
      * Computes the column-wise arithmetic mean of this matrix.
      *
-     * @param result  a Dense row vector, used to store the mean
+     * @param result  a MultiVector row vector, used to store the mean
      *                (the number of columns in the vector must match the
      *                number of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -1137,9 +1150,9 @@ public:
      * @param columns  column span
      * @param stride   stride of the new submatrix.
      */
-    std::unique_ptr<Dense> create_submatrix(const span& rows,
-                                            const span& columns,
-                                            const size_type stride)
+    std::unique_ptr<MultiVector> create_submatrix(const span& rows,
+                                                  const span& columns,
+                                                  const size_type stride)
     {
         return this->create_submatrix_impl(rows, columns, stride);
     }
@@ -1150,8 +1163,8 @@ public:
      * @param rows     row span
      * @param columns  column span
      */
-    std::unique_ptr<Dense> create_submatrix(const span& rows,
-                                            const span& columns)
+    std::unique_ptr<MultiVector> create_submatrix(const span& rows,
+                                                  const span& columns)
     {
         return create_submatrix(rows, columns, this->get_stride());
     }
@@ -1165,9 +1178,9 @@ public:
      * @param size  size of the submatrix (only used for consistency with
      *              distributed::Vector)
      */
-    std::unique_ptr<Dense> create_submatrix(const local_span& rows,
-                                            const local_span& columns,
-                                            dim<2> size)
+    std::unique_ptr<MultiVector> create_submatrix(const local_span& rows,
+                                                  const local_span& columns,
+                                                  dim<2> size)
     {
         dim<2> deduced_size{rows.length(), columns.length()};
         GKO_ASSERT_EQUAL_DIMENSIONS(deduced_size, size);
@@ -1189,7 +1202,7 @@ public:
     std::unique_ptr<const real_type> create_real_view() const;
 
     /**
-     * Creates an uninitialized Dense matrix of the specified size.
+     * Creates an uninitialized MultiVector of the specified size.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -1200,12 +1213,13 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size = {},
-                                         size_type stride = 0);
+    static std::unique_ptr<MultiVector> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+        size_type stride = 0);
 
     /**
-     * Creates a Dense matrix from an already allocated (and initialized) array.
+     * Creates a MultiVector from an already allocated (and initialized)
+     * array.
      *
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
@@ -1220,20 +1234,19 @@ public:
      *
      * @return A smart pointer to the newly created matrix.
      */
-    static std::unique_ptr<Dense> create(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size,
-                                         array<value_type> values,
-                                         size_type stride);
+    static std::unique_ptr<MultiVector> create(
+        std::shared_ptr<const Executor> exec, const dim<2>& size,
+        array<value_type> values, size_type stride);
 
     /**
-     * @copydoc std::unique_ptr<Dense> create(std::shared_ptr<const Executor>,
-     * const dim<2>&, array<value_type>, size_type)
+     * @copydoc std::unique_ptr<MultiVector> create(std::shared_ptr<const
+     * Executor>, const dim<2>&, array<value_type>, size_type)
      */
     template <typename InputValueType>
     GKO_DEPRECATED(
         "explicitly construct the gko::array argument instead of passing an"
         "initializer list")
-    static std::unique_ptr<Dense> create(
+    static std::unique_ptr<MultiVector> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         std::initializer_list<InputValueType> values, size_type stride)
     {
@@ -1242,7 +1255,7 @@ public:
     }
 
     /**
-     * Creates a constant (immutable) Dense matrix from a constant array.
+     * Creates a constant (immutable) MultiVector from a constant array.
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
@@ -1252,79 +1265,80 @@ public:
      *          (if it resides on the same executor as the matrix) or a copy of
      *          the array on the correct executor.
      */
-    static std::unique_ptr<const Dense> create_const(
+    static std::unique_ptr<const MultiVector> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values, size_type stride);
 
     /**
-     * Copy-assigns a Dense matrix. Preserves the executor, reallocates the
-     * matrix with minimal stride if the dimensions don't match, then copies the
-     * data over, ignoring padding.
+     * Copy-assigns a MultiVector. Preserves the executor, reallocates
+     * the matrix with minimal stride if the dimensions don't match, then copies
+     * the data over, ignoring padding.
      */
-    Dense& operator=(const Dense&);
+    MultiVector& operator=(const MultiVector&);
 
     /**
-     * Move-assigns a Dense matrix. Preserves the executor, moves the data over
-     * preserving size and stride. Leaves the moved-from object in an empty
+     * Move-assigns a MultiVector. Preserves the executor, moves the data
+     * over preserving size and stride. Leaves the moved-from object in an empty
      * state (0x0 with empty Array).
      */
-    Dense& operator=(Dense&&);
+    MultiVector& operator=(MultiVector&&);
 
     /**
-     * Copy-constructs a Dense matrix. Inherits executor and dimensions, but
-     * copies data without padding.
+     * Copy-constructs a MultiVector. Inherits executor and dimensions,
+     * but copies data without padding.
      */
-    Dense(const Dense&);
+    MultiVector(const MultiVector&);
 
     /**
-     * Move-constructs a Dense matrix. Inherits executor, dimensions and data
-     * with padding. The moved-from object is empty (0x0 with empty Array).
+     * Move-constructs a MultiVector. Inherits executor, dimensions and
+     * data with padding. The moved-from object is empty (0x0 with empty Array).
      */
-    Dense(Dense&&);
+    MultiVector(MultiVector&&);
 
 protected:
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
-          size_type stride = 0);
+    MultiVector(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
+                size_type stride = 0);
 
-    Dense(std::shared_ptr<const Executor> exec, const dim<2>& size,
-          array<value_type> values, size_type stride);
+    MultiVector(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                array<value_type> values, size_type stride);
 
     /**
-     * Creates a Dense matrix with the same size and stride as the callers
+     * Creates a MultiVector with the same size and stride as the callers
      * matrix.
      *
-     * @returns a Dense matrix with the same size and stride as the caller.
+     * @returns a MultiVector with the same size and stride as the
+     * caller.
      */
-    virtual std::unique_ptr<Dense> create_with_same_config() const
+    virtual std::unique_ptr<MultiVector> create_with_same_config() const
     {
-        return Dense::create(this->get_executor(), this->get_size(),
-                             this->get_stride());
+        return MultiVector::create(this->get_executor(), this->get_size(),
+                                   this->get_stride());
     }
 
     /**
-     * Creates a Dense matrix with the same type as the callers matrix.
+     * Creates a MultiVector with the same type as the callers matrix.
      *
      * @param size  size of the matrix
      *
-     * @returns a Dense matrix with the same type as the caller.
+     * @returns a MultiVector with the same type as the caller.
      */
-    virtual std::unique_ptr<Dense> create_with_type_of_impl(
+    virtual std::unique_ptr<MultiVector> create_with_type_of_impl(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         size_type stride) const
     {
-        return Dense::create(exec, size, stride);
+        return MultiVector::create(exec, size, stride);
     }
 
     /**
-     * Creates a Dense matrix where the underlying array is a view of this'
-     * array.
+     * Creates a MultiVector where the underlying array is a view of
+     * this' array.
      *
-     * @return  A Dense matrix that is a view of this.
+     * @return  A MultiVector that is a view of this.
      */
-    virtual std::unique_ptr<Dense> create_view_of_impl()
+    virtual std::unique_ptr<MultiVector> create_view_of_impl()
     {
         auto exec = this->get_executor();
-        return Dense::create(
+        return MultiVector::create(
             exec, this->get_size(),
             gko::make_array_view(exec, this->get_num_stored_elements(),
                                  this->get_values()),
@@ -1332,15 +1346,15 @@ protected:
     }
 
     /**
-     * Creates a immutable Dense matrix where the underlying array is a view of
-     * this' array.
+     * Creates a immutable MultiVector where the underlying array is a
+     * view of this' array.
      *
-     * @return  A immutable Dense matrix that is a view of this.
+     * @return  A immutable MultiVector that is a view of this.
      */
-    virtual std::unique_ptr<const Dense> create_const_view_of_impl() const
+    virtual std::unique_ptr<const MultiVector> create_const_view_of_impl() const
     {
         auto exec = this->get_executor();
-        return Dense::create_const(
+        return MultiVector::create_const(
             exec, this->get_size(),
             gko::make_const_array_view(exec, this->get_num_stored_elements(),
                                        this->get_const_values()),
@@ -1462,7 +1476,7 @@ protected:
      *        instead of create_submatrix(const span, const span, const
      *        size_type).
      */
-    virtual std::unique_ptr<Dense> create_submatrix_impl(
+    virtual std::unique_ptr<MultiVector> create_submatrix_impl(
         const span& rows, const span& columns, const size_type stride);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -1483,33 +1497,33 @@ protected:
 
     template <typename IndexType>
     void permute_impl(const Permutation<IndexType>* permutation,
-                      permute_mode mode, Dense* output) const;
+                      permute_mode mode, MultiVector* output) const;
 
     template <typename IndexType>
     void permute_impl(const Permutation<IndexType>* row_permutation,
                       const Permutation<IndexType>* col_permutation,
-                      bool invert, Dense* output) const;
+                      bool invert, MultiVector* output) const;
 
     template <typename IndexType>
     void scale_permute_impl(
         const ScaledPermutation<ValueType, IndexType>* permutation,
-        permute_mode mode, Dense* output) const;
+        permute_mode mode, MultiVector* output) const;
 
     template <typename IndexType>
     void scale_permute_impl(
         const ScaledPermutation<ValueType, IndexType>* row_permutation,
         const ScaledPermutation<ValueType, IndexType>* column_permutation,
-        bool invert, Dense* output) const;
+        bool invert, MultiVector* output) const;
 
     template <typename OutputType, typename IndexType>
     void row_gather_impl(const array<IndexType>* row_idxs,
-                         Dense<OutputType>* row_collection) const;
+                         MultiVector<OutputType>* row_collection) const;
 
     template <typename OutputType, typename IndexType>
-    void row_gather_impl(const Dense<ValueType>* alpha,
+    void row_gather_impl(const MultiVector<ValueType>* alpha,
                          const array<IndexType>* row_idxs,
-                         const Dense<ValueType>* beta,
-                         Dense<OutputType>* row_collection) const;
+                         const MultiVector<ValueType>* beta,
+                         MultiVector<OutputType>* row_collection) const;
 
 private:
     size_type stride_;
@@ -1526,15 +1540,16 @@ namespace detail {
 
 
 template <typename ValueType>
-struct temporary_clone_helper<matrix::Dense<ValueType>> {
-    static std::unique_ptr<matrix::Dense<ValueType>> create(
-        std::shared_ptr<const Executor> exec, matrix::Dense<ValueType>* ptr,
-        bool copy_data)
+struct temporary_clone_helper<matrix::MultiVector<ValueType>> {
+    static std::unique_ptr<matrix::MultiVector<ValueType>> create(
+        std::shared_ptr<const Executor> exec,
+        matrix::MultiVector<ValueType>* ptr, bool copy_data)
     {
         if (copy_data) {
             return gko::clone(std::move(exec), ptr);
         } else {
-            return matrix::Dense<ValueType>::create(exec, ptr->get_size());
+            return matrix::MultiVector<ValueType>::create(exec,
+                                                          ptr->get_size());
         }
     }
 };
@@ -1544,23 +1559,7 @@ struct temporary_clone_helper<matrix::Dense<ValueType>> {
 
 
 /**
- * Creates a view of a given Dense vector.
- *
- * @tparam VecPtr  a (smart or raw) pointer to the vector.
- *
- * @param vector  the vector on which to create the view
- */
-template <typename VecPtr>
-std::unique_ptr<matrix::Dense<typename detail::pointee<VecPtr>::value_type>>
-make_dense_view(VecPtr&& vector)
-{
-    using value_type = typename detail::pointee<VecPtr>::value_type;
-    return matrix::Dense<value_type>::create_view_of(vector);
-}
-
-
-/**
- * Creates a view of a given Dense vector.
+ * Creates a view of a given MultiVector vector.
  *
  * @tparam VecPtr  a (smart or raw) pointer to the vector.
  *
@@ -1568,26 +1567,44 @@ make_dense_view(VecPtr&& vector)
  */
 template <typename VecPtr>
 std::unique_ptr<
-    const matrix::Dense<typename detail::pointee<VecPtr>::value_type>>
+    matrix::MultiVector<typename detail::pointee<VecPtr>::value_type>>
+make_dense_view(VecPtr&& vector)
+{
+    using value_type = typename detail::pointee<VecPtr>::value_type;
+    return matrix::MultiVector<value_type>::create_view_of(vector);
+}
+
+
+/**
+ * Creates a view of a given MultiVector vector.
+ *
+ * @tparam VecPtr  a (smart or raw) pointer to the vector.
+ *
+ * @param vector  the vector on which to create the view
+ */
+template <typename VecPtr>
+std::unique_ptr<
+    const matrix::MultiVector<typename detail::pointee<VecPtr>::value_type>>
 make_const_dense_view(VecPtr&& vector)
 {
     using value_type = typename detail::pointee<VecPtr>::value_type;
-    return matrix::Dense<value_type>::create_const_view_of(vector);
+    return matrix::MultiVector<value_type>::create_const_view_of(vector);
 }
 
 
 /**
  * Creates and initializes a column-vector.
  *
- * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type.
+ * This function first creates a temporary MultiVector, fills it with
+ * passed in values, and then converts the matrix to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ *                 (MultiVector has to implement the ConvertibleTo<Matrix>
+ *                 interface)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param stride  row stride for the temporary Dense matrix
+ * @param stride  row stride for the temporary MultiVector
  * @param vals  values used to initialize the vector
  * @param exec  Executor associated to the vector
  * @param create_args  additional arguments passed to Matrix::create, not
@@ -1601,9 +1618,10 @@ std::unique_ptr<Matrix> initialize(
     size_type stride, std::initializer_list<typename Matrix::value_type> vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using dense = matrix::Dense<typename Matrix::value_type>;
+    using multi_vector = matrix::MultiVector<typename Matrix::value_type>;
     size_type num_rows = vals.size();
-    auto tmp = dense::create(exec->get_master(), dim<2>{num_rows, 1}, stride);
+    auto tmp =
+        multi_vector::create(exec->get_master(), dim<2>{num_rows, 1}, stride);
     size_type idx = 0;
     for (const auto& elem : vals) {
         tmp->at(idx) = elem;
@@ -1617,12 +1635,13 @@ std::unique_ptr<Matrix> initialize(
 /**
  * Creates and initializes a column-vector.
  *
- * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type. The stride of
- * the intermediate Dense matrix is set to 1.
+ * This function first creates a temporary MultiVector, fills it with
+ * passed in values, and then converts the matrix to the requested type. The
+ * stride of the intermediate MultiVector is set to 1.
  *
  * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ *                 (MultiVector has to implement the ConvertibleTo<Matrix>
+ *                 interface)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
@@ -1647,15 +1666,16 @@ std::unique_ptr<Matrix> initialize(
 /**
  * Creates and initializes a matrix.
  *
- * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type.
+ * This function first creates a temporary MultiVector, fills it with
+ * passed in values, and then converts the matrix to the requested type.
  *
  * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ *                 (MultiVector has to implement the ConvertibleTo<Matrix>
+ *                 interface)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *
- * @param stride  row stride for the temporary Dense matrix
+ * @param stride  row stride for the temporary MultiVector
  * @param vals  values used to initialize the matrix
  * @param exec  Executor associated to the matrix
  * @param create_args  additional arguments passed to Matrix::create, not
@@ -1671,11 +1691,11 @@ std::unique_ptr<Matrix> initialize(
         vals,
     std::shared_ptr<const Executor> exec, TArgs&&... create_args)
 {
-    using dense = matrix::Dense<typename Matrix::value_type>;
+    using multi_vector = matrix::MultiVector<typename Matrix::value_type>;
     size_type num_rows = vals.size();
     size_type num_cols = num_rows > 0 ? begin(vals)->size() : 1;
-    auto tmp =
-        dense::create(exec->get_master(), dim<2>{num_rows, num_cols}, stride);
+    auto tmp = multi_vector::create(exec->get_master(),
+                                    dim<2>{num_rows, num_cols}, stride);
     size_type ridx = 0;
     for (const auto& row : vals) {
         size_type cidx = 0;
@@ -1694,13 +1714,14 @@ std::unique_ptr<Matrix> initialize(
 /**
  * Creates and initializes a matrix.
  *
- * This function first creates a temporary Dense matrix, fills it with passed in
- * values, and then converts the matrix to the requested type. The stride of
- * the intermediate Dense matrix is set to the number of columns of the
- * initializer list.
+ * This function first creates a temporary MultiVector, fills it with
+ * passed in values, and then converts the matrix to the requested type. The
+ * stride of the intermediate MultiVector is set to the number of columns
+ * of the initializer list.
  *
  * @tparam Matrix  matrix type to initialize
- *                 (Dense has to implement the ConvertibleTo<Matrix> interface)
+ *                 (MultiVector has to implement the ConvertibleTo<Matrix>
+ *                  interface)
  * @tparam TArgs  argument types for Matrix::create method
  *                (not including the implied Executor as the first argument)
  *

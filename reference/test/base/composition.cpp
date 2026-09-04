@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/composition.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -46,7 +46,7 @@ protected:
 template <typename T>
 class Composition : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
+    using Mtx = gko::matrix::MultiVector<T>;
     using value_type = T;
 
     Composition() : exec{gko::ReferenceExecutor::create()}
@@ -99,7 +99,7 @@ TYPED_TEST(Composition, AppliesSingleToMixedVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using Mtx = gko::matrix::Dense<gko::next_precision<TypeParam>>;
+    using Mtx = gko::matrix::MultiVector<gko::next_precision<TypeParam>>;
     using value_type = typename Mtx::value_type;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
     auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
@@ -119,7 +119,7 @@ TYPED_TEST(Composition, AppliesSingleToComplexVector)
               [ 27 26 ]
     */
     using value_type = gko::to_complex<TypeParam>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
     auto x = gko::initialize<Mtx>(
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
@@ -140,7 +140,7 @@ TYPED_TEST(Composition, AppliesSingleToMixedComplexVector)
               [ 27 26 ]
     */
     using value_type = gko::next_precision<gko::to_complex<TypeParam>>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
     auto x = gko::initialize<Mtx>(
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
@@ -180,7 +180,7 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedVector)
               [ 27 26 ]
     */
     using value_type = gko::next_precision<TypeParam>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
     auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
@@ -200,13 +200,13 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToComplexVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using Dense = typename TestFixture::Mtx;
-    using DenseComplex = gko::to_complex<Dense>;
-    using value_type = typename DenseComplex::value_type;
+    using MultiVector = typename TestFixture::Mtx;
+    using MultiVectorComplex = gko::to_complex<MultiVector>;
+    using value_type = typename MultiVectorComplex::value_type;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto alpha = gko::initialize<Dense>({3.0}, this->exec);
-    auto beta = gko::initialize<Dense>({-1.0}, this->exec);
-    auto x = gko::initialize<DenseComplex>(
+    auto alpha = gko::initialize<MultiVector>({3.0}, this->exec);
+    auto beta = gko::initialize<MultiVector>({-1.0}, this->exec);
+    auto x = gko::initialize<MultiVectorComplex>(
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
@@ -224,13 +224,14 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedComplexVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using MixedDense = gko::matrix::Dense<gko::next_precision<TypeParam>>;
-    using MixedDenseComplex = gko::to_complex<MixedDense>;
-    using value_type = typename MixedDenseComplex::value_type;
+    using MixedMultiVector =
+        gko::matrix::MultiVector<gko::next_precision<TypeParam>>;
+    using MixedMultiVectorComplex = gko::to_complex<MixedMultiVector>;
+    using value_type = typename MixedMultiVectorComplex::value_type;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto alpha = gko::initialize<MixedDense>({3.0}, this->exec);
-    auto beta = gko::initialize<MixedDense>({-1.0}, this->exec);
-    auto x = gko::initialize<MixedDenseComplex>(
+    auto alpha = gko::initialize<MixedMultiVector>({3.0}, this->exec);
+    auto beta = gko::initialize<MixedMultiVector>({-1.0}, this->exec);
+    auto x = gko::initialize<MixedMultiVectorComplex>(
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 

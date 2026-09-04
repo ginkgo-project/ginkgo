@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 
 #include <algorithm>
 
@@ -25,11 +25,11 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The Dense matrix format namespace.
- * @ref Dense
+ * @brief The MultiVector matrix format namespace.
+ * @ref MultiVector
  * @ingroup dense
  */
-namespace dense {
+namespace multivector {
 
 
 template <typename ValueType>
@@ -53,7 +53,8 @@ void simple_apply(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SIMPLE_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_SIMPLE_APPLY_KERNEL);
 
 
 template <typename ValueType>
@@ -87,7 +88,7 @@ void apply(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_APPLY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_APPLY_KERNEL);
 
 
 template <typename InValueType, typename OutValueType>
@@ -103,7 +104,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION_OR_COPY(
-    GKO_DECLARE_DENSE_COPY_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COPY_KERNEL);
 
 
 template <typename ValueType>
@@ -117,7 +118,7 @@ void fill(std::shared_ptr<const DefaultExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_FILL_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_FILL_KERNEL);
 
 
 template <typename ValueType, typename ScalarType>
@@ -144,7 +145,8 @@ void scale(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(GKO_DECLARE_DENSE_SCALE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
+    GKO_DECLARE_MULTIVECTOR_SCALE_KERNEL);
 
 
 template <typename ValueType, typename ScalarType>
@@ -168,7 +170,7 @@ void inv_scale(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
-    GKO_DECLARE_DENSE_INV_SCALE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_INV_SCALE_KERNEL);
 
 
 template <typename ValueType, typename ScalarType>
@@ -195,7 +197,7 @@ void add_scaled(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
-    GKO_DECLARE_DENSE_ADD_SCALED_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_ADD_SCALED_KERNEL);
 
 
 template <typename ValueType, typename ScalarType>
@@ -222,7 +224,7 @@ void sub_scaled(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
-    GKO_DECLARE_DENSE_SUB_SCALED_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_SUB_SCALED_KERNEL);
 
 
 template <typename ValueType>
@@ -239,7 +241,8 @@ void add_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_ADD_SCALED_DIAG_KERNEL);
 
 
 template <typename ValueType>
@@ -256,7 +259,8 @@ void sub_scaled_diag(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_SUB_SCALED_DIAG_KERNEL);
 
 
 template <typename ValueType>
@@ -275,7 +279,7 @@ void compute_dot(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_DOT_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_COMPUTE_DOT_KERNEL);
 
 
 template <typename ValueType>
@@ -289,7 +293,7 @@ void compute_dot_dispatch(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_DOT_DISPATCH_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_DOT_DISPATCH_KERNEL);
 
 
 template <typename ValueType>
@@ -308,7 +312,8 @@ void compute_conj_dot(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_CONJ_DOT_KERNEL);
 
 
 template <typename ValueType>
@@ -322,7 +327,7 @@ void compute_conj_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_CONJ_DOT_DISPATCH_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_CONJ_DOT_DISPATCH_KERNEL);
 
 
 template <typename ValueType>
@@ -344,7 +349,8 @@ void compute_norm2(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM2_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_NORM2_KERNEL);
 
 
 template <typename ValueType>
@@ -357,7 +363,7 @@ void compute_norm2_dispatch(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_NORM2_DISPATCH_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_NORM2_DISPATCH_KERNEL);
 
 
 template <typename ValueType>
@@ -376,7 +382,8 @@ void compute_norm1(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_NORM1_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_NORM1_KERNEL);
 
 
 template <typename ValueType>
@@ -399,7 +406,8 @@ void compute_mean(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_COMPUTE_MEAN_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_MEAN_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -414,7 +422,7 @@ void fill_in_matrix_data(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_FILL_IN_MATRIX_DATA_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_FILL_IN_MATRIX_DATA_KERNEL);
 
 
 template <typename ValueType>
@@ -434,7 +442,7 @@ void compute_squared_norm2(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_SQUARED_NORM2_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_SQUARED_NORM2_KERNEL);
 
 
 template <typename ValueType>
@@ -449,7 +457,7 @@ void compute_sqrt(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_SQRT_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_SQRT_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -480,7 +488,7 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_COO_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_COO_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -512,7 +520,7 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_CSR_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_CSR_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -544,7 +552,7 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_ELL_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_ELL_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -591,7 +599,7 @@ void convert_to_fbcsr(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_FBCSR_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_FBCSR_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -641,7 +649,7 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_HYBRID_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_HYBRID_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -677,7 +685,7 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_SELLP_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_SELLP_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -707,7 +715,7 @@ void convert_to_sparsity_csr(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_CONVERT_TO_SPARSITY_CSR_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_CONVERT_TO_SPARSITY_CSR_KERNEL);
 
 
 template <typename ValueType>
@@ -728,7 +736,7 @@ void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_MAX_NNZ_PER_ROW_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_MAX_NNZ_PER_ROW_KERNEL);
 
 
 template <typename ValueType>
@@ -760,7 +768,7 @@ void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COMPUTE_SLICE_SETS_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COMPUTE_SLICE_SETS_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -780,9 +788,9 @@ void count_nonzeros_per_row(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COUNT_NONZEROS_PER_ROW_KERNEL);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL_SIZE_T);
+    GKO_DECLARE_MULTIVECTOR_COUNT_NONZEROS_PER_ROW_KERNEL_SIZE_T);
 
 
 template <typename ValueType, typename IndexType>
@@ -812,7 +820,7 @@ void count_nonzero_blocks_per_row(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
 
 
 template <typename ValueType>
@@ -827,7 +835,7 @@ void transpose(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType>
@@ -842,7 +850,8 @@ void conj_transpose(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_CONJ_TRANSPOSE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -860,7 +869,7 @@ void symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_SYMM_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_SYMM_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -878,7 +887,7 @@ void inv_symm_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_INV_SYMM_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_INV_SYMM_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -895,7 +904,7 @@ void nonsymm_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_NONSYMM_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_NONSYMM_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -912,7 +921,7 @@ void inv_nonsymm_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_INV_NONSYMM_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_INV_NONSYMM_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename OutputType, typename IndexType>
@@ -929,7 +938,7 @@ void row_gather(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
-    GKO_DECLARE_DENSE_ROW_GATHER_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_ROW_GATHER_KERNEL);
 
 
 template <typename ValueType, typename OutputType, typename IndexType>
@@ -954,7 +963,7 @@ void advanced_row_gather(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
-    GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_ADVANCED_ROW_GATHER_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -971,7 +980,7 @@ void col_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_COL_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COL_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -988,7 +997,7 @@ void inv_row_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_INV_ROW_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_INV_ROW_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1005,7 +1014,7 @@ void inv_col_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_INV_COL_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_INV_COL_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1024,7 +1033,7 @@ void symm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_SYMM_SCALE_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_SYMM_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1043,7 +1052,7 @@ void inv_symm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_INV_SYMM_SCALE_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_INV_SYMM_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1065,7 +1074,7 @@ void nonsymm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_NONSYMM_SCALE_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_NONSYMM_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1087,7 +1096,7 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_INV_NONSYMM_SCALE_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_INV_NONSYMM_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1105,7 +1114,7 @@ void row_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_ROW_SCALE_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_ROW_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1123,7 +1132,7 @@ void inv_row_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_INV_ROW_SCALE_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_INV_ROW_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1141,7 +1150,7 @@ void col_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_COL_SCALE_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_COL_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
@@ -1159,7 +1168,7 @@ void inv_col_scale_permute(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DENSE_INV_COL_SCALE_PERMUTE_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_INV_COL_SCALE_PERMUTE_KERNEL);
 
 
 template <typename ValueType>
@@ -1173,7 +1182,8 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_EXTRACT_DIAGONAL_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_EXTRACT_DIAGONAL_KERNEL);
 
 
 template <typename ValueType>
@@ -1274,10 +1284,10 @@ void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_SCALAR_TYPE(
-    GKO_DECLARE_DENSE_ADD_SCALED_IDENTITY_KERNEL);
+    GKO_DECLARE_MULTIVECTOR_ADD_SCALED_IDENTITY_KERNEL);
 
 
-}  // namespace dense
+}  // namespace multivector
 }  // namespace reference
 }  // namespace kernels
 }  // namespace gko

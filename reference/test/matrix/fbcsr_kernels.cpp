@@ -13,10 +13,10 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/matrix/csr_kernels.hpp"
@@ -37,10 +37,10 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
     using SparCsr = gko::matrix::SparsityCsr<value_type, index_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
 
     Fbcsr()
         : exec(gko::ReferenceExecutor::create()),
@@ -97,7 +97,7 @@ protected:
     const std::unique_ptr<const Mtx> ref2mtx;
     const std::unique_ptr<const Csr> refcsrmtx;
     const std::unique_ptr<const Csr> ref2csrmtx;
-    const std::unique_ptr<const Dense> refdenmtx;
+    const std::unique_ptr<const MultiVector> refdenmtx;
     const std::unique_ptr<const SparCsr> refspcmtx;
     const std::unique_ptr<const Mtx> mtx2;
     const std::unique_ptr<const Diag> m2diag;
@@ -108,7 +108,7 @@ TYPED_TEST_SUITE(Fbcsr, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
 template <typename T>
-std::unique_ptr<gko::matrix::Dense<T>> get_some_vectors(
+std::unique_ptr<gko::matrix::MultiVector<T>> get_some_vectors(
     std::shared_ptr<const gko::Executor> exec, const size_t nrows,
     const size_t nrhs)
 {
@@ -116,12 +116,12 @@ std::unique_ptr<gko::matrix::Dense<T>> get_some_vectors(
     std::default_random_engine engine(39);
     std::normal_distribution<> dist(0.0, 5.0);
     std::uniform_int_distribution<> nnzdist(1, nrhs);
-    return gko::test::generate_random_matrix<gko::matrix::Dense<T>>(
+    return gko::test::generate_random_matrix<gko::matrix::MultiVector<T>>(
         nrows, nrhs, nnzdist, dist, engine, exec);
 }
 
 
-TYPED_TEST(Fbcsr, AppliesToDenseVector)
+TYPED_TEST(Fbcsr, AppliesToMultiVectorVector)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
@@ -145,7 +145,7 @@ TYPED_TEST(Fbcsr, AppliesToDenseVector)
 }
 
 
-TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
+TYPED_TEST(Fbcsr, AppliesToMultiVectorMatrix)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
@@ -166,11 +166,11 @@ TYPED_TEST(Fbcsr, AppliesToDenseMatrix)
 }
 
 
-TYPED_TEST(Fbcsr, AppliesToDenseComplexMatrix)
+TYPED_TEST(Fbcsr, AppliesToMultiVectorComplexMatrix)
 {
     using T = typename TestFixture::value_type;
     using CT = typename gko::to_complex<T>;
-    using CVec = gko::matrix::Dense<CT>;
+    using CVec = gko::matrix::MultiVector<CT>;
     using index_type = typename TestFixture::index_type;
     const gko::size_type nrows = this->mtx2->get_size()[0];
     const gko::size_type ncols = this->mtx2->get_size()[1];
@@ -188,7 +188,7 @@ TYPED_TEST(Fbcsr, AppliesToDenseComplexMatrix)
 }
 
 
-TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
+TYPED_TEST(Fbcsr, AppliesLinearCombinationToMultiVectorVector)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
@@ -212,7 +212,7 @@ TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseVector)
 }
 
 
-TYPED_TEST(Fbcsr, AppliesLinearCombinationToDenseMatrix)
+TYPED_TEST(Fbcsr, AppliesLinearCombinationToMultiVectorMatrix)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
@@ -312,27 +312,27 @@ TYPED_TEST(Fbcsr, MovesToPrecision)
 }
 
 
-TYPED_TEST(Fbcsr, ConvertsToDense)
+TYPED_TEST(Fbcsr, ConvertsToMultiVector)
 {
-    using Dense = typename TestFixture::Dense;
-    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    using MultiVector = typename TestFixture::MultiVector;
+    auto dense_mtx = MultiVector::create(this->mtx->get_executor());
 
     this->mtx->convert_to(dense_mtx);
 
-    auto refdenmtx = Dense::create(this->mtx->get_executor());
+    auto refdenmtx = MultiVector::create(this->mtx->get_executor());
     this->refcsrmtx->convert_to(refdenmtx);
     GKO_ASSERT_MTX_NEAR(dense_mtx, refdenmtx, 0.0);
 }
 
 
-TYPED_TEST(Fbcsr, MovesToDense)
+TYPED_TEST(Fbcsr, MovesToMultiVector)
 {
-    using Dense = typename TestFixture::Dense;
-    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    using MultiVector = typename TestFixture::MultiVector;
+    auto dense_mtx = MultiVector::create(this->mtx->get_executor());
 
     this->mtx->move_to(dense_mtx);
 
-    auto refdenmtx = Dense::create(this->mtx->get_executor());
+    auto refdenmtx = MultiVector::create(this->mtx->get_executor());
     this->refcsrmtx->convert_to(refdenmtx);
     GKO_ASSERT_MTX_NEAR(dense_mtx, refdenmtx, 0.0);
 }
@@ -426,13 +426,13 @@ TYPED_TEST(Fbcsr, MovesEmptyToPrecision)
 }
 
 
-TYPED_TEST(Fbcsr, ConvertsEmptyToDense)
+TYPED_TEST(Fbcsr, ConvertsEmptyToMultiVector)
 {
     using ValueType = typename TestFixture::value_type;
     using Fbcsr = typename TestFixture::Mtx;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     auto empty = Fbcsr::create(this->exec);
-    auto res = Dense::create(this->exec);
+    auto res = MultiVector::create(this->exec);
 
     empty->convert_to(res);
 
@@ -440,13 +440,13 @@ TYPED_TEST(Fbcsr, ConvertsEmptyToDense)
 }
 
 
-TYPED_TEST(Fbcsr, MovesEmptyToDense)
+TYPED_TEST(Fbcsr, MovesEmptyToMultiVector)
 {
     using ValueType = typename TestFixture::value_type;
     using Fbcsr = typename TestFixture::Mtx;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     auto empty = Fbcsr::create(this->exec);
-    auto res = Dense::create(this->exec);
+    auto res = MultiVector::create(this->exec);
 
     empty->move_to(res);
 

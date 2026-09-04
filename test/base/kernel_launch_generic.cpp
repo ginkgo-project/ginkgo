@@ -13,7 +13,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
@@ -64,7 +64,7 @@ using value_type = float;
 #else
 using value_type = double;
 #endif  // GINKGO_COMMON_SINGLE_MODE
-using Mtx = gko::matrix::Dense<value_type>;
+using Mtx = gko::matrix::MultiVector<value_type>;
 
 class KernelLaunch : public CommonTestFixture {
 public:
@@ -181,7 +181,7 @@ void run1d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m)
         m->get_const_values(), move_only_val);
 }
 
-TEST_F(KernelLaunch, Runs1DDense)
+TEST_F(KernelLaunch, Runs1DMultiVector)
 {
     run1d(exec, zero_dense2.get());
 
@@ -284,7 +284,7 @@ void run2d(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m1, Mtx* m2, Mtx* m3)
         m2->get_values(), m3->get_values(), move_only_val);
 }
 
-TEST_F(KernelLaunch, Runs2DDense)
+TEST_F(KernelLaunch, Runs2DMultiVector)
 {
     run2d(exec, zero_dense2.get(), zero_dense.get(), vec_dense.get());
 
