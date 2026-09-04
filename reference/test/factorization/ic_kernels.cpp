@@ -14,7 +14,7 @@
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -60,7 +60,7 @@ protected:
     using factorization_type = gko::factorization::Ic<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
 
     Ic()
         : ref(gko::ReferenceExecutor::create()),
@@ -190,11 +190,11 @@ TYPED_TEST(Ic, GenerateIdentity)
 }
 
 
-TYPED_TEST(Ic, GenerateDenseIdentity)
+TYPED_TEST(Ic, GenerateMultiVectorIdentity)
 {
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     auto dense_id =
-        gko::share(Dense::create(this->exec, this->identity->get_size()));
+        gko::share(MultiVector::create(this->exec, this->identity->get_size()));
     this->identity->convert_to(dense_id);
 
     auto fact = this->fact_fact->generate(dense_id);

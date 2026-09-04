@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,7 +10,7 @@
 
 #include <ginkgo/core/base/segmented_array.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace {
@@ -18,7 +18,7 @@ namespace {
 
 class MatricesNear : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::MultiVector<>;
     using Sparse = gko::matrix::Csr<>;
 
     template <typename Type, std::size_t size>

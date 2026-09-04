@@ -17,9 +17,9 @@
 #include <ginkgo/ginkgo.hpp>
 
 
-void assert_similar_matrices(gko::ptr_param<const gko::matrix::Dense<>> m1,
-                             gko::ptr_param<const gko::matrix::Dense<>> m2,
-                             double prec)
+void assert_similar_matrices(
+    gko::ptr_param<const gko::matrix::MultiVector<>> m1,
+    gko::ptr_param<const gko::matrix::MultiVector<>> m2, double prec)
 {
     assert(m1->get_size()[0] == m2->get_size()[0]);
     assert(m1->get_size()[1] == m2->get_size()[1]);
@@ -34,8 +34,8 @@ void assert_similar_matrices(gko::ptr_param<const gko::matrix::Dense<>> m1,
 template <typename Mtx>
 void check_spmv(std::shared_ptr<gko::Executor> exec,
                 const gko::matrix_data<double>& A_raw,
-                gko::ptr_param<const gko::matrix::Dense<>> b,
-                gko::ptr_param<gko::matrix::Dense<>> x)
+                gko::ptr_param<const gko::matrix::MultiVector<>> b,
+                gko::ptr_param<gko::matrix::MultiVector<>> x)
 {
     auto test = Mtx::create(exec);
 #if HAS_REFERENCE
@@ -64,8 +64,8 @@ void check_spmv(std::shared_ptr<gko::Executor> exec,
 template <typename Solver>
 void check_solver(std::shared_ptr<gko::Executor> exec,
                   const gko::matrix_data<double>& A_raw,
-                  gko::ptr_param<const gko::matrix::Dense<>> b,
-                  gko::ptr_param<gko::matrix::Dense<>> x)
+                  gko::ptr_param<const gko::matrix::MultiVector<>> b,
+                  gko::ptr_param<gko::matrix::MultiVector<>> x)
 {
     using Mtx = gko::matrix::Csr<>;
     auto A = gko::share(
@@ -147,7 +147,7 @@ int main()
         std::exit(0);
     }
 
-    using vec = gko::matrix::Dense<>;
+    using vec = gko::matrix::MultiVector<>;
 #if HAS_REFERENCE
     auto b = gko::read<vec>(std::ifstream("data/b.mtx"), exec);
     auto x = gko::read<vec>(std::ifstream("data/x0.mtx"), exec);
@@ -364,9 +364,9 @@ int main()
             Mtx::create(exec, gko::matrix::csr::spmv_strategy::classical);
     }
 
-    // core/matrix/dense.hpp
+    // core/matrix/multivector.hpp
     {
-        using Mtx = gko::matrix::Dense<>;
+        using Mtx = gko::matrix::MultiVector<>;
         check_spmv<Mtx>(exec, A_raw, b, x);
     }
 

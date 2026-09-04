@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,7 +25,7 @@
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/segmented_array.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/batch_utilities.hpp"
 #include "core/base/extended_float.hpp"
@@ -843,8 +843,9 @@ template <typename LinOp1, typename T>
     const std::string& tolerance_expression, const LinOp1* first,
     std::initializer_list<T> second, double tolerance)
 {
-    auto second_mtx = initialize<matrix::Dense<detail::remove_container<T>>>(
-        second, first->get_executor()->get_master());
+    auto second_mtx =
+        initialize<matrix::MultiVector<detail::remove_container<T>>>(
+            second, first->get_executor()->get_master());
     return matrices_near(
         first_expression, detail::remove_list_wrapper(second_expression),
         tolerance_expression, first, second_mtx.get(), tolerance);
@@ -1116,8 +1117,9 @@ template <typename LinOp1, typename T>
     const std::string& first_expression, const std::string& second_expression,
     const LinOp1* first, std::initializer_list<T> second)
 {
-    auto second_mtx = initialize<matrix::Dense<detail::remove_container<T>>>(
-        second, first->get_executor()->get_master());
+    auto second_mtx =
+        initialize<matrix::MultiVector<detail::remove_container<T>>>(
+            second, first->get_executor()->get_master());
     return matrices_equal_sparsity(
         first_expression, detail::remove_list_wrapper(second_expression), first,
         second_mtx.get());

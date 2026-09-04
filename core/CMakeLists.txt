@@ -82,13 +82,13 @@ target_sources(
         matrix/coo.cpp
         matrix/csr.cpp
         matrix/csr_lookup.cpp
-        matrix/dense.cpp
         matrix/diagonal.cpp
         matrix/ell.cpp
         matrix/fbcsr.cpp
         matrix/fft.cpp
         matrix/hybrid.cpp
         matrix/identity.cpp
+        matrix/multivector.cpp
         matrix/permutation.cpp
         matrix/row_gatherer.cpp
         matrix/scaled_permutation.cpp

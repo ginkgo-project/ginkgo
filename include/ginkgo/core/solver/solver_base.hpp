@@ -13,8 +13,8 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -463,31 +463,35 @@ protected:
     }
 
     template <typename ValueType>
-    matrix::Dense<ValueType>* create_workspace_scalar(int vector_id,
-                                                      size_type size) const
+    matrix::MultiVector<ValueType>* create_workspace_scalar(
+        int vector_id, size_type size) const
     {
-        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
-            vector_id,
-            [&] {
-                return matrix::Dense<ValueType>::create(
-                    workspace_.get_executor(), dim<2>{1, size});
-            },
-            typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
+        return workspace_
+            .template create_or_get_op<matrix::MultiVector<ValueType>>(
+                vector_id,
+                [&] {
+                    return matrix::MultiVector<ValueType>::create(
+                        workspace_.get_executor(), dim<2>{1, size});
+                },
+                typeid(matrix::MultiVector<ValueType>), gko::dim<2>{1, size},
+                size);
     }
 
     template <typename ValueType>
-    const matrix::Dense<ValueType>* create_workspace_fixed_scalar(
+    const matrix::MultiVector<ValueType>* create_workspace_fixed_scalar(
         int vector_id, size_type size, ValueType val) const
     {
-        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
-            vector_id,
-            [&] {
-                auto mat = matrix::Dense<ValueType>::create(
-                    workspace_.get_executor(), dim<2>{1, size});
-                mat->fill(val);
-                return mat;
-            },
-            typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
+        return workspace_
+            .template create_or_get_op<matrix::MultiVector<ValueType>>(
+                vector_id,
+                [&] {
+                    auto mat = matrix::MultiVector<ValueType>::create(
+                        workspace_.get_executor(), dim<2>{1, size});
+                    mat->fill(val);
+                    return mat;
+                },
+                typeid(matrix::MultiVector<ValueType>), gko::dim<2>{1, size},
+                size);
     }
 
     template <typename ValueType>

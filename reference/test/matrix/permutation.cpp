@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,7 +9,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 
 #include "core/test/utils.hpp"
@@ -25,15 +25,15 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
 
     Permutation() : exec(gko::ReferenceExecutor::create()) {}
 
-    std::unique_ptr<gko::matrix::Dense<double>> ref_combine(
+    std::unique_ptr<gko::matrix::MultiVector<double>> ref_combine(
         const gko::matrix::Permutation<index_type>* first,
         const gko::matrix::Permutation<index_type>* second)
     {
-        using Mtx = gko::matrix::Dense<double>;
+        using Mtx = gko::matrix::MultiVector<double>;
         const auto exec = first->get_executor();
         gko::matrix_data<double, index_type> first_perm_data;
         gko::matrix_data<double, index_type> second_perm_data;
@@ -141,7 +141,7 @@ TYPED_TEST(Permutation, Write)
 }
 
 
-TYPED_TEST(Permutation, AppliesRowPermutationToDense)
+TYPED_TEST(Permutation, AppliesRowPermutationToMultiVector)
 {
     using index_type = typename TestFixture::index_type;
     using T = typename TestFixture::value_type;
@@ -167,7 +167,7 @@ TYPED_TEST(Permutation, AppliesRowPermutationToDense)
 }
 
 
-TYPED_TEST(Permutation, AdvancedAppliesRowPermutationToDense)
+TYPED_TEST(Permutation, AdvancedAppliesRowPermutationToMultiVector)
 {
     using index_type = typename TestFixture::index_type;
     using T = typename TestFixture::value_type;
@@ -196,7 +196,7 @@ TYPED_TEST(Permutation, AdvancedAppliesRowPermutationToDense)
 }
 
 
-TYPED_TEST(Permutation, ApplyFailsWithNonDenseMatrix)
+TYPED_TEST(Permutation, ApplyFailsWithNonMultiVectorMatrix)
 {
     using index_type = typename TestFixture::index_type;
     using T = typename TestFixture::value_type;

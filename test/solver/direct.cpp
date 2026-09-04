@@ -41,7 +41,7 @@ protected:
     using solver_type =
         gko::experimental::solver::Direct<value_type, index_type>;
     using matrix_type = typename factorization_type::matrix_type;
-    using vector_type = gko::matrix::Dense<value_type>;
+    using vector_type = gko::matrix::MultiVector<value_type>;
 
     Direct() : rand_engine(633) {}
 

@@ -11,11 +11,11 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
@@ -34,9 +34,9 @@
 class Csr : public CommonTestFixture {
 protected:
     using Arr = gko::array<index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using Mtx = gko::matrix::Csr<value_type>;
-    using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
+    using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<value_type>>;
     using Perm = gko::matrix::Permutation<index_type>;
     using ScaledPerm = gko::matrix::ScaledPermutation<value_type, index_type>;
@@ -249,7 +249,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
 }
 
 
-TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithClassical)
+TEST_F(Csr, SimpleApplyToMultiVectorMatrixIsEquivalentToRefWithClassical)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>(3);
 
@@ -260,7 +260,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithClassical)
 }
 
 
-TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithClassical)
+TEST_F(Csr, AdvancedApplyToMultiVectorMatrixIsEquivalentToRefWithClassical)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>(3);
 
@@ -400,7 +400,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticUnsorted)
 }
 
 
-TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
+TEST_F(Csr, SimpleApplyToMultiVectorMatrixIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>(3);
 
@@ -411,7 +411,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 }
 
 
-TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
+TEST_F(Csr, AdvancedApplyToMultiVectorMatrixIsEquivalentToRefWithLoadBalance)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>(3);
 
@@ -422,7 +422,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 }
 
 
-TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithMergePath)
+TEST_F(Csr, SimpleApplyToMultiVectorMatrixIsEquivalentToRefWithMergePath)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::merge_path>(3);
 
@@ -433,7 +433,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 }
 
 
-TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
+TEST_F(Csr, AdvancedApplyToMultiVectorMatrixIsEquivalentToRefWithMergePath)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::merge_path>(3);
 
@@ -941,11 +941,11 @@ TEST_F(Csr, ConjugateTranspose64IsEquivalentToRef)
 }
 
 
-TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
+TEST_F(Csr, ConvertToMultiVectorIsEquivalentToRef)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx);
     dmtx->convert_to(ddense_mtx);
@@ -954,11 +954,11 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 }
 
 
-TEST_F(Csr, MoveToDenseIsEquivalentToRef)
+TEST_F(Csr, MoveToMultiVectorIsEquivalentToRef)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
 
     mtx->move_to(dense_mtx);
     dmtx->move_to(ddense_mtx);

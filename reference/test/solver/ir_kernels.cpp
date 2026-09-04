@@ -8,7 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -25,7 +25,7 @@ template <typename T>
 class Ir : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Ir<value_type>;
     Ir()
         : exec(gko::ReferenceExecutor::create()),
@@ -83,7 +83,7 @@ TYPED_TEST(Ir, SolvesTriangularSystem)
 TYPED_TEST(Ir, SolvesTriangularSystemMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->ir_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -120,7 +120,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemMixedComplex)
 {
     using value_type =
         gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->ir_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {value_type{3.9, -7.8}, value_type{9.0, -18.0}, value_type{2.2, -4.4}},
@@ -204,7 +204,7 @@ TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApply)
 TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApplyMixed)
 {
     using mixed_type = gko::next_precision<typename TestFixture::value_type>;
-    using MixedMtx = gko::matrix::Dense<mixed_type>;
+    using MixedMtx = gko::matrix::MultiVector<mixed_type>;
     auto solver = this->ir_factory->generate(this->mtx);
     auto alpha = gko::initialize<MixedMtx>({2.0}, this->exec);
     auto beta = gko::initialize<MixedMtx>({-1.0}, this->exec);
@@ -246,8 +246,8 @@ TYPED_TEST(Ir, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
 {
     using mixed_type = gko::next_precision<typename TestFixture::value_type>;
     using mixed_complex_type = gko::to_complex<mixed_type>;
-    using Scalar = gko::matrix::Dense<mixed_type>;
-    using MixedMtx = gko::matrix::Dense<mixed_complex_type>;
+    using Scalar = gko::matrix::MultiVector<mixed_type>;
+    using MixedMtx = gko::matrix::MultiVector<mixed_complex_type>;
     auto solver = this->ir_factory->generate(this->mtx);
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
     auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
