@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/base/multivector.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -716,36 +714,32 @@ void Dense<ValueType>::conj_transpose(ptr_param<Dense> output) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
+void Dense<ValueType>::add_scaled(ptr_param<const AbstractMultiVector> alpha,
                                   ptr_param<const Diagonal<value_type>> diag)
 {
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, diag);
     auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    auto alpha_clone = make_temporary_clone(exec, alpha);
+    auto converted_alpha = alpha_clone->as_precision(precision_v<ValueType>);
     exec->run(dense::make_add_scaled_diag(
-        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
-        diag.get(), this->get_device_view()));
+        as<MultiVector<ValueType>>(converted_alpha.get())
+            ->get_const_device_view(),
+        make_temporary_clone(exec, diag).get(), this->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
+void Dense<ValueType>::sub_scaled(ptr_param<const AbstractMultiVector> alpha,
                                   ptr_param<const Diagonal<value_type>> diag)
 {
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, diag);
     auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    auto alpha_clone = make_temporary_clone(exec, alpha);
+    auto converted_alpha = alpha_clone->as_precision(precision_v<ValueType>);
     exec->run(dense::make_sub_scaled_diag(
-        make_temporary_conversion<ValueType>(alpha)->get_const_device_view(),
-        diag.get(), this->get_device_view()));
+        as<MultiVector<ValueType>>(converted_alpha.get())
+            ->get_const_device_view(),
+        make_temporary_clone(exec, diag).get(), this->get_device_view()));
 }
 
 
@@ -852,9 +846,9 @@ void Dense<ValueType>::add_scaled_identity_impl(const AbstractMultiVector* a,
                                                 const AbstractMultiVector* b)
 {
     this->get_executor()->run(dense::make_add_scaled_identity(
-        a->as_precision(this->get_precision())
+        a->as_precision(precision_v<ValueType>)
             ->template get_const_local_device_view<ValueType>(),
-        b->as_precision(this->get_precision())
+        b->as_precision(precision_v<ValueType>)
             ->template get_const_local_device_view<ValueType>(),
         this->get_device_view()));
 }
@@ -965,29 +959,30 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
-void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Dense<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                  AbstractMultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
+    apply_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x) {
             this->get_executor()->run(dense::make_simple_apply(
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_x->get_device_view()));
+                this->get_const_device_view(), view_b, view_x));
         },
         b, x);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                  const LinOp* beta, LinOp* x) const
+void Dense<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                  const AbstractMultiVector* b,
+                                  const AbstractMultiVector* beta,
+                                  AbstractMultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+    apply_precision_dispatch<ValueType>(
+        [this](auto dense_alpha, auto view_b, auto dense_beta, auto view_x) {
             this->get_executor()->run(dense::make_advanced_apply(
                 dense_alpha->get_const_device_view(),
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_beta->get_const_device_view(),
-                dense_x->get_device_view()));
+                this->get_const_device_view(), view_b,
+                dense_beta->get_const_device_view(), view_x));
         },
         alpha, b, beta, x);
 }

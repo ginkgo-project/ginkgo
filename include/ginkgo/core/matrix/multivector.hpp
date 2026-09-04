@@ -491,18 +491,18 @@ public:
      *             It must have the same number of columns as this
      *             matrix and `gather_indices->get_size()` rows.
      */
-    void row_gather(ptr_param<const LinOp> alpha,
+    void row_gather(ptr_param<const AbstractMultiVector> alpha,
                     const array<int32>* gather_indices,
-                    ptr_param<const LinOp> beta,
+                    ptr_param<const AbstractMultiVector> beta,
                     ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
      * @copydoc row_gather(const LinOp*, const array<int32>*, const LinOp*,
      * LinOp*) const
      */
-    void row_gather(ptr_param<const LinOp> alpha,
+    void row_gather(ptr_param<const AbstractMultiVector> alpha,
                     const array<int64>* gather_indices,
-                    ptr_param<const LinOp> beta,
+                    ptr_param<const AbstractMultiVector> beta,
                     ptr_param<AbstractMultiVector> row_collection) const;
 
     std::unique_ptr<MultiVector> column_permute(

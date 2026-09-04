@@ -12,7 +12,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -963,11 +962,13 @@ void MultiVector<ValueType>::row_gather(
 
 template <typename ValueType>
 void MultiVector<ValueType>::row_gather(
-    ptr_param<const LinOp> alpha, const array<int32>* gather_indices,
-    ptr_param<const LinOp> beta, ptr_param<AbstractMultiVector> out) const
+    ptr_param<const AbstractMultiVector> alpha,
+    const array<int32>* gather_indices,
+    ptr_param<const AbstractMultiVector> beta,
+    ptr_param<AbstractMultiVector> out) const
 {
-    auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
-    auto dense_beta = make_temporary_conversion<ValueType>(beta);
+    auto dense_alpha = as<MultiVector>(alpha->as_precision(this));
+    auto dense_beta = as<MultiVector>(beta->as_precision(this));
     GKO_ASSERT_EQUAL_DIMENSIONS(dense_alpha, gko::dim<2>(1, 1));
     GKO_ASSERT_EQUAL_DIMENSIONS(dense_beta, gko::dim<2>(1, 1));
     gather_mixed_real_complex<ValueType>(
@@ -980,11 +981,13 @@ void MultiVector<ValueType>::row_gather(
 
 template <typename ValueType>
 void MultiVector<ValueType>::row_gather(
-    ptr_param<const LinOp> alpha, const array<int64>* gather_indices,
-    ptr_param<const LinOp> beta, ptr_param<AbstractMultiVector> out) const
+    ptr_param<const AbstractMultiVector> alpha,
+    const array<int64>* gather_indices,
+    ptr_param<const AbstractMultiVector> beta,
+    ptr_param<AbstractMultiVector> out) const
 {
-    auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
-    auto dense_beta = make_temporary_conversion<ValueType>(beta);
+    auto dense_alpha = as<MultiVector>(alpha->as_precision(this));
+    auto dense_beta = as<MultiVector>(beta->as_precision(this));
     GKO_ASSERT_EQUAL_DIMENSIONS(dense_alpha, gko::dim<2>(1, 1));
     GKO_ASSERT_EQUAL_DIMENSIONS(dense_beta, gko::dim<2>(1, 1));
     gather_mixed_real_complex<ValueType>(
@@ -1692,7 +1695,9 @@ template <typename ValueType>
 MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size,
                                     array<value_type> values, size_type stride)
-    : EnableMultiVector<MultiVector>(exec, size), stride_{stride}, values_{exec, std::move(values)}
+    : EnableMultiVector<MultiVector>(exec, size),
+      stride_{stride},
+      values_{exec, std::move(values)}
 {
     if (size[0] > 0 && size[1] > 0) {
         GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
