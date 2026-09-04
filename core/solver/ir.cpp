@@ -7,7 +7,7 @@
 #include <string>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 #include "core/config/config_helper.hpp"
@@ -84,7 +84,7 @@ void Ir<ValueType>::set_solver(std::shared_ptr<const LinOp> new_solver)
 
 template <typename ValueType>
 void Ir<ValueType>::set_relaxation_factor(
-    std::shared_ptr<const matrix::Dense<ValueType>> new_factor)
+    std::shared_ptr<const matrix::MultiVector<ValueType>> new_factor)
 {
     auto exec = this->get_executor();
     if (new_factor && new_factor->get_executor() != exec) {
@@ -200,7 +200,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                      VectorType* dense_x,
                                      initial_guess_mode guess) const
 {
-    using Vector = matrix::Dense<ValueType>;
+    using Vector = matrix::MultiVector<ValueType>;
     using ws = workspace_traits<Ir>;
 
     auto exec = this->get_executor();

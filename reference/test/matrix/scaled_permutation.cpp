@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
@@ -24,7 +24,7 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using Mtx = gko::matrix::ScaledPermutation<value_type, index_type>;
 
     ScaledPermutation() : exec(gko::ReferenceExecutor::create())
@@ -181,7 +181,7 @@ TYPED_TEST(ScaledPermutation, Write)
 }
 
 
-TYPED_TEST(ScaledPermutation, AppliesToDense)
+TYPED_TEST(ScaledPermutation, AppliesToMultiVector)
 {
     using T = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;
@@ -194,7 +194,7 @@ TYPED_TEST(ScaledPermutation, AppliesToDense)
 }
 
 
-TYPED_TEST(ScaledPermutation, AdvancedAppliesToDense)
+TYPED_TEST(ScaledPermutation, AdvancedAppliesToMultiVector)
 {
     using T = typename TestFixture::value_type;
     using Vec = typename TestFixture::Vec;

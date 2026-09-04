@@ -9,7 +9,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/solver_progress.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -26,7 +26,7 @@ template <typename T>
 class Cgs : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Cgs<value_type>;
 
     Cgs()
@@ -295,7 +295,7 @@ TYPED_TEST(Cgs, KernelStep3)
 }
 
 
-TYPED_TEST(Cgs, SolvesDenseSystem)
+TYPED_TEST(Cgs, SolvesMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -315,11 +315,11 @@ TYPED_TEST(Cgs, SolvesDenseSystem)
 }
 
 
-TYPED_TEST(Cgs, SolvesDenseSystemMixed)
+TYPED_TEST(Cgs, SolvesMultiVectorSystemMixed)
 {
     using value_type = typename TestFixture::value_type;
     using next_type = gko::next_precision<value_type>;
-    using Mtx = gko::matrix::Dense<next_type>;
+    using Mtx = gko::matrix::MultiVector<next_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -337,7 +337,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemMixed)
 }
 
 
-TYPED_TEST(Cgs, SolvesDenseSystemComplex)
+TYPED_TEST(Cgs, SolvesMultiVectorSystemComplex)
 {
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
@@ -358,11 +358,11 @@ TYPED_TEST(Cgs, SolvesDenseSystemComplex)
 }
 
 
-TYPED_TEST(Cgs, SolvesDenseSystemMixedComplex)
+TYPED_TEST(Cgs, SolvesMultiVectorSystemMixedComplex)
 {
     using value_type =
         gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
@@ -380,7 +380,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemMixedComplex)
 }
 
 
-TYPED_TEST(Cgs, SolvesMultipleDenseSystem)
+TYPED_TEST(Cgs, SolvesMultipleMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -406,7 +406,7 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystem)
 }
 
 
-TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApply)
+TYPED_TEST(Cgs, SolvesMultiVectorSystemUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -422,10 +422,10 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApply)
 }
 
 
-TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixed)
+TYPED_TEST(Cgs, SolvesMultiVectorSystemUsingAdvancedApplyMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->cgs_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
@@ -439,7 +439,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixed)
 }
 
 
-TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyComplex)
+TYPED_TEST(Cgs, SolvesMultiVectorSystemUsingAdvancedApplyComplex)
 {
     using Scalar = typename TestFixture::Mtx;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
@@ -463,9 +463,9 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyComplex)
 }
 
 
-TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
+TYPED_TEST(Cgs, SolvesMultiVectorSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
+    using Scalar = gko::matrix::MultiVector<
         gko::next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
@@ -489,7 +489,7 @@ TYPED_TEST(Cgs, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
 }
 
 
-TYPED_TEST(Cgs, SolvesMultipleDenseSystemsUsingAdvancedApply)
+TYPED_TEST(Cgs, SolvesMultipleMultiVectorSystemsUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -522,7 +522,7 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystemsUsingAdvancedApply)
 }
 
 
-TYPED_TEST(Cgs, SolvesBigDenseSystem1)
+TYPED_TEST(Cgs, SolvesBigMultiVectorSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -540,7 +540,7 @@ TYPED_TEST(Cgs, SolvesBigDenseSystem1)
 }
 
 
-TYPED_TEST(Cgs, SolvesBigDenseSystemWithImplicitResNormCrit)
+TYPED_TEST(Cgs, SolvesBigMultiVectorSystemWithImplicitResNormCrit)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -558,7 +558,7 @@ TYPED_TEST(Cgs, SolvesBigDenseSystemWithImplicitResNormCrit)
 }
 
 
-TYPED_TEST(Cgs, SolvesBigDenseSystem2)
+TYPED_TEST(Cgs, SolvesBigMultiVectorSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -576,7 +576,7 @@ TYPED_TEST(Cgs, SolvesBigDenseSystem2)
 }
 
 
-TYPED_TEST(Cgs, SolvesMultipleDenseSystems)
+TYPED_TEST(Cgs, SolvesMultipleMultiVectorSystems)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -644,7 +644,7 @@ TYPED_TEST(Cgs, SolvesMultipleDenseSystems)
 }
 
 
-TYPED_TEST(Cgs, SolvesTransposedBigDenseSystem)
+TYPED_TEST(Cgs, SolvesTransposedBigMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -662,7 +662,7 @@ TYPED_TEST(Cgs, SolvesTransposedBigDenseSystem)
 }
 
 
-TYPED_TEST(Cgs, SolvesConjTransposedBigDenseSystem)
+TYPED_TEST(Cgs, SolvesConjTransposedBigMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;

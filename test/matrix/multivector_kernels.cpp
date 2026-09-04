@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 
 #include <algorithm>
 #include <numeric>
@@ -15,10 +15,10 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
@@ -29,22 +29,23 @@
 #include "test/utils/common_fixture.hpp"
 
 
-class Dense : public CommonTestFixture {
+class MultiVector : public CommonTestFixture {
 protected:
     // in single mode, mixed_type will be the same as value_type
     using mixed_type = float;
-    using Mtx = gko::matrix::Dense<value_type>;
-    using MixedMtx = gko::matrix::Dense<mixed_type>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<value_type>>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
+    using MixedMtx = gko::matrix::MultiVector<mixed_type>;
+    using NormVector =
+        gko::matrix::MultiVector<gko::remove_complex<value_type>>;
     using Arr = gko::array<index_type>;
-    using ComplexMtx = gko::matrix::Dense<std::complex<value_type>>;
+    using ComplexMtx = gko::matrix::MultiVector<std::complex<value_type>>;
     using Diagonal = gko::matrix::Diagonal<value_type>;
-    using MixedComplexMtx = gko::matrix::Dense<std::complex<mixed_type>>;
+    using MixedComplexMtx = gko::matrix::MultiVector<std::complex<mixed_type>>;
     using Permutation = gko::matrix::Permutation<index_type>;
     using ScaledPermutation =
         gko::matrix::ScaledPermutation<value_type, index_type>;
 
-    Dense() : rand_engine(15) {}
+    MultiVector() : rand_engine(15) {}
 
     template <typename MtxType>
     std::unique_ptr<MtxType> gen_mtx(int num_rows, int num_cols)
@@ -189,7 +190,7 @@ protected:
 };
 
 
-TEST_F(Dense, SingleVectorComputeDotIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -200,7 +201,7 @@ TEST_F(Dense, SingleVectorComputeDotIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComputeDotIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -211,7 +212,7 @@ TEST_F(Dense, MultipleVectorComputeDotIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComputeConjDotIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComputeConjDotIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -222,7 +223,7 @@ TEST_F(Dense, SingleVectorComputeConjDotIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComputeConjDotIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComputeConjDotIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -233,7 +234,7 @@ TEST_F(Dense, MultipleVectorComputeConjDotIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComputeNorm2IsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(1);
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
@@ -247,7 +248,7 @@ TEST_F(Dense, SingleVectorComputeNorm2IsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComputeNorm2IsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(20);
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
@@ -261,7 +262,7 @@ TEST_F(Dense, MultipleVectorComputeNorm2IsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SimpleApplyIsEquivalentToRef)
+TEST_F(MultiVector, SimpleApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -272,7 +273,7 @@ TEST_F(Dense, SimpleApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SimpleApplyMixedIsEquivalentToRef)
+TEST_F(MultiVector, SimpleApplyMixedIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -283,7 +284,7 @@ TEST_F(Dense, SimpleApplyMixedIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
+TEST_F(MultiVector, AdvancedApplyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -294,7 +295,7 @@ TEST_F(Dense, AdvancedApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, AdvancedApplyMixedIsEquivalentToRef)
+TEST_F(MultiVector, AdvancedApplyMixedIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -307,7 +308,7 @@ TEST_F(Dense, AdvancedApplyMixedIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
+TEST_F(MultiVector, ApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(x->get_size()[1], 1);
@@ -322,7 +323,7 @@ TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ApplyToMixedComplexIsEquivalentToRef)
+TEST_F(MultiVector, ApplyToMixedComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(x->get_size()[1], 1);
@@ -337,7 +338,7 @@ TEST_F(Dense, ApplyToMixedComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
+TEST_F(MultiVector, AdvancedApplyToComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(x->get_size()[1], 1);
@@ -352,7 +353,7 @@ TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
+TEST_F(MultiVector, AdvancedApplyToMixedComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(x->get_size()[1], 1);
@@ -369,7 +370,7 @@ TEST_F(Dense, AdvancedApplyToMixedComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
+TEST_F(MultiVector, ComputeDotComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
@@ -386,7 +387,7 @@ TEST_F(Dense, ComputeDotComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
+TEST_F(MultiVector, ComputeConjDotComplexIsEquivalentToRef)
 {
     set_up_apply_data();
     auto complex_b = gen_mtx<ComplexMtx>(1234, 2);
@@ -403,7 +404,7 @@ TEST_F(Dense, ComputeConjDotComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ConvertToCooIsEquivalentToRef)
+TEST_F(MultiVector, ConvertToCooIsEquivalentToRef)
 {
     set_up_apply_data();
     auto coo_mtx = gko::matrix::Coo<value_type>::create(ref);
@@ -418,7 +419,7 @@ TEST_F(Dense, ConvertToCooIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MoveToCooIsEquivalentToRef)
+TEST_F(MultiVector, MoveToCooIsEquivalentToRef)
 {
     set_up_apply_data();
     auto coo_mtx = gko::matrix::Coo<value_type>::create(ref);
@@ -433,7 +434,7 @@ TEST_F(Dense, MoveToCooIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
+TEST_F(MultiVector, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
     auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
@@ -446,7 +447,7 @@ TEST_F(Dense, ConvertToCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MoveToCsrIsEquivalentToRef)
+TEST_F(MultiVector, MoveToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
     auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
@@ -459,7 +460,7 @@ TEST_F(Dense, MoveToCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ConvertToSparsityCsrIsEquivalentToRef)
+TEST_F(MultiVector, ConvertToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data();
     auto sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(ref);
@@ -472,7 +473,7 @@ TEST_F(Dense, ConvertToSparsityCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MoveToSparsityCsrIsEquivalentToRef)
+TEST_F(MultiVector, MoveToSparsityCsrIsEquivalentToRef)
 {
     set_up_apply_data();
     auto sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(ref);
@@ -485,7 +486,7 @@ TEST_F(Dense, MoveToSparsityCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ConvertToEllIsEquivalentToRef)
+TEST_F(MultiVector, ConvertToEllIsEquivalentToRef)
 {
     set_up_apply_data();
     auto ell_mtx = gko::matrix::Ell<value_type>::create(ref);
@@ -498,7 +499,7 @@ TEST_F(Dense, ConvertToEllIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MoveToEllIsEquivalentToRef)
+TEST_F(MultiVector, MoveToEllIsEquivalentToRef)
 {
     set_up_apply_data();
     auto ell_mtx = gko::matrix::Ell<value_type>::create(ref);
@@ -511,7 +512,7 @@ TEST_F(Dense, MoveToEllIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
+TEST_F(MultiVector, ConvertToHybridIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = gko::clone(exec, rmtx);
@@ -531,7 +532,7 @@ TEST_F(Dense, ConvertToHybridIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MoveToHybridIsEquivalentToRef)
+TEST_F(MultiVector, MoveToHybridIsEquivalentToRef)
 {
     auto rmtx = gen_mtx<Mtx>(532, 231);
     auto omtx = gko::clone(exec, rmtx);
@@ -551,7 +552,7 @@ TEST_F(Dense, MoveToHybridIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
+TEST_F(MultiVector, ConvertToSellpIsEquivalentToRef)
 {
     set_up_apply_data();
     auto sellp_mtx = gko::matrix::Sellp<value_type>::create(ref);
@@ -564,7 +565,7 @@ TEST_F(Dense, ConvertToSellpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MoveToSellpIsEquivalentToRef)
+TEST_F(MultiVector, MoveToSellpIsEquivalentToRef)
 {
     set_up_apply_data();
     auto sellp_mtx = gko::matrix::Sellp<value_type>::create(ref);
@@ -577,7 +578,7 @@ TEST_F(Dense, MoveToSellpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ConvertsEmptyToSellp)
+TEST_F(MultiVector, ConvertsEmptyToSellp)
 {
     auto dempty_mtx = Mtx::create(exec);
     auto dsellp_mtx = gko::matrix::Sellp<value_type>::create(exec);
@@ -589,7 +590,7 @@ TEST_F(Dense, ConvertsEmptyToSellp)
 }
 
 
-TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
+TEST_F(MultiVector, CalculateNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
     gko::array<gko::size_type> nnz_per_row(ref);
@@ -597,9 +598,9 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
     gko::array<gko::size_type> dnnz_per_row(exec);
     dnnz_per_row.resize_and_reset(dx->get_size()[0]);
 
-    gko::kernels::reference::dense::count_nonzeros_per_row(
+    gko::kernels::reference::multivector::count_nonzeros_per_row(
         ref, x->get_const_device_view(), nnz_per_row.get_data());
-    gko::kernels::GKO_DEVICE_NAMESPACE::dense::count_nonzeros_per_row(
+    gko::kernels::GKO_DEVICE_NAMESPACE::multivector::count_nonzeros_per_row(
         exec, dx->get_const_device_view(), dnnz_per_row.get_data());
 
     auto tmp = gko::array<gko::size_type>(ref, dnnz_per_row);
@@ -609,22 +610,22 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeMaxNNZPerRowIsEquivalentToRef)
+TEST_F(MultiVector, ComputeMaxNNZPerRowIsEquivalentToRef)
 {
     set_up_apply_data();
     gko::size_type max_nnz;
     gko::size_type dmax_nnz;
 
-    gko::kernels::reference::dense::compute_max_nnz_per_row(
+    gko::kernels::reference::multivector::compute_max_nnz_per_row(
         ref, x->get_const_device_view(), max_nnz);
-    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_max_nnz_per_row(
+    gko::kernels::GKO_DEVICE_NAMESPACE::multivector::compute_max_nnz_per_row(
         exec, dx->get_const_device_view(), dmax_nnz);
 
     ASSERT_EQ(max_nnz, dmax_nnz);
 }
 
 
-TEST_F(Dense, IsTransposable)
+TEST_F(MultiVector, IsTransposable)
 {
     set_up_apply_data();
 
@@ -636,13 +637,13 @@ TEST_F(Dense, IsTransposable)
 }
 
 
-TEST_F(Dense, IsTransposableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsTransposableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::span{0, x->get_size()[0] - 2};
-    auto col_span = gko::span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_submatrix(row_span, col_span);
-    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    auto row_span = gko::local_span{0, x->get_size()[0] - 2};
+    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_subview(row_span, col_span);
+    auto sub_dx = dx->create_subview(row_span, col_span);
     // create the target matrices on another executor to
     // force temporary clone
     auto trans = Mtx::create(ref, gko::transpose(sub_x->get_size()));
@@ -656,7 +657,7 @@ TEST_F(Dense, IsTransposableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsConjugateTransposable)
+TEST_F(MultiVector, IsConjugateTransposable)
 {
     set_up_apply_data();
 
@@ -668,13 +669,13 @@ TEST_F(Dense, IsConjugateTransposable)
 }
 
 
-TEST_F(Dense, IsConjugateTransposableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsConjugateTransposableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::span{0, c_x->get_size()[0] - 2};
-    auto col_span = gko::span{0, c_x->get_size()[1] - 2};
-    auto sub_x = c_x->create_submatrix(row_span, col_span);
-    auto sub_dx = dc_x->create_submatrix(row_span, col_span);
+    auto row_span = gko::local_span{0, c_x->get_size()[0] - 2};
+    auto col_span = gko::local_span{0, c_x->get_size()[1] - 2};
+    auto sub_x = c_x->create_subview(row_span, col_span);
+    auto sub_dx = dc_x->create_subview(row_span, col_span);
     // create the target matrices on another executor to
     // force temporary clone
     auto trans = ComplexMtx::create(ref, gko::transpose(sub_x->get_size()));
@@ -688,7 +689,7 @@ TEST_F(Dense, IsConjugateTransposableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, CopyRespectsStride)
+TEST_F(MultiVector, CopyRespectsStride)
 {
     set_up_vector_data(3);
     auto stride = dx->get_size()[1] + 1;
@@ -707,7 +708,7 @@ TEST_F(Dense, CopyRespectsStride)
 }
 
 
-TEST_F(Dense, FillIsEquivalentToRef)
+TEST_F(MultiVector, FillIsEquivalentToRef)
 {
     set_up_vector_data(3);
 
@@ -718,12 +719,12 @@ TEST_F(Dense, FillIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, StridedFillIsEquivalentToRef)
+TEST_F(MultiVector, StridedFillIsEquivalentToRef)
 {
     using T = value_type;
-    auto x = gko::initialize<gko::matrix::Dense<T>>(
+    auto x = gko::initialize<gko::matrix::MultiVector<T>>(
         4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, ref);
-    auto dx = gko::initialize<gko::matrix::Dense<T>>(
+    auto dx = gko::initialize<gko::matrix::MultiVector<T>>(
         4, {I<T>{1.0, 2.0}, I<T>{3.0, 4.0}, I<T>{5.0, 6.0}}, exec);
 
     x->fill(42);
@@ -733,7 +734,7 @@ TEST_F(Dense, StridedFillIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorScaleIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -744,7 +745,7 @@ TEST_F(Dense, SingleVectorScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorInvScaleIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorInvScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -755,7 +756,7 @@ TEST_F(Dense, SingleVectorInvScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComplexScaleIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComplexScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -766,7 +767,7 @@ TEST_F(Dense, SingleVectorComplexScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComplexInvScaleIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComplexInvScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -777,7 +778,7 @@ TEST_F(Dense, SingleVectorComplexInvScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComplexRealScaleIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComplexRealScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -788,7 +789,7 @@ TEST_F(Dense, SingleVectorComplexRealScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComplexRealInvScaleIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComplexRealInvScaleIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -799,7 +800,7 @@ TEST_F(Dense, SingleVectorComplexRealInvScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorScaleIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -810,7 +811,7 @@ TEST_F(Dense, MultipleVectorScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorInvScaleIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorInvScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -821,7 +822,7 @@ TEST_F(Dense, MultipleVectorInvScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexScaleIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComplexScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -832,7 +833,7 @@ TEST_F(Dense, MultipleVectorComplexScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexInvScaleIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComplexInvScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -843,7 +844,7 @@ TEST_F(Dense, MultipleVectorComplexInvScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexRealScaleIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComplexRealScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -854,7 +855,7 @@ TEST_F(Dense, MultipleVectorComplexRealScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexRealInvScaleIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComplexRealInvScaleIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -865,7 +866,7 @@ TEST_F(Dense, MultipleVectorComplexRealInvScaleIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -876,7 +877,7 @@ TEST_F(Dense, MultipleVectorScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorInvScaleWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorInvScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -887,7 +888,8 @@ TEST_F(Dense, MultipleVectorInvScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexScaleWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector,
+       MultipleVectorComplexScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -898,7 +900,8 @@ TEST_F(Dense, MultipleVectorComplexScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexInvScaleWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector,
+       MultipleVectorComplexInvScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -909,7 +912,8 @@ TEST_F(Dense, MultipleVectorComplexInvScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexRealScaleWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector,
+       MultipleVectorComplexRealScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -920,7 +924,7 @@ TEST_F(Dense, MultipleVectorComplexRealScaleWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(Dense,
+TEST_F(MultiVector,
        MultipleVectorComplexRealInvScaleWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
@@ -932,7 +936,7 @@ TEST_F(Dense,
 }
 
 
-TEST_F(Dense, SingleVectorAddScaledIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -943,7 +947,7 @@ TEST_F(Dense, SingleVectorAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorSubtractScaledIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorSubtractScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -954,7 +958,7 @@ TEST_F(Dense, SingleVectorSubtractScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComplexAddScaledIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComplexAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -965,7 +969,7 @@ TEST_F(Dense, SingleVectorComplexAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComplexSubtractScaledIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComplexSubtractScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -976,7 +980,7 @@ TEST_F(Dense, SingleVectorComplexSubtractScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComplexRealAddScaledIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComplexRealAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -987,7 +991,7 @@ TEST_F(Dense, SingleVectorComplexRealAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SingleVectorComplexRealSubtractScaledIsEquivalentToRef)
+TEST_F(MultiVector, SingleVectorComplexRealSubtractScaledIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -998,7 +1002,7 @@ TEST_F(Dense, SingleVectorComplexRealSubtractScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorAddScaledIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -1009,7 +1013,7 @@ TEST_F(Dense, MultipleVectorAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorSubtractScaledIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorSubtractScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -1020,7 +1024,7 @@ TEST_F(Dense, MultipleVectorSubtractScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexAddScaledIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComplexAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -1031,7 +1035,7 @@ TEST_F(Dense, MultipleVectorComplexAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexSubtractScaledIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComplexSubtractScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -1042,7 +1046,7 @@ TEST_F(Dense, MultipleVectorComplexSubtractScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexRealAddScaledIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComplexRealAddScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -1053,7 +1057,7 @@ TEST_F(Dense, MultipleVectorComplexRealAddScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexRealSubtractScaledIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorComplexRealSubtractScaledIsEquivalentToRef)
 {
     set_up_vector_data(20);
 
@@ -1064,7 +1068,7 @@ TEST_F(Dense, MultipleVectorComplexRealSubtractScaledIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -1075,7 +1079,8 @@ TEST_F(Dense, MultipleVectorAddScaledWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorSubtractScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector,
+       MultipleVectorSubtractScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -1086,7 +1091,8 @@ TEST_F(Dense, MultipleVectorSubtractScaledWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MultipleVectorComplexAddScaledWithDifferentAlphaIsEquivalentToRef)
+TEST_F(MultiVector,
+       MultipleVectorComplexAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
 
@@ -1097,7 +1103,7 @@ TEST_F(Dense, MultipleVectorComplexAddScaledWithDifferentAlphaIsEquivalentToRef)
 }
 
 
-TEST_F(Dense,
+TEST_F(MultiVector,
        MultipleVectorComplexSubtractScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
@@ -1109,7 +1115,7 @@ TEST_F(Dense,
 }
 
 
-TEST_F(Dense,
+TEST_F(MultiVector,
        MultipleVectorComplexRealAddScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
@@ -1122,7 +1128,7 @@ TEST_F(Dense,
 
 
 TEST_F(
-    Dense,
+    MultiVector,
     MultipleVectorComplexRealSubtractScaledWithDifferentAlphaIsEquivalentToRef)
 {
     set_up_vector_data(20, true);
@@ -1134,7 +1140,7 @@ TEST_F(
 }
 
 
-TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
+TEST_F(MultiVector, AddsScaledDiagIsEquivalentToRef)
 {
     auto mat = gen_mtx<Mtx>(532, 532);
     gko::array<Mtx::value_type> diag_values(this->ref, 532);
@@ -1154,7 +1160,7 @@ TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, SubtractScaledDiagIsEquivalentToRef)
+TEST_F(MultiVector, SubtractScaledDiagIsEquivalentToRef)
 {
     auto mat = gen_mtx<Mtx>(532, 532);
     gko::array<Mtx::value_type> diag_values(this->ref, 532);
@@ -1174,7 +1180,7 @@ TEST_F(Dense, SubtractScaledDiagIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, CanGatherRows)
+TEST_F(MultiVector, CanGatherRows)
 {
     set_up_apply_data();
 
@@ -1185,13 +1191,13 @@ TEST_F(Dense, CanGatherRows)
 }
 
 
-TEST_F(Dense, CanGatherRowsIntoDenseCrossExecutor)
+TEST_F(MultiVector, CanGatherRowsIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::span{0, x->get_size()[0]};
-    auto col_span = gko::span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_submatrix(row_span, col_span);
-    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    auto row_span = gko::local_span{0, x->get_size()[0]};
+    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_subview(row_span, col_span);
+    auto sub_dx = dx->create_subview(row_span, col_span);
     auto gather_size =
         gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = Mtx::create(ref, gather_size);
@@ -1205,13 +1211,13 @@ TEST_F(Dense, CanGatherRowsIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, CanAdvancedGatherRowsIntoDenseCrossExecutor)
+TEST_F(MultiVector, CanAdvancedGatherRowsIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::span{0, x->get_size()[0]};
-    auto col_span = gko::span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_submatrix(row_span, col_span);
-    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    auto row_span = gko::local_span{0, x->get_size()[0]};
+    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_subview(row_span, col_span);
+    auto sub_dx = dx->create_subview(row_span, col_span);
     auto gather_size =
         gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = gen_mtx<Mtx>(gather_size[0], gather_size[1]);
@@ -1226,13 +1232,13 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, CanGatherRowsIntoMixedDenseCrossExecutor)
+TEST_F(MultiVector, CanGatherRowsIntoMixedMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::span{0, x->get_size()[0]};
-    auto col_span = gko::span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_submatrix(row_span, col_span);
-    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    auto row_span = gko::local_span{0, x->get_size()[0]};
+    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_subview(row_span, col_span);
+    auto sub_dx = dx->create_subview(row_span, col_span);
     auto gather_size =
         gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = MixedMtx::create(ref, gather_size);
@@ -1247,13 +1253,13 @@ TEST_F(Dense, CanGatherRowsIntoMixedDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
+TEST_F(MultiVector, CanAdvancedGatherRowsIntoMixedMultiVectorCrossExecutor)
 {
     set_up_apply_data();
-    auto row_span = gko::span{0, x->get_size()[0]};
-    auto col_span = gko::span{0, x->get_size()[1] - 2};
-    auto sub_x = x->create_submatrix(row_span, col_span);
-    auto sub_dx = dx->create_submatrix(row_span, col_span);
+    auto row_span = gko::local_span{0, x->get_size()[0]};
+    auto col_span = gko::local_span{0, x->get_size()[1] - 2};
+    auto sub_x = x->create_subview(row_span, col_span);
+    auto sub_dx = dx->create_subview(row_span, col_span);
     auto gather_size =
         gko::dim<2>{rgather_idxs->get_size(), sub_x->get_size()[1]};
     auto r_gather = gen_mtx<MixedMtx>(gather_size[0], gather_size[1]);
@@ -1269,7 +1275,7 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsGenericPermutable)
+TEST_F(MultiVector, IsGenericPermutable)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1287,7 +1293,7 @@ TEST_F(Dense, IsGenericPermutable)
 }
 
 
-TEST_F(Dense, IsGenericPermutableRectangular)
+TEST_F(MultiVector, IsGenericPermutableRectangular)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1308,7 +1314,7 @@ TEST_F(Dense, IsGenericPermutableRectangular)
 }
 
 
-TEST_F(Dense, IsGenericPermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsGenericPermutableIntoMultiVectorCrossExecutor)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1328,7 +1334,7 @@ TEST_F(Dense, IsGenericPermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsNonsymmPermutable)
+TEST_F(MultiVector, IsNonsymmPermutable)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1343,7 +1349,7 @@ TEST_F(Dense, IsNonsymmPermutable)
 }
 
 
-TEST_F(Dense, IsNonsymmPermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsNonsymmPermutableIntoMultiVectorCrossExecutor)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1360,7 +1366,7 @@ TEST_F(Dense, IsNonsymmPermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsGenericScalePermutable)
+TEST_F(MultiVector, IsGenericScalePermutable)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1378,7 +1384,7 @@ TEST_F(Dense, IsGenericScalePermutable)
 }
 
 
-TEST_F(Dense, IsGenericScalePermutableRectangular)
+TEST_F(MultiVector, IsGenericScalePermutableRectangular)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1399,7 +1405,7 @@ TEST_F(Dense, IsGenericScalePermutableRectangular)
 }
 
 
-TEST_F(Dense, IsGenericScalePermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsGenericScalePermutableIntoMultiVectorCrossExecutor)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1419,7 +1425,7 @@ TEST_F(Dense, IsGenericScalePermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsNonsymmScalePermutable)
+TEST_F(MultiVector, IsNonsymmScalePermutable)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1435,7 +1441,7 @@ TEST_F(Dense, IsNonsymmScalePermutable)
 }
 
 
-TEST_F(Dense, IsNonsymmScalePermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsNonsymmScalePermutableIntoMultiVectorCrossExecutor)
 {
     using gko::matrix::permute_mode;
     set_up_apply_data();
@@ -1453,7 +1459,7 @@ TEST_F(Dense, IsNonsymmScalePermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsPermutable)
+TEST_F(MultiVector, IsPermutable)
 {
     set_up_apply_data();
 
@@ -1465,7 +1471,7 @@ TEST_F(Dense, IsPermutable)
 }
 
 
-TEST_F(Dense, IsPermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsPermutableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto permuted = Mtx::create(ref, square->get_size());
@@ -1480,7 +1486,7 @@ TEST_F(Dense, IsPermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsInversePermutable)
+TEST_F(MultiVector, IsInversePermutable)
 {
     set_up_apply_data();
 
@@ -1492,7 +1498,7 @@ TEST_F(Dense, IsInversePermutable)
 }
 
 
-TEST_F(Dense, IsInversePermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsInversePermutableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto permuted = Mtx::create(ref, square->get_size());
@@ -1507,7 +1513,7 @@ TEST_F(Dense, IsInversePermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsRowPermutable)
+TEST_F(MultiVector, IsRowPermutable)
 {
     set_up_apply_data();
 
@@ -1519,7 +1525,7 @@ TEST_F(Dense, IsRowPermutable)
 }
 
 
-TEST_F(Dense, IsRowPermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsRowPermutableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto permuted = Mtx::create(ref, x->get_size());
@@ -1533,7 +1539,7 @@ TEST_F(Dense, IsRowPermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsColPermutable)
+TEST_F(MultiVector, IsColPermutable)
 {
     set_up_apply_data();
 
@@ -1545,7 +1551,7 @@ TEST_F(Dense, IsColPermutable)
 }
 
 
-TEST_F(Dense, IsColPermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsColPermutableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto permuted = Mtx::create(ref, x->get_size());
@@ -1559,7 +1565,7 @@ TEST_F(Dense, IsColPermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsInverseRowPermutable)
+TEST_F(MultiVector, IsInverseRowPermutable)
 {
     set_up_apply_data();
 
@@ -1571,7 +1577,7 @@ TEST_F(Dense, IsInverseRowPermutable)
 }
 
 
-TEST_F(Dense, IsInverseRowPermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsInverseRowPermutableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto permuted = Mtx::create(ref, x->get_size());
@@ -1585,7 +1591,7 @@ TEST_F(Dense, IsInverseRowPermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, IsInverseColPermutable)
+TEST_F(MultiVector, IsInverseColPermutable)
 {
     set_up_apply_data();
 
@@ -1597,7 +1603,7 @@ TEST_F(Dense, IsInverseColPermutable)
 }
 
 
-TEST_F(Dense, IsInverseColPermutableIntoDenseCrossExecutor)
+TEST_F(MultiVector, IsInverseColPermutableIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto permuted = Mtx::create(ref, x->get_size());
@@ -1611,7 +1617,7 @@ TEST_F(Dense, IsInverseColPermutableIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, ExtractDiagonalOnTallSkinnyIsEquivalentToRef)
+TEST_F(MultiVector, ExtractDiagonalOnTallSkinnyIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -1622,7 +1628,7 @@ TEST_F(Dense, ExtractDiagonalOnTallSkinnyIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ExtractDiagonalOnTallSkinnyIntoDenseCrossExecutor)
+TEST_F(MultiVector, ExtractDiagonalOnTallSkinnyIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto diag = Diagonal::create(ref, x->get_size()[1]);
@@ -1636,7 +1642,7 @@ TEST_F(Dense, ExtractDiagonalOnTallSkinnyIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, ExtractDiagonalOnShortFatIsEquivalentToRef)
+TEST_F(MultiVector, ExtractDiagonalOnShortFatIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -1647,7 +1653,7 @@ TEST_F(Dense, ExtractDiagonalOnShortFatIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ExtractDiagonalOnShortFatIntoDenseCrossExecutor)
+TEST_F(MultiVector, ExtractDiagonalOnShortFatIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto diag = Diagonal::create(ref, y->get_size()[0]);
@@ -1661,7 +1667,7 @@ TEST_F(Dense, ExtractDiagonalOnShortFatIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, ComputeDotIsEquivalentToRef)
+TEST_F(MultiVector, ComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -1677,7 +1683,7 @@ TEST_F(Dense, ComputeDotIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeDotWithPreallocatedTmpIsEquivalentToRef)
+TEST_F(MultiVector, ComputeDotWithPreallocatedTmpIsEquivalentToRef)
 {
     set_up_vector_data(42);
 
@@ -1694,7 +1700,7 @@ TEST_F(Dense, ComputeDotWithPreallocatedTmpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeDotWithTmpIsEquivalentToRef)
+TEST_F(MultiVector, ComputeDotWithTmpIsEquivalentToRef)
 {
     set_up_vector_data(40);
 
@@ -1711,7 +1717,7 @@ TEST_F(Dense, ComputeDotWithTmpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeConjDotIsEquivalentToRef)
+TEST_F(MultiVector, ComputeConjDotIsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -1727,7 +1733,7 @@ TEST_F(Dense, ComputeConjDotIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeConjDotWithPreallocatedTmpIsEquivalentToRef)
+TEST_F(MultiVector, ComputeConjDotWithPreallocatedTmpIsEquivalentToRef)
 {
     set_up_vector_data(36);
 
@@ -1744,7 +1750,7 @@ TEST_F(Dense, ComputeConjDotWithPreallocatedTmpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeConjDotWithTmpIsEquivalentToRef)
+TEST_F(MultiVector, ComputeConjDotWithTmpIsEquivalentToRef)
 {
     set_up_vector_data(65);
 
@@ -1761,7 +1767,7 @@ TEST_F(Dense, ComputeConjDotWithTmpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeNorm1IsEquivalentToRef)
+TEST_F(MultiVector, ComputeNorm1IsEquivalentToRef)
 {
     set_up_vector_data(2);
 
@@ -1777,7 +1783,7 @@ TEST_F(Dense, ComputeNorm1IsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeNorm1WithPreallocatedTmpIsEquivalentToRef)
+TEST_F(MultiVector, ComputeNorm1WithPreallocatedTmpIsEquivalentToRef)
 {
     set_up_vector_data(7);
 
@@ -1794,7 +1800,7 @@ TEST_F(Dense, ComputeNorm1WithPreallocatedTmpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeNorm1WithTmpIsEquivalentToRef)
+TEST_F(MultiVector, ComputeNorm1WithTmpIsEquivalentToRef)
 {
     set_up_vector_data(10);
 
@@ -1811,7 +1817,7 @@ TEST_F(Dense, ComputeNorm1WithTmpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeNorm2IsEquivalentToRef)
+TEST_F(MultiVector, ComputeNorm2IsEquivalentToRef)
 {
     set_up_vector_data(1);
 
@@ -1827,7 +1833,7 @@ TEST_F(Dense, ComputeNorm2IsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeNorm2WithPreallocatedTmpIsEquivalentToRef)
+TEST_F(MultiVector, ComputeNorm2WithPreallocatedTmpIsEquivalentToRef)
 {
     set_up_vector_data(3);
 
@@ -1844,7 +1850,7 @@ TEST_F(Dense, ComputeNorm2WithPreallocatedTmpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, ComputeNorm2WithTmpIsEquivalentToRef)
+TEST_F(MultiVector, ComputeNorm2WithTmpIsEquivalentToRef)
 {
     set_up_vector_data(14);
 
@@ -1861,7 +1867,7 @@ TEST_F(Dense, ComputeNorm2WithTmpIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, InplaceAbsoluteMatrixIsEquivalentToRef)
+TEST_F(MultiVector, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -1872,7 +1878,7 @@ TEST_F(Dense, InplaceAbsoluteMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, OutplaceAbsoluteMatrixIsEquivalentToRef)
+TEST_F(MultiVector, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -1883,7 +1889,7 @@ TEST_F(Dense, OutplaceAbsoluteMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, OutplaceAbsoluteMatrixIntoDenseCrossExecutor)
+TEST_F(MultiVector, OutplaceAbsoluteMatrixIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto abs_x = NormVector::create(ref, x->get_size());
@@ -1897,7 +1903,7 @@ TEST_F(Dense, OutplaceAbsoluteMatrixIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, MakeComplexIsEquivalentToRef)
+TEST_F(MultiVector, MakeComplexIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -1908,7 +1914,7 @@ TEST_F(Dense, MakeComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, MakeComplexIntoDenseCrossExecutor)
+TEST_F(MultiVector, MakeComplexIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto complex_x = ComplexMtx::create(ref, x->get_size());
@@ -1923,7 +1929,7 @@ TEST_F(Dense, MakeComplexIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, GetRealIsEquivalentToRef)
+TEST_F(MultiVector, GetRealIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -1934,7 +1940,7 @@ TEST_F(Dense, GetRealIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, GetRealIntoDenseCrossExecutor)
+TEST_F(MultiVector, GetRealIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto real_x = Mtx::create(ref, x->get_size());
@@ -1948,7 +1954,7 @@ TEST_F(Dense, GetRealIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, GetImagIsEquivalentToRef)
+TEST_F(MultiVector, GetImagIsEquivalentToRef)
 {
     set_up_apply_data();
 
@@ -1959,7 +1965,7 @@ TEST_F(Dense, GetImagIsEquivalentToRef)
 }
 
 
-TEST_F(Dense, GetImagIntoDenseCrossExecutor)
+TEST_F(MultiVector, GetImagIntoMultiVectorCrossExecutor)
 {
     set_up_apply_data();
     auto imag_x = Mtx::create(ref, x->get_size());
@@ -1973,7 +1979,7 @@ TEST_F(Dense, GetImagIntoDenseCrossExecutor)
 }
 
 
-TEST_F(Dense, AddScaledIdentityToNonSquare)
+TEST_F(MultiVector, AddScaledIdentityToNonSquare)
 {
     set_up_apply_data();
 
@@ -1984,7 +1990,7 @@ TEST_F(Dense, AddScaledIdentityToNonSquare)
 }
 
 
-TEST_F(Dense, AddScaledIdentityToNonSquareOnDifferentExecutor)
+TEST_F(MultiVector, AddScaledIdentityToNonSquareOnDifferentExecutor)
 {
     set_up_apply_data();
 
@@ -1995,7 +2001,7 @@ TEST_F(Dense, AddScaledIdentityToNonSquareOnDifferentExecutor)
 }
 
 
-TEST_F(Dense, ComputeNorm2SquaredIsEquivalentToRef)
+TEST_F(MultiVector, ComputeNorm2SquaredIsEquivalentToRef)
 {
     set_up_apply_data();
     auto norm_size = gko::dim<2>{1, x->get_size()[1]};
@@ -2004,16 +2010,16 @@ TEST_F(Dense, ComputeNorm2SquaredIsEquivalentToRef)
     gko::array<char> tmp{ref};
     gko::array<char> dtmp{exec};
 
-    gko::kernels::reference::dense::compute_squared_norm2(
+    gko::kernels::reference::multivector::compute_squared_norm2(
         ref, x->get_const_device_view(), norm_expected->get_device_view(), tmp);
-    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_squared_norm2(
+    gko::kernels::GKO_DEVICE_NAMESPACE::multivector::compute_squared_norm2(
         exec, dx->get_const_device_view(), dnorm->get_device_view(), dtmp);
 
     GKO_ASSERT_MTX_NEAR(dnorm, norm_expected, r<value_type>::value);
 }
 
 
-TEST_F(Dense, ComputesSqrt)
+TEST_F(MultiVector, ComputesSqrt)
 {
     auto mtx = gko::test::generate_random_matrix<NormVector>(
         1, 7, std::uniform_int_distribution<int>(7, 7),
@@ -2021,8 +2027,9 @@ TEST_F(Dense, ComputesSqrt)
         rand_engine, ref);
     auto dmtx = gko::clone(exec, mtx);
 
-    gko::kernels::reference::dense::compute_sqrt(ref, mtx->get_device_view());
-    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_sqrt(
+    gko::kernels::reference::multivector::compute_sqrt(ref,
+                                                       mtx->get_device_view());
+    gko::kernels::GKO_DEVICE_NAMESPACE::multivector::compute_sqrt(
         exec, dmtx->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);

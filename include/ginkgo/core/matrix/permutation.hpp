@@ -98,7 +98,7 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
 /**
  * Permutation is a matrix format that represents a permutation matrix,
  * i.e. a matrix where each row and column has exactly one entry.
- * The matrix can only be applied to Dense inputs, where it represents
+ * The matrix can only be applied to MultiVector inputs, where it represents
  * a row permutation: \f$A' = PA\f$ means \f$A'(i, j) = A(p[i], j)\f$.
  *
  * @tparam IndexType  precision of permutation array indices.
