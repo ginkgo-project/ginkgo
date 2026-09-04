@@ -59,6 +59,7 @@ class Diagonal
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
+    using LinOp::apply;
     using EnableCloneable<Diagonal>::convert_to;
     using EnableCloneable<Diagonal>::move_to;
     using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
@@ -146,14 +147,14 @@ public:
      * @param b  the input vector(s) on which the diagonal matrix is applied
      * @param x  the output vector(s) where the result is stored
      */
-    void rapply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
-    {
-        GKO_ASSERT_REVERSE_CONFORMANT(this, b);
-        GKO_ASSERT_EQUAL_ROWS(b, x);
-        GKO_ASSERT_EQUAL_COLS(this, x);
+    void rapply(ptr_param<const AbstractMultiVector> b,
+                ptr_param<AbstractMultiVector> x) const;
 
-        this->rapply_impl(b.get(), x.get());
-    }
+    void rapply(ptr_param<const Csr<ValueType, int32>> b,
+                ptr_param<Csr<ValueType, int32>> x) const;
+
+    void rapply(ptr_param<const Csr<ValueType, int64>> b,
+                ptr_param<Csr<ValueType, int64>> x) const;
 
     /**
      * Applies the inverse of the diagonal matrix to a matrix b,
@@ -164,14 +165,20 @@ public:
      * is applied
      * @param x  the output vector(s) where the result is stored
      */
-    void inverse_apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
-    {
-        GKO_ASSERT_CONFORMANT(this, b);
-        GKO_ASSERT_EQUAL_ROWS(b, x);
-        GKO_ASSERT_EQUAL_ROWS(this, x);
+    void inverse_apply(ptr_param<const AbstractMultiVector> b,
+                       ptr_param<AbstractMultiVector> x) const;
 
-        this->inverse_apply_impl(b.get(), x.get());
-    }
+    void inverse_apply(ptr_param<const Csr<ValueType, int32>> b,
+                       ptr_param<Csr<ValueType, int32>> x) const;
+
+    void inverse_apply(ptr_param<const Csr<ValueType, int64>> b,
+                       ptr_param<Csr<ValueType, int64>> x) const;
+
+    void apply(ptr_param<const Csr<ValueType, int32>> b,
+               ptr_param<Csr<ValueType, int32>> x) const;
+
+    void apply(ptr_param<const Csr<ValueType, int64>> b,
+               ptr_param<Csr<ValueType, int64>> x) const;
 
     void read(const mat_data& data) override;
 
@@ -255,14 +262,8 @@ protected:
     Diagonal(std::shared_ptr<const Executor> exec, const size_type size,
              array<value_type> values);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
-
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
-
-    void rapply_impl(const LinOp* b, LinOp* x) const;
-
-    void inverse_apply_impl(const LinOp* b, LinOp* x) const;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
 private:
     array<value_type> values_;
