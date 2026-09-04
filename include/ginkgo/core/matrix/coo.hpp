@@ -239,33 +239,16 @@ public:
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
-     *
-     * @return this
      */
-    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x);
-
-    /**
-     * @copydoc apply2(cost LinOp *, LinOp *)
-     */
-    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
-
-    /**
-     * Performs the operation x = alpha * Coo * b + x.
-     *
-     * @param alpha  scaling of the result of Coo * b
-     * @param b  vector(s) on which the operator is applied
-     * @param x  output vector(s)
-     *
-     * @return this
-     */
-    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                ptr_param<LinOp> x);
+    void apply2(ptr_param<const AbstractMultiVector> b,
+                ptr_param<AbstractMultiVector> x) const;
 
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                ptr_param<LinOp> x) const;
+    void apply2(ptr_param<const AbstractMultiVector> alpha,
+                ptr_param<const AbstractMultiVector> b,
+                ptr_param<AbstractMultiVector> x) const;
 
 
     void validate_data() const override;
@@ -365,14 +348,20 @@ protected:
      */
     void resize(dim<2> new_size, size_type nnz);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
-    void apply2_impl(const LinOp* b, LinOp* x) const;
+    void apply2_impl(const AbstractMultiVector* b,
+                     AbstractMultiVector* x) const;
 
-    void apply2_impl(const LinOp* alpha, const LinOp* b, LinOp* x) const;
+    void apply2_impl(const AbstractMultiVector* alpha,
+                     const AbstractMultiVector* b,
+                     AbstractMultiVector* x) const;
 
 private:
     array<value_type> values_;
