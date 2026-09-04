@@ -7,7 +7,7 @@
 #include <type_traits>
 
 #include <ginkgo/core/base/std_extensions.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/chebyshev.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"

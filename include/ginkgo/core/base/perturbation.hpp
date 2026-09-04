@@ -9,7 +9,7 @@
 #include <memory>
 
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace gko {
@@ -159,7 +159,7 @@ private:
         // are 1x1 scalar.
         void allocate(std::shared_ptr<const Executor> exec, dim<2> size)
         {
-            using vec = gko::matrix::Dense<ValueType>;
+            using vec = matrix::MultiVector<ValueType>;
             if (one == nullptr) {
                 one = initialize<vec>({gko::one<ValueType>()}, exec);
             }

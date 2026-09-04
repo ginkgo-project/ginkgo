@@ -11,7 +11,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 

@@ -109,11 +109,12 @@ void Bicg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
-                                       matrix::Dense<ValueType>* dense_x) const
+void Bicg<ValueType>::apply_dense_impl(
+    const matrix::MultiVector<ValueType>* dense_b,
+    matrix::MultiVector<ValueType>* dense_x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<ValueType>;
+    using Vector = matrix::MultiVector<ValueType>;
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();

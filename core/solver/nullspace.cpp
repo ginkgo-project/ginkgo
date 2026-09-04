@@ -39,19 +39,19 @@ namespace {
 
 
 template <typename ValueType>
-std::unique_ptr<matrix::Dense<ValueType>> column_view(
-    matrix::Dense<ValueType>* v, size_type col)
+std::unique_ptr<matrix::MultiVector<ValueType>> column_view(
+    matrix::MultiVector<ValueType>* v, size_type col)
 {
     return v->create_submatrix(span{0, v->get_size()[0]}, span{col, col + 1});
 }
 
 
 template <typename ValueType>
-std::unique_ptr<matrix::Dense<ValueType>> create_like(
-    const matrix::Dense<ValueType>* like, std::shared_ptr<const Executor> exec,
-    size_type num_cols)
+std::unique_ptr<matrix::MultiVector<ValueType>> create_like(
+    const matrix::MultiVector<ValueType>* like,
+    std::shared_ptr<const Executor> exec, size_type num_cols)
 {
-    return matrix::Dense<ValueType>::create(
+    return matrix::MultiVector<ValueType>::create(
         std::move(exec), dim<2>{like->get_size()[0], num_cols});
 }
 
@@ -87,7 +87,7 @@ std::unique_ptr<experimental::distributed::Vector<ValueType>> create_like(
 
 // sums `values` over all ranks if `v` is a distributed vector
 template <typename ValueType>
-void sum_over_ranks(const LinOp* v, matrix::Dense<ValueType>* values,
+void sum_over_ranks(const LinOp* v, matrix::MultiVector<ValueType>* values,
                     const gko::detail::DenseCache<ValueType>& host_buffer)
 {
 #if GINKGO_BUILD_MPI
@@ -103,7 +103,7 @@ void sum_over_ranks(const LinOp* v, matrix::Dense<ValueType>* values,
 
 template <typename ValueType>
 matrix::view::dense<const ValueType> basis_view(
-    const matrix::Dense<ValueType>* basis, size_type num_rows)
+    const matrix::MultiVector<ValueType>* basis, size_type num_rows)
 {
     return basis ? basis->get_const_device_view()
                  : matrix::view::dense<const ValueType>{dim<2>{num_rows, 0}, 0,
@@ -117,7 +117,7 @@ enum class vector_kind { unsupported, dense, distributed };
 template <typename ValueType>
 vector_kind get_vector_kind(const LinOp* vec)
 {
-    if (dynamic_cast<const matrix::Dense<ValueType>*>(vec)) {
+    if (dynamic_cast<const matrix::MultiVector<ValueType>*>(vec)) {
         return vector_kind::dense;
     }
 #if GINKGO_BUILD_MPI
@@ -156,7 +156,7 @@ std::unique_ptr<Nullspace<ValueType>> Nullspace<ValueType>::create(
         const auto kind = get_vector_kind<ValueType>(vec.get());
         if (kind == vector_kind::unsupported ||
             kind != get_vector_kind<ValueType>(basis[0].get())) {
-            // all entries need to be Dense or all distributed vectors
+            // all entries need to be MultiVector or all distributed vectors
             throw NotSupported(__FILE__, __LINE__,
                                "Nullspace::create with a basis entry of type " +
                                    type_name_of(basis[0].get()),
@@ -261,12 +261,12 @@ void Nullspace<ValueType>::setup_basis(
     // sqrt(eps) of its original norm, which makes the decision independent of
     // its scale.
     auto orig_norms =
-        matrix::Dense<absolute_type>::create(exec, dim<2>{1, num_cols});
+        matrix::MultiVector<absolute_type>::create(exec, dim<2>{1, num_cols});
     block->compute_norm2(orig_norms);
     auto host_orig_norms = gko::clone(exec->get_master(), orig_norms);
     const auto drop_tolerance =
         sqrt(std::numeric_limits<absolute_type>::epsilon());
-    auto norm = matrix::Dense<absolute_type>::create(exec, dim<2>{1, 1});
+    auto norm = matrix::MultiVector<absolute_type>::create(exec, dim<2>{1, 1});
     size_type num_kept = 0;
     for (size_type j = 0; j < num_cols; ++j) {
         auto col_j = column_view(block.get(), j);
@@ -321,7 +321,7 @@ void Nullspace<ValueType>::project(ptr_param<LinOp> v) const
 
 template <typename ValueType>
 template <typename VectorType>
-const matrix::Dense<ValueType>* Nullspace<ValueType>::get_local_basis(
+const matrix::MultiVector<ValueType>* Nullspace<ValueType>::get_local_basis(
     const VectorType* v) const
 {
     if (!basis_) {
@@ -342,7 +342,7 @@ const matrix::Dense<ValueType>* Nullspace<ValueType>::get_local_basis(
 template <typename ValueType>
 template <typename VectorType>
 void Nullspace<ValueType>::compute_components(
-    const VectorType* v, const matrix::Dense<ValueType>* basis_local,
+    const VectorType* v, const matrix::MultiVector<ValueType>* basis_local,
     bool has_constant) const
 {
     auto exec = this->get_executor();
@@ -370,7 +370,7 @@ template <typename ValueType>
 template <typename VectorType>
 void Nullspace<ValueType>::subtract_components(
     const VectorType* v, VectorType* result,
-    const matrix::Dense<ValueType>* basis_local, bool has_constant) const
+    const matrix::MultiVector<ValueType>* basis_local, bool has_constant) const
 {
     auto v_local = gko::detail::get_local(v);
     auto result_local = gko::detail::get_local(result);
@@ -386,7 +386,7 @@ void Nullspace<ValueType>::subtract_components(
 template <typename ValueType>
 template <typename VectorType>
 void Nullspace<ValueType>::remove_components(
-    VectorType* v, const matrix::Dense<ValueType>* basis_local,
+    VectorType* v, const matrix::MultiVector<ValueType>* basis_local,
     bool has_constant) const
 {
     if ((!has_constant && !basis_local) || v->get_size()[1] == 0) {

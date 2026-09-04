@@ -6,7 +6,7 @@
 
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/distributed/vector_cache_accessor.hpp"
 
@@ -27,7 +27,7 @@ void VectorCache<ValueType>::init(std::shared_ptr<const Executor> exec,
     } else if (vec->get_local_vector()->get_size() != local_size) {
         // handle locally to eliminate the mpi call
         vec->local_ =
-            std::move(gko::matrix::Dense<ValueType>(exec, local_size));
+            std::move(gko::matrix::MultiVector<ValueType>(exec, local_size));
     }
 }
 
@@ -42,7 +42,7 @@ void VectorCache<ValueType>::init_from(
     } else if (vec->get_local_vector()->get_size() !=
                template_vec->get_local_vector()->get_size()) {
         // handle locally to eliminate the mpi call
-        vec->local_ = std::move(gko::matrix::Dense<ValueType>(
+        vec->local_ = std::move(gko::matrix::MultiVector<ValueType>(
             template_vec->get_executor(),
             template_vec->get_local_vector()->get_size(),
             template_vec->get_local_vector()->get_stride()));
@@ -84,7 +84,7 @@ std::shared_ptr<Vector<ValueType>> GenericVectorCache::get(
     }
     return Vector<ValueType>::create(
         exec, comm, global_size,
-        matrix::Dense<ValueType>::create(
+        matrix::MultiVector<ValueType>::create(
             exec, local_size,
             make_array_view(exec, local_size[0] * local_size[1],
                             reinterpret_cast<ValueType*>(workspace.get_data())),

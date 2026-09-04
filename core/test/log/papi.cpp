@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,7 +9,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/papi.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -22,7 +22,7 @@ namespace {
 template <typename T>
 class Papi : public ::testing::Test {
 protected:
-    using Dense = gko::matrix::Dense<T>;
+    using MultiVector = gko::matrix::MultiVector<T>;
 
     Papi() : exec(gko::ReferenceExecutor::create()), eventset(PAPI_NULL) {}
 
@@ -364,8 +364,8 @@ TYPED_TEST(Papi, CatchesPolymorphicObjectDeleted)
 
 TYPED_TEST(Papi, CatchesLinOpApplyStarted)
 {
-    using Dense = typename TestFixture::Dense;
-    auto A = Dense::create(this->exec);
+    using MultiVector = typename TestFixture::MultiVector;
+    auto A = MultiVector::create(this->exec);
     auto str = this->init(gko::log::Logger::linop_apply_started_mask,
                           "linop_apply_started", A.get());
     this->add_event(str);
@@ -382,8 +382,8 @@ TYPED_TEST(Papi, CatchesLinOpApplyStarted)
 
 TYPED_TEST(Papi, CatchesLinOpApplyCompleted)
 {
-    using Dense = typename TestFixture::Dense;
-    auto A = Dense::create(this->exec);
+    using MultiVector = typename TestFixture::MultiVector;
+    auto A = MultiVector::create(this->exec);
     auto str = this->init(gko::log::Logger::linop_apply_completed_mask,
                           "linop_apply_completed", A.get());
     this->add_event(str);
@@ -400,8 +400,8 @@ TYPED_TEST(Papi, CatchesLinOpApplyCompleted)
 
 TYPED_TEST(Papi, CatchesLinOpAdvancedApplyStarted)
 {
-    using Dense = typename TestFixture::Dense;
-    auto A = Dense::create(this->exec);
+    using MultiVector = typename TestFixture::MultiVector;
+    auto A = MultiVector::create(this->exec);
     auto str = this->init(gko::log::Logger::linop_advanced_apply_started_mask,
                           "linop_advanced_apply_started", A.get());
     this->add_event(str);
@@ -418,8 +418,8 @@ TYPED_TEST(Papi, CatchesLinOpAdvancedApplyStarted)
 
 TYPED_TEST(Papi, CatchesLinOpAdvancedApplyCompleted)
 {
-    using Dense = typename TestFixture::Dense;
-    auto A = Dense::create(this->exec);
+    using MultiVector = typename TestFixture::MultiVector;
+    auto A = MultiVector::create(this->exec);
     auto str = this->init(gko::log::Logger::linop_advanced_apply_completed_mask,
                           "linop_advanced_apply_completed", A.get());
     this->add_event(str);
@@ -479,9 +479,9 @@ TYPED_TEST(Papi, CatchesLinOpFactoryGenerateCompleted)
 
 TYPED_TEST(Papi, CatchesIterationComplete)
 {
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     int logged_value = 42;
-    auto A = Dense::create(this->exec);
+    auto A = MultiVector::create(this->exec);
     auto str = this->init(gko::log::Logger::iteration_complete_mask,
                           "iteration_complete", A.get());
     this->add_event(str);

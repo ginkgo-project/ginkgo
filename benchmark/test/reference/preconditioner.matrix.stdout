@@ -15,7 +15,7 @@
                     "components": {
                         "apply(<typename>)": 1.0,
                         "copy(<typename>)": 1.0,
-                        "dense::copy": 1.0,
+                        "multivector::copy": 1.0,
                         "overhead": 1.0
                     },
                     "time": 1.0,

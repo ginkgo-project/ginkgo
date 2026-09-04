@@ -26,8 +26,8 @@ namespace overhead {
     static volatile std::uintptr_t val_operation_##_num = 0;          \
     template <typename _type>                                         \
     void operation##_num(std::shared_ptr<const DefaultExecutor> exec, \
-                         const matrix::Dense<_type>* b,               \
-                         matrix::Dense<_type>* x)                     \
+                         const matrix::MultiVector<_type>* b,         \
+                         matrix::MultiVector<_type>* x)               \
     {                                                                 \
         val_operation_##_num = reinterpret_cast<std::uintptr_t>(x);   \
     }
@@ -83,7 +83,7 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
-        using Vector = matrix::Dense<ValueType>;
+        using Vector = matrix::MultiVector<ValueType>;
 
         auto exec = this->get_executor();
         auto dense_b = as<const Vector>(b);
@@ -101,7 +101,7 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {
-        auto dense_x = as<matrix::Dense<ValueType>>(x);
+        auto dense_x = as<matrix::MultiVector<ValueType>>(x);
 
         auto x_clone = dense_x->clone();
         this->apply(b, x_clone);

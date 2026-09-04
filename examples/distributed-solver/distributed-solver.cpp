@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
     // The underlying value type.
     using ValueType = double;
     // As vector type we use the following, which implements a subset of @ref
-    // gko::matrix::Dense.
+    // gko::matrix::MultiVector.
     using dist_vec = gko::experimental::distributed::Vector<ValueType>;
     // As matrix type we simply use the following type, which can read
     // distributed data and be applied to a distributed vector.
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
                                                GlobalIndexType>;
     // We still need a localized vector type to be used as scalars in the
     // advanced apply operations.
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
     // The partition type describes how the rows of the matrices are
     // distributed.
     using part_type =

@@ -24,7 +24,7 @@ protected:
     using Direct = gko::experimental::solver::Direct<value_type, index_type>;
     using Lu = gko::experimental::factorization::Lu<value_type, index_type>;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
-    using vector_type = gko::matrix::Dense<value_type>;
+    using vector_type = gko::matrix::MultiVector<value_type>;
 
     Cudss()
         : ref(gko::ReferenceExecutor::create()),

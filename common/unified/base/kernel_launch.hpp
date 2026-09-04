@@ -11,7 +11,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 #if defined(GKO_COMPILING_CUDA)
@@ -145,8 +145,8 @@ namespace GKO_DEVICE_NAMESPACE {
 
 /**
  * @internal
- * A simple row-major accessor as a device representation of gko::matrix::Dense
- * objects.
+ * A simple row-major accessor as a device representation of
+ * gko::matrix::MultiVector objects.
  *
  * @tparam ValueType  the value type of the underlying matrix.
  */
@@ -179,13 +179,13 @@ struct matrix_accessor {
 /**
  * @internal
  * This struct is used to provide mappings from host types like
- * gko::matrix::Dense to device representations of the same data, like an
+ * gko::matrix::MultiVector to device representations of the same data, like an
  * accessor storing only data pointer and stride.
  *
  * By default, it only maps std::complex to the corresponding device
  * representation of the complex type. There are specializations for dealing
- * with gko::array and gko::matrix::Dense (both const and mutable) that map them
- * to plain pointers or matrix_accessor objects.
+ * with gko::array and gko::matrix::MultiVector (both const and mutable) that
+ * map them to plain pointers or matrix_accessor objects.
  *
  * @tparam T  the type being mapped. It will be used based on a
  *            forwarding-reference, i.e. preserve references in the input

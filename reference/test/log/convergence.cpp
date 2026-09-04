@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/log/convergence.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
@@ -33,8 +33,8 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompleted)
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
-    using Mtx = gko::matrix::Dense<TypeParam>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    using Mtx = gko::matrix::MultiVector<TypeParam>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<TypeParam>>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
 
     logger->template on<gko::log::Logger::criterion_check_completed>(
@@ -62,8 +62,8 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithConvCheck)
     gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[0].converge(0);
-    using Mtx = gko::matrix::Dense<TypeParam>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    using Mtx = gko::matrix::MultiVector<TypeParam>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<TypeParam>>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
 
     logger->template on<gko::log::Logger::criterion_check_completed>(
@@ -91,8 +91,8 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithStopCheck)
     gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[0].stop(0);
-    using Mtx = gko::matrix::Dense<TypeParam>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    using Mtx = gko::matrix::MultiVector<TypeParam>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<TypeParam>>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
 
     logger->template on<gko::log::Logger::criterion_check_completed>(
@@ -120,8 +120,8 @@ TYPED_TEST(Convergence, CanResetConvergenceStatus)
     gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
     stop_status.get_data()[0].converge(0);
-    using Mtx = gko::matrix::Dense<TypeParam>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    using Mtx = gko::matrix::MultiVector<TypeParam>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<TypeParam>>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
 
     logger->template on<gko::log::Logger::criterion_check_completed>(
@@ -147,8 +147,8 @@ TYPED_TEST(Convergence, CatchesCriterionCheckCompletedWithImplicitNorm)
     constexpr gko::uint8 RelativeStoppingId{42};
     gko::array<gko::stopping_status> stop_status(exec, 1);
     stop_status.get_data()[0].reset();
-    using Mtx = gko::matrix::Dense<TypeParam>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<TypeParam>>;
+    using Mtx = gko::matrix::MultiVector<TypeParam>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<TypeParam>>;
     auto residual = gko::initialize<Mtx>({1.0, 2.0, 2.0}, exec);
     auto implicit_sq_resnorm = gko::initialize<Mtx>({4.0}, exec);
 

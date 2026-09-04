@@ -35,8 +35,8 @@ Apply operations times (ns):
 	copy: 7751
 	csr::advanced_spmv#5: 21819
 	csr::spmv#3: 20429
-	dense::compute_dot#3: 18043
-	dense::compute_norm2#2: 16726
+	multivector::compute_dot#3: 18043
+	multivector::compute_norm2#2: 16726
 	free: 8857
 	residual_norm::residual_norm#9: 3614
 Recurrent Residual Norms:

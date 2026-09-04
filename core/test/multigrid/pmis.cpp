@@ -20,7 +20,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using MgLevel = gko::multigrid::Pmis<value_type, index_type>;
     using real_type = gko::remove_complex<value_type>;
     PmisFactory()

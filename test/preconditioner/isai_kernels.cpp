@@ -12,8 +12,8 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 
 #include "core/test/utils.hpp"
@@ -27,7 +27,7 @@ enum struct matrix_type { lower, upper, general, spd };
 class Isai : public CommonTestFixture {
 protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
     Isai() : rand_engine(42) {}
 
     std::unique_ptr<Csr> clone_allocations(const Csr* csr_mtx)
@@ -53,16 +53,17 @@ protected:
         auto val_dist = std::uniform_real_distribution<value_type>(-1., 1.);
         mtx = Csr::create(ref);
         if (type == matrix_type::general) {
-            auto dense_mtx = gko::test::generate_random_matrix<Dense>(
+            auto dense_mtx = gko::test::generate_random_matrix<MultiVector>(
                 n, n, nz_dist, val_dist, rand_engine, ref, gko::dim<2>{n, n});
             ensure_diagonal(dense_mtx.get());
             mtx->copy_from(dense_mtx);
         } else if (type == matrix_type::spd) {
-            auto dense_mtx = gko::test::generate_random_band_matrix<Dense>(
-                n, row_limit / 4, row_limit / 4, val_dist, rand_engine, ref,
-                gko::dim<2>{n, n});
-            auto transp = gko::as<Dense>(dense_mtx->transpose());
-            auto spd_mtx = Dense::create(ref, gko::dim<2>{n, n});
+            auto dense_mtx =
+                gko::test::generate_random_band_matrix<MultiVector>(
+                    n, row_limit / 4, row_limit / 4, val_dist, rand_engine, ref,
+                    gko::dim<2>{n, n});
+            auto transp = gko::as<MultiVector>(dense_mtx->transpose());
+            auto spd_mtx = MultiVector::create(ref, gko::dim<2>{n, n});
             dense_mtx->apply(transp, spd_mtx);
             mtx->copy_from(spd_mtx);
         } else {
@@ -80,7 +81,7 @@ protected:
     {
         auto val_dist = std::uniform_real_distribution<value_type>(0., 1.);
         mtx = Csr::create(ref);
-        auto dense_mtx = gko::test::generate_random_band_matrix<Dense>(
+        auto dense_mtx = gko::test::generate_random_band_matrix<MultiVector>(
             n, 1, 1, val_dist, rand_engine, ref);
         ensure_diagonal(dense_mtx.get());
         mtx->copy_from(dense_mtx);
@@ -90,10 +91,10 @@ protected:
         d_inverse = gko::clone(exec, inverse);
     }
 
-    void ensure_diagonal(Dense* mtx)
+    void ensure_diagonal(MultiVector* mtx)
     {
         for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            mtx->at(i, i) = gko::one<Dense::value_type>();
+            mtx->at(i, i) = gko::one<MultiVector::value_type>();
         }
     }
 
@@ -313,9 +314,9 @@ TEST_F(Isai, IsaiGenerateExcessLinverseLongIsEquivalentToRef)
     auto e_dim = a1.get_data()[num_rows];
     auto e_nnz = a2.get_data()[num_rows];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     auto dexcess = Csr::create(exec, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto de_rhs = Dense::create(exec, gko::dim<2>(e_dim, 1));
+    auto de_rhs = MultiVector::create(exec, gko::dim<2>(e_dim, 1));
 
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx->get_const_device_view(), inverse->get_const_device_view(),
@@ -348,9 +349,9 @@ TEST_F(Isai, IsaiGenerateExcessUinverseLongIsEquivalentToRef)
     auto e_dim = a1.get_data()[num_rows];
     auto e_nnz = a2.get_data()[num_rows];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     auto dexcess = Csr::create(exec, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto de_rhs = Dense::create(exec, gko::dim<2>(e_dim, 1));
+    auto de_rhs = MultiVector::create(exec, gko::dim<2>(e_dim, 1));
 
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx->get_const_device_view(), inverse->get_const_device_view(),
@@ -383,9 +384,9 @@ TEST_F(Isai, IsaiGenerateExcessAinverseLongIsEquivalentToRef)
     auto e_dim = a1.get_data()[num_rows];
     auto e_nnz = a2.get_data()[num_rows];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     auto dexcess = Csr::create(exec, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto de_rhs = Dense::create(exec, gko::dim<2>(e_dim, 1));
+    auto de_rhs = MultiVector::create(exec, gko::dim<2>(e_dim, 1));
 
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx->get_const_device_view(), inverse->get_const_device_view(),
@@ -418,9 +419,9 @@ TEST_F(Isai, IsaiGenerateExcessSpdinverseLongIsEquivalentToRef)
     auto e_dim = a1.get_data()[num_rows];
     auto e_nnz = a2.get_data()[num_rows];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     auto dexcess = Csr::create(exec, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto de_rhs = Dense::create(exec, gko::dim<2>(e_dim, 1));
+    auto de_rhs = MultiVector::create(exec, gko::dim<2>(e_dim, 1));
 
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx->get_const_device_view(), inverse->get_const_device_view(),
@@ -453,9 +454,9 @@ TEST_F(Isai, IsaiGeneratePartialExcessIsEquivalentToRef)
     auto e_dim = a1.get_data()[10] - a1.get_data()[5];
     auto e_nnz = a2.get_data()[10] - a2.get_data()[5];
     auto excess = Csr::create(ref, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     auto dexcess = Csr::create(exec, gko::dim<2>(e_dim, e_dim), e_nnz);
-    auto de_rhs = Dense::create(exec, gko::dim<2>(e_dim, 1));
+    auto de_rhs = MultiVector::create(exec, gko::dim<2>(e_dim, 1));
 
     gko::kernels::reference::isai::generate_excess_system(
         ref, mtx->get_const_device_view(), inverse->get_const_device_view(),
@@ -485,7 +486,7 @@ TEST_F(Isai, IsaiScaleExcessSolutionIsEquivalentToRef)
         a1.get_data(), a2.get_data(), true);
     gko::array<index_type> da1(exec, a1);
     auto e_dim = a1.get_data()[num_rows];
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     d_inverse->copy_from(inverse);
@@ -510,7 +511,7 @@ TEST_F(Isai, IsaiScalePartialExcessSolutionIsEquivalentToRef)
         a1.get_data(), a2.get_data(), true);
     gko::array<index_type> da1(exec, a1);
     auto e_dim = a1.get_data()[10] - a1.get_data()[5];
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
 
@@ -534,7 +535,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionLIsEquivalentToRef)
         a1.get_data(), a2.get_data(), true);
     gko::array<index_type> da1(exec, a1);
     auto e_dim = a1.get_data()[num_rows];
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     d_inverse->copy_from(inverse);
@@ -562,7 +563,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionUIsEquivalentToRef)
         a1.get_data(), a2.get_data(), false);
     gko::array<index_type> da1(exec, a1);
     auto e_dim = a1.get_data()[num_rows];
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
@@ -591,7 +592,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionAIsEquivalentToRef)
         a1.get_data(), a2.get_data(), false);
     gko::array<index_type> da1(exec, a1);
     auto e_dim = a1.get_data()[num_rows];
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
@@ -620,7 +621,7 @@ TEST_F(Isai, IsaiScatterExcessSolutionSpdIsEquivalentToRef)
         a1.get_data(), a2.get_data(), true);
     gko::array<index_type> da1(exec, a1);
     auto e_dim = a1.get_data()[num_rows];
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse
@@ -649,7 +650,7 @@ TEST_F(Isai, IsaiScatterPartialExcessSolutionIsEquivalentToRef)
         a1.get_data(), a2.get_data(), true);
     gko::array<index_type> da1(exec, a1);
     auto e_dim = a1.get_data()[10] - a1.get_data()[5];
-    auto e_rhs = Dense::create(ref, gko::dim<2>(e_dim, 1));
+    auto e_rhs = MultiVector::create(ref, gko::dim<2>(e_dim, 1));
     std::fill_n(e_rhs->get_values(), e_dim, 123456);
     auto de_rhs = gko::clone(exec, e_rhs);
     // overwrite -1 values with inverse

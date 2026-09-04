@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/extensions/cuda/solver/cudss.hpp>
 
 
@@ -269,7 +269,7 @@ void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            using Dense = matrix::Dense<ValueType>;
+            using MultiVector = matrix::MultiVector<ValueType>;
             const auto exec = this->get_executor();
             const auto nrhs = dense_b->get_size()[1];
             if (nrhs <= 1) {
@@ -288,11 +288,11 @@ void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                 ValueType* b_data =
                     const_cast<ValueType*>(dense_b->get_const_values());
                 ValueType* x_data = dense_x->get_values();
-                std::unique_ptr<Dense> b_buf;
-                std::unique_ptr<Dense> x_buf;
+                std::unique_ptr<MultiVector> b_buf;
+                std::unique_ptr<MultiVector> x_buf;
 
                 if (b_strided) {
-                    b_buf = Dense::create(exec, dim<2>{nrows, 1});
+                    b_buf = MultiVector::create(exec, dim<2>{nrows, 1});
                     auto mut_b = const_cast<std::remove_const_t<
                         std::remove_pointer_t<decltype(dense_b)>>*>(dense_b);
                     mut_b->create_submatrix(span{0, nrows}, span{0, 1})
@@ -300,7 +300,7 @@ void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                     b_data = b_buf->get_values();
                 }
                 if (x_strided) {
-                    x_buf = Dense::create(exec, dim<2>{nrows, 1});
+                    x_buf = MultiVector::create(exec, dim<2>{nrows, 1});
                     x_buf->fill(zero<ValueType>());
                     x_data = x_buf->get_values();
                 }
@@ -328,8 +328,8 @@ void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                 }
             } else {
                 const auto nrows = dense_b->get_size()[0];
-                auto tmp_b = Dense::create(exec, dim<2>{nrows, 1});
-                auto tmp_x = Dense::create(exec, dim<2>{nrows, 1});
+                auto tmp_b = MultiVector::create(exec, dim<2>{nrows, 1});
+                auto tmp_x = MultiVector::create(exec, dim<2>{nrows, 1});
                 auto mut_b = const_cast<std::remove_const_t<
                     std::remove_pointer_t<decltype(dense_b)>>*>(dense_b);
                 for (size_type j = 0; j < nrhs; ++j) {

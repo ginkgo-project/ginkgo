@@ -14,7 +14,7 @@
 #include <ginkgo/core/factorization/par_ilut.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -48,7 +48,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using factorization_type =
         gko::factorization::ParIlut<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using ComplexCsr =
@@ -563,11 +563,11 @@ TYPED_TEST(ParIlut, GenerateIdentity)
 }
 
 
-TYPED_TEST(ParIlut, GenerateDenseIdentity)
+TYPED_TEST(ParIlut, GenerateMultiVectorIdentity)
 {
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     auto dense_id =
-        gko::share(Dense::create(this->exec, this->identity->get_size()));
+        gko::share(MultiVector::create(this->exec, this->identity->get_size()));
     this->identity->convert_to(dense_id);
     auto fact = this->fact_fact->generate(dense_id);
 

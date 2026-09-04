@@ -15,7 +15,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/extended_float.hpp"
 #include "core/config/config_helper.hpp"
@@ -210,16 +210,16 @@ void CbGmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 template <typename ValueType>
 void CbGmres<ValueType>::apply_dense_impl(
-    const matrix::Dense<ValueType>* dense_b,
-    matrix::Dense<ValueType>* dense_x) const
+    const matrix::MultiVector<ValueType>* dense_b,
+    matrix::MultiVector<ValueType>* dense_x) const
 {
     // Current workaround to get a lambda with a template argument (only
     // the type of `value` matters, the content does not)
     auto apply_templated = [&](auto value) {
         using storage_type = decltype(value);
 
-        using Vector = matrix::Dense<ValueType>;
-        using VectorNorms = matrix::Dense<remove_complex<ValueType>>;
+        using Vector = matrix::MultiVector<ValueType>;
+        using VectorNorms = matrix::MultiVector<remove_complex<ValueType>>;
         using Range3dHelper =
             gko::cb_gmres::Range3dHelper<ValueType, storage_type>;
 
@@ -246,7 +246,7 @@ void CbGmres<ValueType>::apply_dense_impl(
         auto krylov_bases_range = helper.get_range();
 
         auto next_krylov_basis = Vector::create_with_config_of(dense_b);
-        std::shared_ptr<matrix::Dense<ValueType>> preconditioned_vector =
+        std::shared_ptr<matrix::MultiVector<ValueType>> preconditioned_vector =
             Vector::create_with_config_of(dense_b);
         auto hessenberg =
             Vector::create(exec, dim<2>{krylov_dim + 1, krylov_dim * num_rhs});
@@ -310,9 +310,9 @@ void CbGmres<ValueType>::apply_dense_impl(
         size_type restart_iter = 0;
 
         auto before_preconditioner =
-            matrix::Dense<ValueType>::create_with_config_of(dense_x);
+            matrix::MultiVector<ValueType>::create_with_config_of(dense_x);
         auto after_preconditioner =
-            matrix::Dense<ValueType>::create_with_config_of(dense_x);
+            matrix::MultiVector<ValueType>::create_with_config_of(dense_x);
 
         array<bool> stop_encountered_rhs(exec->get_master(), num_rhs);
         array<bool> fully_converged_rhs(exec->get_master(), num_rhs);

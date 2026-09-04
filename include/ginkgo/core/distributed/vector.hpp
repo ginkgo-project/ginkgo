@@ -16,7 +16,7 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/base.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace gko {
@@ -41,7 +41,7 @@ class Partition;
  * vectors in a dense storage format.
  *
  * The (multi-)vector is distributed by row, which is described by a
- * Partition. The local vectors are stored using the matrix::Dense format.
+ * Partition. The local vectors are stored using the matrix::MultiVector format.
  * The vector should be filled using the read_distributed method, e.g.
  * ```
  * auto part = Partition<...>::build_from_mapping(...);
@@ -92,7 +92,7 @@ public:
     using absolute_type = remove_complex<Vector>;
     using real_type = absolute_type;
     using complex_type = Vector<to_complex<value_type>>;
-    using local_vector_type = gko::matrix::Dense<value_type>;
+    using local_vector_type = gko::matrix::MultiVector<value_type>;
 
     /**
      * Creates a distributed Vector with the same size and stride as another
@@ -251,19 +251,18 @@ public:
     /**
      * Scales the vectors with a scalar (aka: BLAS scal).
      *
-     * @param alpha  If alpha is 1x1 Dense matrx, the all vectors are scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column vector is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of vectors).
+     * @param alpha  If alpha is 1x1 MultiVector matrx, the all vectors are
+     * scaled by alpha. If it is a MultiVector row vector of values, then i-th
+     * column vector is scaled with the i-th element of alpha (the number of
+     * columns of alpha has to match the number of vectors).
      */
     void scale(ptr_param<const LinOp> alpha);
 
     /**
      * Scales the vectors with the inverse of a scalar.
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the all vectors are scaled
-     *               by 1 / alpha. If it is a Dense row vector of values,
+     * @param alpha  If alpha is 1x1 MultiVector, the all vectors are scaled
+     *               by 1 / alpha. If it is a MultiVector row vector of values,
      *               then i-th column vector is scaled with the inverse
      *               of the i-th element of alpha (the number of columns of
      *               alpha has to match the number of vectors).
@@ -273,10 +272,10 @@ public:
     /**
      * Adds `b` scaled by `alpha` to the vectors (aka: BLAS axpy).
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the all vectors of b are
-     * scaled by alpha. If it is a Dense row vector of values, then i-th column
-     * vector of b is scaled with the i-th element of alpha (the number of
-     * columns of alpha has to match the number of vectors).
+     * @param alpha  If alpha is 1x1 MultiVector, the all vectors of b are
+     * scaled by alpha. If it is a MultiVector row vector of values, then i-th
+     * column vector of b is scaled with the i-th element of alpha (the number
+     * of columns of alpha has to match the number of vectors).
      * @param b  a (multi-)vector of the same dimension as this
      */
     void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
@@ -284,9 +283,10 @@ public:
     /**
      * Subtracts `b` scaled by `alpha` from the vectors (aka: BLAS axpy).
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the all vectors of b are
-     * scaled by alpha. If it is a Dense row vector of values, then i-th column
-     * vector of b is scaled with the i-th element of alpha (the number of c
+     * @param alpha  If alpha is 1x1 MultiVector, the all vectors of b are
+     * scaled by alpha. If it is a MultiVector row vector of values, then i-th
+     * column vector of b is scaled with the i-th element of alpha (the number
+     * of c
      * @param b  a (multi-)vector of the same dimension as this
      */
     void sub_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
@@ -296,7 +296,7 @@ public:
      * a global reduction.
      *
      * @param b  a (multi-)vector of same dimension as this
-     * @param result  a Dense row matrix, used to store the dot product
+     * @param result  a row MultiVector, used to store the dot product
      *                (the number of column in result must match the number
      *                of columns of this)
      */
@@ -307,7 +307,7 @@ public:
      * a global reduction.
      *
      * @param b  a (multi-)vector of same dimension as this
-     * @param result  a Dense row matrix, used to store the dot product
+     * @param result  a row MultiVector, used to store the dot product
      *                (the number of column in result must match the number
      *                of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -322,7 +322,7 @@ public:
      * using a global reduction.
      *
      * @param b  a (multi-)vector of same dimension as this
-     * @param result  a Dense row matrix, used to store the dot product
+     * @param result  a row MultiVector, used to store the dot product
      *                (the number of column in result must match the number
      *                of columns of this)
      */
@@ -334,7 +334,7 @@ public:
      * using a global reduction.
      *
      * @param b  a (multi-)vector of same dimension as this
-     * @param result  a Dense row matrix, used to store the dot product
+     * @param result  a row MultiVector, used to store the dot product
      *                (the number of column in result must match the number
      *                of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -348,7 +348,7 @@ public:
      * Computes the square of the column-wise Euclidean (\f$L^2\f$) norm of this
      * (multi-)vector using a global reduction.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a MultiVector row vector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      */
@@ -358,7 +358,7 @@ public:
      * Computes the square of the column-wise Euclidean (\f$L^2\f$) norm of this
      * (multi-)vector using a global reduction.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a MultiVector row vector, used to store the norm
      *                (the number of columns in the vector must match the
      *                number of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -371,7 +371,7 @@ public:
      * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
      * reduction.
      *
-     * @param result  a Dense row matrix, used to store the norm
+     * @param result  a row MultiVector, used to store the norm
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
@@ -381,7 +381,7 @@ public:
      * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
      * reduction.
      *
-     * @param result  a Dense row matrix, used to store the norm
+     * @param result  a row MultiVector, used to store the norm
      *                (the number of columns in result must match the number
      *                of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -393,7 +393,7 @@ public:
     /**
      * Computes the column-wise (L^1) norm of this (multi-)vector.
      *
-     * @param result  a Dense row matrix, used to store the norm
+     * @param result  a row MultiVector, used to store the norm
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
@@ -403,7 +403,7 @@ public:
      * Computes the column-wise (L^1) norm of this (multi-)vector using a global
      * reduction.
      *
-     * @param result  a Dense row matrix, used to store the norm
+     * @param result  a row MultiVector, used to store the norm
      *                (the number of columns in result must match the number
      *                of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -416,7 +416,7 @@ public:
      * Computes the column-wise mean of this (multi-)vector using a global
      * reduction.
      *
-     * @param result  a Dense row matrix, used to store the mean
+     * @param result  a row MultiVector, used to store the mean
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
@@ -426,7 +426,7 @@ public:
      * Computes the column-wise arithmetic mean of this (multi-)vector using a
      * global reduction.
      *
-     * @param result  a Dense row matrix, used to store the mean
+     * @param result  a row MultiVector, used to store the mean
      *                (the number of columns in result must match the number
      *                of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -674,8 +674,8 @@ protected:
      *
      * @param exec  the executor of the new vector.
      * @param global_size  global_size of the vector.
-     * @param local_size  the size of the local Dense vector.
-     * @param stride  the stride of the local Dense vector.
+     * @param local_size  the size of the local MultiVector vector.
+     * @param stride  the stride of the local MultiVector vector.
      *
      * @returns a Vector with the same type as the caller.
      */

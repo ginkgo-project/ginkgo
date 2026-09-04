@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -262,8 +262,8 @@ int main(int argc, char* argv[])
     if (print_residuals) {
         std::cout << "Residual norm sqrt(r^T r):\n";
         // "unbatch" converts a batch object into a vector of objects of the
-        // corresponding single type, eg. batch::matrix::Dense -->
-        // std::vector<Dense>.
+        // corresponding single type, eg. batch::matrix::MultiVector -->
+        // std::vector<MultiVector>.
         auto unb_res = detail::unbatch(host_res_norm.get());
         auto unb_bnorm = detail::unbatch(host_b_norm.get());
         for (size_type i = 0; i < num_systems; ++i) {

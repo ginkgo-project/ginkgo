@@ -13,7 +13,7 @@
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
@@ -566,8 +566,8 @@ protected:
     using Mtx = typename T::matrix_type;
     using value_type = typename Mtx::value_type;
     using mixed_value_type = gko::next_precision_base<value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
-    using MixedVec = gko::matrix::Dense<mixed_value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
+    using MixedVec = gko::matrix::MultiVector<mixed_value_type>;
 
     Solver()
     {

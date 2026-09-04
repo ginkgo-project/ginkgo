@@ -9,8 +9,8 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/reorder/rcm.hpp>
 #include <ginkgo/core/reorder/scaled_reordered.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
@@ -35,7 +35,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using Diag = gko::matrix::Diagonal<value_type>;
     using SR =
         gko::experimental::reorder::ScaledReordered<value_type, index_type>;
@@ -390,7 +390,7 @@ TYPED_TEST(ScaledReordered, SolvesSingleRhsWithScalingAndRcmReorderingMixed)
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
     using OtherT = gko::next_precision<T>;
-    using Vec = gko::matrix::Dense<OtherT>;
+    using Vec = gko::matrix::MultiVector<OtherT>;
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)
                                      .with_col_scaling(this->diag3)
@@ -439,7 +439,7 @@ TYPED_TEST(ScaledReordered,
     using SR = typename TestFixture::SR;
     using T = typename TestFixture::value_type;
     using OtherT = gko::next_precision<T>;
-    using Vec = gko::matrix::Dense<OtherT>;
+    using Vec = gko::matrix::MultiVector<OtherT>;
     auto scaled_reordered_fact = SR::build()
                                      .with_row_scaling(this->diag2)
                                      .with_col_scaling(this->diag3)

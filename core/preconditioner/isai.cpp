@@ -125,7 +125,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     std::shared_ptr<const LinOp> input, bool skip_sorting, int power,
     IndexType excess_limit, remove_complex<ValueType> excess_solver_reduction)
 {
-    using Dense = matrix::Dense<ValueType>;
+    using MultiVector = matrix::MultiVector<ValueType>;
     using LowerTrs = solver::LowerTrs<ValueType, IndexType>;
     using UpperTrs = solver::UpperTrs<ValueType, IndexType>;
     using Gmres = solver::Gmres<ValueType>;
@@ -217,8 +217,9 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
             excess_system->set_strategy(
                 gko::matrix::csr::spmv_strategy::classical);
-            auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
-            auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
+            auto excess_rhs = MultiVector::create(exec, dim<2>(excess_dim, 1));
+            auto excess_solution =
+                MultiVector::create(exec, dim<2>(excess_dim, 1));
             exec->run(isai::make_generate_excess_system(
                 to_invert->get_const_device_view(),
                 inverted->get_const_device_view(),

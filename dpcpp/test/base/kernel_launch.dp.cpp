@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
@@ -63,7 +63,7 @@ protected:
 #else
     using value_type = double;
 #endif
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
 
     KernelLaunch()
         : exec(gko::DpcppExecutor::create(
@@ -141,7 +141,7 @@ TEST_F(KernelLaunch, Runs1DArray)
 }
 
 
-TEST_F(KernelLaunch, Runs1DDense)
+TEST_F(KernelLaunch, Runs1DMultiVector)
 {
     gko::kernels::dpcpp::run_kernel(
         exec,
@@ -214,7 +214,7 @@ TEST_F(KernelLaunch, Runs2DArray)
 }
 
 
-TEST_F(KernelLaunch, Runs2DDense)
+TEST_F(KernelLaunch, Runs2DMultiVector)
 {
     gko::kernels::dpcpp::run_kernel_solver(
         exec,

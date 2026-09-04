@@ -100,14 +100,15 @@ TEST_F(Stream, WaitEventDoesNotBlockTheHost)
 {
     // the fixture's value_type, so a single-precision build does not pull
     // in a double instantiation it may not have
-    using Dense = gko::matrix::Dense<value_type>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
     // large enough that the device, not the host enqueueing the calls, is
     // the bottleneck
     const gko::size_type n = 1 << 25;
     auto reader = this->make_second_executor(true);
-    auto x = Dense::create(this->exec, gko::dim<2>{n, 1});
-    auto y = Dense::create(this->exec, gko::dim<2>{n, 1});
-    auto alpha = gko::initialize<Dense>({gko::one<value_type>()}, this->exec);
+    auto x = MultiVector::create(this->exec, gko::dim<2>{n, 1});
+    auto y = MultiVector::create(this->exec, gko::dim<2>{n, 1});
+    auto alpha =
+        gko::initialize<MultiVector>({gko::one<value_type>()}, this->exec);
     x->fill(1.0);
     y->fill(1.0);
     this->exec->synchronize();

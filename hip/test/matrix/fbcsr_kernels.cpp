@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,7 +28,7 @@ protected:
     using index_type = int;
     using real_type = gko::remove_complex<value_type>;
     using Mtx = gko::matrix::Fbcsr<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
 
     Fbcsr() : distb(), engine(42)
     {
@@ -50,7 +50,7 @@ protected:
         return gko::test::detail::get_rand_value<T>(distb, engine);
     }
 
-    void generate_sin(gko::ptr_param<Dense> x)
+    void generate_sin(gko::ptr_param<MultiVector> x)
     {
         value_type* const xarr = x->get_values();
         for (index_type i = 0; i < x->get_size()[0] * x->get_size()[1]; i++) {
@@ -133,18 +133,18 @@ TYPED_TEST(Fbcsr, TransposeIsEquivalentToRefSortedBS7)
 TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
 {
     using Mtx = typename TestFixture::Mtx;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     using value_type = typename Mtx::value_type;
     auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
-    auto x_ref = Dense::create(
+    auto x_ref = MultiVector::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 1));
     this->generate_sin(x_ref);
-    auto x_hip = Dense::create(this->exec);
+    auto x_hip = MultiVector::create(this->exec);
     x_hip->copy_from(x_ref);
-    auto prod_ref = Dense::create(
+    auto prod_ref = MultiVector::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
-    auto prod_hip = Dense::create(this->exec, prod_ref->get_size());
+    auto prod_hip = MultiVector::create(this->exec, prod_ref->get_size());
 
     if (std::is_same<value_type, gko::float16>::value ||
         std::is_same<value_type, gko::bfloat16>::value) {
@@ -162,18 +162,18 @@ TYPED_TEST(Fbcsr, SpmvIsEquivalentToRefSorted)
 TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
 {
     using Mtx = typename TestFixture::Mtx;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     using value_type = typename Mtx::value_type;
     auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
-    auto x_ref = Dense::create(
+    auto x_ref = MultiVector::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
     this->generate_sin(x_ref);
-    auto x_hip = Dense::create(this->exec);
+    auto x_hip = MultiVector::create(this->exec);
     x_hip->copy_from(x_ref);
-    auto prod_ref = Dense::create(
+    auto prod_ref = MultiVector::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
-    auto prod_hip = Dense::create(this->exec, prod_ref->get_size());
+    auto prod_hip = MultiVector::create(this->exec, prod_ref->get_size());
 
     if (std::is_same<value_type, gko::float16>::value ||
         std::is_same<value_type, gko::bfloat16>::value) {
@@ -191,29 +191,29 @@ TYPED_TEST(Fbcsr, SpmvMultiIsEquivalentToRefSorted)
 TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
 {
     using Mtx = typename TestFixture::Mtx;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
     auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
-    auto x_ref = Dense::create(
+    auto x_ref = MultiVector::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 1));
     this->generate_sin(x_ref);
-    auto x_hip = Dense::create(this->exec);
+    auto x_hip = MultiVector::create(this->exec);
     x_hip->copy_from(x_ref);
-    auto prod_ref = Dense::create(
+    auto prod_ref = MultiVector::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 1));
     this->generate_sin(prod_ref);
-    auto prod_hip = Dense::create(this->exec);
+    auto prod_hip = MultiVector::create(this->exec);
     prod_hip->copy_from(prod_ref);
-    auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
+    auto alpha_ref = MultiVector::create(this->ref, gko::dim<2>(1, 1));
     alpha_ref->get_values()[0] =
         static_cast<real_type>(2.4) + this->get_random_value();
-    auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
+    auto beta_ref = MultiVector::create(this->ref, gko::dim<2>(1, 1));
     beta_ref->get_values()[0] = -1.2;
-    auto alpha = Dense::create(this->exec);
+    auto alpha = MultiVector::create(this->exec);
     alpha->copy_from(alpha_ref);
-    auto beta = Dense::create(this->exec);
+    auto beta = MultiVector::create(this->exec);
     beta->copy_from(beta_ref);
 
     if (std::is_same<value_type, gko::float16>::value ||
@@ -233,29 +233,29 @@ TYPED_TEST(Fbcsr, AdvancedSpmvIsEquivalentToRefSorted)
 TYPED_TEST(Fbcsr, AdvancedSpmvMultiIsEquivalentToRefSorted)
 {
     using Mtx = typename TestFixture::Mtx;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
     auto rand_hip = Mtx::create(this->exec);
     rand_hip->copy_from(this->rsorted_ref);
-    auto x_ref = Dense::create(
+    auto x_ref = MultiVector::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[1], 3));
     this->generate_sin(x_ref);
-    auto x_hip = Dense::create(this->exec);
+    auto x_hip = MultiVector::create(this->exec);
     x_hip->copy_from(x_ref);
-    auto prod_ref = Dense::create(
+    auto prod_ref = MultiVector::create(
         this->ref, gko::dim<2>(this->rsorted_ref->get_size()[0], 3));
     this->generate_sin(prod_ref);
-    auto prod_hip = Dense::create(this->exec);
+    auto prod_hip = MultiVector::create(this->exec);
     prod_hip->copy_from(prod_ref);
-    auto alpha_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
+    auto alpha_ref = MultiVector::create(this->ref, gko::dim<2>(1, 1));
     alpha_ref->get_values()[0] =
         static_cast<real_type>(2.4) + this->get_random_value();
-    auto beta_ref = Dense::create(this->ref, gko::dim<2>(1, 1));
+    auto beta_ref = MultiVector::create(this->ref, gko::dim<2>(1, 1));
     beta_ref->get_values()[0] = -1.2;
-    auto alpha = Dense::create(this->exec);
+    auto alpha = MultiVector::create(this->exec);
     alpha->copy_from(alpha_ref);
-    auto beta = Dense::create(this->exec);
+    auto beta = MultiVector::create(this->exec);
     beta->copy_from(beta_ref);
 
     if (std::is_same<value_type, gko::float16>::value ||

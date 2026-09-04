@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 #include "core/base/extended_float.hpp"
@@ -27,7 +27,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Bj = gko::preconditioner::Jacobi<value_type, index_type>;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
 
     Jacobi()
         : exec(gko::ReferenceExecutor::create()),
@@ -157,7 +157,7 @@ TYPED_TEST(Jacobi, GeneratesCorrectStorageScheme)
 }
 
 
-TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
+TYPED_TEST(Jacobi, ScalarJacobiConvertsToMultiVector)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -168,7 +168,7 @@ TYPED_TEST(Jacobi, ScalarJacobiConvertsToDense)
     csr->copy_from(this->mtx);
     auto scalar_j = this->scalar_j_factory->generate(csr);
 
-    auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
+    auto dense_j = gko::matrix::MultiVector<value_type>::create(this->exec);
     scalar_j->convert_to(dense_j);
     auto j_val = scalar_j->get_blocks();
 
@@ -195,7 +195,7 @@ TYPED_TEST(Jacobi, ScalarJacobiCanBeTransposed)
     csr->copy_from(this->mtx);
     auto scalar_j = this->scalar_j_factory->generate(csr);
 
-    auto dense_j = gko::matrix::Dense<value_type>::create(this->exec);
+    auto dense_j = gko::matrix::MultiVector<value_type>::create(this->exec);
     auto t_j = scalar_j->transpose();
     auto trans_j = gko::as<Bj>(t_j.get())->get_blocks();
     auto scal_j = scalar_j->get_blocks();

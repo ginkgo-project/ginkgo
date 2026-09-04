@@ -4,7 +4,7 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/types.hpp"
@@ -51,7 +51,7 @@ void apply(std::shared_ptr<const DpcppExecutor> exec, size_type num_blocks,
            matrix::view::dense<ValueType> x)
 {
     // TODO: write a special kernel for multiple RHS
-    dense::scale(exec, beta, x);
+    multivector::scale(exec, beta, x);
     for (size_type col = 0; col < b.size[1]; ++col) {
         select_advanced_apply(
             compiled_kernels(),

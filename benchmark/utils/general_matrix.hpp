@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -81,12 +81,13 @@ std::unique_ptr<gko::matrix::Permutation<IndexType>> reorder(
 
 
 template <typename ValueType, typename IndexType>
-void permute(std::unique_ptr<gko::matrix::Dense<ValueType>>& vec,
+void permute(std::unique_ptr<gko::matrix::MultiVector<ValueType>>& vec,
              gko::matrix::Permutation<IndexType>* perm)
 {
     auto perm_arr = gko::array<IndexType>::view(
         perm->get_executor(), perm->get_size()[0], perm->get_permutation());
-    vec = gko::as<gko::matrix::Dense<ValueType>>(vec->row_permute(&perm_arr));
+    vec = gko::as<gko::matrix::MultiVector<ValueType>>(
+        vec->row_permute(&perm_arr));
 }
 
 

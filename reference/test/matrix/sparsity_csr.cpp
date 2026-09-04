@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,7 +8,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/test/utils.hpp"
@@ -26,7 +26,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::SparsityCsr<v_type, i_type>;
     using Csr = gko::matrix::Csr<v_type, i_type>;
-    using DenseMtx = gko::matrix::Dense<v_type>;
+    using MultiVectorMtx = gko::matrix::MultiVector<v_type>;
 
     SparsityCsr()
         : exec(gko::ReferenceExecutor::create()),
@@ -54,11 +54,11 @@ TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes,
 TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)
 {
     using Csr = typename TestFixture::Csr;
-    using DenseMtx = typename TestFixture::DenseMtx;
+    using MultiVectorMtx = typename TestFixture::MultiVectorMtx;
     using Mtx = typename TestFixture::Mtx;
     auto csr_mtx = gko::initialize<Csr>(
         {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, this->exec);
-    auto comp_mtx = gko::initialize<DenseMtx>(
+    auto comp_mtx = gko::initialize<MultiVectorMtx>(
         {{1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, 1.0}}, this->exec);
 
     auto mtx = Mtx::create(this->exec, std::move(csr_mtx));
@@ -67,13 +67,13 @@ TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingCsrMatrix)
 }
 
 
-TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingDenseMatrix)
+TYPED_TEST(SparsityCsr, CanBeCreatedFromExistingMultiVectorMatrix)
 {
-    using DenseMtx = typename TestFixture::DenseMtx;
+    using MultiVectorMtx = typename TestFixture::MultiVectorMtx;
     using Mtx = typename TestFixture::Mtx;
-    auto dense_mtx = gko::initialize<DenseMtx>(
+    auto dense_mtx = gko::initialize<MultiVectorMtx>(
         {{2.0, 3.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, -3.0}}, this->exec);
-    auto comp_mtx = gko::initialize<DenseMtx>(
+    auto comp_mtx = gko::initialize<MultiVectorMtx>(
         {{1.0, 1.0, 0.0}, {0.0, 1.0, 1.0}, {0.0, 0.0, 1.0}}, this->exec);
 
     auto mtx = Mtx::create(this->exec, std::move(dense_mtx));

@@ -63,8 +63,8 @@ get_rand_value(ValueDistribution&& value_dist, Engine&& gen)
 template <typename ValueTypeIn, typename ValueTypeOut>
 double timing(std::shared_ptr<const gko::Executor> exec,
               std::shared_ptr<const gko::LinOp> A,
-              std::shared_ptr<gko::matrix::Dense<ValueTypeIn>> b,
-              std::shared_ptr<gko::matrix::Dense<ValueTypeOut>> x)
+              std::shared_ptr<gko::matrix::MultiVector<ValueTypeIn>> b,
+              std::shared_ptr<gko::matrix::MultiVector<ValueTypeOut>> x)
 {
     int warmup = 2;
     int rep = 10;
@@ -100,17 +100,17 @@ double timing(std::shared_ptr<const gko::Executor> exec,
 
 int main(int argc, char* argv[])
 {
-    // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
-    // with one column/one row. The advantage of this concept is that using
-    // multiple vectors is a now a natural extension of adding columns/rows are
-    // necessary.
+    // Use some shortcuts. In Ginkgo, vectors are seen as a
+    // gko::matrix::MultiVector with one column/one row. The advantage of this
+    // concept is that using multiple vectors is a now a natural extension of
+    // adding columns/rows are necessary.
     using HighPrecision = double;
     using RealValueType = gko::remove_complex<HighPrecision>;
     using LowPrecision = float;
     using IndexType = int;
-    using hp_vec = gko::matrix::Dense<HighPrecision>;
-    using lp_vec = gko::matrix::Dense<LowPrecision>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
+    using hp_vec = gko::matrix::MultiVector<HighPrecision>;
+    using lp_vec = gko::matrix::MultiVector<LowPrecision>;
+    using real_vec = gko::matrix::MultiVector<RealValueType>;
     // The gko::matrix::Ell class is used here, but any other matrix class such
     // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Csr or
     // gko::matrix::Sellp could also be used.

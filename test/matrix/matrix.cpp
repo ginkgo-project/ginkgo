@@ -14,10 +14,10 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sellp.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -59,8 +59,8 @@ struct SimpleMatrixTest {
     }
 };
 
-struct DenseWithDefaultStride
-    : SimpleMatrixTest<gko::matrix::Dense<matrix_value_type>> {
+struct MultiVectorWithDefaultStride
+    : SimpleMatrixTest<gko::matrix::MultiVector<matrix_value_type>> {
     static bool preserves_zeros() { return false; }
 
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
@@ -72,7 +72,7 @@ struct DenseWithDefaultStride
     }
 };
 
-struct DenseWithCustomStride : DenseWithDefaultStride {
+struct MultiVectorWithCustomStride : MultiVectorWithDefaultStride {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
@@ -564,8 +564,8 @@ protected:
     using index_type = typename Mtx::index_type;
     using value_type = typename Mtx::value_type;
     using mixed_value_type = gko::next_precision_base<value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
-    using MixedVec = gko::matrix::Dense<mixed_value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
+    using MixedVec = gko::matrix::MultiVector<mixed_value_type>;
 
     Matrix() : rand_engine(15) {}
 
@@ -664,7 +664,7 @@ protected:
             guarded_fn(gen_mtx_data(10, 10, 1, 5));
         }
         {
-            SCOPED_TRACE("Small Dense Matrix (10x10)");
+            SCOPED_TRACE("Small MultiVector Matrix (10x10)");
             guarded_fn(gen_mtx_data(10, 10, 10, 10));
         }
         {
@@ -696,7 +696,7 @@ protected:
                 gen_mtx_data(200, 100, std::poisson_distribution<>{1.5}));
         }
         {
-            SCOPED_TRACE("Dense matrix (200x100)");
+            SCOPED_TRACE("MultiVector matrix (200x100)");
             guarded_fn(gen_mtx_data(200, 100, 100, 100));
         }
     }
@@ -831,7 +831,8 @@ protected:
 };
 
 using MatrixTypes = ::testing::Types<
-    DenseWithDefaultStride, DenseWithCustomStride, Coo, CsrWithDefaultStrategy,
+    MultiVectorWithDefaultStride, MultiVectorWithCustomStride, Coo,
+    CsrWithDefaultStrategy,
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
     defined(GKO_COMPILING_DPCPP) || defined(GKO_COMPILING_OMP)
     CsrWithClassicalStrategy, CsrWithMergePathStrategy,
@@ -890,7 +891,7 @@ TYPED_TEST(Matrix, AdvancedSpMVIsEquivalentToRef)
 TYPED_TEST(Matrix, AdvancedSpMVWithZerosIgnoresNaNs)
 {
     using value_type = typename TestFixture::value_type;
-    using Scalar = gko::matrix::Dense<value_type>;
+    using Scalar = gko::matrix::MultiVector<value_type>;
     this->forall_matrix_scenarios([&](auto mtx) {
         this->forall_vector_scenarios(mtx, [&](auto b, auto x) {
             x.dev->fill(gko::nan<value_type>());
@@ -1097,16 +1098,16 @@ TYPED_TEST(Matrix, MoveFromCsrIsEquivalentToRef)
 }
 
 
-TYPED_TEST(Matrix, ConvertToDenseIsEquivalentToRef)
+TYPED_TEST(Matrix, ConvertToMultiVectorIsEquivalentToRef)
 {
     using Mtx = typename TestFixture::Mtx;
-    using Dense = gko::matrix::Dense<typename Mtx::value_type>;
+    using MultiVector = gko::matrix::MultiVector<typename Mtx::value_type>;
     this->forall_matrix_scenarios([&](auto mtx) {
         const auto size = mtx.ref->get_size();
         const auto stride = size[1] + 5;
         const auto padded_size = gko::dim<2>{size[0], stride};
-        auto ref_padded = Dense::create(this->ref, padded_size);
-        auto dev_padded = Dense::create(this->exec, padded_size);
+        auto ref_padded = MultiVector::create(this->ref, padded_size);
+        auto dev_padded = MultiVector::create(this->exec, padded_size);
         ref_padded->fill(12345);
         dev_padded->fill(12345);
         const auto rows = gko::span{0, size[0]};
@@ -1130,13 +1131,13 @@ TYPED_TEST(Matrix, ConvertToDenseIsEquivalentToRef)
 }
 
 
-TYPED_TEST(Matrix, MoveToDenseIsEquivalentToRef)
+TYPED_TEST(Matrix, MoveToMultiVectorIsEquivalentToRef)
 {
     using Mtx = typename TestFixture::Mtx;
-    using Dense = gko::matrix::Dense<typename Mtx::value_type>;
+    using MultiVector = gko::matrix::MultiVector<typename Mtx::value_type>;
     this->forall_matrix_scenarios([&](auto mtx) {
-        auto ref_result = Dense::create(this->ref);
-        auto dev_result = Dense::create(this->exec);
+        auto ref_result = MultiVector::create(this->ref);
+        auto dev_result = MultiVector::create(this->exec);
 
         mtx.ref->move_to(ref_result);
         mtx.dev->move_to(dev_result);
@@ -1146,15 +1147,15 @@ TYPED_TEST(Matrix, MoveToDenseIsEquivalentToRef)
 }
 
 
-TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
+TYPED_TEST(Matrix, ConvertFromMultiVectorIsEquivalentToRef)
 {
     using TestConfig = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
-    using Dense = gko::matrix::Dense<typename Mtx::value_type>;
+    using MultiVector = gko::matrix::MultiVector<typename Mtx::value_type>;
     this->forall_matrix_data_scenarios([&](auto data) {
         const auto stride = data.size[1] + 2;
-        auto ref_src = Dense::create(this->ref, data.size, stride);
-        auto dev_src = Dense::create(this->exec, data.size, stride);
+        auto ref_src = MultiVector::create(this->ref, data.size, stride);
+        auto dev_src = MultiVector::create(this->exec, data.size, stride);
         ref_src->read(data);
         dev_src->read(data);
         ASSERT_EQ(ref_src->get_stride(), stride);
@@ -1171,15 +1172,15 @@ TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
 }
 
 
-TYPED_TEST(Matrix, MoveFromDenseIsEquivalentToRef)
+TYPED_TEST(Matrix, MoveFromMultiVectorIsEquivalentToRef)
 {
     using TestConfig = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
-    using Dense = gko::matrix::Dense<typename Mtx::value_type>;
+    using MultiVector = gko::matrix::MultiVector<typename Mtx::value_type>;
     this->forall_matrix_data_scenarios([&](auto data) {
         const auto stride = data.size[1] + 2;
-        auto ref_src = Dense::create(this->ref, data.size, stride);
-        auto dev_src = Dense::create(this->exec, data.size, stride);
+        auto ref_src = MultiVector::create(this->ref, data.size, stride);
+        auto dev_src = MultiVector::create(this->exec, data.size, stride);
         ref_src->read(data);
         dev_src->read(data);
         ASSERT_EQ(ref_src->get_stride(), stride);
