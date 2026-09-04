@@ -67,8 +67,8 @@ void run_solver(volatile bool* stop_iteration_process,
     using IndexType = int;
 
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
+    using real_vec = gko::matrix::MultiVector<RealValueType>;
     using bicg = gko::solver::Bicgstab<ValueType>;
 
     // Read Data

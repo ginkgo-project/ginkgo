@@ -20,7 +20,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "common/cuda_hip/base/blas_bindings.hpp"
 #include "common/cuda_hip/base/config.hpp"
@@ -45,7 +45,7 @@
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 
 
@@ -450,7 +450,7 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
     }
     if (b.size[0] == 0 || a->get_num_stored_blocks() == 0) {
         // empty input: fill output with zero
-        dense::fill(exec, c, zero<ValueType>());
+        multivector::fill(exec, c, zero<ValueType>());
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
@@ -507,7 +507,7 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
     }
     if (b.size[0] == 0 || a->get_num_stored_blocks() == 0) {
         // empty input: scale output
-        dense::scale(exec, beta, c);
+        multivector::scale(exec, beta, c);
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {

@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
     // Some shortcuts
     using ValueType = double;
     using IndexType = int;
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using ir = gko::solver::Ir<ValueType>;

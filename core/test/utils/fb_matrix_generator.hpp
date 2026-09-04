@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,8 +28,8 @@ namespace test {
 /**
  * Generates a random matrix, ensuring the existence of diagonal entries.
  *
- * @tparam MatrixType  type of matrix to generate (matrix::Dense must implement
- *                     the interface `ConvertibleTo<MatrixType>`)
+ * @tparam MatrixType  type of matrix to generate (matrix::MultiVector must
+ *                     implement the interface `ConvertibleTo<MatrixType>`)
  * @tparam NonzeroDistribution  type of nonzero distribution
  * @tparam ValueDistribution  type of value distribution
  * @tparam Engine  type of random engine
@@ -45,8 +45,9 @@ namespace test {
  *
  * @return the unique pointer to generated matrix of type MatrixType
  */
-template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+template <typename MatrixType = matrix::MultiVector<>,
+          typename NonzeroDistribution, typename ValueDistribution,
+          typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_matrix_with_diag(
     typename MatrixType::index_type num_rows,
     typename MatrixType::index_type num_cols,

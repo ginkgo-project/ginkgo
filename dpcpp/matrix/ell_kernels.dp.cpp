@@ -14,14 +14,14 @@
 #include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/sycl_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
@@ -429,7 +429,7 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
      */
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        dense::fill(exec, c, zero<OutputValueType>());
+        multivector::fill(exec, c, zero<OutputValueType>());
     }
     select_abstract_spmv(
         syn::type_list<device_config<512, 32>, device_config<1024, 32>>(),
@@ -465,7 +465,7 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
      */
     const int info = (!atomic) * num_thread_per_worker;
     if (atomic) {
-        dense::scale(exec, beta, c);
+        multivector::scale(exec, beta, c);
     }
     select_abstract_spmv(
         syn::type_list<device_config<512, 32>, device_config<1024, 32>>(),

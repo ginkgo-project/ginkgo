@@ -20,8 +20,8 @@
 template <typename ValueType>
 double measure_solve_time_in_s(std::shared_ptr<const gko::Executor> exec,
                                gko::LinOp* solver,
-                               const gko::matrix::Dense<ValueType>* b,
-                               gko::matrix::Dense<ValueType>* x)
+                               const gko::matrix::MultiVector<ValueType>* b,
+                               gko::matrix::MultiVector<ValueType>* x)
 {
     constexpr int repeats{5};
     double duration{0};
@@ -50,15 +50,15 @@ double measure_solve_time_in_s(std::shared_ptr<const gko::Executor> exec,
 
 int main(int argc, char* argv[])
 {
-    // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
-    // with one column/one row. The advantage of this concept is that using
-    // multiple vectors is a now a natural extension of adding columns/rows are
-    // necessary.
+    // Use some shortcuts. In Ginkgo, vectors are seen as a
+    // gko::matrix::MultiVector with one column/one row. The advantage of this
+    // concept is that using multiple vectors is a now a natural extension of
+    // adding columns/rows are necessary.
     using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
+    using real_vec = gko::matrix::MultiVector<RealValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such
     // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.

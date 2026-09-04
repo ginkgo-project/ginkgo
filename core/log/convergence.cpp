@@ -79,7 +79,7 @@ void Convergence<ValueType>::on_iteration_complete(
             this->residual_norm_.reset(
                 as<LinOp>(as<Cloneable>(residual_norm)->clone()).release());
         } else if (residual != nullptr) {
-            using NormVector = matrix::Dense<remove_complex<ValueType>>;
+            using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
             detail::vector_dispatch<ValueType>(
                 residual, [&](const auto* dense_r) {
                     this->residual_norm_ =
@@ -93,8 +93,8 @@ void Convergence<ValueType>::on_iteration_complete(
             auto system_mtx =
                 dynamic_cast<const solver::detail::SolverBaseLinOp*>(solver)
                     ->get_system_matrix();
-            using Vector = matrix::Dense<ValueType>;
-            using NormVector = matrix::Dense<remove_complex<ValueType>>;
+            using Vector = matrix::MultiVector<ValueType>;
+            using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
             detail::vector_dispatch<ValueType>(b, [&](const auto* dense_b) {
                 detail::vector_dispatch<ValueType>(x, [&](const auto* dense_x) {
                     auto exec = system_mtx->get_executor();

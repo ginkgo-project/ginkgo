@@ -24,7 +24,7 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 template <typename ValueType>
-class Dense;
+class MultiVector;
 
 template <typename ValueType, typename IndexType>
 class CooBuilder;
@@ -58,7 +58,7 @@ class Coo : public LinOp,
             public ConvertibleTo<Coo<next_precision<ValueType, 3>, IndexType>>,
 #endif
             public ConvertibleTo<Csr<ValueType, IndexType>>,
-            public ConvertibleTo<Dense<ValueType>>,
+            public ConvertibleTo<MultiVector<ValueType>>,
             public DiagonalExtractable<ValueType>,
             public ReadableFromMatrixData<ValueType, IndexType>,
             public WritableToMatrixData<ValueType, IndexType>,
@@ -67,7 +67,7 @@ class Coo : public LinOp,
                 remove_complex<Coo<ValueType, IndexType>>> {
     friend class EnableCloneable<Coo>;
     friend class Csr<ValueType, IndexType>;
-    friend class Dense<ValueType>;
+    friend class MultiVector<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
     friend class Coo<to_complex<ValueType>, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
@@ -80,8 +80,8 @@ public:
     using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
-    using ConvertibleTo<Dense<ValueType>>::convert_to;
-    using ConvertibleTo<Dense<ValueType>>::move_to;
+    using ConvertibleTo<MultiVector<ValueType>>::convert_to;
+    using ConvertibleTo<MultiVector<ValueType>>::move_to;
     using ReadableFromMatrixData<ValueType, IndexType>::read;
 
     using value_type = ValueType;
@@ -129,9 +129,9 @@ public:
 
     void move_to(Csr<ValueType, IndexType>* other) override;
 
-    void convert_to(Dense<ValueType>* other) const override;
+    void convert_to(MultiVector<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    void move_to(MultiVector<ValueType>* other) override;
 
     void read(const mat_data& data) override;
 

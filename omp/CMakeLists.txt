@@ -3,7 +3,7 @@ add_library(ginkgo_omp $<TARGET_OBJECTS:ginkgo_omp_device> "")
 list(
     APPEND
     GKO_UNIFIED_COMMON_SOURCES
-    ${PROJECT_SOURCE_DIR}/common/unified/matrix/dense_kernels.instantiate.cpp
+    ${PROJECT_SOURCE_DIR}/common/unified/matrix/multivector_kernels.instantiate.cpp
 )
 target_sources(
     ginkgo_omp
@@ -38,11 +38,11 @@ target_sources(
         matrix/batch_ell_kernels.cpp
         matrix/coo_kernels.cpp
         matrix/csr_kernels.cpp
-        matrix/dense_kernels.cpp
         matrix/diagonal_kernels.cpp
         matrix/ell_kernels.cpp
         matrix/fbcsr_kernels.cpp
         matrix/fft_kernels.cpp
+        matrix/multivector_kernels.cpp
         matrix/sellp_kernels.cpp
         matrix/sparsity_csr_kernels.cpp
         multigrid/pgm_kernels.cpp

@@ -406,7 +406,7 @@ public:
                                                global_index_type>;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
     using local_matrix_type = gko::matrix::Csr<value_type, local_index_type>;
-    using dense_vec_type = gko::matrix::Dense<value_type>;
+    using dense_vec_type = gko::matrix::MultiVector<value_type>;
     using matrix_data = gko::matrix_data<value_type, global_index_type>;
 
     Matrix() : size{5, 5}, engine()
@@ -965,7 +965,7 @@ public:
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
-    using dense_vec_type = gko::matrix::Dense<value_type>;
+    using dense_vec_type = gko::matrix::MultiVector<value_type>;
 
     MatrixInternalBuffers()
     {

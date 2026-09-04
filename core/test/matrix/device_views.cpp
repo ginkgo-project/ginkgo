@@ -10,12 +10,12 @@
 
 
 template <typename T>
-class DenseView : public ::testing::Test {};
+class MultiVectorView : public ::testing::Test {};
 
-TYPED_TEST_SUITE(DenseView, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(MultiVectorView, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(DenseView, AccessWorks)
+TYPED_TEST(MultiVectorView, AccessWorks)
 {
     std::vector<TypeParam> values(10);
     gko::matrix::view::dense<TypeParam> view{gko::dim<2>{2, 2}, 3,
@@ -34,7 +34,7 @@ TYPED_TEST(DenseView, AccessWorks)
 }
 
 
-TYPED_TEST(DenseView, AssertTriggersInConstructorDeathTest)
+TYPED_TEST(MultiVectorView, AssertTriggersInConstructorDeathTest)
 {
 #ifdef NDEBUG
     GTEST_SKIP() << "Assertion is only enabled in debug mode";
@@ -50,7 +50,7 @@ TYPED_TEST(DenseView, AssertTriggersInConstructorDeathTest)
 }
 
 
-TYPED_TEST(DenseView, AssertTriggersOnOutOfBoundsDeathTest)
+TYPED_TEST(MultiVectorView, AssertTriggersOnOutOfBoundsDeathTest)
 {
 #ifdef NDEBUG
     GTEST_SKIP() << "Assertion is only enabled in debug mode";

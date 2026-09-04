@@ -2,39 +2,39 @@ Running on ReferenceExecutor
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 The operations are copy,axpy,scal
-Running test case n = 100 
-DEBUG: begin n = 100 
+Running test case n = 100
+DEBUG: begin n = 100
 	Running blas: copy
 DEBUG: begin copy
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
 DEBUG: begin repetition
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
+DEBUG: begin multivector::copy
+DEBUG: end   multivector::copy
 DEBUG: end   repetition
 DEBUG: end   copy
 	Running blas: axpy
 DEBUG: begin axpy
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
 DEBUG: begin repetition
-DEBUG: begin dense::add_scaled
-DEBUG: end   dense::add_scaled
+DEBUG: begin multivector::add_scaled
+DEBUG: end   multivector::add_scaled
 DEBUG: end   repetition
 DEBUG: end   axpy
 	Running blas: scal
 DEBUG: begin scal
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
 DEBUG: begin repetition
-DEBUG: begin dense::scale
-DEBUG: end   dense::scale
+DEBUG: begin multivector::scale
+DEBUG: end   multivector::scale
 DEBUG: end   repetition
 DEBUG: end   scal
-DEBUG: end   n = 100 
+DEBUG: end   n = 100

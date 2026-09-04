@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,7 +16,7 @@
 class ScaledPermutation : public CommonTestFixture {
 protected:
     using ScaledPerm = gko::matrix::ScaledPermutation<value_type, index_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
 
     ScaledPermutation() : rand_engine(42)
     {

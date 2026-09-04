@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/papi.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
@@ -19,7 +19,7 @@ namespace {
 template <typename T>
 class Papi : public ::testing::Test {
 protected:
-    using Dense = gko::matrix::Dense<T>;
+    using MultiVector = gko::matrix::MultiVector<T>;
 
     Papi() : exec(gko::ReferenceExecutor::create()), eventset(PAPI_NULL) {}
 
@@ -88,8 +88,8 @@ TYPED_TEST_SUITE(Papi, gko::test::ValueTypes, TypenameNameGenerator);
 
 TYPED_TEST(Papi, CatchesCriterionCheckCompleted)
 {
-    using Dense = typename TestFixture::Dense;
-    auto residual_norm = gko::initialize<Dense>({4.0}, this->exec);
+    using MultiVector = typename TestFixture::MultiVector;
+    auto residual_norm = gko::initialize<MultiVector>({4.0}, this->exec);
     auto criterion = gko::stop::Iteration::build()
                          .with_max_iters(3u)
                          .on(this->exec)

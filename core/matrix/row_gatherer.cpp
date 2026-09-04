@@ -5,7 +5,7 @@
 #include "ginkgo/core/matrix/row_gatherer.hpp"
 
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/dispatch_helper.hpp"
 
@@ -65,7 +65,7 @@ RowGatherer<IndexType>::create_const(
 template <typename IndexType>
 void RowGatherer<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
 {
-    run<Dense,
+    run<MultiVector,
 #if GINKGO_ENABLE_HALF
         gko::float16, std::complex<gko::float16>,
 #endif
@@ -80,7 +80,7 @@ template <typename IndexType>
 void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
                                         const LinOp* beta, LinOp* out) const
 {
-    run<Dense,
+    run<MultiVector,
 #if GINKGO_ENABLE_HALF
         gko::float16, std::complex<gko::float16>,
 #endif

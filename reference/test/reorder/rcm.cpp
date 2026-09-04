@@ -10,7 +10,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/reorder/rcm.hpp>
 
@@ -29,7 +29,7 @@ protected:
     using i_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using reorder_type = gko::reorder::Rcm<v_type, i_type>;
-    using Mtx = gko::matrix::Dense<v_type>;
+    using Mtx = gko::matrix::MultiVector<v_type>;
     using CsrMtx = gko::matrix::Csr<v_type, i_type>;
     Rcm()
         : exec(gko::ReferenceExecutor::create()),
@@ -77,7 +77,7 @@ TYPED_TEST(Rcm, CanBeCreatedWithStartingStrategy)
         reorder_type::build()
             .with_strategy(gko::reorder::starting_strategy::minimum_degree)
             .on(this->exec)
-            ->generate(gko::initialize<gko::matrix::Dense<v_type>>(
+            ->generate(gko::initialize<gko::matrix::MultiVector<v_type>>(
                 3, {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}},
                 this->exec));
 
