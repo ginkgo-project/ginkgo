@@ -17,6 +17,31 @@ template <typename ValueType>
 class MultiVector;
 
 
+template <typename ValueType, typename IndexType>
+class Coo;
+
+template <typename ValueType, typename IndexType>
+class Csr;
+
+template <typename ValueType>
+class Diagonal;
+
+template <typename ValueType, typename IndexType>
+class Ell;
+
+template <typename ValueType, typename IndexType>
+class Fbcsr;
+
+template <typename ValueType, typename IndexType>
+class Hybrid;
+
+template <typename ValueType, typename IndexType>
+class Sellp;
+
+template <typename ValueType, typename IndexType>
+class SparsityCsr;
+
+
 /**
  * Dense is a matrix format which explicitly stores all values of the
  * matrix.
@@ -42,6 +67,20 @@ class Dense : public LinOp,
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
               public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
 #endif
+              public ConvertibleTo<Coo<ValueType, int32>>,
+              public ConvertibleTo<Coo<ValueType, int64>>,
+              public ConvertibleTo<Csr<ValueType, int32>>,
+              public ConvertibleTo<Csr<ValueType, int64>>,
+              public ConvertibleTo<Ell<ValueType, int32>>,
+              public ConvertibleTo<Ell<ValueType, int64>>,
+              public ConvertibleTo<Fbcsr<ValueType, int32>>,
+              public ConvertibleTo<Fbcsr<ValueType, int64>>,
+              public ConvertibleTo<Hybrid<ValueType, int32>>,
+              public ConvertibleTo<Hybrid<ValueType, int64>>,
+              public ConvertibleTo<Sellp<ValueType, int32>>,
+              public ConvertibleTo<Sellp<ValueType, int64>>,
+              public ConvertibleTo<SparsityCsr<ValueType, int32>>,
+              public ConvertibleTo<SparsityCsr<ValueType, int64>>,
               public DiagonalExtractable<ValueType>,
               public ReadableFromMatrixData<ValueType, int32>,
               public ReadableFromMatrixData<ValueType, int64>,
@@ -52,6 +91,20 @@ class Dense : public LinOp,
     friend class Dense<to_complex<ValueType>>;
     friend class Dense<previous_precision<ValueType>>;
     friend class MultiVector<ValueType>;
+    friend class Coo<ValueType, int32>;
+    friend class Coo<ValueType, int64>;
+    friend class Csr<ValueType, int32>;
+    friend class Csr<ValueType, int64>;
+    friend class Ell<ValueType, int32>;
+    friend class Ell<ValueType, int64>;
+    friend class Fbcsr<ValueType, int32>;
+    friend class Fbcsr<ValueType, int64>;
+    friend class Hybrid<ValueType, int32>;
+    friend class Hybrid<ValueType, int64>;
+    friend class Sellp<ValueType, int32>;
+    friend class Sellp<ValueType, int64>;
+    friend class SparsityCsr<ValueType, int32>;
+    friend class SparsityCsr<ValueType, int64>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -59,6 +112,34 @@ public:
     using EnableCloneable<Dense>::move_to;
     using ConvertibleTo<MultiVector<ValueType>>::convert_to;
     using ConvertibleTo<MultiVector<ValueType>>::move_to;
+    using ConvertibleTo<Coo<ValueType, int32>>::convert_to;
+    using ConvertibleTo<Coo<ValueType, int32>>::move_to;
+    using ConvertibleTo<Coo<ValueType, int64>>::convert_to;
+    using ConvertibleTo<Coo<ValueType, int64>>::move_to;
+    using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
+    using ConvertibleTo<Csr<ValueType, int32>>::move_to;
+    using ConvertibleTo<Csr<ValueType, int64>>::convert_to;
+    using ConvertibleTo<Csr<ValueType, int64>>::move_to;
+    using ConvertibleTo<Ell<ValueType, int32>>::convert_to;
+    using ConvertibleTo<Ell<ValueType, int32>>::move_to;
+    using ConvertibleTo<Ell<ValueType, int64>>::convert_to;
+    using ConvertibleTo<Ell<ValueType, int64>>::move_to;
+    using ConvertibleTo<Fbcsr<ValueType, int32>>::convert_to;
+    using ConvertibleTo<Fbcsr<ValueType, int32>>::move_to;
+    using ConvertibleTo<Fbcsr<ValueType, int64>>::convert_to;
+    using ConvertibleTo<Fbcsr<ValueType, int64>>::move_to;
+    using ConvertibleTo<Hybrid<ValueType, int32>>::convert_to;
+    using ConvertibleTo<Hybrid<ValueType, int32>>::move_to;
+    using ConvertibleTo<Hybrid<ValueType, int64>>::convert_to;
+    using ConvertibleTo<Hybrid<ValueType, int64>>::move_to;
+    using ConvertibleTo<Sellp<ValueType, int32>>::convert_to;
+    using ConvertibleTo<Sellp<ValueType, int32>>::move_to;
+    using ConvertibleTo<Sellp<ValueType, int64>>::convert_to;
+    using ConvertibleTo<Sellp<ValueType, int64>>::move_to;
+    using ConvertibleTo<SparsityCsr<ValueType, int32>>::convert_to;
+    using ConvertibleTo<SparsityCsr<ValueType, int32>>::move_to;
+    using ConvertibleTo<SparsityCsr<ValueType, int64>>::convert_to;
+    using ConvertibleTo<SparsityCsr<ValueType, int64>>::move_to;
 
     using value_type = ValueType;
     using index_type = int64;
@@ -99,6 +180,62 @@ public:
 
     void move_to(Dense<next_precision<ValueType, 3>>* result) override;
 #endif
+
+    void convert_to(Coo<ValueType, int32>* result) const override;
+
+    void move_to(Coo<ValueType, int32>* result) override;
+
+    void convert_to(Coo<ValueType, int64>* result) const override;
+
+    void move_to(Coo<ValueType, int64>* result) override;
+
+    void convert_to(Csr<ValueType, int32>* result) const override;
+
+    void move_to(Csr<ValueType, int32>* result) override;
+
+    void convert_to(Csr<ValueType, int64>* result) const override;
+
+    void move_to(Csr<ValueType, int64>* result) override;
+
+    void convert_to(Ell<ValueType, int32>* result) const override;
+
+    void move_to(Ell<ValueType, int32>* result) override;
+
+    void convert_to(Ell<ValueType, int64>* result) const override;
+
+    void move_to(Ell<ValueType, int64>* result) override;
+
+    void convert_to(Fbcsr<ValueType, int32>* result) const override;
+
+    void move_to(Fbcsr<ValueType, int32>* result) override;
+
+    void convert_to(Fbcsr<ValueType, int64>* result) const override;
+
+    void move_to(Fbcsr<ValueType, int64>* result) override;
+
+    void convert_to(Hybrid<ValueType, int32>* result) const override;
+
+    void move_to(Hybrid<ValueType, int32>* result) override;
+
+    void convert_to(Hybrid<ValueType, int64>* result) const override;
+
+    void move_to(Hybrid<ValueType, int64>* result) override;
+
+    void convert_to(Sellp<ValueType, int32>* result) const override;
+
+    void move_to(Sellp<ValueType, int32>* result) override;
+
+    void convert_to(Sellp<ValueType, int64>* result) const override;
+
+    void move_to(Sellp<ValueType, int64>* result) override;
+
+    void convert_to(SparsityCsr<ValueType, int32>* result) const override;
+
+    void move_to(SparsityCsr<ValueType, int32>* result) override;
+
+    void convert_to(SparsityCsr<ValueType, int64>* result) const override;
+
+    void move_to(SparsityCsr<ValueType, int64>* result) override;
 
     void read(const mat_data32& data) override;
 
@@ -219,6 +356,27 @@ protected:
                                             size_type col) const noexcept;
 
     void resize(dim<2> new_size);
+
+    template <typename IndexType>
+    void convert_impl(Coo<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Csr<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Ell<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Fbcsr<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Hybrid<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(Sellp<ValueType, IndexType>* result) const;
+
+    template <typename IndexType>
+    void convert_impl(SparsityCsr<ValueType, IndexType>* result) const;
 
 private:
     size_type stride_;
