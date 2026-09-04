@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/array_access.hpp"
@@ -220,7 +221,7 @@ void SparsityCsr<ValueType, IndexType>::move_to(
 
 template <typename ValueType, typename IndexType>
 void SparsityCsr<ValueType, IndexType>::convert_to(
-    MultiVector<ValueType>* result) const
+    Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
     auto tmp_result = make_temporary_output_clone(exec, result);
@@ -232,7 +233,7 @@ void SparsityCsr<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void SparsityCsr<ValueType, IndexType>::move_to(MultiVector<ValueType>* result)
+void SparsityCsr<ValueType, IndexType>::move_to(Dense<ValueType>* result)
 {
     this->convert_to(result);
 }

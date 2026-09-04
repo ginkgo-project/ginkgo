@@ -17,9 +17,6 @@ namespace matrix {
 template <typename ValueType, typename IndexType>
 class Csr;
 
-template <typename ValueType>
-class MultiVector;
-
 
 /**
  * This class is a utility which efficiently implements the diagonal matrix (a
