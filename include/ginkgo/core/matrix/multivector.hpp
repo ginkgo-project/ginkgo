@@ -45,29 +45,8 @@ class VectorCache;
 namespace matrix {
 
 
-template <typename ValueType, typename IndexType>
-class Coo;
-
-template <typename ValueType, typename IndexType>
-class Csr;
-
 template <typename ValueType>
-class Diagonal;
-
-template <typename ValueType, typename IndexType>
-class Ell;
-
-template <typename ValueType, typename IndexType>
-class Fbcsr;
-
-template <typename ValueType, typename IndexType>
-class Hybrid;
-
-template <typename ValueType, typename IndexType>
-class Sellp;
-
-template <typename ValueType, typename IndexType>
-class SparsityCsr;
+class Dense;
 
 
 /**
@@ -97,21 +76,7 @@ class MultiVector
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>,
 #endif
-      public ConvertibleTo<Coo<ValueType, int32>>,
-      public ConvertibleTo<Coo<ValueType, int64>>,
-      public ConvertibleTo<Csr<ValueType, int32>>,
-      public ConvertibleTo<Csr<ValueType, int64>>,
-      public ConvertibleTo<Ell<ValueType, int32>>,
-      public ConvertibleTo<Ell<ValueType, int64>>,
-      public ConvertibleTo<Fbcsr<ValueType, int32>>,
-      public ConvertibleTo<Fbcsr<ValueType, int64>>,
-      public ConvertibleTo<Hybrid<ValueType, int32>>,
-      public ConvertibleTo<Hybrid<ValueType, int64>>,
-      public ConvertibleTo<Sellp<ValueType, int32>>,
-      public ConvertibleTo<Sellp<ValueType, int64>>,
-      public ConvertibleTo<SparsityCsr<ValueType, int32>>,
-      public ConvertibleTo<SparsityCsr<ValueType, int64>>,
-      public DiagonalExtractable<ValueType>,
+      public ConvertibleTo<Dense<ValueType>>,
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public WritableToMatrixData<ValueType, int32>,
@@ -119,24 +84,8 @@ class MultiVector
       public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>>,
-      public ScaledIdentityAddable {
-    friend class EnableCloneable<MultiVector>;
-    friend class Coo<ValueType, int32>;
-    friend class Coo<ValueType, int64>;
-    friend class Csr<ValueType, int32>;
-    friend class Csr<ValueType, int64>;
-    friend class Diagonal<ValueType>;
-    friend class Ell<ValueType, int32>;
-    friend class Ell<ValueType, int64>;
-    friend class Fbcsr<ValueType, int32>;
-    friend class Fbcsr<ValueType, int64>;
-    friend class Hybrid<ValueType, int32>;
-    friend class Hybrid<ValueType, int64>;
-    friend class Sellp<ValueType, int32>;
-    friend class Sellp<ValueType, int64>;
-    friend class SparsityCsr<ValueType, int32>;
-    friend class SparsityCsr<ValueType, int64>;
+      public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>> {
+    friend class Dense<ValueType>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class EnableCloneable<MultiVector>;
     friend class experimental::distributed::Vector<ValueType>;
@@ -148,34 +97,8 @@ public:
     using EnableCloneable<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
-    using ConvertibleTo<Coo<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Coo<ValueType, int32>>::move_to;
-    using ConvertibleTo<Coo<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Coo<ValueType, int64>>::move_to;
-    using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Csr<ValueType, int32>>::move_to;
-    using ConvertibleTo<Csr<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Csr<ValueType, int64>>::move_to;
-    using ConvertibleTo<Ell<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Ell<ValueType, int32>>::move_to;
-    using ConvertibleTo<Ell<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Ell<ValueType, int64>>::move_to;
-    using ConvertibleTo<Fbcsr<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Fbcsr<ValueType, int32>>::move_to;
-    using ConvertibleTo<Fbcsr<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Fbcsr<ValueType, int64>>::move_to;
-    using ConvertibleTo<Hybrid<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Hybrid<ValueType, int32>>::move_to;
-    using ConvertibleTo<Hybrid<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Hybrid<ValueType, int64>>::move_to;
-    using ConvertibleTo<Sellp<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Sellp<ValueType, int32>>::move_to;
-    using ConvertibleTo<Sellp<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Sellp<ValueType, int64>>::move_to;
-    using ConvertibleTo<SparsityCsr<ValueType, int32>>::convert_to;
-    using ConvertibleTo<SparsityCsr<ValueType, int32>>::move_to;
-    using ConvertibleTo<SparsityCsr<ValueType, int64>>::convert_to;
-    using ConvertibleTo<SparsityCsr<ValueType, int64>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
 
@@ -321,61 +244,9 @@ public:
     void move_to(MultiVector<next_precision<ValueType, 3>>* result) override;
 #endif
 
-    void convert_to(Coo<ValueType, int32>* result) const override;
+    void convert_to(Dense<ValueType>* result) const override;
 
-    void move_to(Coo<ValueType, int32>* result) override;
-
-    void convert_to(Coo<ValueType, int64>* result) const override;
-
-    void move_to(Coo<ValueType, int64>* result) override;
-
-    void convert_to(Csr<ValueType, int32>* result) const override;
-
-    void move_to(Csr<ValueType, int32>* result) override;
-
-    void convert_to(Csr<ValueType, int64>* result) const override;
-
-    void move_to(Csr<ValueType, int64>* result) override;
-
-    void convert_to(Ell<ValueType, int32>* result) const override;
-
-    void move_to(Ell<ValueType, int32>* result) override;
-
-    void convert_to(Ell<ValueType, int64>* result) const override;
-
-    void move_to(Ell<ValueType, int64>* result) override;
-
-    void convert_to(Fbcsr<ValueType, int32>* result) const override;
-
-    void move_to(Fbcsr<ValueType, int32>* result) override;
-
-    void convert_to(Fbcsr<ValueType, int64>* result) const override;
-
-    void move_to(Fbcsr<ValueType, int64>* result) override;
-
-    void convert_to(Hybrid<ValueType, int32>* result) const override;
-
-    void move_to(Hybrid<ValueType, int32>* result) override;
-
-    void convert_to(Hybrid<ValueType, int64>* result) const override;
-
-    void move_to(Hybrid<ValueType, int64>* result) override;
-
-    void convert_to(Sellp<ValueType, int32>* result) const override;
-
-    void move_to(Sellp<ValueType, int32>* result) override;
-
-    void convert_to(Sellp<ValueType, int64>* result) const override;
-
-    void move_to(Sellp<ValueType, int64>* result) override;
-
-    void convert_to(SparsityCsr<ValueType, int32>* result) const override;
-
-    void move_to(SparsityCsr<ValueType, int32>* result) override;
-
-    void convert_to(SparsityCsr<ValueType, int64>* result) const override;
-
-    void move_to(SparsityCsr<ValueType, int64>* result) override;
+    void move_to(Dense<ValueType>* result) override;
 
     void read(const mat_data64& data) override;
 
@@ -806,17 +677,6 @@ public:
      */
     void inverse_column_permute(const array<int64>* permutation_indices,
                                 ptr_param<MultiVector> output) const;
-
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
-
-    /**
-     * Writes the diagonal of this matrix into an existing diagonal matrix.
-     *
-     * @param output  The output matrix. Its size must match the size of this
-     *                matrix's diagonal.
-     * @see MultiVector::extract_diagonal()
-     */
-    void extract_diagonal(ptr_param<Diagonal<ValueType>> output) const;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -1269,6 +1129,11 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values, size_type stride);
 
+    [[nodiscard]] std::unique_ptr<const Dense<ValueType>> as_const_dense_view()
+        const;
+
+    [[nodiscard]] std::unique_ptr<Dense<ValueType>> as_dense_view();
+
     /**
      * Copy-assigns a MultiVector. Preserves the executor, reallocates
      * the matrix with minimal stride if the dimensions don't match, then copies
@@ -1360,27 +1225,6 @@ protected:
                                        this->get_const_values()),
             this->get_stride());
     }
-
-    template <typename IndexType>
-    void convert_impl(Coo<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Csr<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Ell<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Fbcsr<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Hybrid<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Sellp<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(SparsityCsr<ValueType, IndexType>* result) const;
 
     /**
      * @copydoc scale(const LinOp *)
@@ -1528,13 +1372,7 @@ protected:
 private:
     size_type stride_;
     array<value_type> values_;
-
-    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };
-
-
-template <typename ValueType>
-using Dense = MultiVector<ValueType>;
 
 
 }  // namespace matrix
@@ -1593,159 +1431,6 @@ make_const_dense_view(VecPtr&& vector)
 {
     using value_type = typename detail::pointee<VecPtr>::value_type;
     return matrix::MultiVector<value_type>::create_const_view_of(vector);
-}
-
-
-/**
- * Creates and initializes a column-vector.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the matrix to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                 interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param stride  row stride for the temporary MultiVector
- * @param vals  values used to initialize the vector
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    size_type stride, std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    using multi_vector = matrix::MultiVector<typename Matrix::value_type>;
-    size_type num_rows = vals.size();
-    auto tmp =
-        multi_vector::create(exec->get_master(), dim<2>{num_rows, 1}, stride);
-    size_type idx = 0;
-    for (const auto& elem : vals) {
-        tmp->at(idx) = elem;
-        ++idx;
-    }
-    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx);
-    return mtx;
-}
-
-/**
- * Creates and initializes a column-vector.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the matrix to the requested type. The
- * stride of the intermediate MultiVector is set to 1.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                 interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param vals  values used to initialize the vector
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    return initialize<Matrix>(1, vals, std::move(exec),
-                              std::forward<TArgs>(create_args)...);
-}
-
-
-/**
- * Creates and initializes a matrix.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the matrix to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                 interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param stride  row stride for the temporary MultiVector
- * @param vals  values used to initialize the matrix
- * @param exec  Executor associated to the matrix
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    size_type stride,
-    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    using multi_vector = matrix::MultiVector<typename Matrix::value_type>;
-    size_type num_rows = vals.size();
-    size_type num_cols = num_rows > 0 ? begin(vals)->size() : 1;
-    auto tmp = multi_vector::create(exec->get_master(),
-                                    dim<2>{num_rows, num_cols}, stride);
-    size_type ridx = 0;
-    for (const auto& row : vals) {
-        size_type cidx = 0;
-        for (const auto& elem : row) {
-            tmp->at(ridx, cidx) = elem;
-            ++cidx;
-        }
-        ++ridx;
-    }
-    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx);
-    return mtx;
-}
-
-
-/**
- * Creates and initializes a matrix.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the matrix to the requested type. The
- * stride of the intermediate MultiVector is set to the number of columns
- * of the initializer list.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                  interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param vals  values used to initialize the matrix
- * @param exec  Executor associated to the matrix
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    return initialize<Matrix>(vals.size() > 0 ? begin(vals)->size() : 0, vals,
-                              std::move(exec),
-                              std::forward<TArgs>(create_args)...);
 }
 
 

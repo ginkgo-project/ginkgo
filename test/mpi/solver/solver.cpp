@@ -16,6 +16,7 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
@@ -51,7 +52,7 @@ struct SimpleSolverTest {
     using global_index_type = gko::int64;
     using dist_matrix_type =
         gko::experimental::distributed::Matrix<value_type, local_index_type,
-                                               gko::int64>;
+                                               global_index_type>;
     using non_dist_matrix_type =
         gko::matrix::Csr<value_type, global_index_type>;
     using dist_vector_type = gko::experimental::distributed::Vector<value_type>;

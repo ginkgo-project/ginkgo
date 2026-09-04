@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/profiler_hook.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -24,7 +25,8 @@ template <typename T>
 class Ir : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Ir<value_type>;
 
     Ir()
@@ -373,11 +375,9 @@ struct TestSummaryWriter : gko::log::ProfilerHook::SummaryWriter {
 
 TYPED_TEST(Ir, RunResidualNormCheckCorrectTimes)
 {
-    using value_type = typename TestFixture::value_type;
-    using Solver = typename TestFixture::Solver;
-    using Mtx = typename TestFixture::Mtx;
-    auto b = gko::initialize<Mtx>({2, -1.0, 1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+    using Vec = typename TestFixture::Vec;
+    auto b = gko::initialize<Vec>({2, -1.0, 1.0}, this->exec);
+    auto x = gko::initialize<Vec>({0.0, 0.0, 0.0}, this->exec);
     auto logger = gko::share(gko::log::ProfilerHook::create_summary(
         std::make_shared<gko::CpuTimer>(),
         std::make_unique<TestSummaryWriter>()));

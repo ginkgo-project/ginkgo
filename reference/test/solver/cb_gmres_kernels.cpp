@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
@@ -31,22 +32,23 @@ protected:
     using storage_helper_type =
         typename std::tuple_element<1, decltype(ValueEnumType())>::type;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using gmres_type = gko::solver::CbGmres<value_type>;
 
     CbGmres()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{1.0, 2.0, 3.0}, {3.0, 2.0, -1.0}, {0.0, -1.0, 2}}, exec)),
-          mtx2(gko::initialize<Mtx>(
+          mtx2(gko::initialize<Dense>(
               {{1.0, 2.0, 3.0}, {4.0, 2.0, 1.0}, {0.0, 1.0, 2.0}}, exec)),
           mtx_medium(
-              gko::initialize<Mtx>({{-86.40, 153.30, -108.90, 8.60, -61.60},
-                                    {7.70, -77.00, 3.30, -149.20, 74.80},
-                                    {-121.40, 37.10, 55.30, -74.20, -19.20},
-                                    {-111.40, -22.60, 110.10, -106.20, 88.90},
-                                    {-0.70, 111.70, 154.40, 235.00, -76.50}},
-                                   exec)),
-          mtx_big(gko::initialize<Mtx>(
+              gko::initialize<Dense>({{-86.40, 153.30, -108.90, 8.60, -61.60},
+                                      {7.70, -77.00, 3.30, -149.20, 74.80},
+                                      {-121.40, 37.10, 55.30, -74.20, -19.20},
+                                      {-111.40, -22.60, 110.10, -106.20, 88.90},
+                                      {-0.70, 111.70, 154.40, 235.00, -76.50}},
+                                     exec)),
+          mtx_big(gko::initialize<Dense>(
               {{2295.7, -764.8, 1166.5, 428.9, 291.7, -774.5},
                {2752.6, -1127.7, 1212.8, -299.1, 987.7, 786.8},
                {138.3, 78.2, 485.5, -899.9, 392.9, 1408.9},
@@ -107,10 +109,10 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> mtx2;
-    std::shared_ptr<Mtx> mtx_medium;
-    std::shared_ptr<Mtx> mtx_big;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> mtx2;
+    std::shared_ptr<Dense> mtx_medium;
+    std::shared_ptr<Dense> mtx_big;
     gko::solver::cb_gmres::storage_precision storage_prec;
     std::unique_ptr<typename gmres_type::Factory> cb_gmres_factory;
     std::unique_ptr<typename gmres_type::Factory> cb_gmres_factory_big;

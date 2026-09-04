@@ -364,9 +364,9 @@ int main()
             Mtx::create(exec, gko::matrix::csr::spmv_strategy::classical);
     }
 
-    // core/matrix/multivector.hpp
+    // core/matrix/dense.hpp
     {
-        using Mtx = gko::matrix::MultiVector<>;
+        using Mtx = gko::matrix::Dense<>;
         check_spmv<Mtx>(exec, A_raw, b, x);
     }
 

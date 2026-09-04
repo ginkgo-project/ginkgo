@@ -500,7 +500,7 @@ template <typename T>
 class Solver : public ::testing::Test {
 protected:
     using Config = T;
-    using Mtx = gko::matrix::MultiVector<double>;
+    using Mtx = gko::matrix::Dense<double>;
     Solver()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec)),

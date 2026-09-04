@@ -6,12 +6,10 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
-
-
-namespace {
 
 
 template <typename T>
@@ -534,7 +532,7 @@ TEST(CustomMultiVector, CustomViewKeepsRuntimeType)
 }
 
 
-TYPED_TEST(Dense, RecognizesInfiniteValue)
+TYPED_TEST(MultiVector, RecognizesInfiniteValue)
 {
     using value_type = typename TestFixture::value_type;
     // clang-format off
@@ -551,7 +549,7 @@ TYPED_TEST(Dense, RecognizesInfiniteValue)
 }
 
 
-TYPED_TEST(Dense, AllowsInfinitePaddingValue)
+TYPED_TEST(MultiVector, AllowsInfinitePaddingValue)
 {
     using value_type = typename TestFixture::value_type;
     // clang-format off
@@ -566,5 +564,3 @@ TYPED_TEST(Dense, AllowsInfinitePaddingValue)
 
     ASSERT_NO_THROW(m->validate_data());
 }
-
-}  // namespace

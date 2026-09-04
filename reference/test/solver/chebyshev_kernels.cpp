@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/chebyshev.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
@@ -22,11 +23,12 @@ class Chebyshev : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Chebyshev<value_type>;
     using coeff_type = gko::solver::detail::coeff_type<value_type>;
     Chebyshev()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{0.9, -1.0, 3.0}, {0.0, 1.0, 3.0}, {0.0, 0.0, 1.1}}, exec)),
           // Eigenvalues of mtx are 0.9, 1.0 and 1.1
           chebyshev_factory(
@@ -51,7 +53,7 @@ protected:
     {}
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Dense> mtx;
     std::unique_ptr<typename Solver::Factory> chebyshev_factory;
     coeff_type alpha;
     coeff_type beta;

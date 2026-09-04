@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -30,7 +31,7 @@ protected:
     using index_type = IndexType;
     using reorder_type =
         gko::experimental::reorder::NestedDissection<value_type, index_type>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     NestedDissection()
         : exec(gko::ReferenceExecutor::create()),
           nd_factory(reorder_type::build().on(exec)),
@@ -90,8 +91,10 @@ TYPED_TEST(NestedDissection, ComputesSensiblePermutation)
 
     auto perm_array = gko::make_array_view(this->exec, perm->get_size()[0],
                                            perm->get_permutation());
-    auto permuted = gko::as<typename TestFixture::Mtx>(
-        this->star_mtx->permute(&perm_array));
+    auto permuted = this->star_mtx->as_multivector_view()
+                        ->permute(&perm_array)
+                        ->as_dense_view()
+                        ->clone();
     GKO_ASSERT_MTX_NEAR(permuted,
                         I<I<double>>({{1.0, 0.0, 0.0, 1.0},
                                       {0.0, 1.0, 0.0, 1.0},

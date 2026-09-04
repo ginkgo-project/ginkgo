@@ -14,6 +14,7 @@
 #include <ginkgo/core/factorization/par_ic.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/factorization/factorization_kernels.hpp"
@@ -51,7 +52,7 @@ protected:
         gko::factorization::ParIc<value_type, index_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using MultiVector = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
 
     ParIc()
         : ref(gko::ReferenceExecutor::create()),
@@ -201,11 +202,11 @@ TYPED_TEST(ParIc, GenerateIdentity)
 }
 
 
-TYPED_TEST(ParIc, GenerateMultiVectorIdentity)
+TYPED_TEST(ParIc, GenerateDenseIdentity)
 {
-    using MultiVector = typename TestFixture::MultiVector;
+    using Dense = typename TestFixture::Dense;
     auto dense_id =
-        gko::share(MultiVector::create(this->exec, this->identity->get_size()));
+        gko::share(Dense::create(this->exec, this->identity->get_size()));
     this->identity->convert_to(dense_id);
 
     auto fact = this->fact_fact->generate(dense_id);

@@ -22,7 +22,8 @@ protected:
     using value_type = T;
     using check_type = double;
     using real_type = gko::remove_complex<T>;
-    using mtx_type = gko::matrix::MultiVector<T>;
+    using mtx_type = gko::matrix::Dense<T>;
+    using vec_type = gko::matrix::MultiVector<T>;
 
     MatrixGenerator()
         : exec(gko::ReferenceExecutor::create()),
@@ -31,6 +32,9 @@ protected:
               std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(42), exec)),
           dense_mtx(gko::test::generate_random_dense_matrix<value_type>(
+              500, 100, std::normal_distribution<>(20.0, 5.0),
+              std::default_random_engine(41), exec)),
+          multi_vector(gko::test::generate_random_multi_vector<value_type>(
               500, 100, std::normal_distribution<>(20.0, 5.0),
               std::default_random_engine(41), exec)),
           l_mtx(gko::test::generate_random_lower_triangular_matrix<mtx_type>(
@@ -67,6 +71,9 @@ protected:
             for (int col = 0; col < dense_mtx->get_size()[1]; ++col) {
                 auto val = dense_mtx->at(row, col);
                 dense_values_sample.push_back(val);
+
+                auto vval = multi_vector->at(row, col);
+                multi_vector_values_sample.push_back(vval);
             }
         }
 
@@ -87,12 +94,14 @@ protected:
     int upper_bandwidth;
     std::unique_ptr<mtx_type> mtx;
     std::unique_ptr<mtx_type> dense_mtx;
+    std::unique_ptr<vec_type> multi_vector;
     std::unique_ptr<mtx_type> l_mtx;
     std::unique_ptr<mtx_type> u_mtx;
     std::unique_ptr<mtx_type> band_mtx;
     std::vector<int> nnz_per_row_sample;
     std::vector<T> values_sample;
     std::vector<T> dense_values_sample;
+    std::vector<T> multi_vector_values_sample;
     std::vector<T> band_values_sample;
 
 
@@ -171,6 +180,24 @@ TYPED_TEST(MatrixGenerator, OutputHasCorrectValuesAverageAndDeviation)
 
 TYPED_TEST(MatrixGenerator,
            MultiVectorOutputHasCorrectValuesAverageAndDeviation)
+{
+    using T = typename TestFixture::value_type;
+    // check the real part
+    this->template check_average_and_deviation<T>(
+        begin(this->multi_vector_values_sample),
+        end(this->multi_vector_values_sample), 20.0, 5.0,
+        [](T& val) { return gko::real(val); });
+    // check the imag part when the type is complex
+    if (!std::is_same<T, gko::remove_complex<T>>::value) {
+        this->template check_average_and_deviation<T>(
+            begin(this->multi_vector_values_sample),
+            end(this->multi_vector_values_sample), 20.0, 5.0,
+            [](T& val) { return gko::imag(val); });
+    }
+}
+
+
+TYPED_TEST(MatrixGenerator, DenseOutputHasCorrectValuesAverageAndDeviation)
 {
     using T = typename TestFixture::value_type;
     // check the real part
@@ -274,7 +301,8 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagMatrix)
 TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
 {
     using T = typename TestFixture::value_type;
-    using MultiVector = typename TestFixture::mtx_type;
+    using Mtx = typename TestFixture::mtx_type;
+    using MultiVector = typename TestFixture::vec_type;
     auto dist = std::normal_distribution<>(0, 1);
     auto engine = std::default_random_engine(42);
     auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
@@ -288,13 +316,13 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
         size = 5;
     }
 
-    auto mtx = gko::test::generate_tridiag_matrix<MultiVector>(
+    auto mtx = gko::test::generate_tridiag_matrix<Mtx>(
         size, {lower, diag, upper}, this->exec);
-    auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<MultiVector>(
+    auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<Mtx>(
         size, {lower, diag, upper}, this->exec);
 
     auto result = MultiVector::create(this->exec, mtx->get_size());
-    inv_mtx->apply(mtx, result);
+    inv_mtx->apply(mtx->as_const_multivector_view(), result);
     auto id = MultiVector::create(this->exec, mtx->get_size());
     id->fill(0.0);
     for (gko::size_type i = 0; i < mtx->get_size()[0]; ++i) {

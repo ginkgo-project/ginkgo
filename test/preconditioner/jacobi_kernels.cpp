@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
@@ -21,6 +22,7 @@ protected:
     using Bj = gko::preconditioner::Jacobi<>;
     using Mtx = gko::matrix::Csr<>;
     using Vec = gko::matrix::MultiVector<>;
+    using Dense = gko::matrix::Dense<value_type>;
     using mtx_data = gko::matrix_data<>;
     using value_type = typename Mtx::value_type;
     using index_type = typename Mtx::index_type;
@@ -489,7 +491,7 @@ TEST_F(Jacobi, ScalarApplyEquivalentToRef)
             dim, dim, std::uniform_int_distribution<>(1, dim),
             std::normal_distribution<>(1.0, 2.0), engine);
     gko::utils::make_diag_dominant(dense_data);
-    auto dense_smtx = gko::share(Vec::create(ref));
+    auto dense_smtx = gko::share(Dense::create(ref));
     dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx);
@@ -523,7 +525,7 @@ TEST_F(Jacobi, ScalarL1ApplyEquivalentToRef)
             dim, dim, std::uniform_int_distribution<>(1, dim),
             std::normal_distribution<>(1.0, 2.0), engine);
     gko::utils::make_diag_dominant(dense_data, 1.001);
-    auto dense_smtx = gko::share(Vec::create(ref));
+    auto dense_smtx = gko::share(Dense::create(ref));
     dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx);
@@ -597,7 +599,7 @@ TEST_F(Jacobi, ScalarLinearCombinationApplyEquivalentToRef)
             dim, dim, std::uniform_int_distribution<>(1, dim),
             std::normal_distribution<>(1.0, 2.0), engine);
     gko::utils::make_diag_dominant(dense_data);
-    auto dense_smtx = gko::share(Vec::create(ref));
+    auto dense_smtx = gko::share(Dense::create(ref));
     dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx);
@@ -1022,7 +1024,7 @@ TEST_F(
 TEST_F(Jacobi, ScalarJacobiHandleZero)
 {
     auto mtx = gko::share(
-        gko::initialize<Vec>({{0, 0, 0}, {0, 2, 0}, {0, 0, 0}}, ref));
+        gko::initialize<Dense>({{0, 0, 0}, {0, 2, 0}, {0, 0, 0}}, ref));
     auto b = gko::initialize<Vec>({1, 2, 3}, ref);
     auto x = Vec::create(ref, gko::dim<2>(3, 1));
     auto d_b = b->clone(exec);

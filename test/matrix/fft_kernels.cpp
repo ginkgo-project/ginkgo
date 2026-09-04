@@ -40,8 +40,8 @@ protected:
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
         ddata = Vec::create(exec);
         ddata->copy_from(this->data);
-        data_strided = data->create_submatrix({0, n}, {0, subcols});
-        ddata_strided = ddata->create_submatrix({0, n}, {0, subcols});
+        data_strided = data->create_subview({0, n}, {0, subcols});
+        ddata_strided = ddata->create_subview({0, n}, {0, subcols});
         out = data->clone();
         dout = data->clone();
         out_strided = Vec::create(ref, data_strided->get_size(), out_stride);
