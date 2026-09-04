@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -294,26 +294,31 @@ __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_block
     const auto block = group::this_thread_block();
     const auto warp = group::tiled_partition<warp_size>(block);
     const auto warp_rank = warp.thread_rank();
-    const auto col = warp_rank + static_cast<int64>(blockIdx.y) * warp_size;
-    auto partial = identity;
-    // accumulate within a thread
-    if (col < cols) {
-        for (auto row = warp_id; row < rows; row += warp_num) {
-            partial = op(partial, fn(row, col, args...));
-        }
-    }
-    block_partial[threadIdx.x] = partial;
-    block.sync();
-    // in a single warp: accumulate the results
-    if (threadIdx.x < warp_size) {
-        partial = identity;
-        // accumulate the partial results within a thread
-#pragma unroll
-        for (int i = 0; i < default_block_size; i += warp_size) {
-            partial = op(partial, block_partial[i + warp_rank]);
-        }
+
+    for (auto block_col = static_cast<int64>(blockIdx.y) * warp_size;
+         block_col < cols;
+         block_col += static_cast<int64>(gridDim.y) * warp_size) {
+        const auto col = warp_rank + block_col;
+        auto partial = identity;
+        // accumulate within a thread
         if (col < cols) {
-            result[col + blockIdx.x * cols] = finalize(partial);
+            for (auto row = warp_id; row < rows; row += warp_num) {
+                partial = op(partial, fn(row, col, args...));
+            }
+        }
+        block_partial[threadIdx.x] = partial;
+        block.sync();
+        // in a single warp: accumulate the results
+        if (threadIdx.x < warp_size) {
+            partial = identity;
+            // accumulate the partial results within a thread
+#pragma unroll
+            for (int i = 0; i < default_block_size; i += warp_size) {
+                partial = op(partial, block_partial[i + warp_rank]);
+            }
+            if (col < cols) {
+                result[col + blockIdx.x * cols] = finalize(partial);
+            }
         }
     }
 }
@@ -488,7 +493,10 @@ void run_kernel_col_reduction_cached(
             syn::value_list<int>(), syn::type_list<>(), max_blocks, exec, fn,
             op, finalize, identity, result, size, tmp, map_to_device(args)...);
     } else {
-        const auto col_blocks = ceildiv(cols, config::warp_size);
+        // cuda only accept up to 65535 for grid's y-axis
+        constexpr int64 max_grid_y = 65535;
+        const auto col_blocks =
+            std::min(ceildiv(cols, config::warp_size), max_grid_y);
         const auto row_blocks =
             ceildiv(std::min<int64>(
                         ceildiv(rows * config::warp_size, default_block_size),
