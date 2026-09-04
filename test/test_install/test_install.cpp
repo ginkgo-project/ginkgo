@@ -16,6 +16,8 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include "../../include/ginkgo/core/matrix/multivector.hpp"
+
 
 void assert_similar_matrices(
     gko::ptr_param<const gko::matrix::MultiVector<>> m1,
@@ -385,6 +387,12 @@ int main()
     // core/matrix/identity.hpp
     {
         using Mtx = gko::matrix::Identity<>;
+        auto test = Mtx::create(exec);
+    }
+
+    // core/matrix/multivector.hpp
+    {
+        using Mtx = gko::matrix::MultiVector<>;
         auto test = Mtx::create(exec);
     }
 

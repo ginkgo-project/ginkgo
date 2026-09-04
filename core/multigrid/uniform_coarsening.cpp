@@ -199,6 +199,45 @@ UniformCoarsening<ValueType, IndexType>::parse(
 
 
 template <typename ValueType, typename IndexType>
+void UniformCoarsening<ValueType, IndexType>::apply_impl(
+    const AbstractMultiVector* b, AbstractMultiVector* x) const
+{
+    this->get_composition()->apply(b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void UniformCoarsening<ValueType, IndexType>::apply_impl(
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
+{
+    this->get_composition()->apply(alpha, b, beta, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+UniformCoarsening<ValueType, IndexType>::UniformCoarsening(
+    std::shared_ptr<const Executor> exec)
+    : LinOp(std::move(exec))
+{}
+
+
+template <typename ValueType, typename IndexType>
+UniformCoarsening<ValueType, IndexType>::UniformCoarsening(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : LinOp(factory->get_executor(), system_matrix->get_size()),
+      EnableMultigridLevel<ValueType>(system_matrix),
+      parameters_{factory->get_parameters()},
+      system_matrix_{system_matrix}
+{
+    if (system_matrix_->get_size()[0] != 0) {
+        // generate on the existing matrix
+        this->generate();
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
            std::shared_ptr<LinOp>>
 UniformCoarsening<ValueType, IndexType>::generate_local(

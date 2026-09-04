@@ -447,9 +447,8 @@ ValueType get_norm(const vec<ValueType>* norm)
 }
 
 
-template <typename VectorType,
-          typename ValueType = typename VectorType::value_type>
-gko::remove_complex<ValueType> compute_norm2(const VectorType* b)
+template <typename ValueType = etype>
+gko::remove_complex<ValueType> compute_norm2(const gko::AbstractMultiVector* b)
 {
     auto exec = b->get_executor();
     auto b_norm =
@@ -476,10 +475,10 @@ gko::remove_complex<ValueType> compute_direct_error(const gko::LinOp* solver,
 }
 
 
-template <typename VectorType,
-          typename ValueType = typename VectorType::value_type>
+template <typename ValueType = etype>
 gko::remove_complex<ValueType> compute_residual_norm(
-    const gko::LinOp* system_matrix, const VectorType* b, const VectorType* x)
+    const gko::LinOp* system_matrix, const gko::AbstractMultiVector* b,
+    const gko::AbstractMultiVector* x)
 {
     auto exec = system_matrix->get_executor();
     auto one = gko::initialize<vec<ValueType>>({1.0}, exec);
@@ -511,10 +510,9 @@ gko::remove_complex<ValueType> compute_max_relative_norm2(
         clone(absolute_norm->get_executor()->get_master(), absolute_norm);
     rc_vtype max_relative_norm2 = 0;
     for (gko::size_type i = 0; i < host_answer_norm->get_size()[1]; i++) {
-        max_relative_norm2 = std::max(
-            gko::detail::get_local(host_absolute_norm.get())->at(0, i) /
-                gko::detail::get_local(host_answer_norm.get())->at(0, i),
-            max_relative_norm2);
+        max_relative_norm2 =
+            std::max(host_absolute_norm->at(0, i) / host_answer_norm->at(0, i),
+                     max_relative_norm2);
     }
     return max_relative_norm2;
 }

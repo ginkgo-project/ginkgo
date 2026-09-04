@@ -7,7 +7,6 @@
 #include <utility>
 
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/assembly.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/partition_helpers.hpp>
@@ -16,7 +15,9 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/distributed/matrix_kernels.hpp"
+#include "ginkgo/core/matrix/batch_csr.hpp"
 
 
 namespace gko {
@@ -527,14 +528,14 @@ init_recv_buffers(std::shared_ptr<const Executor> exec,
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const LinOp* b, LinOp* x) const
+    const AbstractMultiVector* b, AbstractMultiVector* x) const
 {
-    distributed::mixed_precision_dispatch_real_complex<ValueType>(
-        [this](const auto dense_b, auto dense_x) {
-            using x_value_type =
-                typename std::decay_t<decltype(*dense_x)>::value_type;
-            using b_value_type =
-                typename std::decay_t<decltype(*dense_b)>::value_type;
+    mixed_precision_dispatch<ValueType>(
+        [this](const auto b_, auto x_, auto p_b, auto p_x) {
+            using x_value_type = std::decay_t<decltype(p_x)>;
+            using b_value_type = std::decay_t<decltype(p_b)>;
+            auto dense_x = as<Vector<x_value_type>>(x_);
+            auto dense_b = as<Vector<b_value_type>>(b_);
             auto x_exec = dense_x->get_executor();
             auto local_x = gko::matrix::MultiVector<x_value_type>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
@@ -590,18 +591,20 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
-    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x) const
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
 {
-    distributed::mixed_precision_dispatch_real_complex<ValueType>(
-        [this, alpha, beta](const auto dense_b, auto dense_x) {
-            using x_value_type =
-                typename std::decay_t<decltype(*dense_x)>::value_type;
-            using b_value_type =
-                typename std::decay_t<decltype(*dense_b)>::value_type;
+    mixed_precision_dispatch<ValueType>(
+        [&](const auto b_, auto x_, auto p_b, auto p_x) {
+            using x_value_type = std::decay_t<decltype(p_x)>;
+            using b_value_type = std::decay_t<decltype(p_b)>;
+            auto dense_x = as<Vector<x_value_type>>(x_);
+            auto dense_b = as<Vector<b_value_type>>(b_);
+            auto converted_alpha = alpha->as_precision(precision_v<ValueType>);
+            auto converted_beta = beta->as_precision(dense_x);
+            auto dense_alpha = converted_alpha.get();
+            auto dense_beta = converted_beta.get();
             const auto x_exec = dense_x->get_executor();
-            auto local_alpha = gko::make_temporary_conversion<ValueType>(alpha);
-            auto local_beta =
-                gko::make_temporary_conversion<x_value_type>(beta);
             auto local_x = gko::matrix::MultiVector<x_value_type>::create(
                 x_exec, dense_x->get_local_vector()->get_size(),
                 gko::make_array_view(
@@ -624,15 +627,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 // reference and omp executor does not have event, so we still
                 // submit the mpi first.
                 auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
-                diag_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
-                                 local_beta.get(), local_x);
+                diag_mtx_->apply(dense_alpha, dense_b->get_local_vector(),
+                                 dense_beta, local_x);
                 req.wait();
             } else {
                 // we use event here such that we can submit spmv job first
                 // without waiting for synchronization from the row gatherer.
                 auto ev = this->row_gatherer_->apply_prepare(dense_b);
-                diag_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
-                                 local_beta.get(), local_x);
+                diag_mtx_->apply(dense_alpha, dense_b->get_local_vector(),
+                                 dense_beta, local_x);
                 auto req =
                     this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
                 req.wait();
@@ -644,11 +647,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             if (auto coo = std::dynamic_pointer_cast<
                     const ::gko::matrix::Coo<ValueType, LocalIndexType>>(
                     off_diag_mtx_)) {
-                coo->apply2(local_alpha.get(), recv_vector->get_local_vector(),
+                coo->apply2(dense_alpha, recv_vector->get_local_vector(),
                             local_x);
             } else {
                 off_diag_mtx_->apply(
-                    local_alpha.get(), recv_vector->get_local_vector(),
+                    dense_alpha, recv_vector->get_local_vector(),
                     one_scalar_.template get<x_value_type>().get(), local_x);
             }
         },
@@ -688,19 +691,24 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
                         ? host_recv_vector.get()
                         : recv_vector.get();
 
+    auto diag_mtx_csr =
+        as<gko::matrix::Csr<ValueType, LocalIndexType>>(diag_mtx_);
+    auto off_diag_mtx_csr =
+        as<gko::matrix::Csr<ValueType, LocalIndexType>>(off_diag_mtx_);
+
     if (scaling_factors->get_executor() ==
         scaling_factors->get_executor()->get_master()) {
         // reference and omp executor does not have event, so we still
         // submit the mpi first.
         auto req =
             this->row_gatherer_->apply_async(scaling_factors_ptr, recv_ptr);
-        scale_diag->rapply(diag_mtx_, diag_mtx_);
+        scale_diag->rapply(diag_mtx_csr, diag_mtx_csr);
         req.wait();
     } else {
         // we use event here such that we can submit diag matrix scaling job
         // first without waiting for synchronization from the row gatherer.
         auto ev = this->row_gatherer_->apply_prepare(scaling_factors_ptr);
-        scale_diag->rapply(diag_mtx_, diag_mtx_);
+        scale_diag->rapply(diag_mtx_csr, diag_mtx_csr);
         auto req = this->row_gatherer_->apply_finalize(scaling_factors_ptr,
                                                        recv_ptr, ev);
         req.wait();
@@ -714,7 +722,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
                 exec, n_off_diag_cols,
                 make_const_array_view(exec, n_off_diag_cols,
                                       recv_vector->get_const_local_values()));
-        off_diag_scale_diag->rapply(off_diag_mtx_, off_diag_mtx_);
+        off_diag_scale_diag->rapply(off_diag_mtx_csr, off_diag_mtx_csr);
     }
 }
 
@@ -741,8 +749,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
         exec, n_local_rows,
         make_const_array_view(exec, n_local_rows, scale_values));
 
-    scale_diag->apply(diag_mtx_, diag_mtx_);
-    scale_diag->apply(off_diag_mtx_, off_diag_mtx_);
+    auto diag_mtx_csr =
+        as<gko::matrix::Csr<ValueType, LocalIndexType>>(diag_mtx_);
+    auto off_diag_mtx_csr =
+        as<gko::matrix::Csr<ValueType, LocalIndexType>>(off_diag_mtx_);
+
+    scale_diag->apply(diag_mtx_csr, diag_mtx_csr);
+    scale_diag->apply(off_diag_mtx_csr, off_diag_mtx_csr);
 }
 
 

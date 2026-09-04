@@ -10,12 +10,11 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/minres.hpp>
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
-#include "core/distributed/helpers.hpp"
 #include "core/solver/minres_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
@@ -67,15 +66,211 @@ bool Minres<ValueType>::apply_uses_initial_guess() const
 }
 
 
+/**
+ * This Minres implementation is based on Anne Greenbaum's *Iterative Methods
+ * for Solving Linear Systems* (<https://doi.org/10.1137/1.9781611970937>),
+ * Ch. 2 and Ch. 8.
+ * Most variable names are taken from that reference, with the exception that
+ * the vector `w` and `w_tilde` from the reference are called `z` and `z_tilde`.
+ * The variable declaration have a comment to specify the name used in the
+ * reference. By reusing already allocated memory the number of necessary
+ * vectors is reduced to seven temporary vectors. The operations are grouped
+ * into point-wise scalar and vector updates, operator applications and
+ * (possibly) global reductions. With some reordering, as many point-wise
+ * updates are grouped together into a scalar and vector step respectively to
+ * reduce the number of kernel launches. The algorithm uses a recursion to
+ * compute an approximate residual norm. The residual is neither computed
+ * exactly, nor approximately, since that would require additional operations.
+ */
 template <typename ValueType>
-void Minres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Minres<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                   AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
+
+    precision_dispatch<ValueType>(
+        [this](auto converted_b, auto converted_x) {
+            using std::swap;
+            constexpr uint8 RelativeStoppingId{1};
+
+            auto exec = this->get_executor();
+            this->setup_workspace();
+
+            GKO_SOLVER_VECTOR(r, converted_b);
+            GKO_SOLVER_VECTOR(z, converted_b);  // z = w_k+1
+            GKO_SOLVER_VECTOR(p, converted_b);  // p = p_k-1
+            GKO_SOLVER_VECTOR(q, converted_b);  // q = q_k+1
+            GKO_SOLVER_VECTOR(v, converted_b);  // v = v_k
+
+            GKO_SOLVER_VECTOR(z_tilde, converted_b);  // z_tilde = w_tilde_k+1
+            GKO_SOLVER_VECTOR(p_prev, converted_b);   // p_prev = p_k-2
+            GKO_SOLVER_VECTOR(q_prev, converted_b);   // q_prev = q_k
+
+            GKO_SOLVER_SCALAR(alpha, converted_b);  // alpha = T(k, k)
+            GKO_SOLVER_SCALAR(beta,
+                              converted_b);  // beta = T(k + 1, k) = T(k, k + 1)
+            GKO_SOLVER_SCALAR(gamma, converted_b);  // gamma = T(k - 1, k)
+            GKO_SOLVER_SCALAR(delta, converted_b);  // delta = T(k - 2, k)
+            GKO_SOLVER_SCALAR(eta_next, converted_b);
+            GKO_SOLVER_SCALAR(eta, converted_b);
+            // this is the approximation of the residual norm squared, it is set
+            // to
+            // ||z||^2, but it could also use beta^2 or ||r||^2. It is based on
+            // the description of phi in: CHOI, Sou-Cheng. Iterative methods for
+            // singular linear equations and least-squares problems. 2006.
+            GKO_SOLVER_SCALAR(tau, converted_b);
+
+            GKO_SOLVER_SCALAR(cos_prev, converted_b);
+            GKO_SOLVER_SCALAR(cos, converted_b);
+            GKO_SOLVER_SCALAR(sin_prev, converted_b);
+            GKO_SOLVER_SCALAR(sin, converted_b);
+
+            GKO_SOLVER_ONE_MINUS_ONE();
+
+            bool one_changed{};
+            GKO_SOLVER_STOP_REDUCTION_ARRAYS(converted_b->get_size()[1]);
+
+            // r = converted_b
+            r->copy_from(converted_b);
+            this->get_system_matrix()->apply(neg_one_op, converted_x, one_op,
+                                             r);
+            auto stop_criterion = this->get_stop_criterion_factory()->generate(
+                this->get_system_matrix(),
+                std::shared_ptr<const AbstractMultiVector>(
+                    converted_b, [](const AbstractMultiVector*) {}),
+                converted_x, r);
+
+            // z = M^-1 * r
+            // beta = <r, z>
+            // tau = <z, z>
+            this->get_preconditioner()->apply(r, z);
+            r->compute_conj_dot(z, beta, reduction_tmp);
+            z->compute_conj_dot(z, tau, reduction_tmp);
+
+            // beta = sqrt(beta)
+            // eta = eta_next = beta
+            // delta = gamma = cos_prev = sin_prev = cos = sin = 0
+            // q = r / beta
+            // z = z / beta
+            // p = p_prev = q_prev = v = 0
+            exec->run(minres::make_initialize(
+                r->template get_const_local_device_view<ValueType>(),
+                z->template get_local_device_view<ValueType>(),
+                p->template get_local_device_view<ValueType>(),
+                p_prev->template get_local_device_view<ValueType>(),
+                q->template get_local_device_view<ValueType>(),
+                q_prev->template get_local_device_view<ValueType>(),
+                v->template get_local_device_view<ValueType>(),
+                beta->get_device_view(), gamma->get_device_view(),
+                delta->get_device_view(), cos_prev->get_device_view(),
+                cos->get_device_view(), sin_prev->get_device_view(),
+                sin->get_device_view(), eta_next->get_device_view(),
+                eta->get_device_view(), stop_status));
+
+            int iter = -1;
+            /* Memory movement summary:
+             * 27n * values + matrix/preconditioner storage
+             * 1x SpMV:           2n * values + storage
+             * 1x Preconditioner: 2n * values + storage
+             * 2x dot             4n
+             * 1x axpy            3n
+             * 1x step 1 (axpys)  16n
+             */
+            while (true) {
+                ++iter;
+                bool all_stopped = stop_criterion->update()
+                                       .num_iterations(iter)
+                                       .residual(nullptr)
+                                       .implicit_sq_residual_norm(tau)
+                                       .solution(converted_x)
+                                       .check(RelativeStoppingId, true,
+                                              &stop_status, &one_changed);
+                this->template log<log::Logger::iteration_complete>(
+                    this, converted_b, converted_x, iter, r, nullptr, tau,
+                    &stop_status, all_stopped);
+                if (all_stopped) {
+                    break;
+                }
+
+                // Lanzcos (partial) update:
+                // v = A * z - beta * q_prev
+                // alpha = <v, z>
+                // v = v - alpha * q
+                // z_tilde = M * v
+                // beta = <v, z_tilde>
+                this->get_system_matrix()->apply(one_op, z, neg_one_op, v);
+                v->compute_conj_dot(z, alpha, reduction_tmp);
+                v->sub_scaled(alpha, q);
+                this->get_preconditioner()->apply(v, z_tilde);
+                v->compute_conj_dot(z_tilde, beta, reduction_tmp);
+
+                // Updates scalars (row vectors)
+                // finish Lanzcos:
+                // beta = sqrt(beta)
+                //
+                // apply two previous givens rotation to new column:
+                // delta = sin_prev * gamma  // 0 if iter = 0, 1
+                // tmp_d = gamma
+                // tmp_a = alpha
+                // gamma = cos_prev * cos * tmp_d + sin * tmp_a  // 0 if iter =
+                // 0 alpha = -conj(sin) * cos_prev * tmp_d + cos * tmp_a
+                //
+                // compute and apply new Givens rotation:
+                // sin_prev = sin
+                // cos_prev = cos
+                // cos, sin = givens_rot(alpha, beta)
+                // alpha = cos * alpha + sin * beta
+                //
+                // apply new Givens rotation to eta:
+                // eta = eta_next
+                // eta_next = -conj(sin) * eta
+                //
+                // update the squared residual norm approximation:
+                // tau = abs(sin)^2 * tau
+                exec->run(minres::make_step_1(
+                    alpha->get_device_view(), beta->get_device_view(),
+                    gamma->get_device_view(), delta->get_device_view(),
+                    cos_prev->get_device_view(), cos->get_device_view(),
+                    sin_prev->get_device_view(), sin->get_device_view(),
+                    eta->get_device_view(), eta_next->get_device_view(),
+                    tau->get_device_view(), stop_status));
+
+
+                // update vectors
+                // update search direction and solution:
+                // swap(p, p_prev)
+                // p = (z - gamma * p_prev - delta * p) / alpha
+                // x = x + cos * eta * p
+                //
+                // finish Lanzcos:
+                // q_prev = v
+                // q_tmp = q
+                // q = v / beta
+                // v = q_tmp * beta
+                // z = z_tilde / beta
+                //
+                // store previous beta in gamma:
+                // gamma = beta
+                swap(p, p_prev);
+                exec->run(minres::make_step_2(
+                    converted_x->template get_local_device_view<ValueType>(),
+                    p->template get_local_device_view<ValueType>(),
+                    p_prev->template get_const_local_device_view<ValueType>(),
+                    z->template get_local_device_view<ValueType>(),
+                    z_tilde->template get_const_local_device_view<ValueType>(),
+                    q->template get_local_device_view<ValueType>(),
+                    q_prev->template get_local_device_view<ValueType>(),
+                    v->template get_local_device_view<ValueType>(),
+                    alpha->get_const_device_view(),
+                    beta->get_const_device_view(),
+                    gamma->get_const_device_view(),
+                    delta->get_const_device_view(),
+                    cos->get_const_device_view(), eta->get_const_device_view(),
+                    stop_status));
+                swap(gamma, beta);
+            }
         },
         b, x);
 }
@@ -94,232 +289,16 @@ typename Minres<ValueType>::parameters_type Minres<ValueType>::parse(
 }
 
 
-/**
- * This Minres implementation is based on Anne Greenbaum's *Iterative Methods
- * for Solving Linear Systems* (<https://doi.org/10.1137/1.9781611970937>),
- * Ch. 2 and Ch. 8.
- * Most variable names are taken from that reference, with the exception that
- * the vector `w` and `w_tilde` from the reference are called `z` and `z_tilde`.
- * The variable declaration have a comment to specify the name used in the
- * reference. By reusing already allocated memory the number of necessary
- * vectors is reduced to seven temporary vectors. The operations are grouped
- * into point-wise scalar and vector updates, operator applications and
- * (possibly) global reductions. With some reordering, as many point-wise
- * updates are grouped together into a scalar and vector step respectively to
- * reduce the number of kernel launches. The algorithm uses a recursion to
- * compute an approximate residual norm. The residual is neither computed
- * exactly, nor approximately, since that would require additional operations.
- */
 template <typename ValueType>
-template <typename VectorType>
-void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
-                                         VectorType* dense_x) const
-{
-    using std::swap;
-    using LocalVector = matrix::MultiVector<ValueType>;
-    using NormVector = typename LocalVector::absolute_type;
-
-    constexpr uint8 RelativeStoppingId{1};
-
-    auto exec = this->get_executor();
-    this->setup_workspace();
-
-    GKO_SOLVER_VECTOR(r, dense_b);
-    GKO_SOLVER_VECTOR(z, dense_b);  // z = w_k+1
-    GKO_SOLVER_VECTOR(p, dense_b);  // p = p_k-1
-    GKO_SOLVER_VECTOR(q, dense_b);  // q = q_k+1
-    GKO_SOLVER_VECTOR(v, dense_b);  // v = v_k
-
-    GKO_SOLVER_VECTOR(z_tilde, dense_b);  // z_tilde = w_tilde_k+1
-    GKO_SOLVER_VECTOR(p_prev, dense_b);   // p_prev = p_k-2
-    GKO_SOLVER_VECTOR(q_prev, dense_b);   // q_prev = q_k
-
-    GKO_SOLVER_SCALAR(alpha, dense_b);  // alpha = T(k, k)
-    GKO_SOLVER_SCALAR(beta, dense_b);   // beta = T(k + 1, k) = T(k, k + 1)
-    GKO_SOLVER_SCALAR(gamma, dense_b);  // gamma = T(k - 1, k)
-    GKO_SOLVER_SCALAR(delta, dense_b);  // delta = T(k - 2, k)
-    GKO_SOLVER_SCALAR(eta_next, dense_b);
-    GKO_SOLVER_SCALAR(eta, dense_b);
-    // this is the approximation of the residual norm squared, it is set to
-    // ||z||^2, but it could also use beta^2 or ||r||^2. It is based on the
-    // description of phi in:
-    // CHOI, Sou-Cheng. Iterative methods for singular linear equations and
-    // least-squares problems. 2006.
-    GKO_SOLVER_SCALAR(tau, dense_b);
-
-    GKO_SOLVER_SCALAR(cos_prev, dense_b);
-    GKO_SOLVER_SCALAR(cos, dense_b);
-    GKO_SOLVER_SCALAR(sin_prev, dense_b);
-    GKO_SOLVER_SCALAR(sin, dense_b);
-
-    GKO_SOLVER_ONE_MINUS_ONE();
-
-    bool one_changed{};
-    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
-
-    // r = dense_b
-    r->copy_from(dense_b);
-    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
-    auto stop_criterion = this->get_stop_criterion_factory()->generate(
-        this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
-
-    // z = M^-1 * r
-    // beta = <r, z>
-    // tau = <z, z>
-    this->get_preconditioner()->apply(r, z);
-    r->compute_conj_dot(z, beta, reduction_tmp);
-    z->compute_conj_dot(z, tau, reduction_tmp);
-
-    // beta = sqrt(beta)
-    // eta = eta_next = beta
-    // delta = gamma = cos_prev = sin_prev = cos = sin = 0
-    // q = r / beta
-    // z = z / beta
-    // p = p_prev = q_prev = v = 0
-    exec->run(minres::make_initialize(
-        gko::detail::get_local(r)->get_const_device_view(),
-        gko::detail::get_local(z)->get_device_view(),
-        gko::detail::get_local(p)->get_device_view(),
-        gko::detail::get_local(p_prev)->get_device_view(),
-        gko::detail::get_local(q)->get_device_view(),
-        gko::detail::get_local(q_prev)->get_device_view(),
-        gko::detail::get_local(v)->get_device_view(),
-        gko::detail::get_local(beta)->get_device_view(),
-        gko::detail::get_local(gamma)->get_device_view(),
-        gko::detail::get_local(delta)->get_device_view(),
-        gko::detail::get_local(cos_prev)->get_device_view(),
-        gko::detail::get_local(cos)->get_device_view(),
-        gko::detail::get_local(sin_prev)->get_device_view(),
-        gko::detail::get_local(sin)->get_device_view(),
-        gko::detail::get_local(eta_next)->get_device_view(),
-        gko::detail::get_local(eta)->get_device_view(), stop_status));
-
-    int iter = -1;
-    /* Memory movement summary:
-     * 27n * values + matrix/preconditioner storage
-     * 1x SpMV:           2n * values + storage
-     * 1x Preconditioner: 2n * values + storage
-     * 2x dot             4n
-     * 1x axpy            3n
-     * 1x step 1 (axpys)  16n
-     */
-    while (true) {
-        ++iter;
-        bool all_stopped =
-            stop_criterion->update()
-                .num_iterations(iter)
-                .residual(nullptr)
-                .implicit_sq_residual_norm(tau)
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed);
-        this->template log<log::Logger::iteration_complete>(
-            this, dense_b, dense_x, iter, r, nullptr, tau, &stop_status,
-            all_stopped);
-        if (all_stopped) {
-            break;
-        }
-
-        // Lanzcos (partial) update:
-        // v = A * z - beta * q_prev
-        // alpha = <v, z>
-        // v = v - alpha * q
-        // z_tilde = M * v
-        // beta = <v, z_tilde>
-        this->get_system_matrix()->apply(one_op, z, neg_one_op, v);
-        v->compute_conj_dot(z, alpha, reduction_tmp);
-        v->sub_scaled(alpha, q);
-        this->get_preconditioner()->apply(v, z_tilde);
-        v->compute_conj_dot(z_tilde, beta, reduction_tmp);
-
-        // Updates scalars (row vectors)
-        // finish Lanzcos:
-        // beta = sqrt(beta)
-        //
-        // apply two previous givens rotation to new column:
-        // delta = sin_prev * gamma  // 0 if iter = 0, 1
-        // tmp_d = gamma
-        // tmp_a = alpha
-        // gamma = cos_prev * cos * tmp_d + sin * tmp_a  // 0 if iter = 0
-        // alpha = -conj(sin) * cos_prev * tmp_d + cos * tmp_a
-        //
-        // compute and apply new Givens rotation:
-        // sin_prev = sin
-        // cos_prev = cos
-        // cos, sin = givens_rot(alpha, beta)
-        // alpha = cos * alpha + sin * beta
-        //
-        // apply new Givens rotation to eta:
-        // eta = eta_next
-        // eta_next = -conj(sin) * eta
-        //
-        // update the squared residual norm approximation:
-        // tau = abs(sin)^2 * tau
-        exec->run(minres::make_step_1(
-            gko::detail::get_local(alpha)->get_device_view(),
-            gko::detail::get_local(beta)->get_device_view(),
-            gko::detail::get_local(gamma)->get_device_view(),
-            gko::detail::get_local(delta)->get_device_view(),
-            gko::detail::get_local(cos_prev)->get_device_view(),
-            gko::detail::get_local(cos)->get_device_view(),
-            gko::detail::get_local(sin_prev)->get_device_view(),
-            gko::detail::get_local(sin)->get_device_view(),
-            gko::detail::get_local(eta)->get_device_view(),
-            gko::detail::get_local(eta_next)->get_device_view(),
-            gko::detail::get_local(tau)->get_device_view(), stop_status));
-
-
-        // update vectors
-        // update search direction and solution:
-        // swap(p, p_prev)
-        // p = (z - gamma * p_prev - delta * p) / alpha
-        // x = x + cos * eta * p
-        //
-        // finish Lanzcos:
-        // q_prev = v
-        // q_tmp = q
-        // q = v / beta
-        // v = q_tmp * beta
-        // z = z_tilde / beta
-        //
-        // store previous beta in gamma:
-        // gamma = beta
-        swap(p, p_prev);
-        exec->run(minres::make_step_2(
-            gko::detail::get_local(dense_x)->get_device_view(),
-            gko::detail::get_local(p)->get_device_view(),
-            gko::detail::get_local(p_prev)->get_const_device_view(),
-            gko::detail::get_local(z)->get_device_view(),
-            gko::detail::get_local(z_tilde)->get_const_device_view(),
-            gko::detail::get_local(q)->get_device_view(),
-            gko::detail::get_local(q_prev)->get_device_view(),
-            gko::detail::get_local(v)->get_device_view(),
-            gko::detail::get_local(alpha)->get_const_device_view(),
-            gko::detail::get_local(beta)->get_const_device_view(),
-            gko::detail::get_local(gamma)->get_const_device_view(),
-            gko::detail::get_local(delta)->get_const_device_view(),
-            gko::detail::get_local(cos)->get_const_device_view(),
-            gko::detail::get_local(eta)->get_const_device_view(), stop_status));
-        swap(gamma, beta);
-    }
-}
-
-
-template <typename ValueType>
-void Minres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                   const LinOp* beta, LinOp* x) const
+void Minres<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                   const AbstractMultiVector* b,
+                                   const AbstractMultiVector* beta,
+                                   AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
-        },
-        alpha, b, beta, x);
+    LinOp::apply_impl(alpha, b, beta, x);
 }
 
 

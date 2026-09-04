@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -101,8 +101,8 @@ std::string encode_parameters(const char* precond_name)
 
 
 struct preconditioner_benchmark_state {
-    std::unique_ptr<gko::LinOp> x;
-    std::unique_ptr<gko::LinOp> b;
+    std::unique_ptr<gko::AbstractMultiVector> x;
+    std::unique_ptr<gko::AbstractMultiVector> b;
     std::shared_ptr<const gko::LinOp> system_matrix;
 };
 

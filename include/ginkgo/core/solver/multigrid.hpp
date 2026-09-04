@@ -16,7 +16,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -434,20 +433,25 @@ public:
                                      config::make_type_descriptor<>());
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
-    void apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
+    void apply_with_initial_guess_impl(const AbstractMultiVector* b,
+                                       AbstractMultiVector* x,
                                        initial_guess_mode guess) const override;
 
-    void apply_with_initial_guess_impl(const LinOp* alpha, const LinOp* b,
-                                       const LinOp* beta, LinOp* x,
+    void apply_with_initial_guess_impl(const AbstractMultiVector* alpha,
+                                       const AbstractMultiVector* b,
+                                       const AbstractMultiVector* beta,
+                                       AbstractMultiVector* x,
                                        initial_guess_mode guess) const override;
 
-    template <typename VectorType>
-    void apply_dense_impl(const VectorType* b, VectorType* x,
+    void apply_dense_impl(const AbstractMultiVector* b, AbstractMultiVector* x,
                           initial_guess_mode guess) const;
 
     /**

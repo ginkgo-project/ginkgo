@@ -14,15 +14,6 @@
 #include "core/test/utils/dummy_vector.hpp"
 
 
-class ScalarVector : public DummyVector, public gko::matrix::MultiVector<> {
-public:
-    ScalarVector(std::shared_ptr<const gko::Executor> exec,
-                 gko::dim<2> size = {})
-        : DummyVector(exec, size), MultiVector<>(exec, size)
-    {}
-};
-
-
 class TrackingVector : public AbstractDummyVector<TrackingVector> {
 public:
     enum class function {
@@ -276,12 +267,14 @@ private:
 
 class AbstractMultiVector : public ::testing::Test {
 protected:
+    using ScalarVector = gko::matrix::MultiVector<>;
+
     AbstractMultiVector()
         : exec(gko::ReferenceExecutor::create()),
           vector(TrackingVector::create(exec, {2, 3}, gko::precision::fp64)),
           other(DummyVector::create(exec, {2, 3}, gko::precision::fp64)),
           result(DummyVector::create(exec, {1, 3}, gko::precision::fp64)),
-          alpha(std::make_unique<ScalarVector>(exec, gko::dim<2>{1, 1})),
+          alpha(ScalarVector::create(exec, gko::dim<2>{1, 1})),
           tmp(exec)
     {}
 
@@ -316,7 +309,6 @@ TEST_F(AbstractMultiVector, DispatchToImplementations)
     vector->get_imag(other);
     vector->fill(1.0);
 
-    auto alpha = std::make_shared<ScalarVector>(exec, gko::dim<2>{1, 1});
     vector->scale(alpha);
     vector->inv_scale(alpha);
     vector->add_scaled(alpha, other);
@@ -393,53 +385,40 @@ TEST_F(AbstractMultiVector, CreateWithTypeOfThrows)
 TEST_F(AbstractMultiVector, ComputeAbsoluteThrows)
 {
     auto wrong_vector = DummyVector::create(exec, {4, 3});
-    auto wrong_precision =
-        DummyVector::create(exec, vector->get_size(), gko::precision::fp32);
 
     EXPECT_THROW(vector->compute_absolute(wrong_vector),
                  gko::DimensionMismatch);
-    EXPECT_THROW(vector->compute_absolute(wrong_precision),
-                 gko::PrecisionError);
 }
 
 
 TEST_F(AbstractMultiVector, MakeComplexThrows)
 {
     auto wrong_vector = DummyVector::create(exec, {4, 3});
-    auto wrong_precision =
-        DummyVector::create(exec, vector->get_size(), gko::precision::fp32);
 
     EXPECT_THROW(vector->make_complex(wrong_vector), gko::DimensionMismatch);
-    EXPECT_THROW(vector->make_complex(wrong_precision), gko::PrecisionError);
 }
 
 
 TEST_F(AbstractMultiVector, GetRealThrows)
 {
     auto wrong_vector = DummyVector::create(exec, {4, 3});
-    auto wrong_precision =
-        DummyVector::create(exec, vector->get_size(), gko::precision::fp32);
 
     EXPECT_THROW(vector->get_real(wrong_vector), gko::DimensionMismatch);
-    EXPECT_THROW(vector->get_real(wrong_precision), gko::PrecisionError);
 }
 
 
 TEST_F(AbstractMultiVector, GetImagThrows)
 {
     auto wrong_vector = DummyVector::create(exec, {4, 3});
-    auto wrong_precision =
-        DummyVector::create(exec, vector->get_size(), gko::precision::fp32);
 
     EXPECT_THROW(vector->get_imag(wrong_vector), gko::DimensionMismatch);
-    EXPECT_THROW(vector->get_imag(wrong_precision), gko::PrecisionError);
 }
 
 
 TEST_F(AbstractMultiVector, ScaleThrows)
 {
-    auto wrong_cols = std::make_shared<ScalarVector>(exec, gko::dim<2>{1, 4});
-    auto wrong_rows = std::make_shared<ScalarVector>(exec, gko::dim<2>{2, 1});
+    auto wrong_cols = ScalarVector::create(exec, gko::dim<2>{1, 4});
+    auto wrong_rows = ScalarVector::create(exec, gko::dim<2>{2, 1});
     auto wrong_alpha = DummyVector::create(exec, gko::dim<2>{2, 1});
 
     EXPECT_THROW(vector->scale(wrong_cols), gko::DimensionMismatch);
@@ -450,8 +429,8 @@ TEST_F(AbstractMultiVector, ScaleThrows)
 
 TEST_F(AbstractMultiVector, InvScaleThrows)
 {
-    auto wrong_cols = std::make_shared<ScalarVector>(exec, gko::dim<2>{1, 4});
-    auto wrong_rows = std::make_shared<ScalarVector>(exec, gko::dim<2>{2, 1});
+    auto wrong_cols = ScalarVector::create(exec, gko::dim<2>{1, 4});
+    auto wrong_rows = ScalarVector::create(exec, gko::dim<2>{2, 1});
     auto wrong_alpha = DummyVector::create(exec, gko::dim<2>{2, 1});
 
     EXPECT_THROW(vector->inv_scale(wrong_cols), gko::DimensionMismatch);
@@ -462,8 +441,8 @@ TEST_F(AbstractMultiVector, InvScaleThrows)
 
 TEST_F(AbstractMultiVector, AddScaledThrows)
 {
-    auto wrong_cols = std::make_shared<ScalarVector>(exec, gko::dim<2>{1, 4});
-    auto wrong_rows = std::make_shared<ScalarVector>(exec, gko::dim<2>{2, 1});
+    auto wrong_cols = ScalarVector::create(exec, gko::dim<2>{1, 4});
+    auto wrong_rows = ScalarVector::create(exec, gko::dim<2>{2, 1});
     auto wrong_alpha = DummyVector::create(exec, gko::dim<2>{2, 1});
     auto wrong_other = DummyVector::create(exec, gko::dim<2>{3, 2});
 
@@ -477,8 +456,8 @@ TEST_F(AbstractMultiVector, AddScaledThrows)
 
 TEST_F(AbstractMultiVector, SubScaledThrows)
 {
-    auto wrong_cols = std::make_shared<ScalarVector>(exec, gko::dim<2>{1, 4});
-    auto wrong_rows = std::make_shared<ScalarVector>(exec, gko::dim<2>{2, 1});
+    auto wrong_cols = ScalarVector::create(exec, gko::dim<2>{1, 4});
+    auto wrong_rows = ScalarVector::create(exec, gko::dim<2>{2, 1});
     auto wrong_alpha = DummyVector::create(exec, gko::dim<2>{2, 1});
     auto wrong_other = DummyVector::create(exec, gko::dim<2>{3, 2});
 

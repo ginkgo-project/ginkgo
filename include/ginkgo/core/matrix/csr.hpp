@@ -944,27 +944,17 @@ public:
      * Scales the matrix with a scalar.
      *
      * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
-     * MultiVector.
+     *               MultiVector matrix.
      */
-    void scale(ptr_param<const LinOp> alpha)
-    {
-        auto exec = this->get_executor();
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        this->scale_impl(make_temporary_clone(exec, alpha).get());
-    }
+    void scale(ptr_param<const AbstractMultiVector> alpha);
 
     /**
      * Scales the matrix with the inverse of a scalar.
      *
      * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
-     * 1x1 MultiVector.
+     *               1x1 MultiVector matrix.
      */
-    void inv_scale(ptr_param<const LinOp> alpha)
-    {
-        auto exec = this->get_executor();
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
-    }
+    void inv_scale(ptr_param<const AbstractMultiVector> alpha);
 
     void validate_data() const override;
 
@@ -1163,10 +1153,13 @@ protected:
         array<index_type> row_ptrs,
         csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     /**
      * Computes srow. It should be run after changing any row_ptrs_ value.
@@ -1179,7 +1172,7 @@ protected:
      * @note  Other implementations of Csr should override this function
      *        instead of scale(const LinOp *alpha).
      */
-    virtual void scale_impl(const LinOp* alpha);
+    virtual void scale_impl(const AbstractMultiVector* alpha);
 
     /**
      * @copydoc inv_scale(const LinOp *)
@@ -1187,7 +1180,7 @@ protected:
      * @note  Other implementations of Csr should override this function
      *        instead of inv_scale(const LinOp *alpha).
      */
-    virtual void inv_scale_impl(const LinOp* alpha);
+    virtual void inv_scale_impl(const AbstractMultiVector* alpha);
 
     /**
      * Returns the actual strategy. When the strategy is automatic, this
@@ -1206,7 +1199,8 @@ private:
     array<index_type> srow_;
     index_type max_nnz_per_row_;
 
-    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
+    void add_scaled_identity_impl(const AbstractMultiVector* a,
+                                  const AbstractMultiVector* b) override;
 };
 
 
