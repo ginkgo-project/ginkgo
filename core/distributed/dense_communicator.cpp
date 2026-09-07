@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: 2024 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2024 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/distributed/dense_communicator.hpp"
+
+#include <numeric>
 
 namespace gko {
 namespace experimental {
@@ -24,8 +26,17 @@ DenseCommunicator::DenseCommunicator(communicator base)
       recv_sizes_(get_comm_size_safe(comm_)),
       recv_offsets_(get_comm_size_safe(comm_) + 1),
       send_sizes_(get_comm_size_safe(comm_)),
-      send_offsets_(get_comm_size_safe(comm_) + 1)
-{}
+      send_offsets_(get_comm_size_safe(comm_) + 1),
+      send_target_ids_(get_comm_size_safe(comm_)),
+      recv_target_ids_(get_comm_size_safe(comm_))
+{
+    // A dense exchange talks to every rank in order, so both patterns are
+    // simply [0, comm.size()).
+    std::iota(send_target_ids_.begin(), send_target_ids_.end(),
+              comm_index_type{});
+    std::iota(recv_target_ids_.begin(), recv_target_ids_.end(),
+              comm_index_type{});
+}
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
@@ -88,6 +99,10 @@ DenseCommunicator& DenseCommunicator::operator=(DenseCommunicator&& other)
             std::exchange(other.recv_sizes_, std::vector<comm_index_type>{});
         recv_offsets_ =
             std::exchange(other.recv_offsets_, std::vector<comm_index_type>{0});
+        send_target_ids_ = std::exchange(other.send_target_ids_,
+                                         std::vector<comm_index_type>{});
+        recv_target_ids_ = std::exchange(other.recv_target_ids_,
+                                         std::vector<comm_index_type>{});
     }
     return *this;
 }
@@ -119,6 +134,32 @@ DenseCommunicator::create_with_same_type(communicator base,
             return std::make_unique<DenseCommunicator>(base, *imap);
         },
         imap);
+}
+
+
+const std::vector<comm_index_type>& DenseCommunicator::get_send_target_ids()
+    const
+{
+    return send_target_ids_;
+}
+
+
+const std::vector<comm_index_type>& DenseCommunicator::get_send_sizes() const
+{
+    return send_sizes_;
+}
+
+
+const std::vector<comm_index_type>& DenseCommunicator::get_recv_target_ids()
+    const
+{
+    return recv_target_ids_;
+}
+
+
+const std::vector<comm_index_type>& DenseCommunicator::get_recv_sizes() const
+{
+    return recv_sizes_;
 }
 
 

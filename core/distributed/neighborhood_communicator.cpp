@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -82,28 +82,48 @@ communicator create_neighborhood_comm(
 }
 
 
+const std::vector<comm_index_type>&
+NeighborhoodCommunicator::get_send_target_ids() const
+{
+    return send_target_ids_;
+}
+
+
+const std::vector<comm_index_type>& NeighborhoodCommunicator::get_send_sizes()
+    const
+{
+    return send_sizes_;
+}
+
+
+const std::vector<comm_index_type>&
+NeighborhoodCommunicator::get_recv_target_ids() const
+{
+    return recv_target_ids_;
+}
+
+
+const std::vector<comm_index_type>& NeighborhoodCommunicator::get_recv_sizes()
+    const
+{
+    return recv_sizes_;
+}
+
+
 std::unique_ptr<CollectiveCommunicator>
 NeighborhoodCommunicator::create_inverse() const
 {
     auto base_comm = this->get_base_communicator();
-    comm_index_type num_sources;
-    comm_index_type num_destinations;
-    comm_index_type weighted;
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_neighbors_count(
-        comm_.get(), &num_sources, &num_destinations, &weighted));
-
-    std::vector<comm_index_type> sources(num_sources);
-    std::vector<comm_index_type> destinations(num_destinations);
-    GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_neighbors(
-        comm_.get(), num_sources, sources.data(), MPI_UNWEIGHTED,
-        num_destinations, destinations.data(), MPI_UNWEIGHTED));
 
     auto inv = std::make_unique<NeighborhoodCommunicator>(base_comm);
-    inv->comm_ = create_neighborhood_comm(base_comm, destinations, sources);
+    inv->comm_ =
+        create_neighborhood_comm(base_comm, send_target_ids_, recv_target_ids_);
     inv->send_sizes_ = recv_sizes_;
     inv->send_offsets_ = recv_offsets_;
+    inv->send_target_ids_ = recv_target_ids_;
     inv->recv_sizes_ = send_sizes_;
     inv->recv_offsets_ = send_offsets_;
+    inv->recv_target_ids_ = send_target_ids_;
     return inv;
 }
 
@@ -188,6 +208,10 @@ NeighborhoodCommunicator& NeighborhoodCommunicator::operator=(
             std::exchange(other.recv_sizes_, std::vector<comm_index_type>{});
         recv_offsets_ =
             std::exchange(other.recv_offsets_, std::vector<comm_index_type>{0});
+        send_target_ids_ = std::exchange(other.send_target_ids_,
+                                         std::vector<comm_index_type>{});
+        recv_target_ids_ = std::exchange(other.recv_target_ids_,
+                                         std::vector<comm_index_type>{});
     }
     return *this;
 }
@@ -242,8 +266,9 @@ NeighborhoodCommunicator::NeighborhoodCommunicator(
     }
     auto send_envelope =
         communicate_inverse_envelope(exec, base, recv_target_ids, recv_sizes_);
-    const auto& send_target_ids = std::get<0>(send_envelope);
+    send_target_ids_ = std::get<0>(send_envelope);
     send_sizes_ = std::move(std::get<1>(send_envelope));
+    recv_target_ids_ = recv_target_ids;
 
     send_offsets_.resize(send_sizes_.size() + 1);
     std::partial_sum(send_sizes_.begin(), send_sizes_.end(),
@@ -251,7 +276,7 @@ NeighborhoodCommunicator::NeighborhoodCommunicator(
     std::partial_sum(recv_sizes_.begin(), recv_sizes_.end(),
                      recv_offsets_.begin() + 1);
 
-    comm_ = create_neighborhood_comm(base, recv_target_ids, send_target_ids);
+    comm_ = create_neighborhood_comm(base, recv_target_ids, send_target_ids_);
 }
 
 

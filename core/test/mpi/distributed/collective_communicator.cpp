@@ -1,6 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
+
+#include <map>
+#include <numeric>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -263,4 +267,97 @@ TYPED_TEST(CollectiveCommunicator, CanCommunicateRoundTrip)
         .wait();
 
     GKO_ASSERT_ARRAY_EQ(send_buffers[this->rank], round_trip);
+}
+
+
+// The communication pattern is exposed in the concrete communicator's own
+// order (by rank for a dense pattern, by neighbor for a neighborhood one), so
+// these tests compare it as a rank -> count mapping, which is well defined for
+// both. Entries of size zero are dropped: a dense pattern lists every rank,
+// a neighborhood one only its neighbors.
+namespace {
+
+
+std::map<comm_index_type, comm_index_type> pattern_by_rank(
+    const std::vector<comm_index_type>& target_ids,
+    const std::vector<comm_index_type>& sizes)
+{
+    std::map<comm_index_type, comm_index_type> pattern;
+    for (std::size_t i = 0; i < target_ids.size(); ++i) {
+        if (sizes[i] != 0) {
+            pattern[target_ids[i]] = sizes[i];
+        }
+    }
+    return pattern;
+}
+
+
+}  // namespace
+
+
+TYPED_TEST(CollectiveCommunicator, PatternSizesSumToTotals)
+{
+    auto spcomm = this->create_default_comm();
+
+    auto send_ids = spcomm.get_send_target_ids();
+    auto send_sizes = spcomm.get_send_sizes();
+    auto recv_ids = spcomm.get_recv_target_ids();
+    auto recv_sizes = spcomm.get_recv_sizes();
+
+    ASSERT_EQ(send_ids.size(), send_sizes.size());
+    ASSERT_EQ(recv_ids.size(), recv_sizes.size());
+    ASSERT_EQ(std::accumulate(send_sizes.begin(), send_sizes.end(),
+                              comm_index_type{}),
+              spcomm.get_send_size());
+    ASSERT_EQ(std::accumulate(recv_sizes.begin(), recv_sizes.end(),
+                              comm_index_type{}),
+              spcomm.get_recv_size());
+}
+
+
+TYPED_TEST(CollectiveCommunicator, PatternMatchesIndexMap)
+{
+    auto spcomm = this->create_default_comm();
+    // Derived from the fixture's recv_connections against a uniform partition
+    // of 18 indices over 6 ranks, i.e. rank j owns [3j, 3j + 3).
+    std::array<std::map<comm_index_type, comm_index_type>, 6> expected_recv{
+        {{{1, 2}, {3, 2}},
+         {{0, 2}, {2, 1}, {4, 2}},
+         {{1, 2}, {5, 1}},
+         {{0, 2}, {4, 2}},
+         {{1, 2}, {3, 2}, {5, 2}},
+         {{2, 1}, {4, 3}}}};
+    // The send pattern is the transpose of the recv pattern.
+    std::array<std::map<comm_index_type, comm_index_type>, 6> expected_send{
+        {{{1, 2}, {3, 2}},
+         {{0, 2}, {2, 2}, {4, 2}},
+         {{1, 1}, {5, 1}},
+         {{0, 2}, {4, 2}},
+         {{1, 2}, {3, 2}, {5, 3}},
+         {{2, 1}, {4, 2}}}};
+
+    auto recv_pattern =
+        pattern_by_rank(spcomm.get_recv_target_ids(), spcomm.get_recv_sizes());
+    auto send_pattern =
+        pattern_by_rank(spcomm.get_send_target_ids(), spcomm.get_send_sizes());
+
+    ASSERT_EQ(recv_pattern, expected_recv[this->rank]);
+    ASSERT_EQ(send_pattern, expected_send[this->rank]);
+}
+
+
+TYPED_TEST(CollectiveCommunicator, InverseSwapsPattern)
+{
+    auto spcomm = this->create_default_comm();
+
+    auto inverse = spcomm.create_inverse();
+
+    ASSERT_EQ(
+        pattern_by_rank(inverse->get_send_target_ids(),
+                        inverse->get_send_sizes()),
+        pattern_by_rank(spcomm.get_recv_target_ids(), spcomm.get_recv_sizes()));
+    ASSERT_EQ(
+        pattern_by_rank(inverse->get_recv_target_ids(),
+                        inverse->get_recv_sizes()),
+        pattern_by_rank(spcomm.get_send_target_ids(), spcomm.get_send_sizes()));
 }
