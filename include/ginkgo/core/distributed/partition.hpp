@@ -118,6 +118,21 @@ public:
     comm_index_type get_num_parts() const noexcept { return num_parts_; }
 
     /**
+     * Checks whether this partition describes the same distribution as
+     * another one, i.e. both span the same global size and assign the same
+     * ranges to the same parts.
+     *
+     * Comparing two distinct partitions that live on a device executor
+     * requires copying their range data to the host, so this is not a cheap
+     * operation. Comparing a partition with itself is free.
+     *
+     * @param other  the partition to compare against.
+     *
+     * @return  true if both partitions describe the same distribution.
+     */
+    bool equals(const Partition& other) const;
+
+    /**
      * Returns the number of empty parts within this partition.
      *
      * @return number of empty parts.

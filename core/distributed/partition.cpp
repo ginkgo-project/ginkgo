@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/distributed/partition.hpp"
 
+#include <algorithm>
+
 #include "core/base/array_access.hpp"
 #include "core/distributed/partition_kernels.hpp"
 
@@ -164,6 +166,33 @@ bool Partition<LocalIndexType, GlobalIndexType>::has_ordered_parts() const
     } else {
         return false;
     }
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+bool Partition<LocalIndexType, GlobalIndexType>::equals(
+    const Partition& other) const
+{
+    // The common case is comparing a partition against itself, which needs no
+    // data access at all.
+    if (this == &other) {
+        return true;
+    }
+    if (this->get_size() != other.get_size() ||
+        this->get_num_ranges() != other.get_num_ranges()) {
+        return false;
+    }
+    // The range data may live on a device, so compare it on the host.
+    auto host = this->get_executor()->get_master();
+    auto this_host = make_temporary_clone(host, this);
+    auto other_host = make_temporary_clone(host, &other);
+    const auto num_ranges = this_host->get_num_ranges();
+    return std::equal(this_host->get_range_bounds(),
+                      this_host->get_range_bounds() + num_ranges + 1,
+                      other_host->get_range_bounds()) &&
+           std::equal(this_host->get_part_ids(),
+                      this_host->get_part_ids() + num_ranges,
+                      other_host->get_part_ids());
 }
 
 
