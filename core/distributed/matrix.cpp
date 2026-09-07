@@ -160,6 +160,19 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const RowGatherer<LocalIndexType>> row_gatherer_template)
+{
+    return std::unique_ptr<Matrix>{
+        new Matrix{exec, std::move(row_gatherer_template),
+                   gko::matrix::Csr<ValueType, LocalIndexType>::create(exec),
+                   gko::matrix::Csr<ValueType, LocalIndexType>::create(exec)}};
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     ptr_param<const LinOp> matrix_template)
 {
