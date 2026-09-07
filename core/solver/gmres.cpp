@@ -5,7 +5,6 @@
 #include "ginkgo/core/solver/gmres.hpp"
 
 #include <string>
-#include <vector>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -452,9 +451,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 host_stop_status.get_const_data()[i].has_stopped()) {
                 continue;
             }
-            // Negated so a non-finite norm does not count as meeting it.
-            if (!(host_residual_norm->at(0, i) <=
-                  restart_ratio * cycle_start_norm->at(0, i))) {
+            if (host_residual_norm->at(0, i) >
+                restart_ratio * cycle_start_norm->at(0, i)) {
                 return false;
             }
         }
