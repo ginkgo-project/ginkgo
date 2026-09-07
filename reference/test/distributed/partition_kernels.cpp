@@ -337,4 +337,87 @@ TYPED_TEST(Partition, IsOrderedFail)
 }
 
 
+TYPED_TEST(Partition, EqualsItself)
+{
+    using part_type = typename TestFixture::part_type;
+    using git = typename TestFixture::global_index_type;
+    auto part = part_type::build_from_contiguous(
+        this->ref, gko::array<git>{this->ref, {0, 2, 4, 6}});
+
+    ASSERT_TRUE(part->equals(*part));
+}
+
+
+TYPED_TEST(Partition, EqualsDistinctPartitionWithSameRanges)
+{
+    using part_type = typename TestFixture::part_type;
+    using git = typename TestFixture::global_index_type;
+    // Two separately built objects describing the same distribution: this is
+    // the case that actually compares the range data, since the pointer
+    // short circuit does not apply.
+    auto a = part_type::build_from_contiguous(
+        this->ref, gko::array<git>{this->ref, {0, 2, 4, 6}});
+    auto b = part_type::build_from_contiguous(
+        this->ref, gko::array<git>{this->ref, {0, 2, 4, 6}});
+
+    ASSERT_TRUE(a->equals(*b));
+    ASSERT_TRUE(b->equals(*a));
+}
+
+
+TYPED_TEST(Partition, DoesNotEqualPartitionWithDifferentBounds)
+{
+    using part_type = typename TestFixture::part_type;
+    using git = typename TestFixture::global_index_type;
+    auto a = part_type::build_from_contiguous(
+        this->ref, gko::array<git>{this->ref, {0, 2, 4, 6}});
+    auto b = part_type::build_from_contiguous(
+        this->ref, gko::array<git>{this->ref, {0, 1, 4, 6}});
+
+    ASSERT_FALSE(a->equals(*b));
+}
+
+
+TYPED_TEST(Partition, DoesNotEqualPartitionWithDifferentSize)
+{
+    using part_type = typename TestFixture::part_type;
+    using git = typename TestFixture::global_index_type;
+    auto a = part_type::build_from_contiguous(
+        this->ref, gko::array<git>{this->ref, {0, 2, 4, 6}});
+    auto b = part_type::build_from_contiguous(
+        this->ref, gko::array<git>{this->ref, {0, 2, 4, 8}});
+
+    ASSERT_FALSE(a->equals(*b));
+}
+
+
+TYPED_TEST(Partition, DoesNotEqualPartitionWithDifferentRangeCount)
+{
+    using part_type = typename TestFixture::part_type;
+    using git = typename TestFixture::global_index_type;
+    auto a = part_type::build_from_contiguous(
+        this->ref, gko::array<git>{this->ref, {0, 2, 4, 6}});
+    auto b = part_type::build_from_contiguous(
+        this->ref, gko::array<git>{this->ref, {0, 3, 6}});
+
+    ASSERT_FALSE(a->equals(*b));
+}
+
+
+TYPED_TEST(Partition, DoesNotEqualPartitionWithSameRangesButDifferentParts)
+{
+    using part_type = typename TestFixture::part_type;
+    using git = typename TestFixture::global_index_type;
+    using ct = gko::experimental::distributed::comm_index_type;
+    // Same three ranges over [0, 6), but assigned to parts in a different
+    // order, so only the part ids distinguish them.
+    auto a = part_type::build_from_mapping(
+        this->ref, gko::array<ct>{this->ref, {0, 0, 1, 1, 2, 2}}, 3);
+    auto b = part_type::build_from_mapping(
+        this->ref, gko::array<ct>{this->ref, {0, 0, 2, 2, 1, 1}}, 3);
+
+    ASSERT_FALSE(a->equals(*b));
+}
+
+
 }  // namespace

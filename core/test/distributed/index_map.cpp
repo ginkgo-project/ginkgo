@@ -175,3 +175,37 @@ TYPED_TEST(IndexMap, CanMoveAssign)
     assert_collection_eq(imap.get_remote_local_idxs(),
                          gko::segmented_array<local_index_type>{this->exec});
 }
+
+
+TYPED_TEST(IndexMap, CanGetPartition)
+{
+    using map_type = typename TestFixture::map_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    gko::array<global_index_type> recv_connections{this->exec, {2, 3, 5}};
+    map_type imap{this->exec, this->part, 0, recv_connections};
+
+    ASSERT_EQ(imap.get_partition(), this->part);
+}
+
+
+TYPED_TEST(IndexMap, DefaultConstructedHasNoPartition)
+{
+    using map_type = typename TestFixture::map_type;
+    map_type imap{this->exec};
+
+    ASSERT_EQ(imap.get_partition(), nullptr);
+}
+
+
+TYPED_TEST(IndexMap, CopyKeepsPartition)
+{
+    using map_type = typename TestFixture::map_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    gko::array<global_index_type> recv_connections{this->exec, {2, 3, 5}};
+    map_type imap{this->exec, this->part, 0, recv_connections};
+
+    map_type copy{imap};
+
+    ASSERT_EQ(copy.get_partition(), this->part);
+    ASSERT_EQ(imap.get_partition(), this->part);
+}

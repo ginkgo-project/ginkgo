@@ -453,6 +453,22 @@ public:
     }
 
     /**
+     * Get read access to the row gatherer used to fetch the non-local rows
+     * during an apply.
+     *
+     * Its collective communicator determines how this matrix exchanges data,
+     * and is carried over to every matrix created from it -- in particular to
+     * the one read_distributed rebuilds -- so this is how to check which
+     * exchange a matrix actually uses.
+     *
+     * @return  Shared pointer to the stored row gatherer
+     */
+    std::shared_ptr<const RowGatherer<LocalIndexType>> get_row_gatherer() const
+    {
+        return row_gatherer_;
+    }
+
+    /**
      * @deprecated Use get_diag_matrix() instead.
      */
     GKO_DEPRECATED("use get_diag_matrix() instead")
