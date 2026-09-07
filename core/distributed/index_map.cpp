@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -66,6 +66,15 @@ std::shared_ptr<const Executor>
 index_map<LocalIndexType, GlobalIndexType>::get_executor() const
 {
     return exec_;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+std::shared_ptr<
+    const typename index_map<LocalIndexType, GlobalIndexType>::partition_type>
+index_map<LocalIndexType, GlobalIndexType>::get_partition() const
+{
+    return partition_;
 }
 
 
