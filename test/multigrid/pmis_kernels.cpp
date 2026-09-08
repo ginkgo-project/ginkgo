@@ -4,28 +4,21 @@
 
 #include "core/multigrid/pmis_kernels.hpp"
 
-#include <fstream>
+#include <cmath>
 #include <random>
-#include <string>
+#include <stdexcept>
+#include <utility>
 
 #include <gtest/gtest.h>
 
-#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/row_gatherer.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
-#include <ginkgo/core/multigrid/pmis.hpp>
-#include <ginkgo/core/stop/combined.hpp>
-#include <ginkgo/core/stop/iteration.hpp>
-#include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
-#include "core/test/utils/unsort_matrix.hpp"
 #include "core/utils/matrix_utils.hpp"
 #include "test/utils/common_fixture.hpp"
 
@@ -122,7 +115,6 @@ protected:
             ref, num, status_ptr, coarse_map.get_data());
         gko::kernels::reference::components::prefix_sum_nonnegative(
             ref, coarse_map.get_data(), coarse_map.get_size());
-        auto prolong_nnz = prolong_row_ptrs.get_const_data()[num];
     }
 
     std::default_random_engine rand_engine;
