@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -743,7 +743,7 @@ public:
 
     constexpr transform_iterator& operator++()
     {
-        it_++;
+        ++it_;
         return *this;
     }
 
@@ -756,7 +756,7 @@ public:
 
     constexpr transform_iterator& operator--()
     {
-        it_--;
+        --it_;
         return *this;
     }
 
@@ -831,7 +831,7 @@ public:
 
 private:
     IteratorType it_;
-    TransformFn transform_;
+    copy_assignable<TransformFn> transform_;
 };
 
 
