@@ -125,6 +125,13 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        /**
+         * `weight_symmetrization` decides whether to symmetrize the absolute
+         * weight matrix. When it is true, the weight matrix is (abs(mtx) +
+         * abs(mtx)')/2. Otherwise, the weight matrix is abs(mtx).
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(weight_symmetrization, true);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

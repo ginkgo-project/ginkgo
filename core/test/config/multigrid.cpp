@@ -56,6 +56,8 @@ struct Pgm : MultigridLevelConfigTest<gko::multigrid::Pgm<float, int>,
         param.with_deterministic(true);
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
+        config_map["weight_symmetrization"] = pnode{false};
+        param.with_weight_symmetrization(false);
     }
 
     template <typename AnswerType>
@@ -69,6 +71,8 @@ struct Pgm : MultigridLevelConfigTest<gko::multigrid::Pgm<float, int>,
                   ans_param.max_unassigned_ratio);
         ASSERT_EQ(res_param.deterministic, ans_param.deterministic);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.weight_symmetrization,
+                  ans_param.weight_symmetrization);
     }
 };
 

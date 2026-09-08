@@ -506,4 +506,62 @@ TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
 }
 
 
+TYPED_TEST(Pgm, GenerateMgLevelWithoutSymmetrization)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    using SparsityCsr = typename TestFixture::SparsityCsr;
+    using MgLevel = typename TestFixture::MgLevel;
+    using RowGatherer = typename TestFixture::RowGatherer;
+    auto mglevel = MgLevel::build()
+                       .with_max_iterations(2u)
+                       .with_max_unassigned_ratio(0.1)
+                       .on(this->exec);
+    /* this matrix will generate the same weight matrix without symmetrization
+     * as this->fine, so the prolong and restriction will be the same.
+     *
+     *  5 -3   -3    0    0
+     * -3  5    0   -2.5 -1.5
+     * -3  0    5    0   -1.5
+     *  0 -2.5  0    5    0
+     *  0 -1.5 -1.5  0    5
+     */
+    auto matrix = gko::share(Mtx::create(this->exec));
+    matrix->read({{5, 5},
+                  {{0, 0, 5},
+                   {0, 1, -3},
+                   {0, 2, -3},
+                   {1, 0, -3},
+                   {1, 1, 5},
+                   {1, 3, -2.5},
+                   {1, 4, -1.5},
+                   {2, 0, -3},
+                   {2, 2, 5},
+                   {2, 4, -1.5},
+                   {3, 1, -2.5},
+                   {3, 3, 5},
+                   {4, 1, -1.5},
+                   {4, 2, -1.5},
+                   {4, 4, 5}}});
+    auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
+    // 0-2-4, 1-3
+    prolong_op->read(
+        {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
+    auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
+
+    auto coarse_fine = mglevel->generate(matrix);
+    auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
+    auto row_gather_view = gko::array<index_type>::const_view(
+        this->exec, row_gatherer->get_size()[0],
+        row_gatherer->get_const_row_idxs());
+    auto expected_row_gather =
+        gko::array<index_type>(this->exec, {0, 1, 0, 1, 0});
+
+    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
+                        restrict_op, r<value_type>::value);
+    GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
+}
+
+
 }  // namespace
