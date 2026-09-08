@@ -40,9 +40,10 @@ constexpr bool cuda_has_int64_spgemm = false;
 
 
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
-GKO_REGISTER_OPERATION(separate_diag_off_diag_local_rows,
-                       distributed_matrix::separate_diag_off_diag_local_rows);
-GKO_REGISTER_OPERATION(compress_columns, distributed_matrix::compress_columns);
+GKO_REGISTER_OPERATION(separate_local_nonlocal_columns,
+                       distributed_matrix::separate_local_nonlocal_columns);
+GKO_REGISTER_OPERATION(unique_nonlocal_columns,
+                       distributed_matrix::unique_nonlocal_columns);
 
 
 // Turns a per-rank counts vector into the corresponding exclusive-prefix-sum
@@ -216,10 +217,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
             host, b_ptr->get_diag_matrix().get(),
             b_ptr->get_off_diag_matrix().get(), b_ptr->imap_);
 
-    // A's imap_ gives the remote global column indices (= B rows) this rank
-    // needs and their owner ranks.
+    // A's imap_ gives the remote columns (= B rows) this rank needs, grouped
+    // by owner rank. get_remote_local_idxs() holds those rows already
+    // expressed in their *owner's* local numbering, so requesting them by that
+    // index lets the owner index its rows directly: no global ids on the wire
+    // and no reverse mapping on the receiving side. This is only valid because
+    // A's column partition is required to equal B's row partition, which is
+    // checked above.
     const auto& remote_target_ids = this->imap_.get_remote_target_ids();
-    const auto& remote_global_idxs = this->imap_.get_remote_global_idxs();
+    const auto& remote_local_idxs = this->imap_.get_remote_local_idxs();
     auto n_remote_targets = static_cast<int>(remote_target_ids.get_size());
 
     // These index-map arrays live on the index map's executor; copy them to
@@ -227,15 +233,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     auto remote_target_ids_host =
         make_temporary_clone(host, &remote_target_ids);
     auto remote_offsets_host =
-        make_temporary_clone(host, &remote_global_idxs.get_offsets());
+        make_temporary_clone(host, &remote_local_idxs.get_offsets());
     auto remote_target_ids_ptr = remote_target_ids_host->get_const_data();
     auto remote_offsets_ptr = remote_offsets_host->get_const_data();
-    array<GlobalIndexType> remote_flat_host(host,
-                                            remote_global_idxs.get_size());
-    if (remote_global_idxs.get_size() > 0) {
-        host->copy_from(remote_global_idxs.get_executor(),
-                        remote_global_idxs.get_size(),
-                        remote_global_idxs.get_const_flat_data(),
+    array<LocalIndexType> remote_flat_host(host, remote_local_idxs.get_size());
+    if (remote_local_idxs.get_size() > 0) {
+        host->copy_from(remote_local_idxs.get_executor(),
+                        remote_local_idxs.get_size(),
+                        remote_local_idxs.get_const_flat_data(),
                         remote_flat_host.get_data());
     }
     auto remote_flat = remote_flat_host.get_const_data();
@@ -258,9 +263,9 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     int total_recv_rows =
         recv_row_offsets[nprocs - 1] + recv_row_counts[nprocs - 1];
 
-    // Pack the requested global row indices, grouped by owner rank.
-    auto total_send_rows = static_cast<int>(remote_global_idxs.get_size());
-    gko::vector<GlobalIndexType> send_row_idxs(total_send_rows, host);
+    // Pack the requested rows, grouped by owner rank.
+    auto total_send_rows = static_cast<int>(remote_local_idxs.get_size());
+    gko::vector<LocalIndexType> send_row_idxs(total_send_rows, host);
     for (int t = 0; t < n_remote_targets; ++t) {
         auto target_rank = remote_target_ids_ptr[t];
         auto seg_begin = remote_offsets_ptr[t];
@@ -269,10 +274,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
                   send_row_idxs.data() + send_row_offsets[target_rank]);
     }
 
-    // Exchange the actual row index requests
-    gko::vector<GlobalIndexType> recv_row_idxs(total_recv_rows, host);
+    // Exchange the row requests. What comes back is already indexed into this
+    // rank's local B rows.
+    gko::vector<LocalIndexType> recv_local_rows(total_recv_rows, host);
     comm.all_to_all_v(host, send_row_idxs.data(), send_row_counts.data(),
-                      send_row_offsets.data(), recv_row_idxs.data(),
+                      send_row_offsets.data(), recv_local_rows.data(),
                       recv_row_counts.data(), recv_row_offsets.data());
 
     // Reply to each requested row with its nnz count, then its column indices
@@ -283,27 +289,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
 
     auto b_local_nrows = static_cast<GlobalIndexType>(b_merged->get_size()[0]);
 
-    // Map each requested global B-row id to this rank's local row via A's
-    // imap_ (invalid_index if not owned here). map_to_local runs on the index
-    // map's executor, so place the input there and bring the result to host.
-    auto recv_row_idxs_host = array<GlobalIndexType>(
-        host, recv_row_idxs.begin(), recv_row_idxs.end());
-    auto recv_row_idxs_dev = make_temporary_clone(exec, &recv_row_idxs_host);
-    const auto recv_local_rows_map =
-        this->imap_.map_to_local(*recv_row_idxs_dev, index_space::local);
-    auto recv_local_rows_map_host =
-        make_temporary_clone(host, &recv_local_rows_map);
-    auto recv_local_rows_map_ptr = recv_local_rows_map_host->get_const_data();
-
-    // Local row and nnz count for each requested row.
-    gko::vector<GlobalIndexType> recv_local_rows(total_recv_rows, host);
+    // nnz count for each requested row. No mapping step: the requests already
+    // arrived as local row indices.
     gko::vector<int> send_nnz_counts(total_recv_rows, host);
     for (int i = 0; i < total_recv_rows; ++i) {
-        auto mapped = recv_local_rows_map_ptr[i];
-        auto local_row = (mapped == invalid_index<LocalIndexType>())
-                             ? GlobalIndexType{-1}
-                             : static_cast<GlobalIndexType>(mapped);
-        recv_local_rows[i] = local_row;
+        const auto local_row = static_cast<GlobalIndexType>(recv_local_rows[i]);
         if (local_row >= 0 && local_row < b_local_nrows) {
             send_nnz_counts[i] = static_cast<int>(b_row_ptrs[local_row + 1] -
                                                   b_row_ptrs[local_row]);
@@ -348,7 +338,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     {
         int pos = 0;
         for (int i = 0; i < total_recv_rows; ++i) {
-            auto local_row = recv_local_rows[i];
+            const auto local_row =
+                static_cast<GlobalIndexType>(recv_local_rows[i]);
             if (local_row >= 0 && local_row < b_local_nrows) {
                 auto row_begin = b_row_ptrs[local_row];
                 auto row_end = b_row_ptrs[local_row + 1];
@@ -459,17 +450,35 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     }
 
     // The local spgemm runs with LocalIndexType (32-bit) indices, which every
-    // backend supports (rocSPARSE has no 64-bit spgemm). Compress B_augmented's
-    // global columns to a compact local space on the executor;
-    // b_aug_distinct_cols maps each compact index back to its global column for
-    // the reassemble below.
+    // backend supports (rocSPARSE has no 64-bit spgemm), so B_augmented's
+    // global columns have to be brought into a local space.
+    //
+    // That space is an index map over B's column partition, which is exactly
+    // what C's column index map has to be: its local part is the columns this
+    // rank owns and its non-local part the remote ones, so after the product
+    // the diagonal/off-diagonal split is a comparison against the local size
+    // and the off-diagonal columns are already non-local indices. Building it
+    // here rather than from C's off-diagonal entries afterwards also makes it
+    // far cheaper -- the input is B_augmented's distinct remote columns rather
+    // than one entry per off-diagonal nonzero of C.
+    //
+    // index_map treats everything handed to it as non-local, so the locally
+    // owned columns are filtered out first.
+    auto b_col_partition = b_ptr->imap_.get_partition();
     array<GlobalIndexType> b_aug_cols_dev(exec, b_aug_col_idxs.begin(),
                                           b_aug_col_idxs.end());
-    array<LocalIndexType> b_aug_col_local(exec);
-    array<GlobalIndexType> b_aug_distinct_cols(exec);
-    exec->run(make_compress_columns(b_aug_cols_dev, b_aug_col_local,
-                                    b_aug_distinct_cols));
-    const auto num_distinct_cols = b_aug_distinct_cols.get_size();
+    auto b_col_partition_dev = make_temporary_clone(exec, b_col_partition);
+    array<GlobalIndexType> b_aug_nonlocal_cols(exec);
+    exec->run(make_unique_nonlocal_columns(
+        b_aug_cols_dev, b_col_partition_dev.get(), rank, b_aug_nonlocal_cols));
+
+    c_ptr->imap_ = index_map<LocalIndexType, GlobalIndexType>(
+        exec, b_col_partition, rank, b_aug_nonlocal_cols);
+    const auto num_local_cols = c_ptr->imap_.get_local_size();
+    const auto num_column_space =
+        num_local_cols + c_ptr->imap_.get_non_local_size();
+    auto b_aug_col_local =
+        c_ptr->imap_.map_to_local(b_aug_cols_dev, index_space::combined);
 
     // The local product is stored with LocalIndexType row pointers and column
     // indices, so its nnz and dimensions must fit that type.
@@ -477,13 +486,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
         static_cast<size_type>(std::numeric_limits<LocalIndexType>::max());
     if (a_nnz > local_index_max ||
         static_cast<size_type>(b_aug_nnz) > local_index_max ||
-        num_distinct_cols > local_index_max ||
+        num_column_space > local_index_max ||
         static_cast<size_type>(b_aug_nrows) > local_index_max) {
         throw OverflowError(__FILE__, __LINE__, "LocalIndexType");
     }
 
     // Local SpGEMM (LocalIndexType). a_remapped's columns index B_augmented's
-    // rows; B_augmented's columns are the compact column space.
+    // rows; B_augmented's columns are C's combined column index space.
     gko::vector<LocalIndexType> a_row_ptrs_local(a_nrows + 1, host);
     for (GlobalIndexType i = 0; i <= a_nrows; ++i) {
         a_row_ptrs_local[i] = static_cast<LocalIndexType>(a_row_ptrs[i]);
@@ -507,14 +516,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
                                                 a_row_ptrs_local.end()));
 
     auto b_augmented = local_csr::create(
-        exec, dim<2>{static_cast<size_type>(b_aug_nrows), num_distinct_cols},
+        exec, dim<2>{static_cast<size_type>(b_aug_nrows), num_column_space},
         array<ValueType>(exec, b_aug_vals.begin(), b_aug_vals.end()),
         std::move(b_aug_col_local),
         array<LocalIndexType>(exec, b_aug_row_ptrs_local.begin(),
                               b_aug_row_ptrs_local.end()));
 
+
     auto c_local = local_csr::create(
-        exec, dim<2>{static_cast<size_type>(a_nrows), num_distinct_cols});
+        exec, dim<2>{static_cast<size_type>(a_nrows), num_column_space});
     if (a_nrows > 0) {
         // The local csr::spgemm requires column-sorted inputs.
         a_remapped->sort_by_column_index();
@@ -522,57 +532,47 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
         c_local = a_remapped->multiply(b_augmented);
     }
 
-    // Reassemble the output entirely on the executor. c_local has this rank's
-    // local rows with compact columns (indices into b_aug_distinct_cols);
-    // separate_diag_off_diag_local_rows resolves them to global columns and
-    // splits into c's diagonal (local columns) and off-diagonal (remote
-    // columns) blocks, from which we build c's column index map and row
-    // gatherer -- all with device kernels, avoiding any host round-trip.
+    // Reassemble the output entirely on the executor. c_local's columns are
+    // already in C's combined index space, so the diagonal/off-diagonal split
+    // is a comparison against the number of locally owned columns and the
+    // off-diagonal columns come out as non-local indices needing no further
+    // mapping. C's column index map was built before the product, so nothing
+    // here has to look at the partition at all.
+    //
+    // This region is profiled as three phases: "split" and "read" are device
+    // kernels, and "gatherer" is the only communication -- the collective
+    // communicator's size exchange plus RowGatherer's i_all_to_all_v.
     // Already checked for null at function entry, and this is a const member
     // function, so the partition cannot have changed since.
     auto a_row_partition = this->get_row_partition();
-    auto b_col_partition = b_ptr->imap_.get_partition();
     auto c_num_local_rows = c_local->get_size()[0];
     auto c_nnz = c_local->get_num_stored_elements();
 
-    // Per-nonzero local row index. Columns/values are read-only, so view them
-    // in place; col_map turns c_local's compact columns back into global ones.
+    // Per-nonzero local row index. Columns and values are read-only, so view
+    // them in place.
     array<LocalIndexType> local_rows(exec, c_nnz);
     exec->run(make_convert_ptrs_to_idxs(c_local->get_const_row_ptrs(),
                                         c_num_local_rows,
                                         local_rows.get_data()));
-    auto compact_cols = make_array_view(exec, c_nnz, c_local->get_col_idxs());
+    auto combined_cols = make_array_view(exec, c_nnz, c_local->get_col_idxs());
     auto col_vals = make_array_view(exec, c_nnz, c_local->get_values());
 
-    // Split into diagonal (local columns) and off-diagonal (global columns)
-    // COO blocks on the executor, keeping the local rows. b_aug_distinct_cols
-    // is the compact-to-global column map produced by the compression above.
     array<LocalIndexType> diag_rows(exec);
     array<LocalIndexType> diag_cols(exec);
     array<ValueType> diag_vals(exec);
     array<LocalIndexType> off_rows(exec);
-    array<GlobalIndexType> off_global_cols(exec);
+    array<LocalIndexType> off_local_cols(exec);
     array<ValueType> off_vals(exec);
-    auto b_col_partition_dev = make_temporary_clone(exec, b_col_partition);
-    exec->run(make_separate_diag_off_diag_local_rows(
-        local_rows, compact_cols, b_aug_distinct_cols, col_vals,
-        b_col_partition_dev.get(), rank, diag_rows, diag_cols, diag_vals,
-        off_rows, off_global_cols, off_vals));
+    exec->run(make_separate_local_nonlocal_columns(
+        local_rows, combined_cols, col_vals,
+        static_cast<LocalIndexType>(num_local_cols), diag_rows, diag_cols,
+        diag_vals, off_rows, off_local_cols, off_vals));
 
-    // C's column index map from the off-diagonal global columns, then map them
-    // to non-local indices.
     c_ptr->set_size(
         dim<2>{a_row_partition->get_size(), b_col_partition->get_size()});
-    c_ptr->imap_ = index_map<LocalIndexType, GlobalIndexType>(
-        exec, b_col_partition, rank, off_global_cols);
     c_ptr->row_partition_ = a_row_partition;
-    auto off_local_cols =
-        c_ptr->imap_.map_to_local(off_global_cols, index_space::non_local);
 
-    const auto num_local_cols =
-        static_cast<size_type>(b_col_partition->get_part_size(rank));
-    const auto num_remote_cols =
-        c_ptr->imap_.get_remote_global_idxs().get_size();
+    const auto num_remote_cols = c_ptr->imap_.get_non_local_size();
     device_matrix_data<ValueType, LocalIndexType> diag_data{
         exec, dim<2>{c_num_local_rows, num_local_cols}, std::move(diag_rows),
         std::move(diag_cols), std::move(diag_vals)};

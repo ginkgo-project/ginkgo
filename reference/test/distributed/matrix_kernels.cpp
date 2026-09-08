@@ -492,58 +492,54 @@ TYPED_TEST(Matrix, SeparateDiagOffDiagNonSquare)
 }
 
 
-TYPED_TEST(Matrix, SeparateDiagOffDiagLocalRowsSplitsByColumn)
+TYPED_TEST(Matrix, SeparateLocalNonlocalColumnsSplitsByLocalSize)
+{
+    using lit = typename TestFixture::local_index_type;
+    using vt = typename TestFixture::value_type;
+    auto ref = this->ref;
+    // Columns are already in an index map's combined space: [0, 2) are the
+    // two locally owned columns, 2 and up are non-local.
+    const lit num_local_cols = 2;
+    gko::array<lit> row_idxs{ref, {0, 1, 1, 2}};
+    gko::array<lit> col_idxs{ref, {3, 0, 4, 1}};
+    gko::array<vt> values{ref, {vt{10}, vt{20}, vt{30}, vt{40}}};
+    gko::array<lit> off_diag_col_idxs{ref};
+
+    gko::kernels::reference::distributed_matrix::
+        separate_local_nonlocal_columns(
+            ref, row_idxs, col_idxs, values, num_local_cols,
+            this->diag_row_idxs, this->diag_col_idxs, this->diag_values,
+            this->off_diag_row_idxs, off_diag_col_idxs, this->off_diag_values);
+
+    // the two entries below num_local_cols keep their column unchanged
+    GKO_ASSERT_ARRAY_EQ(this->diag_row_idxs, I<lit>({1, 2}));
+    GKO_ASSERT_ARRAY_EQ(this->diag_col_idxs, I<lit>({0, 1}));
+    GKO_ASSERT_ARRAY_EQ(this->diag_values, I<vt>({vt{20}, vt{40}}));
+    // the others are shifted down into the non-local index space
+    GKO_ASSERT_ARRAY_EQ(this->off_diag_row_idxs, I<lit>({0, 1}));
+    GKO_ASSERT_ARRAY_EQ(off_diag_col_idxs, I<lit>({1, 2}));
+    GKO_ASSERT_ARRAY_EQ(this->off_diag_values, I<vt>({vt{10}, vt{30}}));
+}
+
+
+TYPED_TEST(Matrix, UniqueNonlocalColumnsDropsOwnedAndDuplicates)
 {
     using lit = typename TestFixture::local_index_type;
     using git = typename TestFixture::global_index_type;
-    using vt = typename TestFixture::value_type;
     auto ref = this->ref;
     // columns partitioned into 3 contiguous parts of size 2 over [0,6)
     auto col_partition = gko::experimental::distributed::Partition<
         lit, git>::build_from_contiguous(ref,
                                          gko::array<git>{ref, {0, 2, 4, 6}});
-    // two nonzeros in local row 0, columns given as compact indices into
-    // col_map: compact 0 -> global col 3 (owned by part 1), compact 1 ->
-    // global col 5 (owned by part 2).
-    gko::array<lit> row_idxs{ref, {0, 0}};
-    gko::array<lit> col_idxs{ref, {0, 1}};
-    gko::array<git> col_map{ref, {3, 5}};
-    gko::array<vt> values{ref, {vt{10}, vt{20}}};
+    // part 1 owns [2, 4), so 2 and 3 have to be filtered out; the rest are
+    // deduplicated and sorted
+    gko::array<git> global_cols{ref, {5, 2, 5, 0, 3, 1, 0}};
+    gko::array<git> nonlocal_cols{ref};
 
-    gko::kernels::reference::distributed_matrix::
-        separate_diag_off_diag_local_rows(
-            ref, row_idxs, col_idxs, col_map, values, col_partition.get(),
-            /*local_part=*/1, this->diag_row_idxs, this->diag_col_idxs,
-            this->diag_values, this->off_diag_row_idxs, this->off_diag_col_idxs,
-            this->off_diag_values);
+    gko::kernels::reference::distributed_matrix::unique_nonlocal_columns(
+        ref, global_cols, col_partition.get(), /*local_part=*/1, nonlocal_cols);
 
-    // diag: the col=3 entry, local col = 3 - 2 = 1, row 0
-    GKO_ASSERT_ARRAY_EQ(this->diag_row_idxs, I<lit>({0}));
-    GKO_ASSERT_ARRAY_EQ(this->diag_col_idxs, I<lit>({1}));
-    GKO_ASSERT_ARRAY_EQ(this->diag_values, I<vt>({vt{10}}));
-    // off-diag: the col=5 entry, kept global (5), row 0
-    GKO_ASSERT_ARRAY_EQ(this->off_diag_row_idxs, I<lit>({0}));
-    GKO_ASSERT_ARRAY_EQ(this->off_diag_col_idxs, I<git>({5}));
-    GKO_ASSERT_ARRAY_EQ(this->off_diag_values, I<vt>({vt{20}}));
-}
-
-
-TYPED_TEST(Matrix, CompressColumnsBuildsCompactMap)
-{
-    using lit = typename TestFixture::local_index_type;
-    using git = typename TestFixture::global_index_type;
-    auto ref = this->ref;
-    // global columns with duplicates and gaps -> distinct {2, 5, 8}
-    gko::array<git> global_cols{ref, {5, 2, 5, 8, 2}};
-    gko::array<lit> compact_cols{ref};
-    gko::array<git> distinct_cols{ref};
-
-    gko::kernels::reference::distributed_matrix::compress_columns(
-        ref, global_cols, compact_cols, distinct_cols);
-
-    // distinct sorted unique, compact = position of each input in distinct
-    GKO_ASSERT_ARRAY_EQ(distinct_cols, I<git>({2, 5, 8}));
-    GKO_ASSERT_ARRAY_EQ(compact_cols, I<lit>({1, 0, 1, 2, 0}));
+    GKO_ASSERT_ARRAY_EQ(nonlocal_cols, I<git>({0, 1, 5}));
 }
 
 

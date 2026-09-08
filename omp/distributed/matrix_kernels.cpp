@@ -156,108 +156,89 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
 
 
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void separate_diag_off_diag_local_rows(
+template <typename ValueType, typename LocalIndexType>
+void separate_local_nonlocal_columns(
     std::shared_ptr<const DefaultExecutor> exec,
     const array<LocalIndexType>& row_idxs,
-    const array<LocalIndexType>& col_idxs,
-    const array<GlobalIndexType>& col_map, const array<ValueType>& values,
-    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
-        col_partition,
-    comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,
+    const array<LocalIndexType>& col_idxs, const array<ValueType>& values,
+    LocalIndexType num_local_cols, array<LocalIndexType>& diag_row_idxs,
     array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
     array<LocalIndexType>& off_diag_row_idxs,
-    array<GlobalIndexType>& off_diag_col_idxs,
-    array<ValueType>& off_diag_values)
+    array<LocalIndexType>& off_diag_col_idxs, array<ValueType>& off_diag_values)
 {
     auto row_ptr = row_idxs.get_const_data();
     auto col_ptr = col_idxs.get_const_data();
-    auto col_map_ptr = col_map.get_const_data();
     auto val_ptr = values.get_const_data();
-    auto col_part_ids = col_partition->get_part_ids();
     const auto nnz = col_idxs.get_size();
 
-    // per-element: is it diagonal (owned column)?
-    array<bool> is_diag{exec, nnz};
-    array<LocalIndexType> local_cols{exec, nnz};
-#pragma omp parallel for
+    size_type num_diag = 0;
+#pragma omp parallel for reduction(+ : num_diag)
     for (size_type i = 0; i < nnz; ++i) {
-        const auto global_col = col_map_ptr[col_ptr[i]];
-        auto range_id = find_range(global_col, col_partition, size_type{0});
-        bool diag = col_part_ids[range_id] == local_part;
-        is_diag.get_data()[i] = diag;
-        local_cols.get_data()[i] =
-            diag ? map_to_local(global_col, col_partition, range_id)
-                 : LocalIndexType{};
+        if (col_ptr[i] < num_local_cols) {
+            num_diag++;
+        }
     }
-    // exclusive prefix sums give each element its output slot
-    array<size_type> diag_pos{exec, nnz + 1};
-    array<size_type> off_pos{exec, nnz + 1};
-    diag_pos.get_data()[0] = 0;
-    off_pos.get_data()[0] = 0;
-    for (size_type i = 0; i < nnz;
-         ++i) {  // serial scan (nnz-cheap vs the copy)
-        diag_pos.get_data()[i + 1] =
-            diag_pos.get_data()[i] + (is_diag.get_const_data()[i] ? 1 : 0);
-        off_pos.get_data()[i + 1] =
-            off_pos.get_data()[i] + (is_diag.get_const_data()[i] ? 0 : 1);
-    }
-    const auto num_diag = diag_pos.get_const_data()[nnz];
-    const auto num_off = off_pos.get_const_data()[nnz];
+    const auto num_off = nnz - num_diag;
+
     diag_row_idxs.resize_and_reset(num_diag);
     diag_col_idxs.resize_and_reset(num_diag);
     diag_values.resize_and_reset(num_diag);
     off_diag_row_idxs.resize_and_reset(num_off);
     off_diag_col_idxs.resize_and_reset(num_off);
     off_diag_values.resize_and_reset(num_off);
-#pragma omp parallel for
+
+    // Sequential fill, so that the output keeps the input order.
+    size_type di = 0;
+    size_type oi = 0;
     for (size_type i = 0; i < nnz; ++i) {
-        if (is_diag.get_const_data()[i]) {
-            auto d = diag_pos.get_const_data()[i];
-            diag_row_idxs.get_data()[d] = row_ptr[i];
-            diag_col_idxs.get_data()[d] = local_cols.get_const_data()[i];
-            diag_values.get_data()[d] = val_ptr[i];
+        if (col_ptr[i] < num_local_cols) {
+            diag_row_idxs.get_data()[di] = row_ptr[i];
+            diag_col_idxs.get_data()[di] = col_ptr[i];
+            diag_values.get_data()[di] = val_ptr[i];
+            ++di;
         } else {
-            auto o = off_pos.get_const_data()[i];
-            off_diag_row_idxs.get_data()[o] = row_ptr[i];
-            off_diag_col_idxs.get_data()[o] = col_map_ptr[col_ptr[i]];
-            off_diag_values.get_data()[o] = val_ptr[i];
+            off_diag_row_idxs.get_data()[oi] = row_ptr[i];
+            off_diag_col_idxs.get_data()[oi] = col_ptr[i] - num_local_cols;
+            off_diag_values.get_data()[oi] = val_ptr[i];
+            ++oi;
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG_LOCAL_ROWS);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS);
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
-void compress_columns(std::shared_ptr<const DefaultExecutor> exec,
-                      const array<GlobalIndexType>& global_cols,
-                      array<LocalIndexType>& compact_cols,
-                      array<GlobalIndexType>& distinct_cols)
+void unique_nonlocal_columns(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<GlobalIndexType>& global_cols,
+    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
+        col_partition,
+    comm_index_type local_part, array<GlobalIndexType>& nonlocal_cols)
 {
     const auto n = global_cols.get_size();
     auto in = global_cols.get_const_data();
+    auto col_part_ids = col_partition->get_part_ids();
 
-    // distinct_cols = sorted unique of the input columns
-    std::vector<GlobalIndexType> distinct(in, in + n);
-    std::sort(distinct.begin(), distinct.end());
-    distinct.erase(std::unique(distinct.begin(), distinct.end()),
-                   distinct.end());
-    distinct_cols.resize_and_reset(distinct.size());
-    std::copy(distinct.begin(), distinct.end(), distinct_cols.get_data());
-
-    // compact_cols[i] = position of global_cols[i] in distinct_cols
-    compact_cols.resize_and_reset(n);
-#pragma omp parallel for
+    std::vector<GlobalIndexType> remote;
+    remote.reserve(n);
+    size_type col_range_id = 0;
     for (size_type i = 0; i < n; ++i) {
-        compact_cols.get_data()[i] = static_cast<LocalIndexType>(
-            std::lower_bound(distinct.begin(), distinct.end(), in[i]) -
-            distinct.begin());
+        col_range_id = find_range(in[i], col_partition, col_range_id);
+        if (col_part_ids[col_range_id] != local_part) {
+            remote.push_back(in[i]);
+        }
     }
+    std::sort(remote.begin(), remote.end());
+    remote.erase(std::unique(remote.begin(), remote.end()), remote.end());
+
+    nonlocal_cols.resize_and_reset(remote.size());
+    std::copy(remote.begin(), remote.end(), nonlocal_cols.get_data());
 }
 
-GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_COMPRESS_COLUMNS);
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_UNIQUE_NONLOCAL_COLUMNS);
 
 
 }  // namespace distributed_matrix

@@ -35,41 +35,50 @@ namespace kernels {
         array<ValueType>& off_diag_values)
 
 
-#define GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG_LOCAL_ROWS(                         \
-    ValueType, LocalIndexType, GlobalIndexType)                                \
-    void separate_diag_off_diag_local_rows(                                    \
+/*
+ * Splits nonzeros whose columns are already expressed in an index map's
+ * combined index space, where [0, num_local_cols) are the columns this rank
+ * owns and everything above that is a non-local column. The split is therefore
+ * a comparison rather than a partition lookup, and the off-diagonal columns
+ * come out as non-local indices directly, with no mapping step afterwards.
+ */
+#define GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS(ValueType, LocalIndexType) \
+    void separate_local_nonlocal_columns(                                      \
         std::shared_ptr<const DefaultExecutor> exec,                           \
         const array<LocalIndexType>& row_idxs,                                 \
-        const array<LocalIndexType>& col_idxs,                                 \
-        const array<GlobalIndexType>& col_map, const array<ValueType>& values, \
-        const experimental::distributed::Partition<                            \
-            LocalIndexType, GlobalIndexType>* col_partition,                   \
-        comm_index_type local_part, array<LocalIndexType>& diag_row_idxs,      \
+        const array<LocalIndexType>& col_idxs, const array<ValueType>& values, \
+        LocalIndexType num_local_cols, array<LocalIndexType>& diag_row_idxs,   \
         array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,   \
         array<LocalIndexType>& off_diag_row_idxs,                              \
-        array<GlobalIndexType>& off_diag_col_idxs,                             \
+        array<LocalIndexType>& off_diag_col_idxs,                              \
         array<ValueType>& off_diag_values)
 
 
-#define GKO_DECLARE_COMPRESS_COLUMNS(LocalIndexType, GlobalIndexType)  \
-    void compress_columns(std::shared_ptr<const DefaultExecutor> exec, \
-                          const array<GlobalIndexType>& global_cols,   \
-                          array<LocalIndexType>& compact_cols,         \
-                          array<GlobalIndexType>& distinct_cols)
+/*
+ * Collects the distinct global columns that are *not* owned by local_part, in
+ * ascending order. This is what index_map's constructor expects as its
+ * recv_connections: it treats everything it is given as non-local, so the
+ * locally owned columns have to be filtered out here.
+ */
+#define GKO_DECLARE_UNIQUE_NONLOCAL_COLUMNS(LocalIndexType, GlobalIndexType) \
+    void unique_nonlocal_columns(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        const array<GlobalIndexType>& global_cols,                           \
+        const experimental::distributed::Partition<                          \
+            LocalIndexType, GlobalIndexType>* col_partition,                 \
+        comm_index_type local_part, array<GlobalIndexType>& nonlocal_cols)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
-    using comm_index_type = experimental::distributed::comm_index_type;      \
-    template <typename ValueType, typename LocalIndexType,                   \
-              typename GlobalIndexType>                                      \
-    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG(ValueType, LocalIndexType,            \
-                                       GlobalIndexType);                     \
-    template <typename ValueType, typename LocalIndexType,                   \
-              typename GlobalIndexType>                                      \
-    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG_LOCAL_ROWS(ValueType, LocalIndexType, \
-                                                  GlobalIndexType);          \
-    template <typename LocalIndexType, typename GlobalIndexType>             \
-    GKO_DECLARE_COMPRESS_COLUMNS(LocalIndexType, GlobalIndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
+    using comm_index_type = experimental::distributed::comm_index_type;     \
+    template <typename ValueType, typename LocalIndexType,                  \
+              typename GlobalIndexType>                                     \
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG(ValueType, LocalIndexType,           \
+                                       GlobalIndexType);                    \
+    template <typename ValueType, typename LocalIndexType>                  \
+    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS(ValueType, LocalIndexType); \
+    template <typename LocalIndexType, typename GlobalIndexType>            \
+    GKO_DECLARE_UNIQUE_NONLOCAL_COLUMNS(LocalIndexType, GlobalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_matrix,
