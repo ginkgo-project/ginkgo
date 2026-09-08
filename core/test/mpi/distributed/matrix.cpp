@@ -605,10 +605,8 @@ TYPED_TEST(MatrixBuilder, ThrowsWhenWritingRectangularMatrixData)
 // exchange.
 TYPED_TEST(MatrixBuilder, CanCreateFromRowGathererTemplate)
 {
-    using value_type = typename TestFixture::value_type;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using local_index_type = typename TestFixture::local_index_type;
-    using global_index_type = typename TestFixture::global_index_type;
     using row_gatherer_type =
         gko::experimental::distributed::RowGatherer<local_index_type>;
     auto row_gatherer = gko::share(row_gatherer_type::create(
@@ -621,19 +619,6 @@ TYPED_TEST(MatrixBuilder, CanCreateFromRowGathererTemplate)
     ASSERT_EQ(mtx->get_executor(), this->ref);
     ASSERT_EQ(mtx->get_communicator(), this->comm);
     ASSERT_EQ(mtx->get_size(), gko::dim<2>{});
-    // and it is a usable matrix, not just a constructed one
-    using part_type =
-        gko::experimental::distributed::Partition<local_index_type,
-                                                  global_index_type>;
-    auto part =
-        gko::share(part_type::build_from_global_size_uniform(this->ref, 3, 6));
-    gko::matrix_data<value_type, global_index_type> data{gko::dim<2>{6, 6}};
-    for (int i = 0; i < 6; ++i) {
-        data.nonzeros.emplace_back(i, i, gko::one<value_type>());
-    }
-    mtx->read_distributed(data, part);
-
-    ASSERT_EQ(mtx->get_size(), (gko::dim<2>{6, 6}));
 }
 
 
@@ -650,10 +635,29 @@ TYPED_TEST(MatrixBuilder, DefaultMatrixUsesDenseCommunicator)
 
 
 #if !GINKGO_HAVE_OPENMPI_PRE_4_1_X
-// The point of the row-gatherer overload: the communicator type it is given is
-// what the matrix uses, and read_distributed has to preserve it when it
-// rebuilds the gatherer for the actual sparsity pattern.
-TYPED_TEST(MatrixBuilder, CreateFromRowGathererKeepsCommunicatorType)
+TYPED_TEST(MatrixBuilder, CreateFromRowGathererUsesItsCommunicatorType)
+{
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using row_gatherer_type =
+        gko::experimental::distributed::RowGatherer<local_index_type>;
+    using neighborhood_type = gko::experimental::mpi::NeighborhoodCommunicator;
+    auto row_gatherer = gko::share(row_gatherer_type::create(
+        this->ref, std::make_shared<neighborhood_type>(this->comm)));
+
+    auto mtx = dist_mtx_type::create(this->ref, row_gatherer);
+
+    ASSERT_NE(dynamic_cast<const neighborhood_type*>(
+                  mtx->get_row_gatherer()->get_collective_communicator().get()),
+              nullptr);
+}
+
+
+// read_distributed replaces the row gatherer with one built for the actual
+// sparsity pattern, which has to keep the communicator type the matrix was
+// created with. Otherwise choosing it through the create overload above
+// would have no lasting effect.
+TYPED_TEST(MatrixBuilder, ReadDistributedKeepsCommunicatorType)
 {
     using value_type = typename TestFixture::value_type;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
@@ -667,20 +671,14 @@ TYPED_TEST(MatrixBuilder, CreateFromRowGathererKeepsCommunicatorType)
                                                   global_index_type>;
     auto row_gatherer = gko::share(row_gatherer_type::create(
         this->ref, std::make_shared<neighborhood_type>(this->comm)));
-
     auto mtx = dist_mtx_type::create(this->ref, row_gatherer);
-
-    ASSERT_NE(dynamic_cast<const neighborhood_type*>(
-                  mtx->get_row_gatherer()->get_collective_communicator().get()),
-              nullptr);
-
-    // still neighborhood after read_distributed replaces the gatherer
     auto part =
         gko::share(part_type::build_from_global_size_uniform(this->ref, 3, 6));
     gko::matrix_data<value_type, global_index_type> data{gko::dim<2>{6, 6}};
     for (int i = 0; i < 6; ++i) {
         data.nonzeros.emplace_back(i, (i + 1) % 6, gko::one<value_type>());
     }
+
     mtx->read_distributed(data, part);
 
     ASSERT_NE(dynamic_cast<const neighborhood_type*>(
