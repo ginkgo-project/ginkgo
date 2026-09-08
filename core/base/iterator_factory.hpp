@@ -719,7 +719,7 @@ public:
         std::declval<
             typename std::iterator_traits<IteratorType>::reference>()));
     using pointer = value_type*;
-    using reference = value_type&;
+    using reference = value_type;  // no reference possible after transformation
     using iterator_category = std::random_access_iterator_tag;
 
     constexpr transform_iterator() = default;
