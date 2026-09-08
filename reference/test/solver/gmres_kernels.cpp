@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
@@ -770,6 +771,116 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
+                        half_tol * 1e2);
+}
+
+
+TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestartRatio)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using rc_value_type = typename TestFixture::rc_value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto gmres_factory_restart =
+        Solver::build()
+            .with_krylov_dim(4u)
+            .with_restart_ratio(rc_value_type{0.9})
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
+            .on(this->exec);
+    auto solver = gmres_factory_restart->generate(this->mtx_medium);
+    auto b = gko::initialize<Mtx>(
+        {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
+                        half_tol * 1e2);
+}
+
+
+// Gmres only rewrites its residual vector on a restart, so a change in the
+// logged residual is exactly one restart.
+template <typename ValueType>
+class restart_counter : public gko::log::Logger {
+public:
+    restart_counter() : gko::log::Logger(Logger::iteration_complete_mask) {}
+
+    void on_iteration_complete(const gko::LinOp*, const gko::LinOp*,
+                               const gko::LinOp*, const gko::size_type&,
+                               const gko::LinOp* residual, const gko::LinOp*,
+                               const gko::LinOp*,
+                               const gko::array<gko::stopping_status>*,
+                               bool) const override
+    {
+        auto dense_residual = gko::as<gko::matrix::Dense<ValueType>>(residual);
+        if (previous_) {
+            const auto size = dense_residual->get_num_stored_elements();
+            for (gko::size_type i = 0; i < size; ++i) {
+                if (previous_->get_const_values()[i] !=
+                    dense_residual->get_const_values()[i]) {
+                    ++num_restarts_;
+                    break;
+                }
+            }
+        }
+        previous_ = dense_residual->clone();
+    }
+
+    int get_num_restarts() const { return num_restarts_; }
+
+private:
+    mutable std::unique_ptr<gko::matrix::Dense<ValueType>> previous_;
+    mutable int num_restarts_{};
+};
+
+
+TYPED_TEST(Gmres, RestartRatioRestartsBeforeKrylovDim)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using rc_value_type = typename TestFixture::rc_value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    auto half_tol = std::sqrt(r<value_type>::value);
+    // krylov_dim is out of reach, so any restart comes from the tolerance.
+    auto build_factory = [this](rc_value_type restart_ratio) {
+        return Solver::build()
+            .with_krylov_dim(100u)
+            .with_restart_ratio(restart_ratio)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
+            .on(this->exec);
+    };
+    auto b = gko::initialize<Mtx>(
+        {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x_restarted = x->clone();
+    auto plain_counter = std::make_shared<restart_counter<value_type>>();
+    auto restarted_counter = std::make_shared<restart_counter<value_type>>();
+    auto plain_solver =
+        build_factory(rc_value_type{0})->generate(this->mtx_medium);
+    auto restarted_solver =
+        build_factory(rc_value_type{0.9})->generate(this->mtx_medium);
+    plain_solver->add_logger(plain_counter);
+    restarted_solver->add_logger(restarted_counter);
+
+    plain_solver->apply(b, x);
+    restarted_solver->apply(b, x_restarted);
+
+    ASSERT_EQ(plain_counter->get_num_restarts(), 0);
+    ASSERT_GT(restarted_counter->get_num_restarts(), 0);
+    GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
+                        half_tol * 1e2);
+    GKO_ASSERT_MTX_NEAR(x_restarted,
+                        l({-140.20, -142.20, 48.80, -17.70, -19.60}),
                         half_tol * 1e2);
 }
 
