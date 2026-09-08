@@ -365,6 +365,74 @@ TYPED_TEST(Pmis, DirectInterpolationFill)
 }
 
 
+TYPED_TEST(Pmis, DirectInterpolationFillSkipsRowWithoutStrongDependence)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    using Mtx = typename TestFixture::Mtx;
+    // row 1 stores an explicit zero off the diagonal, so its largest
+    // off-diagonal magnitude is zero and it has no strong dependence, exactly
+    // like the rows compute_strong_dep{,_row} skip.
+    auto mtx = Mtx::create(
+        this->exec, gko::dim<2>{2, 2},
+        gko::array<value_type>(this->exec,
+                               {value_type{1}, value_type{0}, value_type{1}}),
+        gko::array<index_type>(this->exec, {0, 0, 1}),
+        gko::array<index_type>(this->exec, {0, 1, 3}));
+    gko::array<real_type> row_maxabs(this->exec, {0, 0});
+    // row 0 is coarse, row 1 is fine
+    gko::array<index_type> coarse_map(this->exec, {0, 1, 1});
+    // only the identity entry of the coarse row 0 is counted, row 1 gets none
+    gko::array<index_type> prolong_row_ptrs(this->exec, {0, 1, 1});
+    // the second slot is a canary: row 1 must not write anything, in
+    // particular nothing past the end of its own (empty) range
+    gko::array<index_type> prolong_col_idxs(this->exec, {0, -99});
+    gko::array<value_type> prolong_values(this->exec,
+                                          {value_type{0}, value_type{-99}});
+    gko::array<index_type> expected_col_idxs(this->exec, {0, -99});
+    gko::array<value_type> expected_values(this->exec,
+                                           {value_type{1}, value_type{-99}});
+
+    gko::kernels::reference::pmis::direct_interpolation_fill(
+        this->exec, mtx.get(), row_maxabs.get_const_data(), real_type{0.25},
+        coarse_map.get_const_data(), prolong_row_ptrs.get_const_data(),
+        prolong_col_idxs.get_data(), prolong_values.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(prolong_col_idxs, expected_col_idxs);
+    GKO_ASSERT_ARRAY_EQ(prolong_values, expected_values);
+}
+
+
+// initialize_random_weight is only instantiated for the types the device
+// random generators support, and only float is used by the pmis pipeline.
+TEST(PmisRandomWeight, IsInRangeAndReproducible)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    constexpr gko::size_type num = 1000;
+    gko::array<float> weight(exec, num);
+    gko::array<float> repeated(exec, num);
+
+    gko::kernels::reference::pmis::initialize_random_weight(exec, num,
+                                                            weight.get_data());
+    gko::kernels::reference::pmis::initialize_random_weight(
+        exec, num, repeated.get_data());
+
+    // the seed is fixed, so the same call must give the same values
+    GKO_ASSERT_ARRAY_EQ(weight, repeated);
+    auto sum = 0.0;
+    for (gko::size_type i = 0; i < num; i++) {
+        const auto val = weight.get_const_data()[i];
+        ASSERT_GE(val, 0.0f);
+        ASSERT_LE(val, 1.0f);
+        sum += val;
+    }
+    // uniform on [0, 1] has mean 0.5 with a standard error of about 0.009 for
+    // this sample size, so this only rejects a degenerate generator
+    ASSERT_NEAR(sum / num, 0.5, 0.1);
+}
+
+
 TYPED_TEST(Pmis, GenerateMgLevel)
 {
     using MgLevel = typename TestFixture::MgLevel;

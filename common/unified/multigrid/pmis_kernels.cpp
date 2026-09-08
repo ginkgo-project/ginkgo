@@ -40,7 +40,7 @@ void compute_row_maxabs(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto tid, auto row_ptrs, auto col_idxs,
                       auto values) {
-            auto maxabs = zero(abs(values[0]));
+            auto maxabs = zero<device_type<remove_complex<ValueType>>>();
             for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
                  idx += width) {
                 if (row == col_idxs[idx]) {
@@ -302,18 +302,25 @@ void direct_interpolation_fill(
             if (coarse_map[row] != coarse_map[row + 1]) {
                 auto idx = prolong_row_ptrs[row];
                 prolong_col_idxs[idx] = coarse_map[row];
-                prolong_values[idx] = one(prolong_values[idx]);
+                prolong_values[idx] = one<device_type<ValueType>>();
                 return;
             }
-            auto pos = zero(values[0]);
-            auto pos_divisor = zero(values[0]);
-            auto neg = zero(values[0]);
-            auto neg_divisor = zero(values[0]);
-            auto diag = zero(values[0]);
+            // a fine point without any strong dependence gets no
+            // interpolation entry, which is consistent with
+            // compute_strong_dep{,_row} and with the count computed by
+            // direct_interpolation_row_count
+            const auto max_abs = row_maxabs[row];
+            if (max_abs == zero(max_abs)) {
+                return;
+            }
+            auto pos = zero<device_type<ValueType>>();
+            auto pos_divisor = zero<device_type<ValueType>>();
+            auto neg = zero<device_type<ValueType>>();
+            auto neg_divisor = zero<device_type<ValueType>>();
+            auto diag = zero<device_type<ValueType>>();
             bool enable_neg = false;
             bool enable_pos = false;
             // first compute alpha/beta
-            auto max_abs = row_maxabs[row];
             for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
                 auto val = values[idx];
                 auto col = col_idxs[idx];

@@ -275,6 +275,13 @@ void direct_interpolation_fill(
             prolong_values[idx] = one<ValueType>();
             continue;
         }
+        // a fine point without any strong dependence gets no interpolation
+        // entry, which is consistent with compute_strong_dep{,_row} and with
+        // the count computed by direct_interpolation_row_count
+        const auto max_abs = row_maxabs[row];
+        if (max_abs == zero<remove_complex<ValueType>>()) {
+            continue;
+        }
         auto pos = zero<ValueType>();
         auto pos_divisor = zero<ValueType>();
         auto neg = zero<ValueType>();
@@ -283,7 +290,6 @@ void direct_interpolation_fill(
         bool enable_neg = false;
         bool enable_pos = false;
         // first compute alpha/beta
-        auto max_abs = row_maxabs[row];
         for (auto idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1]; idx++) {
             auto val = csr_values[idx];
             auto col = csr_col_idxs[idx];
