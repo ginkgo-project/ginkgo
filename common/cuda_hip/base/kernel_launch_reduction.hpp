@@ -294,10 +294,10 @@ __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_block
     const auto block = group::this_thread_block();
     const auto warp = group::tiled_partition<warp_size>(block);
     const auto warp_rank = warp.thread_rank();
+    const auto col_step = static_cast<int64>(gridDim.y) * warp_size;
 
     for (auto block_col = static_cast<int64>(blockIdx.y) * warp_size;
-         block_col < cols;
-         block_col += static_cast<int64>(gridDim.y) * warp_size) {
+         block_col < cols; block_col += col_step) {
         const auto col = warp_rank + block_col;
         auto partial = identity;
         // accumulate within a thread
@@ -319,6 +319,10 @@ __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_block
             if (col < cols) {
                 result[col + blockIdx.x * cols] = finalize(partial);
             }
+        }
+        // only sync if block_partial will be reused by another iteration
+        if (block_col + col_step < cols) {
+            block.sync();
         }
     }
 }
