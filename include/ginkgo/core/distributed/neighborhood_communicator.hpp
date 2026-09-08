@@ -1,12 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_PUBLIC_CORE_DISTRIBUTED_NEIGHBORHOOD_COMMUNICATOR_HPP_
 #define GKO_PUBLIC_CORE_DISTRIBUTED_NEIGHBORHOOD_COMMUNICATOR_HPP_
 
-
-#include <vector>
 
 #include <ginkgo/config.hpp>
 
@@ -87,36 +85,6 @@ public:
     [[nodiscard]] comm_index_type get_send_size() const override;
 
     /**
-     * @copydoc CollectiveCommunicator::get_send_target_ids
-     *
-     * These are the destinations of the underlying distributed graph topology,
-     * which is generally a subset of the base communicator's ranks.
-     */
-    [[nodiscard]] const std::vector<comm_index_type>& get_send_target_ids()
-        const override;
-
-    /**
-     * @copydoc CollectiveCommunicator::get_send_sizes
-     */
-    [[nodiscard]] const std::vector<comm_index_type>& get_send_sizes()
-        const override;
-
-    /**
-     * @copydoc CollectiveCommunicator::get_recv_target_ids
-     *
-     * These are the sources of the underlying distributed graph topology,
-     * which is generally a subset of the base communicator's ranks.
-     */
-    [[nodiscard]] const std::vector<comm_index_type>& get_recv_target_ids()
-        const override;
-
-    /**
-     * @copydoc CollectiveCommunicator::get_recv_sizes
-     */
-    [[nodiscard]] const std::vector<comm_index_type>& get_recv_sizes()
-        const override;
-
-    /**
      * Compares two communicators for equality locally.
      *
      * Equality is defined as having identical or congruent communicators and
@@ -150,13 +118,6 @@ protected:
 
 private:
     communicator comm_;
-
-    // The ranks this process exchanges with, in the order the send and recv
-    // buffers are laid out. Stored rather than derived on demand: for a dense
-    // pattern that avoids rebuilding the same [0, comm.size()) sequence, and
-    // for a neighborhood one it avoids querying the graph topology through MPI.
-    std::vector<comm_index_type> send_target_ids_;
-    std::vector<comm_index_type> recv_target_ids_;
 
     std::vector<comm_index_type> send_sizes_;
     std::vector<comm_index_type> send_offsets_;

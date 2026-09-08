@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,7 +12,6 @@
 #if GINKGO_BUILD_MPI
 
 #include <variant>
-#include <vector>
 
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/distributed/index_map.hpp>
@@ -110,52 +109,6 @@ public:
      * @return  number of sent elements.
      */
     [[nodiscard]] virtual comm_index_type get_send_size() const = 0;
-
-    /**
-     * Get the ranks this process sends to, in the order their data is laid out
-     * in the send buffer of i_all_to_all_v.
-     *
-     * Together with get_send_sizes() this describes the layout of the send
-     * buffer, which is what a caller needs in order to exchange data of a
-     * different shape over the same communication pattern: for example rows
-     * of a matrix whose lengths vary. The order is an implementation detail of
-     * the concrete communicator (rank order for a dense pattern, neighbor
-     * order for a neighborhood one), so it must be read from here rather than
-     * assumed.
-     *
-     * @return  the destination ranks, in send-buffer order.
-     */
-    [[nodiscard]] virtual const std::vector<comm_index_type>&
-    get_send_target_ids() const = 0;
-
-    /**
-     * Get the number of elements sent to each rank of get_send_target_ids(),
-     * in the same order.
-     *
-     * @return  the per-destination send counts.
-     */
-    [[nodiscard]] virtual const std::vector<comm_index_type>& get_send_sizes()
-        const = 0;
-
-    /**
-     * Get the ranks this process receives from, in the order their data is
-     * laid out in the recv buffer of i_all_to_all_v.
-     *
-     * @see get_send_target_ids
-     *
-     * @return  the source ranks, in recv-buffer order.
-     */
-    [[nodiscard]] virtual const std::vector<comm_index_type>&
-    get_recv_target_ids() const = 0;
-
-    /**
-     * Get the number of elements received from each rank of
-     * get_recv_target_ids(), in the same order.
-     *
-     * @return  the per-source receive counts.
-     */
-    [[nodiscard]] virtual const std::vector<comm_index_type>& get_recv_sizes()
-        const = 0;
 
 protected:
     virtual request i_all_to_all_v_impl(std::shared_ptr<const Executor> exec,
