@@ -106,7 +106,7 @@ private:
  * falls back to computing the 2-norm of the residual vector itself
  * (via `Updater::residual`), which costs one global reduction. When
  * even cheaper checks are needed and the solver maintains an internal
- * squared-norm estimate, use \ref ImplicitResidualNorm instead.
+ * squared-norm estimate, use @ref ImplicitResidualNorm instead.
  *
  * @note Baseline prerequisites at construction time:
  *       - `mode::rhs_norm` requires the right-hand side \f$ b \f$.
@@ -173,10 +173,10 @@ protected:
  * (CG, BiCGSTAB, …) already compute this quantity per iteration as a
  * by-product of their inner-product recurrences, so the criterion can
  * check convergence without computing a norm of its own — saving the
- * global reduction the explicit \ref ResidualNorm form needs when the
+ * global reduction the explicit @ref ResidualNorm form needs when the
  * solver only passes \f$ r_k \f$. The iteration halts once
  * \f$ \rho_k \le \tau \cdot \beta \f$, with the same `reduction_factor`
- * and `baseline` factory parameters as \ref ResidualNorm:
+ * and `baseline` factory parameters as @ref ResidualNorm:
  *
  * - `mode::rhs_norm` (default) — \f$ \rho_k \le \tau \| b \| \f$.
  * - `mode::initial_resnorm` — \f$ \rho_k \le \tau \| r_0 \| \f$.
@@ -185,7 +185,7 @@ protected:
  * Because \f$ \rho_k^2 \f$ is updated by short recurrences rather than
  * recomputed from \f$ b - A x_k \f$ each step, it can drift from the
  * true residual norm on long runs in finite precision; pair this
- * criterion with an \ref Iteration cap when that matters.
+ * criterion with an @ref Iteration cap when that matters.
  *
  * @note The solver must pass the squared estimate through
  *       `Updater::implicit_sq_residual_norm` on every check — there is
@@ -193,7 +193,7 @@ protected:
  *       thrown at check time.
  *
  * @note Baseline prerequisites at construction time mirror
- *       \ref ResidualNorm:
+ *       @ref ResidualNorm:
  *       - `mode::rhs_norm` requires \f$ b \f$.
  *       - `mode::initial_resnorm` requires either \f$ r_0 \f$ explicitly
  *         or the triple \f$ (A, b, x_0) \f$ to derive it.

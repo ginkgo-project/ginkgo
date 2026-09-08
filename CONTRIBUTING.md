@@ -515,6 +515,18 @@ existing code has been broken.
 
 Documentation uses standard Doxygen.
 
+### Command prefix: `@` for Doxygen, `\` for math
+
+Doxygen accepts both `\cmd` and `@cmd` and treats them identically. Ginkgo
+uses the at-sign for all Doxygen commands (`@brief`, `@param`, `@tparam`,
+`@return`, `@note`, `@ingroup`, `@ref`, ...) and reserves the backslash for
+the LaTeX formula delimiters `\f$ ... \f$` and `\f[ ... \f]`.
+
+Keeping the two apart means the prefix tells you what you are looking at: `@`
+introduces Doxygen structure, `\` introduces LaTeX. It also keeps a formula
+visually of a piece with the math it contains, as in
+`\f$\alpha \frac{a}{b}\f$`.
+
 ###  Developer targeted notes
 
 Make use of `@internal` doxygen tag. This can be used for any comment which is

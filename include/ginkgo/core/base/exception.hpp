@@ -476,7 +476,7 @@ public:
 /**
  * Error that denotes issues between block sizes and matrix dimensions
  *
- * \tparam IndexType  Type of index used by the linear algebra object that is
+ * @tparam IndexType  Type of index used by the linear algebra object that is
  *                    incompatible with the required block size.
  */
 template <typename IndexType>

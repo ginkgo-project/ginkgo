@@ -29,11 +29,11 @@ namespace kernels {
  * The input values of the prefix sum must be non-negative, and the operation
  * throws OverflowError if one of the additions would overflow.
  *
- * \tparam IndexType  Type of entries to be scanned (summed).
+ * @tparam IndexType  Type of entries to be scanned (summed).
  *
- * \param exec  Executor on which to run the scan operation
- * \param counts  The input/output array to be scanned with the sum operation
- * \param num_entries  Size of the array, equal to one more than the number
+ * @param exec  Executor on which to run the scan operation
+ * @param counts  The input/output array to be scanned with the sum operation
+ * @param num_entries  Size of the array, equal to one more than the number
  *                     of entries to be summed.
  */
 #define GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL(IndexType)                 \

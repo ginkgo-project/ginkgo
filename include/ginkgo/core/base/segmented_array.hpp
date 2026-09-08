@@ -15,13 +15,13 @@
 namespace gko {
 
 /**
- * \brief A minimal interface for a segmented array.
+ * @brief A minimal interface for a segmented array.
  *
  * The segmented array is stored as a flat buffer with an offsets array.
  * The segment `i` contains the index range `[offset[i], offset[i + 1])` of the
  * flat buffer.
  *
- * \tparam T value type stored in the arrays
+ * @tparam T value type stored in the arrays
  */
 template <typename T>
 struct segmented_array {
