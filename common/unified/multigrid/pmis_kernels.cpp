@@ -201,7 +201,7 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
             }
             return kernels::pmis::coarse;
         },
-        [] GKO_KERNEL(auto a, auto b) { return a < b ? a : b; } /* minimun */,
+        [] GKO_KERNEL(auto a, auto b) { return a < b ? a : b; } /* minimum */,
         [] GKO_KERNEL(auto a) { return a; }, int{1}, new_status, 1,
         dim<2>{strong_dep->get_size()[0], width}, status, weight,
         strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());

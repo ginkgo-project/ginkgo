@@ -100,7 +100,7 @@ protected:
             gko::kernels::reference::pmis::count(ref, num, new_status_ptr,
                                                  &new_num);
             if (new_num == num_not_assigned) {
-                // no progess -> throw error (maybe unneccessary)
+                // no progress -> throw error (maybe unnecessary)
                 throw std::runtime_error("no progress in Pmis");
             }
             num_not_assigned = new_num;

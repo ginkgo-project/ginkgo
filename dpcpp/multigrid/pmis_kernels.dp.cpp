@@ -6,13 +6,11 @@
 
 #include "core/multigrid/pmis_kernels.hpp"
 
-#include <random>
+#include <cstdint>
 
 #include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
-
-#include "common/cuda_hip/base/randlib_bindings.hpp"
 
 namespace gko {
 namespace kernels {
@@ -24,14 +22,13 @@ template <typename ValueType>
 void initialize_random_weight(std::shared_ptr<const DefaultExecutor> exec,
                               size_type num, ValueType* weight)
 {
-    auto seed = std::random_device{}();
+    constexpr auto seed = kernels::pmis::random_seed;
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>(num), [=](sycl::item<1> idx) {
             std::uint64_t offset = idx.get_linear_id();
             oneapi::dpl::minstd_rand engine(seed, offset);
-            oneapi::dpl::uniform_real_distribution<device_type<ValueType>>
-                distr(0, 1);
-            work[idx] = distr(engine);
+            oneapi::dpl::uniform_real_distribution<ValueType> distr(0, 1);
+            weight[idx] = distr(engine);
         });
     });
 }

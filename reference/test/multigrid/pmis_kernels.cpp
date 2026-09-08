@@ -93,7 +93,7 @@ protected:
                           {4, 4, value_type{1}}}});
         // we only have the following for mtx.at(1).
         // For mtx.at(0), we have same weight before randomization, so there is
-        // no determinstic result
+        // no deterministic result
         prolong_op1->read({{5, 2},
                            {{0, 0, value_type{-0.25}},
                             {0, 1, value_type{-0.25}},

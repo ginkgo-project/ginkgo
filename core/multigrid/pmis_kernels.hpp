@@ -23,6 +23,9 @@ namespace pmis {
 constexpr int coarse = 1;
 constexpr int fine = 0;
 constexpr int unassigned = -1;
+// Use a fixed seed such that the coarsening is reproducible from run to run
+// and consistent among the backends.
+constexpr uint64 random_seed = 42;
 
 
 #define GKO_DECLARE_PMIS_COMPUTE_ROW_MAXABS_KERNEL(ValueType, IndexType)  \

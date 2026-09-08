@@ -251,7 +251,7 @@ void assign_to_exist_agg(
         // Copy the intermediate_agg to agg
         agg = intermediate_agg;
     } else {
-        // undeterministic kernel
+        // nondeterministic kernel
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs,

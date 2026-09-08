@@ -18,7 +18,7 @@ template <typename ValueType>
 void initialize_random_weight(std::shared_ptr<const DefaultExecutor> exec,
                               size_type num, ValueType* weight)
 {
-    std::default_random_engine gen(42);
+    std::default_random_engine gen(kernels::pmis::random_seed);
     std::uniform_real_distribution<ValueType> dist(0.0, 1.0);
     for (size_type row = 0; row < num; row++) {
         weight[row] = dist(gen);

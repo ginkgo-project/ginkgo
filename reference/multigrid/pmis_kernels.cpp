@@ -9,6 +9,7 @@
 #include <random>
 #include <tuple>
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -126,7 +127,7 @@ template <typename ValueType>
 void initialize_random_weight(std::shared_ptr<const DefaultExecutor> exec,
                               size_type num, ValueType* weight)
 {
-    std::default_random_engine gen(42);
+    std::default_random_engine gen(kernels::pmis::random_seed);
     std::uniform_real_distribution<ValueType> dist(0.0, 1.0);
     for (size_type row = 0; row < num; row++) {
         weight[row] = dist(gen);
@@ -143,20 +144,21 @@ void initialize_weight_and_status(
     const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
     remove_complex<ValueType>* weight, int* status)
 {
-    // we can not use half, bfloat16 with random generator
-    // generate it in double and then cast to corresponding type
-    std::default_random_engine gen(42);
-    std::uniform_real_distribution<double> dist(0.0, 1.0);
-
-    const auto nrows = static_cast<IndexType>(trans_strong_dep->get_size()[0]);
+    const auto nrows = trans_strong_dep->get_size()[0];
     const auto row_ptrs = trans_strong_dep->get_const_row_ptrs();
+    // we can not use half, bfloat16 with random generator, so the random
+    // values are generated in float and then cast to the corresponding type.
+    array<float> random(exec, nrows);
+    initialize_random_weight(exec, nrows, random.get_data());
+    const auto random_val = random.get_const_data();
 
     for (size_type row = 0; row < nrows; row++) {
-        weight[row] = static_cast<double>(row_ptrs[row + 1] - row_ptrs[row]);
+        const auto w = static_cast<float>(row_ptrs[row + 1] - row_ptrs[row]);
         status[row] =
-            (weight[row] == zero<ValueType>() ? kernels::pmis::fine
-                                              : kernels::pmis::unassigned);
-        weight[row] += static_cast<remove_complex<ValueType>>(dist(gen));
+            (w == 0.0f ? kernels::pmis::fine : kernels::pmis::unassigned);
+        // avoid the random value to be 1
+        weight[row] =
+            static_cast<remove_complex<ValueType>>(random_val[row] * 0.99f + w);
     }
 }
 
