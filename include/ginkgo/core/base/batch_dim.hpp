@@ -110,7 +110,7 @@ private:
  *
  * @tparam DimensionType  datatype used to represent each dimension
  *
- * @param dimensions original object
+ * @param input original object
  *
  * @return a batch_dim object with dimensions swapped
  */

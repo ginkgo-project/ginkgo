@@ -166,7 +166,7 @@ using as_list = typename detail::as_list_impl<T>::type;
  * @tparam T  the type of value_list
  * @tparam Value  the values of value_list
  *
- * @param value_list  the input value_list
+ * @param vl  the input value_list
  *
  * @return std::array  the std::array contains the values of value_list
  */

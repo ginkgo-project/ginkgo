@@ -692,7 +692,7 @@ public:
     /**
      * Sets the stopping criterion of the solver.
      *
-     * @param other  the new stopping criterion factory
+     * @param new_stop_factory  the new stopping criterion factory
      */
     virtual void set_stop_criterion_factory(
         std::shared_ptr<const stop::CriterionFactory> new_stop_factory)

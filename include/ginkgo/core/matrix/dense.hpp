@@ -227,8 +227,8 @@ public:
     }
 
     /**
-     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
-     * Executor>, const dim<2>)
+     * @copydoc create_with_type_of(ptr_param<const Dense>,
+     * std::shared_ptr<const Executor>, const dim<2>&)
      *
      * @param stride  The stride of the new matrix.
      *
@@ -243,8 +243,8 @@ public:
     }
 
     /**
-     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
-     * Executor>, const dim<2>)
+     * @copydoc create_with_type_of(ptr_param<const Dense>,
+     * std::shared_ptr<const Executor>, const dim<2>&)
      *
      * @param local_size  Unused
      * @param stride  The stride of the new matrix.
@@ -435,7 +435,9 @@ public:
     /**
      * Overload of permute(ptr_param<const Permutation<int32>>, permute_mode)
      * that writes the permuted copy into an existing Dense matrix.
+     * @param permutation  the input permutation.
      * @param output  the output matrix.
+     * @param mode  the permutation mode, see @ref permute_mode.
      */
     void permute(ptr_param<const Permutation<int32>> permutation,
                  ptr_param<Dense> output, permute_mode mode) const;
@@ -479,7 +481,10 @@ public:
      * Overload of permute(ptr_param<const Permutation<int32>>, ptr_param<const
      * Permutation<int32>>, permute_mode) that writes the permuted copy into an
      * existing Dense matrix.
+     * @param row_permutation  the row permutation.
+     * @param column_permutation  the column permutation.
      * @param output  the output matrix.
+     * @param invert  if true, the inverse permutations are used.
      */
     void permute(ptr_param<const Permutation<int32>> row_permutation,
                  ptr_param<const Permutation<int32>> column_permutation,
@@ -518,7 +523,9 @@ public:
      * Overload of scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, permute_mode) that writes the permuted copy into an
      * existing Dense matrix.
+     * @param permutation  the input scaled permutation.
      * @param output  the output matrix.
+     * @param mode  the permutation mode, see @ref permute_mode.
      */
     void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> permutation,
@@ -564,7 +571,10 @@ public:
      * Overload of scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, ptr_param<const ScaledPermutation<value_type, int32>>, bool)
      * that writes the permuted copy into an existing Dense matrix.
+     * @param row_permutation  the row scaled permutation.
+     * @param column_permutation  the column scaled permutation.
      * @param output  the output matrix.
+     * @param invert  if true, the inverse permutations are used.
      */
     void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,

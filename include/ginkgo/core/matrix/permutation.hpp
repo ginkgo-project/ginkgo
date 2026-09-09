@@ -183,6 +183,7 @@ public:
      * Creates an uninitialized Permutation arrays on the specified executor.
      *
      * @param exec  Executor associated to the LinOp
+     * @param size  the size of the permutation
      *
      * @return A smart pointer to the newly created matrix.
      */

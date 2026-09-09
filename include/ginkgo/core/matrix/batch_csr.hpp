@@ -300,7 +300,7 @@ public:
      * same sparsity pattern.
      *
      * @param exec  the executor to create the matrix on
-     * @param size  the dimensions of the matrix
+     * @param sizes  the dimensions of the matrix
      * @param values  the value array of the matrix
      * @param col_idxs the col_idxs array of a single batch item of the matrix.
      * @param row_ptrs  the row_ptrs array of a single batch item of the matrix.

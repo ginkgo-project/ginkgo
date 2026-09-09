@@ -103,7 +103,7 @@ public:
      * The function synchronizes with `stop` before computing the difference.
      *
      * @param start  the first time point (earlier)
-     * @param end  the second time point (later)
+     * @param stop  the second time point (later)
      * @return the difference between the time points in nanoseconds.
      */
     std::chrono::nanoseconds difference(time_point& start, time_point& stop);
@@ -116,7 +116,7 @@ public:
      * want to measure the overhead of timing functionality separately.
      *
      * @param start  the first time point (earlier)
-     * @param end  the second time point (later)
+     * @param stop  the second time point (later)
      *
      * @return the difference between the time points in nanoseconds.
      */

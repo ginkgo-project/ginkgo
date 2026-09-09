@@ -252,7 +252,7 @@ public:
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
-     * @param values  the value array of the matrix
+     * @param value  the value stored for all the matrix elements
      * @param col_idxs  the column index array of the matrix
      * @param row_ptrs  the row pointer array of the matrix
      * @param strategy  the strategy the matrix uses for SpMV operations

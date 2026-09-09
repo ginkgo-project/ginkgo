@@ -312,7 +312,7 @@ public:
      * array. The column indices array needs to be the same for all batch items.
      *
      * @param exec  the executor to create the matrix on
-     * @param size  the dimensions of the matrix
+     * @param sizes  the dimensions of the matrix
      * @param num_elems_per_row  the number of elements to be stored in each row
      * @param values  the value array of the matrix
      * @param col_idxs the col_idxs array of a single batch item of the matrix.

@@ -775,6 +775,7 @@ public:
      * @param recv_buffer  the reduced result
      * @param count  the number of elements to reduce
      * @param operation  the MPI_Op type reduce operation.
+     * @param root_rank  the rank to reduce into
      *
      * @tparam ReduceType  the type of the data to reduce. Has to be a type
      *                     which has a specialization of type_impl that defines
@@ -800,6 +801,7 @@ public:
      * @param recv_buffer  the reduced result
      * @param count  the number of elements to reduce
      * @param operation  the MPI_Op type reduce operation.
+     * @param root_rank  the rank to reduce into
      *
      * @tparam ReduceType  the type of the data to reduce. Has to be a type
      *                     which has a specialization of type_impl that defines
@@ -996,7 +998,7 @@ public:
      * @param send_buffer  the buffer to gather from
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to gather into
-     * @param recv_count  the number of elements to receive
+     * @param recv_counts  the number of elements to receive
      * @param displacements  the offsets for the buffer
      * @param root_rank  the rank to gather into
      *
@@ -1027,7 +1029,7 @@ public:
      * @param send_buffer  the buffer to gather from
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to gather into
-     * @param recv_count  the number of elements to receive
+     * @param recv_counts  the number of elements to receive
      * @param displacements  the offsets for the buffer
      * @param root_rank  the rank to gather into
      *
@@ -1122,6 +1124,7 @@ public:
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
+     * @param root_rank  the rank to scatter from
      *
      * @tparam SendType  the type of the data to send. Has to be a type which
      *                   has a specialization of type_impl that defines its
@@ -1151,6 +1154,7 @@ public:
      * @param send_count  the number of elements to send
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
+     * @param root_rank  the rank to scatter from
      *
      * @tparam SendType  the type of the data to send. Has to be a type which
      *                   has a specialization of type_impl that defines its
@@ -1181,11 +1185,11 @@ public:
      *
      * @param exec  The executor, on which the message buffers are located.
      * @param send_buffer  the buffer to gather from
-     * @param send_count  the number of elements to send
+     * @param send_counts  the number of elements to send
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
      * @param displacements  the offsets for the buffer
-     * @param comm  the communicator
+     * @param root_rank  the rank to scatter from
      *
      * @tparam SendType  the type of the data to send. Has to be a type which
      *                   has a specialization of type_impl that defines its
@@ -1212,11 +1216,11 @@ public:
      *
      * @param exec  The executor, on which the message buffers are located.
      * @param send_buffer  the buffer to gather from
-     * @param send_count  the number of elements to send
+     * @param send_counts  the number of elements to send
      * @param recv_buffer  the buffer to gather into
      * @param recv_count  the number of elements to receive
      * @param displacements  the offsets for the buffer
-     * @param comm  the communicator
+     * @param root_rank  the rank to scatter from
      *
      * @tparam SendType  the type of the data to send. Has to be a type which
      *                   has a specialization of type_impl that defines its
@@ -1247,7 +1251,7 @@ public:
      * (MPI_Alltoall). See MPI documentation for more details.
      *
      * @param exec  The executor, on which the message buffer is located.
-     * @param buffer  the buffer to send and the buffer receive
+     * @param recv_buffer  the buffer to send and the buffer receive
      * @param recv_count  the number of elements to receive
      * @param comm  the communicator
      *
@@ -1274,7 +1278,7 @@ public:
      * ranks in place (MPI_Ialltoall). See MPI documentation for more details.
      *
      * @param exec  The executor, on which the message buffer is located.
-     * @param buffer  the buffer to send and the buffer receive
+     * @param recv_buffer  the buffer to send and the buffer receive
      * @param recv_count  the number of elements to receive
      * @param comm  the communicator
      *
@@ -1366,10 +1370,10 @@ public:
      *
      * @param exec  The executor, on which the message buffers are located.
      * @param send_buffer  the buffer to send
-     * @param send_count  the number of elements to send
+     * @param send_counts  the number of elements to send
      * @param send_offsets  the offsets for the send buffer
      * @param recv_buffer  the buffer to gather into
-     * @param recv_count  the number of elements to receive
+     * @param recv_counts  the number of elements to receive
      * @param recv_offsets  the offsets for the recv buffer
      * @param comm  the communicator
      *
@@ -1397,11 +1401,11 @@ public:
      *
      * @param exec  The executor, on which the message buffers are located.
      * @param send_buffer  the buffer to send
-     * @param send_count  the number of elements to send
+     * @param send_counts  the number of elements to send
      * @param send_offsets  the offsets for the send buffer
      * @param send_type  the MPI_Datatype for the send buffer
      * @param recv_buffer  the buffer to gather into
-     * @param recv_count  the number of elements to receive
+     * @param recv_counts  the number of elements to receive
      * @param recv_offsets  the offsets for the recv buffer
      * @param recv_type  the MPI_Datatype for the recv buffer
      * @param comm  the communicator
@@ -1424,11 +1428,11 @@ public:
      *
      * @param exec  The executor, on which the message buffers are located.
      * @param send_buffer  the buffer to send
-     * @param send_count  the number of elements to send
+     * @param send_counts  the number of elements to send
      * @param send_offsets  the offsets for the send buffer
      * @param send_type  the MPI_Datatype for the send buffer
      * @param recv_buffer  the buffer to gather into
-     * @param recv_count  the number of elements to receive
+     * @param recv_counts  the number of elements to receive
      * @param recv_offsets  the offsets for the recv buffer
      * @param recv_type  the MPI_Datatype for the recv buffer
      *
@@ -1458,10 +1462,10 @@ public:
      *
      * @param exec  The executor, on which the message buffers are located.
      * @param send_buffer  the buffer to send
-     * @param send_count  the number of elements to send
+     * @param send_counts  the number of elements to send
      * @param send_offsets  the offsets for the send buffer
      * @param recv_buffer  the buffer to gather into
-     * @param recv_count  the number of elements to receive
+     * @param recv_counts  the number of elements to receive
      * @param recv_offsets  the offsets for the recv buffer
      *
      * @tparam SendType  the type of the data to send. Has to be a type which
@@ -1492,7 +1496,7 @@ public:
      * @param exec  The executor, on which the message buffers are located.
      * @param send_buffer  the buffer to scan from
      * @param recv_buffer  the result buffer
-     * @param recv_count  the number of elements to scan
+     * @param count  the number of elements to scan
      * @param operation  the operation type to be used for the scan. See @MPI_Op
      *
      * @tparam ScanType  the type of the data to scan. Has to be a type which
@@ -1516,7 +1520,7 @@ public:
      * @param exec  The executor, on which the message buffers are located.
      * @param send_buffer  the buffer to scan from
      * @param recv_buffer  the result buffer
-     * @param recv_count  the number of elements to scan
+     * @param count  the number of elements to scan
      * @param operation  the operation type to be used for the scan. See @MPI_Op
      *
      * @tparam ScanType  the type of the data to scan. Has to be a type which
@@ -2012,6 +2016,7 @@ public:
      *
      * @param exec  The executor, on which the message buffer is located.
      * @param origin_buffer  the buffer to send
+     * @param result_buffer  the buffer to store the previous target value in
      * @param target_rank  the rank to get the data from
      * @param target_disp  the displacement at the target window
      * @param operation  the reduce operation. See @MPI_Op

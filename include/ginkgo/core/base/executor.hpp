@@ -1763,6 +1763,7 @@ public:
      *                      the scope.
      * @param alloc_mode  the allocation mode that the executor should operate
      *                    on. See @allocation_mode for more details
+     * @param stream  the stream to execute operations on.
      */
     GKO_DEPRECATED(
         "device_reset is deprecated entirely, call hipDeviceReset directly. "

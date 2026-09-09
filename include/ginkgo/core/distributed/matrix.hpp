@@ -350,7 +350,7 @@ public:
      *
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
-     * @param x  The mode of assembly.
+     * @param assembly_type  The mode of assembly.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
