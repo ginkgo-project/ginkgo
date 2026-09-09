@@ -13,6 +13,10 @@
 #include <tuple>
 #include <type_traits>
 
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/math.hpp>
@@ -508,6 +512,30 @@ inline bool check_assertion_exit_code(int exit_code)
     return exit_code != 0;
 #endif
 }
+
+
+// Death tests abort the forked child, which hands it to the system core dump
+// collector. The kernel waits for that collector before reaping the child, and
+// on some machines it stalls for minutes per check. Note that `ulimit -c 0`
+// does not help: RLIMIT_CORE is ignored when core_pattern pipes core dumps to
+// a program, see `man 5 core`.
+inline void disable_core_dump()
+{
+#ifdef __linux__
+    prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
+#endif
+}
+
+
+// Checks that `_statement` aborts by failing a GKO_ASSERT. Preferred over a
+// bare EXPECT_EXIT, which leaves a core dump behind for every check.
+#define GKO_EXPECT_ASSERTION_FAILURE(_statement) \
+    EXPECT_EXIT(                                 \
+        {                                        \
+            disable_core_dump();                 \
+            _statement;                          \
+        },                                       \
+        check_assertion_exit_code, "")
 
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_

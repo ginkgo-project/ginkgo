@@ -502,6 +502,6 @@ TEST(HybridView, CreateFailsWithNonMatchingSizes)
         exec, gko::dim<2>(2, 1));
 
     using view_t = gko::matrix::view::hybrid<value_type, index_type>;
-    EXPECT_EXIT(view_t(ell->get_device_view(), coo->get_device_view()),
-                check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE(
+        view_t(ell->get_device_view(), coo->get_device_view()));
 }

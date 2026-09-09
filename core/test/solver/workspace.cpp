@@ -181,8 +181,7 @@ TEST_F(Workspace, AbortsOnDifferentArrayTypes)
     ws.set_size(0, 1);
     ws.create_or_get_array<double>(0, 3);
 
-    EXPECT_EXIT(ws.create_or_get_array<int>(0, 4), check_assertion_exit_code,
-                "");
+    GKO_EXPECT_ASSERTION_FAILURE(ws.create_or_get_array<int>(0, 4));
 }
 
 

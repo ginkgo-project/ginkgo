@@ -212,33 +212,31 @@ TEST(DeathTest, Assertions)
                     static_cast<int>(ptrs.size() - 1)};
     vrange_t vrange2{ptrs.data(), values.data(), 0};
     // gko::segmented_index_range::iterator
-    EXPECT_EXIT((void)*(range_it_t{range, -1}), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)*(range_it_t{range, 1}), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(range_it_t{range, 0} == range_it_t{range2, 0}),
-                check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)*(range_it_t{range, -1}));
+    GKO_EXPECT_ASSERTION_FAILURE((void)*(range_it_t{range, 1}));
+    GKO_EXPECT_ASSERTION_FAILURE(
+        (void)(range_it_t{range, 0} == range_it_t{range2, 0}));
     // gko::segmented_index_range
-    EXPECT_EXIT((void)(range_t{nullptr, -1}), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)range[-1], check_assertion_exit_code, "");
-    EXPECT_EXIT((void)range[1], check_assertion_exit_code, "");
-    EXPECT_EXIT((void)range.begin_index(-1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)range.begin_index(1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)range.end_index(-1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)range.end_index(1), check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(range_t{nullptr, -1}));
+    GKO_EXPECT_ASSERTION_FAILURE((void)range[-1]);
+    GKO_EXPECT_ASSERTION_FAILURE((void)range[1]);
+    GKO_EXPECT_ASSERTION_FAILURE((void)range.begin_index(-1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)range.begin_index(1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)range.end_index(-1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)range.end_index(1));
     // gko::segmented_value_range::iterator
-    EXPECT_EXIT((void)*(vrange_it_t{vrange, -1}), check_assertion_exit_code,
-                "");
-    EXPECT_EXIT((void)*(vrange_it_t{vrange, 1}), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(vrange_it_t{vrange, 0} == vrange_it_t{vrange2, 0}),
-                check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)*(vrange_it_t{vrange, -1}));
+    GKO_EXPECT_ASSERTION_FAILURE((void)*(vrange_it_t{vrange, 1}));
+    GKO_EXPECT_ASSERTION_FAILURE(
+        (void)(vrange_it_t{vrange, 0} == vrange_it_t{vrange2, 0}));
     // gko::segmented_value_range
-    EXPECT_EXIT((void)(vrange_t{nullptr, nullptr, -1}),
-                check_assertion_exit_code, "");
-    EXPECT_EXIT((void)vrange[-1], check_assertion_exit_code, "");
-    EXPECT_EXIT((void)vrange[1], check_assertion_exit_code, "");
-    EXPECT_EXIT((void)vrange.begin_index(-1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)vrange.begin_index(1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)vrange.end_index(-1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)vrange.end_index(1), check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(vrange_t{nullptr, nullptr, -1}));
+    GKO_EXPECT_ASSERTION_FAILURE((void)vrange[-1]);
+    GKO_EXPECT_ASSERTION_FAILURE((void)vrange[1]);
+    GKO_EXPECT_ASSERTION_FAILURE((void)vrange.begin_index(-1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)vrange.begin_index(1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)vrange.end_index(-1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)vrange.end_index(1));
 }
 
 
