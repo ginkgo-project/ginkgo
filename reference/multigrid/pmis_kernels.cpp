@@ -9,6 +9,7 @@
 #include <random>
 #include <tuple>
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -122,26 +123,42 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL);
 
 
+template <typename ValueType>
+void initialize_random_weight(std::shared_ptr<const DefaultExecutor> exec,
+                              size_type num, ValueType* weight)
+{
+    std::default_random_engine gen(kernels::pmis::random_seed);
+    std::uniform_real_distribution<ValueType> dist(0.0, 1.0);
+    for (size_type row = 0; row < num; row++) {
+        weight[row] = dist(gen);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(
+    GKO_DECLARE_PMIS_INITIALIZE_RANDOM_WEIGHT_KERNEL);
+
+
 template <typename ValueType, typename IndexType>
 void initialize_weight_and_status(
     std::shared_ptr<const DefaultExecutor> exec,
     const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
     remove_complex<ValueType>* weight, int* status)
 {
-    // we can not use half, bfloat16 with random generator
-    // generate it in double and then cast to corresponding type
-    std::default_random_engine gen(42);
-    std::uniform_real_distribution<double> dist(0.0, 1.0);
-
-    const auto nrows = static_cast<IndexType>(trans_strong_dep->get_size()[0]);
+    const auto nrows = trans_strong_dep->get_size()[0];
     const auto row_ptrs = trans_strong_dep->get_const_row_ptrs();
+    // we can not use half, bfloat16 with random generator, so the random
+    // values are generated in float and then cast to the corresponding type.
+    array<float> random(exec, nrows);
+    initialize_random_weight(exec, nrows, random.get_data());
+    const auto random_val = random.get_const_data();
 
     for (size_type row = 0; row < nrows; row++) {
-        weight[row] = static_cast<double>(row_ptrs[row + 1] - row_ptrs[row]);
+        const auto w = static_cast<float>(row_ptrs[row + 1] - row_ptrs[row]);
         status[row] =
-            (weight[row] == zero<ValueType>() ? kernels::pmis::fine
-                                              : kernels::pmis::unassigned);
-        weight[row] += static_cast<remove_complex<ValueType>>(dist(gen));
+            (w == 0.0f ? kernels::pmis::fine : kernels::pmis::unassigned);
+        // scaled like the unified kernel, see the note there
+        weight[row] =
+            static_cast<remove_complex<ValueType>>(random_val[row] * 0.99f + w);
     }
 }
 
@@ -153,7 +170,6 @@ template <typename ValueType, typename IndexType>
 void classify(std::shared_ptr<const DefaultExecutor> exec,
               const remove_complex<ValueType>* weight,
               const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
-              const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
               const int* status, int* new_status)
 {
     const auto nrows = static_cast<IndexType>(strong_dep->get_size()[0]);
@@ -182,18 +198,15 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
         }
         new_status[row] = ans;
     }
-    // mark all points strongly influenced by the new coarse points to fine
-    // group
+    // mark new fine point strongly influenced by the new coarse points
     for (IndexType row = 0; row < nrows; row++) {
-        if (new_status[row] == kernels::pmis::coarse &&
-            new_status[row] != status[row]) {
-            for (auto idx = trans_strong_dep->get_const_row_ptrs()[row];
-                 idx < trans_strong_dep->get_const_row_ptrs()[row + 1]; idx++) {
-                // It is correct even if more than one threads might assign the
-                // value
-                auto col = trans_strong_dep->get_const_col_idxs()[idx];
-                if (new_status[col] == kernels::pmis::unassigned) {
-                    new_status[col] = kernels::pmis::fine;
+        if (new_status[row] == kernels::pmis::unassigned) {
+            for (auto idx = strong_dep->get_const_row_ptrs()[row];
+                 idx < strong_dep->get_const_row_ptrs()[row + 1]; idx++) {
+                if (new_status[strong_dep->get_const_col_idxs()[idx]] ==
+                    kernels::pmis::coarse) {
+                    new_status[row] = kernels::pmis::fine;
+                    break;
                 }
             }
         }
@@ -262,6 +275,13 @@ void direct_interpolation_fill(
             prolong_values[idx] = one<ValueType>();
             continue;
         }
+        // a fine point without any strong dependence gets no interpolation
+        // entry, which is consistent with compute_strong_dep{,_row} and with
+        // the count computed by direct_interpolation_row_count
+        const auto max_abs = row_maxabs[row];
+        if (max_abs == zero<remove_complex<ValueType>>()) {
+            continue;
+        }
         auto pos = zero<ValueType>();
         auto pos_divisor = zero<ValueType>();
         auto neg = zero<ValueType>();
@@ -270,7 +290,6 @@ void direct_interpolation_fill(
         bool enable_neg = false;
         bool enable_pos = false;
         // first compute alpha/beta
-        auto max_abs = row_maxabs[row];
         for (auto idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1]; idx++) {
             auto val = csr_values[idx];
             auto col = csr_col_idxs[idx];

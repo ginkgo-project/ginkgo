@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -93,6 +93,25 @@ GKO_BIND_CURAND_RANDOM_VECTOR(ValueType, detail::not_implemented);
 
 
 #undef GKO_BIND_CURAND_RANDOM_VECTOR
+
+
+#define GKO_BIND_CURAND_UNIFORM_RANDOM_VECTOR(ValueType, CurandName)         \
+    inline void uniform_rand_vector(curandGenerator_t& gen, size_type n,     \
+                                    ValueType* values)                       \
+    {                                                                        \
+        GKO_ASSERT_NO_CURAND_ERRORS(CurandName(gen, values, n));             \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_CURAND_UNIFORM_RANDOM_VECTOR(float, curandGenerateUniform);
+GKO_BIND_CURAND_UNIFORM_RANDOM_VECTOR(double, curandGenerateUniformDouble);
+template <typename ValueType>
+GKO_BIND_CURAND_UNIFORM_RANDOM_VECTOR(ValueType, detail::not_implemented);
+
+
+#undef GKO_BIND_CURAND_UNIFORM_RANDOM_VECTOR
 
 
 }  // namespace curand
