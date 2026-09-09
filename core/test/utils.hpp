@@ -522,7 +522,7 @@ inline bool check_assertion_exit_code(int exit_code)
 inline void disable_core_dump()
 {
 #ifdef __linux__
-    prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
+    prctl(PR_SET_DUMPABLE, 0);
 #endif
 }
 
