@@ -48,7 +48,6 @@ namespace dpcpp {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
- * @ingroup csr
  */
 namespace csr {
 

@@ -26,7 +26,6 @@ namespace cuda {
 /**
  * @brief The LOWER_TRS solver namespace.
  *
- * @ingroup lower_trs
  */
 namespace lower_trs {
 

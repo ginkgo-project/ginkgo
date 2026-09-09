@@ -38,7 +38,6 @@ namespace matrix {
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -137,7 +136,6 @@ private:
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -250,7 +248,6 @@ private:
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */

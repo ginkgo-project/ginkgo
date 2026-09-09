@@ -14,6 +14,9 @@
 ##
 ## ---------------------------------------------------------------------
 
+# must match the prefix used by create_anchors
+my $prefix = pop @ARGV;
+
 print "    <ul>\n";
 
 $level = 3;
@@ -55,7 +58,7 @@ while (<>) {
           # hyperref, so get rid of the percent sign
           $text =~ s!\%!!g;
 
-          print "        <li><a href=\"#$reftext\">$text</a>\n";
+          print "        <li><a href=\"#${prefix}_$reftext\">$text</a>\n";
 
           $level = $newlevel;
        }

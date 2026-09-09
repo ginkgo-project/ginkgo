@@ -18,7 +18,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Csr matrix format namespace.
  *
- * @ingroup csr
  */
 namespace csr {
 

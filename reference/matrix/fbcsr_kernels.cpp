@@ -33,7 +33,6 @@ namespace reference {
 /**
  * @brief The fixed-block compressed sparse row matrix format namespace.
  *
- * @ingroup fbcsr
  */
 namespace fbcsr {
 

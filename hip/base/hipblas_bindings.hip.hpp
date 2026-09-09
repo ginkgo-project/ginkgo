@@ -20,25 +20,21 @@ namespace gko {
 /**
  * @brief The device specific kernels namespace.
  *
- * @ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The HIP namespace.
  *
- * @ingroup hip
  */
 namespace hip {
 /**
  * @brief The HIPBLAS namespace.
  *
- * @ingroup hipblas
  */
 namespace hipblas {
 /**
  * @brief The detail namespace.
  *
- * @ingroup detail
  */
 namespace detail {
 

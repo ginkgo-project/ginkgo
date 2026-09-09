@@ -45,7 +45,6 @@ class Hybrid;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup ell
  * @ingroup mat_formats
  * @ingroup LinOp
  */

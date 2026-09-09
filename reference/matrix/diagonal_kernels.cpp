@@ -14,7 +14,6 @@ namespace reference {
 /**
  * @brief The Diagonal matrix format namespace.
  *
- * @ingroup diagonal
  */
 namespace diagonal {
 

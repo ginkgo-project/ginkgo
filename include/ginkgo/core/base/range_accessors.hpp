@@ -16,7 +16,6 @@ namespace gko {
 /**
  * @brief The accessor namespace.
  *
- * @ingroup accessor
  */
 namespace accessor {
 

@@ -160,7 +160,6 @@ array<ValueType> array_const_cast(const_array_view<ValueType> view);
  *
  * @tparam ValueType  the type of elements stored in the array
  *
- * @ingroup array
  */
 template <typename ValueType>
 class array {

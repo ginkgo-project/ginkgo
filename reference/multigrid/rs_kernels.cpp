@@ -22,7 +22,6 @@ namespace reference {
 /**
  * @brief The RS solver namespace.
  *
- * @ingroup rs
  */
 namespace rs {
 

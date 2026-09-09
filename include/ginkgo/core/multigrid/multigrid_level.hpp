@@ -20,7 +20,6 @@ namespace gko {
 /**
  * @brief The multigrid components namespace.
  *
- * @ingroup gko
  */
 namespace multigrid {
 

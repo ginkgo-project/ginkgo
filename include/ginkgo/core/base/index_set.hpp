@@ -50,7 +50,6 @@ namespace gko {
  *
  * @tparam index_type  type of the indices being stored in the index set.
  *
- * @ingroup index_set
  */
 template <typename IndexType = int32>
 class index_set {

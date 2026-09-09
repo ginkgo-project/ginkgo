@@ -21,7 +21,6 @@ namespace gko {
  * @tparam Dimensionality  number of dimensions of the object
  * @tparam DimensionType  datatype used to represent each dimension
  *
- * @ingroup batch_dim
  */
 template <size_type Dimensionality = 2, typename DimensionType = size_type>
 struct batch_dim {

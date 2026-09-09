@@ -19,7 +19,6 @@ namespace reference {
 /**
  * @brief The ELL matrix format namespace.
  * @ref Ell
- * @ingroup ell
  */
 namespace ell {
 

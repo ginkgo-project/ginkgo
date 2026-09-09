@@ -17,7 +17,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Sellp matrix format namespace.
  *
- * @ingroup sellp
  */
 namespace sellp {
 

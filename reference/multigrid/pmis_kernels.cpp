@@ -22,7 +22,6 @@ namespace reference {
 /**
  * @brief The PMIS solver namespace.
  *
- * @ingroup pmis
  */
 namespace pmis {
 

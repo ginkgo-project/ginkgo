@@ -30,13 +30,11 @@ namespace kernels {
 /**
  * @brief The DPCPP namespace.
  *
- * @ingroup dpcpp
  */
 namespace dpcpp {
 /**
  * @brief The Coordinate matrix format namespace.
  *
- * @ingroup coo
  */
 namespace coo {
 

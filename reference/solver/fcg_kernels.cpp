@@ -15,7 +15,6 @@ namespace reference {
 /**
  * @brief The FCG solver namespace.
  *
- * @ingroup fcg
  */
 namespace fcg {
 

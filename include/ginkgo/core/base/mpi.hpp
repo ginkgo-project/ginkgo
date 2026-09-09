@@ -30,7 +30,6 @@ namespace experimental {
 /**
  * @brief The mpi namespace, contains wrapper for many MPI functions.
  *
- * @ingroup mpi
  * @ingroup distributed
  */
 namespace mpi {

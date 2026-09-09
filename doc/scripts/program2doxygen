@@ -24,14 +24,22 @@ $skip_mode             = 2;
 $code_fragment_mode    = 3;
 $state =  $comment_mode;
 
+# anchors must be unique across the whole documentation; namespace them with
+# the (unique) name of the example page. Must match program2toc.
+my $prefix = pop @ARGV;
+
 print " * \n";
 
 do {
 
-   # skip header lines at the top of the file, such as copyright notices 
+   # skip header lines at the top of the file, such as copyright notices
    # and license information, if the file is a <example-name>.cpp tutorial. don't
-   # skip for other files such as code-gallery files
-   if($.==1..32){
+   # skip for other files such as code-gallery files.
+   # Ginkgo's examples carry a three-line SPDX header, so the range ends at the
+   # licence line; the 32 is only a fallback for the one example that still has
+   # the long deal.II header. A fixed 32 would drop the first 32 lines of every
+   # example, including documented code and its @sect headings.
+   if ($. == 1 .. (m!SPDX-License-Identifier! || $. == 32)) {
    $_="";
    }
 
@@ -102,7 +110,7 @@ do {
            # everything except for letters, numbers, and underscores
            $sect_name =~ s/[^a-zA-Z0-9_]//g;
 
-           $_ = "\n * <a name=\"$sect_name\"></a> \n * $_";
+           $_ = "\n * <a name=\"${prefix}_$sect_name\"></a> \n * $_";
         }
 
         # finally print this line

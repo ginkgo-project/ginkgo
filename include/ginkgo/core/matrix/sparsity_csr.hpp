@@ -43,7 +43,6 @@ class Fbcsr;
  * @tparam ValueType  precision of vectors in apply
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup sparsity
  * @ingroup mat_formats
  * @ingroup LinOp
  */

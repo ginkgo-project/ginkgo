@@ -15,7 +15,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Minres solver namespace.
  *
- * @ingroup minres
  */
 namespace minres {
 namespace detail {

@@ -18,7 +18,6 @@ namespace reference {
 /**
  * @brief The GCR solver namespace.
  *
- * @ingroup gcr
  */
 namespace gcr {
 

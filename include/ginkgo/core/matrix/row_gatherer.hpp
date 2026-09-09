@@ -35,8 +35,6 @@ namespace matrix {
  * calls the respective Dense rowgatherer operation. As such it only stores an
  * array of the rowgatherer indices.
  *
- * @ingroup rowgatherer
- * @ingroup matrix
  * @ingroup LinOp
  */
 template <typename IndexType = int32>

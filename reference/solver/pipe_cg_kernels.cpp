@@ -16,7 +16,6 @@ namespace reference {
 /**
  * @brief The PIPE_CG solver namespace.
  *
- * @ingroup pipe_cg
  */
 namespace pipe_cg {
 

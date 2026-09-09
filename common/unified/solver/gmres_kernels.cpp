@@ -17,7 +17,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The GMRES solver namespace.
  *
- * @ingroup gmres
  */
 namespace gmres {
 

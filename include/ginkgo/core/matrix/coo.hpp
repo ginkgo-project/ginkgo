@@ -15,7 +15,6 @@ namespace gko {
 /**
  * @brief The matrix namespace.
  *
- * @ingroup matrix
  */
 namespace matrix {
 
@@ -43,7 +42,6 @@ class Hybrid;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup coo
  * @ingroup mat_formats
  * @ingroup LinOp
  */

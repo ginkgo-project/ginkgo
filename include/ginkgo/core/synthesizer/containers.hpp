@@ -14,7 +14,6 @@ namespace gko {
 /**
  * @brief The Synthesizer namespace.
  *
- * @ingroup syn
  */
 namespace syn {
 

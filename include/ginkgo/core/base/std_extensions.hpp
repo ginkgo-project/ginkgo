@@ -24,7 +24,6 @@ namespace gko {
 /**
  * @brief The namespace for functionalities after C++14 standard.
  * @internal
- * @ingroup xstd
  */
 namespace xstd {
 namespace detail {

@@ -35,7 +35,6 @@ namespace dpcpp {
 /**
  * @brief The CB_GMRES solver namespace.
  *
- * @ingroup cb_gmres
  */
 namespace cb_gmres {
 

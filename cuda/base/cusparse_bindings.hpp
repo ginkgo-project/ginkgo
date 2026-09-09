@@ -20,13 +20,11 @@ namespace cuda {
 /**
  * @brief The CUSPARSE namespace.
  *
- * @ingroup cusparse
  */
 namespace cusparse {
 /**
  * @brief The detail namespace.
  *
- * @ingroup detail
  */
 namespace detail {
 

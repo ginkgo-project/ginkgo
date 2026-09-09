@@ -41,7 +41,6 @@ namespace gko {
  * of the strict order to its weak equivalent. Thus, `x <= y` is not equivalent
  * to `x < y || x == y`.
  *
- * @ingroup ranges
  */
 struct span {
     /**
@@ -298,7 +297,6 @@ using head_t = typename head<T...>::type;
  *
  * @tparam Accessor  underlying accessor of the range
  *
- * @ingroup ranges
  */
 template <typename Accessor>
 class range {

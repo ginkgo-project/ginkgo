@@ -15,7 +15,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The GCR solver namespace.
  *
- * @ingroup grc
  */
 namespace gcr {
 

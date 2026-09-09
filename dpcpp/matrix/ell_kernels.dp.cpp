@@ -41,7 +41,6 @@ namespace dpcpp {
 /**
  * @brief The ELL matrix format namespace.
  *
- * @ingroup ell
  */
 namespace ell {
 

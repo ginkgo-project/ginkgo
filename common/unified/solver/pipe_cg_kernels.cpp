@@ -15,7 +15,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The PIPE_CG solver namespace.
  *
- * @ingroup pipe_cg
  */
 namespace pipe_cg {
 

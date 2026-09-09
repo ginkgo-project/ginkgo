@@ -26,7 +26,6 @@ namespace cuda {
 /**
  * @brief The UPPER_TRS solver namespace.
  *
- * @ingroup upper_trs
  */
 namespace upper_trs {
 

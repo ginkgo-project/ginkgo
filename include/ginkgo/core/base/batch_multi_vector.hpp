@@ -53,8 +53,7 @@ namespace batch {
  *
  * @tparam ValueType  precision of multi-vector elements
  *
- * @ingroup batch_multi_vector
- * @ingroup batched
+ * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
 class MultiVector

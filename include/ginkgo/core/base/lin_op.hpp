@@ -675,7 +675,6 @@ private:
  * and row index are the same and stores the result in a min(nrows, ncols) x 1
  * dense matrix.
  *
- * @ingroup diagonal
  * @ingroup LinOp
  */
 class DiagonalLinOpExtractable {

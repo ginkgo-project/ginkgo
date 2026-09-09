@@ -19,25 +19,21 @@ namespace gko {
 /**
  * @brief The device specific kernels namespace.
  *
- * @ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The DPCPP namespace.
  *
- * @ingroup dpcpp
  */
 namespace dpcpp {
 /**
  * @brief The ONEMKL namespace.
  *
- * @ingroup onemkl
  */
 namespace onemkl {
 /**
  * @brief The detail namespace.
  *
- * @ingroup detail
  */
 namespace detail {
 

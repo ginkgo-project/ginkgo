@@ -27,7 +27,6 @@ namespace matrix {
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */

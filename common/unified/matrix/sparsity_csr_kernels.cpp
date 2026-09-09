@@ -16,7 +16,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The SparsityCsr matrix format namespace.
  *
- * @ingroup sparsity_csr
  */
 namespace sparsity_csr {
 

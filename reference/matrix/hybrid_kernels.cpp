@@ -20,7 +20,6 @@ namespace reference {
 /**
  * @brief The Hybrid matrix format namespace.
  * @ref Hybrid
- * @ingroup hybrid
  */
 namespace hybrid {
 

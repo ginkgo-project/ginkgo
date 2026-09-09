@@ -44,7 +44,6 @@ namespace matrix {
  * @tparam ValueType  value precision of matrix elements
  * @tparam IndexType  index precision of matrix elements
  *
- * @ingroup batch_ell
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */

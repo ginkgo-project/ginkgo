@@ -56,7 +56,6 @@ namespace solver {
  *
  * @tparam ValueType precision of the elements of the system matrix.
  *
- * @ingroup bicgstab
  * @ingroup solvers
  * @ingroup LinOp
  */

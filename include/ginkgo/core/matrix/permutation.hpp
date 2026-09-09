@@ -103,7 +103,6 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  *
  * @tparam IndexType  precision of permutation array indices.
  *
- * @ingroup permutation
  * @ingroup mat_formats
  * @ingroup LinOp
  */

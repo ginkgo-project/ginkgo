@@ -33,7 +33,6 @@ namespace dpcpp {
 /**
  * @brief The IDR solver namespace.
  *
- * @ingroup idr
  */
 namespace idr {
 

@@ -54,7 +54,6 @@ namespace gko {
  * }
  * ```
  *
- * @ingroup error
  */
 class Error : public std::runtime_error {
 public:

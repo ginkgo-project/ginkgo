@@ -18,7 +18,6 @@ namespace reference {
 /**
  * @brief The Minres solver namespace.
  *
- * @ingroup minres
  */
 namespace minres {
 

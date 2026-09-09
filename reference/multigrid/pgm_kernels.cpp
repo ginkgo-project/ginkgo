@@ -27,7 +27,6 @@ namespace reference {
 /**
  * @brief The PGM solver namespace.
  *
- * @ingroup pgm
  */
 namespace pgm {
 

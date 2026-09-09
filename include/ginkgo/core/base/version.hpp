@@ -20,7 +20,6 @@ namespace gko {
  *
  * Version structures can be compared using the usual relational operators.
  *
- * @ingroup ginkgo_version
  */
 struct version {
     constexpr version(const uint64 major, const uint64 minor,

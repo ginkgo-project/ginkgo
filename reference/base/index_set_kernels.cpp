@@ -23,13 +23,11 @@ namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * @ingroup reference
  */
 namespace reference {
 /**
  * @brief The index_set namespace.
  *
- * @ingroup index_set
  */
 namespace idx_set {
 

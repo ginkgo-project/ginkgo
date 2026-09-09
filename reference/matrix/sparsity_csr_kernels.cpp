@@ -24,7 +24,6 @@ namespace reference {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  * @ref SparsityCsr
- * @ingroup sparsity
  */
 namespace sparsity_csr {
 

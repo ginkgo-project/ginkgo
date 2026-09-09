@@ -18,7 +18,6 @@ namespace dpcpp {
 /**
  * @brief The DPCPP thread namespace.
  *
- * @ingroup dpcpp_thread
  */
 namespace thread {
 

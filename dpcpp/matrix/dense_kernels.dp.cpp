@@ -34,7 +34,6 @@ namespace dpcpp {
 /**
  * @brief The dense matrix format namespace.
  *
- * @ingroup dense
  */
 namespace dense {
 

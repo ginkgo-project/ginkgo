@@ -81,7 +81,6 @@ class SparsityCsr;
  *
  * @note While this format is not very useful for storing sparse matrices, it
  *       is often suitable to store vectors, and sets of vectors.
- * @ingroup dense
  * @ingroup mat_formats
  * @ingroup LinOp
  */

@@ -23,7 +23,6 @@ namespace omp {
 /**
  * @brief The ELL matrix format namespace.
  *
- * @ingroup ell
  */
 namespace ell {
 

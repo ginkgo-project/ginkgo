@@ -15,7 +15,6 @@
 /**
  * @brief The Ginkgo namespace.
  *
- * @ingroup gko
  */
 namespace gko {
 namespace detail {

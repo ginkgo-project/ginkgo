@@ -27,7 +27,6 @@ namespace reference {
 /**
  * @brief The Dense matrix format namespace.
  * @ref Dense
- * @ingroup dense
  */
 namespace dense {
 

@@ -29,7 +29,6 @@ namespace gko {
 /**
  * @internal
  * @brief The detail namespace.
- * @ingroup detail
  */
 namespace detail {
 

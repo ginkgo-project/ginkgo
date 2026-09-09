@@ -16,7 +16,6 @@ namespace omp {
 /**
  * @brief The Diagonal matrix format namespace.
  *
- * @ingroup diagonal
  */
 namespace diagonal {
 

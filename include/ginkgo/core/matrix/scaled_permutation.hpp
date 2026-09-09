@@ -28,7 +28,6 @@ namespace matrix {
  * @tparam IndexType  index type of permutation indices
  * @tparam ValueType  value type of the scaling factors
  *
- * @ingroup permutation
  * @ingroup mat_formats
  * @ingroup LinOp
  */

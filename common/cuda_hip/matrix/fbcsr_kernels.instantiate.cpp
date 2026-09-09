@@ -11,7 +11,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The fixed-size block compressed sparse row matrix format namespace.
  *
- * @ingroup fbcsr
  */
 namespace fbcsr {
 

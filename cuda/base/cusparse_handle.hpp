@@ -18,7 +18,6 @@ namespace cuda {
 /**
  * @brief The CUSPARSE namespace.
  *
- * @ingroup cusparse
  */
 namespace cusparse {
 

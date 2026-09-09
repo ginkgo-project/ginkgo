@@ -24,7 +24,6 @@ namespace omp {
 /**
  * @brief The Isai preconditioner namespace.
  *
- * @ingroup isai
  */
 namespace isai {
 
