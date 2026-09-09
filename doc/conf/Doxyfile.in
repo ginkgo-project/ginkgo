@@ -55,7 +55,10 @@ SHOW_FILES             = YES
 SHOW_NAMESPACES        = YES
 CITE_BIB_FILES         =
 INHERIT_DOCS           = YES
-USE_MATHJAX            = NO
+# Render formulas client-side, so the HTML build needs no LaTeX toolchain.
+# RELPATH is explicit: older doxygen defaults point at the CDN retired in 2017.
+USE_MATHJAX            = YES
+MATHJAX_RELPATH        = https://cdn.jsdelivr.net/npm/mathjax@2
 
 BUILTIN_STL_SUPPORT    = YES
 
