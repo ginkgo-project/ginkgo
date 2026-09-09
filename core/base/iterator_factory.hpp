@@ -614,98 +614,112 @@ public:
 
     permute_iterator() = default;
 
-    GKO_ATTRIBUTES explicit permute_iterator(IteratorType it, PermuteFn perm)
+    GKO_ATTRIBUTES constexpr explicit permute_iterator(IteratorType it,
+                                                       PermuteFn perm)
         : it_{std::move(it)}, idx_{}, perm_{std::move(perm)}
     {}
 
-    GKO_ATTRIBUTES permute_iterator& operator+=(difference_type i)
+    GKO_ATTRIBUTES constexpr permute_iterator& operator+=(difference_type i)
     {
         idx_ += i;
         return *this;
     }
 
-    GKO_ATTRIBUTES permute_iterator& operator-=(difference_type i)
+    GKO_ATTRIBUTES constexpr permute_iterator& operator-=(difference_type i)
     {
         return *this += -i;
     }
 
-    GKO_ATTRIBUTES permute_iterator& operator++() { return *this += 1; }
+    GKO_ATTRIBUTES constexpr permute_iterator& operator++()
+    {
+        return *this += 1;
+    }
 
-    GKO_ATTRIBUTES permute_iterator operator++(int)
+    GKO_ATTRIBUTES constexpr permute_iterator operator++(int)
     {
         auto tmp = *this;
         ++(*this);
         return tmp;
     }
 
-    GKO_ATTRIBUTES permute_iterator& operator--() { return *this -= 1; }
+    GKO_ATTRIBUTES constexpr permute_iterator& operator--()
+    {
+        return *this -= 1;
+    }
 
-    GKO_ATTRIBUTES permute_iterator operator--(int)
+    GKO_ATTRIBUTES constexpr permute_iterator operator--(int)
     {
         auto tmp = *this;
         --(*this);
         return tmp;
     }
 
-    GKO_ATTRIBUTES permute_iterator operator+(difference_type i) const
+    GKO_ATTRIBUTES constexpr permute_iterator operator+(difference_type i) const
     {
         auto tmp = *this;
         tmp += i;
         return tmp;
     }
 
-    GKO_ATTRIBUTES friend permute_iterator operator+(
+    GKO_ATTRIBUTES constexpr friend permute_iterator operator+(
         difference_type i, const permute_iterator& iter)
     {
         return iter + i;
     }
 
-    GKO_ATTRIBUTES permute_iterator operator-(difference_type i) const
+    GKO_ATTRIBUTES constexpr permute_iterator operator-(difference_type i) const
     {
         auto tmp = *this;
         tmp -= i;
         return tmp;
     }
 
-    GKO_ATTRIBUTES difference_type
-    operator-(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr difference_type operator-(
+        const permute_iterator& other) const
     {
         return idx_ - other.idx_;
     }
 
-    GKO_ATTRIBUTES reference operator*() const { return it_[perm_(idx_)]; }
+    GKO_ATTRIBUTES constexpr reference operator*() const
+    {
+        return it_[perm_(idx_)];
+    }
 
-    GKO_ATTRIBUTES reference operator[](difference_type i) const
+    GKO_ATTRIBUTES constexpr reference operator[](difference_type i) const
     {
         return *(*this + i);
     }
 
-    GKO_ATTRIBUTES bool operator==(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator==(
+        const permute_iterator& other) const
     {
         return idx_ == other.idx_;
     }
 
-    GKO_ATTRIBUTES bool operator!=(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator!=(
+        const permute_iterator& other) const
     {
         return !(*this == other);
     }
 
-    GKO_ATTRIBUTES bool operator<(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator<(const permute_iterator& other) const
     {
         return idx_ < other.idx_;
     }
 
-    GKO_ATTRIBUTES bool operator<=(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator<=(
+        const permute_iterator& other) const
     {
         return idx_ <= other.idx_;
     }
 
-    GKO_ATTRIBUTES bool operator>(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator>(const permute_iterator& other) const
     {
         return !(*this <= other);
     }
 
-    GKO_ATTRIBUTES bool operator>=(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator>=(
+        const permute_iterator& other) const
     {
         return !(*this < other);
     }
