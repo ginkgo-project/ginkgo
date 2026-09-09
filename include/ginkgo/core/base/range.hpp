@@ -422,7 +422,7 @@ public:
     }
 
     /**
-     * `Returns a reference to the accessor.
+     * Returns a reference to the accessor.
      *
      * @return reference to the accessor
      */

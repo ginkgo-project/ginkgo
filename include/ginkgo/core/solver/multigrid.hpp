@@ -37,7 +37,7 @@ namespace solver {
 /**
  * @brief The solver multigrid namespace.
  *
- * @ingroup solver
+ * @ingroup solvers
  */
 namespace multigrid {
 
