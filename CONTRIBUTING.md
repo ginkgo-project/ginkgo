@@ -522,9 +522,9 @@ uses the at-sign for all Doxygen commands (`@brief`, `@param`, `@tparam`,
 `@return`, `@note`, `@ingroup`, `@ref`, ...) and reserves the backslash for
 the LaTeX formula delimiters `\f$ ... \f$` and `\f[ ... \f]`.
 
-Keeping the two apart means the prefix tells you what you are looking at: `@`
-introduces Doxygen structure, `\` introduces LaTeX. It also keeps a formula
-visually of a piece with the math it contains, as in
+Keeping the two apart means that the prefix tells you what you are looking at:
+`@` introduces Doxygen structure, `\` introduces LaTeX. It also keeps a formula
+visually consistent with the math it contains, as in
 `\f$\alpha \frac{a}{b}\f$`.
 
 ###  Developer targeted notes

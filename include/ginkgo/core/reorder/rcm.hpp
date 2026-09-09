@@ -206,6 +206,7 @@ public:
      * @copydoc LinOpFactory::generate
      *
      * @param system_matrix  the source matrix to compute the reordering for.
+     *
      * @note This function overrides the default LinOpFactory::generate to
      *       return a Permutation instead of a generic LinOp, which would
      *       need to be cast to Permutation again to access its indices.
