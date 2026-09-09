@@ -424,7 +424,7 @@ TEST(PmisRandomWeight, IsInRangeAndReproducible)
     for (gko::size_type i = 0; i < num; i++) {
         const auto val = weight.get_const_data()[i];
         ASSERT_GE(val, 0.0f);
-        ASSERT_LE(val, 1.0f);
+        ASSERT_LT(val, 1.0f);
         sum += val;
     }
     // uniform on [0, 1] has mean 0.5 with a standard error of about 0.009 for

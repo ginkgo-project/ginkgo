@@ -156,7 +156,7 @@ void initialize_weight_and_status(
         const auto w = static_cast<float>(row_ptrs[row + 1] - row_ptrs[row]);
         status[row] =
             (w == 0.0f ? kernels::pmis::fine : kernels::pmis::unassigned);
-        // avoid the random value to be 1
+        // scaled like the unified kernel, see the note there
         weight[row] =
             static_cast<remove_complex<ValueType>>(random_val[row] * 0.99f + w);
     }

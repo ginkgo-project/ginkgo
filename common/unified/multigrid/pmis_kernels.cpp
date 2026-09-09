@@ -144,15 +144,9 @@ void initialize_weight_and_status(
     remove_complex<ValueType>* weight, int* status)
 {
     auto num = trans_strong_dep->get_size()[0];
+    // we only use float here because the dpcpp device may lack double
+    // precision support and the random generators do not support 16-bit
     array<float> random(exec, num);
-    // note. range setting 0, 1 has different meaning in different backend
-    // for range(l, r)
-    // std include `l` but exclude `r`
-    // cuda/hip exclude `l` but include `r`
-    // dpcpp does not mentioned it in the documentation but the code should
-    // include `l` but exclude `r`. We only use float here because dpcpp device
-    // may lack of double precision support and random generator does not
-    // support 16-bit.
     initialize_random_weight(exec, num, random.get_data());
     run_kernel(
         exec,
@@ -162,7 +156,8 @@ void initialize_weight_and_status(
             auto w = static_cast<float>(row_ptrs[row + 1] - row_ptrs[row]);
             status[row] =
                 (w == 0.0f ? kernels::pmis::fine : kernels::pmis::unassigned);
-            // avoid random value to be 1
+            // curand/hiprand generate in (0, 1] while the others use
+            // [0, 1); scaling keeps the fraction below 1 everywhere
             weight[row] = static_cast<type>(random[row] * 0.99f + w);
         },
         num, trans_strong_dep->get_const_row_ptrs(), random.get_const_data(),
@@ -202,8 +197,8 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
             return kernels::pmis::coarse;
         },
         [] GKO_KERNEL(auto a, auto b) { return a < b ? a : b; } /* minimum */,
-        [] GKO_KERNEL(auto a) { return a; }, int{1}, new_status, 1,
-        dim<2>{strong_dep->get_size()[0], width}, status, weight,
+        [] GKO_KERNEL(auto a) { return a; }, kernels::pmis::coarse, new_status,
+        1, dim<2>{strong_dep->get_size()[0], width}, status, weight,
         strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());
     // mark new fine point strongly influenced by the new coarse points
     // TODO: using warp vote function if implement in native way.
@@ -228,8 +223,8 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
             return kernels::pmis::unassigned;
         },
         [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; } /* maximum */,
-        [] GKO_KERNEL(auto a) { return a; }, int{-1}, new_status, 1,
-        dim<2>{strong_dep->get_size()[0], width}, new_status,
+        [] GKO_KERNEL(auto a) { return a; }, kernels::pmis::unassigned,
+        new_status, 1, dim<2>{strong_dep->get_size()[0], width}, new_status,
         strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());
 }
 

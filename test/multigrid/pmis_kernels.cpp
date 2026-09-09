@@ -278,6 +278,10 @@ TEST_F(Pmis, InitializeRandomWeightIsInRangeAndReproducible)
     for (gko::size_type i = 0; i < num; i++) {
         const auto val = random.get_const_data()[i];
         ASSERT_GE(val, 0.0f);
+        // the raw generators differ at the upper boundary: curand/hiprand
+        // produce (0, 1] while std and oneDPL produce [0, 1).
+        // initialize_weight_and_status flips the former, but this test covers
+        // the unflipped kernel, so 1 has to be allowed here
         ASSERT_LE(val, 1.0f);
         sum += val;
     }
