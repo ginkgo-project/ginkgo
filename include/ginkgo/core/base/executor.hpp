@@ -1962,6 +1962,9 @@ public:
      *                kernels
      * @param device_type  a string representing the type of device to consider
      *                     (accelerator, cpu, gpu or all).
+     * @param property  the properties of the DPC++ queue, which may be
+     *                  combined with the binary or operator. See
+     *                  @ref dpcpp_queue_property for more details
      */
     static std::shared_ptr<DpcppExecutor> create(
         int device_id, std::shared_ptr<Executor> master,
