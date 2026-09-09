@@ -44,9 +44,9 @@ TYPED_TEST(DenseView, AssertTriggersInConstructorDeathTest)
     gko::matrix::view::dense<TypeParam> view{gko::dim<2>{2, 2}, 3,
                                              values.data()};
 
-    EXPECT_EXIT((void)(view(3, 0)), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(view(0, 3)), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(view(3, 3)), check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view(3, 0)));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view(0, 3)));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view(3, 3)));
 }
 
 
@@ -56,9 +56,8 @@ TYPED_TEST(DenseView, AssertTriggersOnOutOfBoundsDeathTest)
     GTEST_SKIP() << "Assertion is only enabled in debug mode";
 #endif
 
-    EXPECT_EXIT((void)(gko::matrix::view::dense<TypeParam>{gko::dim<2>{2, 2}, 1,
-                                                           nullptr}),
-                check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(gko::matrix::view::dense<TypeParam>{
+        gko::dim<2>{2, 2}, 1, nullptr}));
 }
 
 
@@ -188,9 +187,9 @@ TYPED_TEST(EllView, AssertTriggersInConstructorDeathTest)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     // stride is smaller than dim[0]
-    EXPECT_EXIT((void)(gko::matrix::view::ell<value_type, index_type>{
-                    gko::dim<2>{2, 5}, 3, 1, nullptr, nullptr}),
-                check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE(
+        (void)(gko::matrix::view::ell<value_type, index_type>{
+            gko::dim<2>{2, 5}, 3, 1, nullptr, nullptr}));
 }
 
 
@@ -208,14 +207,14 @@ TYPED_TEST(EllView, AssertTriggersOnOutOfBoundsDeathTest)
         gko::dim<2>{2, 5}, 3, 4, values.data(), col_idxs.data()};
 
     // access exceed nonzero per row
-    EXPECT_EXIT((void)(view.val_at(1, 3)), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(view.col_at(1, 3)), check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.val_at(1, 3)));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.col_at(1, 3)));
     // access exceed the dimension
-    EXPECT_EXIT((void)(view.val_at(2, 0)), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(view.col_at(2, 0)), check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.val_at(2, 0)));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.col_at(2, 0)));
     // access exceed the stride
-    EXPECT_EXIT((void)(view.val_at(4, 0)), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(view.col_at(4, 0)), check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.val_at(4, 0)));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.col_at(4, 0)));
 }
 
 
@@ -303,13 +302,9 @@ TYPED_TEST(SellpView, AssertTriggersOnOutOfBoundsDeathTest)
                                                           slice_sets.data()};
 
     // access exceed row per slice
-    EXPECT_EXIT((void)(view.val_at(2, slice_sets.at(0), 0)),
-                check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(view.col_at(2, slice_sets.at(0), 0)),
-                check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.val_at(2, slice_sets.at(0), 0)));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.col_at(2, slice_sets.at(0), 0)));
     // access exceed the total col
-    EXPECT_EXIT((void)(view.val_at(0, slice_sets.at(0), 7)),
-                check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(view.col_at(0, slice_sets.at(0), 7)),
-                check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.val_at(0, slice_sets.at(0), 7)));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(view.col_at(0, slice_sets.at(0), 7)));
 }
