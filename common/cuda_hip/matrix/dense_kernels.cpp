@@ -17,6 +17,7 @@
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/pointer_mode_guard.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
+#include "common/cuda_hip/components/atomic.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
@@ -41,6 +42,25 @@ constexpr int default_block_size = 512;
 
 
 namespace kernel {
+
+
+template <typename DeviceValueType, typename IndexType>
+__global__ __launch_bounds__(default_block_size) void scatter_add_kernel(
+    size_type nrows, size_type ncols,
+    const IndexType* __restrict__ scatter_indices,
+    const DeviceValueType* __restrict__ src_vals, size_type src_stride,
+    DeviceValueType* __restrict__ tgt_vals, size_type tgt_stride)
+{
+    auto idx = thread::get_thread_id_flat();
+    if (idx >= nrows * ncols) {
+        return;
+    }
+    auto row = idx / ncols;
+    auto col = idx % ncols;
+    auto target_row = static_cast<size_type>(scatter_indices[row]);
+    atomic_add(tgt_vals + target_row * tgt_stride + col,
+               src_vals[row * src_stride + col]);
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -823,6 +843,28 @@ void conj_transpose(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CONJ_TRANSPOSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scatter_add(std::shared_ptr<const DefaultExecutor> exec,
+                 const IndexType* scatter_indices,
+                 matrix::view::dense<const ValueType> source,
+                 matrix::view::dense<ValueType> target)
+{
+    auto nrows = source.size[0];
+    auto ncols = source.size[1];
+    if (nrows == 0 || ncols == 0) {
+        return;
+    }
+    auto grid_dim = ceildiv(nrows * ncols, default_block_size);
+    kernel::scatter_add_kernel<<<grid_dim, default_block_size, 0,
+                                 exec->get_stream()>>>(
+        nrows, ncols, scatter_indices, as_device_type(source.values),
+        source.stride, as_device_type(target.values), target.stride);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SCATTER_ADD_KERNEL);
 
 
 }  // namespace dense

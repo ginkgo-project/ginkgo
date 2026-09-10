@@ -958,6 +958,24 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
 
 
 template <typename ValueType, typename IndexType>
+void scatter_add(std::shared_ptr<const ReferenceExecutor> exec,
+                 const IndexType* scatter_indices,
+                 matrix::view::dense<const ValueType> source,
+                 matrix::view::dense<ValueType> target)
+{
+    for (size_type i = 0; i < source.size[0]; ++i) {
+        auto target_row = static_cast<size_type>(scatter_indices[i]);
+        for (size_type j = 0; j < source.size[1]; ++j) {
+            target(target_row, j) += source(i, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SCATTER_ADD_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void col_permute(std::shared_ptr<const ReferenceExecutor> exec,
                  const IndexType* perm,
                  matrix::view::dense<const ValueType> orig,
