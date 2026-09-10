@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,10 +68,10 @@ private:
 // specialization for constant objects, no need to convert back something that
 // cannot change
 template <typename CopyType, typename OrigType>
-class convert_back_deleter<const CopyType, const OrigType> {
+class convert_back_deleter<const CopyType, OrigType> {
 public:
     using pointer = const CopyType*;
-    using original_pointer = const OrigType*;
+    using original_pointer = OrigType*;
     convert_back_deleter(original_pointer) {}
 
     void operator()(pointer ptr) const { delete ptr; }
@@ -89,6 +89,14 @@ public:
  */
 template <typename TargetType>
 struct conversion_target_helper {
+    constexpr static bool is_distributed =
+#if GINKGO_BUILD_MPI
+        std::is_base_of_v<experimental::distributed::DistributedBase,
+                          TargetType>;
+#else
+        false;
+#endif
+
     /**
      * Creates an empty object on the same executor as source.
      * *
@@ -96,12 +104,29 @@ struct conversion_target_helper {
      * @param source  The source object for the conversion
      * @return  An unique_ptr of TargetType on the same executor as source.
      */
-    template <typename SourceType,
-              typename = std::enable_if_t<std::is_base_of<
-                  ConvertibleTo<TargetType>, SourceType>::value>>
+    template <typename SourceType>
     static std::unique_ptr<TargetType> create_empty(const SourceType* source)
     {
-        return TargetType::create(source->get_executor());
+        if constexpr (is_distributed) {
+            return TargetType::create(
+                source->get_executor(),
+                as<experimental::distributed::DistributedBase>(source)
+                    ->get_communicator());
+        } else {
+            return TargetType::create(source->get_executor());
+        }
+    }
+
+    static std::unique_ptr<TargetType> create_empty(const TargetType* source)
+    {
+        if constexpr (is_distributed) {
+            return TargetType::create(
+                source->get_executor(),
+                as<experimental::distributed::DistributedBase>(source)
+                    ->get_communicator());
+        } else {
+            return TargetType::create(source->get_executor());
+        }
     }
 };
 
@@ -178,6 +203,9 @@ struct conversion_helper<> {
 };
 
 
+}  // namespace detail
+
+
 /**
  * A temporary_conversion is a special smart pointer-like object that is
  * designed to hold an object temporarily converted to another format.
@@ -192,6 +220,13 @@ struct conversion_helper<> {
  */
 template <typename T>
 class temporary_conversion {
+    // std::function deleter allows to decide the (type of) deleter at
+    // runtime
+    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
+
+    template <typename OtherT>
+    friend class temporary_conversion;
+
 public:
     using value_type = T;
     using pointer = T*;
@@ -211,9 +246,113 @@ public:
         if ((cast_ptr = dynamic_cast<T*>(ptr.get()))) {
             return handle_type{cast_ptr, null_deleter<T>{}};
         } else {
-            return conversion_helper<ConversionCandidates...>::template convert<
-                T>(ptr.get());
+            return detail::conversion_helper<
+                ConversionCandidates...>::template convert<T>(ptr.get());
         }
+    }
+
+    /**
+     * Create a temporary conversion from a bare pointer.
+     *
+     * @tparam OrigT Type of the pointer to convert from, either same as T, base
+     *               class of T, or convertible to T.
+     * @param orig Object to convert from
+     * @return Temporary conversion of orig_ptr to type T
+     */
+    template <typename OrigT>
+    static temporary_conversion create(OrigT* orig)
+    {
+        if constexpr (std::is_same_v<T, OrigT>) {
+            return handle_type{orig, null_deleter<T>{}};
+        }
+        if (auto p = dynamic_cast<T*>(orig)) {
+            return {handle_type{p, null_deleter<T>{}}};
+        }
+        using DecayT = std::decay_t<T>;
+        auto converted =
+            detail::conversion_target_helper<DecayT>::create_empty(orig);
+        as<ConvertibleTo<DecayT>>(orig)->convert_to(converted);
+        return {handle_type(converted.release(),
+                            detail::convert_back_deleter<T, OrigT>{orig})};
+    }
+
+    /**
+     * Create a temporary conversion that also owns orig.
+     *
+     * This create method takes ownership of the input pointer. It can be
+     * useful, when chaining conversion. For example if the conversion A -> C
+     * isn't implemented, but A -> B and B -> C are, then this can simplify the
+     * conversion by just chaining the two.
+     *
+     * When the temporary conversion is deleted, orig will be deleted as well.
+     *
+     * @tparam OrigT Type of the pointer to convert from, either same as T, base
+     *               class of T, or convertible to T.
+     * @param orig Object to convert from and take ownership of
+     * @return Temporary conversion of orig_ptr to type T
+     */
+    template <typename OrigT>
+    static temporary_conversion create(std::unique_ptr<OrigT> orig)
+    {
+        std::function<void(OrigT*)> deleter = orig.get_deleter();
+        auto orig_ptr = orig.release();
+        if constexpr (std::is_same_v<T, OrigT>) {
+            return handle_type{orig_ptr, deleter};
+        }
+        if (auto p = dynamic_cast<T*>(orig_ptr)) {
+            return {
+                handle_type{p, [deleter, orig_ptr](T*) { deleter(orig_ptr); }}};
+        }
+        using DecayT = std::decay_t<T>;
+        auto converted =
+            detail::conversion_target_helper<DecayT>::create_empty(orig_ptr);
+        as<ConvertibleTo<DecayT>>(orig_ptr)->convert_to(converted);
+        return {handle_type(
+            converted.release(), [orig_deleter = deleter, orig_ptr](T* ptr) {
+                auto deleter = detail::convert_back_deleter<T, OrigT>{orig_ptr};
+                deleter(ptr);
+                orig_deleter(orig_ptr);
+            })};
+    }
+
+    /**
+     * Create a temporary conversion for a base type T from an object of a
+     * derived type.
+     *
+     * @tparam Derived A derived type of T
+     * @param derived_ptr Object to convert from
+     * @return Temporary conversion of orig_ptr to type T
+     */
+    template <typename Derived, typename = std::enable_if_t<std::is_base_of_v<
+                                    std::decay_t<T>, std::decay_t<Derived>>>>
+    static temporary_conversion create_from_derived(
+        temporary_conversion<Derived>&& derived_ptr)
+    {
+        auto handle = std::move(derived_ptr).empty_out();
+        return {handle_type{handle.release(),
+                            [deleter = handle.get_deleter()](T* ptr) {
+                                deleter(dynamic_cast<Derived*>(ptr));
+                            }}};
+    }
+
+    /**
+     * Create a temporary conversion for a derived type T from an object of a
+     * base type.
+     *
+     * @tparam Base A base type of T
+     * @param base_ptr Object to convert from
+     * @return Temporary conversion of orig_ptr to type T
+     */
+    template <typename Base, typename = std::enable_if_t<std::is_base_of_v<
+                                 std::decay_t<Base>, std::decay_t<T>>>>
+    static temporary_conversion create_from_base(
+        temporary_conversion<Base>&& base_ptr)
+    {
+        auto handle = std::move(base_ptr).empty_out();
+        return {handle_type{dynamic_cast<T*>(handle.release()),
+                            [deleter = handle.get_deleter()](T* ptr) {
+                                deleter(static_cast<Base*>(ptr));
+                            }}};
     }
 
     /**
@@ -236,14 +375,49 @@ public:
     explicit operator bool() { return static_cast<bool>(handle_); }
 
 private:
-    // std::function deleter allows to decide the (type of) deleter at
-    // runtime
-    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
-
     temporary_conversion(handle_type handle) : handle_{std::move(handle)} {}
+
+    handle_type empty_out() && { return std::move(handle_); }
 
     handle_type handle_;
 };
+
+
+/**
+ * Performs polymorphic type conversion of a shared_ptr.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the shared_ptr to the object which should be converted.
+ *
+ * @return If successful, returns a shared_ptr to the subtype, otherwise throws
+ *         NotSupported. This pointer shares ownership with the input pointer.
+ */
+template <typename T, typename U>
+temporary_conversion<T> as(temporary_conversion<U>&& obj)
+{
+    if (!dynamic_cast<T*>(obj.get())) {
+        GKO_NOT_SUPPORTED(*obj.get());
+    }
+    return temporary_conversion<T>::create_from_base(std::move(obj));
+}
+
+template <typename T, typename U>
+temporary_conversion<const T> as(temporary_conversion<const U>&& obj)
+{
+    if (!dynamic_cast<const T*>(obj.get())) {
+        GKO_NOT_SUPPORTED(*obj.get());
+    }
+    return temporary_conversion<const T>::create_from_base(std::move(obj));
+}
+
+
+namespace detail {
+
+
+// For backwards compatibility
+using gko::temporary_conversion;
 
 
 }  // namespace detail
