@@ -7,6 +7,7 @@
 
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/conversion.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
 
@@ -50,13 +51,10 @@ class Hybrid;
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Coo : public LinOp,
             public EnableCloneable<Coo<ValueType, IndexType>>,
-            public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-            public ConvertibleTo<Coo<next_precision<ValueType, 2>, IndexType>>,
-#endif
-#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-            public ConvertibleTo<Coo<next_precision<ValueType, 3>, IndexType>>,
-#endif
+            public EnableConvertibleToList<
+                Coo<ValueType, IndexType>,
+                gko::detail::get_precision_list<ValueType,
+                                                gko::detail::precision_list>>,
             public ConvertibleTo<Csr<ValueType, IndexType>>,
             public ConvertibleTo<Dense<ValueType>>,
             public DiagonalExtractable<ValueType>,
@@ -94,36 +92,14 @@ public:
     using const_device_view =
         matrix::view::coo<const value_type, const index_type>;
 
-    friend class Coo<previous_precision<ValueType>, IndexType>;
+    template <typename FriendValueType, typename FriendIndexType>
+    friend class Coo;
 
-    void convert_to(
-        Coo<next_precision<ValueType>, IndexType>* result) const override;
+    template <typename ResultValueType>
+    void convert_to_impl(Coo<ResultValueType, IndexType>* result) const;
 
-    void move_to(Coo<next_precision<ValueType>, IndexType>* result) override;
-
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    friend class Coo<previous_precision<ValueType, 2>, IndexType>;
-    using ConvertibleTo<
-        Coo<next_precision<ValueType, 2>, IndexType>>::convert_to;
-    using ConvertibleTo<Coo<next_precision<ValueType, 2>, IndexType>>::move_to;
-
-    void convert_to(
-        Coo<next_precision<ValueType, 2>, IndexType>* result) const override;
-
-    void move_to(Coo<next_precision<ValueType, 2>, IndexType>* result) override;
-#endif
-
-#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-    friend class Coo<previous_precision<ValueType, 3>, IndexType>;
-    using ConvertibleTo<
-        Coo<next_precision<ValueType, 3>, IndexType>>::convert_to;
-    using ConvertibleTo<Coo<next_precision<ValueType, 3>, IndexType>>::move_to;
-
-    void convert_to(
-        Coo<next_precision<ValueType, 3>, IndexType>* result) const override;
-
-    void move_to(Coo<next_precision<ValueType, 3>, IndexType>* result) override;
-#endif
+    template <typename ResultValueType>
+    void move_to_impl(Coo<ResultValueType, IndexType>* result);
 
     void convert_to(Csr<ValueType, IndexType>* other) const override;
 
