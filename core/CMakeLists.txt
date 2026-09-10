@@ -8,6 +8,11 @@ set(config_source
     config/preconditioner_isai_config.cpp
     config/registry.cpp
     config/solver_config.cpp
+    config/config.cpp
+    config/config_helper.cpp
+    config/property_tree.cpp
+    config/stop_config.cpp
+    config/type_descriptor.cpp
 )
 if(GINKGO_BUILD_MPI)
     list(APPEND config_source config/schwarz_config.cpp)
@@ -45,11 +50,6 @@ target_sources(
         base/timer.cpp
         base/version.cpp
         components/range_minimum_query.cpp
-        config/config.cpp
-        config/config_helper.cpp
-        config/property_tree.cpp
-        config/stop_config.cpp
-        config/type_descriptor.cpp
         distributed/index_map.cpp
         distributed/partition.cpp
         factorization/cholesky.cpp
