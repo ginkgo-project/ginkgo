@@ -133,32 +133,6 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType, typename ScalarType>
-void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
-                matrix::view::dense<const ScalarType> alpha,
-                matrix::view::dense<const ValueType> x,
-                matrix::view::dense<ValueType> y)
-{
-    if (alpha.size[1] > 1) {
-        run_kernel(
-            exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
-                y(row, col) += alpha[col] * x(row, col);
-            },
-            x.size, alpha.values, x, y);
-    } else {
-        run_kernel(
-            exec,
-            [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
-                if (is_nonzero(alpha[0])) {
-                    y(row, col) += alpha[0] * x(row, col);
-                }
-            },
-            x.size, alpha.values, x, y);
-    }
-}
-
-
-template <typename ValueType, typename ScalarType>
 void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
                 matrix::view::dense<const ScalarType> alpha,
                 matrix::view::dense<const ValueType> x,

@@ -337,6 +337,19 @@ build/nocuda/nompi/gcc/omp/release/shared:
     ENABLE_HALF: "ON"
     ENABLE_BFLOAT16: "ON"
 
+build/nocuda/nompi/gcc/omp-highway/release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .quick_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  variables:
+    BUILD_OMP: "ON"
+    OMP_HIGHWAY: "ON"
+    BUILD_TYPE: "Release"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+
 build/nocuda/openmpi/clang/omp/debug/static:
   extends:
     - .build_and_test_template
@@ -346,6 +359,22 @@ build/nocuda/openmpi/clang/omp/debug/static:
   variables:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_MPI: "ON"
+    BUILD_TYPE: "Debug"
+    FAST_TESTS: "ON"
+    BUILD_SHARED_LIBS: "OFF"
+
+build/nocuda/openmpi/clang/omp-highway/debug/static:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .full_test_condition
+    - .use_gko-nocuda-openmpi-gnu9-llvm8
+  variables:
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    OMP_HIGHWAY: "ON"
     MPI_AS_ROOT: "ON"
     BUILD_MPI: "ON"
     BUILD_TYPE: "Debug"
@@ -367,6 +396,22 @@ build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
     # The tests are prohibitively slow in Debug
     BUILD_TYPE: "Release"
 
+build/nocuda/openmpi/clang/omp-highway/glibcxx-debug-release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .full_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  variables:
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    OMP_HIGHWAY: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_MPI: "ON"
+    CXX_FLAGS: "-Wpedantic -D_GLIBCXX_DEBUG=1"
+    # The tests are prohibitively slow in Debug
+    BUILD_TYPE: "Release"
+
 # nocuda with old compiler
 build/nocuda/nompi/gcc/omp/release/static:
   extends:
@@ -376,6 +421,20 @@ build/nocuda/nompi/gcc/omp/release/static:
     - .use_gko-nocuda-nompi-gnu9-llvm8
   variables:
     BUILD_OMP: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+    ENABLE_HALF: "OFF"
+    ENABLE_BFLOAT16: "ON"
+
+build/nocuda/nompi/gcc/omp-highway/release/static:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .full_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  variables:
+    BUILD_OMP: "ON"
+    OMP_HIGHWAY: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     ENABLE_HALF: "OFF"
@@ -394,6 +453,20 @@ build/nocuda-nomixed/nompi/clang/omp/release/static:
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
 
+build/nocuda-nomixed/nompi/clang/omp/release/static:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .full_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  variables:
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    OMP_HIGHWAY: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+    MIXED_PRECISION: "OFF"
+
 build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
   extends:
     - .build_and_test_template
@@ -407,6 +480,20 @@ build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
     BUILD_TYPE: "Release"
     MIXED_PRECISION: "OFF"
 
+build/nocuda-nomixed/openmpi/gcc/omp/release/shared:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .full_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  variables:
+    BUILD_MPI: "ON"
+    MPI_AS_ROOT: "ON"
+    BUILD_OMP: "ON"
+    OMP_HIGHWAY: "ON"
+    BUILD_TYPE: "Release"
+    MIXED_PRECISION: "OFF"
+
 build/nocuda-nomixed/nompi/clang/omp/debug/static:
   extends:
     - .build_and_test_template
@@ -416,6 +503,20 @@ build/nocuda-nomixed/nompi/clang/omp/debug/static:
   variables:
     CXX_COMPILER: "clang++"
     BUILD_OMP: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+    MIXED_PRECISION: "OFF"
+
+build/nocuda-nomixed/nompi/clang/omp/debug/static:
+  extends:
+    - .build_and_test_template
+    - .default_variables
+    - .full_test_condition
+    - .use_gko-nocuda-nompi-gnu9-llvm8
+  variables:
+    CXX_COMPILER: "clang++"
+    BUILD_OMP: "ON"
+    OMP_HIGHWAY: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
@@ -433,6 +534,20 @@ build/nogpu/nompi/gcc/omp/debug/static:
     MIXED_PRECISION: "OFF"
     MODULE_LOAD: "cmake/3.18.6 gcc/7.5.0"
 
+build/nogpu/nompi/gcc/omp/debug/static:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-cpu
+  variables:
+    BUILD_OMP: "ON"
+    OMP_HIGHWAY: "ON"
+    BUILD_TYPE: "Debug"
+    BUILD_SHARED_LIBS: "OFF"
+    MIXED_PRECISION: "OFF"
+    MODULE_LOAD: "cmake/3.18.6 gcc/7.5.0"
+
 build/nogpu/nompi/gcc/omp/release/static:
   extends:
     - .build_and_test_tum_template
@@ -441,6 +556,21 @@ build/nogpu/nompi/gcc/omp/release/static:
     - .use_tum-cpu
   variables:
     BUILD_OMP: "ON"
+    BUILD_TYPE: "Release"
+    BUILD_SHARED_LIBS: "OFF"
+    ENABLE_HALF: "ON"
+    ENABLE_BFLOAT16: "ON"
+    MODULE_LOAD: "cmake/3.18.6 gcc/9.5.0"
+
+build/nogpu/nompi/gcc/omp/release/static:
+  extends:
+    - .build_and_test_tum_template
+    - .default_variables
+    - .full_test_condition
+    - .use_tum-cpu
+  variables:
+    BUILD_OMP: "ON"
+    OMP_HIGHWAY: "ON"
     BUILD_TYPE: "Release"
     BUILD_SHARED_LIBS: "OFF"
     ENABLE_HALF: "ON"
