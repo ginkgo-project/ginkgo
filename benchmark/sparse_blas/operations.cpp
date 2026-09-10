@@ -243,7 +243,7 @@ public:
         }
         mtx2_ = gko::as<Mtx>(mtx_->row_permute(&permutation_array));
         id_ = gko::matrix::Identity<etype>::create(exec, size[1]);
-        scalar_ = gko::initialize<gko::matrix::Dense<etype>>({1.0}, exec);
+        scalar_ = gko::initialize<gko::matrix::MultiVector<etype>>({1.0}, exec);
     }
 
     std::pair<bool, double> validate() const override
@@ -277,7 +277,7 @@ public:
 private:
     const Mtx* mtx_;
     std::unique_ptr<Mtx> mtx2_;
-    std::unique_ptr<gko::matrix::Dense<etype>> scalar_;
+    std::unique_ptr<gko::matrix::MultiVector<etype>> scalar_;
     std::unique_ptr<gko::matrix::Identity<etype>> id_;
     std::unique_ptr<Mtx> mtx_out_;
 };
@@ -655,8 +655,9 @@ public:
             const auto exec = mtx_->get_executor();
             const auto symm_result = result_->clone();
             const auto lt_factor = gko::as<Mtx>(symm_result->transpose());
-            const auto scalar = gko::initialize<gko::matrix::Dense<etype>>(
-                {gko::one<etype>()}, exec);
+            const auto scalar =
+                gko::initialize<gko::matrix::MultiVector<etype>>(
+                    {gko::one<etype>()}, exec);
             const auto id =
                 gko::matrix::Identity<etype>::create(exec, mtx_->get_size()[0]);
             lt_factor->apply(scalar, id, scalar, symm_result);

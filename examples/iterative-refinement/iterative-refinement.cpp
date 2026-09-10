@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,8 +17,8 @@ int main(int argc, char* argv[])
     using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
+    using real_vec = gko::matrix::MultiVector<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using ir = gko::solver::Ir<ValueType>;
@@ -59,8 +59,8 @@ int main(int argc, char* argv[])
     auto A = share(gko::read<mtx>(std::ifstream("data/A.mtx"), exec));
     // Create RHS and initial guess as 1
     gko::size_type size = A->get_size()[0];
-    auto host_x = gko::matrix::Dense<ValueType>::create(exec->get_master(),
-                                                        gko::dim<2>(size, 1));
+    auto host_x = gko::matrix::MultiVector<ValueType>::create(
+        exec->get_master(), gko::dim<2>(size, 1));
     for (auto i = 0; i < size; i++) {
         host_x->at(i, 0) = 1.;
     }

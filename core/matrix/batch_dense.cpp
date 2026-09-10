@@ -14,7 +14,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/matrix/batch_dense_kernels.hpp"
 
@@ -38,7 +38,7 @@ GKO_REGISTER_OPERATION(add_scaled_identity, batch_dense::add_scaled_identity);
 
 
 template <typename ValueType>
-std::unique_ptr<gko::matrix::Dense<ValueType>>
+std::unique_ptr<gko::matrix::MultiVector<ValueType>>
 Dense<ValueType>::create_view_for_item(size_type item_id)
 {
     auto exec = this->get_executor();
@@ -54,7 +54,7 @@ Dense<ValueType>::create_view_for_item(size_type item_id)
 
 
 template <typename ValueType>
-std::unique_ptr<const gko::matrix::Dense<ValueType>>
+std::unique_ptr<const gko::matrix::MultiVector<ValueType>>
 Dense<ValueType>::create_const_view_for_item(size_type item_id) const
 {
     auto exec = this->get_executor();

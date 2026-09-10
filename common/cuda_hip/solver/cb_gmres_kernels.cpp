@@ -8,7 +8,7 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 #include "accessor/cuda_hip_helper.hpp"
@@ -25,7 +25,7 @@
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 
 
@@ -670,7 +670,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                 as_device_type(residual_norm_collection.values),
                 residual_norm_collection.stride);
     }
-    kernels::GKO_DEVICE_NAMESPACE::dense::compute_norm2_dispatch(
+    kernels::GKO_DEVICE_NAMESPACE::multivector::compute_norm2_dispatch(
         exec, residual, residual_norm, reduction_tmp);
 
     if (use_scalar) {

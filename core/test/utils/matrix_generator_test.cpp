@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,7 +22,7 @@ protected:
     using value_type = T;
     using check_type = double;
     using real_type = gko::remove_complex<T>;
-    using mtx_type = gko::matrix::Dense<T>;
+    using mtx_type = gko::matrix::MultiVector<T>;
 
     MatrixGenerator()
         : exec(gko::ReferenceExecutor::create()),
@@ -169,7 +169,8 @@ TYPED_TEST(MatrixGenerator, OutputHasCorrectValuesAverageAndDeviation)
 }
 
 
-TYPED_TEST(MatrixGenerator, DenseOutputHasCorrectValuesAverageAndDeviation)
+TYPED_TEST(MatrixGenerator,
+           MultiVectorOutputHasCorrectValuesAverageAndDeviation)
 {
     using T = typename TestFixture::value_type;
     // check the real part
@@ -249,14 +250,14 @@ TYPED_TEST(MatrixGenerator, CanGenerateBandMatrix)
 TYPED_TEST(MatrixGenerator, CanGenerateTridiagMatrix)
 {
     using T = typename TestFixture::value_type;
-    using Dense = typename TestFixture::mtx_type;
+    using MultiVector = typename TestFixture::mtx_type;
     auto dist = std::normal_distribution<>(0, 1);
     auto engine = std::default_random_engine(42);
     auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
     auto diag = gko::test::detail::get_rand_value<T>(dist, engine);
     auto upper = gko::test::detail::get_rand_value<T>(dist, engine);
 
-    auto mtx = gko::test::generate_tridiag_matrix<Dense>(
+    auto mtx = gko::test::generate_tridiag_matrix<MultiVector>(
         50, {lower, diag, upper}, this->exec);
 
     GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
@@ -273,7 +274,7 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagMatrix)
 TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
 {
     using T = typename TestFixture::value_type;
-    using Dense = typename TestFixture::mtx_type;
+    using MultiVector = typename TestFixture::mtx_type;
     auto dist = std::normal_distribution<>(0, 1);
     auto engine = std::default_random_engine(42);
     auto lower = gko::test::detail::get_rand_value<T>(dist, engine);
@@ -287,14 +288,14 @@ TYPED_TEST(MatrixGenerator, CanGenerateTridiagInverseMatrix)
         size = 5;
     }
 
-    auto mtx = gko::test::generate_tridiag_matrix<Dense>(
+    auto mtx = gko::test::generate_tridiag_matrix<MultiVector>(
         size, {lower, diag, upper}, this->exec);
-    auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<Dense>(
+    auto inv_mtx = gko::test::generate_tridiag_inverse_matrix<MultiVector>(
         size, {lower, diag, upper}, this->exec);
 
-    auto result = Dense::create(this->exec, mtx->get_size());
+    auto result = MultiVector::create(this->exec, mtx->get_size());
     inv_mtx->apply(mtx, result);
-    auto id = Dense::create(this->exec, mtx->get_size());
+    auto id = MultiVector::create(this->exec, mtx->get_size());
     id->fill(0.0);
     for (gko::size_type i = 0; i < mtx->get_size()[0]; ++i) {
         id->at(i, i) = gko::one<T>();

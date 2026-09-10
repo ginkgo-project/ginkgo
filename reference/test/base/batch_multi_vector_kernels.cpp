@@ -14,7 +14,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/batch_utilities.hpp"
 #include "core/test/utils.hpp"
@@ -27,7 +27,7 @@ protected:
     using value_type = T;
     using size_type = gko::size_type;
     using Mtx = gko::batch::MultiVector<value_type>;
-    using DenseMtx = gko::matrix::Dense<value_type>;
+    using MultiVectorMtx = gko::matrix::MultiVector<value_type>;
     using ComplexMtx = gko::to_complex<Mtx>;
     MultiVector() : exec(gko::ReferenceExecutor::create())
     {
@@ -35,32 +35,32 @@ protected:
             {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
              {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
             exec);
-        mtx_00 = gko::initialize<DenseMtx>(
+        mtx_00 = gko::initialize<MultiVectorMtx>(
             {I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})}, exec);
-        mtx_01 = gko::initialize<DenseMtx>(
+        mtx_01 = gko::initialize<MultiVectorMtx>(
             {I<T>({1.0, -2.0, -0.5}), I<T>({1.0, -2.5, 4.0})}, exec);
         mtx_1 =
             gko::batch::initialize<Mtx>({{{1.0, -1.0, 2.2}, {-2.0, 2.0, -0.5}},
                                          {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}},
                                         exec);
-        mtx_10 = gko::initialize<DenseMtx>(
+        mtx_10 = gko::initialize<MultiVectorMtx>(
             {I<T>({1.0, -1.0, 2.2}), I<T>({-2.0, 2.0, -0.5})}, exec);
-        mtx_11 =
-            gko::initialize<DenseMtx>({{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec);
+        mtx_11 = gko::initialize<MultiVectorMtx>(
+            {{1.0, 2.5, 3.0}, {1.0, 2.0, 3.0}}, exec);
         mtx_2 = gko::batch::initialize<Mtx>(
             {{{1.0, 1.5}, {6.0, 1.0}, {-0.25, 1.0}},
              {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}},
             exec);
-        mtx_20 = gko::initialize<DenseMtx>(
+        mtx_20 = gko::initialize<MultiVectorMtx>(
             {I<T>({1.0, 1.5}), I<T>({6.0, 1.0}), I<T>({-0.25, 1.0})}, exec);
-        mtx_21 = gko::initialize<DenseMtx>(
+        mtx_21 = gko::initialize<MultiVectorMtx>(
             {I<T>({2.0, -2.0}), I<T>({1.0, 3.0}), I<T>({4.0, 3.0})}, exec);
         mtx_3 = gko::batch::initialize<Mtx>(
             {{I<T>({1.0, 1.5}), I<T>({6.0, 1.0})}, {{2.0, -2.0}, {1.0, 3.0}}},
             exec);
-        mtx_30 = gko::initialize<DenseMtx>({I<T>({1.0, 1.5}), I<T>({6.0, 1.0})},
-                                           exec);
-        mtx_31 = gko::initialize<DenseMtx>(
+        mtx_30 = gko::initialize<MultiVectorMtx>(
+            {I<T>({1.0, 1.5}), I<T>({6.0, 1.0})}, exec);
+        mtx_31 = gko::initialize<MultiVectorMtx>(
             {I<T>({2.0, -2.0}), I<T>({1.0, 3.0})}, exec);
         mtx_4 = gko::batch::initialize<Mtx>(
             {{{1.0, 1.5, 3.0}, {6.0, 1.0, 5.0}, {6.0, 1.0, 5.5}},
@@ -78,17 +78,17 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<Mtx> mtx_0;
-    std::unique_ptr<DenseMtx> mtx_00;
-    std::unique_ptr<DenseMtx> mtx_01;
+    std::unique_ptr<MultiVectorMtx> mtx_00;
+    std::unique_ptr<MultiVectorMtx> mtx_01;
     std::unique_ptr<Mtx> mtx_1;
-    std::unique_ptr<DenseMtx> mtx_10;
-    std::unique_ptr<DenseMtx> mtx_11;
+    std::unique_ptr<MultiVectorMtx> mtx_10;
+    std::unique_ptr<MultiVectorMtx> mtx_11;
     std::unique_ptr<Mtx> mtx_2;
-    std::unique_ptr<DenseMtx> mtx_20;
-    std::unique_ptr<DenseMtx> mtx_21;
+    std::unique_ptr<MultiVectorMtx> mtx_20;
+    std::unique_ptr<MultiVectorMtx> mtx_21;
     std::unique_ptr<Mtx> mtx_3;
-    std::unique_ptr<DenseMtx> mtx_30;
-    std::unique_ptr<DenseMtx> mtx_31;
+    std::unique_ptr<MultiVectorMtx> mtx_30;
+    std::unique_ptr<MultiVectorMtx> mtx_31;
     std::unique_ptr<Mtx> mtx_4;
     std::unique_ptr<Mtx> mtx_5;
     std::unique_ptr<Mtx> mtx_6;

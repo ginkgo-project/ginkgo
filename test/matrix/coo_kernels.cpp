@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,8 +13,8 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
@@ -24,8 +24,8 @@
 class Coo : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Coo<value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
-    using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
+    using Vec = gko::matrix::MultiVector<value_type>;
+    using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
 
     Coo() : rand_engine(42) {}
 
@@ -165,7 +165,7 @@ TEST_F(Coo, AdvancedApplyAddIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, SimpleApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Coo, SimpleApplyToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
@@ -176,7 +176,7 @@ TEST_F(Coo, SimpleApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Coo, AdvancedApplyToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(4);
 
@@ -187,7 +187,7 @@ TEST_F(Coo, AdvancedApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
+TEST_F(Coo, SimpleApplyAddToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(5);
 
@@ -198,7 +198,7 @@ TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRefUnsorted)
+TEST_F(Coo, SimpleApplyAddToMultiVectorMatrixIsEquivalentToRefUnsorted)
 {
     set_up_apply_data(6);
     unsort_mtx();
@@ -210,7 +210,7 @@ TEST_F(Coo, SimpleApplyAddToDenseMatrixIsEquivalentToRefUnsorted)
 }
 
 
-TEST_F(Coo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
+TEST_F(Coo, SimpleApplyAddToLargeMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(33);
 
@@ -221,7 +221,7 @@ TEST_F(Coo, SimpleApplyAddToLargeDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
+TEST_F(Coo, AdvancedApplyAddToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(7);
 
@@ -232,7 +232,7 @@ TEST_F(Coo, AdvancedApplyAddToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, AdvancedApplyAddToLargeDenseMatrixIsEquivalentToRef)
+TEST_F(Coo, AdvancedApplyAddToLargeMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(33);
 
@@ -288,11 +288,11 @@ TEST_F(Coo, ApplyAddToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
+TEST_F(Coo, ConvertToMultiVectorIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx);
     dmtx->convert_to(ddense_mtx);
@@ -304,7 +304,7 @@ TEST_F(Coo, ConvertToDenseIsEquivalentToRef)
 TEST_F(Coo, ConvertToCsrIsEquivalentToRef)
 {
     set_up_apply_data();
-    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
     auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
     auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
 

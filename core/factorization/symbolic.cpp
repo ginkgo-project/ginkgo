@@ -7,8 +7,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/allocator.hpp"
 #include "core/base/array_access.hpp"
@@ -68,8 +68,8 @@ void symbolic_cholesky(
     factors->sort_by_column_index();
     if (symmetrize) {
         auto lt_factor = as<matrix_type>(factors->transpose());
-        const auto scalar =
-            initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
+        const auto scalar = initialize<matrix::MultiVector<ValueType>>(
+            {one<ValueType>()}, exec);
         const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
         lt_factor->apply(scalar, id, scalar, factors);
     }
@@ -118,8 +118,8 @@ void symbolic_cholesky_device(
     factors->sort_by_column_index();
     if (symmetrize) {
         auto lt_factor = as<matrix_type>(factors->transpose());
-        const auto scalar =
-            initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec);
+        const auto scalar = initialize<matrix::MultiVector<ValueType>>(
+            {one<ValueType>()}, exec);
         const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
         lt_factor->apply(scalar, id, scalar, factors);
     }
@@ -143,7 +143,7 @@ void symbolic_lu_near_symm(
 {
     using matrix_type = matrix::Csr<ValueType, IndexType>;
     using float_matrix_type = matrix::Csr<float, IndexType>;
-    using scalar_type = gko::matrix::Dense<float>;
+    using scalar_type = gko::matrix::MultiVector<float>;
     using id_type = gko::matrix::Identity<float>;
     GKO_ASSERT_IS_SQUARE_MATRIX(mtx);
     const auto exec = mtx->get_executor();

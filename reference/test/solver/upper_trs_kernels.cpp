@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,7 +11,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -31,7 +31,7 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::UpperTrs<value_type, index_type>;
     UpperTrs()
         : exec(gko::ReferenceExecutor::create()),
@@ -109,7 +109,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemMixed)
 {
     using other_value_type = typename TestFixture::value_type;
     using value_type = gko::next_precision<other_value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>({4.0, 2.0, 3.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
     auto solver = this->upper_trs_factory->generate(this->mtx);
@@ -146,7 +146,8 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemComplex)
 TYPED_TEST(UpperTrs, SolvesTriangularSystemMixedComplex)
 {
     using other_value_type = typename TestFixture::value_type;
-    using Scalar = gko::matrix::Dense<gko::next_precision<other_value_type>>;
+    using Scalar =
+        gko::matrix::MultiVector<gko::next_precision<other_value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>(
@@ -219,7 +220,7 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemUsingAdvancedApplyMixed)
 {
     using other_value_type = typename TestFixture::value_type;
     using value_type = gko::next_precision<other_value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
     std::shared_ptr<Mtx> b = gko::initialize<Mtx>({4.0, 2.0, 3.0}, this->exec);
@@ -260,7 +261,8 @@ TYPED_TEST(UpperTrs, SolvesTriangularSystemUsingAdvancedApplyComplex)
 TYPED_TEST(UpperTrs, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
 {
     using other_value_type = typename TestFixture::value_type;
-    using Scalar = gko::matrix::Dense<gko::next_precision<other_value_type>>;
+    using Scalar =
+        gko::matrix::MultiVector<gko::next_precision<other_value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
     auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
@@ -302,7 +304,7 @@ TYPED_TEST(UpperTrs, SolvesMultipleTriangularSystemsUsingAdvancedApply)
 }
 
 
-TYPED_TEST(UpperTrs, SolvesBigDenseSystem)
+TYPED_TEST(UpperTrs, SolvesBigMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -318,7 +320,7 @@ TYPED_TEST(UpperTrs, SolvesBigDenseSystem)
 }
 
 
-TYPED_TEST(UpperTrs, SolvesBigDenseSystemWithUnitDiagonal)
+TYPED_TEST(UpperTrs, SolvesBigMultiVectorSystemWithUnitDiagonal)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -334,7 +336,7 @@ TYPED_TEST(UpperTrs, SolvesBigDenseSystemWithUnitDiagonal)
 }
 
 
-TYPED_TEST(UpperTrs, SolveBigDenseSystemIgnoresNonTriangleEntries)
+TYPED_TEST(UpperTrs, SolveBigMultiVectorSystemIgnoresNonTriangleEntries)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;

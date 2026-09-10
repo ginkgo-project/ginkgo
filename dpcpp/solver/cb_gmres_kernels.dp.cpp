@@ -10,7 +10,7 @@
 
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/range.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
 
 #include "accessor/range.hpp"
@@ -18,7 +18,7 @@
 #include "accessor/scaled_reduced_row_major.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "dpcpp/base/config.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
@@ -940,8 +940,8 @@ void restart(std::shared_ptr<const DpcppExecutor> exec,
                                  residual.size[0], residual.size[1], krylov_dim,
                                  krylov_bases, residual_norm_collection.values,
                                  residual_norm_collection.stride);
-    kernels::dpcpp::dense::compute_norm2_dispatch(exec, residual, residual_norm,
-                                                  reduction_tmp);
+    kernels::dpcpp::multivector::compute_norm2_dispatch(
+        exec, residual, residual_norm, reduction_tmp);
 
     if (use_scalar) {
         components::fill_array(exec, arnoldi_norm.values + 2 * stride_arnoldi,

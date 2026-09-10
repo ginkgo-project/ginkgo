@@ -16,7 +16,7 @@ namespace view {
 
 
 /**
- * Non-owning view of a matrix::Dense to be used inside device kernels.
+ * Non-owning view of a matrix::MultiVector to be used inside device kernels.
  * This type is used to provide a simple and stable ABI for passing data between
  * libraries.
  * The data is stored in row-major order.

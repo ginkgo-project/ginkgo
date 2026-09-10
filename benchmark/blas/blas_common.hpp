@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -106,7 +106,7 @@ public:
                   gko::size_type stride_out, bool multi)
     {
         auto size = gko::dim<2>{rows, cols};
-        alpha_ = gko::matrix::Dense<etype>::create(
+        alpha_ = gko::matrix::MultiVector<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
         x_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride_in);
@@ -131,7 +131,7 @@ public:
     void run() override { as_vector<Generator>(y_)->add_scaled(alpha_, x_); }
 
 private:
-    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
+    std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
     std::unique_ptr<gko::LinOp> x_;
     std::unique_ptr<gko::LinOp> y_;
 };
@@ -146,7 +146,7 @@ public:
                        gko::size_type stride_out, bool multi)
     {
         auto size = gko::dim<2>{rows, cols};
-        alpha_ = gko::matrix::Dense<etype>::create(
+        alpha_ = gko::matrix::MultiVector<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
         x_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride_in);
@@ -171,7 +171,7 @@ public:
     void run() override { as_vector<Generator>(y_)->sub_scaled(alpha_, x_); }
 
 private:
-    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
+    std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
     std::unique_ptr<gko::LinOp> x_;
     std::unique_ptr<gko::LinOp> y_;
 };
@@ -185,7 +185,7 @@ public:
                   gko::size_type cols, gko::size_type stride, bool multi)
     {
         auto size = gko::dim<2>{rows, cols};
-        alpha_ = gko::matrix::Dense<etype>::create(
+        alpha_ = gko::matrix::MultiVector<etype>::create(
             exec, gko::dim<2>{1, multi ? cols : 1});
         y_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride);
@@ -207,7 +207,7 @@ public:
     void run() override { as_vector<Generator>(y_)->scale(alpha_); }
 
 private:
-    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
+    std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
     std::unique_ptr<gko::LinOp> y_;
 };
 
@@ -221,7 +221,8 @@ public:
                  gko::size_type stride_y)
     {
         auto size = gko::dim<2>{rows, cols};
-        alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
+        alpha_ =
+            gko::matrix::MultiVector<etype>::create(exec, gko::dim<2>{1, cols});
         x_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride_x);
         y_ = generator.create_multi_vector_strided(
@@ -243,7 +244,7 @@ public:
     void run() override { as_vector<Generator>(x_)->compute_dot(y_, alpha_); }
 
 private:
-    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
+    std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
     std::unique_ptr<gko::LinOp> x_;
     std::unique_ptr<gko::LinOp> y_;
 };
@@ -257,7 +258,8 @@ public:
                   gko::size_type cols, gko::size_type stride)
     {
         auto size = gko::dim<2>{rows, cols};
-        alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, cols});
+        alpha_ =
+            gko::matrix::MultiVector<etype>::create(exec, gko::dim<2>{1, cols});
         y_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride);
         as_vector<Generator>(y_)->fill(1);
@@ -276,7 +278,7 @@ public:
     void run() override { as_vector<Generator>(y_)->compute_norm2(alpha_); }
 
 private:
-    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
+    std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
     std::unique_ptr<gko::LinOp> y_;
 };
 
@@ -340,8 +342,10 @@ public:
                                                    gko::dim<2>{k, m}, stride_B);
         C_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, m},
                                                    gko::dim<2>{n, m}, stride_C);
-        alpha_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
-        beta_ = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{1, 1});
+        alpha_ =
+            gko::matrix::MultiVector<etype>::create(exec, gko::dim<2>{1, 1});
+        beta_ =
+            gko::matrix::MultiVector<etype>::create(exec, gko::dim<2>{1, 1});
         as_vector<Generator>(A_)->fill(1);
         as_vector<Generator>(B_)->fill(1);
         alpha_->fill(1);
@@ -365,8 +369,8 @@ public:
     void run() override { A_->apply(alpha_, B_, beta_, C_); }
 
 private:
-    std::unique_ptr<gko::matrix::Dense<etype>> alpha_;
-    std::unique_ptr<gko::matrix::Dense<etype>> beta_;
+    std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
+    std::unique_ptr<gko::matrix::MultiVector<etype>> beta_;
     std::unique_ptr<gko::LinOp> A_;
     std::unique_ptr<gko::LinOp> B_;
     std::unique_ptr<gko::LinOp> C_;

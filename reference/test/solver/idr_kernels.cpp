@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,7 +9,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/solver_progress.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -26,7 +26,7 @@ template <typename T>
 class Idr : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Idr<value_type>;
 
     Idr()
@@ -63,7 +63,7 @@ protected:
 TYPED_TEST_SUITE(Idr, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(Idr, SolvesDenseSystem)
+TYPED_TEST(Idr, SolvesMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -77,11 +77,11 @@ TYPED_TEST(Idr, SolvesDenseSystem)
 }
 
 
-TYPED_TEST(Idr, SolvesDenseSystemMixed)
+TYPED_TEST(Idr, SolvesMultiVectorSystemMixed)
 {
     using T = typename TestFixture::value_type;
     using value_type = gko::next_precision<T>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -93,7 +93,7 @@ TYPED_TEST(Idr, SolvesDenseSystemMixed)
 }
 
 
-TYPED_TEST(Idr, SolvesDenseSystemComplex)
+TYPED_TEST(Idr, SolvesMultiVectorSystemComplex)
 {
     using T = typename TestFixture::value_type;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
@@ -115,11 +115,11 @@ TYPED_TEST(Idr, SolvesDenseSystemComplex)
 }
 
 
-TYPED_TEST(Idr, SolvesDenseSystemMixedComplex)
+TYPED_TEST(Idr, SolvesMultiVectorSystemMixedComplex)
 {
     using T = typename TestFixture::value_type;
     using value_type = gko::to_complex<gko::next_precision<T>>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
@@ -137,7 +137,7 @@ TYPED_TEST(Idr, SolvesDenseSystemMixedComplex)
 }
 
 
-TYPED_TEST(Idr, SolvesDenseSystemWithComplexSubSpace)
+TYPED_TEST(Idr, SolvesMultiVectorSystemWithComplexSubSpace)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -167,7 +167,7 @@ TYPED_TEST(Idr, SolvesDenseSystemWithComplexSubSpace)
 }
 
 
-TYPED_TEST(Idr, SolvesMultipleDenseSystems)
+TYPED_TEST(Idr, SolvesMultipleMultiVectorSystems)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -186,7 +186,7 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystems)
 }
 
 
-TYPED_TEST(Idr, SolvesMultipleDenseSystemsWithComplexSubspace)
+TYPED_TEST(Idr, SolvesMultipleMultiVectorSystemsWithComplexSubspace)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -219,7 +219,7 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsWithComplexSubspace)
 }
 
 
-TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApply)
+TYPED_TEST(Idr, SolvesMultiVectorSystemUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -235,10 +235,10 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApply)
 }
 
 
-TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixed)
+TYPED_TEST(Idr, SolvesMultiVectorSystemUsingAdvancedApplyMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->idr_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
@@ -252,7 +252,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixed)
 }
 
 
-TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyComplex)
+TYPED_TEST(Idr, SolvesMultiVectorSystemUsingAdvancedApplyComplex)
 {
     using Scalar = typename TestFixture::Mtx;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
@@ -276,9 +276,9 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyComplex)
 }
 
 
-TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
+TYPED_TEST(Idr, SolvesMultiVectorSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
+    using Scalar = gko::matrix::MultiVector<
         gko::next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
@@ -301,7 +301,7 @@ TYPED_TEST(Idr, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
 }
 
 
-TYPED_TEST(Idr, SolvesMultipleDenseSystemsUsingAdvancedApply)
+TYPED_TEST(Idr, SolvesMultipleMultiVectorSystemsUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -323,7 +323,7 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsUsingAdvancedApply)
 
 
 // The following test-data was generated and validated with MATLAB
-TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck1)
+TYPED_TEST(Idr, SolvesBigMultiVectorSystemForDivergenceCheck1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -348,12 +348,13 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck1)
 
     solver->apply(b, x);
 
-    auto one_op = gko::initialize<gko::matrix::Dense<value_type>>(
+    auto one_op = gko::initialize<gko::matrix::MultiVector<value_type>>(
         {gko::one<value_type>()}, this->exec);
-    auto neg_one_op = gko::initialize<gko::matrix::Dense<value_type>>(
+    auto neg_one_op = gko::initialize<gko::matrix::MultiVector<value_type>>(
         {-gko::one<value_type>()}, this->exec);
-    auto resnorm = gko::matrix::Dense<gko::remove_complex<value_type>>::create(
-        this->exec, gko::dim<2>{1, 1});
+    auto resnorm =
+        gko::matrix::MultiVector<gko::remove_complex<value_type>>::create(
+            this->exec, gko::dim<2>{1, 1});
     locmtx->apply(neg_one_op, x, one_op, b);
 
     GKO_ASSERT_MTX_NEAR(
@@ -364,7 +365,7 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck1)
 }
 
 
-TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck2)
+TYPED_TEST(Idr, SolvesBigMultiVectorSystemForDivergenceCheck2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -397,7 +398,7 @@ TYPED_TEST(Idr, SolvesBigDenseSystemForDivergenceCheck2)
 }
 
 
-TYPED_TEST(Idr, SolvesMultipleDenseSystemsDivergenceCheck)
+TYPED_TEST(Idr, SolvesMultipleMultiVectorSystemsDivergenceCheck)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -479,7 +480,7 @@ TYPED_TEST(Idr, SolvesMultipleDenseSystemsDivergenceCheck)
 }
 
 
-TYPED_TEST(Idr, SolvesTransposedDenseSystem)
+TYPED_TEST(Idr, SolvesTransposedMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -494,7 +495,7 @@ TYPED_TEST(Idr, SolvesTransposedDenseSystem)
 }
 
 
-TYPED_TEST(Idr, SolvesConjTransposedDenseSystem)
+TYPED_TEST(Idr, SolvesConjTransposedMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;

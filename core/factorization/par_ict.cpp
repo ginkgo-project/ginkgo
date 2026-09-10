@@ -77,7 +77,7 @@ struct ParIctState {
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
     using CsrBuilder = matrix::CsrBuilder<ValueType, IndexType>;
     using CooBuilder = matrix::CooBuilder<ValueType, IndexType>;
-    using Scalar = matrix::Dense<ValueType>;
+    using Scalar = matrix::MultiVector<ValueType>;
     // the executor on which the kernels are being executed
     std::shared_ptr<const Executor> exec;
     // max number of non-zeros L is supposed to have

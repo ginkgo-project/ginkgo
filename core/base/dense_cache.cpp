@@ -10,7 +10,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/dim.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/dense_cache_accessor.hpp"
 
@@ -23,18 +23,19 @@ void DenseCache<ValueType>::init(std::shared_ptr<const Executor> exec,
                                  dim<2> size) const
 {
     if (!vec || vec->get_size() != size || vec->get_executor() != exec) {
-        vec = matrix::Dense<ValueType>::create(exec, size);
+        vec = matrix::MultiVector<ValueType>::create(exec, size);
     }
 }
 
 
 template <typename ValueType>
 void DenseCache<ValueType>::init_from(
-    const matrix::Dense<ValueType>* template_vec) const
+    const matrix::MultiVector<ValueType>* template_vec) const
 {
     if (!vec || vec->get_size() != template_vec->get_size() ||
         vec->get_executor() != template_vec->get_executor()) {
-        vec = matrix::Dense<ValueType>::create_with_config_of(template_vec);
+        vec =
+            matrix::MultiVector<ValueType>::create_with_config_of(template_vec);
     }
 }
 
@@ -65,7 +66,7 @@ GenericDenseCache& GenericDenseCache::operator=(GenericDenseCache&&) noexcept
 
 
 template <typename ValueType>
-std::shared_ptr<matrix::Dense<ValueType>> GenericDenseCache::get(
+std::shared_ptr<matrix::MultiVector<ValueType>> GenericDenseCache::get(
     std::shared_ptr<const Executor> exec, dim<2> size) const
 {
     if (exec != workspace.get_executor() ||
@@ -76,7 +77,7 @@ std::shared_ptr<matrix::Dense<ValueType>> GenericDenseCache::get(
         // executor will keep the original executor.
         std::swap(workspace, new_workspace);
     }
-    return matrix::Dense<ValueType>::create(
+    return matrix::MultiVector<ValueType>::create(
         exec, size,
         make_array_view(exec, size[0] * size[1],
                         reinterpret_cast<ValueType*>(workspace.get_data())),
@@ -136,17 +137,17 @@ ScalarCache& ScalarCache::operator=(ScalarCache&& other) noexcept
 
 
 template <typename ValueType>
-std::shared_ptr<const matrix::Dense<ValueType>> ScalarCache::get() const
+std::shared_ptr<const matrix::MultiVector<ValueType>> ScalarCache::get() const
 {
     // using typeid name as key
     std::string value_string = typeid(ValueType).name();
     auto search = scalars.find(value_string);
     if (search != scalars.end()) {
-        return std::dynamic_pointer_cast<const matrix::Dense<ValueType>>(
+        return std::dynamic_pointer_cast<const matrix::MultiVector<ValueType>>(
             search->second);
     } else {
         auto new_scalar =
-            share(matrix::Dense<ValueType>::create(exec, dim<2>{1, 1}));
+            share(matrix::MultiVector<ValueType>::create(exec, dim<2>{1, 1}));
         new_scalar->fill(static_cast<ValueType>(value));
         scalars[value_string] = new_scalar;
         return new_scalar;
@@ -154,17 +155,17 @@ std::shared_ptr<const matrix::Dense<ValueType>> ScalarCache::get() const
 }
 
 
-#define GKO_DECLARE_DENSE_CACHE(ValueType) struct DenseCache<ValueType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CACHE);
+#define GKO_DECLARE_MULTIVECTOR_CACHE(ValueType) struct DenseCache<ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_CACHE);
 
 #define GKO_DECLARE_GENERIC_DENSE_CACHE_GET(ValueType)                         \
-    std::shared_ptr<matrix::Dense<ValueType>>                                  \
+    std::shared_ptr<matrix::MultiVector<ValueType>>                            \
     GenericDenseCache::get<ValueType>(std::shared_ptr<const Executor>, dim<2>) \
         const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GENERIC_DENSE_CACHE_GET);
 
-#define GKO_DECLARE_SCALAR_CACHE_GET(ValueType)     \
-    std::shared_ptr<const matrix::Dense<ValueType>> \
+#define GKO_DECLARE_SCALAR_CACHE_GET(ValueType)           \
+    std::shared_ptr<const matrix::MultiVector<ValueType>> \
     ScalarCache::get<ValueType>() const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SCALAR_CACHE_GET);
 

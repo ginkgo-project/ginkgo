@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -103,8 +103,8 @@ int main(int argc, char* argv[])
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
+    using real_vec = gko::matrix::MultiVector<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
 

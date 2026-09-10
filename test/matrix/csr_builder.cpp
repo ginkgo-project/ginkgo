@@ -21,7 +21,7 @@
 class CsrBuilder : public CommonTestFixture {
 protected:
     using Arr = gko::array<index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using Mtx = gko::matrix::Csr<value_type>;
 
     CsrBuilder()

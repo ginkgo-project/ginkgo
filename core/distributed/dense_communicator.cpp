@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2024 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,14 +59,15 @@ DenseCommunicator::DenseCommunicator(
                      recv_offsets_.begin() + 1);
 }
 
-#define GKO_DECLARE_DENSE_CONSTRUCTOR(LocalIndexType, GlobalIndexType) \
-    DenseCommunicator::DenseCommunicator(                              \
-        communicator base,                                             \
+#define GKO_DECLARE_MULTIVECTOR_CONSTRUCTOR(LocalIndexType, GlobalIndexType) \
+    DenseCommunicator::DenseCommunicator(                                    \
+        communicator base,                                                   \
         const distributed::index_map<LocalIndexType, GlobalIndexType>& imap)
 
-GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_DENSE_CONSTRUCTOR);
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_MULTIVECTOR_CONSTRUCTOR);
 
-#undef GKO_DECLARE_DENSE_CONSTRUCTOR
+#undef GKO_DECLARE_MULTIVECTOR_CONSTRUCTOR
 
 
 DenseCommunicator::DenseCommunicator(DenseCommunicator&& other)

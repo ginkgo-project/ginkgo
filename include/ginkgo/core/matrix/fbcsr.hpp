@@ -16,7 +16,7 @@ namespace matrix {
 
 
 template <typename ValueType>
-class Dense;
+class MultiVector;
 
 template <typename ValueType, typename IndexType>
 class Csr;
@@ -80,10 +80,10 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
  *
  * ```cpp
  * matrix::Fbcsr *A, *B, *C;      // matrices
- * matrix::Dense *b, *x;        // vectors tall-and-skinny matrices
- * matrix::Dense *alpha, *beta; // scalars of dimension 1x1
+ * matrix::MultiVector *b, *x;        // vectors tall-and-skinny matrices
+ * matrix::MultiVector *alpha, *beta; // scalars of dimension 1x1
  *
- * // Applying to Dense matrices computes an SpMV/SpMM product
+ * // Applying to MultiVector matrices computes an SpMV/SpMM product
  * A->apply(b, x)              // x = A*b
  * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
  * ```
@@ -106,7 +106,7 @@ class Fbcsr
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Fbcsr<next_precision<ValueType, 3>, IndexType>>,
 #endif
-      public ConvertibleTo<Dense<ValueType>>,
+      public ConvertibleTo<MultiVector<ValueType>>,
       public ConvertibleTo<Csr<ValueType, IndexType>>,
       public ConvertibleTo<SparsityCsr<ValueType, IndexType>>,
       public DiagonalExtractable<ValueType>,
@@ -117,7 +117,7 @@ class Fbcsr
           remove_complex<Fbcsr<ValueType, IndexType>>> {
     friend class EnableCloneable<Fbcsr>;
     friend class Csr<ValueType, IndexType>;
-    friend class Dense<ValueType>;
+    friend class MultiVector<ValueType>;
     friend class SparsityCsr<ValueType, IndexType>;
     friend class FbcsrBuilder<ValueType, IndexType>;
     friend class Fbcsr<to_complex<ValueType>, IndexType>;
@@ -147,8 +147,8 @@ public:
     using ConvertibleTo<
         Fbcsr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>::move_to;
-    using ConvertibleTo<Dense<ValueType>>::convert_to;
-    using ConvertibleTo<Dense<ValueType>>::move_to;
+    using ConvertibleTo<MultiVector<ValueType>>::convert_to;
+    using ConvertibleTo<MultiVector<ValueType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::convert_to;
@@ -189,9 +189,9 @@ public:
         Fbcsr<next_precision<ValueType, 3>, IndexType>* result) override;
 #endif
 
-    void convert_to(Dense<ValueType>* other) const override;
+    void convert_to(MultiVector<ValueType>* other) const override;
 
-    void move_to(Dense<ValueType>* other) override;
+    void move_to(MultiVector<ValueType>* other) override;
 
     /**
      * Converts the matrix to CSR format

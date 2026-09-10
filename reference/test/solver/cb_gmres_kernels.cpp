@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,7 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -30,7 +30,7 @@ protected:
     using nc_value_type = gko::remove_complex<value_type>;
     using storage_helper_type =
         typename std::tuple_element<1, decltype(ValueEnumType())>::type;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using gmres_type = gko::solver::CbGmres<value_type>;
 
     CbGmres()
@@ -162,7 +162,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemMixed)
 {
     using value_type =
         gko::next_precision_base<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -201,7 +201,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemMixedComplex)
 {
     using value_type = gko::to_complex<
         gko::next_precision_base<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto b =
         gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
@@ -283,7 +283,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixed)
 {
     using value_type =
         gko::next_precision_base<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->cb_gmres_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
@@ -325,7 +325,7 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyComplex)
 
 TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
+    using Scalar = gko::matrix::MultiVector<
         gko::next_precision_base<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
@@ -369,7 +369,7 @@ TYPED_TEST(CbGmres, SolvesMultipleStencilSystemsUsingAdvancedApply)
 }
 
 
-TYPED_TEST(CbGmres, SolvesBigDenseSystem1)
+TYPED_TEST(CbGmres, SolvesBigMultiVectorSystem1)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -386,7 +386,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1)
 }
 
 
-TYPED_TEST(CbGmres, SolvesBigDenseSystem2)
+TYPED_TEST(CbGmres, SolvesBigMultiVectorSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
@@ -403,7 +403,7 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem2)
 }
 
 
-TYPED_TEST(CbGmres, SolvesMultipleDenseSystemForDivergenceCheck)
+TYPED_TEST(CbGmres, SolvesMultipleMultiVectorSystemForDivergenceCheck)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -471,7 +471,7 @@ TYPED_TEST(CbGmres, SolvesMultipleDenseSystemForDivergenceCheck)
 }
 
 
-TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
+TYPED_TEST(CbGmres, SolvesBigMultiVectorSystem1WithRestart)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;

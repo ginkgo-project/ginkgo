@@ -8,7 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -25,7 +25,7 @@ template <typename T>
 class Bicgstab : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Bicgstab<value_type>;
 
     Bicgstab()
@@ -407,7 +407,7 @@ TYPED_TEST(Bicgstab, KernelFinalize)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesDenseSystem)
+TYPED_TEST(Bicgstab, SolvesMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -421,10 +421,10 @@ TYPED_TEST(Bicgstab, SolvesDenseSystem)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesDenseSystemMixed)
+TYPED_TEST(Bicgstab, SolvesMultiVectorSystemMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->bicgstab_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
@@ -436,7 +436,7 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemMixed)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesDenseSystemComplex)
+TYPED_TEST(Bicgstab, SolvesMultiVectorSystemComplex)
 {
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
@@ -457,11 +457,11 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemComplex)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesDenseSystemMixedComplex)
+TYPED_TEST(Bicgstab, SolvesMultiVectorSystemMixedComplex)
 {
     using value_type =
         gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->bicgstab_factory->generate(this->mtx);
     auto b = gko::initialize<Mtx>(
         {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
@@ -479,7 +479,7 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemMixedComplex)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesMultipleDenseSystems)
+TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystems)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -498,7 +498,7 @@ TYPED_TEST(Bicgstab, SolvesMultipleDenseSystems)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsWithImplicitResNormCrit)
+TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsWithImplicitResNormCrit)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -517,7 +517,7 @@ TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsWithImplicitResNormCrit)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApply)
+TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -533,10 +533,10 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApply)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyMixed)
+TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     auto solver = this->bicgstab_factory->generate(this->mtx);
     auto alpha = gko::initialize<Mtx>({2.0}, this->exec);
     auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
@@ -550,7 +550,7 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyMixed)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyComplex)
+TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyComplex)
 {
     using Scalar = typename TestFixture::Mtx;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
@@ -574,9 +574,9 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyComplex)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
+TYPED_TEST(Bicgstab, SolvesMultiVectorSystemUsingAdvancedApplyMixedComplex)
 {
-    using Scalar = gko::matrix::Dense<
+    using Scalar = gko::matrix::MultiVector<
         gko::next_precision<typename TestFixture::value_type>>;
     using Mtx = gko::to_complex<typename TestFixture::Mtx>;
     using value_type = typename Mtx::value_type;
@@ -599,7 +599,7 @@ TYPED_TEST(Bicgstab, SolvesDenseSystemUsingAdvancedApplyMixedComplex)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsUsingAdvancedApply)
+TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsUsingAdvancedApply)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -621,7 +621,7 @@ TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsUsingAdvancedApply)
 
 
 // The following test-data was generated and validated with MATLAB
-TYPED_TEST(Bicgstab, SolvesBigDenseSystemForDivergenceCheck1)
+TYPED_TEST(Bicgstab, SolvesBigMultiVectorSystemForDivergenceCheck1)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -654,7 +654,7 @@ TYPED_TEST(Bicgstab, SolvesBigDenseSystemForDivergenceCheck1)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesBigDenseSystemForDivergenceCheck2)
+TYPED_TEST(Bicgstab, SolvesBigMultiVectorSystemForDivergenceCheck2)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -687,7 +687,7 @@ TYPED_TEST(Bicgstab, SolvesBigDenseSystemForDivergenceCheck2)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
+TYPED_TEST(Bicgstab, SolvesMultipleMultiVectorSystemsDivergenceCheck)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -767,7 +767,7 @@ TYPED_TEST(Bicgstab, SolvesMultipleDenseSystemsDivergenceCheck)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesTransposedDenseSystem)
+TYPED_TEST(Bicgstab, SolvesTransposedMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
@@ -782,7 +782,7 @@ TYPED_TEST(Bicgstab, SolvesTransposedDenseSystem)
 }
 
 
-TYPED_TEST(Bicgstab, SolvesConjTransposedDenseSystem)
+TYPED_TEST(Bicgstab, SolvesConjTransposedMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;

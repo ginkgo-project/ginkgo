@@ -7,7 +7,7 @@
 #include <ginkgo/core/distributed/partition.hpp>
 
 #include "core/distributed/vector_kernels.hpp"
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "core/mpi/mpi_op.hpp"
 
 
@@ -18,9 +18,11 @@ namespace vector {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute_squared_norm2, dense::compute_squared_norm2);
-GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
-GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
+GKO_REGISTER_OPERATION(compute_squared_norm2,
+                       multivector::compute_squared_norm2);
+GKO_REGISTER_OPERATION(compute_sqrt, multivector::compute_sqrt);
+GKO_REGISTER_OPERATION(outplace_absolute_dense,
+                       multivector::outplace_absolute_dense);
 GKO_REGISTER_OPERATION(build_local, distributed_vector::build_local);
 
 
@@ -478,7 +480,7 @@ void Vector<ValueType>::compute_dot(ptr_param<const LinOp> b,
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res =
-        make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
+        make_temporary_clone(exec, as<matrix::MultiVector<ValueType>>(result));
     this->get_local_vector()->compute_dot(as<Vector>(b)->get_local_vector(),
                                           dense_res.get(), tmp);
     exec->synchronize();
@@ -515,7 +517,7 @@ void Vector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res =
-        make_temporary_clone(exec, as<matrix::Dense<ValueType>>(result));
+        make_temporary_clone(exec, as<matrix::MultiVector<ValueType>>(result));
     this->get_local_vector()->compute_conj_dot(
         as<Vector>(b)->get_local_vector(), dense_res.get(), tmp);
     exec->synchronize();
@@ -650,7 +652,7 @@ void Vector<ValueType>::compute_mean(ptr_param<LinOp> result,
     this->get_local_vector()->compute_mean(dense_res.get());
 
     // scale by its weight ie ratio of local to global size
-    auto weight = initialize<matrix::Dense<remove_complex<ValueType>>>(
+    auto weight = initialize<matrix::MultiVector<remove_complex<ValueType>>>(
         {static_cast<remove_complex<ValueType>>(local_size) / global_size},
         this->get_executor());
     dense_res->scale(weight.get());

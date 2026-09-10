@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,7 +31,7 @@ protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::batch::solver::Cg<value_type>;
-    using Mtx = gko::batch::matrix::Dense<value_type>;
+    using Mtx = gko::batch::matrix::MultiVector<value_type>;
     using EllMtx = gko::batch::matrix::Ell<value_type>;
     using CsrMtx = gko::batch::matrix::Csr<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;

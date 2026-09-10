@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,9 +15,9 @@ int run_function(gko::experimental::distributed::Vector<>*) { return 1; }
 
 int run_function(const gko::experimental::distributed::Vector<>*) { return 2; }
 
-int run_function(gko::matrix::Dense<>*) { return 3; }
+int run_function(gko::matrix::MultiVector<>*) { return 3; }
 
-int run_function(const gko::matrix::Dense<>*) { return 4; }
+int run_function(const gko::matrix::MultiVector<>*) { return 4; }
 
 
 class RunVector : public ::testing::Test {
@@ -59,31 +59,32 @@ TEST_F(RunVector, PicksConstDistributedVectorCorrectly)
 }
 
 
-TEST_F(RunVector, PicksDenseVectorCorrectly)
+TEST_F(RunVector, PicksMultiVectorVectorCorrectly)
 {
     std::unique_ptr<gko::LinOp> dense_vector =
-        gko::matrix::Dense<>::create(exec);
+        gko::matrix::MultiVector<>::create(exec);
     int result;
 
     gko::detail::vector_dispatch<double>(
         dense_vector.get(), [&](auto* dense) { result = run_function(dense); });
 
-    ASSERT_EQ(result,
-              run_function(gko::as<gko::matrix::Dense<>>(dense_vector.get())));
+    ASSERT_EQ(
+        result,
+        run_function(gko::as<gko::matrix::MultiVector<>>(dense_vector.get())));
 }
 
 
-TEST_F(RunVector, PicksConstDenseVectorCorrectly)
+TEST_F(RunVector, PicksConstMultiVectorVectorCorrectly)
 {
     std::unique_ptr<const gko::LinOp> const_dense_vector =
-        gko::matrix::Dense<>::create(exec);
+        gko::matrix::MultiVector<>::create(exec);
     int result;
 
     gko::detail::vector_dispatch<double>(
         const_dense_vector.get(),
         [&](auto* dense) { result = run_function(dense); });
 
-    ASSERT_EQ(result, run_function(gko::as<const gko::matrix::Dense<>>(
+    ASSERT_EQ(result, run_function(gko::as<const gko::matrix::MultiVector<>>(
                           const_dense_vector.get())));
 }
 

@@ -18,7 +18,7 @@ template <typename ValueType, typename IndexType>
 class Csr;
 
 template <typename ValueType>
-class Dense;
+class MultiVector;
 
 
 /**
