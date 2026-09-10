@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -133,10 +133,28 @@ GKO_ATTRIBUTES GKO_INLINE constexpr bool operator!=(const span& first,
 }
 
 /**
- * A span that is used exclusively for local numbering.
+ * Same as span, except that it only represents a range of _local_ rows/columns,
+ * and that it is copyable/moveable
  */
-struct local_span : span {
-    using span::span;
+struct local_span {
+    constexpr local_span(size_type point) noexcept
+        : local_span{point, point + 1}
+    {}
+
+    constexpr local_span(size_type begin, size_type end) noexcept
+        : begin{begin}, end{end}
+    {}
+
+    constexpr operator span() const { return {begin, end}; }
+
+    constexpr local_span(const span& s) noexcept : local_span(s.begin, s.end) {}
+
+    constexpr bool is_valid() const { return begin <= end; }
+
+    constexpr size_type length() const { return end - begin; }
+
+    size_type begin;
+    size_type end;
 };
 
 
