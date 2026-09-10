@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>

@@ -13,16 +13,11 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/components/fill_array_kernels.hpp"
 #include "core/test/utils.hpp"
@@ -40,7 +35,6 @@ protected:
     using Arr = gko::array<index_type>;
     using ComplexMtx = gko::matrix::MultiVector<std::complex<value_type>>;
     using Diagonal = gko::matrix::Diagonal<value_type>;
-    using MixedComplexMtx = gko::matrix::MultiVector<std::complex<mixed_type>>;
     using Permutation = gko::matrix::Permutation<index_type>;
     using ScaledPermutation =
         gko::matrix::ScaledPermutation<value_type, index_type>;
@@ -401,227 +395,6 @@ TEST_F(MultiVector, ComputeConjDotComplexIsEquivalentToRef)
     dcomplex_b->compute_conj_dot(dcomplex_x, dresult);
 
     GKO_ASSERT_MTX_NEAR(result, dresult, r<value_type>::value * 2);
-}
-
-
-TEST_F(MultiVector, ConvertToCooIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto coo_mtx = gko::matrix::Coo<value_type>::create(ref);
-    auto dcoo_mtx = gko::matrix::Coo<value_type>::create(exec);
-
-    x->convert_to(coo_mtx);
-    dx->convert_to(dcoo_mtx);
-
-    ASSERT_EQ(dcoo_mtx->get_num_stored_elements(),
-              coo_mtx->get_num_stored_elements());
-    GKO_ASSERT_MTX_NEAR(dcoo_mtx, coo_mtx, 0);
-}
-
-
-TEST_F(MultiVector, MoveToCooIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto coo_mtx = gko::matrix::Coo<value_type>::create(ref);
-    auto dcoo_mtx = gko::matrix::Coo<value_type>::create(exec);
-
-    x->move_to(coo_mtx);
-    dx->move_to(dcoo_mtx);
-
-    ASSERT_EQ(dcoo_mtx->get_num_stored_elements(),
-              coo_mtx->get_num_stored_elements());
-    GKO_ASSERT_MTX_NEAR(dcoo_mtx, coo_mtx, 0);
-}
-
-
-TEST_F(MultiVector, ConvertToCsrIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
-
-    x->convert_to(csr_mtx);
-    dx->convert_to(dcsr_mtx);
-
-    GKO_ASSERT_MTX_NEAR(dcsr_mtx, csr_mtx, 0);
-}
-
-
-TEST_F(MultiVector, MoveToCsrIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto csr_mtx = gko::matrix::Csr<value_type>::create(ref);
-    auto dcsr_mtx = gko::matrix::Csr<value_type>::create(exec);
-
-    x->move_to(csr_mtx);
-    dx->move_to(dcsr_mtx);
-
-    GKO_ASSERT_MTX_NEAR(dcsr_mtx, csr_mtx, 0);
-}
-
-
-TEST_F(MultiVector, ConvertToSparsityCsrIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(ref);
-    auto d_sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(exec);
-
-    x->convert_to(sparsity_mtx);
-    dx->convert_to(d_sparsity_mtx);
-
-    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx, sparsity_mtx, 0);
-}
-
-
-TEST_F(MultiVector, MoveToSparsityCsrIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(ref);
-    auto d_sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(exec);
-
-    x->move_to(sparsity_mtx);
-    dx->move_to(d_sparsity_mtx);
-
-    GKO_ASSERT_MTX_NEAR(d_sparsity_mtx, sparsity_mtx, 0);
-}
-
-
-TEST_F(MultiVector, ConvertToEllIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto ell_mtx = gko::matrix::Ell<value_type>::create(ref);
-    auto dell_mtx = gko::matrix::Ell<value_type>::create(exec);
-
-    x->convert_to(ell_mtx);
-    dx->convert_to(dell_mtx);
-
-    GKO_ASSERT_MTX_NEAR(dell_mtx, ell_mtx, 0);
-}
-
-
-TEST_F(MultiVector, MoveToEllIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto ell_mtx = gko::matrix::Ell<value_type>::create(ref);
-    auto dell_mtx = gko::matrix::Ell<value_type>::create(exec);
-
-    x->move_to(ell_mtx);
-    dx->move_to(dell_mtx);
-
-    GKO_ASSERT_MTX_NEAR(dell_mtx, ell_mtx, 0);
-}
-
-
-TEST_F(MultiVector, ConvertToHybridIsEquivalentToRef)
-{
-    auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = gko::clone(exec, rmtx);
-    auto srmtx = gko::matrix::Hybrid<value_type>::create(ref);
-    auto somtx = gko::matrix::Hybrid<value_type>::create(exec);
-    auto drmtx = Mtx::create(ref);
-    auto domtx = Mtx::create(exec);
-
-    rmtx->convert_to(srmtx);
-    omtx->convert_to(somtx);
-    srmtx->convert_to(drmtx);
-    somtx->convert_to(domtx);
-
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
-}
-
-
-TEST_F(MultiVector, MoveToHybridIsEquivalentToRef)
-{
-    auto rmtx = gen_mtx<Mtx>(532, 231);
-    auto omtx = gko::clone(exec, rmtx);
-    auto srmtx = gko::matrix::Hybrid<value_type>::create(ref);
-    auto somtx = gko::matrix::Hybrid<value_type>::create(exec);
-    auto drmtx = Mtx::create(ref);
-    auto domtx = Mtx::create(exec);
-
-    rmtx->move_to(srmtx);
-    omtx->move_to(somtx);
-    srmtx->move_to(drmtx);
-    somtx->move_to(domtx);
-
-    GKO_ASSERT_MTX_NEAR(drmtx, domtx, 0);
-    GKO_ASSERT_MTX_NEAR(srmtx, somtx, 0);
-    GKO_ASSERT_MTX_NEAR(domtx, omtx, 0);
-}
-
-
-TEST_F(MultiVector, ConvertToSellpIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto sellp_mtx = gko::matrix::Sellp<value_type>::create(ref);
-    auto dsellp_mtx = gko::matrix::Sellp<value_type>::create(exec);
-
-    x->convert_to(sellp_mtx);
-    dx->convert_to(dsellp_mtx);
-
-    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 0);
-}
-
-
-TEST_F(MultiVector, MoveToSellpIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto sellp_mtx = gko::matrix::Sellp<value_type>::create(ref);
-    auto dsellp_mtx = gko::matrix::Sellp<value_type>::create(exec);
-
-    x->move_to(sellp_mtx);
-    dx->move_to(dsellp_mtx);
-
-    GKO_ASSERT_MTX_NEAR(sellp_mtx, dsellp_mtx, 0);
-}
-
-
-TEST_F(MultiVector, ConvertsEmptyToSellp)
-{
-    auto dempty_mtx = Mtx::create(exec);
-    auto dsellp_mtx = gko::matrix::Sellp<value_type>::create(exec);
-
-    dempty_mtx->convert_to(dsellp_mtx);
-
-    ASSERT_EQ(exec->copy_val_to_host(dsellp_mtx->get_const_slice_sets()), 0);
-    ASSERT_FALSE(dsellp_mtx->get_size());
-}
-
-
-TEST_F(MultiVector, CalculateNNZPerRowIsEquivalentToRef)
-{
-    set_up_apply_data();
-    gko::array<gko::size_type> nnz_per_row(ref);
-    nnz_per_row.resize_and_reset(x->get_size()[0]);
-    gko::array<gko::size_type> dnnz_per_row(exec);
-    dnnz_per_row.resize_and_reset(dx->get_size()[0]);
-
-    gko::kernels::reference::multivector::count_nonzeros_per_row(
-        ref, x->get_const_device_view(), nnz_per_row.get_data());
-    gko::kernels::GKO_DEVICE_NAMESPACE::multivector::count_nonzeros_per_row(
-        exec, dx->get_const_device_view(), dnnz_per_row.get_data());
-
-    auto tmp = gko::array<gko::size_type>(ref, dnnz_per_row);
-    for (gko::size_type i = 0; i < nnz_per_row.get_size(); i++) {
-        ASSERT_EQ(nnz_per_row.get_const_data()[i], tmp.get_const_data()[i]);
-    }
-}
-
-
-TEST_F(MultiVector, ComputeMaxNNZPerRowIsEquivalentToRef)
-{
-    set_up_apply_data();
-    gko::size_type max_nnz;
-    gko::size_type dmax_nnz;
-
-    gko::kernels::reference::multivector::compute_max_nnz_per_row(
-        ref, x->get_const_device_view(), max_nnz);
-    gko::kernels::GKO_DEVICE_NAMESPACE::multivector::compute_max_nnz_per_row(
-        exec, dx->get_const_device_view(), dmax_nnz);
-
-    ASSERT_EQ(max_nnz, dmax_nnz);
 }
 
 
@@ -1140,46 +913,6 @@ TEST_F(
 }
 
 
-TEST_F(MultiVector, AddsScaledDiagIsEquivalentToRef)
-{
-    auto mat = gen_mtx<Mtx>(532, 532);
-    gko::array<Mtx::value_type> diag_values(this->ref, 532);
-    gko::kernels::reference::components::fill_array(
-        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
-    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
-                                                               diag_values);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
-    auto dmat = gko::clone(this->exec, mat);
-    auto ddiag = gko::clone(this->exec, diag);
-    auto dalpha = gko::clone(this->exec, alpha);
-
-    mat->add_scaled(alpha, diag);
-    dmat->add_scaled(dalpha, ddiag);
-
-    GKO_ASSERT_MTX_NEAR(mat, dmat, r<value_type>::value);
-}
-
-
-TEST_F(MultiVector, SubtractScaledDiagIsEquivalentToRef)
-{
-    auto mat = gen_mtx<Mtx>(532, 532);
-    gko::array<Mtx::value_type> diag_values(this->ref, 532);
-    gko::kernels::reference::components::fill_array(
-        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
-    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
-                                                               diag_values);
-    auto alpha = gko::initialize<Mtx>({2.0}, this->ref);
-    auto dmat = gko::clone(this->exec, mat);
-    auto ddiag = gko::clone(this->exec, diag);
-    auto dalpha = gko::clone(this->exec, alpha);
-
-    mat->sub_scaled(alpha, diag);
-    dmat->sub_scaled(dalpha, ddiag);
-
-    GKO_ASSERT_MTX_NEAR(mat, dmat, r<value_type>::value);
-}
-
-
 TEST_F(MultiVector, CanGatherRows)
 {
     set_up_apply_data();
@@ -1617,56 +1350,6 @@ TEST_F(MultiVector, IsInverseColPermutableIntoMultiVectorCrossExecutor)
 }
 
 
-TEST_F(MultiVector, ExtractDiagonalOnTallSkinnyIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto diag = x->extract_diagonal();
-    auto ddiag = dx->extract_diagonal();
-
-    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
-}
-
-
-TEST_F(MultiVector, ExtractDiagonalOnTallSkinnyIntoMultiVectorCrossExecutor)
-{
-    set_up_apply_data();
-    auto diag = Diagonal::create(ref, x->get_size()[1]);
-    // test make_temporary_clone
-    auto ddiag = Diagonal::create(ref, x->get_size()[1]);
-
-    x->extract_diagonal(diag);
-    dx->extract_diagonal(ddiag);
-
-    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
-}
-
-
-TEST_F(MultiVector, ExtractDiagonalOnShortFatIsEquivalentToRef)
-{
-    set_up_apply_data();
-
-    auto diag = y->extract_diagonal();
-    auto ddiag = dy->extract_diagonal();
-
-    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
-}
-
-
-TEST_F(MultiVector, ExtractDiagonalOnShortFatIntoMultiVectorCrossExecutor)
-{
-    set_up_apply_data();
-    auto diag = Diagonal::create(ref, y->get_size()[0]);
-    // test make_temporary_clone
-    auto ddiag = Diagonal::create(ref, y->get_size()[0]);
-
-    y->extract_diagonal(diag);
-    dy->extract_diagonal(ddiag);
-
-    GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
-}
-
-
 TEST_F(MultiVector, ComputeDotIsEquivalentToRef)
 {
     set_up_vector_data(1);
@@ -1976,28 +1659,6 @@ TEST_F(MultiVector, GetImagIntoMultiVectorCrossExecutor)
     dx->get_imag(dimag_x);
 
     GKO_ASSERT_MTX_NEAR(imag_x, dimag_x, 0);
-}
-
-
-TEST_F(MultiVector, AddScaledIdentityToNonSquare)
-{
-    set_up_apply_data();
-
-    x->add_scaled_identity(alpha, beta);
-    dx->add_scaled_identity(dalpha, dbeta);
-
-    GKO_ASSERT_MTX_NEAR(x, dx, r<value_type>::value);
-}
-
-
-TEST_F(MultiVector, AddScaledIdentityToNonSquareOnDifferentExecutor)
-{
-    set_up_apply_data();
-
-    x->add_scaled_identity(alpha, beta);
-    dx->add_scaled_identity(alpha, beta);
-
-    GKO_ASSERT_MTX_NEAR(x, dx, r<value_type>::value);
 }
 
 

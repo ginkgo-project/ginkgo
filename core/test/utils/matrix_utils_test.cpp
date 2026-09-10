@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"

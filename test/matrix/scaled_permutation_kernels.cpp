@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
 #include "core/test/utils.hpp"

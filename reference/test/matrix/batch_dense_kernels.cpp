@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
@@ -25,8 +26,9 @@ class MultiVector : public ::testing::Test {
 protected:
     using value_type = T;
     using size_type = gko::size_type;
-    using BMtx = gko::batch::matrix::MultiVector<value_type>;
+    using BMtx = gko::batch::matrix::Dense<value_type>;
     using BMVec = gko::batch::MultiVector<value_type>;
+    using DenseMtx = gko::matrix::Dense<value_type>;
     using MultiVectorMtx = gko::matrix::MultiVector<value_type>;
     MultiVector() : exec(gko::ReferenceExecutor::create())
     {
@@ -34,9 +36,9 @@ protected:
             {{I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})},
              {{1.0, -2.0, -0.5}, {1.0, -2.5, 4.0}}},
             exec);
-        mtx_00 = gko::initialize<MultiVectorMtx>(
+        mtx_00 = gko::initialize<DenseMtx>(
             {I<T>({1.0, -1.0, 1.5}), I<T>({-2.0, 2.0, 3.0})}, exec);
-        mtx_01 = gko::initialize<MultiVectorMtx>(
+        mtx_01 = gko::initialize<DenseMtx>(
             {I<T>({1.0, -2.0, -0.5}), I<T>({1.0, -2.5, 4.0})}, exec);
         b_0 = gko::batch::initialize<BMVec>(
             {{I<T>({1.0, 0.0, 1.0}), I<T>({2.0, 0.0, 1.0}),
@@ -64,8 +66,8 @@ protected:
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<BMtx> mtx_0;
-    std::unique_ptr<MultiVectorMtx> mtx_00;
-    std::unique_ptr<MultiVectorMtx> mtx_01;
+    std::unique_ptr<DenseMtx> mtx_00;
+    std::unique_ptr<DenseMtx> mtx_01;
     std::unique_ptr<BMVec> b_0;
     std::unique_ptr<MultiVectorMtx> b_00;
     std::unique_ptr<MultiVectorMtx> b_01;

@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"

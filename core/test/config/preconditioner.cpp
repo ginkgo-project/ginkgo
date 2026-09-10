@@ -501,7 +501,7 @@ protected:
           l_solver(DummyIr::build().on(exec)),
           u_solver(DummyIr::build().on(exec)),
           factorization(DummyIr::build().on(exec)),
-          linop(gko::matrix::MultiVector<>::create(exec)),
+          linop(gko::matrix::Dense<>::create(exec)),
           coarse_level(DummyMgLevel::build().on(exec)),
           reg()
     {

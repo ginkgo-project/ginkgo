@@ -12,6 +12,7 @@ set(UNIFIED_SOURCES
     distributed/partition_kernels.cpp
     matrix/coo_kernels.cpp
     matrix/csr_kernels.cpp
+    matrix/dense_kernels.cpp
     matrix/ell_kernels.cpp
     matrix/hybrid_kernels.cpp
     matrix/permutation_kernels.cpp

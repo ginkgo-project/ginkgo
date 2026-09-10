@@ -5,6 +5,7 @@
 #include "ginkgo/core/distributed/vector.hpp"
 
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/distributed/vector_kernels.hpp"
 #include "core/matrix/multivector_kernels.hpp"

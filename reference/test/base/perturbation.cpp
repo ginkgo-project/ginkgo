@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/perturbation.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
@@ -18,20 +19,21 @@ namespace {
 template <typename T>
 class Perturbation : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::MultiVector<T>;
+    using Vec = gko::matrix::MultiVector<T>;
+    using Dense = gko::matrix::Dense<T>;
 
     Perturbation()
         : exec{gko::ReferenceExecutor::create()},
-          basis{gko::initialize<Mtx>({2.0, 1.0}, exec)},
-          scalar{gko::initialize<Mtx>({2.0}, exec)}
+          basis{gko::initialize<Dense>({2.0, 1.0}, exec)},
+          scalar{gko::initialize<Vec>({2.0}, exec)}
     {
-        projector = gko::initialize<Mtx>({I<T>({3.0, 2.0})}, exec);
+        projector = gko::initialize<Dense>({I<T>({3.0, 2.0})}, exec);
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<gko::LinOp> basis;
-    std::shared_ptr<gko::LinOp> projector;
-    std::shared_ptr<gko::LinOp> scalar;
+    std::shared_ptr<Dense> basis;
+    std::shared_ptr<Dense> projector;
+    std::shared_ptr<Vec> scalar;
 };
 
 TYPED_TEST_SUITE(Perturbation, gko::test::ValueTypes, TypenameNameGenerator);
@@ -39,7 +41,7 @@ TYPED_TEST_SUITE(Perturbation, gko::test::ValueTypes, TypenameNameGenerator);
 
 TYPED_TEST(Perturbation, CopiesOnSameExecutor)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Mtx = typename TestFixture::Vec;
     auto per = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
     auto out = per->create_default();
@@ -56,7 +58,7 @@ TYPED_TEST(Perturbation, CopiesOnSameExecutor)
 
 TYPED_TEST(Perturbation, MovesOnSameExecutor)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto per = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
     auto per2 = per->clone();
@@ -84,11 +86,11 @@ TYPED_TEST(Perturbation, AppliesToVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
-    auto res = Mtx::create_with_config_of(x);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
+    auto res = Vec::create_with_config_of(x);
 
     cmp->apply(x, res);
 
@@ -102,12 +104,12 @@ TYPED_TEST(Perturbation, AppliesToMixedVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    using Mtx = gko::matrix::MultiVector<gko::next_precision<TypeParam>>;
-    using value_type = typename Mtx::value_type;
+    using Vec = gko::matrix::MultiVector<gko::next_precision<TypeParam>>;
+    using value_type = typename Vec::value_type;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
-    auto res = Mtx::create_with_config_of(x);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
+    auto res = Vec::create_with_config_of(x);
 
     cmp->apply(x, res);
 
@@ -123,12 +125,12 @@ TYPED_TEST(Perturbation, AppliesToComplexVector)
                       [ 1 ]
     */
     using value_type = gko::to_complex<TypeParam>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
-    auto res = Mtx::create_with_config_of(x);
+    auto res = Vec::create_with_config_of(x);
 
     cmp->apply(x, res);
 
@@ -166,12 +168,12 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
-    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = gko::clone(x);
 
     cmp->apply(alpha, x, beta, res);
@@ -187,12 +189,12 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToMixedVector)
                       [ 1 ]
     */
     using value_type = gko::next_precision<TypeParam>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
                                                     this->projector);
-    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = gko::clone(x);
 
     cmp->apply(alpha, x, beta, res);
@@ -208,7 +210,7 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToComplexVector)
         cmp = I + 2 * [ 2 ] * [ 3 2 ]
                       [ 1 ]
     */
-    using MultiVector = typename TestFixture::Mtx;
+    using MultiVector = typename TestFixture::Vec;
     using MultiVectorComplex = gko::to_complex<MultiVector>;
     using value_type = typename MultiVectorComplex::value_type;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
@@ -259,10 +261,10 @@ TYPED_TEST(Perturbation, ConstructionByBasisAppliesToVector)
         cmp = I + 2 * [ 2 ] * [ 2 1 ]
                       [ 1 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
-    auto res = Mtx::create_with_config_of(x);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
+    auto res = Vec::create_with_config_of(x);
 
     cmp->apply(x, res);
 
@@ -276,11 +278,11 @@ TYPED_TEST(Perturbation, ConstructionByBasisAppliesLinearCombinationToVector)
         cmp = I + 2 * [ 2 ] * [ 2 1 ]
                       [ 1 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis);
-    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = gko::clone(x);
 
     cmp->apply(alpha, x, beta, res);

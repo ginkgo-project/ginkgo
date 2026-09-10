@@ -9,7 +9,6 @@
 
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
-#include "core/base/array_access.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
@@ -185,42 +184,6 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType>
-void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
-                     matrix::view::dense<const ValueType> alpha,
-                     const matrix::Diagonal<ValueType>* x,
-                     matrix::view::dense<ValueType> y)
-{
-    const auto diag_values = x->get_const_values();
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
-            if (is_nonzero(alpha[0])) {
-                y(i, i) += alpha[0] * diag[i];
-            }
-        },
-        x->get_size()[0], alpha.values, x->get_const_values(), y);
-}
-
-
-template <typename ValueType>
-void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
-                     matrix::view::dense<const ValueType> alpha,
-                     const matrix::Diagonal<ValueType>* x,
-                     matrix::view::dense<ValueType> y)
-{
-    const auto diag_values = x->get_const_values();
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
-            if (is_nonzero(alpha[0])) {
-                y(i, i) -= alpha[0] * diag[i];
-            }
-        },
-        x->get_size()[0], alpha.values, x->get_const_values(), y);
-}
-
-
-template <typename ValueType>
 void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  matrix::view::dense<const ValueType> x,
                  matrix::view::dense<const ValueType> y,
@@ -290,64 +253,6 @@ void compute_mean(std::shared_ptr<const DefaultExecutor> exec,
         },
         GKO_KERNEL_REDUCE_SUM(ValueType), result.values, x.size, tmp, x,
         ValueType_nc{1.} / std::max<size_type>(1, x.size[0]));
-}
-
-
-template <typename ValueType>
-void compute_max_nnz_per_row(std::shared_ptr<const DefaultExecutor> exec,
-                             matrix::view::dense<const ValueType> source,
-                             size_type& result)
-{
-    array<size_type> partial{exec, source.size[0] + 1};
-    count_nonzeros_per_row(exec, source, partial.get_data());
-    run_kernel_reduction(
-        exec, [] GKO_KERNEL(auto i, auto partial) { return partial[i]; },
-        GKO_KERNEL_REDUCE_MAX(size_type), partial.get_data() + source.size[0],
-        source.size[0], partial);
-    result = get_element(partial, source.size[0]);
-}
-
-
-template <typename ValueType>
-void compute_slice_sets(std::shared_ptr<const DefaultExecutor> exec,
-                        matrix::view::dense<const ValueType> source,
-                        size_type slice_size, size_type stride_factor,
-                        size_type* slice_sets, size_type* slice_lengths)
-{
-    const auto num_rows = source.size[0];
-    array<size_type> row_nnz{exec, num_rows};
-    count_nonzeros_per_row(exec, source, row_nnz.get_data());
-    const auto num_slices =
-        static_cast<size_type>(ceildiv(num_rows, slice_size));
-    run_kernel_row_reduction(
-        exec,
-        [] GKO_KERNEL(auto slice, auto local_row, auto row_nnz, auto slice_size,
-                      auto stride_factor, auto num_rows) {
-            const auto row = slice * slice_size + local_row;
-            return row < num_rows ? static_cast<size_type>(
-                                        ceildiv(row_nnz[row], stride_factor) *
-                                        stride_factor)
-                                  : size_type{};
-        },
-        GKO_KERNEL_REDUCE_MAX(size_type), slice_lengths, 1,
-        gko::dim<2>{num_slices, slice_size}, row_nnz, slice_size, stride_factor,
-        num_rows);
-    exec->copy(num_slices, slice_lengths, slice_sets);
-    components::prefix_sum_nonnegative(exec, slice_sets, num_slices + 1);
-}
-
-
-template <typename ValueType, typename IndexType>
-void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
-                            matrix::view::dense<const ValueType> mtx,
-                            IndexType* result)
-{
-    run_kernel_row_reduction(
-        exec,
-        [] GKO_KERNEL(auto i, auto j, auto mtx) {
-            return is_nonzero(mtx(i, j)) ? 1 : 0;
-        },
-        GKO_KERNEL_REDUCE_SUM(IndexType), result, 1, mtx.size, mtx);
 }
 
 
@@ -687,18 +592,6 @@ void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
 
 
 template <typename ValueType>
-void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      matrix::view::dense<const ValueType> orig,
-                      matrix::Diagonal<ValueType>* diag)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto i, auto orig, auto diag) { diag[i] = orig(i, i); },
-        diag->get_size()[0], orig, diag->get_values());
-}
-
-
-template <typename ValueType>
 void inplace_absolute_dense(std::shared_ptr<const DefaultExecutor> exec,
                             matrix::view::dense<ValueType> source)
 {
@@ -765,24 +658,6 @@ void get_imag(std::shared_ptr<const DefaultExecutor> exec,
             result(row, col) = imag(source(row, col));
         },
         source.size, source, result);
-}
-
-
-template <typename ValueType, typename ScalarType>
-void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
-                         matrix::view::dense<const ScalarType> alpha,
-                         matrix::view::dense<const ScalarType> beta,
-                         matrix::view::dense<ValueType> mtx)
-{
-    run_kernel(
-        exec,
-        [] GKO_KERNEL(auto row, auto col, auto alpha, auto beta, auto mtx) {
-            mtx(row, col) = beta[0] * mtx(row, col);
-            if (row == col) {
-                mtx(row, row) += alpha[0];
-            }
-        },
-        mtx.size, alpha.values, beta.values, mtx);
 }
 
 

@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
@@ -22,6 +23,7 @@
 class Hybrid : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Hybrid<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
     using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
 
@@ -49,7 +51,7 @@ protected:
                                std::make_shared<Mtx::automatic>())
     {
         mtx = Mtx::create(ref, strategy);
-        mtx->move_from(gen_mtx(532, 231, 1));
+        mtx->move_from(gen_mtx<Dense>(532, 231, 1));
         expected = gen_mtx(532, num_vectors, 1);
         y = gen_mtx(231, num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
@@ -169,7 +171,7 @@ TEST_F(Hybrid, ConvertEmptyCooToCsrIsEquivalentToRef)
 {
     auto balanced_mtx =
         Mtx::create(ref, std::make_shared<Mtx::column_limit>(4));
-    balanced_mtx->move_from(gen_mtx(400, 200, 4, 4));
+    balanced_mtx->move_from(gen_mtx<Mtx>(400, 200, 4, 4));
     auto dbalanced_mtx =
         Mtx::create(exec, std::make_shared<Mtx::column_limit>(4));
     dbalanced_mtx->copy_from(balanced_mtx);
@@ -186,7 +188,7 @@ TEST_F(Hybrid, ConvertEmptyCooToCsrIsEquivalentToRef)
 TEST_F(Hybrid, ConvertWithEmptyFirstAndLastRowToCsrIsEquivalentToRef)
 {
     // create a dense matrix for easier manipulation
-    auto dense_mtx = gen_mtx(400, 200, 0, 4);
+    auto dense_mtx = gen_mtx<Dense>(400, 200, 0, 4);
     // set first and last row to zero
     for (gko::size_type col = 0; col < dense_mtx->get_size()[1]; col++) {
         dense_mtx->at(0, col) = gko::zero<value_type>();

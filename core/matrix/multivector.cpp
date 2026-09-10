@@ -15,22 +15,13 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
-#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
-#include <ginkgo/core/matrix/ell.hpp>
-#include <ginkgo/core/matrix/fbcsr.hpp>
-#include <ginkgo/core/matrix/hybrid.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
-#include <ginkgo/core/matrix/sellp.hpp>
-#include <ginkgo/core/matrix/sparsity_csr.hpp>
 
-#include "core/base/array_access.hpp"
 #include "core/base/dispatch_helper.hpp"
 #include "core/base/validation.hpp"
-#include "core/components/prefix_sum_kernels.hpp"
-#include "core/matrix/hybrid_kernels.hpp"
 #include "core/matrix/multivector_kernels.hpp"
 #include "core/matrix/permutation.hpp"
 
@@ -41,16 +32,12 @@ namespace multivector {
 namespace {
 
 
-GKO_REGISTER_OPERATION(simple_apply, multivector::simple_apply);
-GKO_REGISTER_OPERATION(apply, multivector::apply);
 GKO_REGISTER_OPERATION(copy, multivector::copy);
 GKO_REGISTER_OPERATION(fill, multivector::fill);
 GKO_REGISTER_OPERATION(scale, multivector::scale);
 GKO_REGISTER_OPERATION(inv_scale, multivector::inv_scale);
 GKO_REGISTER_OPERATION(add_scaled, multivector::add_scaled);
 GKO_REGISTER_OPERATION(sub_scaled, multivector::sub_scaled);
-GKO_REGISTER_OPERATION(add_scaled_diag, multivector::add_scaled_diag);
-GKO_REGISTER_OPERATION(sub_scaled_diag, multivector::sub_scaled_diag);
 GKO_REGISTER_OPERATION(compute_dot, multivector::compute_dot_dispatch);
 GKO_REGISTER_OPERATION(compute_conj_dot,
                        multivector::compute_conj_dot_dispatch);
@@ -60,17 +47,6 @@ GKO_REGISTER_OPERATION(compute_mean, multivector::compute_mean);
 GKO_REGISTER_OPERATION(compute_squared_norm2,
                        multivector::compute_squared_norm2);
 GKO_REGISTER_OPERATION(compute_sqrt, multivector::compute_sqrt);
-GKO_REGISTER_OPERATION(compute_max_nnz_per_row,
-                       multivector::compute_max_nnz_per_row);
-GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
-                       hybrid::compute_coo_row_ptrs);
-GKO_REGISTER_OPERATION(count_nonzeros_per_row,
-                       multivector::count_nonzeros_per_row);
-GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
-                       multivector::count_nonzero_blocks_per_row);
-GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
-                       components::prefix_sum_nonnegative);
-GKO_REGISTER_OPERATION(compute_slice_sets, multivector::compute_slice_sets);
 GKO_REGISTER_OPERATION(transpose, multivector::transpose);
 GKO_REGISTER_OPERATION(conj_transpose, multivector::conj_transpose);
 GKO_REGISTER_OPERATION(symm_permute, multivector::symm_permute);
@@ -96,15 +72,6 @@ GKO_REGISTER_OPERATION(inv_row_scale_permute,
 GKO_REGISTER_OPERATION(inv_col_scale_permute,
                        multivector::inv_col_scale_permute);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, multivector::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_coo, multivector::convert_to_coo);
-GKO_REGISTER_OPERATION(convert_to_csr, multivector::convert_to_csr);
-GKO_REGISTER_OPERATION(convert_to_ell, multivector::convert_to_ell);
-GKO_REGISTER_OPERATION(convert_to_fbcsr, multivector::convert_to_fbcsr);
-GKO_REGISTER_OPERATION(convert_to_hybrid, multivector::convert_to_hybrid);
-GKO_REGISTER_OPERATION(convert_to_sellp, multivector::convert_to_sellp);
-GKO_REGISTER_OPERATION(convert_to_sparsity_csr,
-                       multivector::convert_to_sparsity_csr);
-GKO_REGISTER_OPERATION(extract_diagonal, multivector::extract_diagonal);
 GKO_REGISTER_OPERATION(inplace_absolute_dense,
                        multivector::inplace_absolute_dense);
 GKO_REGISTER_OPERATION(outplace_absolute_dense,
@@ -112,7 +79,6 @@ GKO_REGISTER_OPERATION(outplace_absolute_dense,
 GKO_REGISTER_OPERATION(make_complex, multivector::make_complex);
 GKO_REGISTER_OPERATION(get_real, multivector::get_real);
 GKO_REGISTER_OPERATION(get_imag, multivector::get_imag);
-GKO_REGISTER_OPERATION(add_scaled_identity, multivector::add_scaled_identity);
 
 
 }  // anonymous namespace
@@ -154,33 +120,14 @@ void MultiVector<ValueType>::validate_data() const
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
-{
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(multivector::make_simple_apply(
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_x->get_device_view()));
-        },
-        b, x);
-}
+void MultiVector<ValueType>::apply_impl(const LinOp* b,
+                                        LinOp* x) const GKO_NOT_IMPLEMENTED;
 
 
 template <typename ValueType>
 void MultiVector<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                        const LinOp* beta, LinOp* x) const
-{
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(multivector::make_apply(
-                dense_alpha->get_const_device_view(),
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_beta->get_const_device_view(),
-                dense_x->get_device_view()));
-        },
-        alpha, b, beta, x);
-}
-
+                                        const LinOp* beta,
+                                        LinOp* x) const GKO_NOT_IMPLEMENTED;
 
 template <typename ValueType>
 void MultiVector<ValueType>::fill(const ValueType value)
@@ -352,20 +299,11 @@ void MultiVector<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
                 ->get_const_device_view(),
             dynamic_cast<complex_type*>(this)->get_device_view()));
     } else {
-        if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
-            exec->run(multivector::make_add_scaled_diag(
-                make_temporary_conversion<ValueType>(alpha)
-                    ->get_const_device_view(),
-                dynamic_cast<const Diagonal<ValueType>*>(b),
-                this->get_device_view()));
-        } else {
-            exec->run(multivector::make_add_scaled(
-                make_temporary_conversion<ValueType>(alpha)
-                    ->get_const_device_view(),
-                make_temporary_conversion<ValueType>(b)
-                    ->get_const_device_view(),
-                this->get_device_view()));
-        }
+        exec->run(multivector::make_add_scaled(
+            make_temporary_conversion<ValueType>(alpha)
+                ->get_const_device_view(),
+            make_temporary_conversion<ValueType>(b)->get_const_device_view(),
+            this->get_device_view()));
     }
 }
 
@@ -390,20 +328,11 @@ void MultiVector<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
                 ->get_const_device_view(),
             dynamic_cast<complex_type*>(this)->get_device_view()));
     } else {
-        if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
-            exec->run(multivector::make_sub_scaled_diag(
-                make_temporary_conversion<ValueType>(alpha)
-                    ->get_const_device_view(),
-                dynamic_cast<const Diagonal<ValueType>*>(b),
-                this->get_device_view()));
-        } else {
-            exec->run(multivector::make_sub_scaled(
-                make_temporary_conversion<ValueType>(alpha)
-                    ->get_const_device_view(),
-                make_temporary_conversion<ValueType>(b)
-                    ->get_const_device_view(),
-                this->get_device_view()));
-        }
+        exec->run(multivector::make_sub_scaled(
+            make_temporary_conversion<ValueType>(alpha)
+                ->get_const_device_view(),
+            make_temporary_conversion<ValueType>(b)->get_const_device_view(),
+            this->get_device_view()));
     }
 }
 
@@ -747,369 +676,28 @@ void MultiVector<ValueType>::move_to(
 
 
 template <typename ValueType>
-template <typename IndexType>
-void MultiVector<ValueType>::convert_impl(
-    Coo<ValueType, IndexType>* result) const
+void MultiVector<ValueType>::convert_to(Dense<ValueType>* result) const
 {
-    auto exec = this->get_executor();
-    const auto num_rows = this->get_size()[0];
-
-    array<int64> row_ptrs{exec, num_rows + 1};
-    exec->run(multivector::make_count_nonzeros_per_row(
-        this->get_const_device_view(), row_ptrs.get_data()));
-    exec->run(multivector::make_prefix_sum_nonnegative(row_ptrs.get_data(),
-                                                       num_rows + 1));
-    const auto nnz = get_element(row_ptrs, num_rows);
-    result->resize(this->get_size(), nnz);
-    exec->run(multivector::make_convert_to_coo(
-        this->get_const_device_view(), row_ptrs.get_const_data(),
-        make_temporary_clone(exec, result)->get_device_view()));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Coo<ValueType, int32>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Coo<ValueType, int32>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Coo<ValueType, int64>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Coo<ValueType, int64>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-template <typename IndexType>
-void MultiVector<ValueType>::convert_impl(
-    Csr<ValueType, IndexType>* result) const
-{
-    {
-        auto exec = this->get_executor();
-        const auto num_rows = this->get_size()[0];
-        auto tmp = make_temporary_clone(exec, result);
-        tmp->row_ptrs_.resize_and_reset(num_rows + 1);
-        exec->run(multivector::make_count_nonzeros_per_row(
-            this->get_const_device_view(), tmp->get_row_ptrs()));
-        exec->run(multivector::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
-                                                           num_rows + 1));
-        const auto nnz =
-            exec->copy_val_to_host(tmp->get_const_row_ptrs() + num_rows);
-        tmp->col_idxs_.resize_and_reset(nnz);
-        tmp->values_.resize_and_reset(nnz);
-        tmp->set_size(this->get_size());
-        exec->run(multivector::make_convert_to_csr(
-            this->get_const_device_view(), tmp->get_device_view()));
+    if (result->get_size() != this->get_size()) {
+        result->set_size(this->get_size());
+        result->stride_ = stride_;
+        result->values_.resize_and_reset(result->get_size()[0] *
+                                         result->stride_);
     }
-    result->make_srow();
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Csr<ValueType, int32>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Csr<ValueType, int32>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Csr<ValueType, int64>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Csr<ValueType, int64>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-template <typename IndexType>
-void MultiVector<ValueType>::convert_impl(
-    Fbcsr<ValueType, IndexType>* result) const
-{
     auto exec = this->get_executor();
-    const auto bs = result->get_block_size();
-    const auto row_blocks = detail::get_num_blocks(bs, this->get_size()[0]);
-    const auto col_blocks = detail::get_num_blocks(bs, this->get_size()[1]);
-    auto tmp = make_temporary_clone(exec, result);
-    tmp->row_ptrs_.resize_and_reset(row_blocks + 1);
-    exec->run(multivector::make_count_nonzero_blocks_per_row(
-        this->get_const_device_view(), bs, tmp->get_row_ptrs()));
-    exec->run(multivector::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
-                                                       row_blocks + 1));
-    const auto nnz_blocks =
-        exec->copy_val_to_host(tmp->get_const_row_ptrs() + row_blocks);
-    tmp->col_idxs_.resize_and_reset(nnz_blocks);
-    tmp->values_.resize_and_reset(nnz_blocks * bs * bs);
-    tmp->values_.fill(zero<ValueType>());
-    tmp->set_size(this->get_size());
-    exec->run(multivector::make_convert_to_fbcsr(this->get_const_device_view(),
-                                                 tmp.get()));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Fbcsr<ValueType, int32>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Fbcsr<ValueType, int32>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Fbcsr<ValueType, int64>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Fbcsr<ValueType, int64>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-template <typename IndexType>
-void MultiVector<ValueType>::convert_impl(
-    Ell<ValueType, IndexType>* result) const
-{
-    auto exec = this->get_executor();
-    size_type num_stored_elements_per_row{};
-    exec->run(multivector::make_compute_max_nnz_per_row(
-        this->get_const_device_view(), num_stored_elements_per_row));
-    result->resize(this->get_size(), num_stored_elements_per_row);
-    exec->run(multivector::make_convert_to_ell(
+    exec->run(multivector::make_copy(
         this->get_const_device_view(),
-        make_temporary_clone(exec, result)->get_device_view()));
+        make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Ell<ValueType, int32>* result) const
+void MultiVector<ValueType>::move_to(Dense<ValueType>* result)
 {
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Ell<ValueType, int32>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Ell<ValueType, int64>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Ell<ValueType, int64>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-template <typename IndexType>
-void MultiVector<ValueType>::convert_impl(
-    Hybrid<ValueType, IndexType>* result) const
-{
-    auto exec = this->get_executor();
-    const auto num_rows = this->get_size()[0];
-    const auto num_cols = this->get_size()[1];
-    array<size_type> row_nnz{exec, num_rows};
-    array<int64> coo_row_ptrs{exec, num_rows + 1};
-    exec->run(multivector::make_count_nonzeros_per_row(
-        this->get_const_device_view(), row_nnz.get_data()));
-    size_type ell_lim{};
-    size_type coo_nnz{};
-    result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_nnz);
-    if (ell_lim > num_cols) {
-        // TODO remove temporary fix after ELL gains true structural zeros
-        ell_lim = num_cols;
-    }
-    exec->run(multivector::make_compute_hybrid_coo_row_ptrs(
-        row_nnz, ell_lim, coo_row_ptrs.get_data()));
-    coo_nnz = get_element(coo_row_ptrs, num_rows);
-    auto tmp = make_temporary_clone(exec, result);
-    tmp->resize(this->get_size(), ell_lim, coo_nnz);
-    exec->run(multivector::make_convert_to_hybrid(this->get_const_device_view(),
-                                                  coo_row_ptrs.get_const_data(),
-                                                  tmp->get_device_view()));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Hybrid<ValueType, int32>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Hybrid<ValueType, int32>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Hybrid<ValueType, int64>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Hybrid<ValueType, int64>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-template <typename IndexType>
-void MultiVector<ValueType>::convert_impl(
-    Sellp<ValueType, IndexType>* result) const
-{
-    auto exec = this->get_executor();
-    const auto num_rows = this->get_size()[0];
-    const auto stride_factor = result->get_stride_factor();
-    const auto slice_size = result->get_slice_size();
-    const auto num_slices = ceildiv(num_rows, slice_size);
-    auto tmp = make_temporary_clone(exec, result);
-    tmp->stride_factor_ = stride_factor;
-    tmp->slice_size_ = slice_size;
-    tmp->slice_sets_.resize_and_reset(num_slices + 1);
-    tmp->slice_lengths_.resize_and_reset(num_slices);
-    exec->run(multivector::make_compute_slice_sets(
-        this->get_const_device_view(), slice_size, stride_factor,
-        tmp->get_slice_sets(), tmp->get_slice_lengths()));
-    auto total_cols =
-        exec->copy_val_to_host(tmp->get_slice_sets() + num_slices);
-    tmp->col_idxs_.resize_and_reset(total_cols * slice_size);
-    tmp->values_.resize_and_reset(total_cols * slice_size);
-    tmp->set_size(this->get_size());
-    exec->run(multivector::make_convert_to_sellp(this->get_const_device_view(),
-                                                 tmp->get_device_view()));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Sellp<ValueType, int32>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Sellp<ValueType, int32>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(Sellp<ValueType, int64>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(Sellp<ValueType, int64>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-template <typename IndexType>
-void MultiVector<ValueType>::convert_impl(
-    SparsityCsr<ValueType, IndexType>* result) const
-{
-    auto exec = this->get_executor();
-    const auto num_rows = this->get_size()[0];
-    auto tmp = make_temporary_clone(exec, result);
-    tmp->row_ptrs_.resize_and_reset(num_rows + 1);
-    exec->run(multivector::make_count_nonzeros_per_row(
-        this->get_const_device_view(), tmp->row_ptrs_.get_data()));
-    exec->run(multivector::make_prefix_sum_nonnegative(
-        tmp->row_ptrs_.get_data(), num_rows + 1));
-    const auto nnz = get_element(tmp->row_ptrs_, num_rows);
-    tmp->col_idxs_.resize_and_reset(nnz);
-    tmp->value_.fill(one<ValueType>());
-    tmp->set_size(this->get_size());
-    exec->run(multivector::make_convert_to_sparsity_csr(
-        this->get_const_device_view(), tmp.get()));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(
-    SparsityCsr<ValueType, int32>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(SparsityCsr<ValueType, int32>* result)
-{
-    this->convert_to(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::convert_to(
-    SparsityCsr<ValueType, int64>* result) const
-{
-    this->convert_impl(result);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::move_to(SparsityCsr<ValueType, int64>* result)
-{
-    this->convert_to(result);
+    result->set_size(this->get_size());
+    this->set_size(dim<2>{0, 0});
+    result->stride_ = std::exchange(stride_, 0);
+    result->values_ = std::move(values_);
 }
 
 
@@ -1983,31 +1571,6 @@ void MultiVector<ValueType>::scale_permute(
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::extract_diagonal(
-    ptr_param<Diagonal<ValueType>> output) const
-{
-    auto exec = this->get_executor();
-    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
-    GKO_ASSERT_EQ(output->get_size()[0], diag_size);
-
-    exec->run(multivector::make_extract_diagonal(
-        this->get_const_device_view(),
-        make_temporary_output_clone(exec, output).get()));
-}
-
-
-template <typename ValueType>
-std::unique_ptr<Diagonal<ValueType>> MultiVector<ValueType>::extract_diagonal()
-    const
-{
-    const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
-    auto diag = Diagonal<ValueType>::create(this->get_executor(), diag_size);
-    this->extract_diagonal(diag);
-    return diag;
-}
-
-
-template <typename ValueType>
 void MultiVector<ValueType>::compute_absolute_inplace()
 {
     this->get_executor()->run(
@@ -2122,21 +1685,6 @@ auto MultiVector<ValueType>::get_const_device_view() const -> const_device_view
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::add_scaled_identity_impl(const LinOp* a,
-                                                      const LinOp* b)
-{
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(multivector::make_add_scaled_identity(
-                dense_alpha->get_const_device_view(),
-                dense_beta->get_const_device_view(),
-                dense_x->get_device_view()));
-        },
-        a, b, this);
-}
-
-
-template <typename ValueType>
 std::unique_ptr<typename MultiVector<ValueType>::real_type>
 MultiVector<ValueType>::create_real_view()
 {
@@ -2223,6 +1771,24 @@ MultiVector<ValueType>::create_const(
     // so we can ensure that no modifications take place.
     return std::unique_ptr<const MultiVector>{new MultiVector{
         exec, size, gko::detail::array_const_cast(std::move(values)), stride}};
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const Dense<ValueType>>
+MultiVector<ValueType>::as_const_dense_view() const
+{
+    return Dense<ValueType>::create_const(this->get_executor(),
+                                          this->get_size(),
+                                          values_.as_const_view(), stride_);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Dense<ValueType>> MultiVector<ValueType>::as_dense_view()
+{
+    return Dense<ValueType>::create(this->get_executor(), this->get_size(),
+                                    values_.as_view(), stride_);
 }
 
 
