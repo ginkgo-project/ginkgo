@@ -359,12 +359,12 @@ void from_factor(std::shared_ptr<const DefaultExecutor> exec,
                  matrix::view::csr<const ValueType, const IndexType> factors,
                  gko::factorization::elimination_forest<IndexType>& forest)
 {
-    const auto num_rows = factors->get_size()[0];
+    const auto num_rows = factors.size[0];
     const auto it = oneapi::dpl::counting_iterator<IndexType>(IndexType{});
     oneapi::dpl::transform(
         onedpl_policy(exec), it, it + num_rows, forest.parents.get_data(),
-        [row_ptrs = factors->get_const_row_ptrs(),
-         col_idxs = factors->get_const_col_idxs(), num_rows](IndexType l_col) {
+        [row_ptrs = factors.row_ptrs, col_idxs = factors.col_idxs,
+         num_rows](IndexType l_col) {
             const auto llt_row_begin = row_ptrs[l_col];
             const auto llt_row_end = row_ptrs[l_col + 1];
             for (auto nz = llt_row_begin; nz < llt_row_end; nz++) {
