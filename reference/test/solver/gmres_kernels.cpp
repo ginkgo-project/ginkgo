@@ -724,7 +724,8 @@ public:
         const gko::AbstractMultiVector*, const gko::AbstractMultiVector*,
         const gko::array<gko::stopping_status>*, bool) const override
     {
-        auto dense_residual = gko::as<gko::matrix::Dense<ValueType>>(residual);
+        auto dense_residual =
+            gko::as<gko::matrix::MultiVector<ValueType>>(residual);
         if (previous_) {
             const auto size = dense_residual->get_num_stored_elements();
             for (gko::size_type i = 0; i < size; ++i) {
@@ -741,7 +742,7 @@ public:
     int get_num_restarts() const { return num_restarts_; }
 
 private:
-    mutable std::unique_ptr<gko::matrix::Dense<ValueType>> previous_;
+    mutable std::unique_ptr<gko::matrix::MultiVector<ValueType>> previous_;
     mutable int num_restarts_{};
 };
 
