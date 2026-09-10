@@ -544,6 +544,73 @@ public:
                               const batch::BatchLinOp* input,
                               const batch::BatchLinOp* output)
 
+    // Timing semantics for the MPI events below:
+    //   *_started   — fired immediately before the corresponding MPI call is
+    //                 issued from this rank.
+    //   *_completed — for blocking MPI calls, fired immediately after the call
+    //                 returns. For non-blocking (MPI_I*) calls, fired when
+    //                 request::wait() returns on this rank, NOT when the MPI
+    //                 runtime internally completes the transfer. Therefore
+    //                 (completed - started) measures the time the application
+    //                 spent observing the op as in-flight on this rank, not
+    //                 the time the network was actively transmitting. A non-
+    //                 blocking op may complete inside MPI long before wait()
+    //                 is called.
+    //   If a request is destroyed (or move-assigned over) without an explicit
+    //   wait(), the request cleanup path waits and fires the matching
+    //   *_completed event before releasing the handle.
+
+    /**
+     * MPI all_reduce started event.
+     *
+     * @param exec  the executor used
+     * @param count  the number of elements reduced
+     * @param bytes  the number of bytes reduced
+     */
+    GKO_LOGGER_REGISTER_EVENT(27, mpi_all_reduce_started, const Executor* exec,
+                              const size_type& count, const size_type& bytes)
+
+    /**
+     * MPI all_reduce completed event.
+     *
+     * @param exec  the executor used
+     * @param count  the number of elements reduced
+     * @param bytes  the number of bytes reduced
+     */
+    GKO_LOGGER_REGISTER_EVENT(28, mpi_all_reduce_completed,
+                              const Executor* exec, const size_type& count,
+                              const size_type& bytes)
+
+    /**
+     * MPI all_to_all_v started event.
+     *
+     * @param exec  the executor used
+     * @param send_count  the number of elements sent
+     * @param send_bytes  the number of bytes sent
+     * @param recv_count  the number of elements received
+     * @param recv_bytes  the number of bytes received
+     */
+    GKO_LOGGER_REGISTER_EVENT(29, mpi_all_to_all_started, const Executor* exec,
+                              const size_type& send_count,
+                              const size_type& send_bytes,
+                              const size_type& recv_count,
+                              const size_type& recv_bytes)
+
+    /**
+     * MPI all_to_all_v completed event.
+     *
+     * @param exec  the executor used
+     * @param send_count  the number of elements sent
+     * @param send_bytes  the number of bytes sent
+     * @param recv_count  the number of elements received
+     * @param recv_bytes  the number of bytes received
+     */
+    GKO_LOGGER_REGISTER_EVENT(30, mpi_all_to_all_completed,
+                              const Executor* exec, const size_type& send_count,
+                              const size_type& send_bytes,
+                              const size_type& recv_count,
+                              const size_type& recv_bytes)
+
 public:
     static constexpr size_type batch_solver_completed{26};
     static constexpr mask_type batch_solver_completed_mask{mask_type{1} << 26};
@@ -668,6 +735,13 @@ public:
     static constexpr mask_type batch_linop_factory_events_mask =
         batch_linop_factory_generate_started_mask |
         batch_linop_factory_generate_completed_mask;
+
+    /**
+     * Bitset Mask which activates all MPI events
+     */
+    static constexpr mask_type mpi_events_mask =
+        mpi_all_reduce_started_mask | mpi_all_reduce_completed_mask |
+        mpi_all_to_all_started_mask | mpi_all_to_all_completed_mask;
 
     /**
      * Bitset Mask which activates all criterion events
