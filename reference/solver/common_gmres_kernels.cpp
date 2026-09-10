@@ -20,7 +20,6 @@ namespace reference {
 /**
  * @brief The common GMRES solver namespace.
  *
- * @ingroup gmres
  */
 namespace common_gmres {
 namespace {

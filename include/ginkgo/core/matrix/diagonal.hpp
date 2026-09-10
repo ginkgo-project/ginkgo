@@ -32,7 +32,6 @@ class Dense;
  * @tparam IndexType  precision of matrix indexes of a CSR matrix the diagonal
  *                    is applied or converted to.
  *
- * @ingroup diagonal
  * @ingroup mat_formats
  * @ingroup LinOp
  */

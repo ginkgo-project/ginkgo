@@ -18,13 +18,11 @@ namespace kernels {
 /**
  * @brief The Reference namespace.
  *
- * @ingroup reference
  */
 namespace reference {
 /**
  * @brief The Coordinate matrix format namespace.
  *
- * @ingroup coo
  */
 namespace coo {
 

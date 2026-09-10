@@ -103,7 +103,6 @@ static constexpr mask_type inverse_permute = mask_type{1 << 3};
  *
  * @tparam IndexType  precision of permutation array indices.
  *
- * @ingroup permutation
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -184,6 +183,7 @@ public:
      * Creates an uninitialized Permutation arrays on the specified executor.
      *
      * @param exec  Executor associated to the LinOp
+     * @param size  the size of the permutation
      *
      * @return A smart pointer to the newly created matrix.
      */

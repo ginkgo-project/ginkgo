@@ -14,7 +14,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Hybrid matrix format namespace.
  *
- * @ingroup hybrid
  */
 namespace hybrid {
 

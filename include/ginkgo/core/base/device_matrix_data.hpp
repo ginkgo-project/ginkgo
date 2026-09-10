@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,6 +68,7 @@ public:
     /**
      * Initializes a new device_matrix_data object from existing data.
      *
+     * @param exec  the executor to be used to store the matrix entries
      * @param size  the matrix dimensions
      * @param values  the array containing the matrix values
      * @param col_idxs  the array containing the matrix column indices

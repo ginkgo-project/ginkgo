@@ -21,13 +21,11 @@ namespace kernels {
 /**
  * @brief The Omp namespace.
  *
- * @ingroup omp
  */
 namespace omp {
 /**
  * @brief The index_set namespace.
  *
- * @ingroup index_set
  */
 namespace idx_set {
 

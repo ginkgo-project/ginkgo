@@ -19,7 +19,6 @@ namespace cuda {
 /**
  * @brief The FFT matrix format namespace.
  * @ref Fft
- * @ingroup fft
  */
 namespace fft {
 

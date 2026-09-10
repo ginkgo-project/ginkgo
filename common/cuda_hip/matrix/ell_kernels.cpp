@@ -38,7 +38,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The ELL matrix format namespace.
  *
- * @ingroup ell
  */
 namespace ell {
 

@@ -32,7 +32,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Dense matrix format namespace.
  *
- * @ingroup dense
  */
 namespace dense {
 

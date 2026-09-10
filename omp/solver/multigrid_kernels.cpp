@@ -16,7 +16,6 @@ namespace omp {
 /**
  * @brief The MULTIGRID solver namespace.
  *
- * @ingroup multigrid
  */
 namespace multigrid {
 

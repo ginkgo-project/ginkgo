@@ -15,7 +15,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The BICGSTAB solver namespace.
  *
- * @ingroup bicgstab
  */
 namespace bicgstab {
 

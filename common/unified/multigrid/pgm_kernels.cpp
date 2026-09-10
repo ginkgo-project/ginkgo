@@ -18,7 +18,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Pgm namespace.
  *
- * @ingroup pgm
  */
 namespace pgm {
 

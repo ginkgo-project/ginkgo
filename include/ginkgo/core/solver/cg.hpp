@@ -55,7 +55,7 @@ namespace solver {
  * \f]
  * This formula assumes that \f$ M \f$ stays fixed across iterations; for a
  * varying preconditioner, use the Polak-Ribière variant in
- * \ref gko::solver::Fcg "FCG".
+ * @ref gko::solver::Fcg "FCG".
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of CG are merged

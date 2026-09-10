@@ -18,7 +18,6 @@ namespace reference {
 /**
  * @brief The SELL-P matrix format namespace.
  * @ref Sellp
- * @ingroup sellp
  */
 namespace sellp {
 

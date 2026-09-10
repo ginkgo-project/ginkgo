@@ -28,7 +28,6 @@ namespace omp {
 /**
  * @brief The Dense matrix format namespace.
  *
- * @ingroup dense
  */
 namespace dense {
 

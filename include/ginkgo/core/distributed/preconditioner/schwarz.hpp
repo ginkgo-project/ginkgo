@@ -60,7 +60,6 @@ namespace preconditioner {
  * @tparam LocalIndexType  local integer type of the matrix
  * @tparam GlobalIndexType  global integer type of the matrix
  *
- * @ingroup schwarz
  * @ingroup precond
  * @ingroup LinOp
  */

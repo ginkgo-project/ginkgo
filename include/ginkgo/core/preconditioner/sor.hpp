@@ -97,6 +97,10 @@ public:
 
     /**
      * @copydoc LinOpFactory::generate
+     *
+     * @param system_matrix  the source matrix used to generate the
+     *                       preconditioner.
+     *
      * @note This function overrides the default LinOpFactory::generate to
      *       return a Factorization instead of a generic LinOp, which would need
      *       to be cast to Factorization again to access its factors.

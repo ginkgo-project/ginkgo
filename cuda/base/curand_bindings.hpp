@@ -20,7 +20,6 @@ namespace cuda {
 /**
  * @brief The CURAND namespace.
  *
- * @ingroup curand
  */
 namespace curand {
 namespace detail {

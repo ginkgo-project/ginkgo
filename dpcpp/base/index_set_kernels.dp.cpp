@@ -16,13 +16,11 @@ namespace kernels {
 /**
  * @brief The Dpcpp namespace.
  *
- * @ingroup dpcpp
  */
 namespace dpcpp {
 /**
  * @brief The index_set namespace.
  *
- * @ingroup index_set
  */
 namespace idx_set {
 

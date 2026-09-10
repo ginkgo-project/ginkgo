@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,7 +16,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Dense matrix format namespace.
  *
- * @ingroup dense
  */
 namespace components {
 

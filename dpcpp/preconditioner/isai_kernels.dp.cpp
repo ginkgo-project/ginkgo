@@ -30,7 +30,6 @@ namespace dpcpp {
 /**
  * @brief The Isai preconditioner namespace.
  * @ref Isai
- * @ingroup isai
  */
 namespace isai {
 

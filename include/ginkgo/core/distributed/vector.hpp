@@ -58,7 +58,6 @@ class Partition;
  *
  * @tparam ValueType  The precision of vector elements.
  *
- * @ingroup dist_vector
  * @ingroup distributed
  * @ingroup mat_formats
  * @ingroup LinOp

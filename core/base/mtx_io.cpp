@@ -48,7 +48,6 @@ constexpr auto max_streamsize = std::numeric_limits<std::streamsize>::max();
  * The mtx_io class provides the functionality of reading and writing matrix
  * market format files.
  *
- * @ingroup mtx_io
  */
 template <typename ValueType, typename IndexType>
 class mtx_io {

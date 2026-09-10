@@ -16,7 +16,7 @@ namespace distributed {
 
 
 /**
- * \brief Index space classification for the locally stored indices.
+ * @brief Index space classification for the locally stored indices.
  *
  * The definitions of the enum values is clarified in @ref index_map.
  */
@@ -28,7 +28,7 @@ enum class index_space {
 
 
 /**
- * \brief This class defines mappings between global and local indices.
+ * @brief This class defines mappings between global and local indices.
  *
  * This class splits up the global index space and differentiates between
  * locally owned and non-locally owned index spaces.
@@ -63,8 +63,8 @@ enum class index_space {
  * `map_to_local` map that is not part of the specified index space, will be
  * mapped to an invalid_index.
  *
- * \tparam LocalIndexType  type for local indices
- * \tparam GlobalIndexType  type for global indices
+ * @tparam LocalIndexType  type for local indices
+ * @tparam GlobalIndexType  type for global indices
  */
 template <typename LocalIndexType, typename GlobalIndexType = int64>
 class index_map {
@@ -72,13 +72,13 @@ public:
     using partition_type = Partition<LocalIndexType, GlobalIndexType>;
 
     /**
-     * \brief Maps global indices to local indices
+     * @brief Maps global indices to local indices
      *
-     * \param global_ids  the global indices to map
-     * \param index_space_v  the index space in which the returned local indices
+     * @param global_ids  the global indices to map
+     * @param index_space_v  the index space in which the returned local indices
      *                       are defined
      *
-     * \return  the mapped local indices. Any global index that is not in the
+     * @return  the mapped local indices. Any global index that is not in the
      *          specified index space is mapped to invalid_index.
      */
     array<LocalIndexType> map_to_local(const array<GlobalIndexType>& global_ids,
@@ -100,30 +100,30 @@ public:
         index_space index_space_v) const;
 
     /**
-     * \brief get size of the global index space
+     * @brief get size of the global index space
      */
     size_type get_global_size() const;
 
     /**
-     * \brief get size of index_space::local
+     * @brief get size of index_space::local
      */
     size_type get_local_size() const;
 
     /**
-     * \brief get size of index_space::non_local
+     * @brief get size of index_space::non_local
      */
     size_type get_non_local_size() const;
 
     /**
-     * \brief Creates a new index map.
+     * @brief Creates a new index map.
      *
      * The passed in recv_connections may contain duplicates, which will be
      * filtered out.
      *
-     * \param exec  the executor
-     * \param partition  the partition of the global index set
-     * \param rank  the id of the global index space subset
-     * \param recv_connections  the global indices that are not owned by this
+     * @param exec  the executor
+     * @param partition  the partition of the global index set
+     * @param rank  the id of the global index space subset
+     * @param recv_connections  the global indices that are not owned by this
      *                          rank, but accessed by it
      */
     index_map(std::shared_ptr<const Executor> exec,
@@ -132,19 +132,19 @@ public:
               const array<GlobalIndexType>& recv_connections);
 
     /**
-     * \brief Creates an empty index map.
+     * @brief Creates an empty index map.
      */
     index_map(std::shared_ptr<const Executor> exec);
 
     /**
-     * \brief get the index set \f$R_k\f$ for this rank.
+     * @brief get the index set \f$R_k\f$ for this rank.
      *
      * The indices are ordered by their owning rank and global index.
      */
     const segmented_array<GlobalIndexType>& get_remote_global_idxs() const;
 
     /**
-     * \brief get the index set \f$R_k\f$, but mapped to their respective local
+     * @brief get the index set \f$R_k\f$, but mapped to their respective local
      *        index space.
      *
      * The indices are grouped by their owning rank and sorted according to
@@ -161,7 +161,7 @@ public:
     const segmented_array<LocalIndexType>& get_remote_local_idxs() const;
 
     /**
-     * \brief get the rank ids which contain indices accessed by this rank.
+     * @brief get the rank ids which contain indices accessed by this rank.
      *
      * The order matches the order of the sets in get_remote_global_idxs and
      * get_remote_local_idxs.
@@ -169,12 +169,12 @@ public:
     const array<comm_index_type>& get_remote_target_ids() const;
 
     /**
-     * \brief get the partition associated with this index map.
+     * @brief get the partition associated with this index map.
      */
     std::shared_ptr<const partition_type> get_partition() const;
 
     /**
-     * \brief get the associated executor.
+     * @brief get the associated executor.
      */
     std::shared_ptr<const Executor> get_executor() const;
 

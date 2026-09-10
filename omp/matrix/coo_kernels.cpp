@@ -22,13 +22,11 @@ namespace kernels {
 /**
  * @brief OpenMP namespace.
  *
- * @ingroup omp
  */
 namespace omp {
 /**
  * @brief The Coordinate matrix format namespace.
  *
- * @ingroup coo
  */
 namespace coo {
 

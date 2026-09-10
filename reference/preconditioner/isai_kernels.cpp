@@ -21,7 +21,6 @@ namespace reference {
 /**
  * @brief The Isai preconditioner namespace.
  *
- * @ingroup isai
  */
 namespace isai {
 

@@ -18,7 +18,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Rs namespace.
  *
- * @ingroup rs
  */
 namespace rs {
 

@@ -20,7 +20,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Set all statuses namespace.
  * @ref set_status
- * @ingroup set_all_statuses
  */
 namespace set_all_statuses {
 

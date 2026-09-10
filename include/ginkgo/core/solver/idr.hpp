@@ -76,7 +76,6 @@ namespace solver {
  *
  * @tparam ValueType  precision of the elements of the system matrix.
  *
- * @ingroup idr
  * @ingroup solvers
  * @ingroup LinOp
  */

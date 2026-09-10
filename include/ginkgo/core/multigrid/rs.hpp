@@ -24,13 +24,13 @@ namespace multigrid {
 
 /**
  * Rs implements the Ruge–Stueben (classical) Algebraic Multigrid (AMG)
- * coarsening strategy for M-matrices. Given a sparse system $Ax = b$,
+ * coarsening strategy for M-matrices. Given a sparse system \f$Ax = b\f$,
  * it produces one level of an AMG hierarchy: a C/F splitting, a prolongation
- * operator $P$, and a coarse-grid operator $A_c = R A P$.
+ * operator \f$P\f$, and a coarse-grid operator \f$A_c = R A P\f$.
  *
- * Coarsening proceeds in three steps. First, neighbour $j$ is marked as
- * *strongly influencing* row $i$ when $-a_{ij} \ge \theta \cdot
- * \max_{k \neq i}(-a_{ik})$. Second, a greedy pass selects C-points by
+ * Coarsening proceeds in three steps. First, neighbour \f$j\f$ is marked as
+ * *strongly influencing* row \f$i\f$ when \f$-a_{ij} \ge \theta \cdot
+ * \max_{k \neq i}(-a_{ik})\f$. Second, a greedy pass selects C-points by
  * repeatedly picking the undecided node with the most strong neighbours,
  * marking its undecided strong neighbours as F-points, and updating neighbour
  * counts accordingly. Third, we create the coarse grid and compute the

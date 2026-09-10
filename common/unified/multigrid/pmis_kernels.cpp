@@ -22,7 +22,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Pmis namespace.
  *
- * @ingroup pmis
  */
 namespace pmis {
 

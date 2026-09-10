@@ -24,7 +24,6 @@ namespace dpcpp {
 /**
  * @brief The Diagonal matrix format namespace.
  *
- * @ingroup diagonal
  */
 namespace diagonal {
 

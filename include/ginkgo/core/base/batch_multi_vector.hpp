@@ -53,8 +53,7 @@ namespace batch {
  *
  * @tparam ValueType  precision of multi-vector elements
  *
- * @ingroup batch_multi_vector
- * @ingroup batched
+ * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
 class MultiVector
@@ -280,7 +279,7 @@ public:
     }
 
     /**
-     * @copydoc MultiVector::at(size_type, size_type, size_type)
+     * @copydoc MultiVector::at(size_type, size_type)
      */
     ValueType at(size_type batch_id, size_type idx) const noexcept
     {
@@ -401,7 +400,7 @@ public:
      * array.
      *
      * @param exec  the executor to create the vector on
-     * @param size  the dimensions of the vector
+     * @param sizes  the dimensions of the vector
      * @param values  the value array of the vector
      * @param stride  the row-stride of the vector
      *

@@ -66,7 +66,7 @@ namespace solver {
  * trade-off for dropping \f$ A^H \f$ is that the squared polynomial also
  * squares the error: the residuals lose monotonicity and can oscillate
  * strongly on poorly conditioned systems. When this matters in practice,
- * \ref gko::solver::Bicgstab "BiCGSTAB" replaces the second application of
+ * @ref gko::solver::Bicgstab "BiCGSTAB" replaces the second application of
  * \f$ \psi_k \f$ by a locally minimizing polynomial for the same number of
  * operator applies and one extra inner product.
  *

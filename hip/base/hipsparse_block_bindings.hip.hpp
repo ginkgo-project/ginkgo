@@ -21,7 +21,6 @@ namespace hip {
 /**
  * @brief The HIPSPARSE namespace.
  *
- * @ingroup hipsparse
  */
 namespace hipsparse {
 

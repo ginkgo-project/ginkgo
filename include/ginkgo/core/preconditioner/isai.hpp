@@ -82,7 +82,6 @@ enum struct isai_type { lower, upper, general, spd };
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup isai
  * @ingroup precond
  * @ingroup LinOp
  */

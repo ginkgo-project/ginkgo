@@ -21,7 +21,6 @@ namespace dpcpp {
 /**
  * @brief The fixed-size block compressed sparse row matrix format namespace.
  *
- * @ingroup fbcsr
  */
 namespace fbcsr {
 

@@ -426,6 +426,7 @@ protected:
      * Register the `iteration_complete` event which logs every completed
      * iterations.
      *
+     * @param solver  the solver executing the iteration
      * @param it  the current iteration count
      * @param r  the residual
      * @param x  the solution vector (optional)
@@ -446,6 +447,7 @@ protected:
      * Register the `iteration_complete` event which logs every completed
      * iterations.
      *
+     * @param solver  the solver executing the iteration
      * @param it  the current iteration count
      * @param r  the residual
      * @param x  the solution vector (optional)

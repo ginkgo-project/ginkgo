@@ -1763,6 +1763,7 @@ public:
      *                      the scope.
      * @param alloc_mode  the allocation mode that the executor should operate
      *                    on. See @allocation_mode for more details
+     * @param stream  the stream to execute operations on.
      */
     GKO_DEPRECATED(
         "device_reset is deprecated entirely, call hipDeviceReset directly. "
@@ -1961,6 +1962,9 @@ public:
      *                kernels
      * @param device_type  a string representing the type of device to consider
      *                     (accelerator, cpu, gpu or all).
+     * @param property  the properties of the DPC++ queue, which may be
+     *                  combined with the binary or operator. See
+     *                  @ref dpcpp_queue_property for more details
      */
     static std::shared_ptr<DpcppExecutor> create(
         int device_id, std::shared_ptr<Executor> master,

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,12 +8,12 @@ to solve the non-linear Schrödinger equation with a splitting method.
 
 The non-linear Schrödinger equation (NLS) is given by
 
-$
+\f$
     i \partial_t \theta = -\delta \theta + |\theta|^2 \theta
-$
+\f$
 
-Here $\theta$ is the wave function of a single particle in two dimensions.
-Its magnitude $|\theta|^2$ describes the probability distribution of the
+Here \f$\theta\f$ is the wave function of a single particle in two dimensions.
+Its magnitude \f$|\theta|^2\f$ describes the probability distribution of the
 particle's position.
 
 This equation can be split in to its linear (1) and non-linear (2) part
@@ -25,7 +25,7 @@ This equation can be split in to its linear (1) and non-linear (2) part
 
 For both of these equations, we can compute exact solutions, assuming periodic
 boundary conditions and using the Fourier series expansion for (1) and using the
-fact that $| \theta |^2$ is constant in (2):
+fact that \f$| \theta |^2\f$ is constant in (2):
 
 \f{align*}{
     (\hat 1) \quad \quad \partial_t \hat\theta_k &= -i |k|^2 \theta \\

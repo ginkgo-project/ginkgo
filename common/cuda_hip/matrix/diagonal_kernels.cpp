@@ -20,7 +20,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Diagonal matrix format namespace.
  *
- * @ingroup diagonal
  */
 namespace diagonal {
 

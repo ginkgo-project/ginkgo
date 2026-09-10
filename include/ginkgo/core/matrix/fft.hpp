@@ -38,7 +38,6 @@ namespace matrix {
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -87,6 +86,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size  size of the matrix
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
      *
@@ -137,7 +137,6 @@ private:
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -186,6 +185,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size  size of both FFT dimensions
      *
      * @return A smart pointer to the newly created matrix.
@@ -196,6 +196,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size1  size of the first FFT dimension
      * @param size2  size of the second FFT dimension
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
@@ -250,7 +251,6 @@ private:
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -299,6 +299,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size  size of all FFT dimensions
      *
      * @return A smart pointer to the newly created matrix.
@@ -309,6 +310,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size1  size of the first FFT dimension
      * @param size2  size of the second FFT dimension
      * @param size3  size of the third FFT dimension

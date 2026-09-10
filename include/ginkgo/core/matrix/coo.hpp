@@ -15,7 +15,6 @@ namespace gko {
 /**
  * @brief The matrix namespace.
  *
- * @ingroup matrix
  */
 namespace matrix {
 
@@ -43,7 +42,6 @@ class Hybrid;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup coo
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -336,7 +334,7 @@ public:
      * @param size  the dimensions of the matrix
      * @param values  the value array of the matrix
      * @param col_idxs  the column index array of the matrix
-     * @param row_ptrs  the row index array of the matrix
+     * @param row_idxs  the row index array of the matrix
      *
      * @return A smart pointer to the constant matrix wrapping the input arrays
      *         (if they reside on the same executor as the matrix) or a copy of

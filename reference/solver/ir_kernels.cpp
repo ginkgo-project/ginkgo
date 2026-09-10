@@ -11,7 +11,6 @@ namespace reference {
 /**
  * @brief The IR solver namespace.
  *
- * @ingroup ir
  */
 namespace ir {
 

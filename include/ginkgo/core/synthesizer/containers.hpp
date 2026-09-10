@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,7 +14,6 @@ namespace gko {
 /**
  * @brief The Synthesizer namespace.
  *
- * @ingroup syn
  */
 namespace syn {
 
@@ -167,7 +166,7 @@ using as_list = typename detail::as_list_impl<T>::type;
  * @tparam T  the type of value_list
  * @tparam Value  the values of value_list
  *
- * @param value_list  the input value_list
+ * @param vl  the input value_list
  *
  * @return std::array  the std::array contains the values of value_list
  */

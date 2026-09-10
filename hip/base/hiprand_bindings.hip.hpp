@@ -21,7 +21,6 @@ namespace hip {
 /**
  * @brief The HIPRAND namespace.
  *
- * @ingroup hiprand
  */
 namespace hiprand {
 namespace detail {

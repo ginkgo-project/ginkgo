@@ -87,7 +87,7 @@ enum class storage_precision {
  * Krylov basis are stored in one precision lower than ValueType.
  *
  * Mathematically CB-GMRES is the same algorithm as standard
- * \ref gko::solver::Gmres "GMRES" — the Arnoldi process produces an
+ * @ref gko::solver::Gmres "GMRES" — the Arnoldi process produces an
  * orthonormal basis \f$ V_m \f$ and an upper Hessenberg
  * \f$ \bar H_m \f$ with
  * \f$ A V_m = V_{m+1} \bar H_m \f$, and the iterate is chosen as

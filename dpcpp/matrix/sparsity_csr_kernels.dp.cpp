@@ -30,7 +30,6 @@ namespace dpcpp {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
- * @ingroup sparsity
  */
 namespace sparsity_csr {
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -160,7 +160,6 @@ array<ValueType> array_const_cast(const_array_view<ValueType> view);
  *
  * @tparam ValueType  the type of elements stored in the array
  *
- * @ingroup array
  */
 template <typename ValueType>
 class array {

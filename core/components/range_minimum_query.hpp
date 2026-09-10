@@ -249,7 +249,8 @@ public:
      * @param tree  the tree index for the Cartesian tree.
      * @param first  the first index in the range.
      * @param last  the last index in the range.
-     * @return  the range minimum, i.e. $\argmin_{i \in [first, last]}(values)$
+     * @return  the range minimum, i.e.
+     *          \f$\operatorname{arg\,min}_{i \in [first, last]}(values)\f$
      *          where `compute_tree_index(values) == tree`.
      */
     constexpr int lookup(int tree, int first, int last) const
@@ -312,8 +313,9 @@ struct range_minimum_query_result {
  * the queried range. These power-of-two blocks cover every possible range.
  * The query answers are stored in levels, with each level representing a block
  * size, starting with block size 2 at level 0, block size 4 at level 1 etc.
- * Level $i$ uses block size $2^(i + 1)$, so for block size $b$, we use level
- * $\log_2(b) - 1$. For each level, we use a bit_packed_span to store the
+ * Level \f$i\f$ uses block size \f$2^{i + 1}\f$, so for block size
+ * \f$b\f$, we use level \f$\log_2(b) - 1\f$. For each level, we use a
+ * bit_packed_span to store the
  * answers in a compact way, since the argmin inside a block ranges only up to
  * that block's size. To simplify indexing, every block stores the range minimum
  * query for every possible block start index in [0, size), even if that block

@@ -38,7 +38,7 @@ namespace solver {
  * magnitude earlier, as suggested in the referenced paper (see below).
  *
  * Mathematically the iterates \f$ x_k \f$ are the same as those produced
- * by \ref gko::solver::Cg "CG": the algorithm minimizes the energy-norm
+ * by @ref gko::solver::Cg "CG": the algorithm minimizes the energy-norm
  * error over the Krylov subspace \f$ x_0 + \mathcal{K}_k(A, r_0) \f$ and
  * uses the same Fletcher-Reeves \f$ \beta_k \f$. CG, however, needs two
  * global reductions per iteration that cannot be merged:
