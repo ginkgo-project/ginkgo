@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
+#include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
@@ -120,381 +121,8 @@ void MultiVector<ValueType>::validate_data() const
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::apply_impl(const LinOp* b,
-                                        LinOp* x) const GKO_NOT_IMPLEMENTED;
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                        const LinOp* beta,
-                                        LinOp* x) const GKO_NOT_IMPLEMENTED;
-
-template <typename ValueType>
-void MultiVector<ValueType>::fill(const ValueType value)
-{
-    this->get_executor()->run(
-        multivector::make_fill(this->get_device_view(), value));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::scale(ptr_param<const LinOp> alpha)
-{
-    auto exec = this->get_executor();
-    this->scale_impl(make_temporary_clone(exec, alpha).get());
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::inv_scale(ptr_param<const LinOp> alpha)
-{
-    auto exec = this->get_executor();
-    this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
-                                        ptr_param<const LinOp> b)
-{
-    auto exec = this->get_executor();
-    this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
-                          make_temporary_clone(exec, b).get());
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
-                                        ptr_param<const LinOp> b)
-{
-    auto exec = this->get_executor();
-    this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
-                          make_temporary_clone(exec, b).get());
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_dot(ptr_param<const LinOp> b,
-                                         ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_dot_impl(make_temporary_clone(exec, b).get(),
-                           make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
-                                              ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_conj_dot_impl(
-        make_temporary_clone(exec, b).get(),
-        make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_norm2(ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_norm2_impl(make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_norm1(ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_norm1_impl(make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_squared_norm2(
-    ptr_param<LinOp> result) const
-{
-    auto exec = this->get_executor();
-    this->compute_squared_norm2_impl(
-        make_temporary_output_clone(exec, result).get());
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::inv_scale_impl(const LinOp* alpha)
-{
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    auto exec = this->get_executor();
-    // if alpha is real (convertible to real) and ValueType complex
-    if (dynamic_cast<const ConvertibleTo<MultiVector<>>*>(alpha) &&
-        is_complex<ValueType>()) {
-        // use the real-complex kernel
-        exec->run(multivector::make_inv_scale(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha)
-                ->get_const_device_view(),
-            dynamic_cast<complex_type*>(this)->get_device_view()));
-        // this last cast is a no-op for complex value type and the branch is
-        // never taken for real value type
-    } else {
-        // otherwise: use the normal kernel
-        exec->run(multivector::make_inv_scale(
-            make_temporary_conversion<ValueType>(alpha)
-                ->get_const_device_view(),
-            this->get_device_view()));
-    }
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::scale_impl(const LinOp* alpha)
-{
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    auto exec = this->get_executor();
-    // if alpha is real (convertible to real) and ValueType complex
-    if (dynamic_cast<const ConvertibleTo<MultiVector<>>*>(alpha) &&
-        is_complex<ValueType>()) {
-        // use the real-complex kernel
-        exec->run(multivector::make_scale(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha)
-                ->get_const_device_view(),
-            dynamic_cast<complex_type*>(this)->get_device_view()));
-        // this last cast is a no-op for complex value type and the branch is
-        // never taken for real value type
-    } else {
-        // otherwise: use the normal kernel
-        exec->run(
-            multivector::make_scale(make_temporary_conversion<ValueType>(alpha)
-                                        ->get_const_device_view(),
-                                    this->get_device_view()));
-    }
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
-{
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    auto exec = this->get_executor();
-
-    // if alpha is real and value type complex
-    if (dynamic_cast<const ConvertibleTo<MultiVector<>>*>(alpha) &&
-        is_complex<ValueType>()) {
-        exec->run(multivector::make_add_scaled(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha)
-                ->get_const_device_view(),
-            make_temporary_conversion<to_complex<ValueType>>(b)
-                ->get_const_device_view(),
-            dynamic_cast<complex_type*>(this)->get_device_view()));
-    } else {
-        exec->run(multivector::make_add_scaled(
-            make_temporary_conversion<ValueType>(alpha)
-                ->get_const_device_view(),
-            make_temporary_conversion<ValueType>(b)->get_const_device_view(),
-            this->get_device_view()));
-    }
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
-{
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    auto exec = this->get_executor();
-
-    if (dynamic_cast<const ConvertibleTo<MultiVector<>>*>(alpha) &&
-        is_complex<ValueType>()) {
-        exec->run(multivector::make_sub_scaled(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha)
-                ->get_const_device_view(),
-            make_temporary_conversion<to_complex<ValueType>>(b)
-                ->get_const_device_view(),
-            dynamic_cast<complex_type*>(this)->get_device_view()));
-    } else {
-        exec->run(multivector::make_sub_scaled(
-            make_temporary_conversion<ValueType>(alpha)
-                ->get_const_device_view(),
-            make_temporary_conversion<ValueType>(b)->get_const_device_view(),
-            this->get_device_view()));
-    }
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_dot(ptr_param<const LinOp> b,
-                                         ptr_param<LinOp> result,
-                                         array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_b = make_temporary_clone(exec, b);
-    auto local_res = make_temporary_clone(exec, result);
-    auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
-    auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
-    exec->run(multivector::make_compute_dot(this->get_const_device_view(),
-                                            dense_b->get_const_device_view(),
-                                            dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_dot_impl(const LinOp* b,
-                                              LinOp* result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    auto dense_b = make_temporary_conversion<ValueType>(b);
-    auto dense_res = make_temporary_conversion<ValueType>(result);
-    array<char> tmp{exec};
-    exec->run(multivector::make_compute_dot(this->get_const_device_view(),
-                                            dense_b->get_const_device_view(),
-                                            dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
-                                              ptr_param<LinOp> result,
-                                              array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_b = make_temporary_clone(exec, b);
-    auto local_res = make_temporary_clone(exec, result);
-    auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
-    auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
-    exec->run(multivector::make_compute_conj_dot(
-        this->get_const_device_view(), dense_b->get_const_device_view(),
-        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_conj_dot_impl(const LinOp* b,
-                                                   LinOp* result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    auto dense_b = make_temporary_conversion<ValueType>(b);
-    auto dense_res = make_temporary_conversion<ValueType>(result);
-    array<char> tmp{exec};
-    exec->run(multivector::make_compute_conj_dot(
-        this->get_const_device_view(), dense_b->get_const_device_view(),
-        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_norm2(ptr_param<LinOp> result,
-                                           array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_result = make_temporary_clone(exec, result);
-    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
-        local_result.get());
-    exec->run(multivector::make_compute_norm2(
-        this->get_const_device_view(), dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_norm2_impl(LinOp* result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    auto dense_res =
-        make_temporary_conversion<remove_complex<ValueType>>(result);
-    array<char> tmp{exec};
-    exec->run(multivector::make_compute_norm2(
-        this->get_const_device_view(), dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_norm1(ptr_param<LinOp> result,
-                                           array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_result = make_temporary_clone(exec, result);
-    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
-        local_result.get());
-    exec->run(multivector::make_compute_norm1(
-        this->get_const_device_view(), dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_norm1_impl(LinOp* result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    auto dense_res =
-        make_temporary_conversion<remove_complex<ValueType>>(result);
-    array<char> tmp{exec};
-    exec->run(multivector::make_compute_norm1(
-        this->get_const_device_view(), dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
-                                                   array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_result = make_temporary_clone(exec, result);
-    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
-        local_result.get());
-    exec->run(multivector::make_compute_squared_norm2(
-        this->get_const_device_view(), dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_mean(ptr_param<LinOp> result) const
+void MultiVector<ValueType>::compute_mean(
+    ptr_param<AbstractMultiVector> result) const
 {
     auto exec = this->get_executor();
     this->compute_mean_impl(make_temporary_output_clone(exec, result).get());
@@ -502,7 +130,7 @@ void MultiVector<ValueType>::compute_mean(ptr_param<LinOp> result) const
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::compute_mean(ptr_param<LinOp> result,
+void MultiVector<ValueType>::compute_mean(ptr_param<AbstractMultiVector> result,
                                           array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_COLS(result, this);
@@ -511,24 +139,15 @@ void MultiVector<ValueType>::compute_mean(ptr_param<LinOp> result,
         tmp.clear();
         tmp.set_executor(exec);
     }
-    auto dense_res = make_temporary_conversion<ValueType>(result);
+    auto dense_res = as<MultiVector>(result->as_precision(this));
     exec->run(multivector::make_compute_mean(
         this->get_const_device_view(), dense_res->get_device_view(), tmp));
 }
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::compute_squared_norm2_impl(LinOp* result) const
-{
-    auto exec = this->get_executor();
-    array<char> tmp{exec};
-    this->compute_squared_norm2(make_temporary_output_clone(exec, result).get(),
-                                tmp);
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_mean_impl(LinOp* result) const
+void MultiVector<ValueType>::compute_mean_impl(
+    AbstractMultiVector* result) const
 {
     auto exec = this->get_executor();
     array<char> tmp{exec};
@@ -542,7 +161,7 @@ MultiVector<ValueType>& MultiVector<ValueType>::operator=(
 {
     if (&other != this) {
         auto old_size = this->get_size();
-        LinOp::operator=(other);
+        AbstractMultiVector::operator=(other);
         // NOTE: keep this consistent with resize(...)
         if (old_size != other.get_size()) {
             this->stride_ = this->get_size()[1];
@@ -572,7 +191,7 @@ MultiVector<ValueType>& MultiVector<ValueType>::operator=(
     MultiVector<ValueType>&& other)
 {
     if (&other != this) {
-        LinOp::operator=(std::move(other));
+        AbstractMultiVector::operator=(std::move(other));
         values_ = std::move(other.values_);
         stride_ = std::exchange(other.stride_, 0);
     }
@@ -593,6 +212,16 @@ MultiVector<ValueType>::MultiVector(MultiVector<ValueType>&& other)
     : MultiVector(other.get_executor())
 {
     *this = std::move(other);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_with_type_of(
+    ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec,
+    const dim<2>& size, size_type stride)
+{
+    return other->create_with_type_of_impl(exec, size, stride);
 }
 
 
@@ -802,7 +431,8 @@ void MultiVector<ValueType>::write(mat_data32& data) const
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::transpose() const
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::transpose()
+    const
 {
     auto result = MultiVector::create(this->get_executor(),
                                       gko::transpose(this->get_size()));
@@ -812,7 +442,8 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::transpose() const
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::conj_transpose() const
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::conj_transpose()
+    const
 {
     auto result = MultiVector::create(this->get_executor(),
                                       gko::transpose(this->get_size()));
@@ -1056,7 +687,7 @@ void MultiVector<ValueType>::row_gather_impl(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1066,7 +697,7 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1187,7 +818,7 @@ void MultiVector<ValueType>::permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::inverse_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1197,7 +828,7 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::inverse_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1227,7 +858,7 @@ void MultiVector<ValueType>::inverse_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::row_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::row_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1237,7 +868,7 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::row_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::row_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1293,13 +924,14 @@ namespace {
 
 
 template <typename ValueType, typename Function>
-void gather_mixed_real_complex(Function fn, LinOp* out)
+void gather_mixed_real_complex(Function fn, AbstractMultiVector* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
     run<matrix::MultiVector, ValueType, next_precision<ValueType>,
         next_precision<ValueType, 2>, next_precision<ValueType, 3>>(out, fn);
 #else
-    precision_dispatch<ValueType>(fn, out);
+    fn(as<MultiVector<ValueType>>(out->as_precision(precision_v<ValueType>))
+           .get());
 #endif
 }
 
@@ -1308,8 +940,9 @@ void gather_mixed_real_complex(Function fn, LinOp* out)
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::row_gather(const array<int32>* row_idxs,
-                                        ptr_param<LinOp> row_collection) const
+void MultiVector<ValueType>::row_gather(
+    const array<int32>* row_idxs,
+    ptr_param<AbstractMultiVector> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
         [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
@@ -1318,8 +951,9 @@ void MultiVector<ValueType>::row_gather(const array<int32>* row_idxs,
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::row_gather(const array<int64>* row_idxs,
-                                        ptr_param<LinOp> row_collection) const
+void MultiVector<ValueType>::row_gather(
+    const array<int64>* row_idxs,
+    ptr_param<AbstractMultiVector> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
         [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
@@ -1328,10 +962,9 @@ void MultiVector<ValueType>::row_gather(const array<int64>* row_idxs,
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
-                                        const array<int32>* gather_indices,
-                                        ptr_param<const LinOp> beta,
-                                        ptr_param<LinOp> out) const
+void MultiVector<ValueType>::row_gather(
+    ptr_param<const LinOp> alpha, const array<int32>* gather_indices,
+    ptr_param<const LinOp> beta, ptr_param<AbstractMultiVector> out) const
 {
     auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
     auto dense_beta = make_temporary_conversion<ValueType>(beta);
@@ -1346,10 +979,9 @@ void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
 }
 
 template <typename ValueType>
-void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
-                                        const array<int64>* gather_indices,
-                                        ptr_param<const LinOp> beta,
-                                        ptr_param<LinOp> out) const
+void MultiVector<ValueType>::row_gather(
+    ptr_param<const LinOp> alpha, const array<int64>* gather_indices,
+    ptr_param<const LinOp> beta, ptr_param<AbstractMultiVector> out) const
 {
     auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
     auto dense_beta = make_temporary_conversion<ValueType>(beta);
@@ -1365,7 +997,7 @@ void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::column_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::column_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1375,7 +1007,7 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::column_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::column_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1405,7 +1037,8 @@ void MultiVector<ValueType>::column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_row_permute(
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::inverse_row_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1415,7 +1048,8 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_row_permute(
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::inverse_row_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1445,7 +1079,8 @@ void MultiVector<ValueType>::inverse_row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_column_permute(
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::inverse_column_permute(
     const array<int32>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1455,7 +1090,8 @@ std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_column_permute(
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::inverse_column_permute(
     const array<int64>* permutation_indices) const
 {
     auto result = MultiVector::create(this->get_executor(), this->get_size());
@@ -1571,105 +1207,8 @@ void MultiVector<ValueType>::scale_permute(
 
 
 template <typename ValueType>
-void MultiVector<ValueType>::compute_absolute_inplace()
-{
-    this->get_executor()->run(
-        multivector::make_inplace_absolute_dense(this->get_device_view()));
-}
-
-
-template <typename ValueType>
-std::unique_ptr<typename MultiVector<ValueType>::absolute_type>
-MultiVector<ValueType>::compute_absolute() const
-{
-    // do not inherit the stride
-    auto result = absolute_type::create(this->get_executor(), this->get_size());
-    this->compute_absolute(result);
-    return result;
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::compute_absolute(
-    ptr_param<absolute_type> output) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
-    auto exec = this->get_executor();
-
-    exec->run(multivector::make_outplace_absolute_dense(
-        this->get_const_device_view(),
-        make_temporary_output_clone(exec, output)->get_device_view()));
-}
-
-
-template <typename ValueType>
-std::unique_ptr<typename MultiVector<ValueType>::complex_type>
-MultiVector<ValueType>::make_complex() const
-{
-    auto result = complex_type::create(this->get_executor(), this->get_size());
-    this->make_complex(result);
-    return result;
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::make_complex(ptr_param<complex_type> result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
-    auto exec = this->get_executor();
-
-    exec->run(multivector::make_make_complex(
-        this->get_const_device_view(),
-        make_temporary_output_clone(exec, result)->get_device_view()));
-}
-
-
-template <typename ValueType>
-std::unique_ptr<typename MultiVector<ValueType>::real_type>
-MultiVector<ValueType>::get_real() const
-{
-    auto result = real_type::create(this->get_executor(), this->get_size());
-    this->get_real(result);
-    return result;
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::get_real(ptr_param<real_type> result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
-    auto exec = this->get_executor();
-
-    exec->run(multivector::make_get_real(
-        this->get_const_device_view(),
-        make_temporary_output_clone(exec, result)->get_device_view()));
-}
-
-
-template <typename ValueType>
-std::unique_ptr<typename MultiVector<ValueType>::real_type>
-MultiVector<ValueType>::get_imag() const
-{
-    auto result = real_type::create(this->get_executor(), this->get_size());
-    this->get_imag(result);
-    return result;
-}
-
-
-template <typename ValueType>
-void MultiVector<ValueType>::get_imag(ptr_param<real_type> result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
-    auto exec = this->get_executor();
-
-    exec->run(multivector::make_get_imag(
-        this->get_const_device_view(),
-        make_temporary_output_clone(exec, result)->get_device_view()));
-}
-
-
-template <typename ValueType>
-auto MultiVector<ValueType>::get_device_view() -> device_view
+typename MultiVector<ValueType>::device_view
+MultiVector<ValueType>::get_device_view()
 {
     return device_view{this->get_size(), this->get_stride(),
                        this->get_values()};
@@ -1677,7 +1216,8 @@ auto MultiVector<ValueType>::get_device_view() -> device_view
 
 
 template <typename ValueType>
-auto MultiVector<ValueType>::get_const_device_view() const -> const_device_view
+typename MultiVector<ValueType>::const_device_view
+MultiVector<ValueType>::get_const_device_view() const
 {
     return const_device_view{this->get_size(), this->get_stride(),
                              this->get_const_values()};
@@ -1685,27 +1225,136 @@ auto MultiVector<ValueType>::get_const_device_view() const -> const_device_view
 
 
 template <typename ValueType>
-std::unique_ptr<typename MultiVector<ValueType>::real_type>
-MultiVector<ValueType>::create_real_view()
+template <typename OtherValueType, typename>
+temporary_conversion<MultiVector<OtherValueType>>
+MultiVector<ValueType>::as_precision()
 {
-    const auto num_rows = this->get_size()[0];
-    constexpr bool complex = is_complex<ValueType>();
-    const auto num_cols =
-        complex ? 2 * this->get_size()[1] : this->get_size()[1];
-    const auto stride = complex ? 2 * this->get_stride() : this->get_stride();
+    if constexpr (is_complex<ValueType>() == is_complex<OtherValueType>()) {
+        // The value types are either both real or both complex
+        return temporary_conversion<MultiVector<OtherValueType>>::create(this);
+    } else {
+        // Conversions from real to complex (or vice versa) are not allowed.
+        GKO_NOT_IMPLEMENTED;
+    }
+}
 
-    return MultiVector<remove_complex<ValueType>>::create(
-        this->get_executor(), dim<2>{num_rows, num_cols},
-        make_array_view(
-            this->get_executor(), num_rows * stride,
-            reinterpret_cast<remove_complex<ValueType>*>(this->get_values())),
-        stride);
+#define GKO_DECLARE_MULTIVECTOR_AS_PRECISION(ValueType, OtherValueType) \
+    auto MultiVector<ValueType>::as_precision()                         \
+        ->temporary_conversion<MultiVector<OtherValueType>>
+#define GKO_DECLARE_MULTIVECTOR_AS_PRECISION_same(ValueType) \
+    GKO_DECLARE_MULTIVECTOR_AS_PRECISION(ValueType, ValueType)
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_MULTIVECTOR_AS_PRECISION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_AS_PRECISION_same);
+
+
+template <typename ValueType>
+template <typename OtherValueType, typename>
+temporary_conversion<const MultiVector<OtherValueType>>
+MultiVector<ValueType>::as_precision() const
+{
+    if constexpr (is_complex<ValueType>() == is_complex<OtherValueType>()) {
+        // The value types are either both real or both complex
+        return temporary_conversion<const MultiVector<OtherValueType>>::create(
+            this);
+    } else {
+        // Conversions from real to complex (or vice versa) are not allowed.
+        GKO_NOT_IMPLEMENTED;
+    }
+}
+
+#define GKO_DECLARE_MULTIVECTOR_CONST_AS_PRECISION(ValueType, OtherValueType) \
+    auto MultiVector<ValueType>::as_precision()                               \
+        const->temporary_conversion<const MultiVector<OtherValueType>>
+#define GKO_DECLARE_MULTIVECTOR_CONST_AS_PRECISION_same(ValueType) \
+    GKO_DECLARE_MULTIVECTOR_CONST_AS_PRECISION(ValueType, ValueType)
+GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(
+    GKO_DECLARE_MULTIVECTOR_CONST_AS_PRECISION);
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_MULTIVECTOR_CONST_AS_PRECISION_same);
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_absolute_inplace_impl()
+{
+    this->get_executor()->run(
+        multivector::make_inplace_absolute_dense(this->get_device_view()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_with_same_config_impl() const
+{
+    return MultiVector::create(this->get_executor(), this->get_size(),
+                               this->get_stride());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_with_type_of_impl(
+    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
+    const dim<2>& local_size, size_type stride) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(global_size, local_size);
+    return create_with_type_of_impl(std::move(exec), global_size, stride);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_subview_impl(local_span rows, local_span columns)
+{
+    return create_subview_impl(rows, columns,
+                               dim<2>(rows.length(), columns.length()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const MultiVector<ValueType>>
+MultiVector<ValueType>::create_subview_impl(local_span rows,
+                                            local_span columns) const
+{
+    return const_cast<MultiVector&>(*this).create_subview(rows, columns);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_subview_impl(local_span rows, local_span columns,
+                                            dim<2> global_size)
+{
+    dim<2> actual_size{rows.length(), columns.length()};
+    GKO_ASSERT_EQUAL_DIMENSIONS(actual_size, global_size);
+
+    row_major_range range_this{this->get_values(), this->get_size()[0],
+                               this->get_size()[1], this->get_stride()};
+    auto sub_range = range_this(rows, columns);
+    size_type storage_size =
+        rows.length() > 0 ? sub_range.length(1) +
+                                (sub_range.length(0) - 1) * this->get_stride()
+                          : 0;
+    return MultiVector::create(
+        this->get_executor(), dim<2>{sub_range.length(0), sub_range.length(1)},
+        make_array_view(this->get_executor(), storage_size, sub_range->data),
+        this->get_stride());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<const MultiVector<ValueType>>
+MultiVector<ValueType>::create_subview_impl(local_span rows, local_span columns,
+                                            dim<2> global_size) const
+{
+    dim<2> actual_size{rows.length(), columns.length()};
+    GKO_ASSERT_EQUAL_DIMENSIONS(actual_size, global_size);
+    return const_cast<MultiVector&>(*this).create_subview(rows, columns);
 }
 
 
 template <typename ValueType>
 std::unique_ptr<const typename MultiVector<ValueType>::real_type>
-MultiVector<ValueType>::create_real_view() const
+MultiVector<ValueType>::create_real_view_impl() const
 {
     const auto num_rows = this->get_size()[0];
     constexpr bool complex = is_complex<ValueType>();
@@ -1724,22 +1373,260 @@ MultiVector<ValueType>::create_real_view() const
 
 
 template <typename ValueType>
-std::unique_ptr<MultiVector<ValueType>>
-MultiVector<ValueType>::create_submatrix_impl(const span& rows,
-                                              const span& columns,
-                                              const size_type stride)
+std::unique_ptr<typename MultiVector<ValueType>::real_type>
+MultiVector<ValueType>::create_real_view_impl()
 {
-    row_major_range range_this{this->get_values(), this->get_size()[0],
-                               this->get_size()[1], this->get_stride()};
-    auto sub_range = range_this(rows, columns);
-    size_type storage_size =
-        rows.length() > 0 ? sub_range.length(1) +
-                                (sub_range.length(0) - 1) * this->get_stride()
-                          : 0;
-    return MultiVector::create(
-        this->get_executor(), dim<2>{sub_range.length(0), sub_range.length(1)},
-        make_array_view(this->get_executor(), storage_size, sub_range->data),
+    const auto num_rows = this->get_size()[0];
+    constexpr bool complex = is_complex<ValueType>();
+    const auto num_cols =
+        complex ? 2 * this->get_size()[1] : this->get_size()[1];
+    const auto stride = complex ? 2 * this->get_stride() : this->get_stride();
+
+    return MultiVector<remove_complex<ValueType>>::create(
+        this->get_executor(), dim<2>{num_rows, num_cols},
+        make_array_view(
+            this->get_executor(), num_rows * stride,
+            reinterpret_cast<remove_complex<ValueType>*>(this->get_values())),
         stride);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename MultiVector<ValueType>::absolute_type>
+MultiVector<ValueType>::compute_absolute_impl() const
+{
+    // do not inherit the stride
+    auto result = absolute_type::create(this->get_executor(), this->get_size());
+    this->compute_absolute(result);
+    return result;
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_absolute_impl(absolute_type* result) const
+{
+    auto exec = this->get_executor();
+
+    exec->run(multivector::make_outplace_absolute_dense(
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, result)->get_device_view()));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename MultiVector<ValueType>::complex_type>
+MultiVector<ValueType>::make_complex_impl() const
+{
+    auto result = complex_type::create(this->get_executor(), this->get_size());
+    this->make_complex(result);
+    return result;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename MultiVector<ValueType>::real_type>
+MultiVector<ValueType>::get_real_impl() const
+{
+    auto result = real_type::create(this->get_executor(), this->get_size());
+    this->get_real(result);
+    return result;
+}
+
+
+template <typename ValueType>
+std::unique_ptr<typename MultiVector<ValueType>::real_type>
+MultiVector<ValueType>::get_imag_impl() const
+{
+    auto result = real_type::create(this->get_executor(), this->get_size());
+    this->get_imag(result);
+    return result;
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::make_complex_impl(complex_type* result) const
+{
+    auto exec = this->get_executor();
+
+    exec->run(multivector::make_make_complex(
+        this->get_const_device_view(),
+        make_temporary_output_clone(exec, result)->get_device_view()));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::get_real_impl(real_type* result) const
+{
+    auto exec = this->get_executor();
+
+    exec->run(multivector::make_get_real(this->get_const_device_view(),
+                                         result->get_device_view()));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::get_imag_impl(real_type* result) const
+{
+    auto exec = this->get_executor();
+
+    exec->run(multivector::make_get_imag(this->get_const_device_view(),
+                                         result->get_device_view()));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::fill_impl(value_type value)
+{
+    this->get_executor()->run(
+        multivector::make_fill(this->get_device_view(), value));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::scale_impl(scaling_param<value_type> alpha)
+{
+    std::visit(
+        [this](auto alpha_v) {
+            auto exec = this->get_executor();
+            exec->run(multivector::make_scale(alpha_v->get_const_device_view(),
+                                              this->get_device_view()));
+        },
+        alpha.variant);
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::inv_scale_impl(scaling_param<value_type> alpha)
+{
+    std::visit(
+        [this](auto alpha_v) {
+            auto exec = this->get_executor();
+            exec->run(multivector::make_inv_scale(
+                alpha_v->get_const_device_view(), this->get_device_view()));
+        },
+        alpha.variant);
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::add_scaled_impl(scaling_param<value_type> alpha,
+                                             const MultiVector* b)
+{
+    std::visit(
+        [this, b](auto alpha_v) {
+            auto exec = this->get_executor();
+            exec->run(multivector::make_add_scaled(
+                alpha_v->get_const_device_view(), b->get_const_device_view(),
+                this->get_device_view()));
+        },
+        alpha.variant);
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::sub_scaled_impl(scaling_param<value_type> alpha,
+                                             const MultiVector* b)
+{
+    std::visit(
+        [this, b](auto alpha_v) {
+            auto exec = this->get_executor();
+
+            exec->run(multivector::make_sub_scaled(
+                alpha_v->get_const_device_view(), b->get_const_device_view(),
+                this->get_device_view()));
+        },
+        alpha.variant);
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_dot_impl(
+    const MultiVector* b, matrix::MultiVector<value_type>* result,
+    array<char>& tmp) const
+{
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    exec->run(multivector::make_compute_dot(this->get_const_device_view(),
+                                            b->get_const_device_view(),
+                                            result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_conj_dot_impl(
+    const MultiVector* b, matrix::MultiVector<value_type>* result,
+    array<char>& tmp) const
+{
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    exec->run(multivector::make_compute_conj_dot(
+        this->get_const_device_view(), b->get_const_device_view(),
+        result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_norm2_impl(norm_type* result,
+                                                array<char>& tmp) const
+{
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    exec->run(multivector::make_compute_norm2(this->get_const_device_view(),
+                                              result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_squared_norm2_impl(norm_type* result,
+                                                        array<char>& tmp) const
+{
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    exec->run(multivector::make_compute_squared_norm2(
+        this->get_const_device_view(), result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_norm1_impl(norm_type* result,
+                                                array<char>& tmp) const
+{
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    exec->run(multivector::make_compute_norm1(this->get_const_device_view(),
+                                              result->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+AbstractMultiVector::device_view<typename MultiVector<ValueType>::value_type>
+MultiVector<ValueType>::get_local_device_view_impl()
+{
+    return this->get_device_view();
+}
+
+
+template <typename ValueType>
+AbstractMultiVector::device_view<
+    const typename MultiVector<ValueType>::value_type>
+MultiVector<ValueType>::get_const_local_device_view_impl() const
+{
+    return this->get_const_device_view();
 }
 
 
@@ -1795,7 +1682,7 @@ std::unique_ptr<Dense<ValueType>> MultiVector<ValueType>::as_dense_view()
 template <typename ValueType>
 MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size, size_type stride)
-    : LinOp(exec, size),
+    : EnableMultiVector<MultiVector>(exec, size),
       stride_(stride == 0 ? size[1] : stride),
       values_(exec, size[0] * stride_)
 {}
@@ -1805,7 +1692,7 @@ template <typename ValueType>
 MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size,
                                     array<value_type> values, size_type stride)
-    : LinOp(exec, size), stride_{stride}, values_{exec, std::move(values)}
+    : EnableMultiVector<MultiVector>(exec, size), stride_{stride}, values_{exec, std::move(values)}
 {
     if (size[0] > 0 && size[1] > 0) {
         GKO_ENSURE_IN_BOUNDS((size[0] - 1) * stride + size[1] - 1,
