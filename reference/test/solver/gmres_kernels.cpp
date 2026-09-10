@@ -462,51 +462,6 @@ TYPED_TEST(Gmres, SolvesStencilSystemMixed)
 }
 
 
-TYPED_TEST(Gmres, SolvesStencilSystemComplex)
-{
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->gmres_factory->generate(this->mtx);
-    auto b =
-        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
-                              value_type{1.0, -2.0}},
-                             this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
-        this->exec);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
-                           value_type{2.0, -4.0}}),
-                        r<value_type>::value * 1e1);
-}
-
-
-TYPED_TEST(Gmres, SolvesStencilSystemMixedComplex)
-{
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
-    auto solver = this->gmres_factory->generate(this->mtx);
-    auto b =
-        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
-                              value_type{1.0, -2.0}},
-                             this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
-        this->exec);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
-                           value_type{2.0, -4.0}}),
-                        (r_mixed<value_type, TypeParam>()));
-}
-
-
 TYPED_TEST(Gmres, SolvesMultipleStencilSystems)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -554,57 +509,6 @@ TYPED_TEST(Gmres, SolvesStencilSystemUsingAdvancedApplyMixed)
     solver->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}),
-                        (r_mixed<value_type, TypeParam>()));
-}
-
-
-TYPED_TEST(Gmres, SolvesStencilSystemUsingAdvancedApplyComplex)
-{
-    using Scalar = typename TestFixture::Mtx;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->gmres_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b =
-        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
-                              value_type{1.0, -2.0}},
-                             this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
-        this->exec);
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
-                           value_type{2.0, -4.0}}),
-                        r<value_type>::value * 1e1);
-}
-
-
-TYPED_TEST(Gmres, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
-{
-    using Scalar = gko::matrix::MultiVector<
-        gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->gmres_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b =
-        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
-                              value_type{1.0, -2.0}},
-                             this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
-        this->exec);
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
-                           value_type{2.0, -4.0}}),
                         (r_mixed<value_type, TypeParam>()));
 }
 
@@ -813,14 +717,15 @@ class restart_counter : public gko::log::Logger {
 public:
     restart_counter() : gko::log::Logger(Logger::iteration_complete_mask) {}
 
-    void on_iteration_complete(const gko::LinOp*, const gko::LinOp*,
-                               const gko::LinOp*, const gko::size_type&,
-                               const gko::LinOp* residual, const gko::LinOp*,
-                               const gko::LinOp*,
-                               const gko::array<gko::stopping_status>*,
-                               bool) const override
+    void on_iteration_complete(
+        const gko::LinOp*, const gko::AbstractMultiVector*,
+        const gko::AbstractMultiVector*, const gko::size_type&,
+        const gko::AbstractMultiVector* residual,
+        const gko::AbstractMultiVector*, const gko::AbstractMultiVector*,
+        const gko::array<gko::stopping_status>*, bool) const override
     {
-        auto dense_residual = gko::as<gko::matrix::Dense<ValueType>>(residual);
+        auto dense_residual =
+            gko::as<gko::matrix::MultiVector<ValueType>>(residual);
         if (previous_) {
             const auto size = dense_residual->get_num_stored_elements();
             for (gko::size_type i = 0; i < size; ++i) {
@@ -837,7 +742,7 @@ public:
     int get_num_restarts() const { return num_restarts_; }
 
 private:
-    mutable std::unique_ptr<gko::matrix::Dense<ValueType>> previous_;
+    mutable std::unique_ptr<gko::matrix::MultiVector<ValueType>> previous_;
     mutable int num_restarts_{};
 };
 

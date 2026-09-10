@@ -14,7 +14,6 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/type_traits.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
@@ -210,10 +209,13 @@ public:
     Ic(Ic&& other);
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     explicit Ic(std::shared_ptr<const Executor> exec);
 
@@ -226,7 +228,7 @@ protected:
      * @param b  Right hand side of the first solve. Also acts as the
      * initial guess, meaning the intermediate value will be a copy of b
      */
-    void set_cache_to(const LinOp* b) const;
+    void set_cache_to(const AbstractMultiVector* b) const;
 
 private:
     std::shared_ptr<const LinOp> l_solver_{};
@@ -248,7 +250,7 @@ private:
         cache_struct(cache_struct&&) {}
         cache_struct& operator=(const cache_struct&) { return *this; }
         cache_struct& operator=(cache_struct&&) { return *this; }
-        std::unique_ptr<LinOp> intermediate{};
+        std::unique_ptr<matrix::MultiVector<value_type>> intermediate{};
     } cache_;
 };
 

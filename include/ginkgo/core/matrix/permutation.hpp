@@ -268,10 +268,12 @@ protected:
     Permutation(std::shared_ptr<const Executor> exec,
                 array<IndexType> permutation_indices);
 
-    void apply_impl(const LinOp* in, LinOp* out) const override;
+    void apply_impl(const AbstractMultiVector* in,
+                    AbstractMultiVector* out) const override;
 
-    void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
-                    LinOp* out) const override;
+    void apply_impl(const AbstractMultiVector*, const AbstractMultiVector* in,
+                    const AbstractMultiVector*,
+                    AbstractMultiVector* out) const override;
 
 private:
     array<index_type> permutation_;

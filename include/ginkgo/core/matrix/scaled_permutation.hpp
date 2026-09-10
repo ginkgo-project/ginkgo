@@ -163,10 +163,12 @@ private:
                       array<value_type> scaling_factors,
                       array<index_type> permutation_indices);
 
-    void apply_impl(const LinOp* in, LinOp* out) const override;
+    void apply_impl(const AbstractMultiVector* in,
+                    AbstractMultiVector* out) const override;
 
-    void apply_impl(const LinOp*, const LinOp* in, const LinOp*,
-                    LinOp* out) const override;
+    void apply_impl(const AbstractMultiVector*, const AbstractMultiVector* in,
+                    const AbstractMultiVector*,
+                    AbstractMultiVector* out) const override;
 
     array<value_type> scale_;
     array<index_type> permutation_;

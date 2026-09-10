@@ -254,13 +254,16 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp* b, LinOp* x) const override
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override
     {
         approximate_inverse_->apply(b, x);
     }
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override
     {
         approximate_inverse_->apply(alpha, b, beta, x);
     }
@@ -280,7 +283,6 @@ private:
                           bool skip_sorting, int power, index_type excess_limit,
                           remove_complex<value_type> excess_solver_reduction);
 
-private:
     std::shared_ptr<LinOp> approximate_inverse_;
 };
 

@@ -35,9 +35,13 @@ public:
     {}
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override {}
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 
 private:
@@ -213,12 +217,11 @@ TEST_F(TemporaryConversion, ConstCreateChainFromDerivedType)
 {
     auto tmp = gko::temporary_conversion<const Vec>::create(vec.get());
 
-    auto tmp_linop =
-        gko::temporary_conversion<const gko::LinOp>::create_from_derived(
-            std::move(tmp));
+    auto tmp_linop = gko::temporary_conversion<
+        const gko::AbstractMultiVector>::create_from_derived(std::move(tmp));
 
-    EXPECT_EQ(typeid(tmp_linop.get()), typeid(const gko::LinOp*));
-    EXPECT_NE(dynamic_cast<const Vec*>(tmp_linop.get()), nullptr);
+    EXPECT_EQ(typeid(tmp_linop.get()), typeid(const gko::AbstractMultiVector*));
+    ASSERT_NE(dynamic_cast<const Vec*>(tmp_linop.get()), nullptr);
     EXPECT_EQ(dynamic_cast<const Vec*>(tmp_linop.get())->get_const_values(),
               vec->get_values());
     EXPECT_EQ(log->count, 0);
@@ -242,11 +245,11 @@ TEST_F(TemporaryConversion, CreateChainFromDerivedType)
 {
     auto tmp = gko::temporary_conversion<Vec>::create(vec.get());
 
-    auto tmp_linop = gko::temporary_conversion<gko::LinOp>::create_from_derived(
-        std::move(tmp));
+    auto tmp_linop = gko::temporary_conversion<
+        gko::AbstractMultiVector>::create_from_derived(std::move(tmp));
 
-    EXPECT_EQ(typeid(tmp_linop.get()), typeid(gko::LinOp*));
-    EXPECT_NE(dynamic_cast<Vec*>(tmp_linop.get()), nullptr);
+    EXPECT_EQ(typeid(tmp_linop.get()), typeid(gko::AbstractMultiVector*));
+    ASSERT_NE(dynamic_cast<Vec*>(tmp_linop.get()), nullptr);
     EXPECT_EQ(dynamic_cast<Vec*>(tmp_linop.get())->get_values(),
               vec->get_values());
     EXPECT_EQ(log->count, 0);

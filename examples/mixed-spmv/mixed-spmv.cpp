@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
     // copy the data from host to device
     auto hp_b = share(gko::clone(exec, host_b));
     auto lp_b = share(lp_vec::create(exec));
-    lp_b->copy_from(hp_b);
+    hp_b->convert_to(lp_b);
 
     // create several result x vector in different precision
     auto hp_x = share(hp_vec::create(exec, x_dim));
