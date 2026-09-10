@@ -1,0 +1,1 @@
+ginkgo_create_cuda_test(basic_tests)
