@@ -18,6 +18,7 @@
 #include "core/factorization/lu_kernels.hpp"
 #include "core/matrix/csr_lookup.hpp"
 #include "dpcpp/base/dim3.dp.hpp"
+#include "dpcpp/base/math.hpp"
 #include "dpcpp/base/onedpl.hpp"
 #include "dpcpp/components/syncfree.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
@@ -258,13 +259,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void initialize(
-    std::shared_ptr<const DefaultExecutor> exec,
-    matrix::view::csr<const ValueType, const IndexType> mtx,
-    const IndexType* factor_lookup_offsets, const int64* factor_lookup_descs,
-    const int32* factor_lookup_storage, IndexType* diag_idxs,
-    IndexType* transpose_idxs,
-    matrix::view::csr<ValueType, IndexType> factors)
+void initialize(std::shared_ptr<const DefaultExecutor> exec,
+                matrix::view::csr<const ValueType, const IndexType> mtx,
+                const IndexType* factor_lookup_offsets,
+                const int64* factor_lookup_descs,
+                const int32* factor_lookup_storage, IndexType* diag_idxs,
+                IndexType* transpose_idxs,
+                matrix::view::csr<ValueType, IndexType> factors)
 {
     lu_factorization::initialize(exec, mtx, factor_lookup_offsets,
                                  factor_lookup_descs, factor_lookup_storage,
@@ -276,8 +277,8 @@ void initialize(
     const auto row_idxs = row_idx_array.get_data();
     const auto col_idxs = col_idx_array.get_data();
     exec->copy(nnz, factors.col_idxs, col_idxs);
-    components::convert_ptrs_to_idxs(exec, factors.row_ptrs,
-                                     factors.size[0], row_idxs);
+    components::convert_ptrs_to_idxs(exec, factors.row_ptrs, factors.size[0],
+                                     row_idxs);
     components::fill_seq_array(exec, transpose_idxs, nnz);
     // compute nonzero permutation for sparse transpose
     // TODO: check sort performance on both or twice
@@ -308,17 +309,15 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
         if (!full_fillin) {
             kernel::factorize<false>(
                 num_blocks, default_block_size, 0, exec->get_queue(),
-                factors.row_ptrs, factors.col_idxs,
-                lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
-                transpose_idxs, as_device_type(factors.values), storage,
-                num_rows);
+                factors.row_ptrs, factors.col_idxs, lookup_offsets,
+                lookup_storage, lookup_descs, diag_idxs, transpose_idxs,
+                as_device_type(factors.values), storage, num_rows);
         } else {
             kernel::factorize<true>(
                 num_blocks, default_block_size, 0, exec->get_queue(),
-                factors.row_ptrs, factors.col_idxs,
-                lookup_offsets, lookup_storage, lookup_descs, diag_idxs,
-                transpose_idxs, as_device_type(factors.values), storage,
-                num_rows);
+                factors.row_ptrs, factors.col_idxs, lookup_offsets,
+                lookup_storage, lookup_descs, diag_idxs, transpose_idxs,
+                as_device_type(factors.values), storage, num_rows);
         }
     }
 }
