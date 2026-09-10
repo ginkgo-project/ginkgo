@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,14 +73,15 @@ namespace gko {
 
 /** std::get reimplementation for device_tuple. */
 template <std::size_t index, typename... Ts>
-constexpr typename std::tuple_element<index, detail::device_tuple<Ts...>>::type&
-get(detail::device_tuple<Ts...>& tuple);
+GKO_ATTRIBUTES constexpr
+    typename std::tuple_element<index, detail::device_tuple<Ts...>>::type&
+    get(detail::device_tuple<Ts...>& tuple);
 
 
 /** std::get reimplementation for const device_tuple. */
 template <std::size_t index, typename... Ts>
-constexpr const typename std::tuple_element<index,
-                                            detail::device_tuple<Ts...>>::type&
+GKO_ATTRIBUTES constexpr const typename std::tuple_element<
+    index, detail::device_tuple<Ts...>>::type&
 get(const detail::device_tuple<Ts...>& tuple);
 
 
@@ -92,7 +93,7 @@ template <typename T, typename... Ts>
 class device_tuple {
 public:
     /** Constructs a device tuple from its elements. */
-    constexpr explicit device_tuple(T value, Ts... others)
+    GKO_ATTRIBUTES constexpr explicit device_tuple(T value, Ts... others)
         : value_{value}, other_{others...}
     {}
 
@@ -103,7 +104,7 @@ public:
      * This is necessary to make tuples of references work, which normally cause
      * the impliciy copy-assignment operator to be deleted.
      */
-    constexpr device_tuple& operator=(const device_tuple& other)
+    GKO_ATTRIBUTES constexpr device_tuple& operator=(const device_tuple& other)
     {
         value_ = other.value_;
         other_ = other.other_;
@@ -112,7 +113,9 @@ public:
 
     /** @return the index-th element in the tuple. */
     template <std::size_t index>
-    constexpr typename std::tuple_element<index, device_tuple>::type& get()
+    GKO_ATTRIBUTES constexpr
+        typename std::tuple_element<index, device_tuple>::type&
+        get()
     {
         if constexpr (index == 0) {
             return value_;
@@ -123,7 +126,8 @@ public:
 
     /** @return the index-th element in the const tuple. */
     template <std::size_t index>
-    constexpr const typename std::tuple_element<index, device_tuple>::type&
+    GKO_ATTRIBUTES constexpr const typename std::tuple_element<
+        index, device_tuple>::type&
     get() const
     {
         if constexpr (index == 0) {
@@ -134,39 +138,39 @@ public:
     }
 
     // comparison operators
-    constexpr friend bool operator<(const device_tuple& lhs,
-                                    const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator<(const device_tuple& lhs,
+                                                   const device_tuple& rhs)
     {
         return lhs.value_ < rhs.value_ ||
                (lhs.value_ == rhs.value_ && lhs.other_ < rhs.other_);
     }
 
-    constexpr friend bool operator>(const device_tuple& lhs,
-                                    const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator>(const device_tuple& lhs,
+                                                   const device_tuple& rhs)
     {
         return rhs < lhs;
     }
 
-    constexpr friend bool operator>=(const device_tuple& lhs,
-                                     const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator>=(const device_tuple& lhs,
+                                                    const device_tuple& rhs)
     {
         return !(lhs < rhs);
     }
 
-    constexpr friend bool operator<=(const device_tuple& lhs,
-                                     const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator<=(const device_tuple& lhs,
+                                                    const device_tuple& rhs)
     {
         return !(lhs > rhs);
     }
 
-    constexpr friend bool operator==(const device_tuple& lhs,
-                                     const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator==(const device_tuple& lhs,
+                                                    const device_tuple& rhs)
     {
         return lhs.value_ == rhs.value_ && lhs.other_ == rhs.other_;
     }
 
-    constexpr friend bool operator!=(const device_tuple& lhs,
-                                     const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator!=(const device_tuple& lhs,
+                                                    const device_tuple& rhs)
     {
         return !(lhs == rhs);
     }
@@ -181,7 +185,7 @@ template <typename T>
 class device_tuple<T> {
 public:
     /** Constructs a device tuple from its elements. */
-    constexpr explicit device_tuple(T value) : value_{value} {}
+    GKO_ATTRIBUTES constexpr explicit device_tuple(T value) : value_{value} {}
 
     device_tuple() = default;
 
@@ -190,7 +194,7 @@ public:
      * This is necessary to make tuples of references work, which normally cause
      * the impliciy copy-assignment operator to be deleted.
      */
-    constexpr device_tuple& operator=(const device_tuple& other)
+    GKO_ATTRIBUTES constexpr device_tuple& operator=(const device_tuple& other)
     {
         value_ = other.value_;
         return *this;
@@ -198,7 +202,7 @@ public:
 
     /** @return the index-th element in the tuple. */
     template <std::size_t index>
-    constexpr T& get()
+    GKO_ATTRIBUTES constexpr T& get()
     {
         static_assert(index == 0, "invalid index");
         return value_;
@@ -206,45 +210,45 @@ public:
 
     /** @return the index-th element in the const tuple. */
     template <std::size_t index>
-    constexpr const T& get() const
+    GKO_ATTRIBUTES constexpr const T& get() const
     {
         static_assert(index == 0, "invalid index");
         return value_;
     }
 
     // comparison operators
-    constexpr friend bool operator<(const device_tuple& lhs,
-                                    const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator<(const device_tuple& lhs,
+                                                   const device_tuple& rhs)
     {
         return lhs.value_ < rhs.value_;
     }
 
-    constexpr friend bool operator>(const device_tuple& lhs,
-                                    const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator>(const device_tuple& lhs,
+                                                   const device_tuple& rhs)
     {
         return rhs < lhs;
     }
 
-    constexpr friend bool operator>=(const device_tuple& lhs,
-                                     const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator>=(const device_tuple& lhs,
+                                                    const device_tuple& rhs)
     {
         return !(lhs < rhs);
     }
 
-    constexpr friend bool operator<=(const device_tuple& lhs,
-                                     const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator<=(const device_tuple& lhs,
+                                                    const device_tuple& rhs)
     {
         return !(lhs > rhs);
     }
 
-    constexpr friend bool operator==(const device_tuple& lhs,
-                                     const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator==(const device_tuple& lhs,
+                                                    const device_tuple& rhs)
     {
         return lhs.value_ == rhs.value_;
     }
 
-    constexpr friend bool operator!=(const device_tuple& lhs,
-                                     const device_tuple& rhs)
+    GKO_ATTRIBUTES constexpr friend bool operator!=(const device_tuple& lhs,
+                                                    const device_tuple& rhs)
     {
         return !(lhs == rhs);
     }
@@ -286,38 +290,40 @@ class zip_iterator_reference
     friend class zip_iterator<Iterators...>;
 
     template <std::size_t... idxs>
-    constexpr value_type cast_impl(std::index_sequence<idxs...>) const
+    GKO_ATTRIBUTES constexpr value_type cast_impl(
+        std::index_sequence<idxs...>) const
     {
         // need to use fully qualified name for nvcc 11.x to not call this->get
         return value_type(gko::get<idxs>(*this)...);
     }
 
     template <std::size_t... idxs>
-    constexpr void assign_impl(std::index_sequence<idxs...>,
-                               const value_type& other)
+    GKO_ATTRIBUTES constexpr void assign_impl(std::index_sequence<idxs...>,
+                                              const value_type& other)
     {
         // need to use fully qualified name for nvcc 11.x to not call this->get
         (void)std::initializer_list<int>{
             (gko::get<idxs>(*this) = gko::get<idxs>(other), 0)...};
     }
 
-    constexpr explicit zip_iterator_reference(Iterators... it)
+    GKO_ATTRIBUTES constexpr explicit zip_iterator_reference(Iterators... it)
         : ref_tuple_type{*it...}
     {}
 
 public:
-    constexpr operator value_type() const
+    GKO_ATTRIBUTES constexpr operator value_type() const
     {
         return cast_impl(index_sequence{});
     }
 
-    constexpr zip_iterator_reference& operator=(const value_type& other)
+    GKO_ATTRIBUTES constexpr zip_iterator_reference& operator=(
+        const value_type& other)
     {
         assign_impl(index_sequence{}, other);
         return *this;
     }
 
-    constexpr value_type copy() const { return *this; }
+    GKO_ATTRIBUTES constexpr value_type copy() const { return *this; }
 };
 
 
@@ -365,145 +371,151 @@ public:
 
     constexpr zip_iterator() = default;
 
-    constexpr explicit zip_iterator(Iterators... its) : iterators_{its...} {}
+    GKO_ATTRIBUTES constexpr explicit zip_iterator(Iterators... its)
+        : iterators_{its...}
+    {}
 
-    constexpr zip_iterator& operator+=(difference_type i)
+    GKO_ATTRIBUTES constexpr zip_iterator& operator+=(difference_type i)
     {
         forall([i](auto& it) { it += i; });
         return *this;
     }
 
-    constexpr zip_iterator& operator-=(difference_type i)
+    GKO_ATTRIBUTES constexpr zip_iterator& operator-=(difference_type i)
     {
         forall([i](auto& it) { it -= i; });
         return *this;
     }
 
-    constexpr zip_iterator& operator++()
+    GKO_ATTRIBUTES constexpr zip_iterator& operator++()
     {
         forall([](auto& it) { it++; });
         return *this;
     }
 
-    constexpr zip_iterator operator++(int)
+    GKO_ATTRIBUTES constexpr zip_iterator operator++(int)
     {
         auto tmp = *this;
         ++(*this);
         return tmp;
     }
 
-    constexpr zip_iterator& operator--()
+    GKO_ATTRIBUTES constexpr zip_iterator& operator--()
     {
         forall([](auto& it) { it--; });
         return *this;
     }
 
-    constexpr zip_iterator operator--(int)
+    GKO_ATTRIBUTES constexpr zip_iterator operator--(int)
     {
         auto tmp = *this;
         --(*this);
         return tmp;
     }
 
-    constexpr zip_iterator operator+(difference_type i) const
+    GKO_ATTRIBUTES constexpr zip_iterator operator+(difference_type i) const
     {
         auto tmp = *this;
         tmp += i;
         return tmp;
     }
 
-    constexpr friend zip_iterator operator+(difference_type i,
-                                            const zip_iterator& iter)
+    GKO_ATTRIBUTES constexpr friend zip_iterator operator+(
+        difference_type i, const zip_iterator& iter)
     {
         return iter + i;
     }
 
-    constexpr zip_iterator operator-(difference_type i) const
+    GKO_ATTRIBUTES constexpr zip_iterator operator-(difference_type i) const
     {
         auto tmp = *this;
         tmp -= i;
         return tmp;
     }
 
-    constexpr difference_type operator-(const zip_iterator& other) const
+    GKO_ATTRIBUTES constexpr difference_type operator-(
+        const zip_iterator& other) const
     {
         return forall_check_consistent(
             other, [](const auto& a, const auto& b) { return a - b; });
     }
 
-    constexpr reference operator*() const
+    GKO_ATTRIBUTES constexpr reference operator*() const
     {
         return deref_impl(std::index_sequence_for<Iterators...>{});
     }
 
-    constexpr reference operator[](difference_type i) const
+    GKO_ATTRIBUTES constexpr reference operator[](difference_type i) const
     {
         return *(*this + i);
     }
 
-    constexpr bool operator==(const zip_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator==(const zip_iterator& other) const
     {
         return forall_check_consistent(
             other, [](const auto& a, const auto& b) { return a == b; });
     }
 
-    constexpr bool operator!=(const zip_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator!=(const zip_iterator& other) const
     {
         return !(*this == other);
     }
 
-    constexpr bool operator<(const zip_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator<(const zip_iterator& other) const
     {
         return forall_check_consistent(
             other, [](const auto& a, const auto& b) { return a < b; });
     }
 
-    constexpr bool operator<=(const zip_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator<=(const zip_iterator& other) const
     {
         return forall_check_consistent(
             other, [](const auto& a, const auto& b) { return a <= b; });
     }
 
-    constexpr bool operator>(const zip_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator>(const zip_iterator& other) const
     {
         return !(*this <= other);
     }
 
-    constexpr bool operator>=(const zip_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator>=(const zip_iterator& other) const
     {
         return !(*this < other);
     }
 
 private:
     template <std::size_t... idxs>
-    constexpr reference deref_impl(std::index_sequence<idxs...>) const
+    GKO_ATTRIBUTES constexpr reference deref_impl(
+        std::index_sequence<idxs...>) const
     {
         return reference{get<idxs>(iterators_)...};
     }
 
     template <typename Functor>
-    constexpr void forall(Functor fn)
+    GKO_ATTRIBUTES constexpr void forall(Functor fn)
     {
         forall_impl(fn, index_sequence{});
     }
 
     template <typename Functor, std::size_t... idxs>
-    constexpr void forall_impl(Functor fn, std::index_sequence<idxs...>)
+    GKO_ATTRIBUTES constexpr void forall_impl(Functor fn,
+                                              std::index_sequence<idxs...>)
     {
         (void)std::initializer_list<int>{(fn(get<idxs>(iterators_)), 0)...};
     }
 
     template <typename Functor, std::size_t... idxs>
-    constexpr void forall_impl(const zip_iterator& other, Functor fn,
-                               std::index_sequence<idxs...>) const
+    GKO_ATTRIBUTES constexpr void forall_impl(
+        const zip_iterator& other, Functor fn,
+        std::index_sequence<idxs...>) const
     {
         (void)std::initializer_list<int>{
             (fn(get<idxs>(iterators_), get<idxs>(other.iterators_)), 0)...};
     }
 
     template <typename Functor>
-    constexpr auto forall_check_consistent(const zip_iterator& other,
-                                           Functor fn) const
+    GKO_ATTRIBUTES constexpr auto forall_check_consistent(
+        const zip_iterator& other, Functor fn) const
     {
         auto it = get<0>(iterators_);
         auto other_it = get<0>(other.iterators_);
@@ -519,8 +531,8 @@ private:
 
 
 template <typename... Iterators>
-constexpr zip_iterator<std::decay_t<Iterators>...> make_zip_iterator(
-    Iterators&&... it)
+GKO_ATTRIBUTES constexpr zip_iterator<std::decay_t<Iterators>...>
+make_zip_iterator(Iterators&&... it)
 {
     return zip_iterator<std::decay_t<Iterators>...>{
         std::forward<Iterators>(it)...};
@@ -543,8 +555,8 @@ constexpr zip_iterator<std::decay_t<Iterators>...> make_zip_iterator(
  * @tparam Iterators  the iterator types inside the corresponding zip_iterator
  */
 template <typename... Iterators>
-constexpr void swap(zip_iterator_reference<Iterators...> a,
-                    zip_iterator_reference<Iterators...> b)
+GKO_ATTRIBUTES constexpr void swap(zip_iterator_reference<Iterators...> a,
+                                   zip_iterator_reference<Iterators...> b)
 {
     auto tmp = a.copy();
     a = b;
@@ -556,8 +568,9 @@ constexpr void swap(zip_iterator_reference<Iterators...> a,
  * @copydoc swap(zip_iterator_reference, zip_iterator_reference)
  */
 template <typename... Iterators>
-constexpr void swap(typename zip_iterator<Iterators...>::value_type& a,
-                    zip_iterator_reference<Iterators...> b)
+GKO_ATTRIBUTES constexpr void swap(
+    typename zip_iterator<Iterators...>::value_type& a,
+    zip_iterator_reference<Iterators...> b)
 {
     auto tmp = a;
     a = b;
@@ -569,8 +582,9 @@ constexpr void swap(typename zip_iterator<Iterators...>::value_type& a,
  * @copydoc swap(zip_iterator_reference, zip_iterator_reference)
  */
 template <typename... Iterators>
-constexpr void swap(zip_iterator_reference<Iterators...> a,
-                    typename zip_iterator<Iterators...>::value_type& b)
+GKO_ATTRIBUTES constexpr void swap(
+    zip_iterator_reference<Iterators...> a,
+    typename zip_iterator<Iterators...>::value_type& b)
 {
     auto tmp = a.copy();
     a = b;
@@ -600,91 +614,112 @@ public:
 
     permute_iterator() = default;
 
-    explicit permute_iterator(IteratorType it, PermuteFn perm)
+    GKO_ATTRIBUTES constexpr explicit permute_iterator(IteratorType it,
+                                                       PermuteFn perm)
         : it_{std::move(it)}, idx_{}, perm_{std::move(perm)}
     {}
 
-    permute_iterator& operator+=(difference_type i)
+    GKO_ATTRIBUTES constexpr permute_iterator& operator+=(difference_type i)
     {
         idx_ += i;
         return *this;
     }
 
-    permute_iterator& operator-=(difference_type i) { return *this += -i; }
+    GKO_ATTRIBUTES constexpr permute_iterator& operator-=(difference_type i)
+    {
+        return *this += -i;
+    }
 
-    permute_iterator& operator++() { return *this += 1; }
+    GKO_ATTRIBUTES constexpr permute_iterator& operator++()
+    {
+        return *this += 1;
+    }
 
-    permute_iterator operator++(int)
+    GKO_ATTRIBUTES constexpr permute_iterator operator++(int)
     {
         auto tmp = *this;
         ++(*this);
         return tmp;
     }
 
-    permute_iterator& operator--() { return *this -= 1; }
+    GKO_ATTRIBUTES constexpr permute_iterator& operator--()
+    {
+        return *this -= 1;
+    }
 
-    permute_iterator operator--(int)
+    GKO_ATTRIBUTES constexpr permute_iterator operator--(int)
     {
         auto tmp = *this;
         --(*this);
         return tmp;
     }
 
-    permute_iterator operator+(difference_type i) const
+    GKO_ATTRIBUTES constexpr permute_iterator operator+(difference_type i) const
     {
         auto tmp = *this;
         tmp += i;
         return tmp;
     }
 
-    friend permute_iterator operator+(difference_type i,
-                                      const permute_iterator& iter)
+    GKO_ATTRIBUTES constexpr friend permute_iterator operator+(
+        difference_type i, const permute_iterator& iter)
     {
         return iter + i;
     }
 
-    permute_iterator operator-(difference_type i) const
+    GKO_ATTRIBUTES constexpr permute_iterator operator-(difference_type i) const
     {
         auto tmp = *this;
         tmp -= i;
         return tmp;
     }
 
-    difference_type operator-(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr difference_type operator-(
+        const permute_iterator& other) const
     {
         return idx_ - other.idx_;
     }
 
-    reference operator*() const { return it_[perm_(idx_)]; }
+    GKO_ATTRIBUTES constexpr reference operator*() const
+    {
+        return it_[perm_(idx_)];
+    }
 
-    reference operator[](difference_type i) const { return *(*this + i); }
+    GKO_ATTRIBUTES constexpr reference operator[](difference_type i) const
+    {
+        return *(*this + i);
+    }
 
-    bool operator==(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator==(
+        const permute_iterator& other) const
     {
         return idx_ == other.idx_;
     }
 
-    bool operator!=(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator!=(
+        const permute_iterator& other) const
     {
         return !(*this == other);
     }
 
-    bool operator<(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator<(const permute_iterator& other) const
     {
         return idx_ < other.idx_;
     }
 
-    bool operator<=(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator<=(
+        const permute_iterator& other) const
     {
         return idx_ <= other.idx_;
     }
 
-    bool operator>(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator>(const permute_iterator& other) const
     {
         return !(*this <= other);
     }
 
-    bool operator>=(const permute_iterator& other) const
+    GKO_ATTRIBUTES constexpr bool operator>=(
+        const permute_iterator& other) const
     {
         return !(*this < other);
     }
@@ -697,11 +732,162 @@ private:
 
 
 template <typename IteratorType, typename PermutationFn>
-permute_iterator<IteratorType, PermutationFn> make_permute_iterator(
-    IteratorType it, PermutationFn perm)
+GKO_ATTRIBUTES permute_iterator<IteratorType, PermutationFn>
+make_permute_iterator(IteratorType it, PermutationFn perm)
 {
     return permute_iterator<IteratorType, PermutationFn>{std::move(it),
                                                          std::move(perm)};
+}
+
+
+/**
+ * A transform_iterator is a read-only iterator that wraps an existing iterator
+ * and applies a transformation to that iterator's value before returning it on
+ * dereference.
+ */
+template <typename IteratorType, typename TransformFn>
+class transform_iterator {
+public:
+    using difference_type =
+        typename std::iterator_traits<IteratorType>::difference_type;
+    using value_type = decltype(std::declval<TransformFn>()(
+        std::declval<
+            typename std::iterator_traits<IteratorType>::reference>()));
+    using pointer = value_type*;
+    using reference = value_type;  // no reference possible after transformation
+    using iterator_category = std::random_access_iterator_tag;
+
+    constexpr transform_iterator() = default;
+
+    GKO_ATTRIBUTES constexpr explicit transform_iterator(IteratorType it,
+                                                         TransformFn transform)
+        : it_{std::move(it)}, transform_{std::move(transform)}
+    {}
+
+    GKO_ATTRIBUTES constexpr transform_iterator& operator+=(difference_type i)
+    {
+        it_ += i;
+        return *this;
+    }
+
+    GKO_ATTRIBUTES constexpr transform_iterator& operator-=(difference_type i)
+    {
+        it_ -= i;
+        return *this;
+    }
+
+    GKO_ATTRIBUTES constexpr transform_iterator& operator++()
+    {
+        ++it_;
+        return *this;
+    }
+
+    GKO_ATTRIBUTES constexpr transform_iterator operator++(int)
+    {
+        auto tmp = *this;
+        ++(*this);
+        return tmp;
+    }
+
+    GKO_ATTRIBUTES constexpr transform_iterator& operator--()
+    {
+        --it_;
+        return *this;
+    }
+
+    GKO_ATTRIBUTES constexpr transform_iterator operator--(int)
+    {
+        auto tmp = *this;
+        --(*this);
+        return tmp;
+    }
+
+    GKO_ATTRIBUTES constexpr transform_iterator operator+(
+        difference_type i) const
+    {
+        auto tmp = *this;
+        tmp += i;
+        return tmp;
+    }
+
+    GKO_ATTRIBUTES constexpr friend transform_iterator operator+(
+        difference_type i, const transform_iterator& iter)
+    {
+        return iter + i;
+    }
+
+    GKO_ATTRIBUTES constexpr transform_iterator operator-(
+        difference_type i) const
+    {
+        auto tmp = *this;
+        tmp -= i;
+        return tmp;
+    }
+
+    GKO_ATTRIBUTES constexpr difference_type operator-(
+        const transform_iterator& other) const
+    {
+        return this->it_ - other.it_;
+    }
+
+    GKO_ATTRIBUTES constexpr value_type operator*() const
+    {
+        return transform_(*it_);
+    }
+
+    GKO_ATTRIBUTES constexpr value_type operator[](difference_type i) const
+    {
+        return *(*this + i);
+    }
+
+    GKO_ATTRIBUTES constexpr bool operator==(
+        const transform_iterator& other) const
+    {
+        return this->it_ == other.it_;
+    }
+
+    GKO_ATTRIBUTES constexpr bool operator!=(
+        const transform_iterator& other) const
+    {
+        return !(*this == other);
+    }
+
+    GKO_ATTRIBUTES constexpr bool operator<(
+        const transform_iterator& other) const
+    {
+        return this->it_ < other.it_;
+    }
+
+    GKO_ATTRIBUTES constexpr bool operator<=(
+        const transform_iterator& other) const
+    {
+        return this->it_ <= other.it_;
+    }
+
+    GKO_ATTRIBUTES constexpr bool operator>(
+        const transform_iterator& other) const
+    {
+        return !(*this <= other);
+    }
+
+    GKO_ATTRIBUTES constexpr bool operator>=(
+        const transform_iterator& other) const
+    {
+        return !(*this < other);
+    }
+
+private:
+    IteratorType it_;
+    copy_assignable<TransformFn> transform_;
+};
+
+
+template <typename IteratorType, typename TransformFn>
+GKO_ATTRIBUTES transform_iterator<IteratorType, TransformFn>
+make_transform_iterator(IteratorType it, TransformFn transform)
+{
+    return transform_iterator<IteratorType, TransformFn>{std::move(it),
+                                                         std::move(transform)};
 }
 
 
@@ -710,8 +896,9 @@ permute_iterator<IteratorType, PermutationFn> make_permute_iterator(
 
 /** std::get reimplementation for device_tuple. */
 template <std::size_t index, typename... Ts>
-constexpr typename std::tuple_element<index, detail::device_tuple<Ts...>>::type&
-get(detail::device_tuple<Ts...>& tuple)
+GKO_ATTRIBUTES constexpr
+    typename std::tuple_element<index, detail::device_tuple<Ts...>>::type&
+    get(detail::device_tuple<Ts...>& tuple)
 {
     return tuple.template get<index>();
 }
@@ -719,8 +906,8 @@ get(detail::device_tuple<Ts...>& tuple)
 
 /** std::get reimplementation for const device_tuple. */
 template <std::size_t index, typename... Ts>
-constexpr const typename std::tuple_element<index,
-                                            detail::device_tuple<Ts...>>::type&
+GKO_ATTRIBUTES constexpr const typename std::tuple_element<
+    index, detail::device_tuple<Ts...>>::type&
 get(const detail::device_tuple<Ts...>& tuple)
 {
     return tuple.template get<index>();
