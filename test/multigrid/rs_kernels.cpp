@@ -31,7 +31,7 @@ protected:
 #else
         m = 597;
 #endif
-        theta = 0.25;
+        theta = static_cast<value_type>(0.25);
 
         // 1. Generate a valid M-matrix
         auto m_matrix_data =
@@ -73,7 +73,7 @@ protected:
     std::default_random_engine rand_engine;
 
     gko::size_type m;
-    double theta;
+    value_type theta;
 
     std::shared_ptr<Csr> m_matrix;
     std::shared_ptr<Csr> d_m_matrix;

@@ -81,7 +81,8 @@ void Rs<ValueType, IndexType>::generate()
     // 0 = undecided, 1 = C, -1 = F,
     // then extract coarse dims
     exec->run(rs::make_compute_soc_and_run_rs(
-        rs_op->get_const_device_view(), parameters_.strength_threshold,
+        rs_op->get_const_device_view(),
+        static_cast<remove_complex<ValueType>>(parameters_.strength_threshold),
         is_strong, lambda, cf_marker, coarse_dim));
     const size_type coarse_dim_size = static_cast<size_type>(coarse_dim);
 
