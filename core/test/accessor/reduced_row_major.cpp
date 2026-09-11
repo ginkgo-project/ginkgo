@@ -1,20 +1,18 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "accessor/reduced_row_major.hpp"
 
 #include <array>
-#include <cmath>
 #include <limits>
-#include <tuple>
 #include <type_traits>
 
 #include <gtest/gtest.h>
 
-#include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
 #include "accessor/utils.hpp"
+#include "core/test/accessor/utils.hpp"
 
 
 namespace {
@@ -24,20 +22,23 @@ namespace {
  * This test makes sure reduced_row_major works independent of Ginkgo and with
  * dimensionalities 1 and 2.
  */
+template <typename IndexType>
 class ReducedStorageXd : public ::testing::Test {
 protected:
     using ar_type = double;
     using st_type = float;
-    using size_type = gko::acc::size_type;
+    using size_type = IndexType;
     static constexpr ar_type delta{std::numeric_limits<st_type>::epsilon() *
                                    1e1};
 
-    using accessor1d = gko::acc::reduced_row_major<1, ar_type, st_type>;
-    using accessor2d = gko::acc::reduced_row_major<2, ar_type, st_type>;
+    using accessor1d =
+        gko::acc::reduced_row_major<1, ar_type, st_type, IndexType>;
+    using accessor2d =
+        gko::acc::reduced_row_major<2, ar_type, st_type, IndexType>;
     using const_accessor1d =
-        gko::acc::reduced_row_major<1, ar_type, const st_type>;
+        gko::acc::reduced_row_major<1, ar_type, const st_type, IndexType>;
     using const_accessor2d =
-        gko::acc::reduced_row_major<2, ar_type, const st_type>;
+        gko::acc::reduced_row_major<2, ar_type, const st_type, IndexType>;
     static_assert(std::is_same<const_accessor1d,
                                typename accessor1d::const_accessor>::value,
                   "Const accessors must be the same!");
@@ -84,30 +85,33 @@ protected:
 };
 
 
-TEST_F(ReducedStorageXd, CanRead)
+TYPED_TEST_SUITE(ReducedStorageXd, gko::acc::test::AltIndexTypes);
+
+
+TYPED_TEST(ReducedStorageXd, CanRead)
 {
-    EXPECT_EQ(cr1(1), this->c_st_ar(2.2));
-    EXPECT_EQ(cr2(0, 1), this->c_st_ar(2.2));
-    EXPECT_EQ(r1(1), this->c_st_ar(2.2));
-    EXPECT_EQ(r2(0, 1), this->c_st_ar(2.2));
+    EXPECT_EQ(this->cr1(1), this->c_st_ar(2.2));
+    EXPECT_EQ(this->cr2(0, 1), this->c_st_ar(2.2));
+    EXPECT_EQ(this->r1(1), this->c_st_ar(2.2));
+    EXPECT_EQ(this->r2(0, 1), this->c_st_ar(2.2));
 }
 
 
-TEST_F(ReducedStorageXd, CanWrite1)
+TYPED_TEST(ReducedStorageXd, CanWrite1)
 {
-    r1(2) = 0.25;
+    this->r1(2) = 0.25;
 
-    data_equal_except_for(2);
-    EXPECT_EQ(r1(2), 0.25);  // expect exact since easy to store
+    this->data_equal_except_for(2);
+    EXPECT_EQ(this->r1(2), 0.25);  // expect exact since easy to store
 }
 
 
-TEST_F(ReducedStorageXd, CanWrite2)
+TYPED_TEST(ReducedStorageXd, CanWrite2)
 {
-    r2(1, 1) = 0.75;
+    this->r2(1, 1) = 0.75;
 
-    data_equal_except_for(5);
-    EXPECT_EQ(r2(1, 1), 0.75);  // expect exact since easy to store
+    this->data_equal_except_for(5);
+    EXPECT_EQ(this->r2(1, 1), 0.75);  // expect exact since easy to store
 }
 
 
