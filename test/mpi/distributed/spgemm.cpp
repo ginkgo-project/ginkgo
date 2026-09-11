@@ -12,7 +12,9 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/distributed/row_gatherer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -704,6 +706,76 @@ TYPED_TEST(DistSpgemm, ThrowsIfColumnPartitionDoesNotMatchRowPartition)
 
     ASSERT_THROW(a_mat->multiply(b_mat, c_mat), gko::InvalidStateError);
 }
+
+
+// multiply() exchanges B's rows through A's row gatherer, by resizing its
+// collective communicator to the length of each row. Every other test uses the
+// default dense communicator; a neighborhood communicator implements that
+// resize and the exchange separately, so run the same product through one and
+// compare.
+#if !GINKGO_HAVE_OPENMPI_PRE_4_1_X
+TYPED_TEST(DistSpgemm, NeighborhoodCommunicatorMatchesDefault)
+{
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx = typename TestFixture::dist_mtx;
+    using dist_vec = typename TestFixture::dist_vec;
+    using Partition = typename TestFixture::Partition;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using row_gatherer_type =
+        gko::experimental::distributed::RowGatherer<local_index_type>;
+    using neighborhood_type = gko::experimental::mpi::NeighborhoodCommunicator;
+    SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type);
+    const gko::size_type n = 12;
+    auto partition = gko::share(Partition::build_from_global_size_uniform(
+        this->exec, this->comm.size(), n));
+    auto a_data =
+        gko::test::generate_random_matrix_data<value_type, global_index_type>(
+            n, n, std::uniform_int_distribution<>(2, 5),
+            std::normal_distribution<>(0.0, 1.0),
+            std::default_random_engine(42));
+    auto b_data =
+        gko::test::generate_random_matrix_data<value_type, global_index_type>(
+            n, n, std::uniform_int_distribution<>(2, 5),
+            std::normal_distribution<>(0.0, 1.0),
+            std::default_random_engine(123));
+    auto neighborhood_gatherer = gko::share(row_gatherer_type::create(
+        this->exec, std::make_shared<neighborhood_type>(this->comm)));
+    auto a_default = dist_mtx::create(this->exec, this->comm);
+    auto b_default = dist_mtx::create(this->exec, this->comm);
+    auto c_default = dist_mtx::create(this->exec, this->comm);
+    auto a_neighborhood = dist_mtx::create(this->exec, neighborhood_gatherer);
+    auto b_neighborhood = dist_mtx::create(this->exec, neighborhood_gatherer);
+    auto c_neighborhood = dist_mtx::create(this->exec, neighborhood_gatherer);
+    a_default->read_distributed(a_data, partition);
+    b_default->read_distributed(b_data, partition);
+    a_neighborhood->read_distributed(a_data, partition);
+    b_neighborhood->read_distributed(b_data, partition);
+
+    a_default->multiply(b_default, c_default);
+    a_neighborhood->multiply(b_neighborhood, c_neighborhood);
+
+    // Compared through an apply, which does not depend on how either matrix
+    // orders its non-local columns internally.
+    auto x_data =
+        gko::matrix_data<value_type, global_index_type>{gko::dim<2>{n, 1}};
+    for (gko::size_type i = 0; i < n; ++i) {
+        x_data.nonzeros.emplace_back(
+            i, 0, static_cast<value_type>(static_cast<double>(i + 1)));
+    }
+    auto x = dist_vec::create(this->exec, this->comm);
+    x->read_distributed(x_data, partition);
+    auto y_default = gko::clone(x);
+    auto y_neighborhood = gko::clone(x);
+    c_default->apply(x, y_default);
+    c_neighborhood->apply(x, y_neighborhood);
+    GKO_ASSERT_MTX_NEAR(y_default->get_local_vector(),
+                        y_neighborhood->get_local_vector(),
+                        r<value_type>::value);
+}
+#endif
 
 
 #endif

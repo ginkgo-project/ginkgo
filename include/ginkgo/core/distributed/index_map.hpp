@@ -124,7 +124,8 @@ public:
      * @param partition  the partition of the global index set
      * @param rank  the id of the global index space subset
      * @param recv_connections  the global indices that are not owned by this
-     *                          rank, but accessed by it
+     *                          rank, but accessed by it. Indices that are owned
+     *                          by this rank are ignored.
      */
     index_map(std::shared_ptr<const Executor> exec,
               std::shared_ptr<const partition_type> partition,

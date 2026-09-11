@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -48,8 +48,30 @@ TEST_F(IndexMap, CanBuildMapping)
     gko::array<gko::int64> remote_sizes(ref);
 
     gko::kernels::reference::index_map::build_mapping(
-        ref, part.get(), {ref, {2, 3, 3, 5, 5}}, target_ids, remote_local_idxs,
-        remote_global_idxs, remote_sizes);
+        ref, part.get(), 0, {ref, {2, 3, 3, 5, 5}}, target_ids,
+        remote_local_idxs, remote_global_idxs, remote_sizes);
+
+    auto expected_global = gko::array<global_index_type>{ref, {2, 3, 5}};
+    auto expected_local = gko::array<local_index_type>{ref, {0, 1, 1}};
+    auto expected_ids = gko::array<comm_index_type>{ref, {1, 2}};
+    auto expected_sizes = gko::array<gko::int64>{ref, {2, 1}};
+    GKO_ASSERT_ARRAY_EQ(remote_sizes, expected_sizes);
+    GKO_ASSERT_ARRAY_EQ(target_ids, expected_ids);
+    GKO_ASSERT_ARRAY_EQ(remote_global_idxs, expected_global);
+    GKO_ASSERT_ARRAY_EQ(remote_local_idxs, expected_local);
+}
+
+
+TEST_F(IndexMap, CanBuildMappingIgnoringLocalIndices)
+{
+    gko::array<comm_index_type> target_ids(ref);
+    gko::array<local_index_type> remote_local_idxs(ref);
+    gko::array<global_index_type> remote_global_idxs(ref);
+    gko::array<gko::int64> remote_sizes(ref);
+
+    gko::kernels::reference::index_map::build_mapping(
+        ref, part.get(), 0, {ref, {2, 0, 3, 1, 3, 5, 1, 5}}, target_ids,
+        remote_local_idxs, remote_global_idxs, remote_sizes);
 
     auto expected_global = gko::array<global_index_type>{ref, {2, 3, 5}};
     auto expected_local = gko::array<local_index_type>{ref, {0, 1, 1}};
@@ -70,7 +92,7 @@ TEST_F(IndexMap, CanBuildMappingWithoutRecvConnections)
     gko::array<gko::int64> remote_sizes(ref);
 
     gko::kernels::reference::index_map::build_mapping(
-        ref, part.get(), {ref, 0}, target_ids, remote_local_idxs,
+        ref, part.get(), 0, {ref, 0}, target_ids, remote_local_idxs,
         remote_global_idxs, remote_sizes);
 
     auto expected_global = gko::array<global_index_type>{ref, 0};

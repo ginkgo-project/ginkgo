@@ -46,19 +46,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS);
 
 
-template <typename LocalIndexType, typename GlobalIndexType>
-void unique_nonlocal_columns(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const array<GlobalIndexType>& global_cols,
-    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
-        col_partition,
-    comm_index_type local_part,
-    array<GlobalIndexType>& nonlocal_cols) GKO_NOT_IMPLEMENTED;
-
-GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_UNIQUE_NONLOCAL_COLUMNS);
-
-
 }  // namespace distributed_matrix
 }  // namespace dpcpp
 }  // namespace kernels

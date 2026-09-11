@@ -522,25 +522,4 @@ TYPED_TEST(Matrix, SeparateLocalNonlocalColumnsSplitsByLocalSize)
 }
 
 
-TYPED_TEST(Matrix, UniqueNonlocalColumnsDropsOwnedAndDuplicates)
-{
-    using lit = typename TestFixture::local_index_type;
-    using git = typename TestFixture::global_index_type;
-    auto ref = this->ref;
-    // columns partitioned into 3 contiguous parts of size 2 over [0,6)
-    auto col_partition = gko::experimental::distributed::Partition<
-        lit, git>::build_from_contiguous(ref,
-                                         gko::array<git>{ref, {0, 2, 4, 6}});
-    // part 1 owns [2, 4), so 2 and 3 have to be filtered out; the rest are
-    // deduplicated and sorted
-    gko::array<git> global_cols{ref, {5, 2, 5, 0, 3, 1, 0}};
-    gko::array<git> nonlocal_cols{ref};
-
-    gko::kernels::reference::distributed_matrix::unique_nonlocal_columns(
-        ref, global_cols, col_partition.get(), /*local_part=*/1, nonlocal_cols);
-
-    GKO_ASSERT_ARRAY_EQ(nonlocal_cols, I<git>({0, 1, 5}));
-}
-
-
 }  // namespace

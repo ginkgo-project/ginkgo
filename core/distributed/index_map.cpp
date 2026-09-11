@@ -130,7 +130,7 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
     array<GlobalIndexType> flat_remote_global_idxs(exec_);
     array<int64> remote_sizes(exec_);
     exec_->run(index_map_kernels::make_build_mapping(
-        partition_.get(), recv_connections, remote_target_ids_,
+        partition_.get(), rank, recv_connections, remote_target_ids_,
         flat_remote_local_idxs, flat_remote_global_idxs, remote_sizes));
     remote_local_idxs_ = segmented_array<LocalIndexType>::create_from_sizes(
         std::move(flat_remote_local_idxs), remote_sizes);

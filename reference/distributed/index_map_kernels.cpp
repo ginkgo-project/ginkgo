@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,6 +22,7 @@ void build_mapping(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         part,
+    experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& recv_connections,
     array<experimental::distributed::comm_index_type>& remote_part_ids,
     array<LocalIndexType>& remote_local_idxs,
@@ -30,17 +31,20 @@ void build_mapping(
     using experimental::distributed::comm_index_type;
     auto part_ids = part->get_part_ids();
 
-    vector<GlobalIndexType> unique_indices(recv_connections.get_size(), {exec});
-    std::copy_n(recv_connections.get_const_data(), recv_connections.get_size(),
-                unique_indices.begin());
-
     auto find_part = [&](GlobalIndexType idx) {
         auto range_id = find_range(idx, part, 0);
         return part_ids[range_id];
     };
 
+    vector<GlobalIndexType> unique_indices(recv_connections.get_size(), {exec});
+    auto unique_indices_end = std::copy_if(
+        recv_connections.get_const_data(),
+        recv_connections.get_const_data() + recv_connections.get_size(),
+        unique_indices.begin(),
+        [&](auto idx) { return find_part(idx) != rank; });
+
     // sort by (part-id, global-id)
-    std::sort(unique_indices.begin(), unique_indices.end(),
+    std::sort(unique_indices.begin(), unique_indices_end,
               [&](const auto a, const auto b) {
                   auto part_a = find_part(a);
                   auto part_b = find_part(b);
@@ -48,8 +52,8 @@ void build_mapping(
               });
 
     // make unique by (part-id, global-id)
-    auto unique_indices_end =
-        std::unique(unique_indices.begin(), unique_indices.end(),
+    unique_indices_end =
+        std::unique(unique_indices.begin(), unique_indices_end,
                     [&](const auto a, const auto b) {
                         auto part_a = find_part(a);
                         auto part_b = find_part(b);

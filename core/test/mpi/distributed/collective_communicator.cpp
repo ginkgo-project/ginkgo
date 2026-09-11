@@ -1,6 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
+
+#include <algorithm>
+#include <numeric>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -49,6 +53,15 @@ protected:
          {ref, {1, 2, 12, 14}},
          {ref, {4, 5, 9, 10, 16, 15}},
          {ref, {8, 12, 13, 14}}}};
+    // What each rank sends through create_default_comm's pattern so that every
+    // rank receives exactly its recv_connections.
+    std::array<gko::array<gko::int64>, 6> send_values{
+        {{ref, {0, 1, 1, 2}},
+         {ref, {3, 5, 3, 4, 4, 5}},
+         {ref, {7, 8}},
+         {ref, {10, 11, 9, 10}},
+         {ref, {12, 13, 12, 14, 12, 13, 14}},
+         {ref, {17, 16, 15}}}};
     int rank = comm.rank();
 };
 
@@ -263,4 +276,79 @@ TYPED_TEST(CollectiveCommunicator, CanCommunicateRoundTrip)
         .wait();
 
     GKO_ASSERT_ARRAY_EQ(send_buffers[this->rank], round_trip);
+}
+
+
+// resize keeps the communication pattern but lets each exchanged element carry
+// a different number of items. The counts below are derived from each element's
+// value, so a rank can work out what it will receive without knowing what its
+// neighbours chose.
+namespace {
+
+
+comm_index_type factor_of(gko::int64 value)
+{
+    // includes zero, so that empty elements are covered as well
+    return static_cast<comm_index_type>(value % 3);
+}
+
+
+std::vector<comm_index_type> factors_of(const gko::array<gko::int64>& values)
+{
+    std::vector<comm_index_type> factors(values.get_size());
+    std::transform(values.get_const_data(),
+                   values.get_const_data() + values.get_size(), factors.begin(),
+                   factor_of);
+    return factors;
+}
+
+
+// Repeats the i-th value factors[i] times, which is the layout a communicator
+// resized with those factors exchanges.
+std::vector<gko::int64> expand(const gko::array<gko::int64>& values,
+                               const std::vector<comm_index_type>& factors)
+{
+    std::vector<gko::int64> expanded;
+    for (gko::size_type i = 0; i < values.get_size(); ++i) {
+        expanded.insert(expanded.end(), factors[i], values.get_const_data()[i]);
+    }
+    return expanded;
+}
+
+
+}  // namespace
+
+
+TYPED_TEST(CollectiveCommunicator, ResizeReturnsImpliedRecvFactors)
+{
+    auto spcomm = this->create_default_comm();
+    auto send_factors = factors_of(this->send_values[this->rank]);
+    auto expected_recv_factors = factors_of(this->recv_connections[this->rank]);
+
+    auto [resized, recv_factors] = spcomm.resize(this->ref, send_factors);
+
+    ASSERT_EQ(recv_factors, expected_recv_factors);
+    ASSERT_EQ(resized->get_send_size(),
+              std::accumulate(send_factors.begin(), send_factors.end(),
+                              comm_index_type{}));
+    ASSERT_EQ(resized->get_recv_size(),
+              std::accumulate(expected_recv_factors.begin(),
+                              expected_recv_factors.end(), comm_index_type{}));
+}
+
+
+TYPED_TEST(CollectiveCommunicator, CanCommunicateWithResizedPattern)
+{
+    auto spcomm = this->create_default_comm();
+    const auto& send_values = this->send_values[this->rank];
+    const auto& recv_values = this->recv_connections[this->rank];
+    auto send_factors = factors_of(send_values);
+    auto [resized, recv_factors] = spcomm.resize(this->ref, send_factors);
+    auto send_buffer = expand(send_values, send_factors);
+    std::vector<gko::int64> recv_buffer(resized->get_recv_size());
+
+    resized->i_all_to_all_v(this->ref, send_buffer.data(), recv_buffer.data())
+        .wait();
+
+    ASSERT_EQ(recv_buffer, expand(recv_values, factors_of(recv_values)));
 }

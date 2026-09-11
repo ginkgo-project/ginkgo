@@ -54,31 +54,14 @@ namespace kernels {
         array<ValueType>& off_diag_values)
 
 
-/*
- * Collects the distinct global columns that are *not* owned by local_part, in
- * ascending order. This is what index_map's constructor expects as its
- * recv_connections: it treats everything it is given as non-local, so the
- * locally owned columns have to be filtered out here.
- */
-#define GKO_DECLARE_UNIQUE_NONLOCAL_COLUMNS(LocalIndexType, GlobalIndexType) \
-    void unique_nonlocal_columns(                                            \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const array<GlobalIndexType>& global_cols,                           \
-        const experimental::distributed::Partition<                          \
-            LocalIndexType, GlobalIndexType>* col_partition,                 \
-        comm_index_type local_part, array<GlobalIndexType>& nonlocal_cols)
-
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
-    using comm_index_type = experimental::distributed::comm_index_type;     \
-    template <typename ValueType, typename LocalIndexType,                  \
-              typename GlobalIndexType>                                     \
-    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG(ValueType, LocalIndexType,           \
-                                       GlobalIndexType);                    \
-    template <typename ValueType, typename LocalIndexType>                  \
-    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS(ValueType, LocalIndexType); \
-    template <typename LocalIndexType, typename GlobalIndexType>            \
-    GKO_DECLARE_UNIQUE_NONLOCAL_COLUMNS(LocalIndexType, GlobalIndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                    \
+    using comm_index_type = experimental::distributed::comm_index_type; \
+    template <typename ValueType, typename LocalIndexType,              \
+              typename GlobalIndexType>                                 \
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG(ValueType, LocalIndexType,       \
+                                       GlobalIndexType);                \
+    template <typename ValueType, typename LocalIndexType>              \
+    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS(ValueType, LocalIndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(distributed_matrix,

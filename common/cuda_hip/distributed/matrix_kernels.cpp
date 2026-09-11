@@ -264,53 +264,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS);
 
 
-template <typename LocalIndexType, typename GlobalIndexType>
-void unique_nonlocal_columns(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const array<GlobalIndexType>& global_cols,
-    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
-        col_partition,
-    comm_index_type local_part, array<GlobalIndexType>& nonlocal_cols)
-{
-    auto policy = thrust_policy(exec);
-    const auto n = global_cols.get_size();
-    const auto* cols = global_cols.get_const_data();
-    auto col_part_ids = col_partition->get_part_ids();
-    const auto* col_range_bounds = col_partition->get_range_bounds();
-    const auto num_col_ranges = col_partition->get_num_ranges();
-
-    // find the range, and hence the part, owning each column
-    array<size_type> col_range_ids{exec, n};
-    thrust::upper_bound(policy, col_range_bounds + 1,
-                        col_range_bounds + num_col_ranges + 1, cols, cols + n,
-                        col_range_ids.get_data());
-
-    array<GlobalIndexType> remote{exec, n};
-    auto remote_end =
-        thrust::copy_if(policy, cols, cols + n, col_range_ids.get_const_data(),
-                        remote.get_data(),
-                        [local_part, col_part_ids] __host__ __device__(
-                            const size_type col_range_id) {
-                            return col_part_ids[col_range_id] != local_part;
-                        });
-    const auto num_remote =
-        static_cast<size_type>(thrust::distance(remote.get_data(), remote_end));
-
-    thrust::sort(policy, remote.get_data(), remote.get_data() + num_remote);
-    auto unique_end = thrust::unique(policy, remote.get_data(),
-                                     remote.get_data() + num_remote);
-    const auto num_unique =
-        static_cast<size_type>(thrust::distance(remote.get_data(), unique_end));
-
-    nonlocal_cols.resize_and_reset(num_unique);
-    thrust::copy_n(policy, remote.get_data(), num_unique,
-                   nonlocal_cols.get_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_UNIQUE_NONLOCAL_COLUMNS);
-
-
 }  // namespace distributed_matrix
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels

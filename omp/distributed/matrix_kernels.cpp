@@ -209,38 +209,6 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS);
 
 
-template <typename LocalIndexType, typename GlobalIndexType>
-void unique_nonlocal_columns(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const array<GlobalIndexType>& global_cols,
-    const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
-        col_partition,
-    comm_index_type local_part, array<GlobalIndexType>& nonlocal_cols)
-{
-    const auto n = global_cols.get_size();
-    auto in = global_cols.get_const_data();
-    auto col_part_ids = col_partition->get_part_ids();
-
-    std::vector<GlobalIndexType> remote;
-    remote.reserve(n);
-    size_type col_range_id = 0;
-    for (size_type i = 0; i < n; ++i) {
-        col_range_id = find_range(in[i], col_partition, col_range_id);
-        if (col_part_ids[col_range_id] != local_part) {
-            remote.push_back(in[i]);
-        }
-    }
-    std::sort(remote.begin(), remote.end());
-    remote.erase(std::unique(remote.begin(), remote.end()), remote.end());
-
-    nonlocal_cols.resize_and_reset(remote.size());
-    std::copy(remote.begin(), remote.end(), nonlocal_cols.get_data());
-}
-
-GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_UNIQUE_NONLOCAL_COLUMNS);
-
-
 }  // namespace distributed_matrix
 }  // namespace omp
 }  // namespace kernels

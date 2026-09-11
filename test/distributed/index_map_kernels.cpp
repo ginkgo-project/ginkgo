@@ -93,10 +93,60 @@ TEST_F(IndexMapBuildMapping, BuildMappingSameAsRef)
     gko::array<gko::int64> dremote_sizes{exec};
 
     gko::kernels::reference::index_map::build_mapping(
-        ref, part.get(), query, target_ids, remote_local_idxs,
+        ref, part.get(), this_rank, query, target_ids, remote_local_idxs,
         remote_global_idxs, remote_sizes);
     gko::kernels::GKO_DEVICE_NAMESPACE::index_map::build_mapping(
-        exec, dpart.get(), dquery, dtarget_ids, dremote_local_idxs,
+        exec, dpart.get(), this_rank, dquery, dtarget_ids, dremote_local_idxs,
+        dremote_global_idxs, dremote_sizes);
+
+    GKO_ASSERT_ARRAY_EQ(remote_sizes, dremote_sizes);
+    GKO_ASSERT_ARRAY_EQ(target_ids, dtarget_ids);
+    GKO_ASSERT_ARRAY_EQ(remote_local_idxs, dremote_local_idxs);
+    GKO_ASSERT_ARRAY_EQ(remote_global_idxs, dremote_global_idxs);
+}
+
+
+TEST_F(IndexMapBuildMapping, BuildMappingWithLocalIndicesSameAsRef)
+{
+    using local_index_type = gko::int32;
+    using global_index_type = gko::int64;
+    using part_type =
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
+    std::default_random_engine engine;
+    comm_index_type num_parts = 13;
+    global_index_type local_size = 41;
+    comm_index_type this_rank = 5;
+    std::shared_ptr<part_type> part = part_type::build_from_global_size_uniform(
+        ref, num_parts, num_parts * local_size);
+    std::shared_ptr<part_type> dpart =
+        part_type::build_from_global_size_uniform(exec, num_parts,
+                                                  num_parts * local_size);
+    // Draw from the whole global index space, so the query also contains
+    // duplicates and indices owned by this_rank, which have to be ignored.
+    std::uniform_int_distribution<global_index_type> dist(
+        0, num_parts * local_size - 1);
+    gko::array<global_index_type> query{ref, 200};
+    std::generate_n(query.get_data(), query.get_size(),
+                    [&] { return dist(engine); });
+    ASSERT_TRUE(std::any_of(
+        query.get_const_data(), query.get_const_data() + query.get_size(),
+        [&](auto idx) { return idx / local_size == this_rank; }));
+    auto dquery = gko::array<global_index_type>(exec, query);
+    gko::array<comm_index_type> target_ids{ref};
+    gko::array<local_index_type> remote_local_idxs{ref};
+    gko::array<global_index_type> remote_global_idxs{ref};
+    gko::array<gko::int64> remote_sizes{ref};
+    gko::array<comm_index_type> dtarget_ids{exec};
+    gko::array<local_index_type> dremote_local_idxs{exec};
+    gko::array<global_index_type> dremote_global_idxs{exec};
+    gko::array<gko::int64> dremote_sizes{exec};
+
+    gko::kernels::reference::index_map::build_mapping(
+        ref, part.get(), this_rank, query, target_ids, remote_local_idxs,
+        remote_global_idxs, remote_sizes);
+    gko::kernels::GKO_DEVICE_NAMESPACE::index_map::build_mapping(
+        exec, dpart.get(), this_rank, dquery, dtarget_ids, dremote_local_idxs,
         dremote_global_idxs, dremote_sizes);
 
     GKO_ASSERT_ARRAY_EQ(remote_sizes, dremote_sizes);
@@ -134,10 +184,10 @@ protected:
         auto dremote_sizes = gko::array<gko::int64>(exec);
 
         gko::kernels::reference::index_map::build_mapping(
-            ref, part.get(), connections, target_ids, flat_remote_local_idxs,
-            flat_remote_global_idxs, remote_sizes);
+            ref, part.get(), this_rank, connections, target_ids,
+            flat_remote_local_idxs, flat_remote_global_idxs, remote_sizes);
         gko::kernels::GKO_DEVICE_NAMESPACE::index_map::build_mapping(
-            exec, dpart.get(), dconnections, dtarget_ids,
+            exec, dpart.get(), this_rank, dconnections, dtarget_ids,
             dflat_remote_local_idxs, dflat_remote_global_idxs, dremote_sizes);
 
         remote_local_idxs =
