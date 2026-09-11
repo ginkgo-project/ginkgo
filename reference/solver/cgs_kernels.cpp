@@ -15,7 +15,6 @@ namespace reference {
 /**
  * @brief The CGS solver namespace.
  *
- * @ingroup cgs
  */
 namespace cgs {
 

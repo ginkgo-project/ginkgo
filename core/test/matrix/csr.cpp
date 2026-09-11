@@ -8,6 +8,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/matrix/csr_builder.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -26,13 +27,11 @@ protected:
     Csr()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::matrix::Csr<value_type, index_type>::create(
-              exec, gko::dim<2>{2, 3}, 4,
-              std::make_shared<typename Mtx::load_balance>(2)))
+              exec, gko::dim<2>{2, 3}, 4))
     {
         value_type* v = mtx->get_values();
         index_type* c = mtx->get_col_idxs();
         index_type* r = mtx->get_row_ptrs();
-        index_type* s = mtx->get_srow();
         r[0] = 0;
         r[1] = 3;
         r[2] = 4;
@@ -44,13 +43,15 @@ protected:
         v[1] = 3.0;
         v[2] = 2.0;
         v[3] = 5.0;
-        s[0] = 0;
+        // When changing the sparsity, we need set strategy to trigger
+        // recomputation on srow.
+        mtx->set_strategy(mtx->get_strategy());
     }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx;
 
-    void assert_equal_to_original_mtx(gko::ptr_param<const Mtx> m)
+    void assert_equal_to_original_mtx(gko::ptr_param<Mtx> m)
     {
         auto v = m->get_const_values();
         auto c = m->get_const_col_idxs();
@@ -69,10 +70,13 @@ protected:
         EXPECT_EQ(v[1], value_type{3.0});
         EXPECT_EQ(v[2], value_type{2.0});
         EXPECT_EQ(v[3], value_type{5.0});
-        EXPECT_EQ(s[0], 0);
+        ASSERT_EQ(s, nullptr);
+        ASSERT_EQ(gko::matrix::make_builder_unique_ptr(m.get())
+                      ->get_max_nnz_per_row(),
+                  3);
     }
 
-    void assert_empty(gko::ptr_param<const Mtx> m)
+    void assert_empty(gko::ptr_param<Mtx> m)
     {
         ASSERT_EQ(m->get_size(), gko::dim<2>(0, 0));
         ASSERT_EQ(m->get_num_stored_elements(), 0);
@@ -80,6 +84,9 @@ protected:
         ASSERT_EQ(m->get_const_col_idxs(), nullptr);
         ASSERT_NE(m->get_const_row_ptrs(), nullptr);
         ASSERT_EQ(m->get_const_srow(), nullptr);
+        ASSERT_EQ(gko::matrix::make_builder_unique_ptr(m.get())
+                      ->get_max_nnz_per_row(),
+                  0);
     }
 };
 
@@ -108,6 +115,30 @@ TYPED_TEST(Csr, CanBeEmpty)
 }
 
 
+TYPED_TEST(Csr, CanCreateDeviceView)
+{
+    auto view = this->mtx->get_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.num_stored_elements, this->mtx->get_num_stored_elements());
+    EXPECT_EQ(view.values, this->mtx->get_values());
+    EXPECT_EQ(view.row_ptrs, this->mtx->get_row_ptrs());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_col_idxs());
+}
+
+
+TYPED_TEST(Csr, CanCreateConstDeviceView)
+{
+    auto view = this->mtx->get_const_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.num_stored_elements, this->mtx->get_num_stored_elements());
+    EXPECT_EQ(view.values, this->mtx->get_values());
+    EXPECT_EQ(view.row_ptrs, this->mtx->get_row_ptrs());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_col_idxs());
+}
+
+
 TYPED_TEST(Csr, CanBeCreatedFromExistingData)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -122,13 +153,15 @@ TYPED_TEST(Csr, CanBeCreatedFromExistingData)
         gko::make_array_view(this->exec, 4, values),
         gko::make_array_view(this->exec, 4, col_idxs),
         gko::make_array_view(this->exec, 4, row_ptrs),
-        std::make_shared<typename Mtx::load_balance>(2));
+        gko::matrix::csr::spmv_strategy::load_balance);
 
-    ASSERT_EQ(mtx->get_num_srow_elements(), 1);
+    ASSERT_EQ(mtx->get_strategy(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+    ASSERT_EQ(mtx->get_num_srow_elements(), 0);
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
-    ASSERT_EQ(mtx->get_const_srow()[0], 0);
+    ASSERT_EQ(mtx->get_const_srow(), nullptr);
 }
 
 
@@ -146,14 +179,134 @@ TYPED_TEST(Csr, CanBeCreatedFromExistingConstData)
         gko::array<value_type>::const_view(this->exec, 4, values),
         gko::array<index_type>::const_view(this->exec, 4, col_idxs),
         gko::array<index_type>::const_view(this->exec, 4, row_ptrs),
-        std::make_shared<typename Mtx::load_balance>(2));
+        gko::matrix::csr::spmv_strategy::load_balance);
 
-    ASSERT_EQ(mtx->get_num_srow_elements(), 1);
+    ASSERT_EQ(mtx->get_strategy(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+    ASSERT_EQ(mtx->get_num_srow_elements(), 0);
     ASSERT_EQ(mtx->get_const_values(), values);
     ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
     ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
-    ASSERT_EQ(mtx->get_const_srow()[0], 0);
 }
+
+
+GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+
+TYPED_TEST(Csr, DeprecatedStrategyReturnCorrectEnum)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto automatical_strategy =
+        std::make_shared<typename Mtx::automatical>(this->exec);
+    auto classical_strategy = std::make_shared<typename Mtx::classical>();
+    auto merge_path_strategy = std::make_shared<typename Mtx::merge_path>();
+    auto load_balance_strategy =
+        std::make_shared<typename Mtx::load_balance>(this->exec);
+    auto sparselib_strategy = std::make_shared<typename Mtx::sparselib>();
+    auto cusparse_strategy = std::make_shared<typename Mtx::cusparse>();
+
+    ASSERT_EQ(automatical_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::automatic);
+    ASSERT_EQ(classical_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::classical);
+    ASSERT_EQ(merge_path_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::merge_path);
+    ASSERT_EQ(load_balance_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+    ASSERT_EQ(sparselib_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::sparselib);
+    ASSERT_EQ(cusparse_strategy->get_enum(),
+              gko::matrix::csr::spmv_strategy::sparselib);
+}
+
+
+TYPED_TEST(Csr, CanBeCreatedFromDeprecatedStrategy)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx_automatical = Mtx::create(
+        this->exec, std::make_shared<typename Mtx::automatical>(this->exec));
+    auto mtx_nullptr = Mtx::create(
+        this->exec, std::shared_ptr<typename Mtx::strategy_type>{nullptr});
+    auto mtx_classical =
+        Mtx::create(this->exec, std::make_shared<typename Mtx::classical>());
+    auto mtx_merge_path =
+        Mtx::create(this->exec, std::make_shared<typename Mtx::merge_path>());
+    auto mtx_load_balance = Mtx::create(
+        this->exec, std::make_shared<typename Mtx::load_balance>(this->exec));
+    auto mtx_sparselib =
+        Mtx::create(this->exec, std::make_shared<typename Mtx::sparselib>());
+    auto mtx_cusparse =
+        Mtx::create(this->exec, std::make_shared<typename Mtx::cusparse>());
+
+    ASSERT_EQ(mtx_automatical->get_strategy(),
+              gko::matrix::csr::spmv_strategy::automatic);
+    ASSERT_EQ(mtx_nullptr->get_strategy(),
+              gko::matrix::csr::spmv_strategy::automatic);
+    ASSERT_EQ(mtx_classical->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
+    ASSERT_EQ(mtx_merge_path->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
+    ASSERT_EQ(mtx_load_balance->get_strategy(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+    ASSERT_EQ(mtx_sparselib->get_strategy(),
+              gko::matrix::csr::spmv_strategy::sparselib);
+    ASSERT_EQ(mtx_cusparse->get_strategy(),
+              gko::matrix::csr::spmv_strategy::sparselib);
+}
+
+
+TYPED_TEST(Csr, CanBeCreatedFromExistingDataAndDeprecatedStrategy)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 2.0, 3.0, 4.0};
+    index_type col_idxs[] = {0, 1, 1, 0};
+    index_type row_ptrs[] = {0, 2, 3, 4};
+
+    auto mtx =
+        Mtx::create(this->exec, gko::dim<2>{3, 2},
+                    gko::make_array_view(this->exec, 4, values),
+                    gko::make_array_view(this->exec, 4, col_idxs),
+                    gko::make_array_view(this->exec, 4, row_ptrs),
+                    std::make_shared<typename Mtx::load_balance>(this->exec));
+
+    ASSERT_EQ(mtx->get_strategy(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+    ASSERT_EQ(mtx->get_num_srow_elements(), 0);
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_const_srow(), nullptr);
+}
+
+
+TYPED_TEST(Csr, CanBeCreatedFromExistingConstDataAndDeprecatedStrategy)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    const value_type values[] = {1.0, 2.0, 3.0, 4.0};
+    const index_type col_idxs[] = {0, 1, 1, 0};
+    const index_type row_ptrs[] = {0, 2, 3, 4};
+
+    auto mtx = Mtx::create_const(
+        this->exec, gko::dim<2>{3, 2},
+        gko::array<value_type>::const_view(this->exec, 4, values),
+        gko::array<index_type>::const_view(this->exec, 4, col_idxs),
+        gko::array<index_type>::const_view(this->exec, 4, row_ptrs),
+        std::make_shared<typename Mtx::load_balance>(this->exec));
+
+    ASSERT_EQ(mtx->get_num_srow_elements(), 0);
+    ASSERT_EQ(mtx->get_const_values(), values);
+    ASSERT_EQ(mtx->get_const_col_idxs(), col_idxs);
+    ASSERT_EQ(mtx->get_const_row_ptrs(), row_ptrs);
+    ASSERT_EQ(mtx->get_strategy(),
+              gko::matrix::csr::spmv_strategy::load_balance);
+}
+
+
+GKO_END_DISABLE_DEPRECATION_WARNINGS
 
 
 TYPED_TEST(Csr, CanBeCopied)
@@ -194,8 +347,8 @@ TYPED_TEST(Csr, CanBeCloned)
 TYPED_TEST(Csr, CanBeReadFromMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
-    auto m = Mtx::create(this->exec,
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m =
+        Mtx::create(this->exec, gko::matrix::csr::spmv_strategy::load_balance);
 
     m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
@@ -213,7 +366,7 @@ TYPED_TEST(Csr, CanBeReadFromMatrixDataIntoViews)
     auto values = gko::array<value_type>(this->exec, 4);
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         gko::matrix::csr::spmv_strategy::load_balance);
 
     m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 1, 5.0}}});
 
@@ -234,7 +387,7 @@ TYPED_TEST(Csr, ThrowsOnIncompatibleReadFromMatrixDataIntoViews)
     auto values = gko::array<value_type>(this->exec, 1);
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         gko::matrix::csr::spmv_strategy::load_balance);
 
     ASSERT_THROW(m->read({{2, 3}, {{0, 0, 1.0}, {0, 1, 3.0}}}),
                  gko::NotSupported);
@@ -246,8 +399,8 @@ TYPED_TEST(Csr, CanBeReadFromMatrixAssemblyData)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto m = Mtx::create(this->exec,
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m =
+        Mtx::create(this->exec, gko::matrix::csr::spmv_strategy::load_balance);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -265,8 +418,8 @@ TYPED_TEST(Csr, CanBeReadFromDeviceMatrixData)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto m = Mtx::create(this->exec,
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m =
+        Mtx::create(this->exec, gko::matrix::csr::spmv_strategy::load_balance);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -295,7 +448,7 @@ TYPED_TEST(Csr, CanBeReadFromDeviceMatrixDataIntoViews)
     auto values = gko::array<value_type>(this->exec, 4);
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         gko::matrix::csr::spmv_strategy::load_balance);
     gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -324,7 +477,7 @@ TYPED_TEST(Csr, ThrowsOnIncompatibleReadFromDeviceMatrixDataIntoViews)
     auto values = gko::array<value_type>(this->exec, 1);
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         gko::matrix::csr::spmv_strategy::load_balance);
     gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -341,8 +494,8 @@ TYPED_TEST(Csr, CanBeReadFromMovedDeviceMatrixData)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
-    auto m = Mtx::create(this->exec,
-                         std::make_shared<typename Mtx::load_balance>(2));
+    auto m =
+        Mtx::create(this->exec, gko::matrix::csr::spmv_strategy::load_balance);
     gko::matrix_assembly_data<value_type, index_type> data(gko::dim<2>{2, 3});
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -373,7 +526,7 @@ TYPED_TEST(Csr, CanBeReadFromMovedDeviceMatrixDataIntoViews)
     values.fill(gko::zero<value_type>());
     auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
                          col_idxs.as_view(), row_ptrs.as_view(),
-                         std::make_shared<typename Mtx::load_balance>(2));
+                         gko::matrix::csr::spmv_strategy::load_balance);
     gko::matrix_assembly_data<value_type, index_type> data(m->get_size());
     data.set_value(0, 0, 1.0);
     data.set_value(0, 1, 3.0);
@@ -418,6 +571,112 @@ TYPED_TEST(Csr, PermutingReuseInfoDefaultUpdateException)
     typename Mtx::permuting_reuse_info reuse;
 
     ASSERT_THROW(reuse.update_values(this->mtx, this->mtx), gko::NotSupported);
+}
+
+
+TYPED_TEST(Csr, RecognizesInfiniteValue)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    row_ptrs.fill(0);
+    col_idxs.fill(0);
+    values.fill(1.0);
+    values.get_data()[2] = INFINITY;
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view());
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Csr, RecognizesUnboundedRowPtr)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto row_ptrs = gko::array<index_type>(this->exec, 6);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    row_ptrs.get_data()[0] = 0;
+    row_ptrs.get_data()[1] = 1;
+    row_ptrs.get_data()[2] = 2;
+    row_ptrs.get_data()[3] = 3;
+    row_ptrs.get_data()[4] = 4;
+    row_ptrs.get_data()[5] = 5;
+    col_idxs.fill(0);
+    values.fill(0);
+    auto m = Mtx::create(this->exec, gko::dim<2>{5, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view());
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Csr, RecognizesUnboundedColumnIndex)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    row_ptrs.fill(0);
+    col_idxs.get_data()[0] = 0;
+    col_idxs.get_data()[1] = 1;
+    col_idxs.get_data()[2] = 2;
+    col_idxs.get_data()[3] = 5;
+    values.fill(0);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view());
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Csr, RecognizesUnorderedRowPointer)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    row_ptrs.get_data()[0] = 0;
+    row_ptrs.get_data()[1] = 1;
+    row_ptrs.get_data()[2] = 0;
+    col_idxs.fill(0);
+    values.fill(0);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view());
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Csr, AllowsRowPtrsGreaterThanNumRows)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto row_ptrs = gko::array<index_type>(this->exec, 3);
+    auto col_idxs = gko::array<index_type>(this->exec, 4);
+    auto values = gko::array<value_type>(this->exec, 4);
+    row_ptrs.get_data()[0] = 0;
+    row_ptrs.get_data()[1] = 3;
+    row_ptrs.get_data()[2] = 4;
+    col_idxs.get_data()[0] = 0;
+    col_idxs.get_data()[1] = 1;
+    col_idxs.get_data()[2] = 2;
+    col_idxs.get_data()[3] = 0;
+    values.fill(1.0);
+    auto m = Mtx::create(this->exec, gko::dim<2>{2, 3}, values.as_view(),
+                         col_idxs.as_view(), row_ptrs.as_view());
+
+    ASSERT_NO_THROW(m->validate_data());
 }
 
 

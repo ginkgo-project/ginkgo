@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -189,13 +189,15 @@ TEST_F(Ic, SetsCorrectStrategy)
 {
     auto dfact =
         gko::factorization::Ic<>::build()
-            .with_l_strategy(std::make_shared<Csr::merge_path>())
+            .with_l_strategy(gko::matrix::csr::spmv_strategy::merge_path)
             .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
             .on(exec)
             ->generate(dmtx);
 
-    ASSERT_EQ(dfact->get_l_factor()->get_strategy()->get_name(), "merge_path");
-    ASSERT_EQ(dfact->get_lt_factor()->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(dfact->get_l_factor()->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
+    ASSERT_EQ(dfact->get_lt_factor()->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -218,9 +218,11 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicCount)
         gko::array<index_type> drow_nnz{this->exec, mtx->get_size()[0]};
 
         gko::kernels::reference::cholesky::symbolic_count(
-            this->ref, mtx.get(), *forest, row_nnz.get_data(), this->tmp);
+            this->ref, mtx->get_const_device_view(), *forest,
+            row_nnz.get_data(), this->tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::symbolic_count(
-            this->exec, dmtx.get(), *dforest, drow_nnz.get_data(), this->dtmp);
+            this->exec, dmtx->get_const_device_view(), *dforest,
+            drow_nnz.get_data(), this->dtmp);
 
         GKO_ASSERT_ARRAY_EQ(drow_nnz, row_nnz);
     }
@@ -242,7 +244,8 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
         gko::factorization::compute_elimination_forest(mtx.get(), forest);
         gko::array<index_type> row_ptrs{this->ref, num_rows + 1};
         gko::kernels::reference::cholesky::symbolic_count(
-            this->ref, mtx.get(), *forest, row_ptrs.get_data(), this->tmp);
+            this->ref, mtx->get_const_device_view(), *forest,
+            row_ptrs.get_data(), this->tmp);
         gko::kernels::reference::components::prefix_sum_nonnegative(
             this->ref, row_ptrs.get_data(), num_rows + 1);
         const auto nnz =
@@ -259,12 +262,15 @@ TYPED_TEST(CholeskySymbolic, KernelSymbolicFactorize)
         gko::factorization::compute_elimination_forest(dmtx.get(), dforest);
         gko::array<index_type> dtmp_ptrs{this->exec, num_rows + 1};
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::symbolic_count(
-            this->exec, dmtx.get(), *dforest, dtmp_ptrs.get_data(), this->dtmp);
+            this->exec, dmtx->get_const_device_view(), *dforest,
+            dtmp_ptrs.get_data(), this->dtmp);
 
         gko::kernels::reference::cholesky::symbolic_factorize(
-            this->ref, mtx.get(), *forest, l_factor.get(), this->tmp);
+            this->ref, mtx->get_const_device_view(), *forest,
+            l_factor->get_device_view(), this->tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::symbolic_factorize(
-            this->exec, dmtx.get(), *dforest, dl_factor.get(), this->dtmp);
+            this->exec, dmtx->get_const_device_view(), *dforest,
+            dl_factor->get_device_view(), this->dtmp);
 
         GKO_ASSERT_MTX_EQ_SPARSITY(dl_factor, l_factor);
     }
@@ -309,7 +315,7 @@ TYPED_TEST(CholeskySymbolic, KernelForestFromFactorWorks)
                                    static_cast<index_type>(mtx->get_size()[0])};
 
         gko::kernels::GKO_DEVICE_NAMESPACE::elimination_forest::from_factor(
-            this->exec, dfactors.get(), dforest);
+            this->exec, dfactors->get_const_device_view(), dforest);
 
         this->assert_equal_forests(*forest, dforest);
     }
@@ -425,17 +431,17 @@ TYPED_TEST(Cholesky, KernelInitializeIsEquivalentToRef)
         gko::array<index_type> dtranspose_idxs{this->exec, nnz};
 
         gko::kernels::reference::cholesky::initialize(
-            this->ref, this->mtx.get(),
+            this->ref, this->mtx->get_const_device_view(),
             this->lookup.storage_offsets.get_const_data(),
             this->lookup.row_descs.get_const_data(),
             this->lookup.storage.get_const_data(), diag_idxs.get_data(),
-            transpose_idxs.get_data(), this->mtx_chol.get());
+            transpose_idxs.get_data(), this->mtx_chol->get_device_view());
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::initialize(
-            this->exec, this->dmtx.get(),
+            this->exec, this->dmtx->get_const_device_view(),
             this->dlookup.storage_offsets.get_const_data(),
             this->dlookup.row_descs.get_const_data(),
             this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
-            dtranspose_idxs.get_data(), this->dmtx_chol.get());
+            dtranspose_idxs.get_data(), this->dmtx_chol->get_device_view());
 
         GKO_ASSERT_MTX_NEAR(this->dmtx_chol, this->dmtx_chol, 0.0);
         GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
@@ -456,30 +462,30 @@ TYPED_TEST(Cholesky, KernelFactorizeIsEquivalentToRef)
         gko::array<int> tmp{this->ref};
         gko::array<int> dtmp{this->exec};
         gko::kernels::reference::cholesky::initialize(
-            this->ref, this->mtx.get(),
+            this->ref, this->mtx->get_const_device_view(),
             this->lookup.storage_offsets.get_const_data(),
             this->lookup.row_descs.get_const_data(),
             this->lookup.storage.get_const_data(), diag_idxs.get_data(),
-            transpose_idxs.get_data(), this->mtx_chol.get());
+            transpose_idxs.get_data(), this->mtx_chol->get_device_view());
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::initialize(
-            this->exec, this->dmtx.get(),
+            this->exec, this->dmtx->get_const_device_view(),
             this->dlookup.storage_offsets.get_const_data(),
             this->dlookup.row_descs.get_const_data(),
             this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
-            dtranspose_idxs.get_data(), this->dmtx_chol.get());
+            dtranspose_idxs.get_data(), this->dmtx_chol->get_device_view());
 
         gko::kernels::reference::cholesky::factorize(
             this->ref, this->lookup.storage_offsets.get_const_data(),
             this->lookup.row_descs.get_const_data(),
             this->lookup.storage.get_const_data(), diag_idxs.get_const_data(),
             transpose_idxs.get_const_data(), *this->forest,
-            this->mtx_chol.get(), true, tmp);
+            this->mtx_chol->get_device_view(), true, tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::cholesky::factorize(
             this->exec, this->dlookup.storage_offsets.get_const_data(),
             this->dlookup.row_descs.get_const_data(),
             this->dlookup.storage.get_const_data(), ddiag_idxs.get_const_data(),
             dtranspose_idxs.get_const_data(), *this->dforest,
-            this->dmtx_chol.get(), true, dtmp);
+            this->dmtx_chol->get_device_view(), true, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_chol, this->dmtx_chol,
                             r<value_type>::value);

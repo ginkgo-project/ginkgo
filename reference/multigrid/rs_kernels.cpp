@@ -14,27 +14,29 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
+#include "core/multigrid/rs_helpers.hpp"
+
 namespace gko {
 namespace kernels {
 namespace reference {
 /**
  * @brief The RS solver namespace.
  *
- * @ingroup rs
  */
 namespace rs {
 
 template <typename ValueType, typename IndexType>
 void check_m_matrix(std::shared_ptr<const ReferenceExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* matrix,
+                    matrix::view::csr<const ValueType, const IndexType> matrix,
                     array<bool>& is_m_matrix_array)
 {
-    const auto num_rows = matrix->get_size()[0];
-    const auto row_ptrs = matrix->get_const_row_ptrs();
-    const auto col_idxs = matrix->get_const_col_idxs();
-    const auto values = matrix->get_const_values();
+    const auto num_rows = matrix.size[0];
+    const auto row_ptrs = matrix.row_ptrs;
+    const auto col_idxs = matrix.col_idxs;
+    const auto values = matrix.values;
 
     auto is_m_matrix = is_m_matrix_array.get_data();
+    *is_m_matrix = true;
 
     for (size_type row = 0; row < num_rows; ++row) {
         bool has_diag = false;
@@ -69,17 +71,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_soc_and_run_rs(std::shared_ptr<const ReferenceExecutor> exec,
-                            const matrix::Csr<ValueType, IndexType>* A,
-                            double theta, array<bool>& is_strong,
-                            array<IndexType>& lambda,
-                            array<IndexType>& cf_marker, IndexType& coarse_size)
+void compute_soc_and_run_rs(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> A, double theta,
+    array<bool>& is_strong, array<IndexType>& lambda,
+    array<IndexType>& cf_marker, IndexType& coarse_size)
 {
     using real_type = remove_complex<ValueType>;
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-    const auto* a_col_idxs = A->get_const_col_idxs();
-    const auto* a_vals = A->get_const_values();
+    const auto n = A.size[0];
+    const auto* a_row_ptrs = A.row_ptrs;
+    const auto* a_col_idxs = A.col_idxs;
+    const auto* a_vals = A.values;
     bool* is_strong_vals = is_strong.get_data();
     auto* lambda_vals = lambda.get_data();
     auto* cf = cf_marker.get_data();
@@ -91,14 +93,14 @@ void compute_soc_and_run_rs(std::shared_ptr<const ReferenceExecutor> exec,
 
         // pass 1: find max off-diagonal
         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-            if (A->get_const_col_idxs()[jj] != i) {
+            if (A.col_idxs[jj] != i) {
                 max_offdiag = std::max(max_offdiag, -real(a_vals[jj]));
             }
         }
 
         // pass 2: set mask
         for (IndexType jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-            const auto j = A->get_const_col_idxs()[jj];
+            const auto j = A.col_idxs[jj];
             is_strong_vals[jj] =
                 (j != i && -real(a_vals[jj]) >= theta * max_offdiag);
         }
@@ -113,53 +115,18 @@ void compute_soc_and_run_rs(std::shared_ptr<const ReferenceExecutor> exec,
         lambda_vals[i] = count;
     }
 
-    /// 3. INIT ALL NODES AS UNDECIDED (0)
-    for (size_type i = 0; i < cf_marker.get_size(); ++i) {
-        cf[i] = 0;  // 0 = undecided
-    }
+    /// 3. RS-COARSENING (0 = undecided, 1 = C-point, -1 = F-point)
+    gko::multigrid::rs::greedy_cf_splitting(exec, n, a_row_ptrs, a_col_idxs,
+                                            is_strong_vals, lambda_vals, cf);
 
-    /// 4. RS-COARSENING
-    while (true) {
-        // Find max lambda among undecided (cf == 0)
-        IndexType max_idx = -1;
-        IndexType max_val = -1;
-
-        for (IndexType i = 0; i < n; ++i) {
-            if (cf[i] == 0 && lambda_vals[i] > max_val) {
-                max_val = lambda_vals[i];
-                max_idx = i;
-            }
-        }
-        if (max_idx == -1) break;
-
-        cf[max_idx] = 1;  // C-point
-
-        for (IndexType jj = a_row_ptrs[max_idx]; jj < a_row_ptrs[max_idx + 1];
-             ++jj) {
-            if (is_strong_vals[jj]) {
-                const auto j = a_col_idxs[jj];
-                if (cf[j] == 0) {
-                    cf[j] = -1;  // F-point
-                    // update neighbors of the newly marked F-point
-                    for (IndexType kk = a_row_ptrs[j]; kk < a_row_ptrs[j + 1];
-                         ++kk) {
-                        if (is_strong_vals[kk] && cf[a_col_idxs[kk]] == 0) {
-                            lambda_vals[a_col_idxs[kk]]--;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// 5. CLEANUP, MAKE SURE NO UNDECIDED REMAIN
+    /// 4. CLEANUP, MAKE SURE NO UNDECIDED REMAIN
     for (size_type i = 0; i < cf_marker.get_size(); ++i) {
         if (cf[i] == 0) {  // undecided
             cf[i] = -1;    // make F
         }
     }
 
-    /// 6. COUNT C-POINTS
+    /// 5. COUNT C-POINTS
     IndexType count = 0;
     for (size_type i = 0; i < cf_marker.get_size(); ++i) {
         if (cf[i] == 1) {
@@ -178,17 +145,17 @@ void fill_coarse_and_compute_prolong_row_ptrs(
     std::shared_ptr<const ReferenceExecutor> exec,
     const array<IndexType>& cf_marker, array<IndexType>& coarse_rows,
     array<IndexType>& fine_to_coarse,
-    const matrix::Csr<ValueType, IndexType>* A, const array<bool>& is_strong,
-    array<IndexType>& row_ptrs)
+    matrix::view::csr<const ValueType, const IndexType> A,
+    const array<bool>& is_strong, array<IndexType>& row_ptrs)
 {
     const auto* cf = cf_marker.get_const_data();
     auto* coarse_rows_vals = coarse_rows.get_data();
     auto* fine_to_coarse_vals = fine_to_coarse.get_data();
     auto* row_ptrs_vals = row_ptrs.get_data();
     const bool* is_strong_vals = is_strong.get_const_data();
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-    const auto* a_col_idxs = A->get_const_col_idxs();
+    const auto n = A.size[0];
+    const auto* a_row_ptrs = A.row_ptrs;
+    const auto* a_col_idxs = A.col_idxs;
 
     /// 1. FILL COARSE ROW INDEX ARRAY
     IndexType idx = 0;
@@ -231,21 +198,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_interpolation(std::shared_ptr<const ReferenceExecutor> exec,
-                           const matrix::Csr<ValueType, IndexType>* A,
-                           const bool* is_strong,
-                           const array<IndexType>& cf_marker,
-                           const IndexType* fine_to_coarse,
-                           matrix::Csr<ValueType, IndexType>* P)
+void compute_interpolation(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> A,
+    const bool* is_strong, const array<IndexType>& cf_marker,
+    const IndexType* fine_to_coarse, matrix::view::csr<ValueType, IndexType> P)
 {
-    const auto n = A->get_size()[0];
-    const auto* a_row_ptrs = A->get_const_row_ptrs();
-    const auto* a_col_idxs = A->get_const_col_idxs();
-    const auto* a_vals = A->get_const_values();
+    const auto n = A.size[0];
+    const auto* a_row_ptrs = A.row_ptrs;
+    const auto* a_col_idxs = A.col_idxs;
+    const auto* a_vals = A.values;
     const auto* cf = cf_marker.get_const_data();
-    auto* p_row_ptrs = P->get_const_row_ptrs();
-    auto* p_col_idxs = P->get_col_idxs();
-    auto* p_vals = P->get_values();
+    auto* p_row_ptrs = P.row_ptrs;
+    auto* p_col_idxs = P.col_idxs;
+    auto* p_vals = P.values;
 
     for (IndexType i = 0; i < n; ++i) {
         auto p_idx = p_row_ptrs[i];

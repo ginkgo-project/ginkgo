@@ -29,35 +29,41 @@ namespace factorization {
  * ParICT is an incomplete threshold-based Cholesky factorization which is
  * computed in parallel.
  *
- * $L$ is a lower triangular matrix which approximates a given symmetric
- * positive definite matrix $A$ with $A \approx LL^T$. Here, $L$ has a sparsity
- * pattern that is improved iteratively based on its element-wise magnitude.
- * The initial sparsity pattern is chosen based on the lower triangle of $A$.
+ * \f$L\f$ is a lower triangular matrix which approximates a given symmetric
+ * positive definite matrix \f$A\f$ with \f$A \approx LL^T\f$. Here, \f$L\f$ has
+ * a sparsity pattern that is improved iteratively based on its element-wise
+ * magnitude. The initial sparsity pattern is chosen based on the lower triangle
+ * of \f$A\f$.
  *
  * One iteration of the ParICT algorithm consists of the following steps:
  *
- * 1. Calculating the residual $R = A - LL^T$
- * 2. Adding new non-zero locations from $R$ to $L$.
- *    The new non-zero locations are initialized based on the corresponding
- *    residual value.
- * 3. Executing a fixed-point iteration on $L$ according to
- * $
- * F(L) =
- * \begin{cases}
- *     \frac{1}{l_{jj}}
- *         \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}l_{jk}\right), \quad & i \neq j \\
- *     \sqrt{a_{ij}-\sum_{k=1}^{j-1}l_{ik}l_{jk}}, \quad & i = j \\
- * \end{cases}
- * $
- * 4. Removing the smallest entries (by magnitude) from $L$
- * 5. Executing a fixed-point iteration on the (now sparser) $L$
+ * 1. Calculate the residual \f$R = A - LL^T\f$.
+ * 2. Add new non-zero locations from \f$R\f$ to \f$L\f$. The new non-zero
+ *    locations are initialized from the corresponding residual entries.
+ * 3. Execute a fixed-point iteration on \f$L\f$ according to
+ *
+ *    \f[
+ *      F(L)_{ij} = \begin{cases}
+ *        \frac{1}{l_{jj}}
+ *          \left( a_{ij} - \sum_{k=1}^{j-1} l_{ik} l_{jk} \right),
+ *          & i \neq j, \\
+ *        \sqrt{ a_{ij} - \sum_{k=1}^{j-1} l_{ik} l_{jk} },
+ *          & i = j.
+ *      \end{cases}
+ *    \f]
+ *
+ * 4. Remove the smallest entries (by magnitude) from \f$L\f$.
+ * 5. Execute a fixed-point iteration on the (now sparser) \f$L\f$.
  *
  * This ParICT algorithm thus improves the sparsity pattern and the
- * approximation of $L$ simultaneously.
+ * approximation of \f$L\f$ simultaneously.
  *
- * The implementation follows the design of H. Anzt et al.,
- * ParILUT - A Parallel Threshold ILU for GPUs, 2019 IEEE International
- * Parallel and Distributed Processing Symposium (IPDPS), pp. 231–241.
+ * @par References
+ * - Anzt, H., Chow, E., Dongarra, J.
+ *   *ParILUT — A Parallel Threshold ILU for GPUs.*
+ *   2019 IEEE International Parallel and Distributed Processing Symposium
+ *   (IPDPS), pp. 231–241.
+ *   <https://doi.org/10.1109/IPDPS.2019.00033>
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
@@ -170,19 +176,45 @@ public:
          */
         double GKO_FACTORY_PARAMETER_SCALAR(fill_in_limit, 2.0);
 
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
         /**
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
+        GKO_DEPRECATED("use matrix::csr::spmv_strategy instead")
+        parameters_type& with_l_strategy(
+            std::shared_ptr<typename matrix_type::strategy_type> value)
+        {
+            if (value) {
+                this->l_strategy = value->get_enum();
+            } else {
+                this->l_strategy = matrix::csr::spmv_strategy::classical;
+            }
+            return *this;
+        }
+
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+        /**
+         * Strategy which will be used by the L matrix. The default value is
+         * `classical`.
+         */
+        parameters_type& with_l_strategy(matrix::csr::spmv_strategy value)
+        {
+            this->l_strategy = value;
+            return *this;
+        }
+
+        matrix::csr::spmv_strategy l_strategy{
+            matrix::csr::spmv_strategy::classical};
 
         /**
          * Strategy which will be used by the L^T matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(lt_strategy, nullptr);
+        matrix::csr::spmv_strategy GKO_FACTORY_PARAMETER_SCALAR(
+            lt_strategy, matrix::csr::spmv_strategy::classical);
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIct, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -211,14 +243,6 @@ protected:
         : Composition<ValueType>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        if (parameters_.l_strategy == nullptr) {
-            parameters_.l_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        if (parameters_.lt_strategy == nullptr) {
-            parameters_.lt_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
         auto comp = generate_l_lt(std::move(system_matrix));
         for (auto& op : comp->get_operators()) {
             this->add_operators(op);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,7 +35,6 @@ protected:
     using bitvector = gko::bitvector<index_type>;
     using device_bitvector = gko::device_bitvector<index_type>;
     using storage_type = typename bitvector::storage_type;
-    constexpr static auto block_size = bitvector::block_size;
 
     Bitvector()
         : rng{67193}, sizes{0,    1,    2,    16,    31,    32,  33,
@@ -173,7 +172,6 @@ TYPED_TEST(Bitvector, AccessIsEquivalentToRef)
 {
     using index_type = typename TestFixture::index_type;
     using storage_type = typename TestFixture::storage_type;
-    constexpr auto block_size = TestFixture::block_size;
     for (auto size : this->sizes) {
         SCOPED_TRACE(size);
         for (auto num_values :

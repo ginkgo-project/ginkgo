@@ -29,38 +29,45 @@ namespace factorization {
  * ParILUT is an incomplete threshold-based LU factorization which is computed
  * in parallel.
  *
- * $L$ is a lower unitriangular, while $U$ is an upper triangular matrix, which
- * approximate a given matrix $A$ with $A \approx LU$. Here, $L$ and $U$ have
- * a sparsity pattern that is improved iteratively based on their element-wise
- * magnitude. The initial sparsity pattern is chosen based on the $ILU(0)$
- * factorization of $A$.
+ * \f$L\f$ is a lower unitriangular, while \f$U\f$ is an upper triangular
+ * matrix, which approximate a given matrix \f$A\f$ with \f$A \approx LU\f$.
+ * Here, \f$L\f$ and \f$U\f$ have a sparsity pattern that is improved
+ * iteratively based on their element-wise magnitude. The initial sparsity
+ * pattern is chosen based on the \f$ILU(0)\f$ factorization of \f$A\f$.
  *
  * One iteration of the ParILUT algorithm consists of the following steps:
  *
- * 1. Calculating the residual $R = A - LU$
- * 2. Adding new non-zero locations from $R$ to $L$ and $U$.
- *    The new non-zero locations are initialized based on the corresponding
- *    residual value.
- * 3. Executing a fixed-point iteration on $L$ and $U$ according to
- * $
- * F(L, U) =
- * \begin{cases}
- *     \frac{1}{u_{jj}}
- *         \left(a_{ij}-\sum_{k=1}^{j-1}l_{ik}u_{kj}\right), \quad & i>j \\
- *     a_{ij}-\sum_{k=1}^{i-1}l_{ik}u_{kj}, \quad & i\leq j
- * \end{cases}
- * $
+ * 1. Calculate the residual \f$R = A - LU\f$.
+ * 2. Add new non-zero locations from \f$R\f$ to \f$L\f$ and \f$U\f$. The new
+ *    non-zero locations are initialized from the corresponding residual
+ *    entries.
+ * 3. Execute a fixed-point iteration on \f$L\f$ and \f$U\f$ according to
+ *
+ *    \f[
+ *      F(L, U)_{ij} = \begin{cases}
+ *        \frac{1}{u_{jj}}
+ *          \left( a_{ij} - \sum_{k=1}^{j-1} l_{ik} u_{kj} \right),
+ *          & i > j, \\
+ *        a_{ij} - \sum_{k=1}^{i-1} l_{ik} u_{kj},
+ *          & i \leq j.
+ *      \end{cases}
+ *    \f]
+ *
  *    For a more detailed description of the fixed-point iteration, see
  *    @ref ParIlu.
- * 4. Removing the smallest entries (by magnitude) from $L$ and $U$
- * 5. Executing a fixed-point iteration on the (now sparser) $L$ and $U$
+ * 4. Remove the smallest entries (by magnitude) from \f$L\f$ and \f$U\f$.
+ * 5. Execute a fixed-point iteration on the (now sparser) \f$L\f$ and
+ *    \f$U\f$.
  *
  * This ParILUT algorithm thus improves the sparsity pattern and the
- * approximation of $L$ and $U$ simultaneously.
+ * approximation of \f$L\f$ and \f$U\f$ simultaneously.
  *
- * The implementation follows the design of H. Anzt et al.,
- * ParILUT - A Parallel Threshold ILU for GPUs, 2019 IEEE International
- * Parallel and Distributed Processing Symposium (IPDPS), pp. 231–241.
+ * @par References
+ * - Anzt, H., Chow, E., Dongarra, J.
+ *   *ParILUT — A Parallel Threshold ILU for GPUs.*
+ *   2019 IEEE International Parallel and Distributed Processing Symposium
+ *   (IPDPS), pp. 231–241.
+ *   <https://doi.org/10.1109/IPDPS.2019.00033>
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
@@ -176,19 +183,71 @@ public:
          */
         double GKO_FACTORY_PARAMETER_SCALAR(fill_in_limit, 2.0);
 
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
         /**
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
+        GKO_DEPRECATED("use matrix::csr::spmv_strategy instead")
+        parameters_type& with_l_strategy(
+            std::shared_ptr<typename matrix_type::strategy_type> value)
+        {
+            if (value) {
+                this->l_strategy = value->get_enum();
+            } else {
+                this->l_strategy = matrix::csr::spmv_strategy::classical;
+            }
+            return *this;
+        }
+
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+        /**
+         * Strategy which will be used by the L matrix. The default value is
+         * `classical`.
+         */
+        parameters_type& with_l_strategy(matrix::csr::spmv_strategy value)
+        {
+            this->l_strategy = value;
+            return *this;
+        }
+
+        matrix::csr::spmv_strategy l_strategy{
+            matrix::csr::spmv_strategy::classical};
+
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
         /**
          * Strategy which will be used by the U matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
+        GKO_DEPRECATED("use matrix::csr::spmv_strategy instead")
+        parameters_type& with_u_strategy(
+            std::shared_ptr<typename matrix_type::strategy_type> value)
+        {
+            if (value) {
+                this->u_strategy = value->get_enum();
+            } else {
+                this->u_strategy = matrix::csr::spmv_strategy::classical;
+            }
+            return *this;
+        }
+
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+        /**
+         * Strategy which will be used by the U matrix. The default value is
+         * `classical`.
+         */
+        parameters_type& with_u_strategy(matrix::csr::spmv_strategy value)
+        {
+            this->u_strategy = value;
+            return *this;
+        }
+
+        matrix::csr::spmv_strategy u_strategy{
+            matrix::csr::spmv_strategy::classical};
     };
     GKO_ENABLE_LIN_OP_FACTORY(ParIlut, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -217,14 +276,6 @@ protected:
         : Composition<ValueType>(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {
-        if (parameters_.l_strategy == nullptr) {
-            parameters_.l_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        if (parameters_.u_strategy == nullptr) {
-            parameters_.u_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
         auto comp = generate_l_u(std::move(system_matrix));
         for (auto& op : comp->get_operators()) {
             this->add_operators(op);

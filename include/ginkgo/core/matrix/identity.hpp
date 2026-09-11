@@ -27,7 +27,6 @@ namespace matrix {
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -52,6 +51,7 @@ public:
     /**
      * Creates an Identity matrix of the specified size.
      *
+     * @param exec  the executor where the Identity operator will be stored
      * @param size  size of the matrix (must be square)
      */
     GKO_DEPRECATED("use the version taking a size_type instead of dim<2>")
@@ -61,6 +61,7 @@ public:
     /**
      * Creates an Identity matrix of the specified size.
      *
+     * @param exec  the executor where the Identity operator will be stored
      * @param size  size of the matrix
      */
     static std::unique_ptr<Identity> create(

@@ -147,4 +147,16 @@ TYPED_TEST(Permutation, CanBeCloned)
 }
 
 
+TYPED_TEST(Permutation, RecognizesNotBijection)
+{
+    using index_type = typename TestFixture::index_type;
+    index_type data[] = {1, 0, 2, 2};
+
+    auto m = gko::matrix::Permutation<index_type>::create_const(
+        this->exec, gko::array<index_type>::const_view(this->exec, 4, data));
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
+
+
 }  // namespace

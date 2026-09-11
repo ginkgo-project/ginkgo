@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -219,7 +219,7 @@ template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void generate(syn::value_list<int, max_block_size>,
               std::shared_ptr<const DefaultExecutor> exec,
-              const matrix::Csr<ValueType, IndexType>* mtx,
+              matrix::view::csr<const ValueType, const IndexType> mtx,
               remove_complex<ValueType> accuracy, ValueType* block_data,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
                   storage_scheme,
@@ -238,34 +238,31 @@ void generate(syn::value_list<int, max_block_size>,
             kernel::adaptive_generate<max_block_size, subwarp_size,
                                       warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    mtx->get_size()[0], mtx->get_const_row_ptrs(),
-                    mtx->get_const_col_idxs(),
-                    as_device_type(mtx->get_const_values()),
-                    as_device_type(accuracy), as_device_type(block_data),
-                    storage_scheme, as_device_type(conditioning),
-                    block_precisions, block_ptrs, num_blocks);
+                    mtx.size[0], mtx.row_ptrs, mtx.col_idxs,
+                    as_device_type(mtx.values), as_device_type(accuracy),
+                    as_device_type(block_data), storage_scheme,
+                    as_device_type(conditioning), block_precisions, block_ptrs,
+                    num_blocks);
         } else {
             kernel::generate<max_block_size, subwarp_size, warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                    mtx->get_size()[0], mtx->get_const_row_ptrs(),
-                    mtx->get_const_col_idxs(),
-                    as_device_type(mtx->get_const_values()),
-                    as_device_type(block_data), storage_scheme, block_ptrs,
-                    num_blocks);
+                    mtx.size[0], mtx.row_ptrs, mtx.col_idxs,
+                    as_device_type(mtx.values), as_device_type(block_data),
+                    storage_scheme, block_ptrs, num_blocks);
         }
     }
 }
 
 
-#define DECLARE_JACOBI_GENERATE_INSTANTIATION(ValueType, IndexType)          \
-    void generate<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE,        \
-                  ValueType, IndexType>(                                     \
-        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>,                         \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        const matrix::Csr<ValueType, IndexType>*, remove_complex<ValueType>, \
-        ValueType*,                                                          \
-        const preconditioner::block_interleaved_storage_scheme<IndexType>&,  \
-        remove_complex<ValueType>*, precision_reduction*, const IndexType*,  \
+#define DECLARE_JACOBI_GENERATE_INSTANTIATION(ValueType, IndexType)         \
+    void generate<config::min_warps_per_block, GKO_JACOBI_BLOCK_SIZE,       \
+                  ValueType, IndexType>(                                    \
+        syn::value_list<int, GKO_JACOBI_BLOCK_SIZE>,                        \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        matrix::view::csr<const ValueType, const IndexType>,                \
+        remove_complex<ValueType>, ValueType*,                              \
+        const preconditioner::block_interleaved_storage_scheme<IndexType>&, \
+        remove_complex<ValueType>*, precision_reduction*, const IndexType*, \
         size_type)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

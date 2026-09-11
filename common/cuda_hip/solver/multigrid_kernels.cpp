@@ -23,7 +23,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The MULTIGRID solver namespace.
  *
- * @ingroup multigrid
  */
 namespace multigrid {
 

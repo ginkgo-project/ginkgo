@@ -47,7 +47,7 @@ protected:
         auto mtx_temp = gko::read<Csr>(input_file, ref);
         // Make sure there are diagonal elements present
         gko::kernels::reference::factorization::add_diagonal_elements(
-            ref, mtx_temp.get(), false);
+            ref, gko::matrix::make_builder_unique_ptr(mtx_temp).get(), false);
         auto dmtx_temp = gko::clone(exec, mtx_temp);
         mtx = gko::give(mtx_temp);
         dmtx = gko::give(dmtx_temp);
@@ -83,9 +83,10 @@ protected:
                              index_type* dl_row_ptrs, index_type* du_row_ptrs)
     {
         gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-            ref, mtx.get(), l_row_ptrs, u_row_ptrs);
+            ref, mtx->get_const_device_view(), l_row_ptrs, u_row_ptrs);
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::
-            initialize_row_ptrs_l_u(exec, dmtx.get(), dl_row_ptrs, du_row_ptrs);
+            initialize_row_ptrs_l_u(exec, dmtx->get_const_device_view(),
+                                    dl_row_ptrs, du_row_ptrs);
     }
 
     void initialize_lu(std::unique_ptr<Csr>& l, std::unique_ptr<Csr>& u,
@@ -115,9 +116,11 @@ protected:
         exec->copy(num_row_ptrs, du_row_ptrs.get_data(), du->get_row_ptrs());
 
         gko::kernels::reference::factorization::initialize_l_u(
-            ref, mtx.get(), l.get(), u.get());
+            ref, mtx->get_const_device_view(), l->get_device_view(),
+            u->get_device_view());
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::initialize_l_u(
-            exec, dmtx.get(), dl.get(), du.get());
+            exec, dmtx->get_const_device_view(), dl->get_device_view(),
+            du->get_device_view());
     }
 
     void compute_lu(std::unique_ptr<Csr>& l, std::unique_ptr<Csr>& u,
@@ -133,11 +136,12 @@ protected:
         auto u_transpose_dmtx = gko::as<Csr>(du->transpose());
 
         gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-            ref, iterations, coo->get_const_device_view(), l.get(),
-            u_transpose_mtx.get());
+            ref, iterations, coo->get_const_device_view(), l->get_device_view(),
+            u_transpose_mtx->get_device_view());
         gko::kernels::GKO_DEVICE_NAMESPACE::par_ilu_factorization::
             compute_l_u_factors(exec, iterations, dcoo->get_const_device_view(),
-                                dl.get(), u_transpose_dmtx.get());
+                                dl->get_device_view(),
+                                u_transpose_dmtx->get_device_view());
         auto u_lin_op = u_transpose_mtx->transpose();
         u = gko::as<Csr>(std::move(u_lin_op));
         auto du_lin_op = u_transpose_dmtx->transpose();
@@ -155,9 +159,9 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
     auto dmtx = gko::clone(this->exec, mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, mtx.get(), true);
+        this->ref, gko::matrix::make_builder_unique_ptr(mtx).get(), true);
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
-        this->exec, dmtx.get(), true);
+        this->exec, gko::matrix::make_builder_unique_ptr(dmtx).get(), true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.);
@@ -171,9 +175,9 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsortedEquivalentToRef)
     auto dmtx = gko::clone(this->exec, mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, mtx.get(), false);
+        this->ref, gko::matrix::make_builder_unique_ptr(mtx).get(), false);
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
-        this->exec, dmtx.get(), false);
+        this->exec, gko::matrix::make_builder_unique_ptr(dmtx).get(), false);
 
     ASSERT_FALSE(mtx->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.);
@@ -188,9 +192,9 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquareEquivalentToRef)
     auto dmtx = gko::clone(this->exec, mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, mtx.get(), true);
+        this->ref, gko::matrix::make_builder_unique_ptr(mtx).get(), true);
     gko::kernels::GKO_DEVICE_NAMESPACE::factorization::add_diagonal_elements(
-        this->exec, dmtx.get(), true);
+        this->exec, gko::matrix::make_builder_unique_ptr(dmtx).get(), true);
 
     ASSERT_TRUE(mtx->is_sorted_by_column_index());
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.);

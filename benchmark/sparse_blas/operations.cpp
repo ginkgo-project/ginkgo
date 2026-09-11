@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -575,7 +575,8 @@ bool validate_symbolic_factorization(const Mtx* input, const Mtx* factors)
     const auto exec = factors->get_executor();
     bool valid = false;
     exec->run(make_symbolic_validate(
-        input, factors, gko::matrix::csr::build_lookup(factors), valid));
+        input->get_const_device_view(), factors->get_const_device_view(),
+        gko::matrix::csr::build_lookup(factors), valid));
     return valid;
 }
 

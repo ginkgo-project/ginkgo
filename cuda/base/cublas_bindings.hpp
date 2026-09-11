@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,25 +17,21 @@ namespace gko {
 /**
  * @brief The device specific kernels namespace.
  *
- * @ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The CUDA namespace.
  *
- * @ingroup cuda
  */
 namespace cuda {
 /**
  * @brief The CUBLAS namespace.
  *
- * @ingroup cublas
  */
 namespace cublas {
 /**
  * @brief The detail namespace.
  *
- * @ingroup detail
  */
 namespace detail {
 

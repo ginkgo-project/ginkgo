@@ -159,7 +159,6 @@ option(
     OFF
 )
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
-option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF." OFF)
 option(
     GINKGO_BUILD_PAPI_SDE
     "Build Ginkgo with PAPI SDE. Enabled if a system installation is found."
@@ -260,7 +259,11 @@ if(MSVC)
     # MSVC has macro for min/max, it leads C2589 issue with CUDA 13.2.
     # We disable it by -DNOMINMAX
     # similar issue: https://stackoverflow.com/questions/1825904/error-c2589-on-stdnumeric-limitsdoublemin
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive-")
+    # After CMake 4.1, they do not add several flags for MSVC. (see Other Changes section in https://cmake.org/cmake/help/v4.1/release/4.1.html)
+    # `/Zc:inline` is required in Ginkgo to reduce the symbol significantly, so we add it back here.
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive- /Zc:inline"
+    )
 endif()
 if(MINGW OR CYGWIN)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -385,20 +388,6 @@ if(GINKGO_BUILD_HIP AND ROCTX_FOUND)
     set(GINKGO_HAVE_ROCTX 1)
 endif()
 
-# Switch off HWLOC for Windows and MacOS
-if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
-    set(GINKGO_BUILD_HWLOC
-        OFF
-        CACHE BOOL
-        "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS"
-        FORCE
-    )
-    message(
-        WARNING
-        "Ginkgo does not support HWLOC on Windows/MacOS, switch GINKGO_BUILD_HWLOC to OFF"
-    )
-endif()
-
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
 set(GINKGO_HAVE_OPENMPI_PRE_4_1_X OFF)
 if(GINKGO_BUILD_MPI)
@@ -450,17 +439,6 @@ if(GINKGO_BUILD_BENCHMARKS)
 endif()
 if(GINKGO_BUILD_TESTS OR GINKGO_BUILD_BENCHMARKS OR GINKGO_BUILD_EXAMPLES)
     find_package(nlohmann_json 3.9.1 QUIET)
-endif()
-
-# System provided, third party libraries (not bundled!)
-set(GINKGO_HAVE_HWLOC 0)
-if(GINKGO_BUILD_HWLOC)
-    find_package(HWLOC 2.1 REQUIRED)
-    set(GINKGO_HAVE_HWLOC 1)
-    message(
-        WARNING
-        "The GINKGO_BUILD_HWLOC option has no beneficial effect. Consider setting it to GINKGO_BUILD_HWLOC=OFF."
-    )
 endif()
 
 set(GINKGO_HAVE_PAPI_SDE 0)

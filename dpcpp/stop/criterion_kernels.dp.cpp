@@ -15,7 +15,6 @@ namespace dpcpp {
 /**
  * @brief The Setting of all statuses namespace.
  * @ref set_status
- * @ingroup set_all_statuses
  */
 namespace set_all_statuses {
 

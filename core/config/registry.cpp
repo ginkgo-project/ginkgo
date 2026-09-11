@@ -52,7 +52,10 @@ configuration_map generate_config_map()
             {"preconditioner::Sor", parse<LinOpFactoryType::Sor>},
             {"solver::Multigrid", parse<LinOpFactoryType::Multigrid>},
             {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>},
+            {"multigrid::Pmis", parse<LinOpFactoryType::Pmis>},
             {"multigrid::Rs", parse<LinOpFactoryType::Rs>},
+            {"multigrid::UniformCoarsening",
+             parse<LinOpFactoryType::UniformCoarsening>},
 #if GINKGO_BUILD_MPI
         {
             "preconditioner::Schwarz", parse<LinOpFactoryType::Schwarz>

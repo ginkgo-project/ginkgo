@@ -18,7 +18,6 @@ namespace reference {
 /**
  * @brief The GMRES solver namespace.
  *
- * @ingroup gmres
  */
 namespace gmres {
 

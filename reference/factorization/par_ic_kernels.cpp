@@ -23,12 +23,12 @@ namespace par_ic_factorization {
 
 template <typename ValueType, typename IndexType>
 void init_factor(std::shared_ptr<const DefaultExecutor> exec,
-                 matrix::Csr<ValueType, IndexType>* l)
+                 matrix::view::csr<ValueType, IndexType> l)
 {
-    auto num_rows = l->get_size()[0];
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_col_idxs = l->get_const_col_idxs();
-    auto l_vals = l->get_values();
+    auto num_rows = l.size[0];
+    auto l_row_ptrs = l.row_ptrs;
+    auto l_col_idxs = l.col_idxs;
+    auto l_vals = l.values;
 
     for (size_type row = 0; row < num_rows; ++row) {
         for (size_type l_nz = l_row_ptrs[row]; l_nz < l_row_ptrs[row + 1];
@@ -53,12 +53,12 @@ template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     size_type /* num_iterations */,
                     matrix::view::coo<const ValueType, const IndexType> a_lower,
-                    matrix::Csr<ValueType, IndexType>* l)
+                    matrix::view::csr<ValueType, IndexType> l)
 {
     auto num_rows = a_lower.size[0];
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_col_idxs = l->get_const_col_idxs();
-    auto l_vals = l->get_values();
+    auto l_row_ptrs = l.row_ptrs;
+    auto l_col_idxs = l.col_idxs;
+    auto l_vals = l.values;
     auto a_vals = a_lower.values;
 
     for (size_type row = 0; row < num_rows; ++row) {

@@ -105,8 +105,11 @@ public:
 
         oneapi::mkl::sparse::set_csr_data(
             *(this->get_device_exec()->get_queue()), this->get_mat_handle(),
-            static_cast<int>(this->get_size()[0]),
-            static_cast<int>(this->get_size()[1]),
+            static_cast<IndexType>(this->get_size()[0]),
+            static_cast<IndexType>(this->get_size()[1]),
+#if INTEL_MKL_VERSION >= 20250300
+            static_cast<std::int64_t>(csr_->get_num_stored_elements()),
+#endif
             oneapi::mkl::index_base::zero, csr_->get_row_ptrs(),
             csr_->get_col_idxs(), csr_->get_values());
         if (optimized) {
@@ -140,7 +143,7 @@ protected:
               const gko::dim<2>& size = gko::dim<2>{})
         : OnemklBase(exec, size),
           csr_(std::move(
-              Csr::create(exec, std::make_shared<typename Csr::classical>()))),
+              Csr::create(exec, gko::matrix::csr::spmv_strategy::classical))),
           trans_(oneapi::mkl::transpose::nontrans)
     {}
 

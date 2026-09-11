@@ -33,7 +33,7 @@ auto ic = preconditioner::Ic<double>::build().on(exec);
 You can provide any `LinOpFactory` to `.with_l_solver()`.
 
 The same applies to `preconditioner::Ilu`, except that the solver for both the lower triangular and upper triangular part can be provided.
-# Removed Interface
+
 ## Clone is no longer available by default in Ginkgo Classes
 Previously, Ginkgo provides `clone` to any class inherited from `PolymorphicObject` (or `EnablePolymorphicObject`).
 We decide to move `clone` related function from default requirement to optional feature via `Cloneable` class. (see changed interface for more details)
@@ -46,6 +46,8 @@ If users previously rely on calling `source->clone([exec,] target)`, please use 
 Factory does not support clone, either. 
 Users, who want to create the same factory for different executors, please create a factory without specifying executor in the components' factory.
 
+## Remove HWLOC related stuff [#2060](https://github.com/ginkgo-project/ginkgo/pull/2060)
+It removes the HWLOC usage in Ginkgo, `struct machine_topology`, `get_closest_pus()`,  and `get_closest_numa()`.
 
 # Changed Interface
 ## Clone related function is not longer belonging to PolymorphicObject [#2005](https://github.com/ginkgo-project/ginkgo/pull/2005)
@@ -54,3 +56,12 @@ Users can use `as<ConcreteType>(as<Cloneable>(pointer)->clone())` or `as<Concret
 If the object is the concrete type like Dense and Csr, `pointer->clone()` and `pointer->clone(exec)` works the same as previous version.
 
 If Users have their own class inherit from something like `EnableLinOp`, users only need to inherit from `LinOp` for `apply` function and optionally inherit from `EnableCloneable<ConcreteType>` for `clone` function.
+
+## Csr create function with the strategy
+The `Csr::strategy` classes are deprecated.
+To create a Csr matrix with a specific strategy, use the enum `gko::matrix::csr::spmv_strategy` instead.
+For example, `std::make_shared<Csr<>>(exec, std::make_shared<Csr<>::classical>())` is equivalent to
+`std::make_shared<Csr<>>(exec, csr::spmv_strategy::classical)`. 
+`csr->get_strategy` will now return the enum value instead of a shared_ptr.
+We use `automatic` in enum not `automatical` like old shared_ptr usage.
+**Note:** It is not possible to have a custom load_balance strategy with the new interface. (Please let us know if you need it)

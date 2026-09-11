@@ -17,7 +17,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Sellp matrix format namespace.
  *
- * @ingroup sellp
  */
 namespace sellp {
 
@@ -156,7 +155,7 @@ template <typename ValueType, typename IndexType>
 void convert_to_csr(
     std::shared_ptr<const DefaultExecutor> exec,
     matrix::view::sellp<const ValueType, const IndexType> source,
-    matrix::Csr<ValueType, IndexType>* result)
+    matrix::view::csr<ValueType, IndexType> result)
 {
     run_kernel(
         exec,
@@ -168,8 +167,6 @@ void convert_to_csr(
             const auto slice = row / slice_size;
             const auto local_row = row % slice_size;
             const auto slice_begin = slice_sets[slice];
-            const auto slice_end = slice_sets[slice + 1];
-            const auto slice_length = slice_end - slice_begin;
             auto in_idx = slice_begin * slice_size + local_row;
             for (auto i = row_begin; i < row_end; i++) {
                 out_cols[i] = cols[in_idx];
@@ -178,8 +175,7 @@ void convert_to_csr(
             }
         },
         source.size[0], source.slice_size, source.slice_sets, source.col_idxs,
-        source.values, result->get_row_ptrs(), result->get_col_idxs(),
-        result->get_values());
+        source.values, result.row_ptrs, result.col_idxs, result.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

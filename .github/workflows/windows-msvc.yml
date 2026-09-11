@@ -27,9 +27,10 @@ jobs:
   windows:
     strategy:
       fail-fast: false
-    name: msvc
-    runs-on: [windows-latest]
-
+      matrix:
+        os: [windows-2022, windows-latest]
+    name: msvc/${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout the latest code (shallow clone)
       uses: actions/checkout@v4

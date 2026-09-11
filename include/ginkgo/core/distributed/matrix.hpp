@@ -39,8 +39,11 @@ namespace multigrid {
 template <typename ValueType, typename IndexType>
 class Pgm;
 
+template <typename ValueType, typename IndexType>
+class UniformCoarsening;
 
-}
+
+}  // namespace multigrid
 
 
 namespace detail {
@@ -273,12 +276,14 @@ class Matrix
       public ConvertibleTo<Matrix<next_precision<ValueType, 3>, LocalIndexType,
                                   GlobalIndexType>>,
 #endif
+      public WritableToMatrixData<ValueType, GlobalIndexType>,
       public DistributedBase {
     friend class EnableCloneable<Matrix>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
 
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
+    friend class multigrid::UniformCoarsening<ValueType, LocalIndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:
@@ -345,7 +350,7 @@ public:
      *
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
-     * @param x  The mode of assembly.
+     * @param assembly_type  The mode of assembly.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
@@ -414,6 +419,17 @@ public:
         assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
+     * Writes the locally stored matrix data into a matrix_data structure using
+     * global row and column indices.
+     *
+     * @param data  the output matrix_data
+     *
+     * @note this currently assume the row index mapping is equal to the column
+     *       index mapping
+     */
+    void write(matrix_data<value_type, global_index_type>& data) const override;
+
+    /**
      * Get read access to the stored diagonal matrix block.
      *
      * The diagonal block contains entries from columns that are owned by this
@@ -434,6 +450,22 @@ public:
     std::shared_ptr<const LinOp> get_off_diag_matrix() const
     {
         return off_diag_mtx_;
+    }
+
+    /**
+     * Get read access to the row gatherer used to fetch the non-local rows
+     * during an apply.
+     *
+     * Its collective communicator determines how this matrix exchanges data,
+     * and is carried over to every matrix created from it -- in particular to
+     * the one read_distributed rebuilds -- so this is how to check which
+     * exchange a matrix actually uses.
+     *
+     * @return  Shared pointer to the stored row gatherer
+     */
+    std::shared_ptr<const RowGatherer<LocalIndexType>> get_row_gatherer() const
+    {
+        return row_gatherer_;
     }
 
     /**
@@ -522,9 +554,9 @@ public:
      * Creates an empty distributed matrix with specified type
      * for local matrices.
      *
-     * @note This is mainly a convenience wrapper for
-     *       Matrix(std::shared_ptr<const Executor>, mpi::communicator, const
-     *       LinOp*)
+     * @note This is a convenience wrapper around the `create` overload
+     *       that takes an already-constructed `LinOp` template; the
+     *       `matrix_template` argument here is materialized internally.
      *
      * @tparam MatrixType  A type that has a `create<ValueType,
      *                     IndexType>(exec)` function to create a smart pointer
@@ -554,9 +586,10 @@ public:
      * Creates an empty distributed matrix with specified types for the
      * diagonal matrix and the off-diagonal matrix.
      *
-     * @note This is mainly a convenience wrapper for
-     *       Matrix(std::shared_ptr<const Executor>, mpi::communicator,
-     *       const LinOp*, const LinOp*)
+     * @note This is a convenience wrapper around the `create` overload
+     *       that takes already-constructed `LinOp` templates for the
+     *       diagonal and off-diagonal blocks; the two template
+     *       arguments here are materialized internally.
      *
      * @tparam DiagMatrixType  A type that has a `create<ValueType,
      *                         IndexType>(exec)` function to create a smart

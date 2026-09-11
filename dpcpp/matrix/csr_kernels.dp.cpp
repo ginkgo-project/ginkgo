@@ -40,7 +40,6 @@
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/segment_scan.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 
 
 namespace gko {
@@ -49,7 +48,6 @@ namespace dpcpp {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
- * @ingroup csr
  */
 namespace csr {
 
@@ -306,12 +304,13 @@ __dpct_inline__ void merge_path_search(
 
 template <typename arithmetic_type, typename IndexType,
           typename output_accessor, typename Alpha_op>
-void merge_path_reduce(
-    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
-    const IndexType* __restrict__ last_row, acc::range<output_accessor> c,
-    Alpha_op alpha_op, sycl::nd_item<3> item_ct1,
-    uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
-    uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
+void merge_path_reduce(const IndexType nwarps,
+                       const arithmetic_type* __restrict__ last_val,
+                       const IndexType* __restrict__ last_row,
+                       acc::range<output_accessor> c, Alpha_op alpha_op,
+                       sycl::nd_item<3> item_ct1,
+                       sycl::local_accessor<IndexType, 1> tmp_ind,
+                       sycl::local_accessor<arithmetic_type, 1> tmp_val)
 {
     const IndexType cache_lines = ceildivT<IndexType>(nwarps, spmv_block_size);
     const IndexType tid = item_ct1.get_local_id(2);
@@ -338,8 +337,8 @@ void merge_path_reduce(
     tmp_ind[item_ct1.get_local_id(2)] = row;
     group::this_thread_block(item_ct1).sync();
     bool last = block_segment_scan_reverse(
-        static_cast<IndexType*>(tmp_ind),
-        static_cast<arithmetic_type*>(tmp_val), item_ct1);
+        static_cast<IndexType*>(&tmp_ind[0]),
+        static_cast<arithmetic_type*>(&tmp_val[0]), item_ct1);
     group::this_thread_block(item_ct1).sync();
     if (last) {
         c(row, 0) += alpha_op(tmp_val[item_ct1.get_local_id(2)]);
@@ -353,12 +352,11 @@ template <int items_per_thread, typename matrix_accessor,
 void merge_path_spmv(
     const IndexType num_rows, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    acc::range<input_accessor> b, acc::range<output_accessor> c,
-    IndexType* __restrict__ row_out,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    acc::range<output_accessor> c, IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
     Alpha_op alpha_op, Beta_op beta_op, sycl::nd_item<3> item_ct1,
-    IndexType* shared_row_ptrs)
+    sycl::local_accessor<IndexType, 1> shared_row_ptrs)
 {
     using arithmetic_type = typename output_accessor::arithmetic_type;
     const auto* row_end_ptrs = row_ptrs + 1;
@@ -389,7 +387,7 @@ void merge_path_spmv(
     IndexType start_x;
     IndexType start_y;
     merge_path_search(IndexType(items_per_thread * item_ct1.get_local_id(2)),
-                      block_num_rows, block_num_nonzeros, shared_row_ptrs,
+                      block_num_rows, block_num_nonzeros, &shared_row_ptrs[0],
                       block_start_y, &start_x, &start_y);
 
 
@@ -411,9 +409,9 @@ void merge_path_spmv(
         }
     }
     group::this_thread_block(item_ct1).sync();
-    IndexType* tmp_ind = shared_row_ptrs;
+    IndexType* tmp_ind = &shared_row_ptrs[0];
     arithmetic_type* tmp_val =
-        reinterpret_cast<arithmetic_type*>(shared_row_ptrs + spmv_block_size);
+        reinterpret_cast<arithmetic_type*>(&shared_row_ptrs[spmv_block_size]);
     tmp_val[item_ct1.get_local_id(2)] = value;
     tmp_ind[item_ct1.get_local_id(2)] = row_i;
     group::this_thread_block(item_ct1).sync();
@@ -431,15 +429,15 @@ template <int items_per_thread, typename matrix_accessor,
 void abstract_merge_path_spmv(
     const IndexType num_rows, acc::range<matrix_accessor> val,
     const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    acc::range<input_accessor> b, acc::range<output_accessor> c,
-    IndexType* __restrict__ row_out,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
+    acc::range<output_accessor> c, IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
-    sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
+    sycl::nd_item<3> item_ct1,
+    sycl::local_accessor<IndexType, 1> shared_row_ptrs)
 {
     using type = typename output_accessor::arithmetic_type;
     merge_path_spmv<items_per_thread>(
-        num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+        num_rows, val, col_idxs, row_ptrs, b, c, row_out, val_out,
         [](const type& x) { return x; },
         [](const type& x) { return zero<type>(); }, item_ct1, shared_row_ptrs);
 }
@@ -449,21 +447,19 @@ template <int items_per_thread, typename matrix_accessor,
 void abstract_merge_path_spmv(
     dim3 grid, dim3 block, size_type dynamic_shared_memory, sycl::queue* queue,
     const IndexType num_rows, acc::range<matrix_accessor> val,
-    const IndexType* col_idxs, const IndexType* row_ptrs, const IndexType* srow,
+    const IndexType* col_idxs, const IndexType* row_ptrs,
     acc::range<input_accessor> b, acc::range<output_accessor> c,
     IndexType* row_out, typename output_accessor::arithmetic_type* val_out)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<IndexType, 1> shared_row_ptrs_acc_ct1(
-            sycl::range<1>(spmv_block_size * items_per_thread), cgh);
+        sycl::local_accessor<IndexType, 1> shared_row_ptrs(
+            spmv_block_size * items_per_thread, cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              abstract_merge_path_spmv<items_per_thread>(
-                                 num_rows, val, col_idxs, row_ptrs, srow, b, c,
-                                 row_out, val_out, item_ct1,
-                                 static_cast<IndexType*>(
-                                     shared_row_ptrs_acc_ct1.get_pointer()));
+                                 num_rows, val, col_idxs, row_ptrs, b, c,
+                                 row_out, val_out, item_ct1, shared_row_ptrs);
                          });
     });
 }
@@ -475,25 +471,25 @@ void abstract_merge_path_spmv(
     const IndexType num_rows,
     const typename matrix_accessor::storage_type* __restrict__ alpha,
     acc::range<matrix_accessor> val, const IndexType* __restrict__ col_idxs,
-    const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ srow,
-    acc::range<input_accessor> b,
+    const IndexType* __restrict__ row_ptrs, acc::range<input_accessor> b,
     const typename output_accessor::storage_type* __restrict__ beta,
     acc::range<output_accessor> c, IndexType* __restrict__ row_out,
     typename output_accessor::arithmetic_type* __restrict__ val_out,
-    sycl::nd_item<3> item_ct1, IndexType* shared_row_ptrs)
+    sycl::nd_item<3> item_ct1,
+    sycl::local_accessor<IndexType, 1> shared_row_ptrs)
 {
     using type = typename output_accessor::arithmetic_type;
     const type alpha_val = static_cast<type>(alpha[0]);
     const type beta_val = static_cast<type>(beta[0]);
     if (is_zero(beta_val)) {
         merge_path_spmv<items_per_thread>(
-            num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+            num_rows, val, col_idxs, row_ptrs, b, c, row_out, val_out,
             [&alpha_val](const type& x) { return alpha_val * x; },
             [](const type& x) { return zero<type>(); }, item_ct1,
             shared_row_ptrs);
     } else {
         merge_path_spmv<items_per_thread>(
-            num_rows, val, col_idxs, row_ptrs, srow, b, c, row_out, val_out,
+            num_rows, val, col_idxs, row_ptrs, b, c, row_out, val_out,
             [&alpha_val](const type& x) { return alpha_val * x; },
             [&beta_val](const type& x) { return beta_val * x; }, item_ct1,
             shared_row_ptrs);
@@ -507,36 +503,33 @@ void abstract_merge_path_spmv(
     const IndexType num_rows,
     const typename matrix_accessor::storage_type* alpha,
     acc::range<matrix_accessor> val, const IndexType* col_idxs,
-    const IndexType* row_ptrs, const IndexType* srow,
-    acc::range<input_accessor> b,
+    const IndexType* row_ptrs, acc::range<input_accessor> b,
     const typename output_accessor::storage_type* beta,
     acc::range<output_accessor> c, IndexType* row_out,
     typename output_accessor::arithmetic_type* val_out)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<IndexType, 1> shared_row_ptrs_acc_ct1(
+        sycl::local_accessor<IndexType, 1> shared_row_ptrs(
             sycl::range<1>(spmv_block_size * items_per_thread), cgh);
 
-        cgh.parallel_for(sycl_nd_range(grid, block),
-                         [=](sycl::nd_item<3> item_ct1) {
-                             abstract_merge_path_spmv<items_per_thread>(
-                                 num_rows, alpha, val, col_idxs, row_ptrs, srow,
-                                 b, beta, c, row_out, val_out, item_ct1,
-                                 static_cast<IndexType*>(
-                                     shared_row_ptrs_acc_ct1.get_pointer()));
-                         });
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                abstract_merge_path_spmv<items_per_thread>(
+                    num_rows, alpha, val, col_idxs, row_ptrs, b, beta, c,
+                    row_out, val_out, item_ct1, shared_row_ptrs);
+            });
     });
 }
 
 
 template <typename arithmetic_type, typename IndexType,
           typename output_accessor>
-void abstract_reduce(
-    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
-    const IndexType* __restrict__ last_row, acc::range<output_accessor> c,
-    sycl::nd_item<3> item_ct1,
-    uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
-    uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
+void abstract_reduce(const IndexType nwarps,
+                     const arithmetic_type* __restrict__ last_val,
+                     const IndexType* __restrict__ last_row,
+                     acc::range<output_accessor> c, sycl::nd_item<3> item_ct1,
+                     sycl::local_accessor<IndexType, 1> tmp_ind,
+                     sycl::local_accessor<arithmetic_type, 1> tmp_val)
 {
     merge_path_reduce(
         nwarps, last_val, last_row, c,
@@ -552,31 +545,27 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      acc::range<output_accessor> c)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<uninitialized_array<IndexType, spmv_block_size>, 0>
-            tmp_ind_acc_ct1(cgh);
-        sycl::local_accessor<
-            uninitialized_array<arithmetic_type, spmv_block_size>, 0>
-            tmp_val_acc_ct1(cgh);
+        sycl::local_accessor<IndexType, 1> tmp_ind(spmv_block_size, cgh);
+        sycl::local_accessor<arithmetic_type, 1> tmp_val(spmv_block_size, cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, c, item_ct1,
-                                *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             abstract_reduce(nwarps, last_val, last_row, c,
+                                             item_ct1, tmp_ind, tmp_val);
+                         });
     });
 }
 
 
 template <typename arithmetic_type, typename MatrixValueType,
           typename IndexType, typename output_accessor>
-void abstract_reduce(
-    const IndexType nwarps, const arithmetic_type* __restrict__ last_val,
-    const IndexType* __restrict__ last_row,
-    const MatrixValueType* __restrict__ alpha, acc::range<output_accessor> c,
-    sycl::nd_item<3> item_ct1,
-    uninitialized_array<IndexType, spmv_block_size>& tmp_ind,
-    uninitialized_array<arithmetic_type, spmv_block_size>& tmp_val)
+void abstract_reduce(const IndexType nwarps,
+                     const arithmetic_type* __restrict__ last_val,
+                     const IndexType* __restrict__ last_row,
+                     const MatrixValueType* __restrict__ alpha,
+                     acc::range<output_accessor> c, sycl::nd_item<3> item_ct1,
+                     sycl::local_accessor<IndexType, 1> tmp_ind,
+                     sycl::local_accessor<arithmetic_type, 1> tmp_val)
 {
     const auto alpha_val = static_cast<arithmetic_type>(alpha[0]);
     merge_path_reduce(
@@ -594,18 +583,14 @@ void abstract_reduce(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                      acc::range<output_accessor> c)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<uninitialized_array<IndexType, spmv_block_size>, 0>
-            tmp_ind_acc_ct1(cgh);
-        sycl::local_accessor<
-            uninitialized_array<arithmetic_type, spmv_block_size>, 0>
-            tmp_val_acc_ct1(cgh);
+        sycl::local_accessor<IndexType, 1> tmp_ind(spmv_block_size, cgh);
+        sycl::local_accessor<arithmetic_type, 1> tmp_val(spmv_block_size, cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                abstract_reduce(nwarps, last_val, last_row, alpha, c, item_ct1,
-                                *tmp_ind_acc_ct1.get_pointer(),
-                                *tmp_val_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             abstract_reduce(nwarps, last_val, last_row, alpha,
+                                             c, item_ct1, tmp_ind, tmp_val);
+                         });
     });
 }
 
@@ -779,11 +764,12 @@ GKO_ENABLE_DEFAULT_HOST(fill_in_dense, fill_in_dense);
 template <typename IndexType>
 void check_unsorted(const IndexType* __restrict__ row_ptrs,
                     const IndexType* __restrict__ col_idxs, IndexType num_rows,
-                    bool* flag, sycl::nd_item<3> item_ct1, bool* sh_flag)
+                    bool* flag, sycl::nd_item<3> item_ct1,
+                    sycl::local_accessor<bool, 0> sh_flag)
 {
     auto block = group::this_thread_block(item_ct1);
     if (block.thread_rank() == 0) {
-        *sh_flag = *flag;
+        sh_flag = *flag;
     }
     block.sync();
 
@@ -793,11 +779,11 @@ void check_unsorted(const IndexType* __restrict__ row_ptrs,
     }
 
     // fail early
-    if ((*sh_flag)) {
+    if (static_cast<bool>(sh_flag)) {
         for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1] - 1; ++nz) {
             if (col_idxs[nz] > col_idxs[nz + 1]) {
                 *flag = false;
-                *sh_flag = false;
+                sh_flag = false;
                 return;
             }
         }
@@ -810,13 +796,13 @@ void check_unsorted(dim3 grid, dim3 block, size_type dynamic_shared_memory,
                     const IndexType* col_idxs, IndexType num_rows, bool* flag)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<bool, 0> sh_flag_acc_ct1(cgh);
+        sycl::local_accessor<bool, 0> sh_flag(cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                check_unsorted(row_ptrs, col_idxs, num_rows, flag, item_ct1,
-                               sh_flag_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             check_unsorted(row_ptrs, col_idxs, num_rows, flag,
+                                            item_ct1, sh_flag);
+                         });
     });
 }
 
@@ -1229,7 +1215,7 @@ template <int items_per_thread, typename MatrixValueType,
 void merge_path_spmv(
     syn::value_list<int, items_per_thread>,
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::csr<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
     xstd::type_identity_t<
@@ -1241,7 +1227,7 @@ void merge_path_spmv(
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
-    const IndexType total = a->get_size()[0] + a->get_num_stored_elements();
+    const IndexType total = a.size[0] + a.num_stored_elements;
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
     const dim3 grid = grid_num;
@@ -1268,9 +1254,8 @@ void merge_path_spmv(
             if (grid_num > 0) {
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
                     grid, block, 0, exec->get_queue(),
-                    static_cast<IndexType>(a->get_size()[0]),
-                    acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                    a->get_const_row_ptrs(), a->get_const_srow(),
+                    static_cast<IndexType>(a.size[0]),
+                    acc::as_device_range(a_vals), a.col_idxs, a.row_ptrs,
                     acc::as_device_range(b_vals), acc::as_device_range(c_vals),
                     row_out.get_data(), as_device_type(val_out.get_data()));
             }
@@ -1283,10 +1268,9 @@ void merge_path_spmv(
             if (grid_num > 0) {
                 csr::kernel::abstract_merge_path_spmv<items_per_thread>(
                     grid, block, 0, exec->get_queue(),
-                    static_cast<IndexType>(a->get_size()[0]),
+                    static_cast<IndexType>(a.size[0]),
                     as_device_type(alpha->values), acc::as_device_range(a_vals),
-                    a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                    a->get_const_srow(), acc::as_device_range(b_vals),
+                    a.col_idxs, a.row_ptrs, acc::as_device_range(b_vals),
                     as_device_type(beta->values), acc::as_device_range(c_vals),
                     row_out.get_data(), as_device_type(val_out.get_data()));
             }
@@ -1322,7 +1306,7 @@ template <int subgroup_size, typename MatrixValueType, typename InputValueType,
 void classical_spmv(
     syn::value_list<int, subgroup_size>,
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::csr<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
     xstd::type_identity_t<
@@ -1339,7 +1323,7 @@ void classical_spmv(
         exec->get_num_subgroups() * classical_oversubscription;
     const auto nsg_in_group = spmv_block_size / subgroup_size;
     const auto gridx =
-        std::min(ceildiv(a->get_size()[0], spmv_block_size / subgroup_size),
+        std::min(ceildiv(a.size[0], spmv_block_size / subgroup_size),
                  int64(num_subgroup / nsg_in_group));
     const dim3 grid(gridx, b.size[1]);
     const dim3 block(spmv_block_size);
@@ -1353,19 +1337,17 @@ void classical_spmv(
     if (!alpha && !beta) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
-                grid, block, 0, exec->get_queue(), a->get_size()[0],
-                acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                a->get_const_row_ptrs(), acc::as_device_range(b_vals),
-                acc::as_device_range(c_vals));
+                grid, block, 0, exec->get_queue(), a.size[0],
+                acc::as_device_range(a_vals), a.col_idxs, a.row_ptrs,
+                acc::as_device_range(b_vals), acc::as_device_range(c_vals));
         }
     } else if (alpha && beta) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subgroup_size>(
-                grid, block, 0, exec->get_queue(), a->get_size()[0],
+                grid, block, 0, exec->get_queue(), a.size[0],
                 as_device_type(alpha->values), acc::as_device_range(a_vals),
-                a->get_const_col_idxs(), a->get_const_row_ptrs(),
-                acc::as_device_range(b_vals), as_device_type(beta->values),
-                acc::as_device_range(c_vals));
+                a.col_idxs, a.row_ptrs, acc::as_device_range(b_vals),
+                as_device_type(beta->values), acc::as_device_range(c_vals));
         }
     } else {
         GKO_KERNEL_NOT_FOUND;
@@ -1378,8 +1360,9 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_classical_spmv, classical_spmv);
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 bool load_balance_spmv(
-    std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<MatrixValueType, IndexType>* a,
+    std::shared_ptr<const DpcppExecutor> exec, size_type num_srow_elements,
+    const IndexType* srow,
+    matrix::view::csr<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
     xstd::type_identity_t<
@@ -1401,7 +1384,7 @@ bool load_balance_spmv(
         } else {
             dense::fill(exec, c, zero<OutputValueType>());
         }
-        const IndexType nwarps = a->get_num_srow_elements();
+        const IndexType nwarps = num_srow_elements;
         if (nwarps > 0) {
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
             const dim3 csr_grid(ceildiv(nwarps, warps_in_block), b.size[1]);
@@ -1416,21 +1399,19 @@ bool load_balance_spmv(
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     csr::kernel::abstract_spmv(
                         csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                        static_cast<IndexType>(a->get_size()[0]),
+                        static_cast<IndexType>(a.size[0]),
                         as_device_type(alpha->values),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        a->get_const_row_ptrs(), a->get_const_srow(),
-                        acc::as_device_range(b_vals),
+                        acc::as_device_range(a_vals), a.col_idxs, a.row_ptrs,
+                        srow, acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals));
                 }
             } else {
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     csr::kernel::abstract_spmv(
                         csr_grid, csr_block, 0, exec->get_queue(), nwarps,
-                        static_cast<IndexType>(a->get_size()[0]),
-                        acc::as_device_range(a_vals), a->get_const_col_idxs(),
-                        a->get_const_row_ptrs(), a->get_const_srow(),
-                        acc::as_device_range(b_vals),
+                        static_cast<IndexType>(a.size[0]),
+                        acc::as_device_range(a_vals), a.col_idxs, a.row_ptrs,
+                        srow, acc::as_device_range(b_vals),
                         acc::as_device_range(c_vals));
                 }
             }
@@ -1441,12 +1422,11 @@ bool load_balance_spmv(
 
 
 template <typename ValueType, typename IndexType>
-bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                                const ValueType host_alpha,
-                                const matrix::Csr<ValueType, IndexType>* a,
-                                matrix::view::dense<const ValueType> b,
-                                const ValueType host_beta,
-                                matrix::view::dense<ValueType> c)
+bool try_general_sparselib_spmv(
+    std::shared_ptr<const DpcppExecutor> exec, const ValueType host_alpha,
+    matrix::view::csr<const ValueType, const IndexType> a,
+    matrix::view::dense<const ValueType> b, const ValueType host_beta,
+    matrix::view::dense<ValueType> c)
 {
     constexpr bool try_sparselib =
         !is_complex<ValueType>() &&
@@ -1456,11 +1436,14 @@ bool try_general_sparselib_spmv(std::shared_ptr<const DpcppExecutor> exec,
         oneapi::mkl::sparse::matrix_handle_t mat_handle;
         oneapi::mkl::sparse::init_matrix_handle(&mat_handle);
         oneapi::mkl::sparse::set_csr_data(
-            *exec->get_queue(), mat_handle, IndexType(a->get_size()[0]),
-            IndexType(a->get_size()[1]), oneapi::mkl::index_base::zero,
-            const_cast<IndexType*>(a->get_const_row_ptrs()),
-            const_cast<IndexType*>(a->get_const_col_idxs()),
-            const_cast<ValueType*>(a->get_const_values()));
+            *exec->get_queue(), mat_handle, static_cast<IndexType>(a.size[0]),
+            static_cast<IndexType>(a.size[1]),
+#if INTEL_MKL_VERSION >= 20250300
+            static_cast<std::int64_t>(a.num_stored_elements),
+#endif
+            oneapi::mkl::index_base::zero, const_cast<IndexType*>(a.row_ptrs),
+            const_cast<IndexType*>(a.col_idxs),
+            const_cast<ValueType*>(a.values));
         if (b.size[1] == 1 && b.stride == 1) {
             oneapi::mkl::sparse::gemv(
                 *exec->get_queue(), oneapi::mkl::transpose::nontrans,
@@ -1488,7 +1471,7 @@ template <typename MatrixValueType, typename InputValueType,
               !std::is_same<MatrixValueType, OutputValueType>::value>>
 bool try_sparselib_spmv(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<MatrixValueType, IndexType>* a,
+    matrix::view::csr<const MatrixValueType, const IndexType> a,
     matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> c,
     xstd::type_identity_t<
@@ -1505,7 +1488,7 @@ bool try_sparselib_spmv(
 template <typename ValueType, typename IndexType>
 bool try_sparselib_spmv(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* a,
+    matrix::view::csr<const ValueType, const IndexType> a,
     matrix::view::dense<const ValueType> b, matrix::view::dense<ValueType> c,
     xstd::type_identity_t<std::optional<matrix::view::dense<const ValueType>>>
         alpha = {},
@@ -1530,7 +1513,10 @@ bool try_sparselib_spmv(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
-          const matrix::Csr<MatrixValueType, IndexType>* a,
+          const matrix::csr::spmv_strategy strategy,
+          const IndexType max_nnz_per_row, size_type num_srow_elements,
+          const IndexType* srow,
+          matrix::view::csr<const MatrixValueType, const IndexType> a,
           matrix::view::dense<const InputValueType> b,
           matrix::view::dense<OutputValueType> c)
 {
@@ -1538,12 +1524,12 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
         // empty output: nothing to do
         return;
     }
-    if (b.size[0] == 0 || a->get_num_stored_elements() == 0) {
+    if (b.size[0] == 0 || a.num_stored_elements == 0) {
         // empty input: zero output
         dense::fill(exec, c, zero<OutputValueType>());
         return;
     }
-    if (a->get_strategy()->get_name() == "merge_path") {
+    if (strategy == matrix::csr::spmv_strategy::merge_path) {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -1557,33 +1543,17 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
             syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "load_balance") {
-            use_classical = !host_kernel::load_balance_spmv(exec, a, b, c);
-        } else if (a->get_strategy()->get_name() == "sparselib" ||
-                   a->get_strategy()->get_name() == "cusparse") {
+        if (strategy == matrix::csr::spmv_strategy::load_balance) {
+            use_classical = !host_kernel::load_balance_spmv(
+                exec, num_srow_elements, srow, a, b, c);
+        } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
             use_classical = !host_kernel::try_sparselib_spmv(exec, a, b, c);
         }
         if (use_classical) {
-            IndexType max_length_per_row = 0;
-            using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
-            if (auto strategy =
-                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                        a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else if (auto strategy = std::dynamic_pointer_cast<
-                           const typename Tcsr::automatical>(
-                           a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else {
-                // as a fall-back: use average row length, at least 1
-                max_length_per_row = a->get_num_stored_elements() /
-                                     std::max<size_type>(a->get_size()[0], 1);
-            }
-            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
-                [&max_length_per_row](int compiled_info) {
-                    return max_length_per_row >= compiled_info;
+                [&max_nnz_per_row](int compiled_info) {
+                    return max_nnz_per_row >= compiled_info;
                 },
                 syn::value_list<int>(), syn::type_list<>(), exec, a, b, c);
         }
@@ -1597,8 +1567,11 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename MatrixValueType, typename InputValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
+                   const matrix::csr::spmv_strategy strategy,
+                   const IndexType max_nnz_per_row, size_type num_srow_elements,
+                   const IndexType* srow,
                    matrix::view::dense<const MatrixValueType> alpha,
-                   const matrix::Csr<MatrixValueType, IndexType>* a,
+                   matrix::view::csr<const MatrixValueType, const IndexType> a,
                    matrix::view::dense<const InputValueType> b,
                    matrix::view::dense<const OutputValueType> beta,
                    matrix::view::dense<OutputValueType> c)
@@ -1607,12 +1580,12 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
         // empty output: nothing to do
         return;
     }
-    if (b.size[0] == 0 || a->get_num_stored_elements() == 0) {
+    if (b.size[0] == 0 || a.num_stored_elements == 0) {
         // empty input: scale output
         dense::scale(exec, beta, c);
         return;
     }
-    if (a->get_strategy()->get_name() == "merge_path") {
+    if (strategy == matrix::csr::spmv_strategy::merge_path) {
         using arithmetic_type =
             highest_precision<InputValueType, OutputValueType, MatrixValueType>;
         int items_per_thread =
@@ -1627,35 +1600,18 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
             beta);
     } else {
         bool use_classical = true;
-        if (a->get_strategy()->get_name() == "load_balance") {
-            use_classical =
-                !host_kernel::load_balance_spmv(exec, a, b, c, alpha, beta);
-        } else if (a->get_strategy()->get_name() == "sparselib" ||
-                   a->get_strategy()->get_name() == "cusparse") {
+        if (strategy == matrix::csr::spmv_strategy::load_balance) {
+            use_classical = !host_kernel::load_balance_spmv(
+                exec, num_srow_elements, srow, a, b, c, alpha, beta);
+        } else if (strategy == matrix::csr::spmv_strategy::sparselib) {
             use_classical =
                 !host_kernel::try_sparselib_spmv(exec, a, b, c, alpha, beta);
         }
         if (use_classical) {
-            IndexType max_length_per_row = 0;
-            using Tcsr = matrix::Csr<MatrixValueType, IndexType>;
-            if (auto strategy =
-                    std::dynamic_pointer_cast<const typename Tcsr::classical>(
-                        a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else if (auto strategy = std::dynamic_pointer_cast<
-                           const typename Tcsr::automatical>(
-                           a->get_strategy())) {
-                max_length_per_row = strategy->get_max_length_per_row();
-            } else {
-                // as a fall-back: use average row length, at least 1
-                max_length_per_row = a->get_num_stored_elements() /
-                                     std::max<size_type>(a->get_size()[0], 1);
-            }
-            max_length_per_row = std::max<size_type>(max_length_per_row, 1);
             host_kernel::select_classical_spmv(
                 classical_kernels(),
-                [&max_length_per_row](int compiled_info) {
-                    return max_length_per_row >= compiled_info;
+                [&max_nnz_per_row](int compiled_info) {
+                    return max_nnz_per_row >= compiled_info;
                 },
                 syn::value_list<int>(), syn::type_list<>(), exec, a, b, c,
                 alpha, beta);
@@ -1729,12 +1685,12 @@ GKO_ENABLE_DEFAULT_HOST(compute_submatrix_idxs_and_vals,
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_span(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* source, const span& row_span,
-    const span& col_span, array<IndexType>& row_nnz)
+    matrix::view::csr<const ValueType, const IndexType> source,
+    const span& row_span, const span& col_span, array<IndexType>& row_nnz)
 {
-    const auto num_rows = source->get_size()[0];
-    auto row_ptrs = source->get_const_row_ptrs();
-    auto col_idxs = source->get_const_col_idxs();
+    const auto num_rows = source.size[0];
+    auto row_ptrs = source.row_ptrs;
+    auto col_idxs = source.col_idxs;
     auto grid_dim = ceildiv(row_span.length(), default_block_size);
     auto block_dim = default_block_size;
 
@@ -1750,7 +1706,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void calculate_nonzeros_per_row_in_index_set(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* source,
+    matrix::view::csr<const ValueType, const IndexType> source,
     const gko::index_set<IndexType>& row_index_set,
     const gko::index_set<IndexType>& col_index_set,
     IndexType* row_nnz) GKO_NOT_IMPLEMENTED;
@@ -1760,27 +1716,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* source,
-                       gko::span row_span, gko::span col_span,
-                       matrix::Csr<ValueType, IndexType>* result)
+void compute_submatrix(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> source,
+    gko::span row_span, gko::span col_span,
+    matrix::view::csr<ValueType, IndexType> result)
 {
     const auto row_offset = row_span.begin;
     const auto col_offset = col_span.begin;
-    const auto num_rows = result->get_size()[0];
-    const auto num_cols = result->get_size()[1];
-    const auto row_ptrs = source->get_const_row_ptrs();
+    const auto num_rows = result.size[0];
+    const auto num_cols = result.size[1];
+    const auto row_ptrs = source.row_ptrs;
 
-    const auto num_nnz = source->get_num_stored_elements();
+    const auto num_nnz = source.num_stored_elements;
     auto grid_dim = ceildiv(num_rows, default_block_size);
     auto block_dim = default_block_size;
     kernel::compute_submatrix_idxs_and_vals(
         grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols, num_nnz,
-        row_offset, col_offset, source->get_const_row_ptrs(),
-        source->get_const_col_idxs(),
-        as_device_type(source->get_const_values()),
-        result->get_const_row_ptrs(), result->get_col_idxs(),
-        as_device_type(result->get_values()));
+        row_offset, col_offset, source.row_ptrs, source.col_idxs,
+        as_device_type(source.values), result.row_ptrs, result.col_idxs,
+        as_device_type(result.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -1790,10 +1745,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_submatrix_from_index_set(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* source,
+    matrix::view::csr<const ValueType, const IndexType> source,
     const gko::index_set<IndexType>& row_index_set,
     const gko::index_set<IndexType>& col_index_set,
-    matrix::Csr<ValueType, IndexType>* result) GKO_NOT_IMPLEMENTED;
+    matrix::view::csr<ValueType, IndexType> result) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_COMPUTE_SUB_MATRIX_FROM_INDEX_SET_KERNEL);
@@ -1988,23 +1943,24 @@ auto spgemm_multiway_merge(size_type row,
 
 template <typename ValueType, typename IndexType>
 void spgemm(std::shared_ptr<const DpcppExecutor> exec,
-            const matrix::Csr<ValueType, IndexType>* a,
-            const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::view::csr<const ValueType, const IndexType> a,
+            matrix::view::csr<const ValueType, const IndexType> b,
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto num_rows = a->get_size()[0];
-    const auto a_row_ptrs = a->get_const_row_ptrs();
-    const auto a_cols = a->get_const_col_idxs();
-    const auto a_vals = as_device_type(a->get_const_values());
-    const auto b_row_ptrs = b->get_const_row_ptrs();
-    const auto b_cols = b->get_const_col_idxs();
-    const auto b_vals = as_device_type(b->get_const_values());
+    auto num_rows = a.size[0];
+    const auto a_row_ptrs = a.row_ptrs;
+    const auto a_cols = a.col_idxs;
+    const auto a_vals = as_device_type(a.values);
+    const auto b_row_ptrs = b.row_ptrs;
+    const auto b_cols = b.col_idxs;
+    const auto b_vals = as_device_type(b.values);
+    auto c = c_builder->get_matrix();
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
 
     using device_value_type = device_type<ValueType>;
     array<val_heap_element<device_value_type, IndexType>> heap_array(
-        exec, a->get_num_stored_elements());
+        exec, a.num_stored_elements);
 
     auto heap = heap_array.get_data();
     auto col_heap =
@@ -2027,9 +1983,8 @@ void spgemm(std::shared_ptr<const DpcppExecutor> exec,
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_col_idxs = c_col_idxs_array.get_data();
@@ -2066,22 +2021,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEMM_KERNEL);
 template <typename ValueType, typename IndexType>
 void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
                      matrix::view::dense<const ValueType> alpha,
-                     const matrix::Csr<ValueType, IndexType>* a,
-                     const matrix::Csr<ValueType, IndexType>* b,
+                     matrix::view::csr<const ValueType, const IndexType> a,
+                     matrix::view::csr<const ValueType, const IndexType> b,
                      matrix::view::dense<const ValueType> beta,
-                     const matrix::Csr<ValueType, IndexType>* d,
-                     matrix::Csr<ValueType, IndexType>* c)
+                     matrix::view::csr<const ValueType, const IndexType> d,
+                     matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
-    auto num_rows = a->get_size()[0];
-    const auto a_row_ptrs = a->get_const_row_ptrs();
-    const auto a_cols = a->get_const_col_idxs();
-    const auto a_vals = as_device_type(a->get_const_values());
-    const auto b_row_ptrs = b->get_const_row_ptrs();
-    const auto b_cols = b->get_const_col_idxs();
-    const auto b_vals = as_device_type(b->get_const_values());
-    const auto d_row_ptrs = d->get_const_row_ptrs();
-    const auto d_cols = d->get_const_col_idxs();
-    const auto d_vals = as_device_type(d->get_const_values());
+    auto c = c_builder->get_matrix();
+    auto num_rows = a.size[0];
+    const auto a_row_ptrs = a.row_ptrs;
+    const auto a_cols = a.col_idxs;
+    const auto a_vals = as_device_type(a.values);
+    const auto b_row_ptrs = b.row_ptrs;
+    const auto b_cols = b.col_idxs;
+    const auto b_vals = as_device_type(b.values);
+    const auto d_row_ptrs = d.row_ptrs;
+    const auto d_cols = d.col_idxs;
+    const auto d_vals = as_device_type(d.values);
     auto c_row_ptrs = c->get_row_ptrs();
     const auto alpha_vals = as_device_type(alpha.values);
     const auto beta_vals = as_device_type(beta.values);
@@ -2091,7 +2047,7 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
     // first sweep: count nnz for each row
     using device_value_type = device_type<ValueType>;
     array<val_heap_element<device_value_type, IndexType>> heap_array(
-        exec, a->get_num_stored_elements());
+        exec, a.num_stored_elements);
 
     auto heap = heap_array.get_data();
     auto col_heap =
@@ -2127,9 +2083,8 @@ void advanced_spgemm(std::shared_ptr<const DpcppExecutor> exec,
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
 
@@ -2202,21 +2157,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType>* a,
-                  const matrix::Csr<ValueType, IndexType>* b,
+                  matrix::view::csr<const ValueType, const IndexType> a,
+                  matrix::view::csr<const ValueType, const IndexType> b,
                   const matrix::csr::lookup_data<IndexType>& c_lookup,
-                  matrix::Csr<ValueType, IndexType>* c)
+                  matrix::view::csr<ValueType, IndexType> c)
 {
-    const auto num_rows = static_cast<IndexType>(c->get_size()[0]);
-    const auto a_row_ptrs = a->get_const_row_ptrs();
-    const auto b_row_ptrs = b->get_const_row_ptrs();
-    const auto c_row_ptrs = c->get_const_row_ptrs();
-    const auto a_cols = a->get_const_col_idxs();
-    const auto b_cols = b->get_const_col_idxs();
-    const auto c_cols = c->get_const_col_idxs();
-    const auto a_vals = as_device_type(a->get_const_values());
-    const auto b_vals = as_device_type(b->get_const_values());
-    const auto c_vals = as_device_type(c->get_values());
+    const auto num_rows = static_cast<IndexType>(c.size[0]);
+    const auto a_row_ptrs = a.row_ptrs;
+    const auto b_row_ptrs = b.row_ptrs;
+    const auto c_row_ptrs = c.row_ptrs;
+    const auto a_cols = a.col_idxs;
+    const auto b_cols = b.col_idxs;
+    const auto c_cols = c.col_idxs;
+    const auto a_vals = as_device_type(a.values);
+    const auto b_vals = as_device_type(b.values);
+    const auto c_vals = as_device_type(c.values);
     const auto lookup_storage_offsets =
         c_lookup.storage_offsets.get_const_data();
     const auto lookup_storage = c_lookup.storage.get_const_data();
@@ -2263,28 +2218,29 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void advanced_spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
-                           matrix::view::dense<const ValueType> alpha,
-                           const matrix::Csr<ValueType, IndexType>* a,
-                           const matrix::Csr<ValueType, IndexType>* b,
-                           matrix::view::dense<const ValueType> beta,
-                           const matrix::Csr<ValueType, IndexType>* d,
-                           const matrix::csr::lookup_data<IndexType>& c_lookup,
-                           matrix::Csr<ValueType, IndexType>* c)
+void advanced_spgemm_reuse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::dense<const ValueType> alpha,
+    matrix::view::csr<const ValueType, const IndexType> a,
+    matrix::view::csr<const ValueType, const IndexType> b,
+    matrix::view::dense<const ValueType> beta,
+    matrix::view::csr<const ValueType, const IndexType> d,
+    const matrix::csr::lookup_data<IndexType>& c_lookup,
+    matrix::view::csr<ValueType, IndexType> c)
 {
-    const auto num_rows = static_cast<IndexType>(c->get_size()[0]);
-    const auto a_row_ptrs = a->get_const_row_ptrs();
-    const auto b_row_ptrs = b->get_const_row_ptrs();
-    const auto c_row_ptrs = c->get_const_row_ptrs();
-    const auto d_row_ptrs = d->get_const_row_ptrs();
-    const auto a_cols = a->get_const_col_idxs();
-    const auto b_cols = b->get_const_col_idxs();
-    const auto c_cols = c->get_const_col_idxs();
-    const auto d_cols = d->get_const_col_idxs();
-    const auto a_vals = as_device_type(a->get_const_values());
-    const auto b_vals = as_device_type(b->get_const_values());
-    const auto c_vals = as_device_type(c->get_values());
-    const auto d_vals = as_device_type(d->get_const_values());
+    const auto num_rows = static_cast<IndexType>(c.size[0]);
+    const auto a_row_ptrs = a.row_ptrs;
+    const auto b_row_ptrs = b.row_ptrs;
+    const auto c_row_ptrs = c.row_ptrs;
+    const auto d_row_ptrs = d.row_ptrs;
+    const auto a_cols = a.col_idxs;
+    const auto b_cols = b.col_idxs;
+    const auto c_cols = c.col_idxs;
+    const auto d_cols = d.col_idxs;
+    const auto a_vals = as_device_type(a.values);
+    const auto b_vals = as_device_type(b.values);
+    const auto c_vals = as_device_type(c.values);
+    const auto d_vals = as_device_type(d.values);
     const auto palpha = as_device_type(alpha.values);
     const auto pbeta = as_device_type(beta.values);
     const auto lookup_storage_offsets =
@@ -2352,17 +2308,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const DpcppExecutor> exec,
             matrix::view::dense<const ValueType> alpha,
-            const matrix::Csr<ValueType, IndexType>* a,
+            matrix::view::csr<const ValueType, const IndexType> a,
             matrix::view::dense<const ValueType> beta,
-            const matrix::Csr<ValueType, IndexType>* b,
-            matrix::Csr<ValueType, IndexType>* c)
+            matrix::view::csr<const ValueType, const IndexType> b,
+            matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
-    const auto num_rows = a->get_size()[0];
-    const auto a_row_ptrs = a->get_const_row_ptrs();
-    const auto a_cols = a->get_const_col_idxs();
-    const auto b_row_ptrs = b->get_const_row_ptrs();
-    const auto b_cols = b->get_const_col_idxs();
+    const auto num_rows = a.size[0];
+    const auto a_row_ptrs = a.row_ptrs;
+    const auto a_cols = a.col_idxs;
+    const auto b_row_ptrs = b.row_ptrs;
+    const auto b_cols = b.col_idxs;
+    auto c = c_builder->get_matrix();
     auto c_row_ptrs = c->get_row_ptrs();
     auto queue = exec->get_queue();
 
@@ -2390,16 +2347,15 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
 
     // second sweep: accumulate non-zeros
     const auto new_nnz = exec->copy_val_to_host(c_row_ptrs + num_rows);
-    matrix::CsrBuilder<ValueType, IndexType> c_builder{c};
-    auto& c_col_idxs_array = c_builder.get_col_idx_array();
-    auto& c_vals_array = c_builder.get_value_array();
+    auto& c_col_idxs_array = c_builder->get_col_idx_array();
+    auto& c_vals_array = c_builder->get_value_array();
     c_col_idxs_array.resize_and_reset(new_nnz);
     c_vals_array.resize_and_reset(new_nnz);
     auto c_cols = c_col_idxs_array.get_data();
     auto c_vals = as_device_type(c_vals_array.get_data());
 
-    const auto a_vals = as_device_type(a->get_const_values());
-    const auto b_vals = as_device_type(b->get_const_values());
+    const auto a_vals = as_device_type(a.values);
+    const auto b_vals = as_device_type(b.values);
     const auto alpha_vals = as_device_type(alpha.values);
     const auto beta_vals = as_device_type(beta.values);
 
@@ -2440,21 +2396,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
 template <typename ValueType, typename IndexType>
 void spgeam_numeric(std::shared_ptr<const DpcppExecutor> exec,
                     matrix::view::dense<const ValueType> alpha,
-                    const matrix::Csr<ValueType, IndexType>* a,
+                    matrix::view::csr<const ValueType, const IndexType> a,
                     matrix::view::dense<const ValueType> beta,
-                    const matrix::Csr<ValueType, IndexType>* b,
-                    matrix::Csr<ValueType, IndexType>* c)
+                    matrix::view::csr<const ValueType, const IndexType> b,
+                    matrix::view::csr<ValueType, IndexType> c)
 {
     constexpr auto sentinel = std::numeric_limits<IndexType>::max();
-    const auto num_rows = a->get_size()[0];
-    const auto a_row_ptrs = a->get_const_row_ptrs();
-    const auto a_cols = a->get_const_col_idxs();
-    const auto a_vals = as_device_type(a->get_const_values());
-    const auto b_row_ptrs = b->get_const_row_ptrs();
-    const auto b_cols = b->get_const_col_idxs();
-    const auto b_vals = as_device_type(b->get_const_values());
-    const auto c_row_ptrs = c->get_row_ptrs();
-    const auto c_vals = as_device_type(c->get_values());
+    const auto num_rows = a.size[0];
+    const auto a_row_ptrs = a.row_ptrs;
+    const auto a_cols = a.col_idxs;
+    const auto a_vals = as_device_type(a.values);
+    const auto b_row_ptrs = b.row_ptrs;
+    const auto b_cols = b.col_idxs;
+    const auto b_vals = as_device_type(b.values);
+    const auto c_row_ptrs = c.row_ptrs;
+    const auto c_vals = as_device_type(c.values);
     const auto alpha_vals = as_device_type(alpha.values);
     const auto beta_vals = as_device_type(beta.values);
     auto queue = exec->get_queue();
@@ -2495,15 +2451,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Csr<ValueType, IndexType>* source,
+                   matrix::view::csr<const ValueType, const IndexType> source,
                    matrix::view::dense<ValueType> result)
 {
     const auto num_rows = result.size[0];
     const auto num_cols = result.size[1];
     const auto stride = result.stride;
-    const auto row_ptrs = source->get_const_row_ptrs();
-    const auto col_idxs = source->get_const_col_idxs();
-    const auto vals = as_device_type(source->get_const_values());
+    const auto row_ptrs = source.row_ptrs;
+    const auto col_idxs = source.col_idxs;
+    const auto vals = as_device_type(source.values);
 
     auto grid_dim = ceildiv(num_rows, default_block_size);
     kernel::fill_in_dense(grid_dim, default_block_size, 0, exec->get_queue(),
@@ -2516,10 +2472,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* source, int bs,
-                      array<IndexType>& row_ptrs, array<IndexType>& col_idxs,
-                      array<ValueType>& values) GKO_NOT_IMPLEMENTED;
+void convert_to_fbcsr(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> source, int bs,
+    array<IndexType>& row_ptrs, array<IndexType>& col_idxs,
+    array<ValueType>& values) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_CONVERT_TO_FBCSR_KERNEL);
@@ -2527,21 +2484,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <bool conjugate, typename ValueType, typename IndexType>
 void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
-                       const matrix::Csr<ValueType, IndexType>* orig,
-                       matrix::Csr<ValueType, IndexType>* trans)
+                       matrix::view::csr<const ValueType, const IndexType> orig,
+                       matrix::view::csr<ValueType, IndexType> trans)
 {
-    const auto num_rows = orig->get_size()[0];
-    const auto num_cols = orig->get_size()[1];
+    const auto num_rows = orig.size[0];
+    const auto num_cols = orig.size[1];
     auto queue = exec->get_queue();
-    const auto row_ptrs = orig->get_const_row_ptrs();
-    const auto cols = orig->get_const_col_idxs();
-    const auto vals = as_device_type(orig->get_const_values());
+    const auto row_ptrs = orig.row_ptrs;
+    const auto cols = orig.col_idxs;
+    const auto vals = as_device_type(orig.values);
 
     array<IndexType> counts{exec, num_cols + 1};
     auto tmp_counts = counts.get_data();
-    auto out_row_ptrs = trans->get_row_ptrs();
-    auto out_cols = trans->get_col_idxs();
-    auto out_vals = as_device_type(trans->get_values());
+    auto out_row_ptrs = trans.row_ptrs;
+    auto out_cols = trans.col_idxs;
+    auto out_vals = as_device_type(trans.values);
     components::fill_array(exec, tmp_counts, num_cols, IndexType{});
 
     queue->submit([&](sycl::handler& cgh) {
@@ -2578,8 +2535,8 @@ void generic_transpose(std::shared_ptr<const DpcppExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void transpose(std::shared_ptr<const DpcppExecutor> exec,
-               const matrix::Csr<ValueType, IndexType>* orig,
-               matrix::Csr<ValueType, IndexType>* trans)
+               matrix::view::csr<const ValueType, const IndexType> orig,
+               matrix::view::csr<ValueType, IndexType> trans)
 {
     generic_transpose<false>(exec, orig, trans);
 }
@@ -2589,8 +2546,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_TRANSPOSE_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void conj_transpose(std::shared_ptr<const DpcppExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* orig,
-                    matrix::Csr<ValueType, IndexType>* trans)
+                    matrix::view::csr<const ValueType, const IndexType> orig,
+                    matrix::view::csr<ValueType, IndexType> trans)
 {
     generic_transpose<true>(exec, orig, trans);
 }
@@ -2602,23 +2559,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void inv_symm_permute(std::shared_ptr<const DpcppExecutor> exec,
                       const IndexType* perm,
-                      const matrix::Csr<ValueType, IndexType>* orig,
-                      matrix::Csr<ValueType, IndexType>* permuted)
+                      matrix::view::csr<const ValueType, const IndexType> orig,
+                      matrix::view::csr<ValueType, IndexType> permuted)
 {
-    auto num_rows = orig->get_size()[0];
+    auto num_rows = orig.size[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    inv_row_ptr_permute_kernel(
-        count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        perm, orig->get_const_row_ptrs(), permuted->get_row_ptrs());
-    components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
-                                       num_rows + 1);
+    inv_row_ptr_permute_kernel(count_num_blocks, default_block_size, 0,
+                               exec->get_queue(), num_rows, perm, orig.row_ptrs,
+                               permuted.row_ptrs);
+    components::prefix_sum_nonnegative(exec, permuted.row_ptrs, num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_symm_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_device_type(orig->get_const_values()), permuted->get_row_ptrs(),
-        permuted->get_col_idxs(), as_device_type(permuted->get_values()));
+        perm, orig.row_ptrs, orig.col_idxs, as_device_type(orig.values),
+        permuted.row_ptrs, permuted.col_idxs, as_device_type(permuted.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2626,26 +2581,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inv_nonsymm_permute(std::shared_ptr<const DpcppExecutor> exec,
-                         const IndexType* row_perm, const IndexType* col_perm,
-                         const matrix::Csr<ValueType, IndexType>* orig,
-                         matrix::Csr<ValueType, IndexType>* permuted)
+void inv_nonsymm_permute(
+    std::shared_ptr<const DpcppExecutor> exec, const IndexType* row_perm,
+    const IndexType* col_perm,
+    matrix::view::csr<const ValueType, const IndexType> orig,
+    matrix::view::csr<ValueType, IndexType> permuted)
 {
-    auto num_rows = orig->get_size()[0];
+    auto num_rows = orig.size[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    inv_row_ptr_permute_kernel(
-        count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        row_perm, orig->get_const_row_ptrs(), permuted->get_row_ptrs());
-    components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
-                                       num_rows + 1);
+    inv_row_ptr_permute_kernel(count_num_blocks, default_block_size, 0,
+                               exec->get_queue(), num_rows, row_perm,
+                               orig.row_ptrs, permuted.row_ptrs);
+    components::prefix_sum_nonnegative(exec, permuted.row_ptrs, num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_nonsymm_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        row_perm, col_perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
-        permuted->get_row_ptrs(), permuted->get_col_idxs(),
-        as_device_type(permuted->get_values()));
+        row_perm, col_perm, orig.row_ptrs, orig.col_idxs,
+        as_device_type(orig.values), permuted.row_ptrs, permuted.col_idxs,
+        as_device_type(permuted.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2655,24 +2609,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void row_permute(std::shared_ptr<const DpcppExecutor> exec,
                  const IndexType* perm,
-                 const matrix::Csr<ValueType, IndexType>* orig,
-                 matrix::Csr<ValueType, IndexType>* row_permuted)
+                 matrix::view::csr<const ValueType, const IndexType> orig,
+                 matrix::view::csr<ValueType, IndexType> row_permuted)
 {
-    auto num_rows = orig->get_size()[0];
+    auto num_rows = orig.size[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    row_ptr_permute_kernel(
-        count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        perm, orig->get_const_row_ptrs(), row_permuted->get_row_ptrs());
-    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+    row_ptr_permute_kernel(count_num_blocks, default_block_size, 0,
+                           exec->get_queue(), num_rows, perm, orig.row_ptrs,
+                           row_permuted.row_ptrs);
+    components::prefix_sum_nonnegative(exec, row_permuted.row_ptrs,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    row_permute_kernel(
-        copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
-        row_permuted->get_col_idxs(),
-        as_device_type(row_permuted->get_values()));
+    row_permute_kernel(copy_num_blocks, default_block_size, 0,
+                       exec->get_queue(), num_rows, perm, orig.row_ptrs,
+                       orig.col_idxs, as_device_type(orig.values),
+                       row_permuted.row_ptrs, row_permuted.col_idxs,
+                       as_device_type(row_permuted.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2682,24 +2635,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void inv_row_permute(std::shared_ptr<const DpcppExecutor> exec,
                      const IndexType* perm,
-                     const matrix::Csr<ValueType, IndexType>* orig,
-                     matrix::Csr<ValueType, IndexType>* row_permuted)
+                     matrix::view::csr<const ValueType, const IndexType> orig,
+                     matrix::view::csr<ValueType, IndexType> row_permuted)
 {
-    auto num_rows = orig->get_size()[0];
+    auto num_rows = orig.size[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    inv_row_ptr_permute_kernel(
-        count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        perm, orig->get_const_row_ptrs(), row_permuted->get_row_ptrs());
-    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+    inv_row_ptr_permute_kernel(count_num_blocks, default_block_size, 0,
+                               exec->get_queue(), num_rows, perm, orig.row_ptrs,
+                               row_permuted.row_ptrs);
+    components::prefix_sum_nonnegative(exec, row_permuted.row_ptrs,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
-    inv_row_permute_kernel(
-        copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_device_type(orig->get_const_values()), row_permuted->get_row_ptrs(),
-        row_permuted->get_col_idxs(),
-        as_device_type(row_permuted->get_values()));
+    inv_row_permute_kernel(copy_num_blocks, default_block_size, 0,
+                           exec->get_queue(), num_rows, perm, orig.row_ptrs,
+                           orig.col_idxs, as_device_type(orig.values),
+                           row_permuted.row_ptrs, row_permuted.col_idxs,
+                           as_device_type(row_permuted.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2707,26 +2659,25 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inv_symm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
-                            const ValueType* scale, const IndexType* perm,
-                            const matrix::Csr<ValueType, IndexType>* orig,
-                            matrix::Csr<ValueType, IndexType>* permuted)
+void inv_symm_scale_permute(
+    std::shared_ptr<const DpcppExecutor> exec, const ValueType* scale,
+    const IndexType* perm,
+    matrix::view::csr<const ValueType, const IndexType> orig,
+    matrix::view::csr<ValueType, IndexType> permuted)
 {
-    auto num_rows = orig->get_size()[0];
+    auto num_rows = orig.size[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    inv_row_ptr_permute_kernel(
-        count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        perm, orig->get_const_row_ptrs(), permuted->get_row_ptrs());
-    components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
-                                       num_rows + 1);
+    inv_row_ptr_permute_kernel(count_num_blocks, default_block_size, 0,
+                               exec->get_queue(), num_rows, perm, orig.row_ptrs,
+                               permuted.row_ptrs);
+    components::prefix_sum_nonnegative(exec, permuted.row_ptrs, num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_symm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        as_device_type(scale), perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
-        permuted->get_row_ptrs(), permuted->get_col_idxs(),
-        as_device_type(permuted->get_values()));
+        as_device_type(scale), perm, orig.row_ptrs, orig.col_idxs,
+        as_device_type(orig.values), permuted.row_ptrs, permuted.col_idxs,
+        as_device_type(permuted.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2734,29 +2685,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inv_nonsymm_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
-                               const ValueType* row_scale,
-                               const IndexType* row_perm,
-                               const ValueType* col_scale,
-                               const IndexType* col_perm,
-                               const matrix::Csr<ValueType, IndexType>* orig,
-                               matrix::Csr<ValueType, IndexType>* permuted)
+void inv_nonsymm_scale_permute(
+    std::shared_ptr<const DpcppExecutor> exec, const ValueType* row_scale,
+    const IndexType* row_perm, const ValueType* col_scale,
+    const IndexType* col_perm,
+    matrix::view::csr<const ValueType, const IndexType> orig,
+    matrix::view::csr<ValueType, IndexType> permuted)
 {
-    auto num_rows = orig->get_size()[0];
+    auto num_rows = orig.size[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    inv_row_ptr_permute_kernel(
-        count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        row_perm, orig->get_const_row_ptrs(), permuted->get_row_ptrs());
-    components::prefix_sum_nonnegative(exec, permuted->get_row_ptrs(),
-                                       num_rows + 1);
+    inv_row_ptr_permute_kernel(count_num_blocks, default_block_size, 0,
+                               exec->get_queue(), num_rows, row_perm,
+                               orig.row_ptrs, permuted.row_ptrs);
+    components::prefix_sum_nonnegative(exec, permuted.row_ptrs, num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_nonsymm_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
         as_device_type(row_scale), row_perm, as_device_type(col_scale),
-        col_perm, orig->get_const_row_ptrs(), orig->get_const_col_idxs(),
-        as_device_type(orig->get_const_values()), permuted->get_row_ptrs(),
-        permuted->get_col_idxs(), as_device_type(permuted->get_values()));
+        col_perm, orig.row_ptrs, orig.col_idxs, as_device_type(orig.values),
+        permuted.row_ptrs, permuted.col_idxs, as_device_type(permuted.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2766,24 +2714,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
                        const ValueType* scale, const IndexType* perm,
-                       const matrix::Csr<ValueType, IndexType>* orig,
-                       matrix::Csr<ValueType, IndexType>* row_permuted)
+                       matrix::view::csr<const ValueType, const IndexType> orig,
+                       matrix::view::csr<ValueType, IndexType> row_permuted)
 {
-    auto num_rows = orig->get_size()[0];
+    auto num_rows = orig.size[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    row_ptr_permute_kernel(
-        count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        perm, orig->get_const_row_ptrs(), row_permuted->get_row_ptrs());
-    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+    row_ptr_permute_kernel(count_num_blocks, default_block_size, 0,
+                           exec->get_queue(), num_rows, perm, orig.row_ptrs,
+                           row_permuted.row_ptrs);
+    components::prefix_sum_nonnegative(exec, row_permuted.row_ptrs,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        as_device_type(scale), perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
-        row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
-        as_device_type(row_permuted->get_values()));
+        as_device_type(scale), perm, orig.row_ptrs, orig.col_idxs,
+        as_device_type(orig.values), row_permuted.row_ptrs,
+        row_permuted.col_idxs, as_device_type(row_permuted.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2791,26 +2738,26 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void inv_row_scale_permute(std::shared_ptr<const DpcppExecutor> exec,
-                           const ValueType* scale, const IndexType* perm,
-                           const matrix::Csr<ValueType, IndexType>* orig,
-                           matrix::Csr<ValueType, IndexType>* row_permuted)
+void inv_row_scale_permute(
+    std::shared_ptr<const DpcppExecutor> exec, const ValueType* scale,
+    const IndexType* perm,
+    matrix::view::csr<const ValueType, const IndexType> orig,
+    matrix::view::csr<ValueType, IndexType> row_permuted)
 {
-    auto num_rows = orig->get_size()[0];
+    auto num_rows = orig.size[0];
     auto count_num_blocks = ceildiv(num_rows, default_block_size);
-    inv_row_ptr_permute_kernel(
-        count_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        perm, orig->get_const_row_ptrs(), row_permuted->get_row_ptrs());
-    components::prefix_sum_nonnegative(exec, row_permuted->get_row_ptrs(),
+    inv_row_ptr_permute_kernel(count_num_blocks, default_block_size, 0,
+                               exec->get_queue(), num_rows, perm, orig.row_ptrs,
+                               row_permuted.row_ptrs);
+    components::prefix_sum_nonnegative(exec, row_permuted.row_ptrs,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
     inv_row_scale_permute_kernel(
         copy_num_blocks, default_block_size, 0, exec->get_queue(), num_rows,
-        as_device_type(scale), perm, orig->get_const_row_ptrs(),
-        orig->get_const_col_idxs(), as_device_type(orig->get_const_values()),
-        row_permuted->get_row_ptrs(), row_permuted->get_col_idxs(),
-        as_device_type(row_permuted->get_values()));
+        as_device_type(scale), perm, orig.row_ptrs, orig.col_idxs,
+        as_device_type(orig.values), row_permuted.row_ptrs,
+        row_permuted.col_idxs, as_device_type(row_permuted.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -2819,12 +2766,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DpcppExecutor> exec,
-                          matrix::Csr<ValueType, IndexType>* to_sort)
+                          matrix::view::csr<ValueType, IndexType> to_sort)
 {
-    const auto num_rows = to_sort->get_size()[0];
-    const auto row_ptrs = to_sort->get_const_row_ptrs();
-    auto cols = to_sort->get_col_idxs();
-    auto vals = as_device_type(to_sort->get_values());
+    const auto num_rows = to_sort.size[0];
+    const auto row_ptrs = to_sort.row_ptrs;
+    auto cols = to_sort.col_idxs;
+    auto vals = as_device_type(to_sort.values);
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
             const auto row = static_cast<size_type>(idx[0]);
@@ -2878,12 +2825,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* to_check, bool& is_sorted)
+    matrix::view::csr<const ValueType, const IndexType> to_check,
+    bool& is_sorted)
 {
     array<bool> is_sorted_device_array{exec, {true}};
-    const auto num_rows = to_check->get_size()[0];
-    const auto row_ptrs = to_check->get_const_row_ptrs();
-    const auto cols = to_check->get_const_col_idxs();
+    const auto num_rows = to_check.size[0];
+    const auto row_ptrs = to_check.row_ptrs;
+    const auto cols = to_check.col_idxs;
     auto is_sorted_device = is_sorted_device_array.get_data();
     exec->get_queue()->submit([&](sycl::handler& cgh) {
         cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
@@ -2909,17 +2857,17 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DpcppExecutor> exec,
-                      const matrix::Csr<ValueType, IndexType>* orig,
+                      matrix::view::csr<const ValueType, const IndexType> orig,
                       matrix::Diagonal<ValueType>* diag)
 {
-    const auto nnz = orig->get_num_stored_elements();
+    const auto nnz = orig.num_stored_elements;
     const auto diag_size = diag->get_size()[0];
     const auto num_blocks =
         ceildiv(config::warp_size * diag_size, default_block_size);
 
-    const auto orig_values = as_device_type(orig->get_const_values());
-    const auto orig_row_ptrs = orig->get_const_row_ptrs();
-    const auto orig_col_idxs = orig->get_const_col_idxs();
+    const auto orig_values = as_device_type(orig.values);
+    const auto orig_row_ptrs = orig.row_ptrs;
+    const auto orig_col_idxs = orig.col_idxs;
     auto diag_values = as_device_type(diag->get_values());
 
     kernel::extract_diagonal(num_blocks, default_block_size, 0,
@@ -2931,20 +2879,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_EXTRACT_DIAGONAL);
 
 
 template <typename ValueType, typename IndexType>
-void check_diagonal_entries_exist(std::shared_ptr<const DpcppExecutor> exec,
-                                  const matrix::Csr<ValueType, IndexType>* mtx,
-                                  bool& has_all_diags)
+void check_diagonal_entries_exist(
+    std::shared_ptr<const DpcppExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> mtx,
+    bool& has_all_diags)
 {
-    const auto num_diag = static_cast<IndexType>(
-        std::min(mtx->get_size()[0], mtx->get_size()[1]));
+    const auto num_diag =
+        static_cast<IndexType>(std::min(mtx.size[0], mtx.size[1]));
     if (num_diag > 0) {
         const IndexType num_blocks =
             ceildiv(num_diag, default_block_size / config::warp_size);
         array<bool> has_diags(exec, {true});
         kernel::check_diagonal_entries(
             num_blocks, default_block_size, 0, exec->get_queue(), num_diag,
-            mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-            has_diags.get_data());
+            mtx.row_ptrs, mtx.col_idxs, has_diags.get_data());
         has_all_diags = get_element(has_diags, 0);
     } else {
         has_all_diags = true;
@@ -2959,19 +2907,19 @@ template <typename ValueType, typename IndexType>
 void add_scaled_identity(std::shared_ptr<const DpcppExecutor> exec,
                          matrix::view::dense<const ValueType> alpha,
                          matrix::view::dense<const ValueType> beta,
-                         matrix::Csr<ValueType, IndexType>* mtx)
+                         matrix::view::csr<ValueType, IndexType> mtx)
 {
-    const auto nrows = mtx->get_size()[0];
+    const auto nrows = mtx.size[0];
     if (nrows == 0) {
         return;
     }
     const auto nthreads = nrows * config::warp_size;
     const auto nblocks = ceildiv(nthreads, default_block_size);
-    kernel::add_scaled_identity(
-        nblocks, default_block_size, 0, exec->get_queue(),
-        as_device_type(alpha.values), as_device_type(beta.values),
-        static_cast<IndexType>(nrows), mtx->get_const_row_ptrs(),
-        mtx->get_const_col_idxs(), as_device_type(mtx->get_values()));
+    kernel::add_scaled_identity(nblocks, default_block_size, 0,
+                                exec->get_queue(), as_device_type(alpha.values),
+                                as_device_type(beta.values),
+                                static_cast<IndexType>(nrows), mtx.row_ptrs,
+                                mtx.col_idxs, as_device_type(mtx.values));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

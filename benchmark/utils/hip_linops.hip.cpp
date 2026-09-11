@@ -138,7 +138,7 @@ protected:
                  const gko::dim<2>& size = gko::dim<2>{})
         : HipsparseBase(exec, size),
           csr_(std::move(
-              csr::create(exec, std::make_shared<typename csr::classical>()))),
+              csr::create(exec, gko::matrix::csr::spmv_strategy::classical))),
           trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
@@ -212,7 +212,7 @@ protected:
                    const gko::dim<2>& size = gko::dim<2>{})
         : HipsparseBase(exec, size),
           csr_(std::move(
-              csr::create(exec, std::make_shared<typename csr::classical>()))),
+              csr::create(exec, gko::matrix::csr::spmv_strategy::classical))),
           trans_(SPARSELIB_OPERATION_NON_TRANSPOSE)
     {}
 
@@ -254,7 +254,7 @@ public:
     void read(const mat_data& data) override
     {
         auto t_csr = csr::create(this->get_executor(),
-                                 std::make_shared<typename csr::classical>());
+                                 gko::matrix::csr::spmv_strategy::classical);
         t_csr->read(data);
         this->set_size(t_csr->get_size());
 

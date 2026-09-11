@@ -29,10 +29,10 @@ namespace factorization {
 /**
  * Represents an incomplete LU factorization -- ILU(0) -- of a sparse matrix.
  *
- * More specifically, it consists of a lower unitriangular factor $L$ and
- * an upper triangular factor $U$ with sparsity pattern
- * $\mathcal S(L + U)$ = $\mathcal S(A)$
- * fulfilling $LU = A$ at every non-zero location of $A$.
+ * More specifically, it consists of a lower unitriangular factor \f$L\f$ and
+ * an upper triangular factor \f$U\f$ with sparsity pattern
+ * \f$\mathcal S(L + U) = \mathcal S(A)\f$
+ * fulfilling \f$LU = A\f$ at every non-zero location of \f$A\f$.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
@@ -72,19 +72,71 @@ public:
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
         /**
          * Strategy which will be used by the L matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(l_strategy, nullptr);
+        GKO_DEPRECATED("use matrix::csr::spmv_strategy instead")
+        parameters_type& with_l_strategy(
+            std::shared_ptr<typename matrix_type::strategy_type> value)
+        {
+            if (value) {
+                this->l_strategy = value->get_enum();
+            } else {
+                this->l_strategy = matrix::csr::spmv_strategy::classical;
+            }
+            return *this;
+        }
+
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+        /**
+         * Strategy which will be used by the L matrix. The default value is
+         * `classical`.
+         */
+        parameters_type& with_l_strategy(matrix::csr::spmv_strategy value)
+        {
+            this->l_strategy = value;
+            return *this;
+        }
+
+        matrix::csr::spmv_strategy l_strategy{
+            matrix::csr::spmv_strategy::classical};
+
+        GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
         /**
          * Strategy which will be used by the U matrix. The default value
          * `nullptr` will result in the strategy `classical`.
          */
-        std::shared_ptr<typename matrix_type::strategy_type>
-            GKO_FACTORY_PARAMETER_SCALAR(u_strategy, nullptr);
+        GKO_DEPRECATED("use matrix::csr::spmv_strategy instead")
+        parameters_type& with_u_strategy(
+            std::shared_ptr<typename matrix_type::strategy_type> value)
+        {
+            if (value) {
+                this->u_strategy = value->get_enum();
+            } else {
+                this->u_strategy = matrix::csr::spmv_strategy::classical;
+            }
+            return *this;
+        }
+
+        GKO_END_DISABLE_DEPRECATION_WARNINGS
+
+        /**
+         * Strategy which will be used by the U matrix. The default value is
+         * `classical`.
+         */
+        parameters_type& with_u_strategy(matrix::csr::spmv_strategy value)
+        {
+            this->u_strategy = value;
+            return *this;
+        }
+
+        matrix::csr::spmv_strategy u_strategy{
+            matrix::csr::spmv_strategy::classical};
 
         /**
          * The `system_matrix`, which will be given to this factory, must be
@@ -134,14 +186,6 @@ protected:
         : Composition<ValueType>{factory->get_executor()},
           parameters_{factory->get_parameters()}
     {
-        if (parameters_.l_strategy == nullptr) {
-            parameters_.l_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
-        if (parameters_.u_strategy == nullptr) {
-            parameters_.u_strategy =
-                std::make_shared<typename matrix_type::classical>();
-        }
         auto comp = generate_l_u(system_matrix, parameters_.skip_sorting);
         for (auto& op : comp->get_operators()) {
             this->add_operators(op);

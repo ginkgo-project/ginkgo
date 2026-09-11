@@ -91,15 +91,16 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
         csr_system_matrix->sort_by_column_index();
     }
 
+    // TODO: it always run make_srow even if the matrix is not changed
     // Add explicit diagonal zero elements if they are missing
     exec->run(par_ic_factorization::make_add_diagonal_elements(
-        csr_system_matrix.get(), true));
+        matrix::make_builder_unique_ptr(csr_system_matrix).get(), true));
 
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
     array<IndexType> l_row_ptrs{exec, number_rows + 1};
     exec->run(par_ic_factorization::make_initialize_row_ptrs_l(
-        csr_system_matrix.get(), l_row_ptrs.get_data()));
+        csr_system_matrix->get_const_device_view(), l_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, number_rows));
@@ -112,8 +113,9 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
         exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
         std::move(l_row_ptrs), parameters_.l_strategy);
 
-    exec->run(par_ic_factorization::make_initialize_l(csr_system_matrix.get(),
-                                                      l_factor.get(), false));
+    exec->run(par_ic_factorization::make_initialize_l(
+        csr_system_matrix->get_const_device_view(), l_factor->get_device_view(),
+        false));
 
     // build COO representation of lower factor
     array<IndexType> l_row_idxs{exec, l_nnz};
@@ -127,12 +129,13 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
                           std::move(a_col_idxs), std::move(a_row_idxs));
 
     // compute sqrt of diagonal entries
-    exec->run(par_ic_factorization::make_init_factor(l_factor.get()));
+    exec->run(
+        par_ic_factorization::make_init_factor(l_factor->get_device_view()));
 
     // execute sweeps
     exec->run(par_ic_factorization::make_compute_factor(
         parameters_.iterations, a_lower_coo->get_const_device_view(),
-        l_factor.get()));
+        l_factor->get_device_view()));
 
     if (both_factors) {
         auto lh_factor = l_factor->conj_transpose();

@@ -72,6 +72,7 @@ target_sources(
         matrix/sellp_kernels.dp.cpp
         matrix/sparsity_csr_kernels.dp.cpp
         multigrid/pgm_kernels.dp.cpp
+        multigrid/pmis_kernels.dp.cpp
         preconditioner/batch_jacobi_kernels.dp.cpp
         preconditioner/isai_kernels.dp.cpp
         preconditioner/jacobi_advanced_apply_kernel.dp.cpp
@@ -143,10 +144,8 @@ target_compile_options(ginkgo_dpcpp PRIVATE "${GINKGO_DPCPP_FLAGS}")
 # If we would like to use SOURCES, please use the new files copied from GKO_UNIFIED_COMMON_SOURCES.
 # Otherwise, the source's properties will be changed by add_sycl_to_target
 gko_add_sycl_to_target(TARGET ginkgo_dpcpp)
-# Note: add MKL as PRIVATE not PUBLIC (MKL example shows) to avoid propagating
-# find_package(MKL) everywhere when linking ginkgo (see the MKL example
-# https://software.intel.com/content/www/us/en/develop/documentation/onemkl-windows-developer-guide/top/getting-started/cmake-config-for-onemkl.html)
-target_link_options(ginkgo_dpcpp PRIVATE -fsycl-device-lib=all)
+
+ginkgo_add_sycl_device_lib(ginkgo_dpcpp)
 # When building ginkgo as a static library, we need to use dpcpp and per_kernel
 # link option when the program uses a dpcpp related function.
 if(BUILD_SHARED_LIBS)

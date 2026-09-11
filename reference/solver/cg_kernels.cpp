@@ -16,7 +16,6 @@ namespace reference {
 /**
  * @brief The CG solver namespace.
  *
- * @ingroup cg
  */
 namespace cg {
 

@@ -23,7 +23,6 @@
 #include "dpcpp/components/cooperative_groups.dp.hpp"
 #include "dpcpp/components/reduction.dp.hpp"
 #include "dpcpp/components/thread_ids.dp.hpp"
-#include "dpcpp/components/uninitialized_array.hpp"
 
 
 namespace gko {
@@ -32,7 +31,6 @@ namespace dpcpp {
 /**
  * @brief The Compressed sparse row matrix format namespace.
  *
- * @ingroup sparsity
  */
 namespace sparsity_csr {
 

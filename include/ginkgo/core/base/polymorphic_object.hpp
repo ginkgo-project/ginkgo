@@ -51,6 +51,13 @@ public:
                                                                     this);
     }
 
+    /**
+     * Throws gko::InvalidData exception if
+     * we found the data inside the object
+     * does not fulfill certain property up to our knowledge.
+     */
+    virtual void validate_data() const {}
+
     // preserve the executor of the object
     PolymorphicObject& operator=(const PolymorphicObject&) { return *this; }
 
@@ -128,7 +135,7 @@ private:
  *
  * will convert object `u` to object `v` by checking that `u` can be dynamically
  * casted to `ConvertibleTo\<V\>`, and calling
- * ConvertibleTo\<V\>::convert_to(V*)` to do the actual conversion.
+ * `ConvertibleTo\<V\>::convert_to(V*)` to do the actual conversion.
  *
  * In case `u` is passed as a unique_ptr, call to `convert_to` will be replaced
  * by a call to `move_to` and trigger move semantics.

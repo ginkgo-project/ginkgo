@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/matrix/diagonal_kernels.hpp"
 
@@ -37,20 +38,34 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType>
+void Diagonal<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::sparse_matrix_values_are_finite(values_),
+                 "matrix must contain only finite values");
+}
+
+
+template <typename ValueType>
 void Diagonal<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     auto exec = this->get_executor();
 
     if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
         dynamic_cast<Csr<ValueType, int32>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
-                                        as<Csr<ValueType, int32>>(x), false));
+        auto b_csr = as<Csr<ValueType, int32>>(b);
+        auto x_csr = as<Csr<ValueType, int32>>(x);
+        x_csr->copy_from(b_csr);
+        exec->run(diagonal::make_apply_to_csr(this,
+                                              b_csr->get_const_device_view(),
+                                              x_csr->get_device_view(), false));
     } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
                dynamic_cast<Csr<ValueType, int64>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
-                                        as<Csr<ValueType, int64>>(x), false));
+        auto b_csr = as<Csr<ValueType, int64>>(b);
+        auto x_csr = as<Csr<ValueType, int64>>(x);
+        x_csr->copy_from(b_csr);
+        exec->run(diagonal::make_apply_to_csr(this,
+                                              b_csr->get_const_device_view(),
+                                              x_csr->get_device_view(), false));
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this, &exec](auto dense_b, auto dense_x) {
@@ -70,12 +85,20 @@ void Diagonal<ValueType>::rapply_impl(const LinOp* b, LinOp* x) const
 
     if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
         dynamic_cast<Csr<ValueType, int32>*>(x)) {
+        auto b_csr = as<Csr<ValueType, int32>>(b);
+        auto x_csr = as<Csr<ValueType, int32>>(x);
+        // TODO: combine copy and diag apply together
+        x_csr->copy_from(b_csr);
         exec->run(diagonal::make_right_apply_to_csr(
-            this, as<Csr<ValueType, int32>>(b), as<Csr<ValueType, int32>>(x)));
+            this, b_csr->get_const_device_view(), x_csr->get_device_view()));
     } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
                dynamic_cast<Csr<ValueType, int64>*>(x)) {
+        auto b_csr = as<Csr<ValueType, int64>>(b);
+        auto x_csr = as<Csr<ValueType, int64>>(x);
+        // TODO: combine copy and diag apply together
+        x_csr->copy_from(b_csr);
         exec->run(diagonal::make_right_apply_to_csr(
-            this, as<Csr<ValueType, int64>>(b), as<Csr<ValueType, int64>>(x)));
+            this, b_csr->get_const_device_view(), x_csr->get_device_view()));
     } else {
         // no real-to-complex conversion, as this would require doubling the
         // diagonal entries for the complex-to-real columns
@@ -97,14 +120,20 @@ void Diagonal<ValueType>::inverse_apply_impl(const LinOp* b, LinOp* x) const
 
     if (dynamic_cast<const Csr<ValueType, int32>*>(b) &&
         dynamic_cast<Csr<ValueType, int32>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int32>>(b),
-                                        as<Csr<ValueType, int32>>(x), true));
+        auto b_csr = as<Csr<ValueType, int32>>(b);
+        auto x_csr = as<Csr<ValueType, int32>>(x);
+        x_csr->copy_from(b_csr);
+        exec->run(diagonal::make_apply_to_csr(this,
+                                              b_csr->get_const_device_view(),
+                                              x_csr->get_device_view(), true));
     } else if (dynamic_cast<const Csr<ValueType, int64>*>(b) &&
                dynamic_cast<Csr<ValueType, int64>*>(x)) {
-        exec->run(
-            diagonal::make_apply_to_csr(this, as<Csr<ValueType, int64>>(b),
-                                        as<Csr<ValueType, int64>>(x), true));
+        auto b_csr = as<Csr<ValueType, int64>>(b);
+        auto x_csr = as<Csr<ValueType, int64>>(x);
+        x_csr->copy_from(b_csr);
+        exec->run(diagonal::make_apply_to_csr(this,
+                                              b_csr->get_const_device_view(),
+                                              x_csr->get_device_view(), true));
     } else {
         precision_dispatch_real_complex<ValueType>(
             [this, &exec](auto dense_b, auto dense_x) {
@@ -214,7 +243,7 @@ void Diagonal<ValueType>::convert_to(Csr<ValueType, int32>* result) const
         tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
         tmp->values_.resize_and_reset(this->get_size()[0]);
         tmp->set_size(this->get_size());
-        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+        exec->run(diagonal::make_convert_to_csr(this, tmp->get_device_view()));
     }
     result->make_srow();
 }
@@ -237,7 +266,7 @@ void Diagonal<ValueType>::convert_to(Csr<ValueType, int64>* result) const
         tmp->col_idxs_.resize_and_reset(this->get_size()[0]);
         tmp->values_.resize_and_reset(this->get_size()[0]);
         tmp->set_size(this->get_size());
-        exec->run(diagonal::make_convert_to_csr(this, tmp.get()));
+        exec->run(diagonal::make_convert_to_csr(this, tmp->get_device_view()));
     }
     result->make_srow();
 }

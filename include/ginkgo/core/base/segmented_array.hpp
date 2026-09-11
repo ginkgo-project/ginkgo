@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,13 +15,13 @@
 namespace gko {
 
 /**
- * \brief A minimal interface for a segmented array.
+ * @brief A minimal interface for a segmented array.
  *
  * The segmented array is stored as a flat buffer with an offsets array.
  * The segment `i` contains the index range `[offset[i], offset[i + 1])` of the
  * flat buffer.
  *
- * \tparam T value type stored in the arrays
+ * @tparam T value type stored in the arrays
  */
 template <typename T>
 struct segmented_array {

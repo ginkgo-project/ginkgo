@@ -71,8 +71,8 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<Composition<ValueType>>
 ParIlu<ValueType, IndexType>::generate_l_u(
     const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
-    std::shared_ptr<typename l_matrix_type::strategy_type> l_strategy,
-    std::shared_ptr<typename u_matrix_type::strategy_type> u_strategy) const
+    matrix::csr::spmv_strategy l_strategy,
+    matrix::csr::spmv_strategy u_strategy) const
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
@@ -91,16 +91,18 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         csr_system_matrix->sort_by_column_index();
     }
 
+    // TODO: it always run make_srow even if the matrix is not changed
     // Add explicit diagonal zero elements if they are missing
     exec->run(par_ilu_factorization::make_add_diagonal_elements(
-        csr_system_matrix.get(), true));
+        matrix::make_builder_unique_ptr(csr_system_matrix).get(), true));
 
     const auto matrix_size = csr_system_matrix->get_size();
     const auto number_rows = matrix_size[0];
     array<IndexType> l_row_ptrs{exec, number_rows + 1};
     array<IndexType> u_row_ptrs{exec, number_rows + 1};
     exec->run(par_ilu_factorization::make_initialize_row_ptrs_l_u(
-        csr_system_matrix.get(), l_row_ptrs.get_data(), u_row_ptrs.get_data()));
+        csr_system_matrix->get_const_device_view(), l_row_ptrs.get_data(),
+        u_row_ptrs.get_data()));
 
     // Get nnz from device memory
     auto l_nnz = static_cast<size_type>(get_element(l_row_ptrs, number_rows));
@@ -120,7 +122,8 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         std::move(u_row_ptrs), u_strategy);
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
-        csr_system_matrix.get(), l_factor.get(), u_factor.get()));
+        csr_system_matrix->get_const_device_view(), l_factor->get_device_view(),
+        u_factor->get_device_view()));
 
     // We use `transpose()` here to convert the Csr format to Csc.
     auto u_factor_transpose_lin_op = u_factor->transpose();
@@ -146,14 +149,15 @@ ParIlu<ValueType, IndexType>::generate_l_u(
 
     exec->run(par_ilu_factorization::make_compute_l_u_factors(
         parameters_.iterations, coo_system_matrix_ptr->get_const_device_view(),
-        l_factor.get(), u_factor_transpose));
+        l_factor->get_device_view(), u_factor_transpose->get_device_view()));
 
     // Transpose it again, which is basically a conversion from CSC back to CSR
     // Since the transposed version has the exact same non-zero positions
     // as `u_factor`, we can both skip the allocation and the `make_srow()`
     // call from CSR, leaving just the `transpose()` kernel call
-    exec->run(par_ilu_factorization::make_csr_transpose(u_factor_transpose,
-                                                        u_factor.get()));
+    exec->run(par_ilu_factorization::make_csr_transpose(
+        u_factor_transpose->get_const_device_view(),
+        u_factor->get_device_view()));
 
     return Composition<ValueType>::create(std::move(l_factor),
                                           std::move(u_factor));

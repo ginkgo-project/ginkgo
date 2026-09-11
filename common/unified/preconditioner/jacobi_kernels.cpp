@@ -124,7 +124,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 
 template <typename ValueType, typename IndexType>
 void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Csr<ValueType, IndexType>* csr,
+               matrix::view::csr<const ValueType, const IndexType> csr,
                matrix::Diagonal<ValueType>* diag)
 {
     run_kernel(
@@ -143,8 +143,8 @@ void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,
             // value.
             diag[row] += off_diag;
         },
-        csr->get_size()[0], csr->get_const_row_ptrs(),
-        csr->get_const_col_idxs(), csr->get_const_values(), diag->get_values());
+        csr.size[0], csr.row_ptrs, csr.col_idxs, csr.values,
+        diag->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -154,7 +154,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void block_l1(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
               const array<IndexType>& block_ptrs,
-              matrix::Csr<ValueType, IndexType>* csr)
+              matrix::view::csr<ValueType, IndexType> csr)
 {
     // Note: there are two another possible ways to do it.
     // 1. allocate block_num * max_block_size -> have enough thread for rows in
@@ -186,8 +186,8 @@ void block_l1(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
                 vals[diag_idx] += off_diag;
             }
         },
-        num_blocks, block_ptrs.get_const_data(), csr->get_const_row_ptrs(),
-        csr->get_const_col_idxs(), csr->get_values());
+        num_blocks, block_ptrs.get_const_data(), csr.row_ptrs, csr.col_idxs,
+        csr.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

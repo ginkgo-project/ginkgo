@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,7 +33,7 @@ template <int warps_per_block, int max_block_size, typename ValueType,
           typename IndexType>
 void generate(syn::value_list<int, max_block_size>,
               std::shared_ptr<const DefaultExecutor> exec,
-              const matrix::Csr<ValueType, IndexType>* mtx,
+              matrix::view::csr<const ValueType, const IndexType> mtx,
               remove_complex<ValueType> accuracy, ValueType* block_data,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
                   storage_scheme,
@@ -46,7 +46,7 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generate, generate);
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const DefaultExecutor> exec,
-              const matrix::Csr<ValueType, IndexType>* system_matrix,
+              matrix::view::csr<const ValueType, const IndexType> system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&

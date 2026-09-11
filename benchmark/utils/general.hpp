@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -163,6 +163,23 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
     }
 }
 
+
+/**
+ * Writes a diagnostic message to stderr in a single write().
+ *
+ * std::cerr is unit-buffered, so each `<<` becomes its own write(). MPI
+ * launchers forward stderr through pipes and can misroute such fragments onto
+ * their stdout, corrupting the JSON that the benchmark tests parse from there.
+ *
+ * @param line  the message to print, without the trailing newline
+ */
+void print_line(std::string line)
+{
+    line += '\n';
+    std::cerr << line;
+}
+
+
 /**
  * Print general benchmark information using the common available parameters
  *
@@ -171,45 +188,20 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
 void print_general_information(const std::string& extra,
                                std::shared_ptr<const gko::Executor> exec)
 {
-    std::cerr << gko::version_info::get() << std::endl
-              << "Running on " << exec->get_description() << std::endl
-              << "Running with " << FLAGS_warmup << " warm iterations and ";
+    std::ostringstream ss;
+    ss << gko::version_info::get() << '\n'
+       << "Running on " << exec->get_description() << '\n'
+       << "Running with " << FLAGS_warmup << " warm iterations and ";
     if (FLAGS_repetitions == "auto") {
-        std::cerr << "adaptively determined repetititions with "
-                  << FLAGS_min_repetitions
-                  << " <= rep <= " << FLAGS_max_repetitions
-                  << " and a minimal runtime of " << FLAGS_min_runtime << "s\n";
+        ss << "adaptively determined repetititions with "
+           << FLAGS_min_repetitions << " <= rep <= " << FLAGS_max_repetitions
+           << " and a minimal runtime of " << FLAGS_min_runtime << "s\n";
     } else {
-        std::cerr << FLAGS_repetitions << " running iterations\n";
+        ss << FLAGS_repetitions << " running iterations\n";
     }
-    std::cerr << "The random seed for right hand sides is " << FLAGS_seed
-              << '\n'
-              << extra << std::endl;
-}
-
-
-std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
-    std::shared_ptr<const gko::Executor> exec)
-{
-    using gko::log::ProfilerHook;
-    std::map<std::string, std::function<std::shared_ptr<ProfilerHook>()>>
-        hook_map{
-            {"none", [] { return std::shared_ptr<ProfilerHook>{}; }},
-            {"auto", [&] { return ProfilerHook::create_for_executor(exec); }},
-            {"nvtx", [] { return ProfilerHook::create_nvtx(); }},
-            {"roctx", [] { return ProfilerHook::create_roctx(); }},
-            {"tau", [] { return ProfilerHook::create_tau(); }},
-            {"vtune", [] { return ProfilerHook::create_vtune(); }},
-            {"debug", [] {
-                 return ProfilerHook::create_custom(
-                     [](const char* name, gko::log::profile_event_category) {
-                         std::cerr << "DEBUG: begin " << name << '\n';
-                     },
-                     [](const char* name, gko::log::profile_event_category) {
-                         std::cerr << "DEBUG: end   " << name << '\n';
-                     });
-             }}};
-    return hook_map.at(FLAGS_profiler_hook)();
+    ss << "The random seed for right hand sides is " << FLAGS_seed << '\n'
+       << extra;
+    print_line(ss.str());
 }
 
 

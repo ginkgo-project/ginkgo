@@ -81,7 +81,6 @@ class SparsityCsr;
  *
  * @note While this format is not very useful for storing sparse matrices, it
  *       is often suitable to store vectors, and sets of vectors.
- * @ingroup dense
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -228,8 +227,8 @@ public:
     }
 
     /**
-     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
-     * Executor>, const dim<2>)
+     * @copydoc create_with_type_of(ptr_param<const Dense>,
+     * std::shared_ptr<const Executor>, const dim<2>&)
      *
      * @param stride  The stride of the new matrix.
      *
@@ -244,8 +243,8 @@ public:
     }
 
     /**
-     * @copydoc create_with_type_of(const Dense*, std::shared_ptr<const
-     * Executor>, const dim<2>)
+     * @copydoc create_with_type_of(ptr_param<const Dense>,
+     * std::shared_ptr<const Executor>, const dim<2>&)
      *
      * @param local_size  Unused
      * @param stride  The stride of the new matrix.
@@ -413,17 +412,13 @@ public:
     void fill(const ValueType value);
 
     /**
-     * Creates a permuted copy $A'$ of this matrix $A$ with the given
-     * permutation $P$. By default, this computes a symmetric permutation
+     * Creates a permuted copy \f$A'\f$ of this matrix \f$A\f$ with the given
+     * permutation \f$P\f$. By default, this computes a symmetric permutation
      * (permute_mode::symmetric). For the effect of the different permutation
      * modes, see @ref permute_mode.
      *
      * @param permutation  The input permutation.
-     * @param mode  The permutation mode. If permute_mode::inverse is set, we
-     *              use the inverse permutation $P^{-1}$ instead of $P$.
-     *              If permute_mode::rows is set, the rows will be permuted.
-     *              If permute_mode::columns is set, the columns will be
-     *              permuted.
+     * @param mode  The permutation mode, see @ref permute_mode.
      * @return  The permuted matrix.
      */
     std::unique_ptr<Dense> permute(
@@ -440,7 +435,9 @@ public:
     /**
      * Overload of permute(ptr_param<const Permutation<int32>>, permute_mode)
      * that writes the permuted copy into an existing Dense matrix.
+     * @param permutation  the input permutation.
      * @param output  the output matrix.
+     * @param mode  the permutation mode, see @ref permute_mode.
      */
     void permute(ptr_param<const Permutation<int32>> permutation,
                  ptr_param<Dense> output, permute_mode mode) const;
@@ -453,16 +450,17 @@ public:
                  ptr_param<Dense> output, permute_mode mode) const;
 
     /**
-     * Creates a non-symmetrically permuted copy $A'$ of this matrix $A$ with
-     * the given row and column permutations $P$ and $Q$. The operation will
-     * compute $A'(i, j) = A(p[i], q[j])$, or $A' = P A Q^T$ if `invert` is
-     * `false`, and $A'(p[i], q[j]) = A(i,j)$, or $A' = P^{-1} A Q^{-T}$ if
-     * `invert` is `true`.
+     * Creates a non-symmetrically permuted copy \f$A'\f$ of this matrix \f$A\f$
+     * with the given row and column permutations \f$P\f$ and \f$Q\f$. The
+     * operation will compute \f$A'(i, j) = A(p[i], q[j])\f$, or \f$A' = P A
+     * Q^T\f$ if `invert` is `false`, and \f$A'(p[i], q[j]) = A(i,j)\f$, or
+     * \f$A' = P^{-1} A Q^{-T}\f$ if `invert` is `true`.
      *
-     * @param row_permutation  The permutation $P$ to apply to the rows
-     * @param column_permutation  The permutation $Q$ to apply to the columns
+     * @param row_permutation  The permutation \f$P\f$ to apply to the rows
+     * @param column_permutation  The permutation \f$Q\f$ to apply to the
+     * columns
      * @param invert  If set to `false`, uses the input permutations, otherwise
-     *                uses their inverses $P^{-1}, Q^{-1}$
+     *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return  The permuted matrix.
      */
     std::unique_ptr<Dense> permute(
@@ -483,7 +481,10 @@ public:
      * Overload of permute(ptr_param<const Permutation<int32>>, ptr_param<const
      * Permutation<int32>>, permute_mode) that writes the permuted copy into an
      * existing Dense matrix.
+     * @param row_permutation  the row permutation.
+     * @param column_permutation  the column permutation.
      * @param output  the output matrix.
+     * @param invert  if true, the inverse permutations are used.
      */
     void permute(ptr_param<const Permutation<int32>> row_permutation,
                  ptr_param<const Permutation<int32>> column_permutation,
@@ -522,7 +523,9 @@ public:
      * Overload of scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, permute_mode) that writes the permuted copy into an
      * existing Dense matrix.
+     * @param permutation  the input scaled permutation.
      * @param output  the output matrix.
+     * @param mode  the permutation mode, see @ref permute_mode.
      */
     void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> permutation,
@@ -545,7 +548,7 @@ public:
      * @param row_permutation  The scaled row permutation.
      * @param column_permutation  The scaled column permutation.
      * @param invert  If set to `false`, uses the input permutations, otherwise
-     *                uses their inverses $P^{-1}, Q^{-1}$
+     *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return The permuted matrix.
      */
     std::unique_ptr<Dense> scale_permute(
@@ -568,7 +571,10 @@ public:
      * Overload of scale_permute(ptr_param<const ScaledPermutation<value_type,
      * int32>>, ptr_param<const ScaledPermutation<value_type, int32>>, bool)
      * that writes the permuted copy into an existing Dense matrix.
+     * @param row_permutation  the row scaled permutation.
+     * @param column_permutation  the column scaled permutation.
      * @param output  the output matrix.
+     * @param invert  if true, the inverse permutations are used.
      */
     void scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,
@@ -968,6 +974,8 @@ public:
      *               alpha has to match the number of columns of the matrix).
      */
     void inv_scale(ptr_param<const LinOp> alpha);
+
+    void validate_data() const override;
 
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).

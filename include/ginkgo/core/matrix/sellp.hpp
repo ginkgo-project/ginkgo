@@ -36,7 +36,6 @@ class Csr;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup sellp
  * @ingroup mat_formats
  * @ingroup LinOp
  */

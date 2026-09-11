@@ -15,7 +15,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The CG solver namespace.
  *
- * @ingroup cg
  */
 namespace cg {
 

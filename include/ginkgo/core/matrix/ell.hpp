@@ -45,7 +45,6 @@ class Hybrid;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup ell
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -262,6 +261,8 @@ public:
 
     /** get the const non-owning device view */
     const_device_view get_const_device_view() const;
+
+    void validate_data() const override;
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.

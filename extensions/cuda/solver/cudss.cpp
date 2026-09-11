@@ -36,27 +36,27 @@ namespace {
 
 
 template <typename T>
-struct cuda_data_type_impl {};
+struct cudss_data_type_impl {};
 
-#define GKO_EXT_CUDA_DATA_TYPE(_type, _value)           \
-    template <>                                         \
-    struct cuda_data_type_impl<_type> {                 \
-        static constexpr cudaDataType_t value = _value; \
+#define GKO_EXT_CUDSS_DATA_TYPE(_type, _value)           \
+    template <>                                          \
+    struct cudss_data_type_impl<_type> {                 \
+        static constexpr cudssDataType_t value = _value; \
     }
 
-GKO_EXT_CUDA_DATA_TYPE(float, CUDA_R_32F);
-GKO_EXT_CUDA_DATA_TYPE(double, CUDA_R_64F);
-GKO_EXT_CUDA_DATA_TYPE(std::complex<float>, CUDA_C_32F);
-GKO_EXT_CUDA_DATA_TYPE(std::complex<double>, CUDA_C_64F);
-GKO_EXT_CUDA_DATA_TYPE(int32, CUDA_R_32I);
-GKO_EXT_CUDA_DATA_TYPE(int64, CUDA_R_64I);
+GKO_EXT_CUDSS_DATA_TYPE(float, CUDSS_R_32F);
+GKO_EXT_CUDSS_DATA_TYPE(double, CUDSS_R_64F);
+GKO_EXT_CUDSS_DATA_TYPE(std::complex<float>, CUDSS_C_32F);
+GKO_EXT_CUDSS_DATA_TYPE(std::complex<double>, CUDSS_C_64F);
+GKO_EXT_CUDSS_DATA_TYPE(int32, CUDSS_R_32I);
+GKO_EXT_CUDSS_DATA_TYPE(int64, CUDSS_R_64I);
 
-#undef GKO_EXT_CUDA_DATA_TYPE
+#undef GKO_EXT_CUDSS_DATA_TYPE
 
 template <typename T>
-constexpr cudaDataType_t cuda_data_type()
+constexpr cudssDataType_t cudss_data_type()
 {
-    return cuda_data_type_impl<T>::value;
+    return cudss_data_type_impl<T>::value;
 }
 
 
@@ -166,7 +166,7 @@ Cudss<ValueType, IndexType>::Cudss(const Factory* factory,
 
     GKO_ASSERT_NO_CUDSS_ERRORS(cudssConfigCreate(&st->config));
 
-    auto reorder_alg = static_cast<cudssAlgType_t>(params.reordering_alg);
+    auto reorder_alg = static_cast<cudssReorderingAlg_t>(params.reordering_alg);
     GKO_ASSERT_NO_CUDSS_ERRORS(
         cudssConfigSet(st->config, CUDSS_CONFIG_REORDERING_ALG, &reorder_alg,
                        sizeof(reorder_alg)));
@@ -181,8 +181,8 @@ Cudss<ValueType, IndexType>::Cudss(const Factory* factory,
     if (params.hybrid_memory) {
         int hybrid_mode = 1;
         GKO_ASSERT_NO_CUDSS_ERRORS(
-            cudssConfigSet(st->config, CUDSS_CONFIG_HYBRID_MODE, &hybrid_mode,
-                           sizeof(hybrid_mode)));
+            cudssConfigSet(st->config, CUDSS_CONFIG_HYBRID_MEMORY_MODE,
+                           &hybrid_mode, sizeof(hybrid_mode)));
     }
 
     GKO_ASSERT_NO_CUDSS_ERRORS(cudssDataCreate(st->handle, &st->data));
@@ -199,8 +199,8 @@ Cudss<ValueType, IndexType>::Cudss(const Factory* factory,
         const_cast<IndexType*>(csr->get_const_row_ptrs()), nullptr,
         const_cast<IndexType*>(csr->get_const_col_idxs()),
         const_cast<ValueType*>(csr->get_const_values()),
-        cuda_data_type<IndexType>(), cuda_data_type<ValueType>(), mtype, mview,
-        CUDSS_BASE_ZERO));
+        cudss_data_type<IndexType>(), cudss_data_type<IndexType>(),
+        cudss_data_type<ValueType>(), mtype, mview, CUDSS_BASE_ZERO));
 
     cudssMatrix_t tmp_b = nullptr;
     cudssMatrix_t tmp_x = nullptr;
@@ -251,8 +251,8 @@ void Cudss<ValueType, IndexType>::refactorize(
         const_cast<IndexType*>(csr->get_const_row_ptrs()), nullptr,
         const_cast<IndexType*>(csr->get_const_col_idxs()),
         const_cast<ValueType*>(csr->get_const_values()),
-        cuda_data_type<IndexType>(), cuda_data_type<ValueType>(), mtype, mview,
-        CUDSS_BASE_ZERO));
+        cudss_data_type<IndexType>(), cudss_data_type<IndexType>(),
+        cudss_data_type<ValueType>(), mtype, mview, CUDSS_BASE_ZERO));
 
     cudssMatrix_t tmp_b = nullptr;
     cudssMatrix_t tmp_x = nullptr;
@@ -310,10 +310,10 @@ void Cudss<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 
                 GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
                     &cudss_b, nrows_i64, 1, nrows_i64, b_data,
-                    cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
+                    cudss_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
                 GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixCreateDn(
                     &cudss_x, nrows_i64, 1, nrows_i64, x_data,
-                    cuda_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
+                    cudss_data_type<ValueType>(), CUDSS_LAYOUT_COL_MAJOR));
 
                 GKO_ASSERT_NO_CUDSS_ERRORS(cudssExecute(
                     state_->handle, CUDSS_PHASE_SOLVE, state_->config,

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -204,9 +204,10 @@ TEST_F(Pgm, FindStrongestNeighborIsEquivalentToRef)
     auto d_snb = d_strongest_neighbor;
 
     gko::kernels::reference::pgm::find_strongest_neighbor(
-        ref, weight_csr.get(), weight_diag.get(), agg, snb);
+        ref, weight_csr->get_const_device_view(), weight_diag.get(), agg, snb);
     gko::kernels::GKO_DEVICE_NAMESPACE::pgm::find_strongest_neighbor(
-        exec, d_weight_csr.get(), d_weight_diag.get(), d_agg, d_snb);
+        exec, d_weight_csr->get_const_device_view(), d_weight_diag.get(), d_agg,
+        d_snb);
 
     GKO_ASSERT_ARRAY_EQ(d_snb, snb);
 }
@@ -221,9 +222,11 @@ TEST_F(Pgm, AssignToExistAggIsEquivalentToRef)
     auto d_intermediate_agg = d_x;
 
     gko::kernels::reference::pgm::assign_to_exist_agg(
-        ref, weight_csr.get(), weight_diag.get(), x, intermediate_agg);
+        ref, weight_csr->get_const_device_view(), weight_diag.get(), x,
+        intermediate_agg);
     gko::kernels::GKO_DEVICE_NAMESPACE::pgm::assign_to_exist_agg(
-        exec, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
+        exec, d_weight_csr->get_const_device_view(), d_weight_diag.get(), d_x,
+        d_intermediate_agg);
 
     GKO_ASSERT_ARRAY_EQ(d_x, x);
 }
@@ -237,7 +240,8 @@ TEST_F(Pgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
     index_type d_num_unagg;
 
     gko::kernels::GKO_DEVICE_NAMESPACE::pgm::assign_to_exist_agg(
-        exec, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
+        exec, d_weight_csr->get_const_device_view(), d_weight_diag.get(), d_x,
+        d_intermediate_agg);
     gko::kernels::GKO_DEVICE_NAMESPACE::pgm::count_unagg(exec, d_agg,
                                                          &d_num_unagg);
 

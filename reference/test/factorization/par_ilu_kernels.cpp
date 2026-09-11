@@ -196,7 +196,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsEmpty)
     auto empty_mtx = this->empty_csr->clone();
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, empty_mtx.get(), true);
+        this->ref, gko::matrix::make_builder_unique_ptr(empty_mtx).get(), true);
 
     GKO_ASSERT_MTX_NEAR(empty_mtx, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(empty_mtx, expected_mtx);
@@ -217,7 +217,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare)
         gko::array<index_type>{this->ref, {0, 1, 3, 6, 9}});
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, matrix.get(), true);
+        this->ref, gko::matrix::make_builder_unique_ptr(matrix).get(), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -237,7 +237,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquare2)
                     gko::array<index_type>{this->ref, {0, 1, 3}});
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, matrix.get(), true);
+        this->ref, gko::matrix::make_builder_unique_ptr(matrix).get(), true);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -267,7 +267,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsorted)
         gko::array<index_type>{this->ref, {0, 3, 6, 9}});
 
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, matrix.get(), false);
+        this->ref, gko::matrix::make_builder_unique_ptr(matrix).get(), false);
 
     GKO_ASSERT_MTX_NEAR(matrix, expected_mtx, 0.);
     GKO_ASSERT_MTX_EQ_SPARSITY(matrix, expected_mtx);
@@ -289,7 +289,8 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLU)
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
     gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-        this->ref, this->mtx_csr_small.get(), l_row_ptrs, u_row_ptrs);
+        this->ref, this->mtx_csr_small->get_const_device_view(), l_row_ptrs,
+        u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
                            small_csr_l_expected->get_const_row_ptrs()));
@@ -300,11 +301,12 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLU)
 
 TYPED_TEST(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
 {
+    using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Csr = typename TestFixture::Csr;
     auto empty_mtx = this->empty_csr->clone();
     gko::kernels::reference::factorization::add_diagonal_elements(
-        this->ref, empty_mtx.get(), true);
+        this->ref, gko::matrix::make_builder_unique_ptr(empty_mtx).get(), true);
     auto empty_mtx_l_expected = Csr::create(this->ref);
     this->identity->convert_to(empty_mtx_l_expected);
     auto empty_mtx_u_expected = Csr::create(this->ref);
@@ -316,7 +318,7 @@ TYPED_TEST(ParIlu, KernelInitializeRowPtrsLUZeroMatrix)
     auto u_row_ptrs = u_row_ptrs_vector.data();
 
     gko::kernels::reference::factorization::initialize_row_ptrs_l_u(
-        this->ref, empty_mtx.get(), l_row_ptrs, u_row_ptrs);
+        this->ref, empty_mtx->get_const_device_view(), l_row_ptrs, u_row_ptrs);
 
     ASSERT_TRUE(std::equal(l_row_ptrs, l_row_ptrs + num_row_ptrs,
                            empty_mtx_l_expected->get_const_row_ptrs()));
@@ -351,7 +353,8 @@ TYPED_TEST(ParIlu, KernelInitializeLU)
     std::copy(u_row_ptrs.begin(), u_row_ptrs.end(), actual_u->get_row_ptrs());
 
     gko::kernels::reference::factorization::initialize_l_u(
-        this->ref, this->mtx_csr_small.get(), actual_l.get(), actual_u.get());
+        this->ref, this->mtx_csr_small->get_const_device_view(),
+        actual_l->get_device_view(), actual_u->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(actual_l, expected_l, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(actual_u, expected_u, r<value_type>::value);
@@ -368,7 +371,8 @@ TYPED_TEST(ParIlu, KernelInitializeLUZeroMatrix)
     actual_u->copy_from(this->identity);
 
     gko::kernels::reference::factorization::initialize_l_u(
-        this->ref, this->empty_csr.get(), actual_l.get(), actual_u.get());
+        this->ref, this->empty_csr->get_const_device_view(),
+        actual_l->get_device_view(), actual_u->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(actual_l, this->identity, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(actual_u, this->identity, r<value_type>::value);
@@ -406,8 +410,8 @@ TYPED_TEST(ParIlu, KernelComputeLU)
         static_cast<Dense*>(u_expected_lin_op.release()));
 
     gko::kernels::reference::par_ilu_factorization::compute_l_u_factors(
-        this->ref, iterations, mtx_coo->get_const_device_view(), l_csr.get(),
-        u_csr.get());
+        this->ref, iterations, mtx_coo->get_const_device_view(),
+        l_csr->get_device_view(), u_csr->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(l_csr, this->small_l_expected, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(u_csr, u_expected, r<value_type>::value);
@@ -444,15 +448,14 @@ TYPED_TEST(ParIlu, SetLStrategy)
 {
     using Csr = typename TestFixture::Csr;
     using par_ilu_type = typename TestFixture::par_ilu_type;
-    auto l_strategy = std::make_shared<typename Csr::classical>();
+    auto l_strategy = gko::matrix::csr::spmv_strategy::classical;
 
     auto factory =
         par_ilu_type::build().with_l_strategy(l_strategy).on(this->ref);
     auto par_ilu = factory->generate(this->mtx_small);
 
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
-    ASSERT_EQ(par_ilu->get_l_factor()->get_strategy()->get_name(),
-              l_strategy->get_name());
+    ASSERT_EQ(par_ilu->get_l_factor()->get_strategy(), l_strategy);
 }
 
 
@@ -460,15 +463,14 @@ TYPED_TEST(ParIlu, SetUStrategy)
 {
     using Csr = typename TestFixture::Csr;
     using par_ilu_type = typename TestFixture::par_ilu_type;
-    auto u_strategy = std::make_shared<typename Csr::classical>();
+    auto u_strategy = gko::matrix::csr::spmv_strategy::classical;
 
     auto factory =
         par_ilu_type::build().with_u_strategy(u_strategy).on(this->ref);
     auto par_ilu = factory->generate(this->mtx_small);
 
     ASSERT_EQ(factory->get_parameters().u_strategy, u_strategy);
-    ASSERT_EQ(par_ilu->get_u_factor()->get_strategy()->get_name(),
-              u_strategy->get_name());
+    ASSERT_EQ(par_ilu->get_u_factor()->get_strategy(), u_strategy);
 }
 
 

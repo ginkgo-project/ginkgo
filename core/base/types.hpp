@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -87,28 +87,33 @@ constexpr std::enable_if_t<(num_groups > current_shift + 1), int> shift(
  * rrrrr0..01....1...k..k, which 1/2/.../k means the bits store the information
  * for 1/2/.../k position and r is for rest of unused bits.
  *
- * Denote $B_t = \sum_{i = t+1}^k b_i$ and $F(X) = Cfg::encode(x_0, ..., x_k)$.
- * Have $F(X) = \sum_{i = 0}^k (x_i << B_i) = \sum_{i = 0}^k (x_i * 2^{B_i})$.
- * For all i, we have $0 <= x_i < 2^{b_i}$.
- * $x_i$, $2^{B_i}$ are non-negative, so
- * $F(X) = 0$ <=> $X = \{0\}$, $x_i = 0$ for all i.
- * Assume $F(X) = F(Y)$, then
- * $0 = |F(X) - F(Y)| = |F(X-Y)| = F(|X - Y|)$.
- * $|x_i - y_i|$ is still in the same range $0 <= |x_i - y_i| < 2^{b_i}$.
- * Thus, $F(|X - Y|) = 0$ -> $|X - Y| = \{0\}$, $x_i - y_i = 0$ -> $X = Y$.
- * F is one-to-one function if $0 <= x_i < 2^{b_i}$ for all i.
+ * Denote \f$B_t = \sum_{i = t+1}^k b_i\f$ and
+ * \f$F(X) = Cfg::encode(x_0, ..., x_k)\f$.
+ * Have \f$F(X) = \sum_{i = 0}^k (x_i << B_i)
+ * = \sum_{i = 0}^k (x_i * 2^{B_i})\f$.
+ * For all i, we have \f$0 <= x_i < 2^{b_i}\f$.
+ * \f$x_i\f$, \f$2^{B_i}\f$ are non-negative, so
+ * \f$F(X) = 0\f$ <=> \f$X = \{0\}\f$, \f$x_i = 0\f$ for all i.
+ * Assume \f$F(X) = F(Y)\f$, then
+ * \f$0 = |F(X) - F(Y)| = |F(X-Y)| = F(|X - Y|)\f$.
+ * \f$|x_i - y_i|\f$ is still in the same range
+ * \f$0 <= |x_i - y_i| < 2^{b_i}\f$.
+ * Thus, \f$F(|X - Y|) = 0\f$ -> \f$|X - Y| = \{0\}\f$,
+ * \f$x_i - y_i = 0\f$ -> \f$X = Y\f$.
+ * F is one-to-one function if \f$0 <= x_i < 2^{b_i}\f$ for all i.
  * For any encoded result R, we can use the following to get the decoded series.
  * for i = k to 0;
- *   $x_i = R \% b_i$;
- *   $R = R / bi$;
+ *   \f$x_i = R \% b_i\f$;
+ *   \f$R = R / bi\f$;
  * endfor;
- * For any R in the range $[0, 2^{B_0})$, we have X such that $F(X) = R$.
+ * For any R in the range \f$[0, 2^{B_0})\f$, we have X such that
+ * \f$F(X) = R\f$.
  * F is onto function.
  * Thus, F is bijection.
  *
  * @tparam num_bits...  the number of bits for each position.
  *
- * @note the num_bit is required at least $ceil(log_2(maxval) + 1)$
+ * @note the num_bit is required at least \f$ceil(log_2(maxval) + 1)\f$
  */
 template <unsigned char... num_bits>
 class ConfigSet {

@@ -96,12 +96,12 @@ void should_perform_transpose_kernel(std::shared_ptr<const HipExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate_kernel(std::shared_ptr<const HipExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType>* matrix,
+                     matrix::view::csr<const ValueType, const IndexType> matrix,
                      std::shared_ptr<solver::SolveStruct>& solve_struct,
                      const gko::size_type num_rhs, bool is_upper,
                      bool unit_diag)
 {
-    if (matrix->get_size()[0] == 0) {
+    if (matrix.size[0] == 0) {
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
@@ -116,10 +116,9 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                 sparselib::pointer_mode_guard pm_guard(handle);
                 int factor_work_size{};
                 sparselib::csrsv2_buffer_size(
-                    handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
-                    matrix->get_size()[0], matrix->get_num_stored_elements(),
-                    hip_solve_struct->factor_descr, matrix->get_const_values(),
-                    matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+                    handle, SPARSELIB_OPERATION_NON_TRANSPOSE, matrix.size[0],
+                    matrix.num_stored_elements, hip_solve_struct->factor_descr,
+                    matrix.values, matrix.row_ptrs, matrix.col_idxs,
                     hip_solve_struct->solve_info, &factor_work_size);
 
                 // allocate workspace
@@ -132,10 +131,9 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
                 }
 
                 sparselib::csrsv2_analysis(
-                    handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
-                    matrix->get_size()[0], matrix->get_num_stored_elements(),
-                    hip_solve_struct->factor_descr, matrix->get_const_values(),
-                    matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
+                    handle, SPARSELIB_OPERATION_NON_TRANSPOSE, matrix.size[0],
+                    matrix.num_stored_elements, hip_solve_struct->factor_descr,
+                    matrix.values, matrix.row_ptrs, matrix.col_idxs,
                     hip_solve_struct->solve_info, hip_solve_struct->policy,
                     hip_solve_struct->factor_work_vec);
             }
@@ -150,14 +148,14 @@ void generate_kernel(std::shared_ptr<const HipExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void solve_kernel(std::shared_ptr<const HipExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType>* matrix,
+                  matrix::view::csr<const ValueType, const IndexType> matrix,
                   const solver::SolveStruct* solve_struct,
                   matrix::view::dense<ValueType> trans_b,
                   matrix::view::dense<ValueType> trans_x,
                   matrix::view::dense<const ValueType> b,
                   matrix::view::dense<ValueType> x)
 {
-    if (matrix->get_size()[0] == 0 || b.size[1] == 0) {
+    if (matrix.size[0] == 0 || b.size[1] == 0) {
         return;
     }
 
@@ -172,12 +170,9 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                 if (b.stride == 1) {
                     sparselib::csrsv2_solve(
                         handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
-                        matrix->get_size()[0],
-                        matrix->get_num_stored_elements(), &one,
-                        hip_solve_struct->factor_descr,
-                        matrix->get_const_values(),
-                        matrix->get_const_row_ptrs(),
-                        matrix->get_const_col_idxs(),
+                        matrix.size[0], matrix.num_stored_elements, &one,
+                        hip_solve_struct->factor_descr, matrix.values,
+                        matrix.row_ptrs, matrix.col_idxs,
                         hip_solve_struct->solve_info, b.values, x.values,
                         hip_solve_struct->policy,
                         hip_solve_struct->factor_work_vec);
@@ -187,12 +182,9 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                     for (IndexType i = 0; i < trans_b.size[0]; i++) {
                         sparselib::csrsv2_solve(
                             handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
-                            matrix->get_size()[0],
-                            matrix->get_num_stored_elements(), &one,
-                            hip_solve_struct->factor_descr,
-                            matrix->get_const_values(),
-                            matrix->get_const_row_ptrs(),
-                            matrix->get_const_col_idxs(),
+                            matrix.size[0], matrix.num_stored_elements, &one,
+                            hip_solve_struct->factor_descr, matrix.values,
+                            matrix.row_ptrs, matrix.col_idxs,
                             hip_solve_struct->solve_info,
                             trans_b.values + i * trans_b.stride,
                             trans_x.values + i * trans_x.stride,

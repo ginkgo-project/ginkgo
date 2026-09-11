@@ -24,8 +24,8 @@ namespace kernels {
     void compute_l_u_factors(                                                \
         std::shared_ptr<const DefaultExecutor> exec, size_type iterations,   \
         matrix::view::coo<const ValueType, const IndexType> system_matrix,   \
-        matrix::Csr<ValueType, IndexType>* l_factor,                         \
-        matrix::Csr<ValueType, IndexType>* u_factor)
+        matrix::view::csr<ValueType, IndexType> l_factor,                    \
+        matrix::view::csr<ValueType, IndexType> u_factor)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \

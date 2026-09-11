@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -133,29 +133,6 @@ using ell_mixed = gko::matrix::Ell<gko::next_precision_base<etype>, itype>;
 
 
 /**
- * Creates a CSR strategy of the given type for the given executor if possible,
- * falls back to csr::classical for executors without support for this strategy.
- *
- * @tparam Strategy  one of csr::automatical or csr::load_balance
- */
-template <typename Strategy>
-std::shared_ptr<csr::strategy_type> create_gpu_strategy(
-    std::shared_ptr<const gko::Executor> exec)
-{
-    if (auto cuda = dynamic_cast<const gko::CudaExecutor*>(exec.get())) {
-        return std::make_shared<Strategy>(cuda->shared_from_this());
-    } else if (auto hip = dynamic_cast<const gko::HipExecutor*>(exec.get())) {
-        return std::make_shared<Strategy>(hip->shared_from_this());
-    } else if (auto dpcpp =
-                   dynamic_cast<const gko::DpcppExecutor*>(exec.get())) {
-        return std::make_shared<Strategy>(dpcpp->shared_from_this());
-    } else {
-        return std::make_shared<csr::classical>();
-    }
-}
-
-
-/**
  * Checks whether the given matrix data exceeds the ELL imbalance limit set by
  * the --ell_imbalance_limit flag
  *
@@ -189,25 +166,15 @@ auto create_matrix_type(Args&&... args)
 }
 
 
-template <typename MatrixType, typename Strategy>
-auto create_matrix_type_with_gpu_strategy()
-{
-    return [&](std::shared_ptr<const gko::Executor> exec)
-               -> std::unique_ptr<MatrixType> {
-        return MatrixType::create(exec, create_gpu_strategy<Strategy>(exec));
-    };
-}
-
-
 // clang-format off
 const std::map<std::string, std::function<std::unique_ptr<gko::LinOp>(
                                 std::shared_ptr<const gko::Executor>)>>
     matrix_type_factory{
-        {"csr", create_matrix_type_with_gpu_strategy<csr, csr::automatical>()},
-        {"csri", create_matrix_type_with_gpu_strategy<csr, csr::load_balance>()},
-        {"csrm", create_matrix_type<csr>(std::make_shared<csr::merge_path>())},
-        {"csrc", create_matrix_type<csr>(std::make_shared<csr::classical>())},
-        {"csrs", create_matrix_type<csr>(std::make_shared<csr::sparselib>())},
+        {"csr", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::automatic)},
+        {"csri", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::load_balance)},
+        {"csrm", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::merge_path)},
+        {"csrc", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::classical)},
+        {"csrs", create_matrix_type<csr>(gko::matrix::csr::spmv_strategy::sparselib)},
         {"coo", create_matrix_type<coo>()},
         {"ell", create_matrix_type<ell>()},
         {"ell_mixed", create_matrix_type<ell_mixed>()},

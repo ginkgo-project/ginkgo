@@ -86,7 +86,7 @@ protected:
         // precision on HIP and DPCPP because of atomic
         dist_mat = dist_mtx_type::create(
             exec, comm, csr::create(exec),
-            csr::create(exec, std::make_shared<typename csr::classical>()));
+            csr::create(exec, gko::matrix::csr::spmv_strategy::classical));
         dist_mat->read_distributed(mat_input, row_part);
         non_dist_mat = non_dist_matrix_type::create(exec);
         non_dist_mat->read(mat_input);

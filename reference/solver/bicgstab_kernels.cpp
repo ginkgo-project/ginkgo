@@ -17,7 +17,6 @@ namespace reference {
 /**
  * @brief The BiCGSTAB solver namespace.
  *
- * @ingroup bicgstab
  */
 namespace bicgstab {
 

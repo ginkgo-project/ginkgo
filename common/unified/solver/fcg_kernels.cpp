@@ -15,7 +15,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The FCG solver namespace.
  *
- * @ingroup fcg
  */
 namespace fcg {
 

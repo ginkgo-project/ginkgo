@@ -40,7 +40,6 @@ namespace matrix {
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @ingroup batch_dense
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */
@@ -192,7 +191,7 @@ public:
     }
 
     /**
-     * @copydoc Dense::at(size_type, size_type, size_type)
+     * @copydoc Dense::at(size_type, size_type)
      */
     ValueType at(size_type batch_id, size_type idx) const noexcept
     {
@@ -300,7 +299,7 @@ public:
      * array.
      *
      * @param exec  the executor to create the matrix on
-     * @param size  the dimensions of the matrix
+     * @param sizes  the dimensions of the matrix
      * @param values  the value array of the matrix
      *
      * @return A smart pointer to the constant matrix wrapping the input

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -77,12 +77,12 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void from_factor(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::Csr<ValueType, IndexType>* factors,
+                 matrix::view::csr<const ValueType, const IndexType> factors,
                  gko::factorization::elimination_forest<IndexType>& forest)
 {
-    const auto row_ptrs = factors->get_const_row_ptrs();
-    const auto col_idxs = factors->get_const_col_idxs();
-    const auto num_rows = static_cast<IndexType>(factors->get_size()[0]);
+    const auto row_ptrs = factors.row_ptrs;
+    const auto col_idxs = factors.col_idxs;
+    const auto num_rows = static_cast<IndexType>(factors.size[0]);
     const auto parents = forest.parents.get_data();
     const auto children = forest.children.get_data();
     const auto child_ptrs = forest.child_ptrs.get_data();

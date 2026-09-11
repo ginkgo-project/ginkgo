@@ -222,8 +222,8 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
 
         array<ValueType> l1_diag_arr{exec, diag_matrix->get_size()[0]};
 
-        exec->run(
-            make_row_wise_absolute_sum(off_diag_matrix.get(), l1_diag_arr));
+        exec->run(make_row_wise_absolute_sum(
+            off_diag_matrix->get_const_device_view(), l1_diag_arr));
 
         // compute diag_matrix_copy <- diag(l1) + diag_matrix_copy
         auto l1_diag = matrix::Diagonal<ValueType>::create(

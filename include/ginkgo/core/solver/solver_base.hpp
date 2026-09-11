@@ -356,7 +356,7 @@ namespace detail {
  *
  * @note This class will replace SolverBase in a future release
  *
- * @ingroup solver
+ * @ingroup solvers
  * @ingroup LinOp
  */
 class SolverBaseLinOp {
@@ -549,7 +549,7 @@ protected:
  * @tparam DerivedType  the CRTP type that derives from this
  * @tparam MatrixType  the concrete matrix type to be stored as system_matrix
  *
- * @ingroup solver
+ * @ingroup solvers
  * @ingroup LinOp
  */
 template <typename DerivedType, typename MatrixType = LinOp>
@@ -673,7 +673,7 @@ private:
 /**
  * A LinOp implementing this interface stores a stopping criterion factory.
  *
- * @ingroup solver
+ * @ingroup solvers
  * @ingroup LinOp
  */
 class IterativeBase {
@@ -692,7 +692,7 @@ public:
     /**
      * Sets the stopping criterion of the solver.
      *
-     * @param other  the new stopping criterion factory
+     * @param new_stop_factory  the new stopping criterion factory
      */
     virtual void set_stop_criterion_factory(
         std::shared_ptr<const stop::CriterionFactory> new_stop_factory)
@@ -711,7 +711,7 @@ private:
  *
  * @tparam DerivedType  the CRTP type that derives from this
  *
- * @ingroup solver
+ * @ingroup solvers
  * @ingroup LinOp
  */
 template <typename DerivedType>
@@ -793,7 +793,7 @@ private:
  * @tparam ValueType  the value type that iterative solver uses for its vectors
  * @tparam DerivedType  the CRTP type that derives from this
  *
- * @ingroup solver
+ * @ingroup solvers
  * @ingroup LinOp
  */
 template <typename ValueType, typename DerivedType>

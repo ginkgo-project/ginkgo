@@ -16,7 +16,6 @@ namespace reference {
 /**
  * @brief The BICG solver namespace.
  *
- * @ingroup bicg
  */
 namespace bicg {
 

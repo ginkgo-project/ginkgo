@@ -1196,7 +1196,7 @@ void GradientEstimation::estimate_cell(
                     active_neighbors.push_back(neighbor_child);
                 } else
                     // If we are not in 1d, we collect all neighbor children
-                    // `behind' the subfaces of the current face
+                    // "behind" the subfaces of the current face
                     for (unsigned int subface_no = 0;
                          subface_no < face->n_children(); ++subface_no)
                         active_neighbors.push_back(

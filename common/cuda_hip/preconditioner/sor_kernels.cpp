@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,10 +18,11 @@ namespace sor {
 template <typename ValueType, typename IndexType>
 void initialize_weighted_l(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
-    remove_complex<ValueType> weight, matrix::Csr<ValueType, IndexType>* l_mtx)
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    remove_complex<ValueType> weight,
+    matrix::view::csr<ValueType, IndexType> l_mtx)
 {
-    const size_type num_rows{system_matrix->get_size()[0]};
+    const size_type num_rows{system_matrix.size[0]};
     const auto block_size = factorization::helpers::default_block_size;
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
@@ -33,11 +34,9 @@ void initialize_weighted_l(
 
         factorization::helpers::
             initialize_l<<<grid_dim, block_size, 0, exec->get_stream()>>>(
-                num_rows, system_matrix->get_const_row_ptrs(),
-                system_matrix->get_const_col_idxs(),
-                as_device_type(system_matrix->get_const_values()),
-                l_mtx->get_const_row_ptrs(), l_mtx->get_col_idxs(),
-                as_device_type(l_mtx->get_values()),
+                num_rows, system_matrix.row_ptrs, system_matrix.col_idxs,
+                as_device_type(system_matrix.values), l_mtx.row_ptrs,
+                l_mtx.col_idxs, as_device_type(l_mtx.values),
                 triangular_mtx_closure(
                     [inv_weight] __device__(auto val) {
                         return val * inv_weight;
@@ -53,11 +52,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_weighted_l_u(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
-    remove_complex<ValueType> weight, matrix::Csr<ValueType, IndexType>* l_mtx,
-    matrix::Csr<ValueType, IndexType>* u_mtx)
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    remove_complex<ValueType> weight,
+    matrix::view::csr<ValueType, IndexType> l_mtx,
+    matrix::view::csr<ValueType, IndexType> u_mtx)
 {
-    const size_type num_rows{system_matrix->get_size()[0]};
+    const size_type num_rows{system_matrix.size[0]};
     const auto block_size = factorization::helpers::default_block_size;
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_rows, static_cast<size_type>(block_size)));
@@ -72,13 +72,10 @@ void initialize_weighted_l_u(
 
         factorization::helpers::
             initialize_l_u<<<grid_dim, block_size, 0, exec->get_stream()>>>(
-                num_rows, system_matrix->get_const_row_ptrs(),
-                system_matrix->get_const_col_idxs(),
-                as_device_type(system_matrix->get_const_values()),
-                l_mtx->get_const_row_ptrs(), l_mtx->get_col_idxs(),
-                as_device_type(l_mtx->get_values()),
-                u_mtx->get_const_row_ptrs(), u_mtx->get_col_idxs(),
-                as_device_type(u_mtx->get_values()),
+                num_rows, system_matrix.row_ptrs, system_matrix.col_idxs,
+                as_device_type(system_matrix.values), l_mtx.row_ptrs,
+                l_mtx.col_idxs, as_device_type(l_mtx.values), u_mtx.row_ptrs,
+                u_mtx.col_idxs, as_device_type(u_mtx.values),
                 triangular_mtx_closure(
                     [inv_weight] __device__(auto val) {
                         return val * inv_weight;

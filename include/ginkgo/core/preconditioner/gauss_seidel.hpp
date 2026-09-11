@@ -22,8 +22,8 @@ namespace preconditioner {
 /**
  * This class generates the Gauss-Seidel preconditioner.
  *
- * This is the special case of the relaxation factor $\omega = 1$ of the (S)SOR
- * preconditioner.
+ * This is the special case of the relaxation factor \f$\omega = 1\f$ of the
+ * (S)SOR preconditioner.
  *
  * @see Sor
  *
@@ -75,6 +75,10 @@ public:
 
     /**
      * @copydoc LinOpFactory::generate
+     *
+     * @param system_matrix  the source matrix used to generate the
+     *                       preconditioner.
+     *
      * @note This function overrides the default LinOpFactory::generate to
      *       return a Factorization instead of a generic LinOp, which would need
      *       to be cast to Factorization again to access its factors.

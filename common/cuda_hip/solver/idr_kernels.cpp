@@ -29,7 +29,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The IDR solver namespace.
  *
- * @ingroup idr
  */
 namespace idr {
 

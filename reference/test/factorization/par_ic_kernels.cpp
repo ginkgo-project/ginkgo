@@ -111,7 +111,7 @@ TYPED_TEST(ParIc, KernelCompute)
 {
     gko::kernels::reference::par_ic_factorization::compute_factor(
         this->ref, 1, this->mtx_l_system_coo->get_const_device_view(),
-        this->mtx_l_system.get());
+        this->mtx_l_system->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_it_expect, this->tol);
 }
@@ -120,7 +120,7 @@ TYPED_TEST(ParIc, KernelCompute)
 TYPED_TEST(ParIc, KernelInit)
 {
     gko::kernels::reference::par_ic_factorization::init_factor(
-        this->ref, this->mtx_l_system.get());
+        this->ref, this->mtx_l_system->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l_system, this->mtx_l_init_expect, this->tol);
 }
@@ -147,17 +147,15 @@ TYPED_TEST(ParIc, SetStrategy)
 {
     using Csr = typename TestFixture::Csr;
     using factorization_type = typename TestFixture::factorization_type;
-    auto l_strategy = std::make_shared<typename Csr::merge_path>();
+    auto l_strategy = gko::matrix::csr::spmv_strategy::merge_path;
 
     auto factory =
         factorization_type::build().with_l_strategy(l_strategy).on(this->ref);
     auto fact = factory->generate(this->mtx_system);
 
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
-    ASSERT_EQ(fact->get_l_factor()->get_strategy()->get_name(),
-              l_strategy->get_name());
-    ASSERT_EQ(fact->get_lt_factor()->get_strategy()->get_name(),
-              l_strategy->get_name());
+    ASSERT_EQ(fact->get_l_factor()->get_strategy(), l_strategy);
+    ASSERT_EQ(fact->get_lt_factor()->get_strategy(), l_strategy);
 }
 
 

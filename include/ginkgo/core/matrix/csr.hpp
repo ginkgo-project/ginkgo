@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
@@ -48,18 +49,53 @@ class Fbcsr;
 template <typename ValueType, typename IndexType>
 class CsrBuilder;
 
-template <typename IndexType>
-class Permutation;
+
+namespace csr {
 
 
-namespace detail {
+/**
+ * Type describes the Csr SpMV strategy.
+ */
+enum class spmv_strategy {
+    /**
+     * automatic is the strategy choosing between load_balance and classical
+     * based on the maximum number of entries per row and the number of entries
+     * of the matrix.
+     */
+    automatic,
+    /**
+     * load_balance is the strategy trying to distribute the work equally in
+     * terms of the number of matrix entries. More detail can be checked in
+     * Goran and Enrique: Balanced CSR sparse matrix-vector product on graphics
+     * processors (<https://doi.org/10.1007/978-3-319-64203-1_50>).
+     */
+    load_balance,
+    /**
+     * merge_path is the strategy trying to distribute the work equally in terms
+     * of the number of matrix entries and row pointers. More detail can be
+     * checked in Merrill and Garland: Merge-Based Parallel Sparse Matrix-Vector
+     * Multiplication (<https://doi.org/10.1109/SC.2016.57>).
+     */
+    merge_path,
+    /**
+     * classical is the strategy assigning the same amount of the working
+     * resource to each row.
+     */
+    classical,
+    /**
+     * sparselib is the strategy calling the backend sparse library
+     * implementation when it is supported.
+     *
+     * - reference/omp: ginkgo's classical spmv
+     * - cuda: cuSPARSE
+     * - hip: hipSPARSE
+     * - dpcpp: oneMKL
+     */
+    sparselib
+};
 
 
-template <typename ValueType = default_precision, typename IndexType = int32>
-void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
-
-
-}  // namespace detail
+}  // namespace csr
 
 
 /**
@@ -71,7 +107,22 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
  * An additional column index array is used to identify the column of each
  * nonzero element.
  *
- * The Csr LinOp supports different operations:
+ * The Csr LinOp supports three families of `apply` operations,
+ * dispatched on the type of the right operand:
+ *
+ * - Against a `Dense` operand `b`, `apply` computes a sparse matrix-vector
+ *   (or matrix-multivector) product:
+ *   \f[ x = A b, \qquad x = \alpha A b + \beta x. \f]
+ *
+ * - Against another `Csr` operand `B`, `apply` computes a sparse-sparse
+ *   matrix product (SpGEMM):
+ *   \f[ C = A B, \qquad C = \alpha A B + \beta C. \f]
+ *
+ * - Against an `Identity` operand, `apply` reduces to a sparse-sparse
+ *   matrix addition (SpGEAM):
+ *   \f[ B = \alpha A + \beta B. \f]
+ *
+ * In code:
  *
  * ```cpp
  * matrix::Csr *A, *B, *C;      // matrices
@@ -96,7 +147,6 @@ void strategy_rebuild_helper(Csr<ValueType, IndexType>* result);
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup csr
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -165,539 +215,83 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Csr>;
+    using device_view = view::csr<value_type, index_type>;
+    using const_device_view = view::csr<const value_type, const index_type>;
 
-    class automatical;
-
-    /**
-     * strategy_type is to decide how to set the csr algorithm.
-     *
-     * The practical strategy method should inherit strategy_type and implement
-     * its `process`, `clac_size` function and the corresponding device kernel.
-     */
-    class strategy_type {
-        friend class automatical;
-
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::<strategy>")
+        strategy_type {
     public:
-        /**
-         * Creates a strategy_type.
-         *
-         * @param name  the name of strategy
-         */
-        strategy_type(std::string name) : name_(name) {}
-
         virtual ~strategy_type() = default;
 
-        /**
-         * Returns the name of strategy
-         *
-         * @return the name of strategy
-         */
-        std::string get_name() { return name_; }
-
-        /**
-         * Computes srow according to row pointers.
-         *
-         * @param mtx_row_ptrs  the row pointers of the matrix
-         * @param mtx_srow  the srow of the matrix
-         */
-        virtual void process(const array<index_type>& mtx_row_ptrs,
-                             array<index_type>* mtx_srow) = 0;
-
-        /**
-         * Computes the srow size according to the number of nonzeros.
-         *
-         * @param nnz  the number of nonzeros
-         *
-         * @return the size of srow
-         */
-        virtual int64_t clac_size(const int64_t nnz) = 0;
-
-        /**
-         * Copy a strategy. This is a workaround until strategies are revamped,
-         * since strategies like `automatical` do not work when actually shared.
-         */
-        virtual std::shared_ptr<strategy_type> copy() = 0;
-
-    protected:
-        void set_name(std::string name) { name_ = name; }
-
-    private:
-        std::string name_;
+        // return the corresponding enum in incoming release
+        virtual csr::spmv_strategy get_enum() const = 0;
     };
 
-    /**
-     * classical is a strategy_type which uses the same number of threads on
-     * each row. Classical strategy uses multithreads to calculate on parts of
-     * rows and then do a reduction of these threads results. The number of
-     * threads per row depends on the max number of stored elements per row.
-     */
-    class classical : public strategy_type {
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::classical") classical
+        : public strategy_type {
     public:
-        /**
-         * Creates a classical strategy.
-         */
-        classical() : strategy_type("classical"), max_length_per_row_(0) {}
-
-        void process(const array<index_type>& mtx_row_ptrs,
-                     array<index_type>* mtx_srow) override
+        csr::spmv_strategy get_enum() const override
         {
-            auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
-            array<index_type> row_ptrs_host(host_mtx_exec);
-            const bool is_mtx_on_host{host_mtx_exec ==
-                                      mtx_row_ptrs.get_executor()};
-            const index_type* row_ptrs{};
-            if (is_mtx_on_host) {
-                row_ptrs = mtx_row_ptrs.get_const_data();
-            } else {
-                row_ptrs_host = mtx_row_ptrs;
-                row_ptrs = row_ptrs_host.get_const_data();
-            }
-            auto num_rows = mtx_row_ptrs.get_size() - 1;
-            max_length_per_row_ = 0;
-            for (size_type i = 0; i < num_rows; i++) {
-                max_length_per_row_ = std::max(max_length_per_row_,
-                                               row_ptrs[i + 1] - row_ptrs[i]);
-            }
-        }
-
-        int64_t clac_size(const int64_t nnz) override { return 0; }
-
-        index_type get_max_length_per_row() const noexcept
-        {
-            return max_length_per_row_;
-        }
-
-        std::shared_ptr<strategy_type> copy() override
-        {
-            return std::make_shared<classical>();
-        }
-
-    private:
-        index_type max_length_per_row_;
-    };
-
-    /**
-     * merge_path is a strategy_type which uses the merge_path algorithm.
-     * merge_path is according to Merrill and Garland: Merge-Based Parallel
-     * Sparse Matrix-Vector Multiplication
-     */
-    class merge_path : public strategy_type {
-    public:
-        /**
-         * Creates a merge_path strategy.
-         */
-        merge_path() : strategy_type("merge_path") {}
-
-        void process(const array<index_type>& mtx_row_ptrs,
-                     array<index_type>* mtx_srow) override
-        {}
-
-        int64_t clac_size(const int64_t nnz) override { return 0; }
-
-        std::shared_ptr<strategy_type> copy() override
-        {
-            return std::make_shared<merge_path>();
+            return csr::spmv_strategy::classical;
         }
     };
 
-    /**
-     * cusparse is a strategy_type which uses the sparselib csr.
-     *
-     * @note cusparse is also known to the hip executor which converts between
-     *       cuda and hip.
-     */
-    class cusparse : public strategy_type {
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::merge_path")
+        merge_path : public strategy_type {
     public:
-        /**
-         * Creates a cusparse strategy.
-         */
-        cusparse() : strategy_type("cusparse") {}
-
-        void process(const array<index_type>& mtx_row_ptrs,
-                     array<index_type>* mtx_srow) override
-        {}
-
-        int64_t clac_size(const int64_t nnz) override { return 0; }
-
-        std::shared_ptr<strategy_type> copy() override
+        csr::spmv_strategy get_enum() const override
         {
-            return std::make_shared<cusparse>();
+            return csr::spmv_strategy::merge_path;
         }
     };
 
-    /**
-     * sparselib is a strategy_type which uses the sparselib csr.
-     *
-     * @note Uses cusparse in cuda and hipsparse in hip.
-     */
-    class sparselib : public strategy_type {
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::sparselib") cusparse
+        : public strategy_type {
     public:
-        /**
-         * Creates a sparselib strategy.
-         */
-        sparselib() : strategy_type("sparselib") {}
-
-        void process(const array<index_type>& mtx_row_ptrs,
-                     array<index_type>* mtx_srow) override
-        {}
-
-        int64_t clac_size(const int64_t nnz) override { return 0; }
-
-        std::shared_ptr<strategy_type> copy() override
+        csr::spmv_strategy get_enum() const override
         {
-            return std::make_shared<sparselib>();
+            return csr::spmv_strategy::sparselib;
         }
     };
 
-    /**
-     * load_balance is a strategy_type which uses the load balance algorithm.
-     */
-    class load_balance : public strategy_type {
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::sparselib") sparselib
+        : public strategy_type {
     public:
-        /**
-         * Creates a load_balance strategy.
-         *
-         * @warning this is deprecated! Please rely on the new automatic
-         *          strategy instantiation or use one of the other constructors.
-         */
-        [[deprecated]] load_balance()
-            : load_balance(std::move(
-                  gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
-        {}
-
-        /**
-         * Creates a load_balance strategy with CUDA executor.
-         *
-         * @param exec the CUDA executor
-         */
-        load_balance(std::shared_ptr<const CudaExecutor> exec)
-            : load_balance(exec->get_num_warps(), exec->get_warp_size())
-        {}
-
-        /**
-         * Creates a load_balance strategy with HIP executor.
-         *
-         * @param exec the HIP executor
-         */
-        load_balance(std::shared_ptr<const HipExecutor> exec)
-            : load_balance(exec->get_num_warps(), exec->get_warp_size(), false)
-        {}
-
-        /**
-         * Creates a load_balance strategy with DPCPP executor.
-         *
-         * @param exec the DPCPP executor
-         *
-         * @note TODO: porting - we hardcode the subgroup size is 32
-         */
-        load_balance(std::shared_ptr<const DpcppExecutor> exec)
-            : load_balance(exec->get_num_subgroups(), 32, false, "intel")
-        {}
-
-        /**
-         * Creates a load_balance strategy with specified parameters
-         *
-         * @param nwarps the number of warps in the executor
-         * @param warp_size the warp size of the executor
-         * @param cuda_strategy  whether the `cuda_strategy` needs to be used.
-         *
-         * @note The warp_size must be the size of full warp. When using this
-         *       constructor, set_strategy needs to be called with correct
-         *       parameters which is replaced during the conversion.
-         */
-        load_balance(int64_t nwarps, int warp_size = 32,
-                     bool cuda_strategy = true,
-                     std::string strategy_name = "none")
-            : strategy_type("load_balance"),
-              nwarps_(nwarps),
-              warp_size_(warp_size),
-              cuda_strategy_(cuda_strategy),
-              strategy_name_(strategy_name)
-        {}
-
-        void process(const array<index_type>& mtx_row_ptrs,
-                     array<index_type>* mtx_srow) override
+        csr::spmv_strategy get_enum() const override
         {
-            auto nwarps = mtx_srow->get_size();
-
-            if (nwarps > 0) {
-                auto host_srow_exec = mtx_srow->get_executor()->get_master();
-                auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
-                const bool is_srow_on_host{host_srow_exec ==
-                                           mtx_srow->get_executor()};
-                const bool is_mtx_on_host{host_mtx_exec ==
-                                          mtx_row_ptrs.get_executor()};
-                array<index_type> row_ptrs_host(host_mtx_exec);
-                array<index_type> srow_host(host_srow_exec);
-                const index_type* row_ptrs{};
-                index_type* srow{};
-                if (is_srow_on_host) {
-                    srow = mtx_srow->get_data();
-                } else {
-                    srow_host = *mtx_srow;
-                    srow = srow_host.get_data();
-                }
-                if (is_mtx_on_host) {
-                    row_ptrs = mtx_row_ptrs.get_const_data();
-                } else {
-                    row_ptrs_host = mtx_row_ptrs;
-                    row_ptrs = row_ptrs_host.get_const_data();
-                }
-                for (size_type i = 0; i < nwarps; i++) {
-                    srow[i] = 0;
-                }
-                const auto num_rows = mtx_row_ptrs.get_size() - 1;
-                const auto num_elems = row_ptrs[num_rows];
-                const auto bucket_divider =
-                    num_elems > 0 ? ceildiv(num_elems, warp_size_) : 1;
-                for (size_type i = 0; i < num_rows; i++) {
-                    auto bucket =
-                        ceildiv((ceildiv(row_ptrs[i + 1], warp_size_) * nwarps),
-                                bucket_divider);
-                    if (bucket < nwarps) {
-                        srow[bucket]++;
-                    }
-                }
-                // find starting row for thread i
-                for (size_type i = 1; i < nwarps; i++) {
-                    srow[i] += srow[i - 1];
-                }
-                if (!is_srow_on_host) {
-                    *mtx_srow = srow_host;
-                }
-            }
+            return csr::spmv_strategy::sparselib;
         }
-
-        int64_t clac_size(const int64_t nnz) override
-        {
-            if (warp_size_ > 0) {
-                int multiple = 8;
-                if (nnz >= static_cast<int64_t>(2e8)) {
-                    multiple = 2048;
-                } else if (nnz >= static_cast<int64_t>(2e7)) {
-                    multiple = 512;
-                } else if (nnz >= static_cast<int64_t>(2e6)) {
-                    multiple = 128;
-                } else if (nnz >= static_cast<int64_t>(2e5)) {
-                    multiple = 32;
-                }
-                if (strategy_name_ == "intel") {
-                    multiple = 8;
-                    if (nnz >= static_cast<int64_t>(2e8)) {
-                        multiple = 256;
-                    } else if (nnz >= static_cast<int64_t>(2e7)) {
-                        multiple = 32;
-                    }
-                }
-#if GINKGO_HIP_PLATFORM_HCC
-                if (!cuda_strategy_) {
-                    multiple = 8;
-                    if (nnz >= static_cast<int64_t>(1e7)) {
-                        multiple = 64;
-                    } else if (nnz >= static_cast<int64_t>(1e6)) {
-                        multiple = 16;
-                    }
-                }
-#endif  // GINKGO_HIP_PLATFORM_HCC
-
-                auto nwarps = nwarps_ * multiple;
-                return min(ceildiv(nnz, warp_size_), nwarps);
-            } else {
-                return 0;
-            }
-        }
-
-        std::shared_ptr<strategy_type> copy() override
-        {
-            return std::make_shared<load_balance>(
-                nwarps_, warp_size_, cuda_strategy_, strategy_name_);
-        }
-
-    private:
-        int64_t nwarps_;
-        int warp_size_;
-        bool cuda_strategy_;
-        std::string strategy_name_;
     };
 
-    class automatical : public strategy_type {
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::load_balance")
+        load_balance : public strategy_type {
     public:
-        /* Use imbalance strategy when the maximum number of nonzero per row is
-         * more than 1024 on NVIDIA hardware */
-        const index_type nvidia_row_len_limit = 1024;
-        /* Use imbalance strategy when the matrix has more more than 1e6 on
-         * NVIDIA hardware */
-        const index_type nvidia_nnz_limit{static_cast<index_type>(1e6)};
-        /* Use imbalance strategy when the maximum number of nonzero per row is
-         * more than 768 on AMD hardware */
-        const index_type amd_row_len_limit = 768;
-        /* Use imbalance strategy when the matrix has more more than 1e8 on AMD
-         * hardware */
-        const index_type amd_nnz_limit{static_cast<index_type>(1e8)};
-        /* Use imbalance strategy when the maximum number of nonzero per row is
-         * more than 25600 on Intel hardware */
-        const index_type intel_row_len_limit = 25600;
-        /* Use imbalance strategy when the matrix has more more than 3e8 on
-         * Intel hardware */
-        const index_type intel_nnz_limit{static_cast<index_type>(3e8)};
+        load_balance(std::shared_ptr<const Executor>) {}
 
-    public:
-        /**
-         * Creates an automatical strategy.
-         *
-         * @warning this is deprecated! Please rely on the new automatic
-         *          strategy instantiation or use one of the other constructors.
-         */
-        [[deprecated]] automatical()
-            : automatical(std::move(
-                  gko::CudaExecutor::create(0, gko::OmpExecutor::create())))
-        {}
-
-        /**
-         * Creates an automatical strategy with CUDA executor.
-         *
-         * @param exec the CUDA executor
-         */
-        automatical(std::shared_ptr<const CudaExecutor> exec)
-            : automatical(exec->get_num_warps(), exec->get_warp_size())
-        {}
-
-        /**
-         * Creates an automatical strategy with HIP executor.
-         *
-         * @param exec the HIP executor
-         */
-        automatical(std::shared_ptr<const HipExecutor> exec)
-            : automatical(exec->get_num_warps(), exec->get_warp_size(), false)
-        {}
-
-        /**
-         * Creates an automatical strategy with Dpcpp executor.
-         *
-         * @param exec the Dpcpp executor
-         *
-         * @note TODO: porting - we hardcode the subgroup size is 32
-         */
-        automatical(std::shared_ptr<const DpcppExecutor> exec)
-            : automatical(exec->get_num_subgroups(), 32, false, "intel")
-        {}
-
-        /**
-         * Creates an automatical strategy with specified parameters
-         *
-         * @param nwarps the number of warps in the executor
-         * @param warp_size the warp size of the executor
-         * @param cuda_strategy  whether the `cuda_strategy` needs to be used.
-         *
-         * @note The warp_size must be the size of full warp. When using this
-         *       constructor, set_strategy needs to be called with correct
-         *       parameters which is replaced during the conversion.
-         */
-        automatical(int64_t nwarps, int warp_size = 32,
-                    bool cuda_strategy = true,
-                    std::string strategy_name = "none")
-            : strategy_type("automatical"),
-              nwarps_(nwarps),
-              warp_size_(warp_size),
-              cuda_strategy_(cuda_strategy),
-              strategy_name_(strategy_name),
-              max_length_per_row_(0)
-        {}
-
-        void process(const array<index_type>& mtx_row_ptrs,
-                     array<index_type>* mtx_srow) override
+        csr::spmv_strategy get_enum() const override
         {
-            // if the number of stored elements is larger than <nnz_limit> or
-            // the maximum number of stored elements per row is larger than
-            // <row_len_limit>, use load_balance otherwise use classical
-            index_type nnz_limit = nvidia_nnz_limit;
-            index_type row_len_limit = nvidia_row_len_limit;
-            if (strategy_name_ == "intel") {
-                nnz_limit = intel_nnz_limit;
-                row_len_limit = intel_row_len_limit;
-            }
-#if GINKGO_HIP_PLATFORM_HCC
-            if (!cuda_strategy_) {
-                nnz_limit = amd_nnz_limit;
-                row_len_limit = amd_row_len_limit;
-            }
-#endif  // GINKGO_HIP_PLATFORM_HCC
-            auto host_mtx_exec = mtx_row_ptrs.get_executor()->get_master();
-            const bool is_mtx_on_host{host_mtx_exec ==
-                                      mtx_row_ptrs.get_executor()};
-            array<index_type> row_ptrs_host(host_mtx_exec);
-            const index_type* row_ptrs{};
-            if (is_mtx_on_host) {
-                row_ptrs = mtx_row_ptrs.get_const_data();
-            } else {
-                row_ptrs_host = mtx_row_ptrs;
-                row_ptrs = row_ptrs_host.get_const_data();
-            }
-            const auto num_rows = mtx_row_ptrs.get_size() - 1;
-            if (row_ptrs[num_rows] > nnz_limit) {
-                load_balance actual_strategy(nwarps_, warp_size_,
-                                             cuda_strategy_, strategy_name_);
-                if (is_mtx_on_host) {
-                    actual_strategy.process(mtx_row_ptrs, mtx_srow);
-                } else {
-                    actual_strategy.process(row_ptrs_host, mtx_srow);
-                }
-                this->set_name(actual_strategy.get_name());
-            } else {
-                index_type maxnum = 0;
-                for (size_type i = 0; i < num_rows; i++) {
-                    maxnum = std::max(maxnum, row_ptrs[i + 1] - row_ptrs[i]);
-                }
-                if (maxnum > row_len_limit) {
-                    load_balance actual_strategy(
-                        nwarps_, warp_size_, cuda_strategy_, strategy_name_);
-                    if (is_mtx_on_host) {
-                        actual_strategy.process(mtx_row_ptrs, mtx_srow);
-                    } else {
-                        actual_strategy.process(row_ptrs_host, mtx_srow);
-                    }
-                    this->set_name(actual_strategy.get_name());
-                } else {
-                    classical actual_strategy;
-                    if (is_mtx_on_host) {
-                        actual_strategy.process(mtx_row_ptrs, mtx_srow);
-                        max_length_per_row_ =
-                            actual_strategy.get_max_length_per_row();
-                    } else {
-                        actual_strategy.process(row_ptrs_host, mtx_srow);
-                        max_length_per_row_ =
-                            actual_strategy.get_max_length_per_row();
-                    }
-                    this->set_name(actual_strategy.get_name());
-                }
-            }
+            return csr::spmv_strategy::load_balance;
         }
-
-        int64_t clac_size(const int64_t nnz) override
-        {
-            return std::make_shared<load_balance>(
-                       nwarps_, warp_size_, cuda_strategy_, strategy_name_)
-                ->clac_size(nnz);
-        }
-
-        index_type get_max_length_per_row() const noexcept
-        {
-            return max_length_per_row_;
-        }
-
-        std::shared_ptr<strategy_type> copy() override
-        {
-            return std::make_shared<automatical>(
-                nwarps_, warp_size_, cuda_strategy_, strategy_name_);
-        }
-
-    private:
-        int64_t nwarps_;
-        int warp_size_;
-        bool cuda_strategy_;
-        std::string strategy_name_;
-        index_type max_length_per_row_;
     };
+
+    class GKO_DEPRECATED(
+        "please use enum gko::matrix::csr::spmv_strategy::automatic")
+        automatical : public strategy_type {
+    public:
+        automatical(std::shared_ptr<const Executor>) {}
+
+        csr::spmv_strategy get_enum() const override
+        {
+            return csr::spmv_strategy::automatic;
+        }
+    };
+
 
     friend class Csr<previous_precision<ValueType>, IndexType>;
 
@@ -769,6 +363,20 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    /**
+     * Returns a non-owning device view of this matrix.
+     *
+     * @return a device view of this matrix.
+     */
+    device_view get_device_view();
+
+    /**
+     * Returns a non-owning const device view of this matrix.
+     *
+     * @return a const device view of this matrix.
+     */
+    const_device_view get_const_device_view() const;
 
     /**
      * Class describing the internal lookup structures created by
@@ -1056,17 +664,13 @@ public:
         const;
 
     /**
-     * Creates a permuted copy $A'$ of this matrix $A$ with the given
-     * permutation $P$. By default, this computes a symmetric permutation
+     * Creates a permuted copy \f$A'\f$ of this matrix \f$A\f$ with the given
+     * permutation \f$P\f$. By default, this computes a symmetric permutation
      * (permute_mode::symmetric). For the effect of the different permutation
-     * modes, see @ref permute_mode
+     * modes, see @ref permute_mode.
      *
      * @param permutation  The input permutation.
-     * @param mode  The permutation mode. If permute_mode::inverse is set, we
-     *              use the inverse permutation $P^{-1}$ instead of $P$.
-     *              If permute_mode::rows is set, the rows will be permuted.
-     *              If permute_mode::columns is set, the columns will be
-     *              permuted.
+     * @param mode  The permutation mode, see @ref permute_mode.
      * @return  The permuted matrix.
      */
     std::unique_ptr<Csr> permute(
@@ -1074,16 +678,17 @@ public:
         permute_mode mode = permute_mode::symmetric) const;
 
     /**
-     * Creates a non-symmetrically permuted copy $A'$ of this matrix $A$ with
-     * the given row and column permutations $P$ and $Q$. The operation will
-     * compute $A'(i, j) = A(p[i], q[j])$, or $A' = P A Q^T$ if `invert` is
-     * `false`, and $A'(p[i], q[j]) = A(i,j)$, or $A' = P^{-1} A Q^{-T}$ if
-     * `invert` is `true`.
+     * Creates a non-symmetrically permuted copy \f$A'\f$ of this matrix \f$A\f$
+     * with the given row and column permutations \f$P\f$ and \f$Q\f$. The
+     * operation will compute \f$A'(i, j) = A(p[i], q[j])\f$, or \f$A' = P A
+     * Q^T\f$ if `invert` is `false`, and \f$A'(p[i], q[j]) = A(i,j)\f$, or
+     * \f$A' = P^{-1} A Q^{-T}\f$ if `invert` is `true`.
      *
-     * @param row_permutation  The permutation $P$ to apply to the rows
-     * @param column_permutation  The permutation $Q$ to apply to the columns
+     * @param row_permutation  The permutation \f$P\f$ to apply to the rows
+     * @param column_permutation  The permutation \f$Q\f$ to apply to the
+     * columns
      * @param invert  If set to `false`, uses the input permutations, otherwise
-     *                uses their inverses $P^{-1}, Q^{-1}$
+     *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return  The permuted matrix.
      */
     std::unique_ptr<Csr> permute(
@@ -1103,11 +708,7 @@ public:
      * reuse->update_values(matrix, permuted);
      * ```
      * @param permutation  The input permutation.
-     * @param mode  The permutation mode. If permute_mode::inverse is set, we
-     *              use the inverse permutation $P^{-1}$ instead of $P$.
-     *              If permute_mode::rows is set, the rows will be permuted.
-     *              If permute_mode::columns is set, the columns will be
-     *              permuted.
+     * @param mode  The permutation mode, see @ref permute_mode.
      * @return an std::pair consisting of the permuted matrix and the reuse info
      *         that can be used to update values in the permuted matrix.
      */
@@ -1126,10 +727,11 @@ public:
      * change_values(matrix);
      * reuse->update_values(matrix, permuted);
      * ```
-     * @param row_permutation  The permutation $P$ to apply to the rows
-     * @param column_permutation  The permutation $Q$ to apply to the columns
+     * @param row_permutation  The permutation \f$P\f$ to apply to the rows
+     * @param column_permutation  The permutation \f$Q\f$ to apply to the
+     * columns
      * @param invert  If set to `false`, uses the input permutations, otherwise
-     *                uses their inverses $P^{-1}, Q^{-1}$
+     *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return an std::pair consisting of the permuted matrix and the reuse info
      *         that can be used to update values in the permuted matrix.
      */
@@ -1160,7 +762,7 @@ public:
      * @param row_permutation  The scaled row permutation.
      * @param column_permutation  The scaled column permutation.
      * @param invert  If set to `false`, uses the input permutations, otherwise
-     *                uses their inverses $P^{-1}, Q^{-1}$
+     *                uses their inverses \f$P^{-1}, Q^{-1}\f$
      * @return The permuted matrix.
      */
     std::unique_ptr<Csr> scale_permute(
@@ -1315,23 +917,21 @@ public:
         return values_.get_size();
     }
 
-    /** Returns the strategy
+    /**
+     * Returns the strategy
      *
      * @return the strategy
      */
-    std::shared_ptr<strategy_type> get_strategy() const noexcept
-    {
-        return strategy_;
-    }
+    csr::spmv_strategy get_strategy() const noexcept;
 
     /**
      * Set the strategy
      *
      * @param strategy the csr strategy
      */
-    void set_strategy(std::shared_ptr<strategy_type> strategy)
+    void set_strategy(csr::spmv_strategy strategy)
     {
-        strategy_ = std::move(strategy->copy());
+        strategy_ = strategy;
         this->make_srow();
     }
 
@@ -1361,6 +961,8 @@ public:
         this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
     }
 
+    void validate_data() const override;
+
     /**
      * Creates an uninitialized CSR matrix of the specified size.
      *
@@ -1370,7 +972,7 @@ public:
      * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Csr> create(std::shared_ptr<const Executor> exec,
-                                       std::shared_ptr<strategy_type> strategy);
+                                       csr::spmv_strategy strategy);
 
     /**
      * Creates an uninitialized CSR matrix of the specified size.
@@ -1378,15 +980,15 @@ public:
      * @param exec  Executor associated to the matrix
      * @param size  size of the matrix
      * @param num_nonzeros  number of nonzeros
-     * @param strategy  the strategy of CSR, or the default strategy if set to
-     *                  nullptr
+     * @param strategy  the strategy the matrix uses for SpMV operations,
+     *                  default is automatic.
      *
      * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Csr> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size = {},
         size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = nullptr);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
     /**
      * Creates a CSR matrix from already allocated (and initialized) row
@@ -1397,7 +999,8 @@ public:
      * @param values  array of matrix values
      * @param col_idxs  array of column indexes
      * @param row_ptrs  array of row pointers
-     * @param strategy  the strategy the matrix uses for SpMV operations
+     * @param strategy  the strategy the matrix uses for SpMV operations,
+     *                  default is automatic.
      *
      * @note If one of `row_ptrs`, `col_idxs` or `values` is not an rvalue, not
      *       an array of IndexType, IndexType and ValueType, respectively, or
@@ -1411,7 +1014,7 @@ public:
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
         array<index_type> row_ptrs,
-        std::shared_ptr<strategy_type> strategy = nullptr);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
     /**
      * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
@@ -1441,7 +1044,8 @@ public:
      * @param values  the value array of the matrix
      * @param col_idxs  the column index array of the matrix
      * @param row_ptrs  the row pointer array of the matrix
-     * @param strategy  the strategy the matrix uses for SpMV operations
+     * @param strategy  the strategy the matrix uses for SpMV operations,
+     *                  default is automatic.
      * @returns A smart pointer to the constant matrix wrapping the input arrays
      *          (if they reside on the same executor as the matrix) or a copy of
      *          these arrays on the correct executor.
@@ -1453,7 +1057,42 @@ public:
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         gko::detail::const_array_view<IndexType>&& row_ptrs,
-        std::shared_ptr<strategy_type> strategy = nullptr);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
+
+    GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
+
+    /**
+     * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
+     * csr::spmv_strategy)
+     */
+    [[deprecated("please use enum version")]] static std::unique_ptr<Csr>
+    create(std::shared_ptr<const Executor> exec,
+           std::shared_ptr<strategy_type> strategy);
+
+    /**
+     * @copydoc std::unique_ptr<Csr> create(std::shared_ptr<const Executor>,
+     * const dim<2>&, array<value_type>, array<index_type>, array<index_type>,
+     * csr::spmv_strategy)
+     */
+    [[deprecated("please use enum version")]] static std::unique_ptr<Csr>
+    create(std::shared_ptr<const Executor> exec, const dim<2>& size,
+           array<value_type> values, array<index_type> col_idxs,
+           array<index_type> row_ptrs, std::shared_ptr<strategy_type> strategy);
+
+    /**
+     * @copydoc std::unique_ptr<const Csr> create_const(std::shared_ptr<const
+     * Executor>, const dim<2>&, gko::detail::const_array_view<ValueType>&&,
+     * gko::detail::const_array_view<IndexType>&&,
+     * gko::detail::const_array_view<IndexType>&&, csr::spmv_strategy)
+     */
+    [[deprecated("please use enum version")]] static std::unique_ptr<const Csr>
+    create_const(std::shared_ptr<const Executor> exec, const dim<2>& size,
+                 gko::detail::const_array_view<ValueType>&& values,
+                 gko::detail::const_array_view<IndexType>&& col_idxs,
+                 gko::detail::const_array_view<IndexType>&& row_ptrs,
+                 std::shared_ptr<strategy_type> strategy);
+
+    GKO_END_DISABLE_DEPRECATION_WARNINGS
 
     /**
      * Creates a submatrix from this Csr matrix given row and column index_set
@@ -1512,148 +1151,22 @@ public:
 protected:
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = {},
         size_type num_nonzeros = {},
-        std::shared_ptr<strategy_type> strategy = nullptr);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
         array<index_type> row_ptrs,
-        std::shared_ptr<strategy_type> strategy = nullptr);
+        csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    // TODO: This provides some more sane settings. Please fix this!
-    static std::shared_ptr<strategy_type> make_default_strategy(
-        std::shared_ptr<const Executor> exec)
-    {
-        auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
-        auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(exec);
-        auto dpcpp_exec = std::dynamic_pointer_cast<const DpcppExecutor>(exec);
-        std::shared_ptr<strategy_type> new_strategy;
-        if (cuda_exec) {
-            new_strategy = std::make_shared<automatical>(cuda_exec);
-        } else if (hip_exec) {
-            new_strategy = std::make_shared<automatical>(hip_exec);
-        } else if (dpcpp_exec) {
-            new_strategy = std::make_shared<automatical>(dpcpp_exec);
-        } else {
-            new_strategy = std::make_shared<classical>();
-        }
-        return new_strategy;
-    }
-
-    // TODO clean this up as soon as we improve strategy_type
-    template <typename CsrType>
-    void convert_strategy_helper(CsrType* result) const
-    {
-        auto strat = this->get_strategy().get();
-        std::shared_ptr<typename CsrType::strategy_type> new_strat;
-        if (dynamic_cast<classical*>(strat)) {
-            new_strat = std::make_shared<typename CsrType::classical>();
-        } else if (dynamic_cast<merge_path*>(strat)) {
-            new_strat = std::make_shared<typename CsrType::merge_path>();
-        } else if (dynamic_cast<cusparse*>(strat)) {
-            new_strat = std::make_shared<typename CsrType::cusparse>();
-        } else if (dynamic_cast<sparselib*>(strat)) {
-            new_strat = std::make_shared<typename CsrType::sparselib>();
-        } else {
-            auto rexec = result->get_executor();
-            auto cuda_exec =
-                std::dynamic_pointer_cast<const CudaExecutor>(rexec);
-            auto hip_exec = std::dynamic_pointer_cast<const HipExecutor>(rexec);
-            auto dpcpp_exec =
-                std::dynamic_pointer_cast<const DpcppExecutor>(rexec);
-            auto lb = dynamic_cast<load_balance*>(strat);
-            if (cuda_exec) {
-                if (lb) {
-                    new_strat =
-                        std::make_shared<typename CsrType::load_balance>(
-                            cuda_exec);
-                } else {
-                    new_strat = std::make_shared<typename CsrType::automatical>(
-                        cuda_exec);
-                }
-            } else if (hip_exec) {
-                if (lb) {
-                    new_strat =
-                        std::make_shared<typename CsrType::load_balance>(
-                            hip_exec);
-                } else {
-                    new_strat = std::make_shared<typename CsrType::automatical>(
-                        hip_exec);
-                }
-            } else if (dpcpp_exec) {
-                if (lb) {
-                    new_strat =
-                        std::make_shared<typename CsrType::load_balance>(
-                            dpcpp_exec);
-                } else {
-                    new_strat = std::make_shared<typename CsrType::automatical>(
-                        dpcpp_exec);
-                }
-            } else {
-                // Try to preserve this executor's configuration
-                auto this_cuda_exec =
-                    std::dynamic_pointer_cast<const CudaExecutor>(
-                        this->get_executor());
-                auto this_hip_exec =
-                    std::dynamic_pointer_cast<const HipExecutor>(
-                        this->get_executor());
-                auto this_dpcpp_exec =
-                    std::dynamic_pointer_cast<const DpcppExecutor>(
-                        this->get_executor());
-                if (this_cuda_exec) {
-                    if (lb) {
-                        new_strat =
-                            std::make_shared<typename CsrType::load_balance>(
-                                this_cuda_exec);
-                    } else {
-                        new_strat =
-                            std::make_shared<typename CsrType::automatical>(
-                                this_cuda_exec);
-                    }
-                } else if (this_hip_exec) {
-                    if (lb) {
-                        new_strat =
-                            std::make_shared<typename CsrType::load_balance>(
-                                this_hip_exec);
-                    } else {
-                        new_strat =
-                            std::make_shared<typename CsrType::automatical>(
-                                this_hip_exec);
-                    }
-                } else if (this_dpcpp_exec) {
-                    if (lb) {
-                        new_strat =
-                            std::make_shared<typename CsrType::load_balance>(
-                                this_dpcpp_exec);
-                    } else {
-                        new_strat =
-                            std::make_shared<typename CsrType::automatical>(
-                                this_dpcpp_exec);
-                    }
-                } else {
-                    // FIXME: this changes strategies.
-                    // We had a load balance or automatical strategy from a non
-                    // HIP or Cuda executor and are moving to a non HIP or Cuda
-                    // executor.
-                    new_strat = std::make_shared<typename CsrType::classical>();
-                }
-            }
-        }
-        result->set_strategy(new_strat);
-    }
-
     /**
      * Computes srow. It should be run after changing any row_ptrs_ value.
      */
-    void make_srow()
-    {
-        srow_.resize_and_reset(strategy_->clac_size(values_.get_size()));
-        strategy_->process(row_ptrs_, &srow_);
-    }
+    void make_srow();
 
     /**
      * @copydoc scale(const LinOp *)
@@ -1671,54 +1184,27 @@ protected:
      */
     virtual void inv_scale_impl(const LinOp* alpha);
 
+    /**
+     * Returns the actual strategy. When the strategy is automatic, this
+     * returns the actual underlying strategy. This returns the same strategy as
+     * `get_strategy` when the strategy is not automatic.
+     *
+     * @return the actual strategy
+     */
+    csr::spmv_strategy get_actual_strategy() const noexcept;
+
 private:
-    std::shared_ptr<strategy_type> strategy_;
+    csr::spmv_strategy strategy_;
     array<value_type> values_;
     array<index_type> col_idxs_;
     array<index_type> row_ptrs_;
     array<index_type> srow_;
+    index_type max_nnz_per_row_;
 
     void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };
 
 
-namespace detail {
-
-
-/**
- * When strategy is load_balance or automatical, rebuild the strategy
- * according to executor's property.
- *
- * @param result  the csr matrix.
- */
-template <typename ValueType, typename IndexType>
-void strategy_rebuild_helper(Csr<ValueType, IndexType>* result)
-{
-    using load_balance = typename Csr<ValueType, IndexType>::load_balance;
-    using automatical = typename Csr<ValueType, IndexType>::automatical;
-    auto strategy = result->get_strategy();
-    auto executor = result->get_executor();
-    if (std::dynamic_pointer_cast<load_balance>(strategy)) {
-        if (auto exec =
-                std::dynamic_pointer_cast<const HipExecutor>(executor)) {
-            result->set_strategy(std::make_shared<load_balance>(exec));
-        } else if (auto exec = std::dynamic_pointer_cast<const CudaExecutor>(
-                       executor)) {
-            result->set_strategy(std::make_shared<load_balance>(exec));
-        }
-    } else if (std::dynamic_pointer_cast<automatical>(strategy)) {
-        if (auto exec =
-                std::dynamic_pointer_cast<const HipExecutor>(executor)) {
-            result->set_strategy(std::make_shared<automatical>(exec));
-        } else if (auto exec = std::dynamic_pointer_cast<const CudaExecutor>(
-                       executor)) {
-            result->set_strategy(std::make_shared<automatical>(exec));
-        }
-    }
-}
-
-
-}  // namespace detail
 }  // namespace matrix
 }  // namespace gko
 

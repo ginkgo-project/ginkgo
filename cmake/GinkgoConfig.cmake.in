@@ -78,8 +78,6 @@ set(GINKGO_BUILD_MPI @GINKGO_BUILD_MPI@)
 
 set(GINKGO_HAVE_PAPI_SDE @GINKGO_HAVE_PAPI_SDE@)
 
-set(GINKGO_HAVE_HWLOC @GINKGO_HAVE_HWLOC@)
-
 set(GINKGO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@)
 
 # Ginkgo compiler information
@@ -144,10 +142,6 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 include(CMakeFindDependencyMacro)
 if(GINKGO_HAVE_PAPI_SDE)
     find_dependency(PAPI 7.0.1.0 COMPONENTS sde)
-endif()
-
-if(GINKGO_HAVE_HWLOC)
-    find_dependency(HWLOC)
 endif()
 
 # Check for MPI if it is enabled

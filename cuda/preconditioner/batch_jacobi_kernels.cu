@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -82,20 +82,19 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
-    const gko::matrix::Csr<ValueType, IndexType>* first_sys_csr,
+    matrix::view::csr<const ValueType, const IndexType> first_sys_csr,
     const size_type num_blocks, const IndexType* cumulative_block_storage,
     const IndexType* block_pointers, const IndexType* map_block_to_row,
     IndexType* blocks_pattern)
 {
-    const auto nrows = first_sys_csr->get_size()[0];
+    const auto nrows = first_sys_csr.size[0];
     dim3 block(default_block_size);
     dim3 grid(ceildiv(nrows * config::warp_size, default_block_size));
 
     batch_single_kernels::extract_common_block_pattern_kernel<<<
         grid, block, 0, exec->get_stream()>>>(
-        static_cast<int>(nrows), first_sys_csr->get_const_row_ptrs(),
-        first_sys_csr->get_const_col_idxs(), num_blocks,
-        cumulative_block_storage, block_pointers, map_block_to_row,
+        static_cast<int>(nrows), first_sys_csr.row_ptrs, first_sys_csr.col_idxs,
+        num_blocks, cumulative_block_storage, block_pointers, map_block_to_row,
         blocks_pattern);
 }
 

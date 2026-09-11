@@ -105,7 +105,7 @@ TEST(DeathTest, Assertions)
 {
     // irange
     // end >= begin
-    EXPECT_EXIT((void)gko::irange<int>(1, 0), check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)gko::irange<int>(1, 0));
 }
 
 

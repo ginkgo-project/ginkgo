@@ -71,7 +71,7 @@ private:
  * specified amount of time since the start of the solver run has elapsed.
  *
  * Full usage example: Stop after 1 second or when the relative residual norm is
- * below $10^{-10}$, whichever happens first.
+ * below \f$10^{-10}\f$, whichever happens first.
  * ```cpp
  * auto factory = gko::solver::Cg<double>::build()
  *                    .with_criteria(

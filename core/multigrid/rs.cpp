@@ -61,7 +61,8 @@ void Rs<ValueType, IndexType>::generate()
     }
     array<bool> is_m_matrix_array(exec, 1);
     if (!parameters_.skip_m_matrix_check) {
-        exec->run(rs::make_check_m_matrix(rs_op, is_m_matrix_array));
+        exec->run(rs::make_check_m_matrix(rs_op->get_const_device_view(),
+                                          is_m_matrix_array));
         if (!exec->copy_val_to_host(is_m_matrix_array.get_const_data())) {
             GKO_NOT_SUPPORTED(
                 "RS coarsening requires an M-matrix (strictly positive "
@@ -80,8 +81,8 @@ void Rs<ValueType, IndexType>::generate()
     // 0 = undecided, 1 = C, -1 = F,
     // then extract coarse dims
     exec->run(rs::make_compute_soc_and_run_rs(
-        rs_op, parameters_.strength_threshold, is_strong, lambda, cf_marker,
-        coarse_dim));
+        rs_op->get_const_device_view(), parameters_.strength_threshold,
+        is_strong, lambda, cf_marker, coarse_dim));
     const size_type coarse_dim_size = static_cast<size_type>(coarse_dim);
 
     // fill in coarse_rows and fine_to_coarse, build prolongation using
@@ -90,8 +91,8 @@ void Rs<ValueType, IndexType>::generate()
     array<IndexType> fine_to_coarse(exec, fine_dim);
     array<IndexType> prolong_row_ptrs(exec, fine_dim + 1);
     exec->run(rs::make_fill_coarse_and_compute_prolong_row_ptrs(
-        cf_marker, coarse_rows, fine_to_coarse, rs_op, is_strong,
-        prolong_row_ptrs));
+        cf_marker, coarse_rows, fine_to_coarse, rs_op->get_const_device_view(),
+        is_strong, prolong_row_ptrs));
 
     IndexType prolong_nnz =
         exec->copy_val_to_host(prolong_row_ptrs.get_const_data() + fine_dim);
@@ -104,8 +105,8 @@ void Rs<ValueType, IndexType>::generate()
                     prolong_op->get_row_ptrs());
 
     exec->run(rs::make_compute_interpolation(
-        rs_op, is_strong.get_const_data(), cf_marker,
-        fine_to_coarse.get_const_data(), prolong_op.get()));
+        rs_op->get_const_device_view(), is_strong.get_const_data(), cf_marker,
+        fine_to_coarse.get_const_data(), prolong_op->get_device_view()));
 
     // build restriction as R = P^T
     auto restrict_op = share(as<csr_type>(prolong_op->transpose()));

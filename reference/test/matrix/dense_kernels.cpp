@@ -1503,8 +1503,8 @@ TYPED_TEST(DenseWithIndexType, ConvertsToCsr)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Csr = typename gko::matrix::Csr<value_type, index_type>;
-    auto csr_s_classical = std::make_shared<typename Csr::classical>();
-    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_s_classical = gko::matrix::csr::spmv_strategy::classical;
+    auto csr_s_merge = gko::matrix::csr::spmv_strategy::merge_path;
     auto csr_mtx_c = Csr::create(this->mtx4->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx4->get_executor(), csr_s_merge);
 
@@ -1512,9 +1512,11 @@ TYPED_TEST(DenseWithIndexType, ConvertsToCsr)
     this->mtx4->convert_to(csr_mtx_m);
 
     assert_csr_eq_mtx4(csr_mtx_c.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_c->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
     GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(csr_mtx_m->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
 }
 
 
@@ -1523,8 +1525,8 @@ TYPED_TEST(DenseWithIndexType, MovesToCsr)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Csr = typename gko::matrix::Csr<value_type, index_type>;
-    auto csr_s_classical = std::make_shared<typename Csr::classical>();
-    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_s_classical = gko::matrix::csr::spmv_strategy::classical;
+    auto csr_s_merge = gko::matrix::csr::spmv_strategy::merge_path;
     auto csr_mtx_c = Csr::create(this->mtx4->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx4->get_executor(), csr_s_merge);
     auto mtx_clone = this->mtx4->clone();
@@ -1533,9 +1535,11 @@ TYPED_TEST(DenseWithIndexType, MovesToCsr)
     mtx_clone->move_to(csr_mtx_m);
 
     assert_csr_eq_mtx4(csr_mtx_c.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_c->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
     GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(csr_mtx_m->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
 }
 
 

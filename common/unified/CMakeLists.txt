@@ -20,7 +20,9 @@ set(UNIFIED_SOURCES
     matrix/sparsity_csr_kernels.cpp
     matrix/diagonal_kernels.cpp
     multigrid/pgm_kernels.cpp
+    multigrid/pmis_kernels.cpp
     multigrid/rs_kernels.cpp
+    multigrid/uniform_coarsening_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp

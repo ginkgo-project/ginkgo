@@ -247,7 +247,8 @@ void Ell<ValueType, IndexType>::add_scaled_identity(
     this->create_const_view_for_item(0)->convert_to(csr_mat);
 
     bool has_all_diags{false};
-    exec->run(ell::make_check_diagonal_entries(csr_mat.get(), has_all_diags));
+    exec->run(ell::make_check_diagonal_entries(csr_mat->get_const_device_view(),
+                                               has_all_diags));
     if (!has_all_diags) {
         GKO_UNSUPPORTED_MATRIX_PROPERTY(
             "The matrix is missing one or more diagonal entries!");

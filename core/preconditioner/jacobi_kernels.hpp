@@ -16,16 +16,17 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)          \
-    void find_blocks(std::shared_ptr<const DefaultExecutor> exec,            \
-                     const matrix::Csr<ValueType, IndexType>* system_matrix, \
-                     uint32 max_block_size, size_type& num_blocks,           \
-                     array<IndexType>& block_pointers)
+#define GKO_DECLARE_JACOBI_FIND_BLOCKS_KERNEL(ValueType, IndexType)        \
+    void find_blocks(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        matrix::view::csr<const ValueType, const IndexType> system_matrix, \
+        uint32 max_block_size, size_type& num_blocks,                      \
+        array<IndexType>& block_pointers)
 
 #define GKO_DECLARE_JACOBI_GENERATE_KERNEL(ValueType, IndexType)           \
     void generate(                                                         \
         std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Csr<ValueType, IndexType>* system_matrix,            \
+        matrix::view::csr<const ValueType, const IndexType> system_matrix, \
         size_type num_blocks, uint32 max_block_size,                       \
         remove_complex<ValueType> accuracy,                                \
         const preconditioner::block_interleaved_storage_scheme<IndexType>& \
@@ -126,16 +127,16 @@ namespace kernels {
                                const array<precision_reduction>& source,    \
                                array<precision_reduction>& precisions)
 
-#define GKO_DECLARE_JACOBI_SCALAR_L1_KERNEL(ValueType, IndexType) \
-    void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,   \
-                   const matrix::Csr<ValueType, IndexType>* csr,  \
+#define GKO_DECLARE_JACOBI_SCALAR_L1_KERNEL(ValueType, IndexType)           \
+    void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,             \
+                   matrix::view::csr<const ValueType, const IndexType> csr, \
                    matrix::Diagonal<ValueType>* diag)
 
 #define GKO_DECLARE_JACOBI_BLOCK_L1_KERNEL(ValueType, IndexType) \
     void block_l1(std::shared_ptr<const DefaultExecutor> exec,   \
                   size_type num_blocks,                          \
                   const array<IndexType>& block_pointers,        \
-                  matrix::Csr<ValueType, IndexType>* csr)
+                  matrix::view::csr<ValueType, IndexType> csr)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                  \
     template <typename ValueType, typename IndexType>                 \

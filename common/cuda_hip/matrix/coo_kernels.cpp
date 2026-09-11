@@ -29,7 +29,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Coordinate matrix format namespace.
  *
- * @ingroup coo
  */
 namespace coo {
 

@@ -21,13 +21,11 @@ namespace hip {
 /**
  * @brief The HIPSPARSE namespace.
  *
- * @ingroup hipsparse
  */
 namespace hipsparse {
 /**
  * @brief The detail namespace.
  *
- * @ingroup detail
  */
 namespace detail {
 

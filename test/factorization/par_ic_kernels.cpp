@@ -56,16 +56,18 @@ protected:
             gko::matrix::CsrBuilder<value_type, index_type> l_builder(
                 mtx_l_ani);
             gko::kernels::reference::factorization::initialize_row_ptrs_l(
-                ref, mtx_ani.get(), mtx_l_ani->get_row_ptrs());
+                ref, mtx_ani->get_const_device_view(),
+                mtx_l_ani->get_row_ptrs());
             auto l_nnz =
                 mtx_l_ani->get_const_row_ptrs()[mtx_ani->get_size()[0]];
             l_builder.get_col_idx_array().resize_and_reset(l_nnz);
             l_builder.get_value_array().resize_and_reset(l_nnz);
             gko::kernels::reference::factorization::initialize_l(
-                ref, mtx_ani.get(), mtx_l_ani.get(), false);
+                ref, mtx_ani->get_const_device_view(),
+                mtx_l_ani->get_device_view(), false);
             mtx_l_ani_init = gko::clone(ref, mtx_l_ani);
             gko::kernels::reference::par_ic_factorization::init_factor(
-                ref, mtx_l_ani_init.get());
+                ref, mtx_l_ani_init->get_device_view());
         }
         dmtx_ani->copy_from(mtx_ani);
         dmtx_l_ani->copy_from(mtx_l_ani);
@@ -94,9 +96,9 @@ TYPED_TEST(ParIc, KernelInitFactorIsEquivalentToRef)
     using value_type = typename TestFixture::value_type;
 
     gko::kernels::reference::par_ic_factorization::init_factor(
-        this->ref, this->mtx_l.get());
+        this->ref, this->mtx_l->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ic_factorization::init_factor(
-        this->exec, this->dmtx_l.get());
+        this->exec, this->dmtx_l->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(this->mtx_l, this->dmtx_l, r<value_type>::value);
 }
@@ -129,10 +131,10 @@ TYPED_TEST(ParIc, KernelComputeFactorIsEquivalentToRef)
 
     gko::kernels::reference::par_ic_factorization::compute_factor(
         this->ref, 1, mtx_l_coo->get_const_device_view(),
-        this->mtx_l_ani_init.get());
+        this->mtx_l_ani_init->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::par_ic_factorization::compute_factor(
         this->exec, 100, dmtx_l_coo->get_const_device_view(),
-        this->dmtx_l_ani_init.get());
+        this->dmtx_l_ani_init->get_device_view());
 
     GKO_EXPECT_MTX_NEAR(this->mtx_l_ani_init, this->dmtx_l_ani_init, tol);
 }

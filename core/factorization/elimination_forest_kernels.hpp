@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,7 +31,7 @@ namespace kernels {
 #define GKO_DECLARE_ELIMINATION_FOREST_FROM_FACTOR(ValueType, IndexType) \
     void from_factor(                                                    \
         std::shared_ptr<const DefaultExecutor> exec,                     \
-        const matrix::Csr<ValueType, IndexType>* factors,                \
+        matrix::view::csr<const ValueType, const IndexType> factors,     \
         gko::factorization::elimination_forest<IndexType>& forest)
 
 

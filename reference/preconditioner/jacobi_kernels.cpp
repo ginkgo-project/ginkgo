@@ -44,12 +44,13 @@ inline bool has_same_nonzero_pattern(const IndexType* prev_row_ptr,
 
 
 template <typename ValueType, typename IndexType>
-size_type find_natural_blocks(const matrix::Csr<ValueType, IndexType>* mtx,
-                              uint32 max_block_size, IndexType* block_ptrs)
+size_type find_natural_blocks(
+    matrix::view::csr<const ValueType, const IndexType> mtx,
+    uint32 max_block_size, IndexType* block_ptrs)
 {
-    const auto rows = mtx->get_size()[0];
-    const auto row_ptrs = mtx->get_const_row_ptrs();
-    const auto col_idx = mtx->get_const_col_idxs();
+    const auto rows = mtx.size[0];
+    const auto row_ptrs = mtx.row_ptrs;
+    const auto col_idx = mtx.col_idxs;
     block_ptrs[0] = 0;
     if (rows == 0) {
         return 0;
@@ -105,10 +106,11 @@ inline size_type agglomerate_supervariables(uint32 max_block_size,
 
 
 template <typename ValueType, typename IndexType>
-void find_blocks(std::shared_ptr<const DefaultExecutor> exec,
-                 const matrix::Csr<ValueType, IndexType>* system_matrix,
-                 uint32 max_block_size, size_type& num_blocks,
-                 array<IndexType>& block_pointers)
+void find_blocks(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    uint32 max_block_size, size_type& num_blocks,
+    array<IndexType>& block_pointers)
 {
     num_blocks = find_natural_blocks(system_matrix, max_block_size,
                                      block_pointers.get_data());
@@ -124,18 +126,19 @@ namespace {
 
 
 template <typename ValueType, typename IndexType>
-inline void extract_block(const matrix::Csr<ValueType, IndexType>* mtx,
-                          IndexType block_size, IndexType block_start,
-                          ValueType* block, size_type stride)
+inline void extract_block(
+    matrix::view::csr<const ValueType, const IndexType> mtx,
+    IndexType block_size, IndexType block_start, ValueType* block,
+    size_type stride)
 {
     for (int i = 0; i < block_size; ++i) {
         for (int j = 0; j < block_size; ++j) {
             block[i * stride + j] = zero<ValueType>();
         }
     }
-    const auto row_ptrs = mtx->get_const_row_ptrs();
-    const auto col_idxs = mtx->get_const_col_idxs();
-    const auto vals = mtx->get_const_values();
+    const auto row_ptrs = mtx.row_ptrs;
+    const auto col_idxs = mtx.col_idxs;
+    const auto vals = mtx.values;
     for (int row = 0; row < block_size; ++row) {
         const auto start = row_ptrs[block_start + row];
         const auto end = row_ptrs[block_start + row + 1];
@@ -312,7 +315,7 @@ inline bool validate_precision_reduction_feasibility(
 
 template <typename ValueType, typename IndexType>
 void generate(std::shared_ptr<const DefaultExecutor> exec,
-              const matrix::Csr<ValueType, IndexType>* system_matrix,
+              matrix::view::csr<const ValueType, const IndexType> system_matrix,
               size_type num_blocks, uint32 max_block_size,
               remove_complex<ValueType> accuracy,
               const preconditioner::block_interleaved_storage_scheme<IndexType>&
@@ -725,17 +728,16 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,
-               const matrix::Csr<ValueType, IndexType>* csr,
+               matrix::view::csr<const ValueType, const IndexType> csr,
                matrix::Diagonal<ValueType>* diag)
 {
-    for (IndexType row = 0; row < csr->get_size()[0]; row++) {
+    for (IndexType row = 0; row < csr.size[0]; row++) {
         auto off_diag = zero<ValueType>();
-        for (auto i = csr->get_const_row_ptrs()[row];
-             i < csr->get_const_row_ptrs()[row + 1]; i++) {
-            if (csr->get_const_col_idxs()[i] == row) {
+        for (auto i = csr.row_ptrs[row]; i < csr.row_ptrs[row + 1]; i++) {
+            if (csr.col_idxs[i] == row) {
                 continue;
             }
-            off_diag += abs(csr->get_const_values()[i]);
+            off_diag += abs(csr.values[i]);
         }
         // TODO: It is unclear effect when this applies to negative diagonal
         // value. The reference paper only discusses the positive diagonal
@@ -751,7 +753,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void block_l1(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
               const array<IndexType>& block_ptrs,
-              matrix::Csr<ValueType, IndexType>* csr)
+              matrix::view::csr<ValueType, IndexType> csr)
 {
     for (IndexType block_id = 0; block_id < num_blocks; block_id++) {
         auto start = block_ptrs.get_const_data()[block_id];
@@ -759,21 +761,20 @@ void block_l1(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
         for (auto row = start; row < end; row++) {
             auto off_diag = zero<ValueType>();
             IndexType diag_idx = -1;
-            for (auto i = csr->get_const_row_ptrs()[row];
-                 i < csr->get_const_row_ptrs()[row + 1]; i++) {
-                auto col = csr->get_const_col_idxs()[i];
+            for (auto i = csr.row_ptrs[row]; i < csr.row_ptrs[row + 1]; i++) {
+                auto col = csr.col_idxs[i];
                 if (col >= start && col < end) {
                     if (col == row) {
                         diag_idx = i;
                     }
                     continue;
                 }
-                off_diag += abs(csr->get_const_values()[i]);
+                off_diag += abs(csr.values[i]);
             }
             // TODO: It is unclear effect when this applies to negative diagonal
             // value. The reference paper only discusses the positive diagonal
             // value.
-            csr->get_values()[diag_idx] += off_diag;
+            csr.values[diag_idx] += off_diag;
         }
     }
 }

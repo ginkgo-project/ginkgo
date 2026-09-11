@@ -109,12 +109,17 @@ public:
     /**
      * Returns the pointer to the memory used for storing the block data.
      *
-     * Element (`i`, `j`) of the block, which belongs to the batch entry with
-     * index = "batch_id" and has local id = "block_id" within its batch entry
-     * is stored at the address = get_const_blocks() +
-     * detail::get_global_block_offset(batch_id, num_blocks, block_id,
-     * cumulative_blocks_storage) + i * detail::get_stride(block_id,
-     * block_pointers) + j
+     * Element \f$(i, j)\f$ of the block that belongs to batch entry
+     * `batch_id` and has local id `block_id` within that entry is stored
+     * at the address
+     *
+     * ```cpp
+     * get_const_blocks()
+     *     + detail::get_global_block_offset(batch_id, num_blocks, block_id,
+     *                                       cumulative_blocks_storage)
+     *     + i * detail::get_stride(block_id, block_pointers)
+     *     + j
+     * ```
      *
      * @note Returns nullptr in case of a scalar jacobi preconditioner
      *       (max_block_size = 1).

@@ -27,7 +27,6 @@ namespace dpcpp {
 /**
  * @brief The SELL-P matrix format namespace.
  *
- * @ingroup sellp
  */
 namespace sellp {
 

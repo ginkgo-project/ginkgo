@@ -17,7 +17,16 @@
 
 # If we find a heading in a .dox file, create an HTML anchor for it.
 
+# Anchors have to be unique across the whole documentation, so they are
+# namespaced with the (unique) name of the example page they belong to.
+# Without this every example contributes the same "Introduction", "Results",
+# ... labels and doxygen keeps only the first of each.
+my $prefix = pop @ARGV;
+
 while (<>) {
+    # anchors already written out in the .dox file need the same prefix
+    s/<a name="/<a name="${prefix}_/g;
+
     if ( /<h.>(.*)<\/h.>\s*/ ) {
 	$reftext = $1;
 
@@ -25,7 +34,7 @@ while (<>) {
 	# everything except for letters, numbers, and underscores
 	$reftext =~ s/[^a-zA-Z0-9_]//g;
 
-	print "<a name=\"$reftext\"></a>$_\n";
+	print "<a name=\"${prefix}_$reftext\"></a>$_\n";
     } else {
         print;
     }

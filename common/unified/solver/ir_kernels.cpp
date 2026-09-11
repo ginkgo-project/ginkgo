@@ -13,7 +13,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The IR solver namespace.
  *
- * @ingroup ir
  */
 namespace ir {
 

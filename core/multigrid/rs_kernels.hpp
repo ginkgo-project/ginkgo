@@ -21,16 +21,17 @@ namespace gko {
 namespace kernels {
 namespace rs {
 
-#define GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL(ValueType, IndexType)       \
-    void check_m_matrix(std::shared_ptr<const DefaultExecutor> exec,     \
-                        const matrix::Csr<ValueType, IndexType>* matrix, \
-                        array<bool>& is_m_matrix_array)
+#define GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL(ValueType, IndexType)  \
+    void check_m_matrix(                                            \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        matrix::view::csr<const ValueType, const IndexType> matrix, \
+        array<bool>& is_m_matrix_array)
 
-#define GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType) \
-    void compute_soc_and_run_rs(                                           \
-        std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Csr<ValueType, IndexType>* A, double theta,          \
-        array<bool>& is_strong, array<IndexType>& lambda,                  \
+#define GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType)   \
+    void compute_soc_and_run_rs(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        matrix::view::csr<const ValueType, const IndexType> A, double theta, \
+        array<bool>& is_strong, array<IndexType>& lambda,                    \
         array<IndexType>& cf_marker, IndexType& coarse_dim)
 
 #define GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL(   \
@@ -39,15 +40,16 @@ namespace rs {
         std::shared_ptr<const DefaultExecutor> exec,                      \
         const array<IndexType>& cf_marker, array<IndexType>& coarse_rows, \
         array<IndexType>& fine_to_coarse,                                 \
-        const matrix::Csr<ValueType, IndexType>* A,                       \
+        matrix::view::csr<const ValueType, const IndexType> A,            \
         const array<bool>& is_strong, array<IndexType>& row_ptrs)
 
-#define GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL(ValueType, IndexType)   \
-    void compute_interpolation(                                             \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::Csr<ValueType, IndexType>* A, const bool* is_strong,  \
-        const array<IndexType>& cf_marker, const IndexType* fine_to_coarse, \
-        matrix::Csr<ValueType, IndexType>* P)
+#define GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL(ValueType, IndexType) \
+    void compute_interpolation(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        matrix::view::csr<const ValueType, const IndexType> A,            \
+        const bool* is_strong, const array<IndexType>& cf_marker,         \
+        const IndexType* fine_to_coarse,                                  \
+        matrix::view::csr<ValueType, IndexType> P)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                           \

@@ -15,7 +15,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The index_set namespace.
  *
- * @ingroup index_set
  */
 namespace idx_set {
 

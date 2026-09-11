@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,8 @@
 
 
 #include <vector>
+
+#include <ginkgo/core/base/types.hpp>
 
 
 namespace gko {
@@ -32,25 +34,26 @@ class copy_assignable<
 public:
     copy_assignable() = default;
 
-    copy_assignable(const copy_assignable& other)
+    GKO_ATTRIBUTES copy_assignable(const copy_assignable& other)
     {
         if (this != &other) {
             *this = other;
         }
     }
 
-    copy_assignable(copy_assignable&& other) noexcept
+    GKO_ATTRIBUTES copy_assignable(copy_assignable&& other) noexcept
     {
         if (this != &other) {
             *this = std::move(other);
         }
     }
 
-    copy_assignable(const T& obj) : obj_{new (buf)(T)(obj)} {}
+    GKO_ATTRIBUTES copy_assignable(const T& obj) : obj_{new (buf)(T)(obj)} {}
 
-    copy_assignable(T&& obj) : obj_{new (buf)(T)(std::move(obj))} {}
+    GKO_ATTRIBUTES copy_assignable(T&& obj) : obj_{new (buf)(T)(std::move(obj))}
+    {}
 
-    copy_assignable& operator=(const copy_assignable& other)
+    GKO_ATTRIBUTES copy_assignable& operator=(const copy_assignable& other)
     {
         if (this != &other) {
             if (obj_) {
@@ -61,7 +64,7 @@ public:
         return *this;
     }
 
-    copy_assignable& operator=(copy_assignable&& other) noexcept
+    GKO_ATTRIBUTES copy_assignable& operator=(copy_assignable&& other) noexcept
     {
         if (this != &other) {
             if (obj_) {
@@ -72,7 +75,7 @@ public:
         return *this;
     }
 
-    ~copy_assignable()
+    GKO_ATTRIBUTES ~copy_assignable()
     {
         if (obj_) {
             obj_->~T();
@@ -80,14 +83,14 @@ public:
     }
 
     template <typename... Args>
-    decltype(auto) operator()(Args&&... args) const
+    GKO_ATTRIBUTES decltype(auto) operator()(Args&&... args) const
     {
         return (*obj_)(std::forward<Args>(args)...);
     }
 
-    T const& get() const { return *obj_; }
+    GKO_ATTRIBUTES T const& get() const { return *obj_; }
 
-    T& get() { return *obj_; }
+    GKO_ATTRIBUTES T& get() { return *obj_; }
 
 private:
     //!< Store wrapped object on the stack, should use std::optional in c++17

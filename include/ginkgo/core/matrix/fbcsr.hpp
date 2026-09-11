@@ -91,7 +91,6 @@ inline IndexType get_num_blocks(const int block_size, const IndexType size)
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup fbcsr
  * @ingroup mat_formats
  * @ingroup LinOp
  */

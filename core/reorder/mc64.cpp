@@ -31,17 +31,18 @@ namespace mc64 {
 
 
 template <typename ValueType, typename IndexType>
-void initialize_weights(const matrix::Csr<ValueType, IndexType>* host_mtx,
-                        array<remove_complex<ValueType>>& weights_array,
-                        array<remove_complex<ValueType>>& dual_u_array,
-                        array<remove_complex<ValueType>>& row_maxima_array,
-                        gko::experimental::reorder::mc64_strategy strategy)
+void initialize_weights(
+    matrix::view::csr<const ValueType, const IndexType> host_mtx,
+    array<remove_complex<ValueType>>& weights_array,
+    array<remove_complex<ValueType>>& dual_u_array,
+    array<remove_complex<ValueType>>& row_maxima_array,
+    gko::experimental::reorder::mc64_strategy strategy)
 {
     const auto inf = std::numeric_limits<remove_complex<ValueType>>::infinity();
-    const auto num_rows = host_mtx->get_size()[0];
-    const auto row_ptrs = host_mtx->get_const_row_ptrs();
-    const auto col_idxs = host_mtx->get_const_col_idxs();
-    const auto values = host_mtx->get_const_values();
+    const auto num_rows = host_mtx.size[0];
+    const auto row_ptrs = host_mtx.row_ptrs;
+    const auto col_idxs = host_mtx.col_idxs;
+    const auto values = host_mtx.values;
     auto weights = weights_array.get_data();
     auto dual_u = dual_u_array.get_data();
     auto row_maxima = row_maxima_array.get_data();
@@ -425,17 +426,17 @@ void augment_matching(const matrix::Csr<ValueType, IndexType>* host_mtx,
 
 
 template <typename ValueType, typename IndexType>
-void compute_scaling(const matrix::Csr<ValueType, IndexType>* host_mtx,
-                     const array<remove_complex<ValueType>>& weights_array,
-                     const array<remove_complex<ValueType>>& dual_u_array,
-                     const array<remove_complex<ValueType>>& row_maxima_array,
-                     const array<IndexType>& permutation,
-                     const array<IndexType>& matched_idxs_array,
-                     mc64_strategy strategy, ValueType* row_scaling,
-                     ValueType* col_scaling)
+void compute_scaling(
+    matrix::view::csr<const ValueType, const IndexType> host_mtx,
+    const array<remove_complex<ValueType>>& weights_array,
+    const array<remove_complex<ValueType>>& dual_u_array,
+    const array<remove_complex<ValueType>>& row_maxima_array,
+    const array<IndexType>& permutation,
+    const array<IndexType>& matched_idxs_array, mc64_strategy strategy,
+    ValueType* row_scaling, ValueType* col_scaling)
 {
     const auto inf = std::numeric_limits<remove_complex<ValueType>>::infinity();
-    const auto num_rows = host_mtx->get_size()[0];
+    const auto num_rows = host_mtx.size[0];
     const auto weights = weights_array.get_const_data();
     const auto dual_u = dual_u_array.get_const_data();
     const auto row_maxima = row_maxima_array.get_const_data();
@@ -550,8 +551,9 @@ std::unique_ptr<LinOp> Mc64<ValueType, IndexType>::generate_impl(
     const auto col_idxs = mtx->get_const_col_idxs();
 
     if (num_rows > 0) {
-        exec->run(make_initialize_weights(mtx.get(), weights, dual_u,
-                                          row_maxima, parameters_.strategy));
+        exec->run(make_initialize_weights(mtx->get_const_device_view(), weights,
+                                          dual_u, row_maxima,
+                                          parameters_.strategy));
 
         // Compute an initial maximum matching from the nonzero entries for
         // which the reduced weight (W(i, j) - u(j) - v(i)) is zero. Here, W is
@@ -568,9 +570,9 @@ std::unique_ptr<LinOp> Mc64<ValueType, IndexType>::generate_impl(
             this->get_parameters().tolerance));
 
         exec->run(make_compute_scaling(
-            mtx.get(), weights, dual_u, row_maxima, permutation, matched_idxs,
-            parameters_.strategy, row_scaling.get_data(),
-            col_scaling.get_data()));
+            mtx->get_const_device_view(), weights, dual_u, row_maxima,
+            permutation, matched_idxs, parameters_.strategy,
+            row_scaling.get_data(), col_scaling.get_data()));
     }
 
     array<index_type> identity_permutation{exec, num_rows};

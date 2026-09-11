@@ -216,7 +216,8 @@ Pgm<ValueType, IndexType>::generate_local(
     for (int i = 0; i < parameters_.max_iterations; i++) {
         // Find the strongest neighbor of each row
         exec->run(pgm::make_find_strongest_neighbor(
-            weight_mtx.get(), diag.get(), agg_, strongest_neighbor));
+            weight_mtx->get_const_device_view(), diag.get(), agg_,
+            strongest_neighbor));
         // Match edges
         exec->run(pgm::make_match_edge(strongest_neighbor, agg_));
         // Get the num_unagg
@@ -236,8 +237,9 @@ Pgm<ValueType, IndexType>::generate_local(
     }
     if (num_unagg != 0) {
         // Assign all left points
-        exec->run(pgm::make_assign_to_exist_agg(weight_mtx.get(), diag.get(),
-                                                agg_, intermediate_agg));
+        exec->run(
+            pgm::make_assign_to_exist_agg(weight_mtx->get_const_device_view(),
+                                          diag.get(), agg_, intermediate_agg));
     }
     IndexType num_agg = 0;
     // Renumber the index

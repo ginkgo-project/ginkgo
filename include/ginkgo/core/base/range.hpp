@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,7 +41,6 @@ namespace gko {
  * of the strict order to its weak equivalent. Thus, `x <= y` is not equivalent
  * to `x < y || x == y`.
  *
- * @ingroup ranges
  */
 struct span {
     /**
@@ -298,7 +297,6 @@ using head_t = typename head<T...>::type;
  *
  * @tparam Accessor  underlying accessor of the range
  *
- * @ingroup ranges
  */
 template <typename Accessor>
 class range {
@@ -422,7 +420,7 @@ public:
     }
 
     /**
-     * `Returns a reference to the accessor.
+     * Returns a reference to the accessor.
      *
      * @return reference to the accessor
      */

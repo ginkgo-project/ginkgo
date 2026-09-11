@@ -68,7 +68,8 @@ TEST_F(Rs, ComputeSocAndRunRs)
     index_type coarse{};
 
     gko::kernels::reference::rs::compute_soc_and_run_rs(
-        exec, A.get(), 0.5, is_strong_empty, lambda, cf, coarse);
+        exec, A->get_const_device_view(), 0.5, is_strong_empty, lambda, cf,
+        coarse);
 
     // all off-diagonals are strong
     std::vector<bool> expected_soc{false, true, true,  false, true, true, false,
@@ -95,7 +96,8 @@ TEST_F(Rs, FillCoarseAndComputeProlongRowPtrs)
     gko::array<index_type> coarse(exec, 2);
 
     gko::kernels::reference::rs::fill_coarse_and_compute_prolong_row_ptrs(
-        exec, cf, coarse, f2c, A.get(), is_strong_prefilled, p_row_ptrs);
+        exec, cf, coarse, f2c, A->get_const_device_view(), is_strong_prefilled,
+        p_row_ptrs);
 
     // C-points (1, 3) map to (0, 1)
     ASSERT_EQ(f2c.get_const_data()[0], -1);
@@ -120,8 +122,8 @@ TEST_F(Rs, ComputeInterpolation)
                     P->get_row_ptrs());
 
     gko::kernels::reference::rs::compute_interpolation(
-        exec, A.get(), is_strong_prefilled.get_const_data(), cf,
-        f2c.get_const_data(), P.get());
+        exec, A->get_const_device_view(), is_strong_prefilled.get_const_data(),
+        cf, f2c.get_const_data(), P->get_device_view());
 
     auto p_vals = P->get_const_values();
     auto p_cols = P->get_const_col_idxs();

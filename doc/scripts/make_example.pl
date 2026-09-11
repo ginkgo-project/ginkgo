@@ -62,38 +62,38 @@ print
 <tr><th colspan=\"2\"><b><small>Table of contents</small></b></th></tr>
 <tr><td width=\"50%\" valign=\"top\">
 <ol>
-  <li> <a href=\"#Intro\" class=bold>Introduction</a>
+  <li> <a href=\"#${example_underscore}_Intro\" class=bold>Introduction</a>
 ";
 
-system $^X, "$cmake_source_dir/doc/scripts/intro2toc", "$cmake_source_dir/examples/$example/doc/intro.dox";
+system $^X, "$cmake_source_dir/doc/scripts/intro2toc", "$cmake_source_dir/examples/$example/doc/intro.dox", $example_underscore;
 
-print "  <li> <a href=\"#CommProg\" class=bold>The commented program</a>\n";
+print "  <li> <a href=\"#${example_underscore}_CommProg\" class=bold>The commented program</a>\n";
 
-system $^X, "$cmake_source_dir/doc/scripts/program2toc", "$cmake_source_dir/examples/$example/$example.cpp";
+system $^X, "$cmake_source_dir/doc/scripts/program2toc", "$cmake_source_dir/examples/$example/$example.cpp", $example_underscore;
 
 print
 "</ol></td><td width=\"50%\" valign=\"top\"><ol>
-  <li value=\"3\"> <a href=\"#Results\" class=bold>Results</a>
+  <li value=\"3\"> <a href=\"#${example_underscore}_Results\" class=bold>Results</a>
 ";
 
-system $^X, "$cmake_source_dir/doc/scripts/intro2toc", "$cmake_source_dir/examples/$example/doc/results.dox";
+system $^X, "$cmake_source_dir/doc/scripts/intro2toc", "$cmake_source_dir/examples/$example/doc/results.dox", $example_underscore;
 
 print
-"  <li> <a href=\"#PlainProg\" class=bold>The plain program</a>
+"  <li> <a href=\"#${example_underscore}_PlainProg\" class=bold>The plain program</a>
 </ol> </td> </tr> </table>
 \@endhtmlonly
 ";
 
-system $^X, "$cmake_source_dir/doc/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/intro.dox";
+system $^X, "$cmake_source_dir/doc/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/intro.dox", $example_underscore;
 
-print " * <a name=\"CommProg\"></a>\n";
+print " * <a name=\"${example_underscore}_CommProg\"></a>\n";
 print " * <h1> The commented program</h1>\n";
-system $^X, "$cmake_source_dir/doc/scripts/program2doxygen", "$cmake_source_dir/examples/$example/$example.cpp";
+system $^X, "$cmake_source_dir/doc/scripts/program2doxygen", "$cmake_source_dir/examples/$example/$example.cpp", $example_underscore;
 
-system $^X, "$cmake_source_dir/doc/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/results.dox";
+system $^X, "$cmake_source_dir/doc/scripts/create_anchors", "$cmake_source_dir/examples/$example/doc/results.dox", $example_underscore;
 
 print
-"<a name=\"PlainProg\"></a>
+"<a name=\"${example_underscore}_PlainProg\"></a>
 <h1> The plain program</h1>
 \@include \"$example.cpp\"
  */

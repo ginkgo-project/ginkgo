@@ -51,12 +51,11 @@ protected:
                           .with_skip_sorting(true)
                           .on(exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
-                          std::make_shared<typename Mtx::classical>())),
-          weight(WeightMtx::create(
-              exec, gko::dim<2>(5, 5), 15,
-              std::make_shared<typename WeightMtx::classical>())),
+                          gko::matrix::csr::spmv_strategy::classical)),
+          weight(WeightMtx::create(exec, gko::dim<2>(5, 5), 15,
+                                   gko::matrix::csr::spmv_strategy::classical)),
           coarse(Mtx::create(exec, gko::dim<2>(2, 2), 4,
-                             std::make_shared<typename Mtx::classical>())),
+                             gko::matrix::csr::spmv_strategy::classical)),
           agg(exec, 5)
     {
         fine_b = gko::initialize<Vec>(
@@ -393,8 +392,8 @@ TYPED_TEST(Pgm, FindStrongestNeighbor)
     }
 
     gko::kernels::reference::pgm::find_strongest_neighbor(
-        this->exec, this->weight.get(), this->mtx_diag.get(), agg,
-        strongest_neighbor);
+        this->exec, this->weight->get_const_device_view(), this->mtx_diag.get(),
+        agg, strongest_neighbor);
 
     ASSERT_EQ(snb_vals[0], 2);
     ASSERT_EQ(snb_vals[1], 0);
@@ -418,8 +417,8 @@ TYPED_TEST(Pgm, AssignToExistAgg)
     agg_vals[4] = -1;
 
     gko::kernels::reference::pgm::assign_to_exist_agg(
-        this->exec, this->weight.get(), this->mtx_diag.get(), agg,
-        intermediate_agg);
+        this->exec, this->weight->get_const_device_view(), this->mtx_diag.get(),
+        agg, intermediate_agg);
 
     ASSERT_EQ(agg_vals[0], 0);
     ASSERT_EQ(agg_vals[1], 1);

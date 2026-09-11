@@ -15,7 +15,6 @@ namespace gko {
 /**
  * @brief The matrix namespace.
  *
- * @ingroup matrix
  */
 namespace matrix {
 
@@ -43,7 +42,6 @@ class Hybrid;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup coo
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -267,6 +265,9 @@ public:
     void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
                 ptr_param<LinOp> x) const;
 
+
+    void validate_data() const override;
+
     /**
      * Creates an uninitialized COO matrix of the specified size.
      *
@@ -333,7 +334,7 @@ public:
      * @param size  the dimensions of the matrix
      * @param values  the value array of the matrix
      * @param col_idxs  the column index array of the matrix
-     * @param row_ptrs  the row index array of the matrix
+     * @param row_idxs  the row index array of the matrix
      *
      * @return A smart pointer to the constant matrix wrapping the input arrays
      *         (if they reside on the same executor as the matrix) or a copy of

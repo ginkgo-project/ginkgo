@@ -29,20 +29,20 @@ namespace lower_trs {
 
 #define GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL(ValueType, IndexType)           \
     void generate(std::shared_ptr<const DefaultExecutor> exec,                \
-                  const matrix::Csr<ValueType, IndexType>* matrix,            \
+                  matrix::view::csr<const ValueType, const IndexType> matrix, \
                   std::shared_ptr<solver::SolveStruct>& solve_struct,         \
                   bool unit_diag, const solver::trisolve_algorithm algorithm, \
                   const size_type num_rhs)
 
 
-#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType)        \
-    void solve(std::shared_ptr<const DefaultExecutor> exec,             \
-               const matrix::Csr<ValueType, IndexType>* matrix,         \
-               const solver::SolveStruct* solve_struct, bool unit_diag, \
-               const solver::trisolve_algorithm algorithm,              \
-               std::optional<matrix::view::dense<ValueType>> trans_b,   \
-               std::optional<matrix::view::dense<ValueType>> trans_x,   \
-               matrix::view::dense<const ValueType> b,                  \
+#define GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL(ValueType, IndexType)           \
+    void solve(std::shared_ptr<const DefaultExecutor> exec,                \
+               matrix::view::csr<const ValueType, const IndexType> matrix, \
+               const solver::SolveStruct* solve_struct, bool unit_diag,    \
+               const solver::trisolve_algorithm algorithm,                 \
+               std::optional<matrix::view::dense<ValueType>> trans_b,      \
+               std::optional<matrix::view::dense<ValueType>> trans_x,      \
+               matrix::view::dense<const ValueType> b,                     \
                matrix::view::dense<ValueType> x)
 
 

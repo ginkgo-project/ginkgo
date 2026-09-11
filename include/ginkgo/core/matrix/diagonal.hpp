@@ -32,7 +32,6 @@ class Dense;
  * @tparam IndexType  precision of matrix indexes of a CSR matrix the diagonal
  *                    is applied or converted to.
  *
- * @ingroup diagonal
  * @ingroup mat_formats
  * @ingroup LinOp
  */
@@ -191,6 +190,8 @@ public:
     void write(mat_data& data) const override;
 
     void write(mat_data32& data) const override;
+
+    void validate_data() const override;
 
     /**
      * Creates an Diagonal matrix of the specified size.
