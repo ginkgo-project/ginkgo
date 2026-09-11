@@ -142,10 +142,8 @@ TYPED_TEST(DistSpgemm, IdentityTimesMatrixIsMatrix)
 {
     using value_type = typename TestFixture::value_type;
     using dist_mtx = typename TestFixture::dist_mtx;
-    using dist_vec = typename TestFixture::dist_vec;
-    using Dense = typename TestFixture::Dense;
+    using local_csr = typename TestFixture::local_csr;
     using Partition = typename TestFixture::Partition;
-    using global_index_type = typename TestFixture::global_index_type;
     // Half-precision types lack the range for reliable SpGEMM
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
@@ -168,25 +166,14 @@ TYPED_TEST(DistSpgemm, IdentityTimesMatrixIsMatrix)
     auto c_mat = dist_mtx::create(this->exec, this->comm);
     identity->multiply(a_mat, c_mat);
 
-    // Verify via SpMV: C*x should equal A*x for a random x
-    auto x_data =
-        gko::matrix_data<value_type, global_index_type>{gko::dim<2>{n, 1}};
-    for (gko::size_type i = 0; i < n; ++i) {
-        x_data.nonzeros.emplace_back(
-            i, 0, static_cast<value_type>(static_cast<double>(i + 1)));
-    }
-
-    auto x_dist = dist_vec::create(this->ref, this->comm);
-    x_dist->read_distributed(x_data, partition);
-    auto y_c = dist_vec::create(this->ref, this->comm);
-    y_c->read_distributed(x_data, partition);
-    auto y_a = dist_vec::create(this->ref, this->comm);
-    y_a->read_distributed(x_data, partition);
-
-    c_mat->apply(x_dist, y_c);
-    a_mat->apply(x_dist, y_a);
-
-    GKO_ASSERT_MTX_NEAR(y_c->get_local_vector(), y_a->get_local_vector(),
+    // I * A = A, so C has exactly A's local blocks, including the numbering
+    // of the off-diagonal columns.
+    GKO_ASSERT_EQUAL_DIMENSIONS(c_mat, a_mat);
+    GKO_ASSERT_MTX_NEAR(gko::as<local_csr>(c_mat->get_diag_matrix()),
+                        gko::as<local_csr>(a_mat->get_diag_matrix()),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<local_csr>(c_mat->get_off_diag_matrix()),
+                        gko::as<local_csr>(a_mat->get_off_diag_matrix()),
                         r<value_type>::value);
 }
 
@@ -195,10 +182,8 @@ TYPED_TEST(DistSpgemm, MatrixTimesIdentityIsMatrix)
 {
     using value_type = typename TestFixture::value_type;
     using dist_mtx = typename TestFixture::dist_mtx;
-    using dist_vec = typename TestFixture::dist_vec;
-    using Dense = typename TestFixture::Dense;
+    using local_csr = typename TestFixture::local_csr;
     using Partition = typename TestFixture::Partition;
-    using global_index_type = typename TestFixture::global_index_type;
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
     using local_index_type = typename TestFixture::local_index_type;
@@ -220,25 +205,14 @@ TYPED_TEST(DistSpgemm, MatrixTimesIdentityIsMatrix)
     auto c_mat = dist_mtx::create(this->exec, this->comm);
     a_mat->multiply(identity, c_mat);
 
-    // Verify via SpMV: C*x should equal A*x for a random x
-    auto x_data =
-        gko::matrix_data<value_type, global_index_type>{gko::dim<2>{n, 1}};
-    for (gko::size_type i = 0; i < n; ++i) {
-        x_data.nonzeros.emplace_back(
-            i, 0, static_cast<value_type>(static_cast<double>(i + 1)));
-    }
-
-    auto x_dist = dist_vec::create(this->ref, this->comm);
-    x_dist->read_distributed(x_data, partition);
-    auto y_c = dist_vec::create(this->ref, this->comm);
-    y_c->read_distributed(x_data, partition);
-    auto y_a = dist_vec::create(this->ref, this->comm);
-    y_a->read_distributed(x_data, partition);
-
-    c_mat->apply(x_dist, y_c);
-    a_mat->apply(x_dist, y_a);
-
-    GKO_ASSERT_MTX_NEAR(y_c->get_local_vector(), y_a->get_local_vector(),
+    // A * I = A, so C has exactly A's local blocks, including the numbering
+    // of the off-diagonal columns.
+    GKO_ASSERT_EQUAL_DIMENSIONS(c_mat, a_mat);
+    GKO_ASSERT_MTX_NEAR(gko::as<local_csr>(c_mat->get_diag_matrix()),
+                        gko::as<local_csr>(a_mat->get_diag_matrix()),
+                        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(gko::as<local_csr>(c_mat->get_off_diag_matrix()),
+                        gko::as<local_csr>(a_mat->get_off_diag_matrix()),
                         r<value_type>::value);
 }
 
@@ -549,7 +523,6 @@ TYPED_TEST(DistSpgemm, EmptyLocalRowsMatchesSequential)
     const gko::size_type k = 8;  // A cols = B rows (shared inner dimension)
     const gko::size_type n = 5;  // B cols
     auto nprocs = this->comm.size();
-    ASSERT_EQ(nprocs, 3);
 
     // A's row partition deliberately leaves rank 1 with zero local rows:
     // all of A/C's rows are split only between ranks 0 and 2.

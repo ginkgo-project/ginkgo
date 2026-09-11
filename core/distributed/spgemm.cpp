@@ -228,7 +228,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     auto send_rows = make_temporary_clone(host, &send_rows_view);
     auto send_rows_ptr = send_rows->get_const_data();
 
-    // could be combined with CSR/COO row gather -> get nnz from gathered mat
+    // @todo: could be combined with CSR/COO row gather -> get nnz from gathered
+    // mat and counts from adjacent diff of the row ptrs.
     vector<int> send_nnz_counts(num_send_rows, host);
     for (int i = 0; i < num_send_rows; ++i) {
         const auto local_row = static_cast<GlobalIndexType>(send_rows_ptr[i]);
