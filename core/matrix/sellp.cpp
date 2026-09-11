@@ -30,6 +30,8 @@ namespace {
 
 GKO_REGISTER_OPERATION(spmv, sellp::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, sellp::advanced_spmv);
+GKO_REGISTER_OPERATION(spmm, sellp::spmm);
+GKO_REGISTER_OPERATION(advanced_spmm, sellp::advanced_spmm);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
@@ -182,9 +184,17 @@ void Sellp<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(sellp::make_spmv(
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_x->get_device_view()));
+            if (dense_b->get_size()[1] <= 2) {
+                this->get_executor()->run(
+                    sellp::make_spmv(this->get_const_device_view(),
+                                     dense_b->get_const_device_view(),
+                                     dense_x->get_device_view()));
+            } else {
+                this->get_executor()->run(
+                    sellp::make_spmm(this->get_const_device_view(),
+                                     dense_b->get_const_device_view(),
+                                     dense_x->get_device_view()));
+            }
         },
         b, x);
 }
@@ -196,11 +206,21 @@ void Sellp<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(sellp::make_advanced_spmv(
-                dense_alpha->get_const_device_view(),
-                this->get_const_device_view(), dense_b->get_const_device_view(),
-                dense_beta->get_const_device_view(),
-                dense_x->get_device_view()));
+            if (dense_b->get_size()[1] <= 2) {
+                this->get_executor()->run(sellp::make_advanced_spmv(
+                    dense_alpha->get_const_device_view(),
+                    this->get_const_device_view(),
+                    dense_b->get_const_device_view(),
+                    dense_beta->get_const_device_view(),
+                    dense_x->get_device_view()));
+            } else {
+                this->get_executor()->run(sellp::make_advanced_spmm(
+                    dense_alpha->get_const_device_view(),
+                    this->get_const_device_view(),
+                    dense_b->get_const_device_view(),
+                    dense_beta->get_const_device_view(),
+                    dense_x->get_device_view()));
+            }
         },
         alpha, b, beta, x);
 }
