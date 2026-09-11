@@ -35,6 +35,20 @@ namespace kernels {
                        matrix::view::dense<const ValueType> beta,    \
                        matrix::view::dense<ValueType> c)
 
+#define GKO_DECLARE_FBCSR_SPMM_KERNEL(ValueType, IndexType) \
+    void spmm(std::shared_ptr<const DefaultExecutor> exec,  \
+              const matrix::Fbcsr<ValueType, IndexType>* a, \
+              matrix::view::dense<const ValueType> b,       \
+              matrix::view::dense<ValueType> c)
+
+#define GKO_DECLARE_FBCSR_ADVANCED_SPMM_KERNEL(ValueType, IndexType) \
+    void advanced_spmm(std::shared_ptr<const DefaultExecutor> exec,  \
+                       matrix::view::dense<const ValueType> alpha,   \
+                       const matrix::Fbcsr<ValueType, IndexType>* a, \
+                       matrix::view::dense<const ValueType> b,       \
+                       matrix::view::dense<const ValueType> beta,    \
+                       matrix::view::dense<ValueType> c)
+
 #define GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType)   \
     void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,    \
                              device_matrix_data<ValueType, IndexType>& data, \
@@ -81,6 +95,10 @@ namespace kernels {
     GKO_DECLARE_FBCSR_SPMV_KERNEL(ValueType, IndexType);                \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_FBCSR_ADVANCED_SPMV_KERNEL(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_SPMM_KERNEL(ValueType, IndexType);                \
+    template <typename ValueType, typename IndexType>                   \
+    GKO_DECLARE_FBCSR_ADVANCED_SPMM_KERNEL(ValueType, IndexType);       \
     template <typename ValueType, typename IndexType>                   \
     GKO_DECLARE_FBCSR_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType); \
     template <typename ValueType, typename IndexType>                   \
