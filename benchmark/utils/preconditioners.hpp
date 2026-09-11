@@ -78,6 +78,18 @@ DEFINE_double(mg_tolerance, false, "The tolerance for the coarse solver");
 DEFINE_uint32(mg_max_iters, false,
               "The max number of iterations for the coarse solver");
 
+DEFINE_string(mg_scale_correction, "none",
+              "OpenFOAM-style Rayleigh scale correction mode for the Multigrid "
+              "preconditioner: 'none' (off), 'post' (coarse-correction scaling "
+              "only), or 'both' (pre-smooth + coarse-correction scaling)");
+
+DEFINE_uint32(mg_smoother_iters, 2,
+              "Number of block-Jacobi Richardson sweeps used for the Multigrid "
+              "pre/post smoother (the coarsest solver uses 4x this)");
+
+DEFINE_double(mg_smoother_relax, 0.8,
+              "Relaxation factor of the Multigrid block-Jacobi smoother");
+
 
 // parses the Jacobi storage optimization command line argument
 gko::precision_reduction parse_storage_optimization(const std::string& flag)
@@ -315,6 +327,7 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
         {"mg",
          [](std::shared_ptr<const gko::Executor> exec) {
              using ir = gko::solver::Ir<etype>;
+             using jacobi = gko::preconditioner::Jacobi<etype>;
              auto iter_stop = gko::share(gko::stop::Iteration::build()
                                              .with_max_iters(FLAGS_mg_max_iters)
                                              .on(exec));
@@ -323,12 +336,45 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                                 .with_baseline(gko::stop::mode::absolute)
                                 .with_reduction_factor(FLAGS_mg_tolerance)
                                 .on(exec));
+             // damped block-Jacobi Richardson smoother (and a heavier variant
+             // as the coarsest solver) -- required for the multigrid V-cycle to
+             // be an effective preconditioner, and hence for scale correction
+             // to have a measurable effect.
+             auto smoother = gko::share(
+                 ir::build()
+                     .with_solver(jacobi::build().with_max_block_size(1u))
+                     .with_relaxation_factor(
+                         static_cast<etype>(FLAGS_mg_smoother_relax))
+                     .with_criteria(gko::stop::Iteration::build().with_max_iters(
+                         FLAGS_mg_smoother_iters))
+                     .on(exec));
+             auto coarsest = gko::share(
+                 ir::build()
+                     .with_solver(jacobi::build().with_max_block_size(1u))
+                     .with_relaxation_factor(
+                         static_cast<etype>(FLAGS_mg_smoother_relax))
+                     .with_criteria(gko::stop::Iteration::build().with_max_iters(
+                         4u * FLAGS_mg_smoother_iters))
+                     .on(exec));
+             const auto& sc_mode = FLAGS_mg_scale_correction;
+             if (sc_mode != "none" && sc_mode != "post" && sc_mode != "both") {
+                 throw std::runtime_error(
+                     "Unknown -mg_scale_correction mode '" + sc_mode +
+                     "', expected 'none', 'post' or 'both'");
+             }
+             const bool scale_correction = sc_mode != "none";
+             const bool scale_correction_pre = sc_mode == "both";
              return gko::solver::Multigrid::build()
                  .with_mg_level(
                      gko::multigrid::Pgm<etype, itype>::build()
                          .with_deterministic(FLAGS_pgm_deterministic))
+                 .with_pre_smoother(smoother)
+                 .with_post_smoother(smoother)
+                 .with_coarsest_solver(coarsest)
                  .with_criteria(iter_stop, tol_stop)
                  .with_max_levels(FLAGS_mg_max_num_levels)
+                 .with_scale_correction(scale_correction)
+                 .with_scale_correction_pre_smooth(scale_correction_pre)
                  .on(exec);
          }}
 #if GINKGO_BUILD_MPI
