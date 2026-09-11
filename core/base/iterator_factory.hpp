@@ -744,6 +744,9 @@ make_permute_iterator(IteratorType it, PermutationFn perm)
  * A transform_iterator is a read-only iterator that wraps an existing iterator
  * and applies a transformation to that iterator's value before returning it on
  * dereference.
+ *
+ * @warning Unavailable in SYCL code, since the stored transformation is not
+ *          trivially copyable.
  */
 template <typename IteratorType, typename TransformFn>
 class transform_iterator {
