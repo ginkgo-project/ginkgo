@@ -31,11 +31,14 @@ namespace acc {
  *
  * @tparam ValueType  type of values this accessor returns
  * @tparam Dimensionality  number of dimensions of this accessor
- * @tparam IndexType  Type used for computing the flat storage index and for
- *                    storing the lengths and strides
+ * @tparam IndexType  Type used for computing the flat storage index
+ * @tparam SizeType  Type used for storing the lengths and strides
+ *
+ * @note Sizes and strides must fit in SizeType. All values used in index
+ *       computation, including intermediate offsets, must fit in IndexType.
  */
 template <typename ValueType, size_type Dimensionality,
-          typename IndexType = std::int64_t>
+          typename IndexType = std::int64_t, typename SizeType = IndexType>
 class row_major {
 public:
     friend class range<row_major>;
@@ -46,7 +49,7 @@ public:
     /**
      * Number of dimensions of the accessor.
      */
-    static constexpr size_type dimensionality = Dimensionality;
+    static constexpr auto dimensionality = Dimensionality;
 
     /**
      * Type of values returned by the accessor.
@@ -59,10 +62,11 @@ public:
     using data_type = value_type*;
 
     using const_accessor =
-        row_major<const ValueType, Dimensionality, IndexType>;
+        row_major<const ValueType, Dimensionality, IndexType, SizeType>;
     using index_type = IndexType;
-    using length_type = std::array<index_type, dimensionality>;
-    using stride_type = std::array<index_type, dimensionality - 1>;
+    using size_type = SizeType;
+    using length_type = std::array<size_type, dimensionality>;
+    using stride_type = std::array<size_type, dimensionality - 1>;
 
 protected:
     /**
@@ -140,7 +144,7 @@ public:
     {
         return helper::validate_index_spans(lengths, spans...),
                range<row_major>{
-                   length_type{static_cast<index_type>(
+                   length_type{static_cast<size_type>(
                        index_span{spans}.end - index_span{spans}.begin)...},
                    data + helper::compute_row_major_index<index_type>(
                               lengths, stride, (index_span{spans}.begin)...),
@@ -154,7 +158,8 @@ public:
      *
      * @return length in dimension `dimension`
      */
-    constexpr GKO_ACC_ATTRIBUTES index_type length(size_type dimension) const
+    constexpr GKO_ACC_ATTRIBUTES size_type
+    length(acc::size_type dimension) const
     {
         return lengths[dimension];
     }

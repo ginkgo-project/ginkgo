@@ -139,12 +139,13 @@ as_sycl_type(T val)
  *
  * @return `r` with appropriate types and reinterpreted to SYCL pointers
  */
-template <std::size_t dim, typename Type1, typename Type2, typename IndexType>
+template <std::size_t dim, typename Type1, typename Type2, typename IndexType,
+          typename SizeType>
 GKO_ACC_INLINE auto as_sycl_range(
-    const range<reduced_row_major<dim, Type1, Type2, IndexType>>& r)
+    const range<reduced_row_major<dim, Type1, Type2, IndexType, SizeType>>& r)
 {
     return range<reduced_row_major<dim, sycl_type_t<Type1>, sycl_type_t<Type2>,
-                                   IndexType>>(
+                                   IndexType, SizeType>>(
         r.get_accessor().get_size(),
         as_sycl_type(r.get_accessor().get_stored_data()),
         r.get_accessor().get_stride());
@@ -154,13 +155,14 @@ GKO_ACC_INLINE auto as_sycl_range(
  * @copydoc as_sycl_range()
  */
 template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask,
-          typename IndexType>
+          typename IndexType, typename SizeType>
 GKO_ACC_INLINE auto as_sycl_range(
-    const range<scaled_reduced_row_major<dim, Type1, Type2, mask, IndexType>>&
-        r)
+    const range<scaled_reduced_row_major<dim, Type1, Type2, mask, IndexType,
+                                         SizeType>>& r)
 {
-    return range<scaled_reduced_row_major<dim, sycl_type_t<Type1>,
-                                          sycl_type_t<Type2>, mask, IndexType>>(
+    return range<
+        scaled_reduced_row_major<dim, sycl_type_t<Type1>, sycl_type_t<Type2>,
+                                 mask, IndexType, SizeType>>(
         r.get_accessor().get_size(),
         as_sycl_type(r.get_accessor().get_stored_data()),
         r.get_accessor().get_storage_stride(),
@@ -171,11 +173,11 @@ GKO_ACC_INLINE auto as_sycl_range(
 /**
  * @copydoc as_sycl_range()
  */
-template <typename T, size_type dim, typename IndexType>
+template <typename T, size_type dim, typename IndexType, typename SizeType>
 GKO_ACC_INLINE auto as_sycl_range(
-    const range<block_col_major<T, dim, IndexType>>& r)
+    const range<block_col_major<T, dim, IndexType, SizeType>>& r)
 {
-    return range<block_col_major<sycl_type_t<T>, dim, IndexType>>(
+    return range<block_col_major<sycl_type_t<T>, dim, IndexType, SizeType>>(
         r.get_accessor().lengths, as_sycl_type(r.get_accessor().data),
         r.get_accessor().stride);
 }
@@ -183,10 +185,11 @@ GKO_ACC_INLINE auto as_sycl_range(
 /**
  * @copydoc as_sycl_range()
  */
-template <typename T, size_type dim, typename IndexType>
-GKO_ACC_INLINE auto as_sycl_range(const range<row_major<T, dim, IndexType>>& r)
+template <typename T, size_type dim, typename IndexType, typename SizeType>
+GKO_ACC_INLINE auto as_sycl_range(
+    const range<row_major<T, dim, IndexType, SizeType>>& r)
 {
-    return range<block_col_major<sycl_type_t<T>, dim, IndexType>>(
+    return range<block_col_major<sycl_type_t<T>, dim, IndexType, SizeType>>(
         r.get_accessor().lengths, as_sycl_type(r.get_accessor().data),
         r.get_accessor().stride);
 }

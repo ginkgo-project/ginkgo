@@ -241,8 +241,9 @@ struct row_major_masked_helper_s<IndexType, mask, set_bits_processed,
         // If it is the last set dimension, there is no need for a stride
         return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
                first * (set_bits_processed == stride_size
-                            ? 1
-                            : stride[set_bits_processed]) +
+                            ? IndexType{1}
+                            : static_cast<IndexType>(
+                                  stride[set_bits_processed])) +
                    row_major_masked_helper_s<
                        IndexType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,
@@ -262,8 +263,9 @@ struct row_major_masked_helper_s<IndexType, mask, set_bits_processed,
         // If it is the last set dimension, there is no need for a stride
         return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
                first * (set_bits_processed == stride_size
-                            ? 1
-                            : stride[set_bits_processed]) +
+                            ? IndexType{1}
+                            : static_cast<IndexType>(
+                                  stride[set_bits_processed])) +
                    row_major_masked_helper_s<
                        IndexType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,
@@ -316,8 +318,9 @@ struct row_major_masked_helper_s<IndexType, mask, 0, stride_size, dim_idx,
         // If it is the last set dimension, there is no need for a stride
         return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
                first * (set_bits_processed == stride_size
-                            ? 1
-                            : stride[set_bits_processed]) +
+                            ? IndexType{1}
+                            : static_cast<IndexType>(
+                                  stride[set_bits_processed])) +
                    row_major_masked_helper_s<
                        IndexType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,
@@ -337,8 +340,9 @@ struct row_major_masked_helper_s<IndexType, mask, 0, stride_size, dim_idx,
         // If it is the last set dimension, there is no need for a stride
         return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
                first * (set_bits_processed == stride_size
-                            ? 1
-                            : stride[set_bits_processed]) +
+                            ? IndexType{1}
+                            : static_cast<IndexType>(
+                                  stride[set_bits_processed])) +
                    row_major_masked_helper_s<
                        IndexType, mask, set_bits_processed + 1, stride_size,
                        dim_idx + 1,

@@ -43,24 +43,31 @@ namespace acc {
  *
  * @tparam StorageType  Value type used for storing the actual value to memory
  *
- * @tparam IndexType  Type used for computing the flat storage index and for
- *                    storing the sizes and strides
+ * @tparam IndexType  Type used for computing the flat storage index
+ *
+ * @tparam SizeType  Type used for storing the sizes and strides
+ *
+ * @note Sizes and strides must fit in SizeType. All values used in index
+ *       computation, including intermediate offsets, must fit in IndexType.
  *
  * @note  This class only manages the accesses and not the memory itself.
  */
 template <std::size_t Dimensionality, typename ArithmeticType,
-          typename StorageType, typename IndexType = std::int64_t>
+          typename StorageType, typename IndexType = std::int64_t,
+          typename SizeType = IndexType>
 class reduced_row_major {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
     using index_type = IndexType;
+    using size_type = SizeType;
     static constexpr auto dimensionality = Dimensionality;
     static constexpr bool is_const{std::is_const<storage_type>::value};
-    using const_accessor = reduced_row_major<dimensionality, arithmetic_type,
-                                             const storage_type, IndexType>;
-    using dim_type = std::array<index_type, dimensionality>;
-    using storage_stride_type = std::array<index_type, dimensionality - 1>;
+    using const_accessor =
+        reduced_row_major<dimensionality, arithmetic_type, const storage_type,
+                          IndexType, SizeType>;
+    using dim_type = std::array<size_type, dimensionality>;
+    using storage_stride_type = std::array<size_type, dimensionality - 1>;
 
     static_assert(Dimensionality >= 1,
                   "Dimensionality must be a positive number!");
@@ -147,7 +154,8 @@ public:
      *
      * @returns  length in dimension `dimension`
      */
-    constexpr GKO_ACC_ATTRIBUTES index_type length(size_type dimension) const
+    constexpr GKO_ACC_ATTRIBUTES size_type
+    length(acc::size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
     }
@@ -186,8 +194,8 @@ public:
     {
         return helper::validate_index_spans(size_, spans...),
                range<reduced_row_major>{
-                   dim_type{static_cast<index_type>(
-                       index_span{spans}.end - index_span{spans}.begin)...},
+                   dim_type{static_cast<size_type>(index_span{spans}.end -
+                                                   index_span{spans}.begin)...},
                    storage_ + compute_index((index_span{spans}.begin)...),
                    stride_};
     }

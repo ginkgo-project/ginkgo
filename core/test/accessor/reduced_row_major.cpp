@@ -22,23 +22,26 @@ namespace {
  * This test makes sure reduced_row_major works independent of Ginkgo and with
  * dimensionalities 1 and 2.
  */
-template <typename IndexType>
+template <typename IndexSizeTypes>
 class ReducedStorageXd : public ::testing::Test {
 protected:
     using ar_type = double;
     using st_type = float;
-    using size_type = IndexType;
+    using index_type = typename IndexSizeTypes::index_type;
+    using size_type = typename IndexSizeTypes::size_type;
     static constexpr ar_type delta{std::numeric_limits<st_type>::epsilon() *
                                    1e1};
 
     using accessor1d =
-        gko::acc::reduced_row_major<1, ar_type, st_type, IndexType>;
+        gko::acc::reduced_row_major<1, ar_type, st_type, index_type, size_type>;
     using accessor2d =
-        gko::acc::reduced_row_major<2, ar_type, st_type, IndexType>;
+        gko::acc::reduced_row_major<2, ar_type, st_type, index_type, size_type>;
     using const_accessor1d =
-        gko::acc::reduced_row_major<1, ar_type, const st_type, IndexType>;
+        gko::acc::reduced_row_major<1, ar_type, const st_type, index_type,
+                                    size_type>;
     using const_accessor2d =
-        gko::acc::reduced_row_major<2, ar_type, const st_type, IndexType>;
+        gko::acc::reduced_row_major<2, ar_type, const st_type, index_type,
+                                    size_type>;
     static_assert(std::is_same<const_accessor1d,
                                typename accessor1d::const_accessor>::value,
                   "Const accessors must be the same!");
@@ -85,7 +88,7 @@ protected:
 };
 
 
-TYPED_TEST_SUITE(ReducedStorageXd, gko::acc::test::AltIndexTypes);
+TYPED_TEST_SUITE(ReducedStorageXd, gko::acc::test::IndexSizeTypes);
 
 
 TYPED_TEST(ReducedStorageXd, CanRead)
@@ -112,6 +115,20 @@ TYPED_TEST(ReducedStorageXd, CanWrite2)
 
     this->data_equal_except_for(5);
     EXPECT_EQ(this->r2(1, 1), 0.75);  // expect exact since easy to store
+}
+
+
+TYPED_TEST(ReducedStorageXd, CanCreateConstSubrange)
+{
+    using span = gko::acc::index_span;
+    auto sub = this->r2(span{0, 2}, span{1, 3});
+    auto const_sub = sub->to_const();
+
+    static_assert(std::is_same<decltype(const_sub.length(0)),
+                               typename TypeParam::size_type>::value);
+    EXPECT_EQ(const_sub.length(1), 2);
+    EXPECT_EQ(const_sub(0, 0), this->c_st_ar(2.2));
+    EXPECT_EQ(const_sub(1, 1), this->c_st_ar(7.7));
 }
 
 
