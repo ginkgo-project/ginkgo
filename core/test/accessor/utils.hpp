@@ -15,8 +15,20 @@ namespace acc {
 namespace test {
 
 
-using AltIndexTypes =
-    ::testing::Types<std::int64_t, std::int32_t, std::uint32_t>;
+template <typename IndexType, typename SizeType = IndexType>
+struct index_size_types {
+    using index_type = IndexType;
+    using size_type = SizeType;
+};
+
+using IndexSizeTypes =
+    ::testing::Types<index_size_types<std::int64_t>,
+                     index_size_types<std::int32_t>,
+                     index_size_types<std::uint32_t>,
+                     index_size_types<std::int64_t, std::int32_t>,
+                     index_size_types<std::int32_t, std::int64_t>,
+                     index_size_types<std::int64_t, std::uint32_t>,
+                     index_size_types<std::uint32_t, std::int64_t>>;
 
 
 }  // namespace test

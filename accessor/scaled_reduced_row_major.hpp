@@ -123,24 +123,29 @@ private:
  *                     indices (x1, x2, x3, x4, x5), (x1, x2, x3, x5) are
  *                     considered for the scalar, making the scalar itself 4d.
  *
- * @tparam IndexType  Type used for computing the flat storage index and for
- *                    storing the sizes and strides
+ * @tparam IndexType  Type used for computing the flat storage index
+ *
+ * @tparam SizeType  Type used for storing the sizes and strides
+ *
+ * @note Sizes and strides must fit in SizeType. All values used in index
+ *       computation, including intermediate offsets, must fit in IndexType.
  *
  * @note  This class only manages the accesses and not the memory itself.
  */
 template <std::size_t Dimensionality, typename ArithmeticType,
           typename StorageType, std::uint64_t ScalarMask,
-          typename IndexType = std::int64_t>
+          typename IndexType = std::int64_t, typename SizeType = IndexType>
 class scaled_reduced_row_major
     : public detail::enable_write_scalar<
           Dimensionality,
           scaled_reduced_row_major<Dimensionality, ArithmeticType, StorageType,
-                                   ScalarMask, IndexType>,
+                                   ScalarMask, IndexType, SizeType>,
           ArithmeticType, std::is_const<StorageType>::value> {
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
     using index_type = IndexType;
+    using size_type = SizeType;
     static constexpr auto dimensionality = Dimensionality;
     static constexpr auto scalar_mask = ScalarMask;
     static constexpr bool is_const{std::is_const<storage_type>::value};
@@ -149,7 +154,8 @@ public:
 
     using const_accessor =
         scaled_reduced_row_major<dimensionality, arithmetic_type,
-                                 const storage_type, ScalarMask, IndexType>;
+                                 const storage_type, ScalarMask, IndexType,
+                                 SizeType>;
 
     static_assert(!is_complex<ArithmeticType>::value &&
                       !is_complex<StorageType>::value,
@@ -171,9 +177,9 @@ protected:
         scalar_dim == 0 ? 0 : (scalar_dim - 1)};
 
 public:
-    using dim_type = std::array<index_type, dimensionality>;
-    using storage_stride_type = std::array<index_type, dimensionality - 1>;
-    using scalar_stride_type = std::array<index_type, scalar_stride_dim>;
+    using dim_type = std::array<size_type, dimensionality>;
+    using storage_stride_type = std::array<size_type, dimensionality - 1>;
+    using scalar_stride_type = std::array<size_type, scalar_stride_dim>;
 
 protected:
     using reference_type =
@@ -301,7 +307,8 @@ public:
      *
      * @returns length in dimension `dimension`
      */
-    constexpr GKO_ACC_ATTRIBUTES index_type length(size_type dimension) const
+    constexpr GKO_ACC_ATTRIBUTES size_type
+    length(acc::size_type dimension) const
     {
         return dimension < dimensionality ? size_[dimension] : 1;
     }
@@ -340,8 +347,8 @@ public:
     {
         return helper::validate_index_spans(size_, spans...),
                range<scaled_reduced_row_major>{
-                   dim_type{static_cast<index_type>(
-                       index_span{spans}.end - index_span{spans}.begin)...},
+                   dim_type{static_cast<size_type>(index_span{spans}.end -
+                                                   index_span{spans}.begin)...},
                    storage_ + compute_index((index_span{spans}.begin)...),
                    storage_stride_,
                    scalar_ +

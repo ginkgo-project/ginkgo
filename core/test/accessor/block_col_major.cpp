@@ -18,14 +18,16 @@
 namespace {
 
 
-template <typename IndexType>
+template <typename IndexSizeTypes>
 class BlockColMajorAccessor3d : public ::testing::Test {
 protected:
+    using index_type = typename IndexSizeTypes::index_type;
+    using size_type = typename IndexSizeTypes::size_type;
     using span = gko::acc::index_span;
     static constexpr gko::acc::size_type dimensionality{3};
 
     using blk_col_major_range = gko::acc::range<
-        gko::acc::block_col_major<int, dimensionality, IndexType>>;
+        gko::acc::block_col_major<int, dimensionality, index_type, size_type>>;
 
     // clang-format off
     int data[2 * 3 * 4]{
@@ -50,21 +52,21 @@ protected:
         */
     };
     // clang-format on
-    const std::array<IndexType, dimensionality> dim1{{2, 3, 4}};
-    const std::array<IndexType, dimensionality> dim2{{2, 2, 3}};
+    const std::array<size_type, dimensionality> dim1{{2, 3, 4}};
+    const std::array<size_type, dimensionality> dim2{{2, 2, 3}};
     blk_col_major_range default_r{dim1, data};
     blk_col_major_range custom_r{
-        dim2, data, std::array<IndexType, dimensionality - 1>{{12, 3}}};
+        dim2, data, std::array<size_type, dimensionality - 1>{{12, 3}}};
 };
 
 
-TYPED_TEST_SUITE(BlockColMajorAccessor3d, gko::acc::test::AltIndexTypes);
+TYPED_TEST_SUITE(BlockColMajorAccessor3d, gko::acc::test::IndexSizeTypes);
 
 
 TYPED_TEST(BlockColMajorAccessor3d, ComputesCorrectStride)
 {
     auto range_stride = this->default_r.get_accessor().stride;
-    auto check_stride = std::array<TypeParam, 2>{{12, 3}};
+    auto check_stride = std::array<typename TypeParam::size_type, 2>{{12, 3}};
 
     ASSERT_EQ(range_stride, check_stride);
 }
@@ -102,6 +104,10 @@ TYPED_TEST(BlockColMajorAccessor3d, CanCreateSubrange)
     using span = typename TestFixture::span;
     auto subr = this->custom_r(span{0u, 2u}, span{1u, 2u}, span{1u, 3u});
 
+    auto const_sub = subr->to_const();
+    static_assert(std::is_same<decltype(const_sub.length(0)),
+                               typename TypeParam::size_type>::value);
+    EXPECT_EQ(const_sub(1, 0, 1), 27);
     EXPECT_EQ(subr(0, 0, 0), 4);
     EXPECT_EQ(subr(0, 0, 1), -2);
     EXPECT_EQ(subr(1, 0, 0), 26);
@@ -131,14 +137,15 @@ TYPED_TEST(BlockColMajorAccessor3d, CanCreateColumnVector)
 
 TYPED_TEST(BlockColMajorAccessor3d, ComputeIndexReturnsIndexType)
 {
-    using size_array = std::array<gko::acc::size_type, 3>;
-    using stride_array = std::array<gko::acc::size_type, 2>;
-    using result_type =
-        decltype(gko::acc::helper::blk_col_major::compute_index<TypeParam>(
-            std::declval<size_array>(), std::declval<stride_array>(), 0, 0, 0));
+    using size_array = std::array<typename TypeParam::size_type, 3>;
+    using stride_array = std::array<typename TypeParam::size_type, 2>;
+    using result_type = decltype(gko::acc::helper::blk_col_major::compute_index<
+                                 typename TypeParam::index_type>(
+        std::declval<size_array>(), std::declval<stride_array>(), 0, 0, 0));
 
-    static_assert(std::is_same<result_type, TypeParam>::value,
-                  "block_col_major index computation must return IndexType");
+    static_assert(
+        std::is_same<result_type, typename TypeParam::index_type>::value,
+        "block_col_major index computation must return IndexType");
 }
 
 

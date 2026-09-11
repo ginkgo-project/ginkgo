@@ -201,20 +201,29 @@ TEST_F(RowMajorAccessor3d, CanAssignValues)
 }
 
 
-template <typename IndexType>
+template <typename IndexSizeTypes>
 class RowMajorIndexType : public RowMajorAccessor {};
 
-TYPED_TEST_SUITE(RowMajorIndexType, gko::acc::test::AltIndexTypes);
+TYPED_TEST_SUITE(RowMajorIndexType, gko::acc::test::IndexSizeTypes);
 
 TYPED_TEST(RowMajorIndexType, AddressMatchesDefaultIndexType)
 {
-    using alt = gko::acc::row_major<int, 2, TypeParam>;
+    using span = gko::acc::index_span;
+    using alt = gko::acc::row_major<int, 2, typename TypeParam::index_type,
+                                    typename TypeParam::size_type>;
     gko::acc::range<alt> r_alt{typename alt::length_type{{3, 2}}, this->data,
                                typename alt::stride_type{{3}}};
 
     EXPECT_EQ(this->r(0, 0), r_alt(0, 0));
     EXPECT_EQ(this->r(1, 1), r_alt(1, 1));
     EXPECT_EQ(this->r(2, 1), r_alt(2, 1));
+
+    auto sub = r_alt(span{1, 3}, span{0, 2});
+    auto const_sub = sub->to_const();
+    static_assert(std::is_same<decltype(const_sub.length(0)),
+                               typename TypeParam::size_type>::value);
+    EXPECT_EQ(const_sub(0, 1), 4);
+    EXPECT_EQ(const_sub(1, 1), 6);
 
     r_alt(2, 0) = 42;
     EXPECT_EQ(this->r(2, 0), 42);
@@ -223,14 +232,27 @@ TYPED_TEST(RowMajorIndexType, AddressMatchesDefaultIndexType)
 
 TYPED_TEST(RowMajorIndexType, ComputeIndexReturnsIndexType)
 {
-    using size_array = std::array<gko::acc::size_type, 2>;
-    using stride_array = std::array<gko::acc::size_type, 1>;
-    using result_type =
-        decltype(gko::acc::helper::compute_row_major_index<TypeParam>(
-            std::declval<size_array>(), std::declval<stride_array>(), 0, 0));
+    using size_array = std::array<typename TypeParam::size_type, 2>;
+    using stride_array = std::array<typename TypeParam::size_type, 1>;
+    using result_type = decltype(gko::acc::helper::compute_row_major_index<
+                                 typename TypeParam::index_type>(
+        std::declval<size_array>(), std::declval<stride_array>(), 0, 0));
 
-    static_assert(std::is_same<result_type, TypeParam>::value,
-                  "row_major index computation must return IndexType");
+    static_assert(
+        std::is_same<result_type, typename TypeParam::index_type>::value,
+        "row_major index computation must return IndexType");
+}
+
+
+TEST_F(RowMajorAccessor, ComputesWideOffsetWithNarrowSizes)
+{
+    const std::array<std::int32_t, 2> sizes{{50000, 50000}};
+    const std::array<std::int32_t, 1> strides{{50000}};
+
+    const auto offset = gko::acc::helper::compute_row_major_index<std::int64_t>(
+        sizes, strides, 49999, 49999);
+
+    EXPECT_EQ(offset, std::int64_t{2499999999});
 }
 
 
