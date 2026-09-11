@@ -76,7 +76,7 @@ void compute_soc_and_run_rs(
     array<IndexType>& lambda, array<IndexType>& cf_marker,
     IndexType& coarse_size)
 {
-    using real_type = remove_complex<ValueType>;
+    using real_type = device_type<remove_complex<ValueType>>;
     const auto n = A.size[0];
     const auto* a_row_ptrs = A.row_ptrs;
     const auto* a_col_idxs = A.col_idxs;
