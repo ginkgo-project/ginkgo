@@ -511,6 +511,23 @@ public:
     void multiply(ptr_param<const Matrix> b, ptr_param<Matrix> c) const;
 
     /**
+     * Computes the transpose of this matrix into result. The output is filled
+     * in place; any prior contents are overwritten.
+     *
+     * The result takes this matrix's column partition as its row partition and
+     * this matrix's row partition as its column partition, so it is a valid
+     * operand of multiply. Entries whose transposed row is owned by another
+     * rank are communicated to that rank, so this is a collective call.
+     *
+     * @note This is only supported when the local and non-local blocks are of
+     *       type Csr, and when this matrix was filled by read_distributed,
+     *       which is what sets both partitions.
+     *
+     * @param result  a pre-created distributed Matrix (may be empty) to fill.
+     */
+    void transpose(ptr_param<Matrix> result) const;
+
+    /**
      * Copy constructs a Matrix.
      *
      * @param other  Matrix to copy from.
