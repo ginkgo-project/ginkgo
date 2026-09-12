@@ -4,6 +4,9 @@
 
 #include "core/distributed/matrix_kernels.hpp"
 
+#include <algorithm>
+#include <vector>
+
 #include <omp.h>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -151,6 +154,59 @@ void separate_diag_off_diag(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
+
+
+template <typename ValueType, typename LocalIndexType>
+void separate_local_nonlocal_columns(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<LocalIndexType>& row_idxs,
+    const array<LocalIndexType>& col_idxs, const array<ValueType>& values,
+    LocalIndexType num_local_cols, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& off_diag_row_idxs,
+    array<LocalIndexType>& off_diag_col_idxs, array<ValueType>& off_diag_values)
+{
+    auto row_ptr = row_idxs.get_const_data();
+    auto col_ptr = col_idxs.get_const_data();
+    auto val_ptr = values.get_const_data();
+    const auto nnz = col_idxs.get_size();
+
+    size_type num_diag = 0;
+#pragma omp parallel for reduction(+ : num_diag)
+    for (size_type i = 0; i < nnz; ++i) {
+        if (col_ptr[i] < num_local_cols) {
+            num_diag++;
+        }
+    }
+    const auto num_off = nnz - num_diag;
+
+    diag_row_idxs.resize_and_reset(num_diag);
+    diag_col_idxs.resize_and_reset(num_diag);
+    diag_values.resize_and_reset(num_diag);
+    off_diag_row_idxs.resize_and_reset(num_off);
+    off_diag_col_idxs.resize_and_reset(num_off);
+    off_diag_values.resize_and_reset(num_off);
+
+    // Sequential fill, so that the output keeps the input order.
+    size_type di = 0;
+    size_type oi = 0;
+    for (size_type i = 0; i < nnz; ++i) {
+        if (col_ptr[i] < num_local_cols) {
+            diag_row_idxs.get_data()[di] = row_ptr[i];
+            diag_col_idxs.get_data()[di] = col_ptr[i];
+            diag_values.get_data()[di] = val_ptr[i];
+            ++di;
+        } else {
+            off_diag_row_idxs.get_data()[oi] = row_ptr[i];
+            off_diag_col_idxs.get_data()[oi] = col_ptr[i] - num_local_cols;
+            off_diag_values.get_data()[oi] = val_ptr[i];
+            ++oi;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS);
 
 
 }  // namespace distributed_matrix

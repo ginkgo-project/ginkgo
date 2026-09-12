@@ -12,6 +12,7 @@
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/transform_output_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
+#include <thrust/partition.h>
 #include <thrust/sequence.h>
 #include <thrust/sort.h>
 #include <thrust/transform_reduce.h>
@@ -90,6 +91,7 @@ void build_mapping(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         part,
+    experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& recv_connections,
     array<experimental::distributed::comm_index_type>& remote_part_ids,
     array<LocalIndexType>& remote_local_idxs,
@@ -111,23 +113,35 @@ void build_mapping(
     auto range_ids = compute_range_ids(exec, part, recv_connections_copy);
     auto it_range_ids = range_ids.get_data();
 
-    // map input to owning part-id
+    // map input to owning part-id, unless for the same rank which is mapped to
+    // the maximal value so that it can be sorted last
+    auto same_rank_val =
+        std::numeric_limits<experimental::distributed::comm_index_type>::max();
     array<experimental::distributed::comm_index_type> full_remote_part_ids(
         exec, input_size);
     auto it_full_remote_part_ids = full_remote_part_ids.get_data();
     thrust::transform(policy, it_range_ids, it_range_ids + input_size,
                       it_full_remote_part_ids,
-                      [part_ids] __host__ __device__(const size_type rid) {
-                          return part_ids[rid];
+                      [part_ids, rank,
+                       same_rank_val] __host__ __device__(const size_type rid) {
+                          auto pid = part_ids[rid];
+                          return pid != rank ? pid : same_rank_val;
                       });
 
     // sort by part-id and recv_connection
     auto sort_it = thrust::make_zip_iterator(
         thrust::make_tuple(it_full_remote_part_ids, recv_connections_ptr));
     thrust::sort_by_key(policy, sort_it, sort_it + input_size, it_range_ids);
+    auto sort_end = thrust::partition_point(
+        policy, sort_it, sort_it + input_size,
+        [same_rank_val] __host__ __device__(
+            const thrust::tuple<experimental::distributed::comm_index_type,
+                                GlobalIndexType>& t) {
+            return thrust::get<0>(t) != same_rank_val;
+        });
 
-    auto unique_end = thrust::unique_by_key(policy, sort_it,
-                                            sort_it + input_size, it_range_ids);
+    auto unique_end =
+        thrust::unique_by_key(policy, sort_it, sort_end, it_range_ids);
     auto unique_range_id_end = unique_end.second;
     auto unique_size = thrust::distance(it_range_ids, unique_range_id_end);
 

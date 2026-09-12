@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,6 +18,7 @@ void build_mapping(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         part,
+    experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& recv_connections,
     array<experimental::distributed::comm_index_type>& remote_part_ids,
     array<LocalIndexType>& remote_local_idxs,

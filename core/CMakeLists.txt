@@ -156,9 +156,19 @@ if(GINKGO_BUILD_MPI)
             distributed/partition_helpers.cpp
             distributed/preconditioner/schwarz.cpp
             distributed/row_gatherer.cpp
+            distributed/spgemm.cpp
             distributed/vector.cpp
             distributed/vector_cache.cpp
             mpi/exception.cpp
+    )
+endif()
+
+# The distributed spgemm runs its local csr::spgemm in LocalIndexType, and
+# cuSPARSE only supports 64-bit indices in spgemm from CUDA 13 on.
+if(GINKGO_BUILD_MPI AND GINKGO_BUILD_CUDA)
+    target_compile_definitions(
+        ${ginkgo_core}
+        PRIVATE GKO_CUDA_TOOLKIT_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR}
     )
 endif()
 

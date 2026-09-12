@@ -270,6 +270,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     as<Cloneable>(result->row_gatherer_)
         ->copy_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = this->imap_;
+    result->row_partition_ = this->row_partition_;
     result->set_size(this->get_size());
 }
 
@@ -287,6 +288,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
     as<Cloneable>(result->row_gatherer_)
         ->move_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = std::move(this->imap_);
+    result->row_partition_ = std::move(this->row_partition_);
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -307,6 +309,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
     as<Cloneable>(result->row_gatherer_)
         ->copy_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = this->imap_;
+    result->row_partition_ = this->row_partition_;
     result->set_size(this->get_size());
 }
 
@@ -324,6 +327,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
         ->move_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
+    result->row_partition_ = std::move(this->row_partition_);
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -344,6 +348,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
         ->copy_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->copy_from(this->row_gatherer_);
     result->imap_ = this->imap_;
+    result->row_partition_ = this->row_partition_;
     result->set_size(this->get_size());
 }
 
@@ -361,6 +366,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
         ->move_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
+    result->row_partition_ = std::move(this->row_partition_);
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -422,6 +428,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
 
     imap_ = index_map<local_index_type, global_index_type>(
         exec, col_partition, comm.rank(), global_off_diag_col_idxs);
+    row_partition_ = row_partition;
 
     auto off_diag_col_idxs =
         imap_.map_to_local(global_off_diag_col_idxs, index_space::non_local);
@@ -801,6 +808,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         as<Cloneable>(row_gatherer_)
             ->copy_from(as<Cloneable>(other.row_gatherer_));
         imap_ = other.imap_;
+        row_partition_ = other.row_partition_;
     }
     return *this;
 }
@@ -821,8 +829,17 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
         as<Cloneable>(row_gatherer_)
             ->move_from(as<Cloneable>(other.row_gatherer_));
         imap_ = std::move(other.imap_);
+        row_partition_ = std::move(other.row_partition_);
     }
     return *this;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::get_row_partition() const
+{
+    return row_partition_;
 }
 
 

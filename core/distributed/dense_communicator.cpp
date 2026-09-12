@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2024 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -119,6 +119,48 @@ DenseCommunicator::create_with_same_type(communicator base,
             return std::make_unique<DenseCommunicator>(base, *imap);
         },
         imap);
+}
+std::pair<std::unique_ptr<CollectiveCommunicator>, std::vector<comm_index_type>>
+DenseCommunicator::resize(
+    std::shared_ptr<const Executor> exec,
+    const std::vector<comm_index_type>& send_factors) const
+{
+    GKO_THROW_IF_INVALID(send_factors.size() == this->get_send_size(),
+                         "Invalid send_factors size");
+
+    std::vector<comm_index_type> recv_factors(this->get_recv_size());
+
+    this->i_all_to_all_v(exec->get_master(), send_factors.data(),
+                         recv_factors.data())
+        .wait();
+
+    auto resized_comm = std::make_unique<DenseCommunicator>(comm_);
+
+    resized_comm->send_sizes_.resize(send_sizes_.size());
+    resized_comm->send_offsets_.resize(send_offsets_.size());
+    resized_comm->recv_sizes_.resize(recv_sizes_.size());
+    resized_comm->recv_offsets_.resize(recv_offsets_.size());
+
+    for (auto segment = 0; segment < send_offsets_.size() - 1; ++segment) {
+        resized_comm->send_sizes_[segment] =
+            std::accumulate(send_factors.begin() + send_offsets_[segment],
+                            send_factors.begin() + send_offsets_[segment + 1],
+                            comm_index_type{0});
+        resized_comm->recv_sizes_[segment] =
+            std::accumulate(recv_factors.begin() + recv_offsets_[segment],
+                            recv_factors.begin() + recv_offsets_[segment + 1],
+                            comm_index_type{0});
+    }
+    std::inclusive_scan(resized_comm->send_sizes_.begin(),
+                        resized_comm->send_sizes_.end(),
+                        resized_comm->send_offsets_.begin() + 1, std::plus{},
+                        comm_index_type{0});
+    std::inclusive_scan(resized_comm->recv_sizes_.begin(),
+                        resized_comm->recv_sizes_.end(),
+                        resized_comm->recv_offsets_.begin() + 1, std::plus{},
+                        comm_index_type{0});
+
+    return {std::move(resized_comm), recv_factors};
 }
 
 

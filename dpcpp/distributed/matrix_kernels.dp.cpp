@@ -31,6 +31,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
 
 
+template <typename ValueType, typename LocalIndexType>
+void separate_local_nonlocal_columns(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<LocalIndexType>& row_idxs,
+    const array<LocalIndexType>& col_idxs, const array<ValueType>& values,
+    LocalIndexType num_local_cols, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& off_diag_row_idxs,
+    array<LocalIndexType>& off_diag_col_idxs,
+    array<ValueType>& off_diag_values) GKO_NOT_IMPLEMENTED;
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS);
+
+
 }  // namespace distributed_matrix
 }  // namespace dpcpp
 }  // namespace kernels

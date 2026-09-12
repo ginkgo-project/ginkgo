@@ -9,6 +9,7 @@
 #include <thrust/distance.h>
 #include <thrust/execution_policy.h>
 #include <thrust/for_each.h>
+#include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/sequence.h>
@@ -196,6 +197,71 @@ void separate_diag_off_diag(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
+
+
+template <typename ValueType, typename LocalIndexType>
+void separate_local_nonlocal_columns(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<LocalIndexType>& row_idxs,
+    const array<LocalIndexType>& col_idxs, const array<ValueType>& values,
+    LocalIndexType num_local_cols, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& off_diag_row_idxs,
+    array<LocalIndexType>& off_diag_col_idxs, array<ValueType>& off_diag_values)
+{
+    auto policy = thrust_policy(exec);
+    const auto nnz = col_idxs.get_size();
+    const auto* cols = col_idxs.get_const_data();
+
+    auto is_diag =
+        [num_local_cols] __host__ __device__(const LocalIndexType col) {
+            return col < num_local_cols;
+        };
+    auto is_off_diag =
+        [num_local_cols] __host__ __device__(const LocalIndexType col) {
+            return col >= num_local_cols;
+        };
+
+    const auto num_diag = static_cast<size_type>(
+        thrust::count_if(policy, cols, cols + nnz, is_diag));
+    const auto num_off = nnz - num_diag;
+
+    diag_row_idxs.resize_and_reset(num_diag);
+    diag_col_idxs.resize_and_reset(num_diag);
+    diag_values.resize_and_reset(num_diag);
+    off_diag_row_idxs.resize_and_reset(num_off);
+    off_diag_col_idxs.resize_and_reset(num_off);
+    off_diag_values.resize_and_reset(num_off);
+
+    auto input_it = thrust::make_zip_iterator(
+        thrust::make_tuple(row_idxs.get_const_data(), cols,
+                           as_device_type(values.get_const_data())));
+
+    // the diagonal columns are already local indices and pass through unchanged
+    thrust::copy_if(policy, input_it, input_it + nnz, cols,
+                    thrust::make_zip_iterator(thrust::make_tuple(
+                        diag_row_idxs.get_data(), diag_col_idxs.get_data(),
+                        as_device_type(diag_values.get_data()))),
+                    is_diag);
+
+    thrust::copy_if(
+        policy, input_it, input_it + nnz, cols,
+        thrust::make_zip_iterator(thrust::make_tuple(
+            off_diag_row_idxs.get_data(), off_diag_col_idxs.get_data(),
+            as_device_type(off_diag_values.get_data()))),
+        is_off_diag);
+    // shift the copied columns down into the non-local index space
+    thrust::transform(
+        policy, off_diag_col_idxs.get_const_data(),
+        off_diag_col_idxs.get_const_data() + num_off,
+        off_diag_col_idxs.get_data(),
+        [num_local_cols] __host__ __device__(const LocalIndexType col) {
+            return col - num_local_cols;
+        });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS);
 
 
 }  // namespace distributed_matrix

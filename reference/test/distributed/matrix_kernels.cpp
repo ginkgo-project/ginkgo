@@ -492,4 +492,34 @@ TYPED_TEST(Matrix, SeparateDiagOffDiagNonSquare)
 }
 
 
+TYPED_TEST(Matrix, SeparateLocalNonlocalColumnsSplitsByLocalSize)
+{
+    using lit = typename TestFixture::local_index_type;
+    using vt = typename TestFixture::value_type;
+    auto ref = this->ref;
+    // Columns are already in an index map's combined space: [0, 2) are the
+    // two locally owned columns, 2 and up are non-local.
+    const lit num_local_cols = 2;
+    gko::array<lit> row_idxs{ref, {0, 1, 1, 2}};
+    gko::array<lit> col_idxs{ref, {3, 0, 4, 1}};
+    gko::array<vt> values{ref, {vt{10}, vt{20}, vt{30}, vt{40}}};
+    gko::array<lit> off_diag_col_idxs{ref};
+
+    gko::kernels::reference::distributed_matrix::
+        separate_local_nonlocal_columns(
+            ref, row_idxs, col_idxs, values, num_local_cols,
+            this->diag_row_idxs, this->diag_col_idxs, this->diag_values,
+            this->off_diag_row_idxs, off_diag_col_idxs, this->off_diag_values);
+
+    // the two entries below num_local_cols keep their column unchanged
+    GKO_ASSERT_ARRAY_EQ(this->diag_row_idxs, I<lit>({1, 2}));
+    GKO_ASSERT_ARRAY_EQ(this->diag_col_idxs, I<lit>({0, 1}));
+    GKO_ASSERT_ARRAY_EQ(this->diag_values, I<vt>({vt{20}, vt{40}}));
+    // the others are shifted down into the non-local index space
+    GKO_ASSERT_ARRAY_EQ(this->off_diag_row_idxs, I<lit>({0, 1}));
+    GKO_ASSERT_ARRAY_EQ(off_diag_col_idxs, I<lit>({1, 2}));
+    GKO_ASSERT_ARRAY_EQ(this->off_diag_values, I<vt>({vt{10}, vt{30}}));
+}
+
+
 }  // namespace

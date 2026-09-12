@@ -54,6 +54,8 @@ void convert_data(std::shared_ptr<const Executor> exec, size_type size,
                                 const From*, To*)
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_ARRAY_CONVERSION);
+template GKO_DECLARE_ARRAY_CONVERSION(int64, int32);
+template GKO_DECLARE_ARRAY_CONVERSION(int32, int64);
 
 
 }  // namespace detail
