@@ -27,12 +27,13 @@ namespace rs {
         matrix::view::csr<const ValueType, const IndexType> matrix, \
         array<bool>& is_m_matrix_array)
 
-#define GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType)   \
-    void compute_soc_and_run_rs(                                             \
-        std::shared_ptr<const DefaultExecutor> exec,                         \
-        matrix::view::csr<const ValueType, const IndexType> A, double theta, \
-        array<bool>& is_strong, array<IndexType>& lambda,                    \
-        array<IndexType>& cf_marker, IndexType& coarse_dim)
+#define GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL(ValueType, IndexType) \
+    void compute_soc_and_run_rs(                                           \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        matrix::view::csr<const ValueType, const IndexType> A,             \
+        remove_complex<ValueType> theta, array<bool>& is_strong,           \
+        array<IndexType>& lambda, array<IndexType>& cf_marker,             \
+        IndexType& coarse_dim)
 
 #define GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL(   \
     ValueType, IndexType)                                                 \
