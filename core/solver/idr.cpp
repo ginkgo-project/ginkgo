@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
@@ -34,6 +35,18 @@ GKO_REGISTER_OPERATION(compute_omega, idr::compute_omega);
 
 }  // anonymous namespace
 }  // namespace idr
+
+
+template <typename ValueType>
+void Idr<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Idr must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
+                 "Idr must have preconditioner");
+    this->get_preconditioner()->validate_data();
+}
 
 
 template <typename ValueType>

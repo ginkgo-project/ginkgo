@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
 #include "core/test/utils.hpp"
@@ -23,6 +24,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Solver = gko::solver::UpperTrs<value_type, index_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
 
     UpperTrs()
         : exec(gko::ReferenceExecutor::create()),
@@ -51,6 +53,21 @@ TYPED_TEST(UpperTrs, ThrowsOnRectangularMatrixInFactory)
 
     ASSERT_THROW(this->upper_trs_factory->generate(rectangular_matrix),
                  gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(UpperTrs, RecognizesNonUpperTriangularSystemMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = gko::matrix::Dense<value_type>;
+
+    std::shared_ptr<const gko::LinOp> m =
+        gko::initialize<Mtx>({{value_type{1.0}, value_type{2.0}},
+                              {value_type{3.0}, value_type{4.0}}},
+                             this->exec);
+
+    ASSERT_THROW(this->upper_trs_factory->generate(m)->validate_data(),
+                 gko::InvalidData);
 }
 
 

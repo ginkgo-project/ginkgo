@@ -10,6 +10,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/chebyshev_kernels.hpp"
@@ -42,6 +43,18 @@ GKO_REGISTER_OPERATION(update, chebyshev::update);
 
 }  // anonymous namespace
 }  // namespace chebyshev
+
+
+template <typename ValueType>
+void Chebyshev<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Chebyshev must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
+                 "Chebyshev must have preconditioner");
+    this->get_preconditioner()->validate_data();
+}
 
 
 template <typename ValueType>

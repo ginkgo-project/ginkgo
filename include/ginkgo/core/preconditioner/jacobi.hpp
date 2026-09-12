@@ -543,6 +543,8 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
+    void validate_data() const override;
+
 protected:
     /**
      * Creates an empty Jacobi preconditioner.
