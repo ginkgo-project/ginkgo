@@ -157,6 +157,7 @@ if(GINKGO_BUILD_MPI)
             distributed/preconditioner/schwarz.cpp
             distributed/row_gatherer.cpp
             distributed/spgemm.cpp
+            distributed/transpose.cpp
             distributed/vector.cpp
             distributed/vector_cache.cpp
             mpi/exception.cpp
