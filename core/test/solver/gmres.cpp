@@ -85,6 +85,25 @@ TYPED_TEST(Gmres, ApplyUsesInitialGuessReturnsTrue)
 }
 
 
+TYPED_TEST(Gmres, CanSetApplyWithInitialGuessMode)
+{
+    using Solver = typename TestFixture::Solver;
+    using initial_guess_mode = gko::solver::initial_guess_mode;
+    for (auto guess : {initial_guess_mode::provided, initial_guess_mode::rhs,
+                       initial_guess_mode::zero}) {
+        auto gmres_factory = Solver::build()
+                                 .with_criteria(gko::stop::Iteration::build()
+                                                    .with_max_iters(3u))
+                                 .with_default_initial_guess(guess)
+                                 .on(this->exec);
+        auto solver = gmres_factory->generate(this->mtx);
+
+        ASSERT_EQ(solver->apply_uses_initial_guess(),
+                  guess == gko::solver::initial_guess_mode::provided);
+    }
+}
+
+
 TYPED_TEST(Gmres, CanSetPreconditionerGenerator)
 {
     using Solver = typename TestFixture::Solver;
