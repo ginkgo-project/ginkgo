@@ -16,6 +16,7 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
 
 #include "core/test/utils.hpp"
@@ -157,4 +158,101 @@ TYPED_TEST(Pgm, CanReGenerateFromDistributedMatrix)
     GKO_ASSERT_MTX_NEAR(
         gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
         res_off_diag[rank], r<value_type>::value);
+}
+
+
+// read_distributed already produces sorted Csr blocks, so with skip_sorting the
+// update does not convert the fine op. It still has to pick up the new matrix,
+// otherwise the coarse values are recomputed from the previous one.
+TYPED_TEST(Pgm, CanReGenerateFromDistributedMatrixWithSkipSorting)
+{
+    using pgm = typename TestFixture::pgm;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    auto pgm_factory = pgm::build().with_skip_sorting(true).on(this->exec);
+    auto result = pgm_factory->generate(this->dist_mat);
+    auto rank = this->comm.rank();
+    gko::matrix_data<value_type, global_index_type> new_mat_input{
+        {8, 8}, {{0, 0, 5},  {0, 1, -3}, {1, 0, -1}, {1, 1, 5},  {2, 2, 5},
+                 {3, 3, 5},  {4, 4, 5},  {4, 6, -2}, {5, 5, 5},  {5, 7, -2},
+                 {6, 4, -2}, {6, 6, 5},  {7, 5, -2}, {7, 7, 5},  {0, 2, -3},
+                 {0, 4, 1},  {0, 5, 2},  {0, 6, 3},  {1, 3, -7}, {1, 5, 4},
+                 {1, 6, 5},  {1, 7, -5}, {2, 0, -3}, {2, 5, -1}, {2, 6, -9},
+                 {3, 1, -4}, {3, 7, -5}, {4, 0, 1},  {5, 0, 2},  {5, 1, -1},
+                 {5, 2, -1}, {6, 0, 3},  {6, 1, 5},  {6, 2, -2}, {7, 1, 6},
+                 {7, 3, -5}}};
+    auto new_dist_mat =
+        gko::share(dist_mtx_type::create(this->exec, this->comm));
+    new_dist_mat->read_distributed(new_mat_input, this->row_part);
+    I<I<value_type>> res_diag[] = {{{6}}, {{5, 0}, {0, 5}}, {{6, 0}, {0, 6}}};
+    I<I<value_type>> res_off_diag[] = {{{-3, -7, 9, 1}},
+                                       {{-3, -9, -1}, {-4, 0, -5}},
+                                       {{9, -2, 0}, {7, -1, -5}}};
+
+    result->update_matrix_value(new_dist_mat);
+
+    auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+                        res_diag[rank], r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
+        res_off_diag[rank], r<value_type>::value);
+}
+
+
+// every rank owns an empty off-diagonal block here, so the off-diagonal
+// coarse-to-fine mapping is empty and must still be applicable.
+TYPED_TEST(Pgm, CanReGenerateFromBlockDiagonalDistributedMatrix)
+{
+    using pgm = typename TestFixture::pgm;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    // block diagonal w.r.t. the partition {0, 2, 4, 8}
+    gko::matrix_data<value_type, global_index_type> mat_input{{8, 8},
+                                                              {{0, 0, 5},
+                                                               {0, 1, -3},
+                                                               {1, 0, -3},
+                                                               {1, 1, 5},
+                                                               {2, 2, 5},
+                                                               {2, 3, -3},
+                                                               {3, 2, -3},
+                                                               {3, 3, 5},
+                                                               {4, 4, 5},
+                                                               {4, 5, -3},
+                                                               {5, 4, -3},
+                                                               {5, 5, 5},
+                                                               {6, 6, 5},
+                                                               {6, 7, -3},
+                                                               {7, 6, -3},
+                                                               {7, 7, 5}}};
+    auto dist_mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    dist_mat->read_distributed(mat_input, this->row_part);
+    // the same matrix with all values doubled
+    auto scaled_input = mat_input;
+    for (auto& entry : scaled_input.nonzeros) {
+        entry.value = entry.value * value_type{2};
+    }
+    auto scaled_dist_mat =
+        gko::share(dist_mtx_type::create(this->exec, this->comm));
+    scaled_dist_mat->read_distributed(scaled_input, this->row_part);
+    auto pgm_factory = pgm::build().on(this->exec);
+    auto result = pgm_factory->generate(dist_mat);
+    auto expected_diag = gko::clone(gko::as<local_matrix_type>(
+        gko::as<dist_mtx_type>(result->get_coarse_op())->get_diag_matrix()));
+    auto two = gko::initialize<gko::matrix::Dense<value_type>>({value_type{2}},
+                                                               this->exec);
+    expected_diag->scale(two);
+
+    result->update_matrix_value(scaled_dist_mat);
+
+    auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+                        expected_diag, r<value_type>::value);
+    ASSERT_EQ(gko::as<local_matrix_type>(coarse->get_off_diag_matrix())
+                  ->get_num_stored_elements(),
+              0);
 }
