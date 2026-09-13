@@ -886,6 +886,12 @@ void Multigrid::update_matrix_value(std::shared_ptr<const LinOp> new_matrix)
         as<UpdateMatrixValue>(mg_level)->update_matrix_value(matrix);
         matrix = mg_level->get_coarse_op();
         run<gko::multigrid::EnableMultigridLevel, float, double,
+#if GINKGO_ENABLE_HALF
+            float16, std::complex<float16>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+            bfloat16, std::complex<bfloat16>,
+#endif
             std::complex<float>, std::complex<double>>(
             mg_level,
             [this](auto mg_level, auto index, auto matrix) {
@@ -917,6 +923,12 @@ void Multigrid::update_matrix_value(std::shared_ptr<const LinOp> new_matrix)
 
     // generate coarsest solver
     run<gko::multigrid::EnableMultigridLevel, float, double,
+#if GINKGO_ENABLE_HALF
+        float16, std::complex<float16>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        bfloat16, std::complex<bfloat16>,
+#endif
         std::complex<float>, std::complex<double>>(
         last_mg_level,
         [this](auto mg_level, auto level, auto matrix) {
