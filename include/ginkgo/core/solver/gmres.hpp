@@ -88,7 +88,9 @@ template <typename ValueType = default_precision>
 class Gmres
     : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>,
+      public EnableApplyWithInitialGuess<Gmres<ValueType>>,
       public Transposable {
+    friend class EnableApplyWithInitialGuess<Gmres>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -104,7 +106,11 @@ public:
      *
      * @return true as iterative solvers use the data in x as an initial guess.
      */
-    bool apply_uses_initial_guess() const override { return true; }
+    bool apply_uses_initial_guess() const override
+    {
+        return this->get_default_initial_guess() ==
+               initial_guess_mode::provided;
+    }
 
     /**
      * Gets the Krylov dimension of the solver
@@ -190,6 +196,13 @@ public:
         /** Orthogonalization method */
         gmres::ortho_method GKO_FACTORY_PARAMETER_SCALAR(
             ortho_method, gmres::ortho_method::mgs);
+
+        /**
+         * Default initial guess mode. The available options are under
+         * initial_guess_mode.
+         */
+        initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
+            default_initial_guess, initial_guess_mode::provided);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -216,10 +229,18 @@ protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     template <typename VectorType>
-    void apply_dense_impl(const VectorType* b, VectorType* x) const;
+    void apply_dense_impl(const VectorType* b, VectorType* x,
+                          initial_guess_mode guess) const;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
+
+    void apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
+                                       initial_guess_mode guess) const override;
+
+    void apply_with_initial_guess_impl(const LinOp* alpha, const LinOp* b,
+                                       const LinOp* beta, LinOp* x,
+                                       initial_guess_mode guess) const override;
 
     explicit Gmres(std::shared_ptr<const Executor> exec)
         : LinOp(std::move(exec))
@@ -240,6 +261,7 @@ protected:
             parameters_.restart_ratio >= zero<remove_complex<ValueType>>() &&
                 parameters_.restart_ratio < one<remove_complex<ValueType>>(),
             "restart_ratio must lie in [0, 1); zero disables the criterion");
+        this->set_default_initial_guess(parameters_.default_initial_guess);
     }
 };
 
