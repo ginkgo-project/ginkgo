@@ -115,9 +115,16 @@ generate_coarse(std::shared_ptr<const Executor> exec,
     exec->copy_from(exec, nnz, fine_csr->get_const_values(), vals.get_data());
 
     if (nnz == 0) {
+        // An empty fine block gives an empty coarse block. Still return a
+        // valid (empty) mapping, such that value-only updates can apply it
+        // unconditionally.
+        gko::array<IndexType> mapping_rows(exec, 1);
+        mapping_rows.fill(zero<IndexType>());
         return std::make_pair(matrix::Csr<ValueType, IndexType>::create(
                                   exec, dim<2>(num_agg, off_diag_num_agg)),
-                              nullptr);
+                              matrix::SparsityCsr<ValueType, IndexType>::create(
+                                  exec, dim<2>{0, 0}, std::move(mapping_cols),
+                                  std::move(mapping_rows)));
     }
 
     exec->run(pgm::make_fill_seq_array(mapping_cols.get_data(), nnz));
@@ -557,6 +564,11 @@ void Pgm<ValueType, IndexType>::update_matrix_value(
                 convert_fine_op(
                     as<ConvertibleTo<experimental::distributed::Matrix<
                         ValueType, IndexType, global_index_type>>>(matrix));
+            } else {
+                // No conversion is required, so the new matrix is directly
+                // usable as the fine op. It must still be set, otherwise the
+                // update below would run on the previous matrix.
+                this->set_fine_op(matrix);
             }
         };
 
@@ -640,9 +652,9 @@ void Pgm<ValueType, IndexType>::update_matrix_value(
         if (!parameters_.skip_sorting || !pgm_op) {
             pgm_op = convert_to_with_sorting<csr_type>(
                 exec, system_matrix_, parameters_.skip_sorting);
-            // keep the same precision data in fine_op
-            this->set_fine_op(pgm_op);
         }
+        // keep the same precision data in fine_op
+        this->set_fine_op(pgm_op);
         auto pgm_vals = matrix::Dense<ValueType>::create_const(
             exec, dim<2>{pgm_op->get_num_stored_elements(), 1},
             make_const_array_view(exec, pgm_op->get_num_stored_elements(),
