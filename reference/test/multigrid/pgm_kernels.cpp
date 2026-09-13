@@ -546,6 +546,10 @@ TYPED_TEST(Pgm, ReGenerateMgLevelOnTheDifferentMatrix)
                         restrict_op, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
                         new_coarse_matrix, r<value_type>::value);
+    // the fine op must track the new matrix, it is used to regenerate the
+    // smoothers in Multigrid::update_matrix_value
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_fine_op()), new_matrix,
+                        r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
     GKO_ASSERT_ARRAY_EQ(new_row_gather_view, new_expected_row_gather);
 }
