@@ -23,6 +23,7 @@
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "omp/highway/helper.hpp"
 
 
 namespace gko {
@@ -465,6 +466,34 @@ void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
 
+namespace {
+
+template <typename T>
+constexpr bool hwy_supports_muladd()
+{
+    return true;
+}
+
+template <>
+constexpr bool hwy_supports_muladd<hwy::bfloat16_t>()
+{
+    return false;
+}
+
+template <>
+constexpr bool hwy_supports_muladd<hwy::float16_t>()
+{
+    return HWY_HAVE_FLOAT16;
+}
+
+template <>
+constexpr bool hwy_supports_muladd<double>()
+{
+    return HWY_HAVE_FLOAT64;
+}
+
+}  // namespace
+
 #ifdef GKO_OMP_HIGHWAY
 template <typename ValueType, typename ScalarType>
 bool highway_add_scaled(std::shared_ptr<const DefaultExecutor> exec,
@@ -472,26 +501,32 @@ bool highway_add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                         matrix::view::dense<const ValueType> x,
                         matrix::view::dense<ValueType> y)
 {
+    using value_type = hwy_type<ValueType>;
+
     if (x.size[1] == 1) {
-        if constexpr (!is_complex<ValueType>()) {
+        if constexpr (!is_complex<value_type>() &&
+                      hwy_supports_muladd<value_type>()) {
             auto x_vals = x.values;
             auto y_vals = y.values;
-            const hwy::HWY_NAMESPACE::ScalableTag<ValueType> d;
+            const hwy::HWY_NAMESPACE::ScalableTag<value_type> d;
             hwy::HWY_NAMESPACE::Vec<decltype(d)> va, vx, vy;
             // Broadcast alpha to all lanes
-            va = hwy::HWY_NAMESPACE::Set(d, alpha(0, 0));
+            va = hwy::HWY_NAMESPACE::Set(d, as_hwy_type(alpha(0, 0)));
             size_type i = 0;
             const auto n = x.size[0];
             while (i < n) {
                 // Mask active vector lanes
                 const auto mask = hwy::HWY_NAMESPACE::FirstN(d, n - i);
                 // Load x and y
-                vx = hwy::HWY_NAMESPACE::MaskedLoad(mask, d, &x_vals[i]);
-                vy = hwy::HWY_NAMESPACE::MaskedLoad(mask, d, &y_vals[i]);
+                vx = hwy::HWY_NAMESPACE::MaskedLoad(mask, d,
+                                                    as_hwy_type(&x_vals[i]));
+                vy = hwy::HWY_NAMESPACE::MaskedLoad(mask, d,
+                                                    as_hwy_type(&y_vals[i]));
                 // y = alpha * x + y
                 vy = hwy::HWY_NAMESPACE::MaskedMulAdd(mask, vx, va, vy);
                 // Store result
-                hwy::HWY_NAMESPACE::BlendedStore(vy, mask, d, &y_vals[i]);
+                hwy::HWY_NAMESPACE::BlendedStore(vy, mask, d,
+                                                 as_hwy_type(&y_vals[i]));
                 i += hwy::HWY_NAMESPACE::Lanes(d);  // Advance by vlen
             }
             return true;
