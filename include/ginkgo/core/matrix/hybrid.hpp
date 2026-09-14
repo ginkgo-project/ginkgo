@@ -412,6 +412,8 @@ public:
 
     void read(device_mat_data&& data) override;
 
+    using WritableToMatrixData<ValueType, IndexType>::write;
+
     void write(mat_data& data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;

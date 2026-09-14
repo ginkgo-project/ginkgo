@@ -427,6 +427,8 @@ public:
      * @note this currently assume the row index mapping is equal to the column
      *       index mapping
      */
+    using WritableToMatrixData<ValueType, GlobalIndexType>::write;
+
     void write(matrix_data<value_type, global_index_type>& data) const override;
 
     /**
@@ -519,9 +521,9 @@ public:
      * operand of multiply. Entries whose transposed row is owned by another
      * rank are communicated to that rank, so this is a collective call.
      *
-     * @note This is only supported when the local and non-local blocks are of
-     *       type Csr, and when this matrix was filled by read_distributed,
-     *       which is what sets both partitions.
+     * @note This requires that this matrix was filled by read_distributed,
+     *       which is what sets both partitions, and that result uses the same
+     *       executor and communicator as this matrix.
      *
      * @param result  a pre-created distributed Matrix (may be empty) to fill.
      */

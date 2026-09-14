@@ -62,6 +62,11 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
+    using WritableToMatrixData<std::complex<float>, int32>::write;
+    using WritableToMatrixData<std::complex<float>, int64>::write;
+    using WritableToMatrixData<std::complex<double>, int32>::write;
+    using WritableToMatrixData<std::complex<double>, int64>::write;
+
     void write(matrix_data<std::complex<float>, int32>& data) const override;
 
     void write(matrix_data<std::complex<float>, int64>& data) const override;
@@ -160,6 +165,11 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    using WritableToMatrixData<std::complex<float>, int32>::write;
+    using WritableToMatrixData<std::complex<float>, int64>::write;
+    using WritableToMatrixData<std::complex<double>, int32>::write;
+    using WritableToMatrixData<std::complex<double>, int64>::write;
 
     void write(matrix_data<std::complex<float>, int32>& data) const override;
 
@@ -274,6 +284,11 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    using WritableToMatrixData<std::complex<float>, int32>::write;
+    using WritableToMatrixData<std::complex<float>, int64>::write;
+    using WritableToMatrixData<std::complex<double>, int32>::write;
+    using WritableToMatrixData<std::complex<double>, int64>::write;
 
     void write(matrix_data<std::complex<float>, int32>& data) const override;
 

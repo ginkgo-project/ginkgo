@@ -905,6 +905,26 @@ void Csr<ValueType, IndexType>::write(mat_data& data) const
 
 
 template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::write(device_mat_data& data) const
+{
+    auto exec = this->get_executor();
+    auto out_exec = data.get_executor();
+    const auto nnz = this->get_num_stored_elements();
+    array<IndexType> row_idxs{exec, nnz};
+    exec->run(csr::make_convert_ptrs_to_idxs(
+        this->get_const_row_ptrs(), this->get_size()[0], row_idxs.get_data()));
+    array<IndexType> col_idxs{exec, nnz};
+    array<ValueType> values{exec, nnz};
+    exec->copy_from(exec, nnz, this->get_const_col_idxs(), col_idxs.get_data());
+    exec->copy_from(exec, nnz, this->get_const_values(), values.get_data());
+    data = device_mat_data{out_exec, this->get_size(),
+                           array<IndexType>{out_exec, std::move(row_idxs)},
+                           array<IndexType>{out_exec, std::move(col_idxs)},
+                           array<ValueType>{out_exec, std::move(values)}};
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::multiply(
     ptr_param<const Csr> other) const
 {

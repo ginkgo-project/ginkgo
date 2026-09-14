@@ -268,6 +268,8 @@ public:
 
     void move_to(matrix::Dense<value_type>* result) override;
 
+    using WritableToMatrixData<ValueType, IndexType>::write;
+
     void write(mat_data& data) const override;
 
     std::unique_ptr<LinOp> transpose() const override;

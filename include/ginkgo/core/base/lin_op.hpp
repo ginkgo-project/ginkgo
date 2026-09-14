@@ -629,6 +629,23 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void write(matrix_data<ValueType, IndexType>& data) const = 0;
+
+    /**
+     * Writes a matrix to a device_matrix_data structure.
+     *
+     * The entries are written on the executor of the output data. The default
+     * implementation goes through the host; formats that can produce the
+     * entries on the executor should override this.
+     *
+     * @param data  the device_matrix_data structure
+     */
+    virtual void write(device_matrix_data<ValueType, IndexType>& data) const
+    {
+        matrix_data<ValueType, IndexType> host_data;
+        this->write(host_data);
+        data = device_matrix_data<ValueType, IndexType>::create_from_host(
+            data.get_executor(), host_data);
+    }
 };
 
 
