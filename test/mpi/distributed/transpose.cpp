@@ -37,7 +37,6 @@ protected:
                                                global_index_type>;
     using dist_vec = gko::experimental::distributed::Vector<value_type>;
     using local_csr = gko::matrix::Csr<value_type, local_index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
     using Partition =
         gko::experimental::distributed::Partition<local_index_type,
                                                   global_index_type>;
@@ -194,67 +193,14 @@ TYPED_TEST(DistTranspose, TransposeWithOnlyRemoteContributionsMatchesSerial)
 }
 
 
-TYPED_TEST(DistTranspose, TransposeSatisfiesInnerProductIdentity)
+TYPED_TEST(DistTranspose, TransposedMatrixAppliesLikeSerialTranspose)
 {
     using value_type = typename TestFixture::value_type;
     using dist_mtx = typename TestFixture::dist_mtx;
     using dist_vec = typename TestFixture::dist_vec;
-    using Dense = typename TestFixture::Dense;
     using Partition = typename TestFixture::Partition;
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
-
-    auto nprocs = this->comm.size();
-    auto row_part = gko::share(Partition::build_from_global_size_uniform(
-        this->exec, nprocs, TestFixture::num_rows));
-    auto col_part = gko::share(Partition::build_from_global_size_uniform(
-        this->exec, nprocs, TestFixture::num_cols));
-
-    auto a = dist_mtx::create(this->exec, this->comm);
-    a->read_distributed(this->build_rectangular(), row_part, col_part);
-    auto transposed = dist_mtx::create(this->exec, this->comm);
-    // x lives on the columns of A, y on its rows.
-    auto x = dist_vec::create(this->exec, this->comm);
-    x->read_distributed(this->build_vector_data(TestFixture::num_cols, 3),
-                        col_part);
-    auto y = dist_vec::create(this->exec, this->comm);
-    y->read_distributed(this->build_vector_data(TestFixture::num_rows, 5),
-                        row_part);
-    auto ax = dist_vec::create(this->exec, this->comm);
-    ax->read_distributed(this->build_vector_data(TestFixture::num_rows, 0),
-                         row_part);
-    auto aty = dist_vec::create(this->exec, this->comm);
-    aty->read_distributed(this->build_vector_data(TestFixture::num_cols, 0),
-                          col_part);
-    auto left = Dense::create(this->exec, gko::dim<2>{1, 1});
-    auto right = Dense::create(this->exec, gko::dim<2>{1, 1});
-
-    a->transpose(transposed);
-
-    // (A x, y) == (x, A^T y). compute_dot does not conjugate, so this holds
-    // for complex values too.
-    a->apply(x, ax);
-    transposed->apply(y, aty);
-    ax->compute_dot(y, left);
-    x->compute_dot(aty, right);
-    GKO_ASSERT_MTX_NEAR(left, right, r<value_type>::value * 10);
-}
-
-
-TYPED_TEST(DistTranspose, TransposedMatrixIsValidMultiplyOperand)
-{
-    using value_type = typename TestFixture::value_type;
-    using dist_mtx = typename TestFixture::dist_mtx;
-    using Partition = typename TestFixture::Partition;
-    SKIP_IF_HALF(value_type);
-    SKIP_IF_BFLOAT16(value_type);
-#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
-    // multiply runs a local csr::spgemm, which needs 32-bit local indices on
-    // CUDA and HIP (see spgemm.cpp).
-    if (sizeof(typename TestFixture::local_index_type) > 4) {
-        GTEST_SKIP() << "no 64-bit local index spgemm on this backend";
-    }
-#endif
 
     auto nprocs = this->comm.size();
     auto row_part = gko::share(Partition::build_from_global_size_uniform(
@@ -264,25 +210,29 @@ TYPED_TEST(DistTranspose, TransposedMatrixIsValidMultiplyOperand)
     auto a_data = this->build_rectangular();
     auto a = dist_mtx::create(this->exec, this->comm);
     a->read_distributed(a_data, row_part, col_part);
+    auto expected = dist_mtx::create(this->exec, this->comm);
+    expected->read_distributed(this->transpose_data(a_data), col_part,
+                               row_part);
     auto transposed = dist_mtx::create(this->exec, this->comm);
+    // A^T maps the rows of A to its columns.
+    auto x = dist_vec::create(this->exec, this->comm);
+    x->read_distributed(this->build_vector_data(TestFixture::num_rows, 5),
+                        row_part);
+    auto y = dist_vec::create(this->exec, this->comm);
+    y->read_distributed(this->build_vector_data(TestFixture::num_cols, 0),
+                        col_part);
+    auto y_expected = dist_vec::create(this->exec, this->comm);
+    y_expected->read_distributed(
+        this->build_vector_data(TestFixture::num_cols, 0), col_part);
+
     a->transpose(transposed);
-    // Comparing against the same product from the serially transposed matrix
-    // keeps this value-sensitive; (A^T A) x against A^T (A x) would not,
-    // since both sides use the same transpose.
-    auto expected_transposed = dist_mtx::create(this->exec, this->comm);
-    expected_transposed->read_distributed(this->transpose_data(a_data),
-                                          col_part, row_part);
-    auto expected_product = dist_mtx::create(this->exec, this->comm);
-    expected_transposed->multiply(a, expected_product);
-    auto product = dist_mtx::create(this->exec, this->comm);
 
-    // A^T A: the transpose's column partition has to match A's row
-    // partition.
-    transposed->multiply(a, product);
-
-    ASSERT_EQ(product->get_size(),
-              gko::dim<2>(TestFixture::num_cols, TestFixture::num_cols));
-    this->assert_blocks_near(product.get(), expected_product.get());
+    // Comparing the blocks alone would not compare the index maps; going
+    // through apply does.
+    transposed->apply(x, y);
+    expected->apply(x, y_expected);
+    GKO_ASSERT_MTX_NEAR(y->get_local_vector(), y_expected->get_local_vector(),
+                        r<value_type>::value);
 }
 
 
@@ -292,6 +242,45 @@ TYPED_TEST(DistTranspose, ThrowsIfMatrixHasNoRowPartition)
 
     auto a = dist_mtx::create(this->exec, this->comm);
     auto transposed = dist_mtx::create(this->exec, this->comm);
+
+    ASSERT_THROW(a->transpose(transposed), gko::InvalidStateError);
+}
+
+
+TYPED_TEST(DistTranspose, ThrowsIfResultIsOnAnotherExecutor)
+{
+    using dist_mtx = typename TestFixture::dist_mtx;
+    using Partition = typename TestFixture::Partition;
+
+    auto nprocs = this->comm.size();
+    auto row_part = gko::share(Partition::build_from_global_size_uniform(
+        this->exec, nprocs, TestFixture::num_rows));
+    auto col_part = gko::share(Partition::build_from_global_size_uniform(
+        this->exec, nprocs, TestFixture::num_cols));
+    auto a = dist_mtx::create(this->exec, this->comm);
+    a->read_distributed(this->build_rectangular(), row_part, col_part);
+    auto transposed = dist_mtx::create(this->ref, this->comm);
+
+    ASSERT_THROW(a->transpose(transposed), gko::InvalidStateError);
+}
+
+
+TYPED_TEST(DistTranspose, ThrowsIfResultUsesAnotherCommunicator)
+{
+    using dist_mtx = typename TestFixture::dist_mtx;
+    using Partition = typename TestFixture::Partition;
+
+    auto nprocs = this->comm.size();
+    auto row_part = gko::share(Partition::build_from_global_size_uniform(
+        this->exec, nprocs, TestFixture::num_rows));
+    auto col_part = gko::share(Partition::build_from_global_size_uniform(
+        this->exec, nprocs, TestFixture::num_cols));
+    auto a = dist_mtx::create(this->exec, this->comm);
+    a->read_distributed(this->build_rectangular(), row_part, col_part);
+    // the same ranks in reverse order: neither identical nor congruent
+    gko::experimental::mpi::communicator reversed{
+        this->comm, 0, nprocs - 1 - this->comm.rank()};
+    auto transposed = dist_mtx::create(this->exec, reversed);
 
     ASSERT_THROW(a->transpose(transposed), gko::InvalidStateError);
 }
