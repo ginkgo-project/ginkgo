@@ -466,6 +466,8 @@ void count_nonzero_blocks_per_row(std::shared_ptr<const DefaultExecutor> exec,
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL);
 
+#ifdef GKO_OMP_HIGHWAY
+
 namespace {
 
 template <typename T>
@@ -494,7 +496,6 @@ constexpr bool hwy_supports_muladd<double>()
 
 }  // namespace
 
-#ifdef GKO_OMP_HIGHWAY
 template <typename ValueType, typename ScalarType>
 bool highway_add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                         matrix::view::dense<const ScalarType> alpha,
@@ -534,15 +535,6 @@ bool highway_add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     }
     return false;
 }
-#else
-template <typename ValueType, typename ScalarType>
-constexpr bool highway_add_scaled(std::shared_ptr<const DefaultExecutor> exec,
-                                  matrix::view::dense<const ScalarType> alpha,
-                                  matrix::view::dense<const ValueType> x,
-                                  matrix::view::dense<ValueType> y)
-{
-    return false;
-}
 #endif
 
 template <typename ValueType, typename ScalarType>
@@ -560,9 +552,11 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
             }
         }
     } else if (is_nonzero(alpha(0, 0))) {
+#ifdef GKO_OMP_HIGHWAY
         if (highway_add_scaled<ValueType, ScalarType>(exec, alpha, x, y)) {
             return;
         }
+#endif
 #pragma omp parallel for collapse(2)
         for (size_type row = 0; row < x.size[0]; row++) {
             for (size_type col = 0; col < x.size[1]; col++) {
