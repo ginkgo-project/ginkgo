@@ -88,8 +88,9 @@ void compute_soc_and_run_rs(
     /// 1. COMPUTE SoC MASK
     run_kernel(
         exec,
-        [theta] GKO_KERNEL(auto i, auto row_ptrs, auto col_idxs, auto vals,
-                           auto is_strong_vals) {
+        [theta = as_device_type(theta)] GKO_KERNEL(auto i, auto row_ptrs,
+                                                   auto col_idxs, auto vals,
+                                                   auto is_strong_vals) {
             auto max_offdiag = zero<decltype(real(vals[0]))>();
             for (auto jj = row_ptrs[i]; jj < row_ptrs[i + 1]; ++jj) {
                 if (col_idxs[jj] != i) {
