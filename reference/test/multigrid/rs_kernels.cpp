@@ -13,6 +13,8 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/multigrid/rs_helpers.hpp"
+
 
 namespace {
 
@@ -66,10 +68,13 @@ TEST_F(Rs, ComputeSocAndRunRs)
     gko::array<index_type> lambda(exec, 5);
     gko::array<index_type> cf(exec, 5);
     index_type coarse{};
+    // this matrix is not distributed, so it has no off-diagonal block
+    const auto no_off_diag =
+        gko::multigrid::rs::no_off_diag_view<value_type, index_type>();
 
     gko::kernels::reference::rs::compute_soc_and_run_rs(
-        exec, A->get_const_device_view(), 0.5, is_strong_empty, lambda, cf,
-        coarse);
+        exec, A->get_const_device_view(), no_off_diag, 0.5, is_strong_empty,
+        lambda, cf, coarse);
 
     // all off-diagonals are strong
     std::vector<bool> expected_soc{false, true, true,  false, true, true, false,

@@ -30,6 +30,7 @@
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/config/config_helper.hpp"
+#include "core/distributed/helpers.hpp"
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
@@ -283,11 +284,9 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_off_diag_agg(
     auto exec = matrix->get_executor();
     const auto comm = matrix->get_communicator();
     auto coll_comm = matrix->row_gatherer_->get_collective_communicator();
-    auto total_send_size = coll_comm->get_send_size();
-    auto total_recv_size = coll_comm->get_recv_size();
     auto row_gatherer = matrix->row_gatherer_;
 
-    array<IndexType> send_agg(exec, total_send_size);
+    array<IndexType> send_agg(exec, coll_comm->get_send_size());
     exec->run(pgm::make_gather_index(
         send_agg.get_size(), local_agg.get_const_data(),
         row_gatherer->get_const_send_idxs(), send_agg.get_data()));
@@ -300,33 +299,8 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_off_diag_agg(
         device_segmented_array<const GlobalIndexType>{}, comm.rank(), send_agg,
         experimental::distributed::index_space::local, send_global_agg));
 
-    array<GlobalIndexType> off_diag_agg(exec, total_recv_size);
-
-    auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
-    array<GlobalIndexType> host_recv_buffer(exec->get_master());
-    array<GlobalIndexType> host_send_buffer(exec->get_master());
-    if (use_host_buffer) {
-        host_recv_buffer.resize_and_reset(total_recv_size);
-        host_send_buffer.resize_and_reset(total_send_size);
-        exec->get_master()->copy_from(exec, total_send_size,
-                                      send_global_agg.get_data(),
-                                      host_send_buffer.get_data());
-    }
-
-    const auto send_ptr = use_host_buffer ? host_send_buffer.get_const_data()
-                                          : send_global_agg.get_const_data();
-    auto recv_ptr =
-        use_host_buffer ? host_recv_buffer.get_data() : off_diag_agg.get_data();
-    exec->synchronize();
-    coll_comm
-        ->i_all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
-                         recv_ptr)
-        .wait();
-    if (use_host_buffer) {
-        exec->copy_from(exec->get_master(), total_recv_size, recv_ptr,
-                        off_diag_agg.get_data());
-    }
-    return off_diag_agg;
+    return gko::detail::exchange_with_neighbors(exec, comm, coll_comm.get(),
+                                                send_global_agg);
 }
 
 

@@ -17,3 +17,13 @@ ginkgo_create_common_and_reference_test(
     LABELS
     distributed
 )
+
+ginkgo_create_common_and_reference_test(
+    rs
+    MPI_SIZE
+    3
+    DISABLE_EXECUTORS
+    dpcpp
+    LABELS
+    distributed
+)
