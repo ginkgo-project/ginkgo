@@ -175,6 +175,8 @@ public:
     std::unique_ptr<Permutation> compose(
         ptr_param<const Permutation> other) const;
 
+    using WritableToMatrixData<default_precision, IndexType>::write;
+
     void write(gko::matrix_data<value_type, index_type>& data) const override;
 
     void validate_data() const override;

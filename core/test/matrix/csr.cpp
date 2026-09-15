@@ -565,6 +565,25 @@ TYPED_TEST(Csr, GeneratesCorrectMatrixData)
 }
 
 
+TYPED_TEST(Csr, GeneratesCorrectDeviceMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    gko::device_matrix_data<value_type, index_type> data{this->exec};
+
+    this->mtx->write(data);
+
+    ASSERT_EQ(data.get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(data.get_num_stored_elements(), 4);
+    auto host_data = data.copy_to_host();
+    EXPECT_EQ(host_data.nonzeros[0], tpl(0, 0, value_type{1.0}));
+    EXPECT_EQ(host_data.nonzeros[1], tpl(0, 1, value_type{3.0}));
+    EXPECT_EQ(host_data.nonzeros[2], tpl(0, 2, value_type{2.0}));
+    EXPECT_EQ(host_data.nonzeros[3], tpl(1, 1, value_type{5.0}));
+}
+
+
 TYPED_TEST(Csr, PermutingReuseInfoDefaultUpdateException)
 {
     using Mtx = typename TestFixture::Mtx;
