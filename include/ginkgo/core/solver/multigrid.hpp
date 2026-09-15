@@ -168,12 +168,7 @@ public:
     std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
     get_mg_level_list() const
     {
-        std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
-            const_copy(mg_level_list_.size());
-        for (int i = 0; i < mg_level_list_.size(); i++) {
-            const_copy.at(i) = mg_level_list_.at(i);
-        }
-        return const_copy;
+        return {mg_level_list_.begin(), mg_level_list_.end()};
     }
 
     /**

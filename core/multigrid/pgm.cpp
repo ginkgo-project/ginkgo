@@ -4,6 +4,7 @@
 
 #include "ginkgo/core/multigrid/pgm.hpp"
 
+#include <limits>
 #include <utility>
 
 #include <ginkgo/core/base/array.hpp>
@@ -109,8 +110,11 @@ generate_coarse(std::shared_ptr<const Executor> exec,
     gko::array<IndexType> row_idxs(exec, nnz);
     gko::array<IndexType> col_idxs(exec, nnz);
     gko::array<ValueType> vals(exec, nnz);
-    // might always need to use int64? because nnz can be larger than IndexType
-    // max.
+    // the mapping stores one fine index per nonzero, so IndexType has to be
+    // able to address all of them
+    if (nnz > static_cast<size_type>(std::numeric_limits<IndexType>::max())) {
+        throw OverflowError(__FILE__, __LINE__, "IndexType");
+    }
     gko::array<IndexType> mapping_cols(exec, nnz);
     exec->copy_from(exec, nnz, fine_csr->get_const_values(), vals.get_data());
 
@@ -118,8 +122,7 @@ generate_coarse(std::shared_ptr<const Executor> exec,
         // An empty fine block gives an empty coarse block. Still return a
         // valid (empty) mapping, such that value-only updates can apply it
         // unconditionally.
-        gko::array<IndexType> mapping_rows(exec, 1);
-        mapping_rows.fill(zero<IndexType>());
+        gko::array<IndexType> mapping_rows(exec, {zero<IndexType>()});
         return std::make_pair(matrix::Csr<ValueType, IndexType>::create(
                                   exec, dim<2>(num_agg, off_diag_num_agg)),
                               matrix::SparsityCsr<ValueType, IndexType>::create(
@@ -272,10 +275,10 @@ Pgm<ValueType, IndexType>::generate_local(
             pgm::make_assign_to_exist_agg(weight_mtx->get_const_device_view(),
                                           diag.get(), agg_, intermediate_agg));
     }
-    num_agg_ = 0;
+    IndexType num_agg = 0;
     // Renumber the index
-    exec->run(pgm::make_renumber(agg_, &num_agg_));
-    gko::dim<2>::dimension_type coarse_dim = num_agg_;
+    exec->run(pgm::make_renumber(agg_, &num_agg));
+    gko::dim<2>::dimension_type coarse_dim = num_agg;
     auto fine_dim = local_matrix->get_size()[0];
     // prolong_row_gather is the lightway implementation for prolongation
     auto prolong_row_gather = share(matrix::RowGatherer<IndexType>::create(
@@ -285,13 +288,13 @@ Pgm<ValueType, IndexType>::generate_local(
     auto restrict_sparsity =
         share(matrix::SparsityCsr<ValueType, IndexType>::create(
             exec, gko::dim<2>{coarse_dim, fine_dim}, fine_dim));
-    agg_to_restrict(exec, num_agg_, agg_, restrict_sparsity->get_row_ptrs(),
+    agg_to_restrict(exec, num_agg, agg_, restrict_sparsity->get_row_ptrs(),
                     restrict_sparsity->get_col_idxs());
 
     // Construct the coarse matrix
     // TODO: improve it
     auto [coarse_matrix, mapping_matrix] =
-        generate_coarse(exec, local_matrix.get(), num_agg_, agg_);
+        generate_coarse(exec, local_matrix.get(), num_agg, agg_);
     mapping_local_ = mapping_matrix;
     return std::tie(prolong_row_gather, coarse_matrix, restrict_sparsity);
 }
@@ -462,12 +465,9 @@ void Pgm<ValueType, IndexType>::generate()
             // off_diag_agg already maps the fine off-diag indices to
             // coarse global indices, so mapping it with the coarse index
             // map results in the coarse off-diag indices.
-            // keep the coarse off-diag mapping such that the coarse matrix
-            // can be regenerated from updated values without recomputing the
-            // aggregates.
-            off_diag_num_agg_ =
+            auto off_diag_num_agg =
                 static_cast<IndexType>(coarse_imap.get_non_local_size());
-            off_diag_col_map_ = coarse_imap.map_to_local(
+            auto off_diag_map = coarse_imap.map_to_local(
                 off_diag_agg,
                 experimental::distributed::index_space::non_local);
 
@@ -479,7 +479,7 @@ void Pgm<ValueType, IndexType>::generate()
             auto [result_off_diag_csr, mapping_off_diag] = generate_coarse(
                 exec, off_diag_csr.get(),
                 static_cast<IndexType>(std::get<1>(result)->get_size()[0]),
-                agg_, off_diag_num_agg_, off_diag_col_map_);
+                agg_, off_diag_num_agg, off_diag_map);
             mapping_off_diag_ = mapping_off_diag;
 
             // setup the generated linop.
@@ -551,6 +551,9 @@ void Pgm<ValueType, IndexType>::update_matrix_value(
             matrix->convert_to(fine);
             this->set_fine_op(fine);
         };
+        // TODO: converting and setting up the fine op, and the distributed
+        // setup below, repeat what Pgm::generate and
+        // UniformCoarsening::generate already do. These should be deduplicated.
         auto setup_fine_op = [&](auto matrix) {
             // Only support csr matrix currently.
             auto diag_csr = std::dynamic_pointer_cast<const csr_type>(

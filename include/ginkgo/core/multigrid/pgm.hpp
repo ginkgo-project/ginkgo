@@ -174,10 +174,6 @@ protected:
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
           agg_(factory->get_executor(), system_matrix_->get_size()[0])
-#if GINKGO_BUILD_MPI
-          ,
-          off_diag_col_map_(factory->get_executor())
-#endif
     {
         GKO_ASSERT(parameters_.max_unassigned_ratio <= 1.0);
         GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
@@ -227,12 +223,9 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     array<IndexType> agg_;
-    IndexType num_agg_;
     std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
         mapping_local_;
 #if GINKGO_BUILD_MPI
-    IndexType off_diag_num_agg_;
-    array<IndexType> off_diag_col_map_;
     std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
         mapping_off_diag_;
 #endif
