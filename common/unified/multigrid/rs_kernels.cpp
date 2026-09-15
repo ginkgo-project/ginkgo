@@ -71,10 +71,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_soc_and_run_rs(
     std::shared_ptr<const DefaultExecutor> exec,
-    matrix::view::csr<const ValueType, const IndexType> A, double theta,
-    array<bool>& is_strong, array<IndexType>& lambda,
-    array<IndexType>& cf_marker, IndexType& coarse_size)
+    matrix::view::csr<const ValueType, const IndexType> A,
+    remove_complex<ValueType> theta, array<bool>& is_strong,
+    array<IndexType>& lambda, array<IndexType>& cf_marker,
+    IndexType& coarse_size)
 {
+    using real_type = device_type<remove_complex<ValueType>>;
     const auto n = A.size[0];
     const auto* a_row_ptrs = A.row_ptrs;
     const auto* a_col_idxs = A.col_idxs;
@@ -86,20 +88,21 @@ void compute_soc_and_run_rs(
     /// 1. COMPUTE SoC MASK
     run_kernel(
         exec,
-        [theta] GKO_KERNEL(auto i, auto row_ptrs, auto col_idxs, auto vals,
-                           auto is_strong_vals) {
+        [theta = as_device_type(theta)] GKO_KERNEL(auto i, auto row_ptrs,
+                                                   auto col_idxs, auto vals,
+                                                   auto is_strong_vals) {
             auto max_offdiag = zero<decltype(real(vals[0]))>();
             for (auto jj = row_ptrs[i]; jj < row_ptrs[i + 1]; ++jj) {
                 if (col_idxs[jj] != i) {
                     max_offdiag = gko::max(max_offdiag, -real(vals[jj]));
                 }
             }
-            const auto threshold = theta * static_cast<double>(max_offdiag);
+            const auto threshold = theta * static_cast<real_type>(max_offdiag);
             for (auto jj = row_ptrs[i]; jj < row_ptrs[i + 1]; ++jj) {
                 const auto j = col_idxs[jj];
                 is_strong_vals[jj] =
                     (j != i &&
-                     static_cast<double>(-real(vals[jj])) >= threshold);
+                     static_cast<real_type>(-real(vals[jj])) >= threshold);
             }
         },
         n, a_row_ptrs, a_col_idxs, a_vals, is_strong_vals);
