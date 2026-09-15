@@ -160,10 +160,7 @@ public:
             config::make_type_descriptor<ValueType, LocalIndexType,
                                          GlobalIndexType>());
 
-    std::shared_ptr<const LinOp> get_local_solver() const
-    {
-        return local_solver_;
-    }
+    std::shared_ptr<const LinOp> get_solver() const { return local_solver_; }
 
 protected:
     /**
