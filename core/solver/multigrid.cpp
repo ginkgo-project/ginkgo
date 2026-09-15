@@ -870,12 +870,13 @@ void Multigrid::generate()
 
 void Multigrid::update_matrix_value(std::shared_ptr<const LinOp> new_matrix)
 {
+    // The hierarchy is reused as is, so there has to be one. It is empty when
+    // the solver was generated on a zero-sized matrix, in which case
+    // mg_level_list_.back() below would be undefined behavior. Check before
+    // touching any state, so a rejected update leaves the solver untouched.
+    GKO_ASSERT_EQ(mg_level_list_.size() > 0, true);
     this->set_system_matrix(new_matrix);
-    // generate coarse matrix until reaching max_level or min_coarse_rows
-    auto num_rows = this->get_system_matrix()->get_size()[0];
-    size_type level = 0;
     auto matrix = this->get_system_matrix();
-    auto exec = this->get_executor();
     // clean all smoother
     pre_smoother_list_.clear();
     mid_smoother_list_.clear();
