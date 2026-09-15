@@ -1301,6 +1301,22 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByFCycle)
 
 // Scaling by a positive constant leaves the Pgm aggregates untouched, so an
 // updated hierarchy has to agree with a freshly generated one entry by entry.
+// A solver generated on a zero-sized matrix skips generate(), so it has no
+// levels. Updating it must be rejected rather than reaching back() on an
+// empty list.
+TYPED_TEST(Multigrid, UpdateMatrixValueWithoutLevelsThrows)
+{
+    using Csr = typename TestFixture::Csr;
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::v);
+    auto empty = gko::share(Csr::create(this->exec));
+    auto solver = multigrid_factory->generate(empty);
+    ASSERT_EQ(solver->get_mg_level_list().size(), 0);
+
+    ASSERT_THROW(solver->update_matrix_value(this->mtx), gko::ValueMismatch);
+}
+
+
 TYPED_TEST(Multigrid, UpdateMatrixValueMatchesRegeneratedHierarchy)
 {
     using Csr = typename TestFixture::Csr;
