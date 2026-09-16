@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -150,6 +150,21 @@ TEST_F(Config, ThrowWhenKeyIsInvalidInCriterion)
                          .on(this->exec),
                      gko::InvalidStateError);
     }
+}
+
+
+TEST_F(Config, NestedMissingEntryThrowsInsteadOfTerminating)
+{
+    auto reg = registry();
+    pnode::map_type isai_map;
+    isai_map["type"] = pnode{"preconditioner::Isai"};
+    pnode::map_type ir_map;
+    ir_map["type"] = pnode{"solver::Ir"};
+    ir_map["relaxation_factor"] = pnode{0.9};
+    ir_map["solver"] = pnode{isai_map};
+    auto config = pnode{ir_map};
+
+    ASSERT_THROW(parse(config, reg), gko::InvalidStateError);
 }
 
 
