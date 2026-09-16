@@ -702,8 +702,8 @@ static_assert(std::is_trivially_copyable<permute_iterator_type>::value,
 static_assert(std::is_trivially_copyable<zip_iterator_type>::value,
               "zip_iterator needs to be trivially copyable to be used as a "
               "device kernel argument");
-// nothing calls make_transform_iterator with a lambda anymore, so this is the
-// only place that checks the assignment copy_assignable restores
+// nothing calls make_transform_iterator with a lambda anymore, so this just
+// checks that the transform iterator is still copy assignable
 static_assert(std::is_copy_assignable<lambda_transform_iterator_type>::value,
               "transform_iterator needs to be copy assignable even if the "
               "transformation is not");
