@@ -153,7 +153,7 @@ TEST_F(Config, ThrowWhenKeyIsInvalidInCriterion)
 }
 
 
-TEST_F(Config, NestedMissingEntryThrowsInsteadOfTerminating)
+TEST_F(Config, NestedMissingEntryThrows)
 {
     auto reg = registry();
     pnode::map_type isai_map;
