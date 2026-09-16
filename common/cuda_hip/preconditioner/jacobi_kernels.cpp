@@ -105,6 +105,7 @@ __global__ void generate_natural_block_pointer(
     IndexType* __restrict__ block_ptrs, size_type* __restrict__ num_blocks_arr)
 {
     block_ptrs[0] = 0;
+    num_blocks_arr[0] = 0;
     if (num_rows == 0) {
         return;
     }
@@ -231,8 +232,8 @@ size_type find_natural_blocks(
 {
     array<size_type> nums(exec, 1);
 
-    // FIXME: num_rows == 0 bug
-    array<bool> matching_next_row(exec, mtx.size[0] - 1);
+    array<bool> matching_next_row(
+        exec, mtx.size[0] > 0 ? mtx.size[0] - 1 : size_type{0});
 
     const auto block_size = config::warp_size;
     const auto grid_size = ceildiv(mtx.size[0] * config::warp_size, block_size);
