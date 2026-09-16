@@ -1549,6 +1549,33 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef64)
 }
 
 
+TEST_F(Csr, SortEmptyMatrixIsEquivalentToRef)
+{
+    auto mtx = gen_mtx<Mtx>(123, 234, 0, 0);
+    auto dmtx = gko::clone(exec, mtx);
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_EQ(dmtx->get_num_stored_elements(), gko::size_type{});
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortZeroSizeMatrixIsEquivalentToRef)
+{
+    auto mtx = Mtx::create(ref);
+    auto dmtx = Mtx::create(exec);
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_EQ(dmtx->get_size(), mtx->get_size());
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+}
+
+
 TEST_F(Csr, SortSortedComplexMatrixIsEquivalentToRef)
 {
     using MtxComplex = gko::matrix::Csr<std::complex<value_type>, gko::int32>;

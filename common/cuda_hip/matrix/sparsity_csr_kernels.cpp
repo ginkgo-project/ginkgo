@@ -282,6 +282,10 @@ template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
                           matrix::SparsityCsr<ValueType, IndexType>* to_sort)
 {
+    // the vendor csrsort may reject empty inputs
+    if (to_sort->get_num_nonzeros() == 0) {
+        return;
+    }
     const auto nnz = static_cast<IndexType>(to_sort->get_num_nonzeros());
     const auto num_rows = static_cast<IndexType>(to_sort->get_size()[0]);
     const auto num_cols = static_cast<IndexType>(to_sort->get_size()[1]);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -167,6 +167,22 @@ TEST_F(SparsityCsr, SortUnsortedMatrixIsEquivalentToRef)
     auto dcols_view = gko::make_array_view(exec, dmtx->get_num_nonzeros(),
                                            dmtx->get_col_idxs());
     GKO_ASSERT_ARRAY_EQ(cols_view, dcols_view);
+}
+
+
+TEST_F(SparsityCsr, SortEmptyMatrixIsEquivalentToRef)
+{
+    gko::matrix_data<value_type, index_type> data;
+    data.size = gko::dim<2>{123, 234};
+    auto mtx = Mtx::create(ref);
+    mtx->read(data);
+    auto dmtx = gko::clone(exec, mtx);
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_EQ(dmtx->get_num_nonzeros(), gko::size_type{});
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0.0);
 }
 
 

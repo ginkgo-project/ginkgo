@@ -3019,6 +3019,10 @@ template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
                           matrix::view::csr<ValueType, IndexType> to_sort)
 {
+    // the vendor csrsort may reject empty inputs
+    if (to_sort.num_stored_elements == 0) {
+        return;
+    }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_sparselib_handle();
         auto descr = sparselib::create_mat_descr();
