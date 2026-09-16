@@ -102,6 +102,8 @@ public:
     std::unique_ptr<ScaledPermutation> compose(
         ptr_param<const ScaledPermutation> other) const;
 
+    using WritableToMatrixData<ValueType, IndexType>::write;
+
     void write(gko::matrix_data<value_type, index_type>& data) const override;
 
     /**
