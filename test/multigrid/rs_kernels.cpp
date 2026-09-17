@@ -12,6 +12,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/rs.hpp>
 
+#include "core/multigrid/rs_helpers.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/utils/matrix_utils.hpp"
@@ -79,6 +80,11 @@ protected:
     std::shared_ptr<Csr> d_m_matrix;
     std::shared_ptr<Csr> non_m_matrix;
     std::shared_ptr<Csr> d_non_m_matrix;
+
+    // the matrices here are not distributed, so they have no off-diagonal
+    // block
+    const Csr::const_device_view no_off_diag =
+        gko::multigrid::rs::no_off_diag_view<value_type, index_type>();
 };
 
 
@@ -124,12 +130,12 @@ TEST_F(Rs, ComputeSocAndRunRsIsEquivalentToRef)
     index_type coarse_size_exec = 0;
 
     gko::kernels::reference::rs::compute_soc_and_run_rs(
-        ref, m_matrix->get_const_device_view(), theta, is_strong_ref,
-        lambda_ref, cf_marker_ref, coarse_size_ref);
+        ref, m_matrix->get_const_device_view(), no_off_diag, theta,
+        is_strong_ref, lambda_ref, cf_marker_ref, coarse_size_ref);
 
     gko::kernels::GKO_DEVICE_NAMESPACE::rs::compute_soc_and_run_rs(
-        exec, d_m_matrix->get_const_device_view(), theta, is_strong_exec,
-        lambda_exec, cf_marker_exec, coarse_size_exec);
+        exec, d_m_matrix->get_const_device_view(), no_off_diag, theta,
+        is_strong_exec, lambda_exec, cf_marker_exec, coarse_size_exec);
 
     GKO_ASSERT_ARRAY_EQ(is_strong_ref, is_strong_exec);
     GKO_ASSERT_ARRAY_EQ(lambda_ref, lambda_exec);
@@ -150,8 +156,8 @@ TEST_F(Rs, FillCoarseAndComputeProlongRowPtrsIsEquivalentToRef)
     index_type coarse_size = 0;
 
     gko::kernels::reference::rs::compute_soc_and_run_rs(
-        ref, m_matrix->get_const_device_view(), theta, is_strong_ref,
-        lambda_ref, cf_marker_ref, coarse_size);
+        ref, m_matrix->get_const_device_view(), no_off_diag, theta,
+        is_strong_ref, lambda_ref, cf_marker_ref, coarse_size);
 
     gko::array<bool> is_strong_exec(exec, is_strong_ref);
     gko::array<index_type> cf_marker_exec(exec, cf_marker_ref);
@@ -191,8 +197,8 @@ TEST_F(Rs, ComputeInterpolationIsEquivalentToRef)
     index_type coarse_size = 0;
 
     gko::kernels::reference::rs::compute_soc_and_run_rs(
-        ref, m_matrix->get_const_device_view(), theta, is_strong_ref,
-        lambda_ref, cf_marker_ref, coarse_size);
+        ref, m_matrix->get_const_device_view(), no_off_diag, theta,
+        is_strong_ref, lambda_ref, cf_marker_ref, coarse_size);
 
     gko::array<index_type> coarse_rows_ref(ref, coarse_size);
     gko::array<index_type> fine_to_coarse_ref(ref, num_rows);

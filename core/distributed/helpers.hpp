@@ -9,6 +9,9 @@
 #include <memory>
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/distributed/collective_communicator.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -201,6 +204,68 @@ inline const LinOp* get_local(const LinOp* mtx)
         return mtx;
     }
 }
+
+
+#if GINKGO_BUILD_MPI
+
+
+/**
+ * Exchanges one value per halo index with the neighboring ranks.
+ *
+ * Distributed coarsenings need to know what the owner of a non-local index
+ * did with it: Pgm sends the aggregate an index was assigned to, Rs sends the
+ * coarse index a forced C-point was renumbered to. Both are a single value per
+ * halo index, so both reduce to this exchange.
+ *
+ * @param send_buffer  one value per send index of the collective communicator,
+ *                     in its send index order
+ *
+ * @return one value per receive index, in the communicator's receive order
+ */
+template <typename ValueType>
+array<ValueType> exchange_with_neighbors(
+    std::shared_ptr<const Executor> exec,
+    const experimental::mpi::communicator& comm,
+    const experimental::mpi::CollectiveCommunicator* coll_comm,
+    const array<ValueType>& send_buffer)
+{
+    const auto total_send_size =
+        static_cast<size_type>(coll_comm->get_send_size());
+    const auto total_recv_size =
+        static_cast<size_type>(coll_comm->get_recv_size());
+    GKO_ASSERT_EQ(send_buffer.get_size(), total_send_size);
+    array<ValueType> recv_buffer(exec, total_recv_size);
+
+    // not every executor/MPI combination can send from device memory
+    auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
+    array<ValueType> host_send_buffer(exec->get_master());
+    array<ValueType> host_recv_buffer(exec->get_master());
+    if (use_host_buffer) {
+        host_send_buffer.resize_and_reset(total_send_size);
+        host_recv_buffer.resize_and_reset(total_recv_size);
+        exec->get_master()->copy_from(exec, total_send_size,
+                                      send_buffer.get_const_data(),
+                                      host_send_buffer.get_data());
+    }
+
+    const auto send_ptr = use_host_buffer ? host_send_buffer.get_const_data()
+                                          : send_buffer.get_const_data();
+    auto recv_ptr =
+        use_host_buffer ? host_recv_buffer.get_data() : recv_buffer.get_data();
+    exec->synchronize();
+    coll_comm
+        ->i_all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
+                         recv_ptr)
+        .wait();
+    if (use_host_buffer) {
+        exec->copy_from(exec->get_master(), total_recv_size, recv_ptr,
+                        recv_buffer.get_data());
+    }
+    return recv_buffer;
+}
+
+
+#endif
 
 
 }  // namespace detail
