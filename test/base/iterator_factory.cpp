@@ -68,8 +68,10 @@ struct transformation {
     template <typename T>
     GKO_KERNEL T operator()(T v) const
     {
-        return -v;
+        return factor * v;
     }
+
+    int factor;
 };
 
 
@@ -82,7 +84,7 @@ void run_transform_iterator(std::shared_ptr<gko::EXEC_TYPE> exec,
         exec, [] GKO_KERNEL(auto i, auto it, auto out) { out[i] = it[i]; },
         in_array.get_size(),
         gko::detail::make_transform_iterator(in_array.get_data(),
-                                             transformation{}),
+                                             transformation{-1}),
         out_array);
 }
 
@@ -94,6 +96,40 @@ TEST_F(IteratorFactory, KernelRunsTransformIterator)
     gko::array<int> ref_array{ref, {-6, -2, -3, -8, -1, -0, -2}};
 
     run_transform_iterator(exec, in_array, out_array);
+
+    GKO_ASSERT_ARRAY_EQ(out_array, ref_array);
+}
+
+
+// permute_iterator is only used from host code so far
+struct reverse_permutation {
+    GKO_KERNEL int operator()(int i) const { return size - 1 - i; }
+
+    int size;
+};
+
+
+// nvcc doesn't like device lambdas declared in complex classes, move it out
+void run_permute_iterator(std::shared_ptr<gko::EXEC_TYPE> exec,
+                          gko::array<int>& in_array, gko::array<int>& out_array)
+{
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
+        exec, [] GKO_KERNEL(auto i, auto it, auto out) { out[i] = it[i]; },
+        in_array.get_size(),
+        gko::detail::make_permute_iterator(
+            in_array.get_data(),
+            reverse_permutation{static_cast<int>(in_array.get_size())}),
+        out_array);
+}
+
+
+TEST_F(IteratorFactory, KernelRunsPermuteIterator)
+{
+    gko::array<int> in_array{exec, {6, 2, 3, 8, 1, 0, 2}};
+    gko::array<int> out_array{exec, in_array.get_size()};
+    gko::array<int> ref_array{ref, {2, 0, 1, 8, 3, 2, 6}};
+
+    run_permute_iterator(exec, in_array, out_array);
 
     GKO_ASSERT_ARRAY_EQ(out_array, ref_array);
 }

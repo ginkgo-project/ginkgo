@@ -6,8 +6,10 @@
 
 #include <algorithm>
 #include <complex>
+#include <cstring>
 #include <iterator>
 #include <numeric>
+#include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -660,6 +662,69 @@ TYPED_TEST(TransformIterator, DecreasingIterator)
     ASSERT_TRUE(iter == decrement_post_test--);
     ASSERT_TRUE(iter - 1 == --decrement_pre_test);
     ASSERT_TRUE(*minus_2 == TypeParam{2} * vec[3]);
+}
+
+
+struct identity_permute {
+    int operator()(int i) const { return i; }
+};
+
+
+// the lambda needs to capture something: since C++20, a lambda without
+// captures is copy assignable, so it would not test anything here
+auto lambda_transform = [factor = 2](int v) { return factor * v; };
+
+
+// Iterators are passed to device kernels by value, and kernel arguments are
+// transferred by copying their bytes, so they have to be trivially copyable:
+// SYCL rejects anything else, CUDA and HIP break silently. The opposite
+// requirement, staying copy assignable as the iterator requirements ask for,
+// is asserted for every instantiation in the make_* functions.
+using transform_iterator_type =
+    gko::detail::transform_iterator<int*, double_transform>;
+using lambda_transform_iterator_type =
+    gko::detail::transform_iterator<int*, decltype(lambda_transform)>;
+using permute_iterator_type =
+    gko::detail::permute_iterator<int*, identity_permute>;
+using zip_iterator_type = gko::detail::zip_iterator<int*, double*>;
+
+static_assert(std::is_trivially_copyable<transform_iterator_type>::value,
+              "transform_iterator needs to be trivially copyable to be used as "
+              "a device kernel argument");
+// this is the instantiation that stores the transformation in
+// copy_assignable, the one above stores it directly
+static_assert(std::is_trivially_copyable<lambda_transform_iterator_type>::value,
+              "transform_iterator needs to stay trivially copyable when the "
+              "transformation is wrapped in copy_assignable");
+static_assert(std::is_trivially_copyable<permute_iterator_type>::value,
+              "permute_iterator needs to be trivially copyable to be used as a "
+              "device kernel argument");
+static_assert(std::is_trivially_copyable<zip_iterator_type>::value,
+              "zip_iterator needs to be trivially copyable to be used as a "
+              "device kernel argument");
+// nothing calls make_transform_iterator with a lambda anymore, so this just
+// checks that the transform iterator is still copy assignable
+static_assert(std::is_copy_assignable<lambda_transform_iterator_type>::value,
+              "transform_iterator needs to be copy assignable even if the "
+              "transformation is not");
+
+
+TYPED_TEST(TransformIterator, SurvivesBitwiseCopy)
+{
+    std::vector<TypeParam> vec{6, 2, 5, 2, 4};
+    const auto scale = TypeParam{3};
+    // a lambda is the case stored in copy_assignable, the storage that has to
+    // survive the byte-wise transfer of a kernel argument
+    auto test_iter = gko::detail::make_transform_iterator(
+        vec.data(), [scale](TypeParam v) { return scale * v; });
+    decltype(test_iter) device_iter;
+
+    // a kernel launch copies the bytes of its arguments and nothing else
+    std::memcpy(&device_iter, &test_iter, sizeof(test_iter));
+    std::memset(static_cast<void*>(&test_iter), 0xCC, sizeof(test_iter));
+
+    ASSERT_EQ(*device_iter, scale * vec[0]);
+    ASSERT_EQ(device_iter[3], scale * vec[3]);
 }
 
 

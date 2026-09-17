@@ -11,6 +11,7 @@
 #include <initializer_list>
 #include <iterator>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 #include <ginkgo/core/base/types.hpp>
@@ -99,17 +100,9 @@ public:
 
     device_tuple() = default;
 
-    /**
-     * Copy-assigns a tuple.
-     * This is necessary to make tuples of references work, which normally cause
-     * the impliciy copy-assignment operator to be deleted.
-     */
-    GKO_ATTRIBUTES constexpr device_tuple& operator=(const device_tuple& other)
-    {
-        value_ = other.value_;
-        other_ = other.other_;
-        return *this;
-    }
+    // no copy assignment: the implicit one keeps a tuple of values trivially
+    // copyable, and for a tuple of references it is deleted, so
+    // zip_iterator_reference assigns the referenced values instead
 
     /** @return the index-th element in the tuple. */
     template <std::size_t index>
@@ -189,16 +182,7 @@ public:
 
     device_tuple() = default;
 
-    /**
-     * Copy-assigns a tuple.
-     * This is necessary to make tuples of references work, which normally cause
-     * the impliciy copy-assignment operator to be deleted.
-     */
-    GKO_ATTRIBUTES constexpr device_tuple& operator=(const device_tuple& other)
-    {
-        value_ = other.value_;
-        return *this;
-    }
+    // no copy assignment, see the variadic device_tuple
 
     /** @return the index-th element in the tuple. */
     template <std::size_t index>
@@ -297,9 +281,10 @@ class zip_iterator_reference
         return value_type(gko::get<idxs>(*this)...);
     }
 
-    template <std::size_t... idxs>
+    // assigns the elements of a tuple of values or of references
+    template <std::size_t... idxs, typename Other>
     GKO_ATTRIBUTES constexpr void assign_impl(std::index_sequence<idxs...>,
-                                              const value_type& other)
+                                              const Other& other)
     {
         // need to use fully qualified name for nvcc 11.x to not call this->get
         (void)std::initializer_list<int>{
@@ -318,6 +303,16 @@ public:
 
     GKO_ATTRIBUTES constexpr zip_iterator_reference& operator=(
         const value_type& other)
+    {
+        assign_impl(index_sequence{}, other);
+        return *this;
+    }
+
+    // assigns the referenced values, like every other assignment to a
+    // zip_iterator_reference; written out because the implicit copy assignment
+    // is deleted, as the base class stores references
+    GKO_ATTRIBUTES constexpr zip_iterator_reference& operator=(
+        const zip_iterator_reference& other)
     {
         assign_impl(index_sequence{}, other);
         return *this;
@@ -534,6 +529,12 @@ template <typename... Iterators>
 GKO_ATTRIBUTES constexpr zip_iterator<std::decay_t<Iterators>...>
 make_zip_iterator(Iterators&&... it)
 {
+    // the iterator requirements ask for a copy assignable iterator, which a
+    // zip_iterator only is if every iterator it zips together is
+    static_assert(std::is_copy_assignable<
+                      zip_iterator<std::decay_t<Iterators>...>>::value,
+                  "zip_iterator needs to be copy assignable, which requires "
+                  "all zipped iterators to be copy assignable");
     return zip_iterator<std::decay_t<Iterators>...>{
         std::forward<Iterators>(it)...};
 }
@@ -732,9 +733,14 @@ private:
 
 
 template <typename IteratorType, typename PermutationFn>
-GKO_ATTRIBUTES permute_iterator<IteratorType, PermutationFn>
+GKO_ATTRIBUTES constexpr permute_iterator<IteratorType, PermutationFn>
 make_permute_iterator(IteratorType it, PermutationFn perm)
 {
+    // the iterator requirements ask for a copy assignable iterator, which
+    // functor_storage provides for permutations that are not copy assignable
+    static_assert(std::is_copy_assignable<
+                      permute_iterator<IteratorType, PermutationFn>>::value,
+                  "permute_iterator needs to be copy assignable");
     return permute_iterator<IteratorType, PermutationFn>{std::move(it),
                                                          std::move(perm)};
 }
@@ -883,9 +889,15 @@ private:
 
 
 template <typename IteratorType, typename TransformFn>
-GKO_ATTRIBUTES transform_iterator<IteratorType, TransformFn>
+GKO_ATTRIBUTES constexpr transform_iterator<IteratorType, TransformFn>
 make_transform_iterator(IteratorType it, TransformFn transform)
 {
+    // the iterator requirements ask for a copy assignable iterator, which
+    // functor_storage provides for transformations that are not copy
+    // assignable
+    static_assert(std::is_copy_assignable<
+                      transform_iterator<IteratorType, TransformFn>>::value,
+                  "transform_iterator needs to be copy assignable");
     return transform_iterator<IteratorType, TransformFn>{std::move(it),
                                                          std::move(transform)};
 }
