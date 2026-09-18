@@ -290,8 +290,9 @@ void abstract_spmv(
 #endif
     {
         GKO_ASSERT(
-            fits_index_type<IndexType>(num_stored_elements_per_row * stride));
-        GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
+            product_fits<IndexType>(num_stored_elements_per_row, stride));
+        GKO_ASSERT(
+            dense_accessor_fits<b_accessor>(b.size[0], b.size[1], b.stride));
         const auto a_vals = acc::range<a_accessor>(
             typename a_accessor::dim_type{
                 {static_cast<typename a_accessor::size_type>(

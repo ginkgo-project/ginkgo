@@ -99,6 +99,9 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
         acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
 
     // Merge-SpMV variables
+    // Merge-path combines rows and nonzeros, which can overflow even when
+    // both counts fit individually.
+    ensure_sum_fits<IndexType>(a.size[0], a.num_stored_elements);
     const auto num_rows = static_cast<IndexType>(a.size[0]);
     const auto nnz = static_cast<IndexType>(a.num_stored_elements);
     const auto num_threads = static_cast<IndexType>(omp_get_max_threads());

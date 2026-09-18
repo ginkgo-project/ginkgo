@@ -594,8 +594,13 @@ index_spans_in_size(const std::array<DimensionType, N>& size, First first,
 {
     static_assert(sizeof...(Remaining) + 1 == N - iter,
                   "Number of remaining spans must be equal to N - iter");
+    // Compare non-negative bounds without narrowing an unsigned dimension to
+    // the signed type used by index_span.
     return GKO_ACC_ASSERT(index_span{first}.is_valid()),
-           GKO_ACC_ASSERT(index_span{first} <= index_span{size[iter]}),
+           GKO_ACC_ASSERT(index_span{first}.begin >= 0),
+           GKO_ACC_ASSERT(size[iter] >= 0),
+           GKO_ACC_ASSERT(static_cast<std::uint64_t>(index_span{first}.end) <=
+                          static_cast<std::uint64_t>(size[iter])),
            index_spans_in_size<iter + 1>(size,
                                          std::forward<Remaining>(remaining)...);
 }

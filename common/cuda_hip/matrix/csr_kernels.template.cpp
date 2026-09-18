@@ -1932,6 +1932,9 @@ void merge_path_spmv(
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    // Merge-path combines rows and nonzeros, which can overflow even when
+    // both counts fit individually.
+    ensure_sum_fits<IndexType>(a.size[0], a.num_stored_elements);
     const IndexType total = a.size[0] + a.num_stored_elements;
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
@@ -1945,7 +1948,7 @@ void merge_path_spmv(
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
 
-    for (IndexType column_id = 0; column_id < b.size[1]; column_id++) {
+    for (size_type column_id = 0; column_id < b.size[1]; column_id++) {
         const auto column_span =
             acc::index_span(static_cast<acc::size_type>(column_id),
                             static_cast<acc::size_type>(column_id + 1));

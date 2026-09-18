@@ -47,9 +47,8 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
 
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
-    GKO_ASSERT(
-        fits_index_type<IndexType>(num_stored_elements_per_row * stride));
-    GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
+    GKO_ASSERT(product_fits<IndexType>(num_stored_elements_per_row, stride));
+    GKO_ASSERT(dense_accessor_fits<b_accessor>(b.size[0], b.size[1], b.stride));
     const auto a_vals = gko::acc::range<a_accessor>(
         typename a_accessor::dim_type{
             {static_cast<typename a_accessor::size_type>(
@@ -104,9 +103,8 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
 
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
-    GKO_ASSERT(
-        fits_index_type<IndexType>(num_stored_elements_per_row * stride));
-    GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
+    GKO_ASSERT(product_fits<IndexType>(num_stored_elements_per_row, stride));
+    GKO_ASSERT(dense_accessor_fits<b_accessor>(b.size[0], b.size[1], b.stride));
     const auto a_vals = gko::acc::range<a_accessor>(
         typename a_accessor::dim_type{
             {static_cast<typename a_accessor::size_type>(
