@@ -26,11 +26,12 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input)
         gko::acc::reduced_row_major<2, ArthType, ValueType, IndexType>;
     GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
     return range<accessor>(
-        typename accessor::dim_type{{static_cast<IndexType>(input.size[0]),
-                                     static_cast<IndexType>(input.size[1])}},
+        typename accessor::dim_type{
+            {static_cast<typename accessor::size_type>(input.size[0]),
+             static_cast<typename accessor::size_type>(input.size[1])}},
         input.values,
         typename accessor::storage_stride_type{
-            {static_cast<IndexType>(input.stride)}});
+            {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
 template <typename ArthType, typename IndexType, typename ValueType>
@@ -43,11 +44,12 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input,
     GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
     return range<accessor>(
         typename accessor::dim_type{
-            {static_cast<IndexType>(input.size[0]),
-             static_cast<IndexType>(column_span.end - column_span.begin)}},
+            {static_cast<typename accessor::size_type>(input.size[0]),
+             static_cast<typename accessor::size_type>(column_span.end -
+                                                       column_span.begin)}},
         input.values + column_span.begin,
         typename accessor::storage_stride_type{
-            {static_cast<IndexType>(input.stride)}});
+            {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
 
@@ -60,11 +62,12 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input)
         gko::acc::reduced_row_major<2, ArthType, const ValueType, IndexType>;
     GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
     return range<accessor>(
-        typename accessor::dim_type{{static_cast<IndexType>(input.size[0]),
-                                     static_cast<IndexType>(input.size[1])}},
+        typename accessor::dim_type{
+            {static_cast<typename accessor::size_type>(input.size[0]),
+             static_cast<typename accessor::size_type>(input.size[1])}},
         input.values,
         typename accessor::storage_stride_type{
-            {static_cast<IndexType>(input.stride)}});
+            {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
 template <typename ArthType, typename IndexType, typename ValueType>
@@ -77,11 +80,12 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input,
     GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
     return range<accessor>(
         typename accessor::dim_type{
-            {static_cast<IndexType>(input.size[0]),
-             static_cast<IndexType>(column_span.end - column_span.begin)}},
+            {static_cast<typename accessor::size_type>(input.size[0]),
+             static_cast<typename accessor::size_type>(column_span.end -
+                                                       column_span.begin)}},
         input.values + column_span.begin,
         typename accessor::storage_stride_type{
-            {static_cast<IndexType>(input.stride)}});
+            {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
 
@@ -91,8 +95,8 @@ auto build_rrm_accessor(matrix::view::csr<ValueType, IndexType> input)
     using accessor =
         gko::acc::reduced_row_major<1, ArthType, ValueType, IndexType>;
     return gko::acc::range<accessor>(
-        typename accessor::dim_type{
-            {static_cast<IndexType>(input.num_stored_elements)}},
+        typename accessor::dim_type{{static_cast<typename accessor::size_type>(
+            input.num_stored_elements)}},
         input.values);
 }
 
@@ -104,8 +108,8 @@ auto build_const_rrm_accessor(
     using accessor =
         gko::acc::reduced_row_major<1, ArthType, const ValueType, IndexType>;
     return gko::acc::range<accessor>(
-        typename accessor::dim_type{
-            {static_cast<IndexType>(input.num_stored_elements)}},
+        typename accessor::dim_type{{static_cast<typename accessor::size_type>(
+            input.num_stored_elements)}},
         input.values);
 }
 

@@ -33,9 +33,10 @@ namespace detail {
 template <typename Accessor>
 struct has_3d_scaled_accessor : public std::false_type {};
 
-template <typename T1, typename T2, uint64 mask>
-struct has_3d_scaled_accessor<
-    acc::range<acc::scaled_reduced_row_major<3, T1, T2, mask>>>
+template <typename T1, typename T2, uint64 mask, typename IndexType,
+          typename SizeType>
+struct has_3d_scaled_accessor<acc::range<
+    acc::scaled_reduced_row_major<3, T1, T2, mask, IndexType, SizeType>>>
     : public std::true_type {};
 
 template <typename StorageType, bool = std::is_integral<StorageType>::value>
@@ -147,9 +148,7 @@ struct helper_functions_accessor<Accessor3d, true> {
                                                         vector_idx, col_idx);
     }
 
-    static constexpr GKO_ATTRIBUTES
-        std::array<acc::size_type, dimensionality - 1>
-        get_stride(Accessor3d krylov_bases)
+    static constexpr GKO_ATTRIBUTES auto get_stride(Accessor3d krylov_bases)
     {
         return krylov_bases.get_accessor().get_storage_stride();
     }
@@ -170,9 +169,7 @@ struct helper_functions_accessor<Accessor3d, false> {
         // Since there is no scalar, there is nothing to write.
     }
 
-    static constexpr GKO_ATTRIBUTES
-        std::array<acc::size_type, dimensionality - 1>
-        get_stride(Accessor3d krylov_bases)
+    static constexpr GKO_ATTRIBUTES auto get_stride(Accessor3d krylov_bases)
     {
         return krylov_bases.get_accessor().get_stride();
     }

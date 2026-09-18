@@ -321,9 +321,10 @@ void Fbcsr<ValueType, IndexType>::write(mat_data& data) const
 
     const size_type nbnz = tmp->get_num_stored_blocks();
     GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs_ * bs_));
-    const acc::range<acc::block_col_major<const value_type, 3, IndexType>>
-        vblocks(to_std_array<IndexType>(nbnz, bs_, bs_),
-                tmp->values_.get_const_data());
+    using accessor = acc::block_col_major<const value_type, 3, IndexType>;
+    const acc::range<accessor> vblocks(
+        to_std_array<typename accessor::size_type>(nbnz, bs_, bs_),
+        tmp->values_.get_const_data());
 
     for (size_type brow = 0; brow < tmp->get_num_block_rows(); ++brow) {
         const auto start = tmp->row_ptrs_.get_const_data()[brow];

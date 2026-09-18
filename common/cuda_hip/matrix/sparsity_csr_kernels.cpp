@@ -211,17 +211,19 @@ void classical_spmv(
     GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
     GKO_ASSERT(fits_index_type<IndexType>(c.size[0] * c.stride));
     const auto b_vals = gko::acc::range<input_accessor>(
-        typename input_accessor::dim_type{{static_cast<IndexType>(b.size[0]),
-                                           static_cast<IndexType>(b.size[1])}},
+        typename input_accessor::dim_type{
+            {static_cast<typename input_accessor::size_type>(b.size[0]),
+             static_cast<typename input_accessor::size_type>(b.size[1])}},
         b.values,
         typename input_accessor::storage_stride_type{
-            {static_cast<IndexType>(b.stride)}});
+            {static_cast<typename input_accessor::size_type>(b.stride)}});
     auto c_vals = gko::acc::range<output_accessor>(
-        typename output_accessor::dim_type{{static_cast<IndexType>(c.size[0]),
-                                            static_cast<IndexType>(c.size[1])}},
+        typename output_accessor::dim_type{
+            {static_cast<typename output_accessor::size_type>(c.size[0]),
+             static_cast<typename output_accessor::size_type>(c.size[1])}},
         c.values,
         typename output_accessor::storage_stride_type{
-            {static_cast<IndexType>(c.stride)}});
+            {static_cast<typename output_accessor::size_type>(c.stride)}});
     if (c.size[0] == 0 || c.size[1] == 0) {
         // empty output: nothing to do
         return;

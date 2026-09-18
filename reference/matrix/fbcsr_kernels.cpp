@@ -50,8 +50,10 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<accessor> avalues{
+        to_std_array<typename accessor::size_type>(nbnz, bs, bs),
+        a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
@@ -95,8 +97,10 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
     GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<accessor> avalues{
+        to_std_array<typename accessor::size_type>(nbnz, bs, bs),
+        a->get_const_values()};
 
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
@@ -200,9 +204,11 @@ void fill_in_dense(const std::shared_ptr<const ReferenceExecutor>,
 
     GKO_ASSERT(
         fits_index_type<IndexType>(source->get_num_stored_blocks() * bs * bs));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        values{to_std_array<IndexType>(source->get_num_stored_blocks(), bs, bs),
-               vals};
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<accessor> values{
+        to_std_array<typename accessor::size_type>(
+            source->get_num_stored_blocks(), bs, bs),
+        vals};
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
         for (IndexType ibnz = row_ptrs[brow]; ibnz < row_ptrs[brow + 1];
@@ -244,10 +250,11 @@ void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
 
     GKO_ASSERT(
         fits_index_type<IndexType>(source->get_num_stored_blocks() * bs * bs));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        bvalues{
-            to_std_array<IndexType>(source->get_num_stored_blocks(), bs, bs),
-            bvals};
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<accessor> bvalues{
+        to_std_array<typename accessor::size_type>(
+            source->get_num_stored_blocks(), bs, bs),
+        bvals};
 
     for (IndexType brow = 0; brow < nbrows; ++brow) {
         const IndexType nz_browstart = browptrs[brow] * bs * bs;
@@ -293,11 +300,15 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
 {
     GKO_ASSERT(fits_index_type<IndexType>(
         static_cast<size_type>(row_ptrs[num_blk_rows]) * blksz * blksz));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        rvalues{to_std_array<IndexType>(row_ptrs[num_blk_rows], blksz, blksz),
-                fbcsr_vals};
-    const acc::range<acc::block_col_major<ValueType, 3, IndexType>> cvalues{
-        to_std_array<IndexType>(row_ptrs[num_blk_rows], blksz, blksz),
+    using const_accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<const_accessor> rvalues{
+        to_std_array<typename const_accessor::size_type>(row_ptrs[num_blk_rows],
+                                                         blksz, blksz),
+        fbcsr_vals};
+    using accessor = acc::block_col_major<ValueType, 3, IndexType>;
+    const acc::range<accessor> cvalues{
+        to_std_array<typename accessor::size_type>(row_ptrs[num_blk_rows],
+                                                   blksz, blksz),
         csc_vals};
     for (IndexType brow = 0; brow < num_blk_rows; ++brow) {
         for (auto i = row_ptrs[brow]; i < row_ptrs[brow + 1]; ++i) {
@@ -471,9 +482,11 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor>,
 
     GKO_ASSERT(
         fits_index_type<IndexType>(orig->get_num_stored_blocks() * bs * bs));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        vblocks{to_std_array<IndexType>(orig->get_num_stored_blocks(), bs, bs),
-                values};
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<accessor> vblocks{
+        to_std_array<typename accessor::size_type>(
+            orig->get_num_stored_blocks(), bs, bs),
+        values};
 
     for (IndexType ibrow = 0; ibrow < nbdim_min; ++ibrow) {
         for (IndexType idx = row_ptrs[ibrow]; idx < row_ptrs[ibrow + 1];
