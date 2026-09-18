@@ -11,6 +11,7 @@
 
 #include "accessor/reduced_row_major.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/utils.hpp"
 
 
 namespace gko {
@@ -33,21 +34,33 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType,
+                                    IndexType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType,
+                                    IndexType>;
 
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
+    ensure_product_fits<IndexType>(num_stored_elements_per_row, stride);
+    ensure_dense_access_fits<IndexType>(b.size[0], b.size[1], b.stride);
+    ensure_product_fits<typename a_accessor::size_type>(
+        num_stored_elements_per_row, stride);
     const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<acc::size_type, 1>{
-            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
+        typename a_accessor::dim_type{
+            {static_cast<typename a_accessor::size_type>(
+                num_stored_elements_per_row * stride)}},
         a.values);
+    ensure_product_fits<typename b_accessor::size_type>(b.size[0]);
+    ensure_product_fits<typename b_accessor::size_type>(b.size[1]);
+    ensure_product_fits<typename b_accessor::size_type>(b.stride);
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
-                                       static_cast<acc::size_type>(b.size[1])}},
+        typename b_accessor::dim_type{
+            {static_cast<typename b_accessor::size_type>(b.size[0]),
+             static_cast<typename b_accessor::size_type>(b.size[1])}},
         b.values,
-        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
+        typename b_accessor::storage_stride_type{
+            {static_cast<typename b_accessor::size_type>(b.stride)}});
 
     for (size_type j = 0; j < c.size[1]; j++) {
         for (size_type row = 0; row < a.size[0]; row++) {
@@ -80,21 +93,33 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType,
+                                    IndexType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType,
+                                    IndexType>;
 
     const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
     const auto stride = a.stride;
+    ensure_product_fits<IndexType>(num_stored_elements_per_row, stride);
+    ensure_dense_access_fits<IndexType>(b.size[0], b.size[1], b.stride);
+    ensure_product_fits<typename a_accessor::size_type>(
+        num_stored_elements_per_row, stride);
     const auto a_vals = gko::acc::range<a_accessor>(
-        std::array<acc::size_type, 1>{
-            static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
+        typename a_accessor::dim_type{
+            {static_cast<typename a_accessor::size_type>(
+                num_stored_elements_per_row * stride)}},
         a.values);
+    ensure_product_fits<typename b_accessor::size_type>(b.size[0]);
+    ensure_product_fits<typename b_accessor::size_type>(b.size[1]);
+    ensure_product_fits<typename b_accessor::size_type>(b.stride);
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
-                                       static_cast<acc::size_type>(b.size[1])}},
+        typename b_accessor::dim_type{
+            {static_cast<typename b_accessor::size_type>(b.size[0]),
+             static_cast<typename b_accessor::size_type>(b.size[1])}},
         b.values,
-        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
+        typename b_accessor::storage_stride_type{
+            {static_cast<typename b_accessor::size_type>(b.stride)}});
     const auto alpha_val = arithmetic_type{alpha(0, 0)};
     const auto beta_val = arithmetic_type{beta(0, 0)};
 

@@ -19,6 +19,7 @@
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/sycl_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -301,9 +302,11 @@ void abstract_spmv(
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
-        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
+        gko::acc::reduced_row_major<1, arithmetic_type, const MatrixValueType,
+                                    IndexType>;
     using b_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType,
+                                    IndexType>;
 
     const auto nrows = a.size[0];
     const auto stride = a.stride;
@@ -328,17 +331,34 @@ void abstract_spmv(
                   (shared_half || atomic_half_out)) {
         GKO_KERNEL_NOT_FOUND;
     } else {
+        ensure_product_fits<IndexType>(num_stored_elements_per_row, stride);
+        ensure_dense_access_fits<IndexType>(b.size[0], b.size[1], b.stride);
+        ensure_product_fits<typename a_accessor::size_type>(
+            num_stored_elements_per_row, stride);
         const auto a_vals = gko::acc::range<a_accessor>(
-            std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
-                num_stored_elements_per_row * stride)}},
+            typename a_accessor::dim_type{
+                {static_cast<typename a_accessor::size_type>(
+                    num_stored_elements_per_row * stride)}},
             a.values);
+        ensure_product_fits<typename b_accessor::size_type>(b.size[0]);
+        ensure_product_fits<typename b_accessor::size_type>(b.size[1]);
+        ensure_product_fits<typename b_accessor::size_type>(b.stride);
         const auto b_vals = gko::acc::range<b_accessor>(
-            std::array<acc::size_type, 2>{
-                {static_cast<acc::size_type>(b.size[0]),
-                 static_cast<acc::size_type>(b.size[1])}},
+            typename b_accessor::dim_type{
+                {static_cast<typename b_accessor::size_type>(b.size[0]),
+                 static_cast<typename b_accessor::size_type>(b.size[1])}},
             b.values,
-            std::array<acc::size_type, 1>{
-                {static_cast<acc::size_type>(b.stride)}});
+            typename b_accessor::storage_stride_type{
+                {static_cast<typename b_accessor::size_type>(b.stride)}});
+
+        // Validate the accessors before modifying the output.
+        if constexpr (atomic) {
+            if (beta) {
+                dense::scale(exec, *beta, c);
+            } else {
+                dense::fill(exec, c, zero<OutputValueType>());
+            }
+        }
 
         if (!alpha && !beta) {
             kernel::spmv<num_thread_per_worker, atomic>(
@@ -349,7 +369,7 @@ void abstract_spmv(
                 c.stride);
         } else if (alpha && beta) {
             const auto alpha_val = gko::acc::range<a_accessor>(
-                std::array<acc::size_type, 1>{1}, alpha->values);
+                typename a_accessor::dim_type{{1}}, alpha->values);
             kernel::spmv<num_thread_per_worker, atomic>(
                 grid_size, block_size, 0, exec->get_queue(), nrows,
                 num_worker_per_row, acc::as_device_range(alpha_val),
@@ -427,9 +447,6 @@ void spmv(std::shared_ptr<const DpcppExecutor> exec,
      * operation for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * num_thread_per_worker;
-    if (atomic) {
-        dense::fill(exec, c, zero<OutputValueType>());
-    }
     select_abstract_spmv(
         syn::type_list<device_config<512, 32>, device_config<1024, 32>>(),
         [](auto cfg) { return 1024 == cfg.block_size; }, compiled_kernels(),
@@ -463,9 +480,6 @@ void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
      * operation for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * num_thread_per_worker;
-    if (atomic) {
-        dense::scale(exec, beta, c);
-    }
     select_abstract_spmv(
         syn::type_list<device_config<512, 32>, device_config<1024, 32>>(),
         [](auto cfg) { return 512 == cfg.block_size; }, compiled_kernels(),

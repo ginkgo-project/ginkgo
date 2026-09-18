@@ -11,7 +11,7 @@
 
 #include "accessor/index_span.hpp"
 #include "accessor/reduced_row_major.hpp"
-#include "accessor/utils.hpp"
+#include "core/base/utils.hpp"
 
 
 namespace gko {
@@ -19,73 +19,105 @@ namespace acc {
 namespace helper {
 
 
-template <typename ArthType, typename ValueType>
+template <typename ArthType, typename IndexType, typename ValueType>
 auto build_rrm_accessor(matrix::view::dense<ValueType> input)
 {
-    using accessor = gko::acc::reduced_row_major<2, ArthType, ValueType>;
+    using accessor =
+        gko::acc::reduced_row_major<2, ArthType, ValueType, IndexType>;
+    ensure_dense_access_fits<IndexType>(input.size[0], input.size[1],
+                                        input.stride);
+    ensure_product_fits<typename accessor::size_type>(input.size[0]);
+    ensure_product_fits<typename accessor::size_type>(input.size[1]);
+    ensure_product_fits<typename accessor::size_type>(input.stride);
     return range<accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(input.size[0]),
-             static_cast<acc::size_type>(input.size[1])}},
+        typename accessor::dim_type{
+            {static_cast<typename accessor::size_type>(input.size[0]),
+             static_cast<typename accessor::size_type>(input.size[1])}},
         input.values,
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input.stride)}});
+        typename accessor::storage_stride_type{
+            {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
-template <typename ArthType, typename ValueType>
+template <typename ArthType, typename IndexType, typename ValueType>
 auto build_rrm_accessor(matrix::view::dense<ValueType> input,
                         index_span column_span)
 {
-    using accessor = gko::acc::reduced_row_major<2, ArthType, ValueType>;
+    using accessor =
+        gko::acc::reduced_row_major<2, ArthType, ValueType, IndexType>;
     assert(column_span.is_valid());
+    ensure_dense_access_fits<IndexType>(
+        input.size[0], column_span.end - column_span.begin, input.stride);
+    ensure_product_fits<typename accessor::size_type>(input.size[0]);
+    ensure_product_fits<typename accessor::size_type>(column_span.end -
+                                                      column_span.begin);
+    ensure_product_fits<typename accessor::size_type>(input.stride);
     return range<accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(input.size[0]),
-             static_cast<acc::size_type>(column_span.end - column_span.begin)}},
+        typename accessor::dim_type{
+            {static_cast<typename accessor::size_type>(input.size[0]),
+             static_cast<typename accessor::size_type>(column_span.end -
+                                                       column_span.begin)}},
         input.values + column_span.begin,
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input.stride)}});
+        typename accessor::storage_stride_type{
+            {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
 
 // use a different name for const to allow the non-const to create const
 // accessor
-template <typename ArthType, typename ValueType>
+template <typename ArthType, typename IndexType, typename ValueType>
 auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input)
 {
-    using accessor = gko::acc::reduced_row_major<2, ArthType, const ValueType>;
+    using accessor =
+        gko::acc::reduced_row_major<2, ArthType, const ValueType, IndexType>;
+    ensure_dense_access_fits<IndexType>(input.size[0], input.size[1],
+                                        input.stride);
+    ensure_product_fits<typename accessor::size_type>(input.size[0]);
+    ensure_product_fits<typename accessor::size_type>(input.size[1]);
+    ensure_product_fits<typename accessor::size_type>(input.stride);
     return range<accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(input.size[0]),
-             static_cast<acc::size_type>(input.size[1])}},
+        typename accessor::dim_type{
+            {static_cast<typename accessor::size_type>(input.size[0]),
+             static_cast<typename accessor::size_type>(input.size[1])}},
         input.values,
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input.stride)}});
+        typename accessor::storage_stride_type{
+            {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
-template <typename ArthType, typename ValueType>
+template <typename ArthType, typename IndexType, typename ValueType>
 auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input,
                               index_span column_span)
 {
-    using accessor = gko::acc::reduced_row_major<2, ArthType, const ValueType>;
+    using accessor =
+        gko::acc::reduced_row_major<2, ArthType, const ValueType, IndexType>;
     assert(column_span.is_valid());
+    ensure_dense_access_fits<IndexType>(
+        input.size[0], column_span.end - column_span.begin, input.stride);
+    ensure_product_fits<typename accessor::size_type>(input.size[0]);
+    ensure_product_fits<typename accessor::size_type>(column_span.end -
+                                                      column_span.begin);
+    ensure_product_fits<typename accessor::size_type>(input.stride);
     return range<accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(input.size[0]),
-             static_cast<acc::size_type>(column_span.end - column_span.begin)}},
+        typename accessor::dim_type{
+            {static_cast<typename accessor::size_type>(input.size[0]),
+             static_cast<typename accessor::size_type>(column_span.end -
+                                                       column_span.begin)}},
         input.values + column_span.begin,
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input.stride)}});
+        typename accessor::storage_stride_type{
+            {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
 
 template <typename ArthType, typename ValueType, typename IndexType>
 auto build_rrm_accessor(matrix::view::csr<ValueType, IndexType> input)
 {
-    using accessor = gko::acc::reduced_row_major<1, ArthType, ValueType>;
+    using accessor =
+        gko::acc::reduced_row_major<1, ArthType, ValueType, IndexType>;
+    ensure_product_fits<IndexType>(input.num_stored_elements);
+    ensure_product_fits<typename accessor::size_type>(
+        input.num_stored_elements);
     return gko::acc::range<accessor>(
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input.num_stored_elements)}},
+        typename accessor::dim_type{{static_cast<typename accessor::size_type>(
+            input.num_stored_elements)}},
         input.values);
 }
 
@@ -94,10 +126,14 @@ template <typename ArthType, typename ValueType, typename IndexType>
 auto build_const_rrm_accessor(
     matrix::view::csr<const ValueType, const IndexType> input)
 {
-    using accessor = gko::acc::reduced_row_major<1, ArthType, const ValueType>;
+    using accessor =
+        gko::acc::reduced_row_major<1, ArthType, const ValueType, IndexType>;
+    ensure_product_fits<IndexType>(input.num_stored_elements);
+    ensure_product_fits<typename accessor::size_type>(
+        input.num_stored_elements);
     return gko::acc::range<accessor>(
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(input.num_stored_elements)}},
+        typename accessor::dim_type{{static_cast<typename accessor::size_type>(
+            input.num_stored_elements)}},
         input.values);
 }
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -104,7 +104,7 @@ public:
      *
      * @return  the length of the `dimension`-th dimension of the range
      */
-    GKO_ACC_ATTRIBUTES constexpr size_type length(size_type dimension) const
+    GKO_ACC_ATTRIBUTES constexpr auto length(size_type dimension) const
     {
         return accessor_.length(dimension);
     }

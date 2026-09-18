@@ -1932,6 +1932,7 @@ void merge_path_spmv(
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    ensure_sum_fits<IndexType>(a.size[0], a.num_stored_elements);
     const IndexType total = a.size[0] + a.num_stored_elements;
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
@@ -1945,15 +1946,22 @@ void merge_path_spmv(
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
 
-    for (IndexType column_id = 0; column_id < b.size[1]; column_id++) {
-        const auto column_span =
-            acc::index_span(static_cast<acc::size_type>(column_id),
-                            static_cast<acc::size_type>(column_id + 1));
-        const auto b_vals =
-            acc::helper::build_const_rrm_accessor<arithmetic_type>(b,
-                                                                   column_span);
-        auto c_vals =
-            acc::helper::build_rrm_accessor<arithmetic_type>(c, column_span);
+    // Every column has the same dimensions and stride. Validate both operands
+    // before launching any work, using only the offsets within one column.
+    const auto first_b_vals =
+        acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(
+            b, acc::index_span{0, 1});
+    const auto first_c_vals =
+        acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(
+            c, acc::index_span{0, 1});
+
+    for (size_type column_id = 0; column_id < b.size[1]; column_id++) {
+        const auto b_vals = decltype(first_b_vals){first_b_vals->get_size(),
+                                                   b.values + column_id,
+                                                   first_b_vals->get_stride()};
+        auto c_vals = decltype(first_c_vals){first_c_vals->get_size(),
+                                             c.values + column_id,
+                                             first_c_vals->get_stride()};
         if (!alpha && !beta) {
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
@@ -2086,8 +2094,9 @@ void classical_spmv(
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+        acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(b);
+    auto c_vals =
+        acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
     if (!alpha && !beta) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
@@ -2147,11 +2156,14 @@ bool load_balance_spmv(
     } else
 #endif
     {
-        if (beta) {
-            dense::scale(exec, *beta, c);
-        } else {
-            dense::fill(exec, c, zero<OutputValueType>());
-        }
+        const auto initialize_output = [&] {
+            if (beta) {
+                dense::scale(exec, *beta, c);
+            } else {
+                dense::fill(exec, c, zero<OutputValueType>());
+            }
+        };
+        ensure_product_fits<IndexType>(num_srow_elements);
         const IndexType nwarps = num_srow_elements;
         if (nwarps > 0) {
             const dim3 csr_block(config::warp_size, warps_in_block, 1);
@@ -2159,8 +2171,11 @@ bool load_balance_spmv(
             const auto a_vals =
                 acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
             const auto b_vals =
-                acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-            auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+                acc::helper::build_const_rrm_accessor<arithmetic_type,
+                                                      IndexType>(b);
+            auto c_vals =
+                acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
+            initialize_output();
             if (alpha) {
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     kernel::abstract_spmv<<<csr_grid, csr_block, 0,
@@ -2183,6 +2198,8 @@ bool load_balance_spmv(
                         acc::as_device_range(c_vals));
                 }
             }
+        } else {
+            initialize_output();
         }
         return true;
     }

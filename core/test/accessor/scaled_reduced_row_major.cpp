@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,11 +9,13 @@
 #include <limits>
 #include <tuple>
 #include <type_traits>
+#include <utility>
 
 #include <gtest/gtest.h>
 
 #include "accessor/index_span.hpp"
 #include "accessor/range.hpp"
+#include "core/test/accessor/utils.hpp"
 
 
 namespace {
@@ -455,6 +457,97 @@ TEST_F(ScaledReducedStorageXd, CanWrite2)
     data_equal_except_for(5);
     scalar_equal_except_for(99);
     EXPECT_NEAR(r2(1, 1), 0.5, delta);
+}
+
+
+template <typename IndexSizeTypes>
+class ScaledReducedStorageXdIndexType : public ScaledReducedStorageXd {};
+
+TYPED_TEST_SUITE(ScaledReducedStorageXdIndexType,
+                 gko::acc::test::IndexSizeTypes);
+
+TYPED_TEST(ScaledReducedStorageXdIndexType, AddressMatchesDefaultIndexType)
+{
+    using ar_type = typename TestFixture::ar_type;
+    using st_type = typename TestFixture::st_type;
+
+    using ref_acc = gko::acc::scaled_reduced_row_major<2, ar_type, st_type, 3>;
+    using alt_acc =
+        gko::acc::scaled_reduced_row_major<2, ar_type, st_type, 3,
+                                           typename TypeParam::index_type,
+                                           typename TypeParam::size_type>;
+    gko::acc::range<ref_acc> ref{typename ref_acc::dim_type{{2, 2}}, this->data,
+                                 typename ref_acc::storage_stride_type{{4}},
+                                 this->scalar,
+                                 typename ref_acc::scalar_stride_type{{5}}};
+    gko::acc::range<alt_acc> alt{typename alt_acc::dim_type{{2, 2}}, this->data,
+                                 typename alt_acc::storage_stride_type{{4}},
+                                 this->scalar,
+                                 typename alt_acc::scalar_stride_type{{5}}};
+
+    EXPECT_EQ(ref(0, 0), alt(0, 0));
+    EXPECT_EQ(ref(0, 1), alt(0, 1));
+    EXPECT_EQ(ref(1, 1), alt(1, 1));
+
+    using span = gko::acc::index_span;
+    auto sub = alt(span{0, 2}, span{1, 2});
+    auto const_sub = sub->to_const();
+    static_assert(std::is_same<decltype(const_sub.length(0)),
+                               typename TypeParam::size_type>::value);
+    EXPECT_EQ(const_sub(1, 0), ref(1, 1));
+    sub->write_scalar_direct(ar_type{0.25}, 1, 0);
+    EXPECT_EQ(this->scalar[6], ar_type{0.25});
+    EXPECT_EQ(const_sub(1, 0), ref(1, 1));
+
+    alt(0, 0) = ar_type{7.0};
+    EXPECT_EQ(ref(0, 0), alt(0, 0));
+}
+
+
+TYPED_TEST(ScaledReducedStorageXdIndexType, ComputeMaskedIndexReturnsIndexType)
+{
+    // same configuration as accessor2d: mask 0b11, dimensionality 2
+    constexpr std::uint64_t mask{3};
+    constexpr std::size_t stride_size{1};
+    using size_array = std::array<typename TypeParam::size_type, 2>;
+    using stride_array = std::array<typename TypeParam::size_type, stride_size>;
+    using masked_result =
+        decltype(gko::acc::helper::compute_masked_index<
+                 typename TypeParam::index_type, mask, stride_size>(
+            std::declval<size_array>(), std::declval<stride_array>(), 0, 0));
+    using direct_result =
+        decltype(gko::acc::helper::compute_masked_index_direct<
+                 typename TypeParam::index_type, mask, stride_size>(
+            std::declval<size_array>(), std::declval<stride_array>(), 0, 0));
+
+    static_assert(
+        std::is_same<masked_result, typename TypeParam::index_type>::value,
+        "scaled_reduced_row_major masked index computation must "
+        "return IndexType");
+    static_assert(
+        std::is_same<direct_result, typename TypeParam::index_type>::value,
+        "scaled_reduced_row_major direct scalar index computation "
+        "must return IndexType");
+}
+
+
+TEST_F(ScaledReducedStorageXd, ComputesWideScalarOffsetWithNarrowSizes)
+{
+    const std::array<std::int32_t, 3> sizes{{50000, 1, 50000}};
+    const std::array<std::int32_t, 1> strides{{50000}};
+    constexpr std::uint64_t mask{0b101};
+    constexpr std::size_t stride_size{1};
+
+    const auto masked =
+        gko::acc::helper::compute_masked_index<std::int64_t, mask, stride_size>(
+            sizes, strides, 49999, 0, 49999);
+    const auto direct =
+        gko::acc::helper::compute_masked_index_direct<std::int64_t, mask,
+                                                      stride_size>(
+            sizes, strides, 49999, 49999);
+
+    EXPECT_EQ(masked, std::int64_t{2499999999});
+    EXPECT_EQ(direct, masked);
 }
 
 
