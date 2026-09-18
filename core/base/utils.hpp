@@ -6,11 +6,15 @@
 #define GKO_CORE_BASE_UTILS_HPP_
 
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <memory>
 #include <type_traits>
 
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -206,17 +210,80 @@ constexpr std::array<T, sizeof...(Args)> to_std_array(Args&&... args)
 
 
 /**
- * Checks if the given non-negative value is representable in IndexType.
- *
- * @tparam IndexType  The index type to check against.
- *
- * @param value  The value to check.
+ * Throws OverflowError if the product of the given non-negative integers
+ * cannot be represented in IntegerType, without overflowing during the check.
+ * A single argument checks whether that value is representable.
+ */
+template <typename IntegerType, typename... Factors>
+void ensure_product_fits(Factors... values)
+{
+    const std::array<std::uint64_t, sizeof...(Factors)> factors{
+        static_cast<std::uint64_t>(values)...};
+
+    // Any zero factor makes the whole product zero.
+    // Also prevents division by zero in the loop below.
+    if (std::find(factors.begin(), factors.end(), 0) != factors.end()) {
+        return;
+    }
+
+    constexpr auto limit =
+        static_cast<std::uint64_t>(std::numeric_limits<IntegerType>::max());
+    std::uint64_t product = 1;
+    for (auto factor : factors) {
+        if (factor > limit / product) {
+            throw OverflowError{
+                __FILE__, __LINE__,
+                name_demangling::get_type_name(typeid(IntegerType))};
+        }
+        product *= factor;
+    }
+}
+
+
+/**
+ * Throws OverflowError if the sum of the given non-negative integers cannot
+ * be represented in IntegerType, without overflowing during the check.
+ */
+template <typename IntegerType, typename... Terms>
+void ensure_sum_fits(Terms... values)
+{
+    const std::array<std::uint64_t, sizeof...(Terms)> terms{
+        static_cast<std::uint64_t>(values)...};
+    constexpr auto limit =
+        static_cast<std::uint64_t>(std::numeric_limits<IntegerType>::max());
+
+    std::uint64_t sum = 0;
+    for (auto term : terms) {
+        if (term > limit - sum) {
+            throw OverflowError{
+                __FILE__, __LINE__,
+                name_demangling::get_type_name(typeid(IntegerType))};
+        }
+        sum += term;
+    }
+}
+
+
+/**
+ * Throws OverflowError if the last accessed offset of a dense view cannot be
+ * represented in IndexType. Dimensions and stride are non-negative; their
+ * storage types must be checked separately.
  */
 template <typename IndexType>
-constexpr bool fits_index_type(std::uint64_t value)
+void ensure_dense_access_fits(std::uint64_t rows, std::uint64_t cols,
+                              std::uint64_t stride)
 {
-    return value <=
-           static_cast<std::uint64_t>(std::numeric_limits<IndexType>::max());
+    // Check the last accessed element, excluding unused padding after the last
+    // row. Empty views have no element offsets to check.
+    if (rows == 0 || cols == 0) {
+        return;
+    }
+
+    ensure_product_fits<IndexType>(rows - 1, stride);
+
+    // Safe to multiply after the product check above.
+    const auto last_row_offset = (rows - 1) * stride;
+    ensure_sum_fits<IndexType>(last_row_offset, cols - 1);
 }
 
 

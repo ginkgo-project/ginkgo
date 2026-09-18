@@ -289,14 +289,18 @@ void abstract_spmv(
     } else
 #endif
     {
-        GKO_ASSERT(
-            fits_index_type<IndexType>(num_stored_elements_per_row * stride));
-        GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
+        ensure_product_fits<IndexType>(num_stored_elements_per_row, stride);
+        ensure_dense_access_fits<IndexType>(b.size[0], b.size[1], b.stride);
+        ensure_product_fits<typename a_accessor::size_type>(
+            num_stored_elements_per_row, stride);
         const auto a_vals = acc::range<a_accessor>(
             typename a_accessor::dim_type{
                 {static_cast<typename a_accessor::size_type>(
                     num_stored_elements_per_row * stride)}},
             a.values);
+        ensure_product_fits<typename b_accessor::size_type>(b.size[0]);
+        ensure_product_fits<typename b_accessor::size_type>(b.size[1]);
+        ensure_product_fits<typename b_accessor::size_type>(b.stride);
         const auto b_vals = acc::range<b_accessor>(
             typename b_accessor::dim_type{
                 {static_cast<typename b_accessor::size_type>(b.size[0]),
@@ -304,6 +308,15 @@ void abstract_spmv(
             b.values,
             typename b_accessor::storage_stride_type{
                 {static_cast<typename b_accessor::size_type>(b.stride)}});
+
+        // Validate the accessors before modifying the output.
+        if constexpr (atomic) {
+            if (beta) {
+                dense::scale(exec, *beta, c);
+            } else {
+                dense::fill(exec, c, zero<OutputValueType>());
+            }
+        }
 
         if (!alpha && !beta) {
             if (grid_size.x > 0 && grid_size.y > 0) {
@@ -399,9 +412,6 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
      * operation for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * num_thread_per_worker;
-    if (atomic) {
-        dense::fill(exec, c, zero<OutputValueType>());
-    }
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },
@@ -433,9 +443,6 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
      * operation for other value, it uses the kernel without atomic_add
      */
     const int info = (!atomic) * num_thread_per_worker;
-    if (atomic) {
-        dense::scale(exec, beta, c);
-    }
     select_abstract_spmv(
         compiled_kernels(),
         [&info](int compiled_info) { return info == compiled_info; },

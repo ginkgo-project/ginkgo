@@ -558,8 +558,12 @@ void convert_to_fbcsr(std::shared_ptr<const ReferenceExecutor> exec,
     const auto nzbs = result->get_num_stored_blocks();
     const auto num_block_rows = num_rows / bs;
     const auto num_block_cols = num_cols / bs;
-    GKO_ASSERT(fits_index_type<IndexType>(nzbs * bs * bs));
     using accessor = acc::block_col_major<ValueType, 3, IndexType>;
+    ensure_product_fits<typename accessor::size_type>(nzbs);
+    ensure_product_fits<typename accessor::size_type>(bs, bs);
+    // Each block occupies a contiguous chunk; check its final offset.
+    const auto block_stride = static_cast<std::uint64_t>(bs) * bs;
+    ensure_dense_access_fits<IndexType>(nzbs, block_stride, block_stride);
     acc::range<accessor> blocks(
         to_std_array<typename accessor::size_type>(nzbs, bs, bs),
         result->get_values());

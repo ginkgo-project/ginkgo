@@ -24,7 +24,11 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input)
 {
     using accessor =
         gko::acc::reduced_row_major<2, ArthType, ValueType, IndexType>;
-    GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
+    ensure_dense_access_fits<IndexType>(input.size[0], input.size[1],
+                                        input.stride);
+    ensure_product_fits<typename accessor::size_type>(input.size[0]);
+    ensure_product_fits<typename accessor::size_type>(input.size[1]);
+    ensure_product_fits<typename accessor::size_type>(input.stride);
     return range<accessor>(
         typename accessor::dim_type{
             {static_cast<typename accessor::size_type>(input.size[0]),
@@ -41,7 +45,12 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input,
     using accessor =
         gko::acc::reduced_row_major<2, ArthType, ValueType, IndexType>;
     assert(column_span.is_valid());
-    GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
+    ensure_dense_access_fits<IndexType>(
+        input.size[0], column_span.end - column_span.begin, input.stride);
+    ensure_product_fits<typename accessor::size_type>(input.size[0]);
+    ensure_product_fits<typename accessor::size_type>(column_span.end -
+                                                      column_span.begin);
+    ensure_product_fits<typename accessor::size_type>(input.stride);
     return range<accessor>(
         typename accessor::dim_type{
             {static_cast<typename accessor::size_type>(input.size[0]),
@@ -60,7 +69,11 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input)
 {
     using accessor =
         gko::acc::reduced_row_major<2, ArthType, const ValueType, IndexType>;
-    GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
+    ensure_dense_access_fits<IndexType>(input.size[0], input.size[1],
+                                        input.stride);
+    ensure_product_fits<typename accessor::size_type>(input.size[0]);
+    ensure_product_fits<typename accessor::size_type>(input.size[1]);
+    ensure_product_fits<typename accessor::size_type>(input.stride);
     return range<accessor>(
         typename accessor::dim_type{
             {static_cast<typename accessor::size_type>(input.size[0]),
@@ -77,7 +90,12 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input,
     using accessor =
         gko::acc::reduced_row_major<2, ArthType, const ValueType, IndexType>;
     assert(column_span.is_valid());
-    GKO_ASSERT(fits_index_type<IndexType>(input.size[0] * input.stride));
+    ensure_dense_access_fits<IndexType>(
+        input.size[0], column_span.end - column_span.begin, input.stride);
+    ensure_product_fits<typename accessor::size_type>(input.size[0]);
+    ensure_product_fits<typename accessor::size_type>(column_span.end -
+                                                      column_span.begin);
+    ensure_product_fits<typename accessor::size_type>(input.stride);
     return range<accessor>(
         typename accessor::dim_type{
             {static_cast<typename accessor::size_type>(input.size[0]),
@@ -94,6 +112,9 @@ auto build_rrm_accessor(matrix::view::csr<ValueType, IndexType> input)
 {
     using accessor =
         gko::acc::reduced_row_major<1, ArthType, ValueType, IndexType>;
+    ensure_product_fits<IndexType>(input.num_stored_elements);
+    ensure_product_fits<typename accessor::size_type>(
+        input.num_stored_elements);
     return gko::acc::range<accessor>(
         typename accessor::dim_type{{static_cast<typename accessor::size_type>(
             input.num_stored_elements)}},
@@ -107,6 +128,9 @@ auto build_const_rrm_accessor(
 {
     using accessor =
         gko::acc::reduced_row_major<1, ArthType, const ValueType, IndexType>;
+    ensure_product_fits<IndexType>(input.num_stored_elements);
+    ensure_product_fits<typename accessor::size_type>(
+        input.num_stored_elements);
     return gko::acc::range<accessor>(
         typename accessor::dim_type{{static_cast<typename accessor::size_type>(
             input.num_stored_elements)}},

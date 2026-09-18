@@ -190,6 +190,10 @@ void classical_spmv(
         std::optional<matrix::view::dense<const OutputValueType>>>
         beta = {})
 {
+    if (c.size[0] == 0 || c.size[1] == 0) {
+        // empty output: nothing to do
+        return;
+    }
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using input_accessor =
@@ -208,8 +212,11 @@ void classical_spmv(
     const dim3 grid(gridx, b.size[1]);
     const auto block = spmv_block_size;
 
-    GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
-    GKO_ASSERT(fits_index_type<IndexType>(c.size[0] * c.stride));
+    ensure_dense_access_fits<IndexType>(b.size[0], b.size[1], b.stride);
+    ensure_dense_access_fits<IndexType>(c.size[0], c.size[1], c.stride);
+    ensure_product_fits<typename input_accessor::size_type>(b.size[0]);
+    ensure_product_fits<typename input_accessor::size_type>(b.size[1]);
+    ensure_product_fits<typename input_accessor::size_type>(b.stride);
     const auto b_vals = gko::acc::range<input_accessor>(
         typename input_accessor::dim_type{
             {static_cast<typename input_accessor::size_type>(b.size[0]),
@@ -217,6 +224,9 @@ void classical_spmv(
         b.values,
         typename input_accessor::storage_stride_type{
             {static_cast<typename input_accessor::size_type>(b.stride)}});
+    ensure_product_fits<typename output_accessor::size_type>(c.size[0]);
+    ensure_product_fits<typename output_accessor::size_type>(c.size[1]);
+    ensure_product_fits<typename output_accessor::size_type>(c.stride);
     auto c_vals = gko::acc::range<output_accessor>(
         typename output_accessor::dim_type{
             {static_cast<typename output_accessor::size_type>(c.size[0]),
@@ -224,10 +234,6 @@ void classical_spmv(
         c.values,
         typename output_accessor::storage_stride_type{
             {static_cast<typename output_accessor::size_type>(c.stride)}});
-    if (c.size[0] == 0 || c.size[1] == 0) {
-        // empty output: nothing to do
-        return;
-    }
     if (!alpha && !beta) {
         kernel::abstract_classical_spmv<subwarp_size>
             <<<grid, block, 0, exec->get_stream()>>>(

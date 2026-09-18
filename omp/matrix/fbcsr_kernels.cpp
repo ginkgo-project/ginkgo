@@ -48,8 +48,12 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     const size_type nbnz = a->get_num_stored_blocks();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
     using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    ensure_product_fits<typename accessor::size_type>(nbnz);
+    ensure_product_fits<typename accessor::size_type>(bs, bs);
+    // Each block occupies a contiguous chunk; check its final offset.
+    const auto block_stride = static_cast<std::uint64_t>(bs) * bs;
+    ensure_dense_access_fits<IndexType>(nbnz, block_stride, block_stride);
     const acc::range<accessor> avalues{
         to_std_array<typename accessor::size_type>(nbnz, bs, bs),
         a->get_const_values()};
@@ -96,8 +100,12 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto col_idxs = a->get_const_col_idxs();
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
-    GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
     using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    ensure_product_fits<typename accessor::size_type>(nbnz);
+    ensure_product_fits<typename accessor::size_type>(bs, bs);
+    // Each block occupies a contiguous chunk; check its final offset.
+    const auto block_stride = static_cast<std::uint64_t>(bs) * bs;
+    ensure_dense_access_fits<IndexType>(nbnz, block_stride, block_stride);
     const acc::range<accessor> avalues{
         to_std_array<typename accessor::size_type>(nbnz, bs, bs),
         a->get_const_values()};
@@ -200,8 +208,12 @@ void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
     const auto nbnz = source->get_num_stored_blocks();
     auto row_ptrs = source->get_const_row_ptrs();
     auto col_idxs = source->get_const_col_idxs();
-    GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
     using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    ensure_product_fits<typename accessor::size_type>(nbnz);
+    ensure_product_fits<typename accessor::size_type>(bs, bs);
+    // Each block occupies a contiguous chunk; check its final offset.
+    const auto block_stride = static_cast<std::uint64_t>(bs) * bs;
+    ensure_dense_access_fits<IndexType>(nbnz, block_stride, block_stride);
     const acc::range<accessor> values{
         to_std_array<typename accessor::size_type>(nbnz, bs, bs),
         source->get_const_values()};
@@ -238,9 +250,11 @@ void convert_to_csr(const std::shared_ptr<const OmpExecutor> exec,
     const auto row_ptrs = result.row_ptrs;
     const auto col_idxs = result.col_idxs;
     const auto vals = result.values;
-    GKO_ASSERT(fits_index_type<IndexType>(
-        static_cast<size_type>(block_row_ptrs[nbrows]) * bs * bs));
+    ensure_product_fits<IndexType>(
+        static_cast<size_type>(block_row_ptrs[nbrows]), bs, bs);
     using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    ensure_product_fits<typename accessor::size_type>(block_row_ptrs[nbrows]);
+    ensure_product_fits<typename accessor::size_type>(bs, bs);
     auto sizes = gko::to_std_array<typename accessor::size_type>(
         block_row_ptrs[nbrows], bs, bs);
     const auto block_vals =
@@ -284,9 +298,13 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
                             IndexType* const col_ptrs,
                             ValueType* const csc_vals, UnaryOperator op)
 {
-    GKO_ASSERT(fits_index_type<IndexType>(
-        static_cast<size_type>(row_ptrs[num_blk_rows]) * blksz * blksz));
     using accessor = acc::block_col_major<ValueType, 3, IndexType>;
+    ensure_product_fits<typename accessor::size_type>(row_ptrs[num_blk_rows]);
+    ensure_product_fits<typename accessor::size_type>(blksz, blksz);
+    // Each block occupies a contiguous chunk; check its final offset.
+    const auto block_stride = static_cast<std::uint64_t>(blksz) * blksz;
+    ensure_dense_access_fits<IndexType>(row_ptrs[num_blk_rows], block_stride,
+                                        block_stride);
     auto sizes = gko::to_std_array<typename accessor::size_type>(
         row_ptrs[num_blk_rows], blksz, blksz);
     const acc::range<typename accessor::const_accessor> rvalues(sizes,
@@ -326,6 +344,13 @@ void transpose_and_transform(
     const IndexType nbcols = orig->get_num_block_cols();
     const IndexType nbrows = orig->get_num_block_rows();
     auto orig_nbnz = orig_row_ptrs[nbrows];
+
+    using accessor = acc::block_col_major<ValueType, 3, IndexType>;
+    ensure_product_fits<typename accessor::size_type>(orig_nbnz);
+    ensure_product_fits<typename accessor::size_type>(bs, bs);
+    // Each block occupies a contiguous chunk; check its final offset.
+    const auto block_stride = static_cast<std::uint64_t>(bs) * bs;
+    ensure_dense_access_fits<IndexType>(orig_nbnz, block_stride, block_stride);
 
     components::fill_array(exec, trans_row_ptrs, nbcols + 1, IndexType{});
     for (size_type i = 0; i < orig_nbnz; i++) {
@@ -464,9 +489,13 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 
     assert(diag->get_size()[0] == nbdim_min * bs);
 
-    GKO_ASSERT(fits_index_type<IndexType>(
-        static_cast<size_type>(row_ptrs[nbrows]) * bs * bs));
     using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    ensure_product_fits<typename accessor::size_type>(row_ptrs[nbrows]);
+    ensure_product_fits<typename accessor::size_type>(bs, bs);
+    // Each block occupies a contiguous chunk; check its final offset.
+    const auto block_stride = static_cast<std::uint64_t>(bs) * bs;
+    ensure_dense_access_fits<IndexType>(row_ptrs[nbrows], block_stride,
+                                        block_stride);
     const acc::range<accessor> vblocks(
         gko::to_std_array<typename accessor::size_type>(row_ptrs[nbrows], bs,
                                                         bs),
