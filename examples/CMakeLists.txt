@@ -65,6 +65,7 @@ if(GINKGO_BUILD_MPI)
         EXAMPLES_LIST
         distributed-solver
         distributed-multigrid-preconditioned-solver
+        mpi-logger
     )
 endif()
 
