@@ -559,8 +559,10 @@ void convert_to_fbcsr(std::shared_ptr<const ReferenceExecutor> exec,
     const auto num_block_rows = num_rows / bs;
     const auto num_block_cols = num_cols / bs;
     GKO_ASSERT(fits_index_type<IndexType>(nzbs * bs * bs));
-    acc::range<acc::block_col_major<ValueType, 3, IndexType>> blocks(
-        to_std_array<IndexType>(nzbs, bs, bs), result->get_values());
+    using accessor = acc::block_col_major<ValueType, 3, IndexType>;
+    acc::range<accessor> blocks(
+        to_std_array<typename accessor::size_type>(nzbs, bs, bs),
+        result->get_values());
     auto col_idxs = result->get_col_idxs();
     for (size_type brow = 0; brow < num_block_rows; ++brow) {
         auto block = result->get_const_row_ptrs()[brow];

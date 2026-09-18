@@ -52,14 +52,16 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
     GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
     const auto a_vals = gko::acc::range<a_accessor>(
         typename a_accessor::dim_type{
-            {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
+            {static_cast<typename a_accessor::size_type>(
+                num_stored_elements_per_row * stride)}},
         a.values);
     const auto b_vals = gko::acc::range<b_accessor>(
-        typename b_accessor::dim_type{{static_cast<IndexType>(b.size[0]),
-                                       static_cast<IndexType>(b.size[1])}},
+        typename b_accessor::dim_type{
+            {static_cast<typename b_accessor::size_type>(b.size[0]),
+             static_cast<typename b_accessor::size_type>(b.size[1])}},
         b.values,
         typename b_accessor::storage_stride_type{
-            {static_cast<IndexType>(b.stride)}});
+            {static_cast<typename b_accessor::size_type>(b.stride)}});
 
 #pragma omp parallel for
     for (size_type row = 0; row < a.size[0]; row++) {
@@ -107,14 +109,16 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
     GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
     const auto a_vals = gko::acc::range<a_accessor>(
         typename a_accessor::dim_type{
-            {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
+            {static_cast<typename a_accessor::size_type>(
+                num_stored_elements_per_row * stride)}},
         a.values);
     const auto b_vals = gko::acc::range<b_accessor>(
-        typename b_accessor::dim_type{{static_cast<IndexType>(b.size[0]),
-                                       static_cast<IndexType>(b.size[1])}},
+        typename b_accessor::dim_type{
+            {static_cast<typename b_accessor::size_type>(b.size[0]),
+             static_cast<typename b_accessor::size_type>(b.size[1])}},
         b.values,
         typename b_accessor::storage_stride_type{
-            {static_cast<IndexType>(b.stride)}});
+            {static_cast<typename b_accessor::size_type>(b.stride)}});
 
     const auto num_rhs = b.size[1];
     const auto rounded_rhs = num_rhs / block_size * block_size;

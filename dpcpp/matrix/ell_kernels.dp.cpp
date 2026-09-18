@@ -336,14 +336,16 @@ void abstract_spmv(
         GKO_ASSERT(fits_index_type<IndexType>(b.size[0] * b.stride));
         const auto a_vals = gko::acc::range<a_accessor>(
             typename a_accessor::dim_type{
-                {static_cast<IndexType>(num_stored_elements_per_row * stride)}},
+                {static_cast<typename a_accessor::size_type>(
+                    num_stored_elements_per_row * stride)}},
             a.values);
         const auto b_vals = gko::acc::range<b_accessor>(
-            typename b_accessor::dim_type{{static_cast<IndexType>(b.size[0]),
-                                           static_cast<IndexType>(b.size[1])}},
+            typename b_accessor::dim_type{
+                {static_cast<typename b_accessor::size_type>(b.size[0]),
+                 static_cast<typename b_accessor::size_type>(b.size[1])}},
             b.values,
             typename b_accessor::storage_stride_type{
-                {static_cast<IndexType>(b.stride)}});
+                {static_cast<typename b_accessor::size_type>(b.stride)}});
 
         if (!alpha && !beta) {
             kernel::spmv<num_thread_per_worker, atomic>(

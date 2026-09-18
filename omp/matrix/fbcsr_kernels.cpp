@@ -49,8 +49,10 @@ void spmv(std::shared_ptr<const OmpExecutor> exec,
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
     GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<accessor> avalues{
+        to_std_array<typename accessor::size_type>(nbnz, bs, bs),
+        a->get_const_values()};
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
@@ -95,8 +97,10 @@ void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
     GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        avalues{to_std_array<IndexType>(nbnz, bs, bs), a->get_const_values()};
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<accessor> avalues{
+        to_std_array<typename accessor::size_type>(nbnz, bs, bs),
+        a->get_const_values()};
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
@@ -197,9 +201,10 @@ void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
     auto row_ptrs = source->get_const_row_ptrs();
     auto col_idxs = source->get_const_col_idxs();
     GKO_ASSERT(fits_index_type<IndexType>(nbnz * bs * bs));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        values{to_std_array<IndexType>(nbnz, bs, bs),
-               source->get_const_values()};
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<accessor> values{
+        to_std_array<typename accessor::size_type>(nbnz, bs, bs),
+        source->get_const_values()};
 #pragma omp parallel for
     for (size_type block_row = 0; block_row < nbrows; block_row++) {
         const auto row_begin = row_ptrs[block_row];
@@ -235,10 +240,11 @@ void convert_to_csr(const std::shared_ptr<const OmpExecutor> exec,
     const auto vals = result.values;
     GKO_ASSERT(fits_index_type<IndexType>(
         static_cast<size_type>(block_row_ptrs[nbrows]) * bs * bs));
-    auto sizes = gko::to_std_array<IndexType>(block_row_ptrs[nbrows], bs, bs);
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    auto sizes = gko::to_std_array<typename accessor::size_type>(
+        block_row_ptrs[nbrows], bs, bs);
     const auto block_vals =
-        acc::range<acc::block_col_major<const ValueType, 3, IndexType>>(
-            sizes, source->get_const_values());
+        acc::range<accessor>(sizes, source->get_const_values());
 #pragma omp parallel for
     for (IndexType block_row = 0; block_row < nbrows; block_row++) {
         const auto block_row_begin = block_row_ptrs[block_row];
@@ -280,12 +286,12 @@ void convert_fbcsr_to_fbcsc(const IndexType num_blk_rows, const int blksz,
 {
     GKO_ASSERT(fits_index_type<IndexType>(
         static_cast<size_type>(row_ptrs[num_blk_rows]) * blksz * blksz));
-    auto sizes =
-        gko::to_std_array<IndexType>(row_ptrs[num_blk_rows], blksz, blksz);
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        rvalues(sizes, fbcsr_vals);
-    acc::range<acc::block_col_major<ValueType, 3, IndexType>> cvalues(sizes,
-                                                                      csc_vals);
+    using accessor = acc::block_col_major<ValueType, 3, IndexType>;
+    auto sizes = gko::to_std_array<typename accessor::size_type>(
+        row_ptrs[num_blk_rows], blksz, blksz);
+    const acc::range<typename accessor::const_accessor> rvalues(sizes,
+                                                                fbcsr_vals);
+    acc::range<accessor> cvalues(sizes, csc_vals);
     for (IndexType brow = 0; brow < num_blk_rows; ++brow) {
         for (auto i = row_ptrs[brow]; i < row_ptrs[brow + 1]; ++i) {
             const auto dest_idx = col_ptrs[col_idxs[i]];
@@ -460,8 +466,11 @@ void extract_diagonal(std::shared_ptr<const OmpExecutor> exec,
 
     GKO_ASSERT(fits_index_type<IndexType>(
         static_cast<size_type>(row_ptrs[nbrows]) * bs * bs));
-    const acc::range<acc::block_col_major<const ValueType, 3, IndexType>>
-        vblocks(gko::to_std_array<IndexType>(row_ptrs[nbrows], bs, bs), values);
+    using accessor = acc::block_col_major<const ValueType, 3, IndexType>;
+    const acc::range<accessor> vblocks(
+        gko::to_std_array<typename accessor::size_type>(row_ptrs[nbrows], bs,
+                                                        bs),
+        values);
 
 #pragma omp parallel for
     for (IndexType ibrow = 0; ibrow < nbdim_min; ++ibrow) {
