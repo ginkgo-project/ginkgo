@@ -4,9 +4,9 @@
 
 #include "core/multigrid/pmis_kernels.hpp"
 
-#include <random>
-
 #include <ginkgo/core/base/exception_helpers.hpp>
+
+#include "omp/components/atomic.hpp"
 
 namespace gko {
 namespace kernels {
@@ -14,18 +14,19 @@ namespace omp {
 namespace pmis {
 
 
-template <typename ValueType>
-void initialize_random_weight(std::shared_ptr<const DefaultExecutor> exec,
-                              size_type num, ValueType* weight)
+template <typename IndexType>
+void add_at_indices(std::shared_ptr<const DefaultExecutor> exec, size_type num,
+                    const IndexType* idxs, const IndexType* values,
+                    IndexType* out)
 {
-    std::default_random_engine gen(kernels::pmis::random_seed);
-    std::uniform_real_distribution<ValueType> dist(0.0, 1.0);
-    for (size_type row = 0; row < num; row++) {
-        weight[row] = dist(gen);
+    // idxs may repeat across neighbours, hence the atomic
+#pragma omp parallel for
+    for (size_type i = 0; i < num; i++) {
+        atomic_add(out[idxs[i]], values ? values[i] : IndexType{1});
     }
 }
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(
-    GKO_DECLARE_PMIS_INITIALIZE_RANDOM_WEIGHT_KERNEL);
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PMIS_ADD_AT_INDICES);
 
 
 }  // namespace pmis
