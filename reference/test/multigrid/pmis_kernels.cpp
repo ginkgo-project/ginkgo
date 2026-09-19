@@ -6,6 +6,8 @@
 
 #include <array>
 #include <memory>
+#include <utility>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -18,6 +20,7 @@
 #include <ginkgo/core/stop/combined.hpp>
 
 #include "core/components/prefix_sum_kernels.hpp"
+#include "core/multigrid/pmis_helpers.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
 
@@ -108,6 +111,21 @@ protected:
                            {1, 1, value_type{1}}}});
     }
 
+    // one selection round over a single block, as core/multigrid/pmis.cpp
+    // drives it
+    void classify(const real_type* weight, const index_type* global_idx,
+                  const SparsityCsr* strong_dep, const int* status,
+                  int* new_status)
+    {
+        gko::multigrid::pmis::classify_round(
+            exec, strong_dep->get_size()[0],
+            std::vector<
+                gko::multigrid::pmis::column_block<SparsityCsr, index_type>>{
+                {strong_dep, false, index_type{0}}},
+            weight, global_idx, status, new_status, [] {});
+    }
+
+
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::array<std::shared_ptr<Mtx>, 2> mtx;
     std::array<gko::array<real_type>, 2> row_maxabs;
@@ -129,12 +147,36 @@ TYPED_TEST(Pmis, ComputeRowMaxAbs)
         SCOPED_TRACE(i);
         gko::array<real_type> maxabs(this->exec,
                                      this->mtx.at(i)->get_size()[0]);
+        maxabs.fill(gko::zero<real_type>());
 
         gko::kernels::reference::pmis::compute_row_maxabs(
-            this->exec, this->mtx.at(i).get(), maxabs.get_data());
+            this->exec, this->mtx.at(i).get(), true, maxabs.get_data());
 
         GKO_ASSERT_ARRAY_EQ(maxabs, this->row_maxabs.at(i));
     }
+}
+
+
+TYPED_TEST(Pmis, ComputeRowMaxAbsWithoutDiagonalKeepsMatchingIndex)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    using Mtx = typename TestFixture::Mtx;
+    // an off-diagonal block: column index 0 in row 0 is a remote node, not a
+    // diagonal entry, so it must NOT be skipped
+    auto off_diag = Mtx::create(
+        this->exec, gko::dim<2>{2, 1},
+        gko::array<value_type>(this->exec, {value_type{7}, value_type{3}}),
+        gko::array<index_type>(this->exec, {0, 0}),
+        gko::array<index_type>(this->exec, {0, 1, 2}));
+    gko::array<real_type> maxabs(this->exec, {0, 0});
+    gko::array<real_type> expected(this->exec, {7, 3});
+
+    gko::kernels::reference::pmis::compute_row_maxabs(
+        this->exec, off_diag.get(), false, maxabs.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(maxabs, expected);
 }
 
 
@@ -148,7 +190,7 @@ TYPED_TEST(Pmis, ComputeStrongDepRow)
             this->exec, this->mtx.at(i)->get_size()[0] + 1);
 
         gko::kernels::reference::pmis::compute_strong_dep_row(
-            this->exec, this->mtx.at(i).get(),
+            this->exec, this->mtx.at(i).get(), true,
             this->row_maxabs.at(i).get_const_data(), real_type{0.25},
             sparsity_rows.get_data());
         gko::kernels::reference::components::prefix_sum_nonnegative(
@@ -181,7 +223,7 @@ TYPED_TEST(Pmis, ComputeStrongDep)
                 std::move(sparsity_cols), std::move(sparsity_rows));
 
         gko::kernels::reference::pmis::compute_strong_dep(
-            this->exec, this->mtx.at(i).get(),
+            this->exec, this->mtx.at(i).get(), true,
             this->row_maxabs.at(i).get_const_data(), real_type{0.25},
             strong_dep.get());
 
@@ -192,6 +234,7 @@ TYPED_TEST(Pmis, ComputeStrongDep)
 
 TYPED_TEST(Pmis, InitializeWeightAndStatus)
 {
+    using index_type = typename TestFixture::index_type;
     using real_type = typename TestFixture::real_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
     for (int i = 0; i < 2; i++) {
@@ -204,10 +247,20 @@ TYPED_TEST(Pmis, InitializeWeightAndStatus)
         auto num_row = this->mtx.at(i)->get_size()[0];
         gko::array<real_type> weight(this->exec, num_row);
         gko::array<int> status(this->exec, num_row);
+        gko::array<index_type> counts(this->exec, num_row);
+        for (gko::size_type row = 0; row < num_row; row++) {
+            counts.get_data()[row] =
+                trans_strong_dep->get_const_row_ptrs()[row + 1] -
+                trans_strong_dep->get_const_row_ptrs()[row];
+        }
+        gko::array<index_type> global_idx(this->exec, num_row);
+        for (gko::size_type row = 0; row < num_row; row++) {
+            global_idx.get_data()[row] = static_cast<index_type>(row);
+        }
 
         gko::kernels::reference::pmis::initialize_weight_and_status(
-            this->exec, trans_strong_dep.get(), weight.get_data(),
-            status.get_data());
+            this->exec, num_row, counts.get_const_data(),
+            global_idx.get_const_data(), weight.get_data(), status.get_data());
 
         GKO_ASSERT_ARRAY_EQ(status, this->expected_status.at(i));
         for (int row = 0; row < num_row; row++) {
@@ -231,6 +284,7 @@ TYPED_TEST(Pmis, Classify)
         gko::array<int>(this->exec, {f, c, f, u}),
         gko::array<int>(this->exec, {f, c, f, c}),
         gko::array<int>(this->exec, {f, f, c, f, c})};
+    using index_type = typename TestFixture::index_type;
     std::array<int, 2> required_step{2, 1};
     int status_idx = 0;
     for (int i = 0; i < 2; i++) {
@@ -243,9 +297,14 @@ TYPED_TEST(Pmis, Classify)
         for (int step = 0; step < required_step.at(i); step++) {
             SCOPED_TRACE(step);
             auto status = new_status;
-            gko::kernels::reference::pmis::classify(
-                this->exec, weight.at(i).get_data(), strong_dep.get(),
-                status.get_const_data(), new_status.get_data());
+            gko::array<index_type> global_idx(this->exec,
+                                              new_status.get_size());
+            for (gko::size_type k = 0; k < global_idx.get_size(); k++) {
+                global_idx.get_data()[k] = static_cast<index_type>(k);
+            }
+            this->classify(weight.at(i).get_const_data(),
+                           global_idx.get_const_data(), strong_dep.get(),
+                           status.get_const_data(), new_status.get_data());
 
             GKO_ASSERT_ARRAY_EQ(new_status, status_ans.at(status_idx));
             status_idx++;
@@ -254,10 +313,39 @@ TYPED_TEST(Pmis, Classify)
 }
 
 
+TYPED_TEST(Pmis, ClassifySelectWithColOffsetReadsHaloNeighbours)
+{
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    using SparsityCsr = typename TestFixture::SparsityCsr;
+    // one local row, one halo neighbour at column 0 of the off-diagonal
+    // strength block. The halo node has the higher weight, so the local row
+    // has to be downgraded.
+    gko::array<index_type> row_ptrs(this->exec, {0, 1});
+    gko::array<index_type> col_idxs(this->exec, {0});
+    auto s_offd = SparsityCsr::create(this->exec, gko::dim<2>{1, 1},
+                                      std::move(col_idxs), std::move(row_ptrs));
+    // extended arrays: index 0 is the local node, index 1 the halo node
+    gko::array<real_type> weight(this->exec, {1, 2});
+    gko::array<index_type> global_idx(this->exec, {0, 1});
+    gko::array<int> status(this->exec, {u, u});
+    gko::array<int> new_status(this->exec, {c, u});
+    gko::array<int> expected(this->exec, {u, u});
+
+    gko::kernels::reference::pmis::classify_select(
+        this->exec, weight.get_const_data(), global_idx.get_const_data(),
+        index_type{1}, s_offd.get(), status.get_const_data(),
+        new_status.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(new_status, expected);
+}
+
+
 TYPED_TEST(Pmis, ClassifyOnSameWeight)
 {
     using real_type = typename TestFixture::real_type;
     using SparsityCsr = typename TestFixture::SparsityCsr;
+    using index_type = typename TestFixture::index_type;
     // when weight + rand are still the same, we use index to compare
     gko::array<real_type> weight(this->exec, {0.1, 2.0, 2.0, 1.2});
     auto strong_dep =
@@ -268,9 +356,13 @@ TYPED_TEST(Pmis, ClassifyOnSameWeight)
     auto new_status = this->expected_status.at(0);
     auto status = new_status;
 
-    gko::kernels::reference::pmis::classify(
-        this->exec, weight.get_data(), strong_dep.get(),
-        status.get_const_data(), new_status.get_data());
+    gko::array<index_type> global_idx(this->exec, new_status.get_size());
+    for (gko::size_type k = 0; k < global_idx.get_size(); k++) {
+        global_idx.get_data()[k] = static_cast<index_type>(k);
+    }
+    this->classify(weight.get_const_data(), global_idx.get_const_data(),
+                   strong_dep.get(), status.get_const_data(),
+                   new_status.get_data());
 
     GKO_ASSERT_ARRAY_EQ(new_status, status_ans);
 }
@@ -294,6 +386,63 @@ TYPED_TEST(Pmis, Count)
 }
 
 
+TYPED_TEST(Pmis, AddAtIndicesAccumulatesRepeatedIndices)
+{
+    using index_type = typename TestFixture::index_type;
+    // index 1 appears three times and index 3 twice: the kernel has to add,
+    // not assign
+    gko::array<index_type> idxs(this->exec, {1, 3, 1, 0, 3, 1});
+    gko::array<index_type> values(this->exec, {10, 20, 30, 40, 50, 60});
+    // pre-seeded, like the measure when the halo contributions arrive
+    gko::array<index_type> out(this->exec, {7, 0, 5, 0});
+    gko::array<index_type> expected(this->exec, {47, 100, 5, 70});
+
+    gko::kernels::reference::pmis::add_at_indices(
+        this->exec, idxs.get_size(), idxs.get_const_data(),
+        values.get_const_data(), out.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(out, expected);
+}
+
+
+TYPED_TEST(Pmis, AddAtIndicesCountsOccurrencesWhenValuesAreNull)
+{
+    using index_type = typename TestFixture::index_type;
+    // the null form adds one per index, a histogram of idxs onto out
+    gko::array<index_type> idxs(this->exec, {1, 3, 1, 0, 3, 1});
+    gko::array<index_type> out(this->exec, {7, 0, 5, 0});
+    gko::array<index_type> expected(this->exec, {8, 3, 5, 2});
+    const index_type* no_values = nullptr;
+
+    gko::kernels::reference::pmis::add_at_indices(this->exec, idxs.get_size(),
+                                                  idxs.get_const_data(),
+                                                  no_values, out.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(out, expected);
+}
+
+
+TYPED_TEST(Pmis, CoarseGlobalIndexMarksFinePointsInvalid)
+{
+    using index_type = typename TestFixture::index_type;
+    // coarse_map is the exclusive prefix sum of "is coarse", so nodes 1 and 2
+    // are at coarse indices 0 and 1
+    gko::array<int> status(this->exec, {f, c, c, f});
+    gko::array<index_type> coarse_map(this->exec, {0, 0, 1, 2, 2});
+    gko::array<index_type> coarse_global(this->exec, 4);
+    // a fine node gets a sentinel that nothing may read back
+    gko::array<index_type> expected(
+        this->exec, {gko::invalid_index<index_type>(), index_type{100},
+                     index_type{101}, gko::invalid_index<index_type>()});
+
+    gko::kernels::reference::pmis::coarse_global_index(
+        this->exec, 4, index_type{100}, status.get_const_data(),
+        coarse_map.get_const_data(), coarse_global.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(coarse_global, expected);
+}
+
+
 TYPED_TEST(Pmis, DirectInterpolationRowCount)
 {
     using index_type = typename TestFixture::index_type;
@@ -312,13 +461,50 @@ TYPED_TEST(Pmis, DirectInterpolationRowCount)
                                 std::move(this->dep_row_ptrs.at(i)));
         gko::array<index_type> prolong_row_count(
             this->exec, this->mtx.at(i)->get_size()[0]);
+        // the kernel accumulates and skips coarse rows, so seed them here
+        for (gko::size_type row = 0; row < prolong_row_count.get_size();
+             row++) {
+            prolong_row_count.get_data()[row] =
+                status.at(i).get_const_data()[row] == c ? 1 : 0;
+        }
 
         gko::kernels::reference::pmis::direct_interpolation_row_count(
-            this->exec, strong_dep.get(), status.at(i).get_const_data(),
-            prolong_row_count.get_data());
+            this->exec, index_type{0}, strong_dep.get(),
+            status.at(i).get_const_data(), prolong_row_count.get_data());
 
         GKO_ASSERT_ARRAY_EQ(prolong_row_count, row_count_ans.at(i));
     }
+}
+
+
+TYPED_TEST(Pmis, DirectInterpolationRowCountAccumulatesAcrossBlocks)
+{
+    using index_type = typename TestFixture::index_type;
+    using SparsityCsr = typename TestFixture::SparsityCsr;
+    // local row 0 has one strong local C-neighbour and one strong halo
+    // C-neighbour; the two calls must total 2
+    gko::array<index_type> d_ptrs(this->exec, {0, 1});
+    gko::array<index_type> d_cols(this->exec, {1});
+    auto s_diag = SparsityCsr::create(this->exec, gko::dim<2>{1, 2},
+                                      std::move(d_cols), std::move(d_ptrs));
+    gko::array<index_type> o_ptrs(this->exec, {0, 1});
+    gko::array<index_type> o_cols(this->exec, {0});
+    auto s_offd = SparsityCsr::create(this->exec, gko::dim<2>{1, 1},
+                                      std::move(o_cols), std::move(o_ptrs));
+    // extended status: node 0 fine (the row), node 1 coarse (local),
+    // node 2 coarse (halo)
+    gko::array<int> status(this->exec, {f, c, c});
+    gko::array<index_type> count(this->exec, {0});
+    gko::array<index_type> expected(this->exec, {2});
+
+    gko::kernels::reference::pmis::direct_interpolation_row_count(
+        this->exec, index_type{0}, s_diag.get(), status.get_const_data(),
+        count.get_data());
+    gko::kernels::reference::pmis::direct_interpolation_row_count(
+        this->exec, index_type{2}, s_offd.get(), status.get_const_data(),
+        count.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(count, expected);
 }
 
 
@@ -327,6 +513,11 @@ TYPED_TEST(Pmis, DirectInterpolationFill)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using real_type = typename TestFixture::real_type;
+    // status matches coarse_map: coarse_map[row] != coarse_map[row + 1]
+    // marks a coarse row
+    std::array<gko::array<int>, 2> status{
+        gko::array<int>(this->exec, {f, c, f, c}),
+        gko::array<int>(this->exec, {f, f, c, f, c})};
     std::array<gko::array<index_type>, 2> coarse_map{
         gko::array<index_type>(this->exec, {0, 0, 1, 1, 2}),
         gko::array<index_type>(this->exec, {0, 0, 0, 1, 1, 2})};
@@ -352,12 +543,17 @@ TYPED_TEST(Pmis, DirectInterpolationFill)
         gko::array<index_type> prolong_col_idxs(this->exec, prolong_nnz);
         gko::array<value_type> prolong_values(this->exec, prolong_nnz);
 
-        gko::kernels::reference::pmis::direct_interpolation_fill(
-            this->exec, this->mtx.at(i).get(),
+        gko::multigrid::pmis::fill_prolongation<value_type, index_type>(
+            this->exec, this->mtx.at(i)->get_size()[0],
+            {{this->mtx.at(i).get(), true, index_type{0}}},
             this->row_maxabs.at(i).get_const_data(), real_type{0.25},
-            coarse_map.at(i).get_const_data(),
+            status.at(i).get_const_data(),
             prolong_row_ptrs.at(i).get_const_data(),
             prolong_col_idxs.get_data(), prolong_values.get_data());
+        this->exec->run(gko::multigrid::pmis::make_gather(
+            static_cast<gko::size_type>(prolong_nnz),
+            coarse_map.at(i).get_const_data(),
+            prolong_col_idxs.get_const_data(), prolong_col_idxs.get_data()));
 
         GKO_ASSERT_ARRAY_EQ(prolong_col_idxs, expected_col_idxs.at(i));
         GKO_ASSERT_ARRAY_EQ(prolong_values, expected_values.at(i));
@@ -372,8 +568,7 @@ TYPED_TEST(Pmis, DirectInterpolationFillSkipsRowWithoutStrongDependence)
     using real_type = typename TestFixture::real_type;
     using Mtx = typename TestFixture::Mtx;
     // row 1 stores an explicit zero off the diagonal, so its largest
-    // off-diagonal magnitude is zero and it has no strong dependence, exactly
-    // like the rows compute_strong_dep{,_row} skip.
+    // off-diagonal magnitude is zero and it has no strong dependence
     auto mtx = Mtx::create(
         this->exec, gko::dim<2>{2, 2},
         gko::array<value_type>(this->exec,
@@ -382,11 +577,11 @@ TYPED_TEST(Pmis, DirectInterpolationFillSkipsRowWithoutStrongDependence)
         gko::array<index_type>(this->exec, {0, 1, 3}));
     gko::array<real_type> row_maxabs(this->exec, {0, 0});
     // row 0 is coarse, row 1 is fine
+    gko::array<int> status(this->exec, {c, f});
     gko::array<index_type> coarse_map(this->exec, {0, 1, 1});
     // only the identity entry of the coarse row 0 is counted, row 1 gets none
     gko::array<index_type> prolong_row_ptrs(this->exec, {0, 1, 1});
-    // the second slot is a canary: row 1 must not write anything, in
-    // particular nothing past the end of its own (empty) range
+    // a guard: row 1 must not write past its own empty range
     gko::array<index_type> prolong_col_idxs(this->exec, {0, -99});
     gko::array<value_type> prolong_values(this->exec,
                                           {value_type{0}, value_type{-99}});
@@ -394,42 +589,112 @@ TYPED_TEST(Pmis, DirectInterpolationFillSkipsRowWithoutStrongDependence)
     gko::array<value_type> expected_values(this->exec,
                                            {value_type{1}, value_type{-99}});
 
-    gko::kernels::reference::pmis::direct_interpolation_fill(
-        this->exec, mtx.get(), row_maxabs.get_const_data(), real_type{0.25},
-        coarse_map.get_const_data(), prolong_row_ptrs.get_const_data(),
-        prolong_col_idxs.get_data(), prolong_values.get_data());
+    gko::multigrid::pmis::fill_prolongation<value_type, index_type>(
+        this->exec, mtx->get_size()[0], {{mtx.get(), true, index_type{0}}},
+        row_maxabs.get_const_data(), real_type{0.25}, status.get_const_data(),
+        prolong_row_ptrs.get_const_data(), prolong_col_idxs.get_data(),
+        prolong_values.get_data());
+    this->exec->run(gko::multigrid::pmis::make_gather(
+        gko::size_type{1}, coarse_map.get_const_data(),
+        prolong_col_idxs.get_const_data(), prolong_col_idxs.get_data()));
 
     GKO_ASSERT_ARRAY_EQ(prolong_col_idxs, expected_col_idxs);
     GKO_ASSERT_ARRAY_EQ(prolong_values, expected_values);
 }
 
 
-// initialize_random_weight is only instantiated for the types the device
-// random generators support, and only float is used by the pmis pipeline.
+// the draw itself: a hash of the global index, inlined by every backend
 TEST(PmisRandomWeight, IsInRangeAndReproducible)
 {
-    auto exec = gko::ReferenceExecutor::create();
     constexpr gko::size_type num = 1000;
-    gko::array<float> weight(exec, num);
-    gko::array<float> repeated(exec, num);
+    std::vector<float> values(num);
+    std::vector<float> repeated(num);
 
-    gko::kernels::reference::pmis::initialize_random_weight(exec, num,
-                                                            weight.get_data());
-    gko::kernels::reference::pmis::initialize_random_weight(
-        exec, num, repeated.get_data());
+    for (gko::size_type i = 0; i < num; i++) {
+        values[i] = gko::kernels::pmis::random_weight_from_index(i);
+        repeated[i] = gko::kernels::pmis::random_weight_from_index(i);
+    }
 
-    // the seed is fixed, so the same call must give the same values
-    GKO_ASSERT_ARRAY_EQ(weight, repeated);
     auto sum = 0.0;
     for (gko::size_type i = 0; i < num; i++) {
-        const auto val = weight.get_const_data()[i];
-        ASSERT_GE(val, 0.0f);
-        ASSERT_LT(val, 1.0f);
-        sum += val;
+        SCOPED_TRACE(i);
+        // the same index always gives the same value
+        ASSERT_EQ(values[i], repeated[i]);
+        ASSERT_GE(values[i], 0.0f);
+        ASSERT_LT(values[i], 1.0f);
+        sum += values[i];
     }
     // uniform on [0, 1] has mean 0.5 with a standard error of about 0.009 for
     // this sample size, so this only rejects a degenerate generator
     ASSERT_NEAR(sum / num, 0.5, 0.1);
+}
+
+
+TYPED_TEST(Pmis, AccumulateAndEmitAcrossBlocksMatchesWholeRow)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    using Mtx = typename TestFixture::Mtx;
+    // one fine row [4, -1, -2] with two strong coarse neighbours, split
+    // across a "diagonal" and an "off-diagonal" block
+    auto whole = Mtx::create(
+        this->exec, gko::dim<2>{1, 3},
+        gko::array<value_type>(this->exec,
+                               {value_type{4}, value_type{-1}, value_type{-2}}),
+        gko::array<index_type>(this->exec, {0, 1, 2}),
+        gko::array<index_type>(this->exec, {0, 3}));
+    auto block_a = Mtx::create(
+        this->exec, gko::dim<2>{1, 2},
+        gko::array<value_type>(this->exec, {value_type{4}, value_type{-1}}),
+        gko::array<index_type>(this->exec, {0, 1}),
+        gko::array<index_type>(this->exec, {0, 2}));
+    auto block_b =
+        Mtx::create(this->exec, gko::dim<2>{1, 1},
+                    gko::array<value_type>(this->exec, {value_type{-2}}),
+                    gko::array<index_type>(this->exec, {0}),
+                    gko::array<index_type>(this->exec, {0, 1}));
+    // node 0 is the fine row, nodes 1 and 2 are coarse
+    gko::array<int> status(this->exec, {f, c, c});
+    gko::array<real_type> row_maxabs(this->exec, {2});
+
+    auto run = [&](std::vector<std::pair<Mtx*, index_type>> blocks) {
+        gko::array<value_type> pos(this->exec, {gko::zero<value_type>()});
+        gko::array<value_type> pos_div(this->exec, {gko::zero<value_type>()});
+        gko::array<value_type> neg(this->exec, {gko::zero<value_type>()});
+        gko::array<value_type> neg_div(this->exec, {gko::zero<value_type>()});
+        gko::array<value_type> diag(this->exec, {gko::zero<value_type>()});
+        gko::array<int> en_pos(this->exec, {0});
+        gko::array<int> en_neg(this->exec, {0});
+        gko::array<index_type> cursor(this->exec, {0});
+        gko::array<index_type> cols(this->exec, {0, 0});
+        gko::array<value_type> vals(
+            this->exec, {gko::zero<value_type>(), gko::zero<value_type>()});
+        const gko::kernels::pmis::interpolation_workspace<value_type,
+                                                          index_type>
+            ws{pos.get_data(),     pos_div.get_data(), neg.get_data(),
+               neg_div.get_data(), diag.get_data(),    en_pos.get_data(),
+               en_neg.get_data(),  cursor.get_data()};
+        for (auto& b : blocks) {
+            gko::kernels::reference::pmis::direct_interpolation_accumulate(
+                this->exec, b.first, b.second == 0, b.second,
+                row_maxabs.get_const_data(), real_type{0.25},
+                status.get_const_data(), ws);
+        }
+        for (auto& b : blocks) {
+            gko::kernels::reference::pmis::direct_interpolation_emit(
+                this->exec, b.first, b.second == 0, b.second,
+                row_maxabs.get_const_data(), real_type{0.25},
+                status.get_const_data(), ws, cols.get_data(), vals.get_data());
+        }
+        return vals;
+    };
+
+    auto single = run({{whole.get(), index_type{0}}});
+    auto split =
+        run({{block_a.get(), index_type{0}}, {block_b.get(), index_type{2}}});
+
+    GKO_ASSERT_ARRAY_EQ(split, single);
 }
 
 
