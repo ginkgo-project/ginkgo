@@ -1037,6 +1037,24 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
 
 
 /**
+ * Instantiates a template for each normal type paired with each index type.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, the first of which is replaced by
+ *                the value type and the second by the index type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_AND_INDEX_TYPE(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro);       \
+    template _macro(int32, int32);                               \
+    template _macro(int32, int64);                               \
+    template _macro(int64, int32);                               \
+    template _macro(int64, int64);                               \
+    template _macro(gko::size_type, int32);                      \
+    template _macro(gko::size_type, int64)
+
+
+/**
  * Instantiates a template for int32 type.
  *
  * @param _macro  A macro which expands the template instantiation
