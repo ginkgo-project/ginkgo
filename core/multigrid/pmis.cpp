@@ -179,15 +179,17 @@ void Pmis<ValueType, IndexType>::generate()
                                                         n_loc + 1));
             exec->run(pmis::make_prefix_sum_nonnegative(s_offd_rows.get_data(),
                                                         n_loc + 1));
+            // read the nnz first: the row pointers are moved into the calls
+            // below, and argument evaluation order is unspecified
+            const auto s_diag_nnz =
+                static_cast<size_type>(get_element(s_diag_rows, n_loc));
+            const auto s_offd_nnz =
+                static_cast<size_type>(get_element(s_offd_rows, n_loc));
             auto s_diag = matrix::SparsityCsr<ValueType, IndexType>::create(
-                exec, dim<2>{n_loc, n_loc},
-                array<IndexType>{exec, static_cast<size_type>(
-                                           get_element(s_diag_rows, n_loc))},
+                exec, dim<2>{n_loc, n_loc}, array<IndexType>{exec, s_diag_nnz},
                 std::move(s_diag_rows));
             auto s_offd = matrix::SparsityCsr<ValueType, IndexType>::create(
-                exec, dim<2>{n_loc, n_halo},
-                array<IndexType>{exec, static_cast<size_type>(
-                                           get_element(s_offd_rows, n_loc))},
+                exec, dim<2>{n_loc, n_halo}, array<IndexType>{exec, s_offd_nnz},
                 std::move(s_offd_rows));
             exec->run(pmis::make_compute_strong_dep(
                 diag.get(), true, row_maxabs.get_const_data(),

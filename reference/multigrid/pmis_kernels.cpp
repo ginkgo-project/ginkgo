@@ -137,10 +137,12 @@ void initialize_weight_and_status(std::shared_ptr<const DefaultExecutor> exec,
                                              : kernels::pmis::unassigned);
         const auto draw = kernels::pmis::random_weight_from_index(
             static_cast<uint64>(global_idx[row]));
-        // the draw is below 1, but a narrow weight type could round it up to
-        // 1 and shift the node by a whole in-degree
+        // Scaled below 1: a narrow weight type could otherwise round the
+        // draw up to 1 and shift the node by a whole in-degree. An exact power
+        // of two, so fusing the multiply-add gives the same value as not
+        // fusing.
         weight[row] =
-            static_cast<ValueType>(draw * 0.99f + static_cast<float>(count));
+            static_cast<ValueType>(draw * 0.5f + static_cast<float>(count));
     }
 }
 
