@@ -153,6 +153,8 @@ public:
      */
     LowerTrs& operator=(LowerTrs&&);
 
+    void validate_data() const override;
+
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
@@ -319,6 +321,8 @@ public:
      * object is empty (0x0 and nullptr system matrix)
      */
     UpperTrs& operator=(UpperTrs&&);
+
+    void validate_data() const override;
 
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;

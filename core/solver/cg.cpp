@@ -4,6 +4,7 @@
 
 #include "ginkgo/core/solver/cg.hpp"
 
+#include <memory>
 #include <string>
 
 #include <ginkgo/core/base/exception.hpp>
@@ -13,7 +14,9 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
@@ -33,6 +36,86 @@ GKO_REGISTER_OPERATION(step_2, cg::step_2);
 
 }  // anonymous namespace
 }  // namespace cg
+
+
+template <typename ValueType, typename IndexType>
+validation::validation_result is_hermitian(
+    const matrix::Csr<ValueType, IndexType>* mat)
+{
+    using Mtx = matrix::Csr<ValueType, IndexType>;
+    auto exec = mat->get_executor();
+    auto master = exec->get_master();
+
+    if (mat->get_size()[0] != mat->get_size()[1]) {
+        return {false, "Matrix is not square."};
+    }
+    auto trans_cg_mtx = as<Mtx>(mat->conj_transpose());
+    auto host_cg_mtx = Mtx::create(master);
+    host_cg_mtx->copy_from(mat);
+
+    auto host_trans_cg_mtx = Mtx::create(master);
+    host_trans_cg_mtx->copy_from(trans_cg_mtx.get());
+
+    host_cg_mtx->sort_by_column_index();
+    host_trans_cg_mtx->sort_by_column_index();
+
+    auto row_ptrs = host_cg_mtx->get_const_row_ptrs();
+    auto col_idxs = host_cg_mtx->get_const_col_idxs();
+    auto values = host_cg_mtx->get_const_values();
+
+    auto trans_row_ptrs = host_trans_cg_mtx->get_const_row_ptrs();
+    auto trans_col_idxs = host_trans_cg_mtx->get_const_col_idxs();
+    auto trans_values = host_trans_cg_mtx->get_const_values();
+
+    auto nnz = host_cg_mtx->get_num_stored_elements();
+
+    for (size_type i = 0; i < host_cg_mtx->get_size()[0]; ++i) {
+        if (row_ptrs[i] != trans_row_ptrs[i]) {
+            return {false, "Row pointers at index " + std::to_string(i)};
+        }
+    }
+
+    for (size_type i = 0; i < nnz; ++i) {
+        if (col_idxs[i] != trans_col_idxs[i]) {
+            return {false, "Column index at index " + std::to_string(i)};
+        }
+        if (values[i] != trans_values[i]) {
+            return {false, "Value at index " + std::to_string(i)};
+        }
+    }
+
+    return {true, ""};
+}
+
+
+template <typename ValueType>
+validation::validation_result is_hermitian(const LinOp* mat)
+{
+    using Mtx32 = matrix::Csr<ValueType, int32>;
+    using Mtx64 = matrix::Csr<ValueType, int64>;
+    auto exec = mat->get_executor();
+
+    if (dynamic_cast<const ConvertibleTo<Mtx32>*>(mat)) {
+        auto csr = gko::copy_and_convert_to<Mtx32>(exec, mat);
+        return is_hermitian(csr.get());
+    }
+    if (dynamic_cast<const ConvertibleTo<Mtx64>*>(mat)) {
+        auto csr = gko::copy_and_convert_to<Mtx64>(exec, mat);
+        return is_hermitian(csr.get());
+    }
+    return {true, ""};
+}
+
+
+template <typename ValueType>
+void Cg<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Cg must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE(is_hermitian<ValueType>(this->get_system_matrix().get()),
+                 "The system matrix is not symmetric.");
+}
 
 
 template <typename ValueType>
