@@ -340,8 +340,8 @@ TEST_F(Pmis, InitializeWeightAndStatusIsEquivalentToRef)
         d_weight.get_data(), d_status.get_data());
 
     GKO_ASSERT_ARRAY_EQ(d_status, status);
-    // the same hashed draw and count on both sides, so the results match
-    // exactly
+    // the scale is an exact power of two, so the backends agree bit for bit
+    // whether or not they fuse the multiply-add
     GKO_ASSERT_ARRAY_EQ(d_weight, weight);
 }
 
@@ -420,9 +420,9 @@ TEST_F(Pmis, WeightDrawIsInRangeAndMatchesRef)
         ASSERT_LT(val, gko::one<real_type>());
         sum += val;
     }
-    // the mean is 0.495 with a standard error of about 0.009, so this only
-    // rejects a degenerate generator
-    ASSERT_NEAR(sum / num, 0.495, 0.1);
+    // the draw is uniform on [0, 1) scaled by 0.5, so the mean is 0.25; this
+    // only rejects a degenerate generator
+    ASSERT_NEAR(sum / num, 0.25, 0.1);
 }
 
 
