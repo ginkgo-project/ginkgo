@@ -161,8 +161,9 @@ pip install pyginkgo
 
 Please refer to the [pyGinkgo
 repository](https://github.com/Helmholtz-AI-Energy/pyGinkgo) for the
-documentation, examples and supported versions, and to the accompanying paper
-[arXiv:2510.08230](https://arxiv.org/abs/2510.08230) for design and performance
+documentation, examples and supported versions, and to the accompanying ICPP '25
+paper [pyGinkgo: A Sparse Linear Algebra Operator Framework for
+Python](https://doi.org/10.1145/3754598.3754648) for design and performance
 details. Note that pyGinkgo is a separate project with its own issue tracker and
 license.
 
