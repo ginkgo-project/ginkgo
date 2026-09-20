@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)|[![c++ standard](https://img.shields.io/badge/c%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)|[![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo-generated-documentation/doc/develop/)|[![DOI](https://joss.theoj.org/papers/10.21105/joss.02260/status.svg)](https://doi.org/10.21105/joss.02260)|[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8037/badge)](https://www.bestpractices.dev/projects/8037)
-|:-:|:-:|:-:|:-:|:-:|
+[![License](https://img.shields.io/github/license/ginkgo-project/ginkgo.svg)](./LICENSE)|[![c++ standard](https://img.shields.io/badge/c%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization)|[![Documentation](https://img.shields.io/badge/Documentation-latest-blue.svg)](https://ginkgo-project.github.io/ginkgo-generated-documentation/doc/develop/)|[![DOI](https://joss.theoj.org/papers/10.21105/joss.02260/status.svg)](https://doi.org/10.21105/joss.02260)|[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8037/badge)](https://www.bestpractices.dev/projects/8037)|[![pyGinkgo](https://img.shields.io/pypi/v/pyginkgo.svg?label=pyGinkgo)](https://pypi.org/project/pyginkgo/)
+|:-:|:-:|:-:|:-:|:-:|:-:|
 
 
 [![Build status](https://gitlab.com/ginkgo-project/ginkgo-public-ci/badges/develop/pipeline.svg)](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/pipelines?page=1&scope=branches&ref=develop)|[![OSX-build](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml/badge.svg)](https://github.com/ginkgo-project/ginkgo/actions/workflows/osx.yml)|[![codecov](https://codecov.io/gh/ginkgo-project/ginkgo/branch/develop/graph/badge.svg)](https://codecov.io/gh/ginkgo-project/ginkgo)|[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=sqale_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)|[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=ginkgo-project_ginkgo&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=ginkgo-project_ginkgo)|[![CDash dashboard](https://img.shields.io/badge/CDash-Access-blue.svg)](https://my.cdash.org/index.php?project=Ginkgo+Project)
@@ -22,6 +22,7 @@ implemented for NVIDIA, AMD and Intel GPUs.
 **[Prerequisites](#prerequisites)** |
 **[Building Ginkgo](#building-and-installing-ginkgo)** |
 **[Tests, Examples, Benchmarks](#tests-examples-and-benchmarks)** |
+**[Python bindings](#python-bindings)** |
 **[Bug reports](#bug-reports-and-support)** |
 **[Licensing](#licensing)** |
 **[Contributing](#contributing-to-ginkgo)** |
@@ -141,6 +142,30 @@ A unique feature of Ginkgo is the ability to run benchmarks and view your result
 with the help of the [Ginkgo Performance Explorer (GPE)](https://ginkgo-project.github.io/gpe/).
 
 More details about this can be found in the [BENCHMARKING.md page](./BENCHMARKING.md)
+
+# Python bindings
+
+Ginkgo can also be used from Python through
+[pyGinkgo](https://github.com/Helmholtz-AI-Energy/pyGinkgo), a set of Python
+bindings. pyGinkgo exposes
+Ginkgo's executors (Reference, OpenMP, CUDA and HIP), matrix formats (CSR and
+dense) and iterative solvers to Python, and interoperates with the scientific
+Python stack: NumPy arrays, SciPy sparse matrices.
+
+CPU wheels are available from PyPI, while CUDA and ROCm wheels are published on
+the [pyGinkgo releases page](https://github.com/Helmholtz-AI-Energy/pyGinkgo/releases):
+
+```sh
+pip install pyginkgo
+```
+
+Please refer to the [pyGinkgo
+repository](https://github.com/Helmholtz-AI-Energy/pyGinkgo) for the
+documentation, examples and supported versions, and to the accompanying ICPP '25
+paper [pyGinkgo: A Sparse Linear Algebra Operator Framework for
+Python](https://doi.org/10.1145/3754598.3754648) for design and performance
+details. Note that pyGinkgo is a separate project with its own issue tracker and
+license.
 
 # Bug reports and Support
 
