@@ -10,6 +10,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/ir_kernels.hpp"
@@ -29,6 +30,18 @@ GKO_REGISTER_OPERATION(initialize, ir::initialize);
 
 }  // anonymous namespace
 }  // namespace ir
+
+
+template <typename ValueType>
+void Ir<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Ir must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(this->get_solver()),
+                 "Ir must have inner solver");
+    this->get_solver()->validate_data();
+}
 
 
 template <typename ValueType>

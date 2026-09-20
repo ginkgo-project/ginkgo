@@ -57,7 +57,7 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename IndexType>
-validation::ValidationResult ell_has_unique_valid_idxs(
+validation::validation_result ell_has_unique_valid_idxs(
     const array<IndexType>& col_idxs, const dim<2>& size,
     const size_type num_stored_elements_per_row, const size_type stride)
 {
@@ -90,7 +90,7 @@ validation::ValidationResult ell_has_unique_valid_idxs(
 
 
 template <typename ValueType, typename IndexType>
-validation::ValidationResult ell_matrix_values_are_finite(
+validation::validation_result ell_matrix_values_are_finite(
     const array<ValueType>& values, const array<IndexType>& col_idxs,
     const dim<2>& size, const size_type num_stored_elements_per_row,
     const size_type stride)
