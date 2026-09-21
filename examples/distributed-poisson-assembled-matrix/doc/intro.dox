@@ -1,0 +1,14 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This example demonstrates how to solve a 3D Poisson equation (-Delta u = f) using Ginkgo's distributed matrix capabilities.
+To solve the problem numerically, we discretize the 3D domain into a regular grid of size Nx by Ny by Nz and approximate the continuous Laplacian operator using a standard 7-point central finite difference stencil with periodic boundary conditions.
+
+Since we choose to assemble the sparse matrix explicitly in memory, we can simply rely on Ginkgo's standard 1D sparse matrix representations and built-in solvers.
+The main task is to provide a mapping between 3D grid coordinate (i, j, k) and the corresponding 1D index in the assembled matrix.
+
+<h3>Running the Example</h3>
+To run the solver with multiple processes, use the following command:
+<br><br>
+<code>mpirun -n NUM_PROCS ./distributed-poisson-assembled-matrix [executor] [Nx] [Ny] [Nz]</code>
+<br><br>
+<b>Note:</b> If you are using GPU devices, please make sure that you run this example with at most as many processes as you have GPU devices available.
