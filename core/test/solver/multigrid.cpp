@@ -837,4 +837,70 @@ TYPED_TEST(Multigrid, DeferredFactoryParameter)
 }
 
 
+TYPED_TEST(Multigrid, ScaleCorrectionIsDisabledByDefault)
+{
+    using Solver = typename TestFixture::Solver;
+
+    auto factory = Solver::build().on(this->exec);
+
+    ASSERT_FALSE(factory->get_parameters().scale_correction);
+}
+
+
+TYPED_TEST(Multigrid, ScaleCorrectionCanBeEnabled)
+{
+    using Solver = typename TestFixture::Solver;
+
+    auto factory = Solver::build().with_scale_correction(true).on(this->exec);
+
+    ASSERT_TRUE(factory->get_parameters().scale_correction);
+}
+
+
+TYPED_TEST(Multigrid, ScaleCorrectionPreSmoothDefaultsTrue)
+{
+    using Solver = typename TestFixture::Solver;
+
+    auto factory = Solver::build().on(this->exec);
+
+    ASSERT_TRUE(factory->get_parameters().scale_correction_pre_smooth);
+}
+
+
+TYPED_TEST(Multigrid, ScaleCorrectionPreSmoothCanBeDisabled)
+{
+    using Solver = typename TestFixture::Solver;
+
+    auto factory =
+        Solver::build().with_scale_correction_pre_smooth(false).on(this->exec);
+
+    ASSERT_FALSE(factory->get_parameters().scale_correction_pre_smooth);
+}
+
+
+TYPED_TEST(Multigrid, ScaleCorrectionIsPropagatedToGeneratedSolver)
+{
+    using Solver = typename TestFixture::Solver;
+    using DummyRPFactory = typename TestFixture::DummyRPFactory;
+    using DummyFactory = typename TestFixture::DummyFactory;
+
+    auto solver =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_max_levels(2u)
+            .with_min_coarse_rows(2u)
+            .with_mg_level(this->rp_factory)
+            .with_pre_smoother(this->lo_factory)
+            .with_post_smoother(this->lo_factory)
+            .with_coarsest_solver(this->lo_factory)
+            .with_scale_correction(true)
+            .on(this->exec)
+            ->generate(this->mtx);
+
+    ASSERT_TRUE(static_cast<Solver*>(solver.get())
+                    ->get_parameters()
+                    .scale_correction);
+}
+
+
 }  // namespace
