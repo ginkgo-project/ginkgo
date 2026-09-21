@@ -308,49 +308,50 @@ void compute_interpolation(
             if (cf[i] == 1) {
                 p_col_idxs[p_idx] = fine_to_coarse[i];
                 p_vals[p_idx] = one<value_type>();
-            } else {
-                auto diag = zero<value_type>();
-                auto sum_weak = zero<value_type>();
-                auto sum_strong_c_val = zero<value_type>();
+                return;
+            }
 
-                for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-                    auto j = a_col_idxs[jj];
-                    if (i == j) {
-                        diag = a_vals[jj];
-                    } else if (!is_strong[jj]) {
-                        sum_weak += a_vals[jj];
-                    } else if (cf[j] == 1) {
-                        sum_strong_c_val += a_vals[jj];
-                    }
+            auto diag = zero<value_type>();
+            auto sum_weak = zero<value_type>();
+            auto sum_strong_c_val = zero<value_type>();
+
+            for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+                auto j = a_col_idxs[jj];
+                if (i == j) {
+                    diag = a_vals[jj];
+                } else if (!is_strong[jj]) {
+                    sum_weak += a_vals[jj];
+                } else if (cf[j] == 1) {
+                    sum_strong_c_val += a_vals[jj];
                 }
+            }
 
-                auto denominator = diag + sum_weak;
+            auto denominator = diag + sum_weak;
 
-                for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-                    if (is_strong[jj] && cf[a_col_idxs[jj]] == 1) {
-                        auto j = a_col_idxs[jj];
-                        auto numerator = a_vals[jj];
+            for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+                if (is_strong[jj] && cf[a_col_idxs[jj]] == 1) {
+                    auto j = a_col_idxs[jj];
+                    auto numerator = a_vals[jj];
 
-                        for (auto kk = a_row_ptrs[i]; kk < a_row_ptrs[i + 1];
-                             ++kk) {
-                            if (is_strong[kk] && cf[a_col_idxs[kk]] == -1) {
-                                auto k = a_col_idxs[kk];
-                                auto a_ik = a_vals[kk];
-                                auto a_kj = zero<value_type>();
-                                for (auto n_kj = a_row_ptrs[k];
-                                     n_kj < a_row_ptrs[k + 1]; ++n_kj) {
-                                    if (a_col_idxs[n_kj] == j) {
-                                        a_kj = a_vals[n_kj];
-                                        break;
-                                    }
+                    for (auto kk = a_row_ptrs[i]; kk < a_row_ptrs[i + 1];
+                         ++kk) {
+                        if (is_strong[kk] && cf[a_col_idxs[kk]] == -1) {
+                            auto k = a_col_idxs[kk];
+                            auto a_ik = a_vals[kk];
+                            auto a_kj = zero<value_type>();
+                            for (auto n_kj = a_row_ptrs[k];
+                                 n_kj < a_row_ptrs[k + 1]; ++n_kj) {
+                                if (a_col_idxs[n_kj] == j) {
+                                    a_kj = a_vals[n_kj];
+                                    break;
                                 }
-                                numerator += (a_ik * a_kj) / sum_strong_c_val;
                             }
+                            numerator += (a_ik * a_kj) / sum_strong_c_val;
                         }
-                        p_col_idxs[p_idx] = fine_to_coarse[j];
-                        p_vals[p_idx] = -numerator / denominator;
-                        p_idx++;
                     }
+                    p_col_idxs[p_idx] = fine_to_coarse[j];
+                    p_vals[p_idx] = -numerator / denominator;
+                    p_idx++;
                 }
             }
         },

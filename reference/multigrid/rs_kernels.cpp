@@ -47,15 +47,11 @@ void check_m_matrix(std::shared_ptr<const ReferenceExecutor> exec,
 
             if (row == col) {
                 has_diag = true;
-                if (val <= 0.0) {
-                    *is_m_matrix = false;
-                    return;
-                }
-            } else {
-                if (val > 0.0) {
-                    *is_m_matrix = false;
-                    return;
-                }
+            }
+
+            if ((row == col && val <= 0.0) || (row != col && val > 0.0)) {
+                *is_m_matrix = false;
+                return;
             }
         }
 
@@ -179,15 +175,17 @@ void fill_coarse_and_compute_prolong_row_ptrs(
     /// 3. COMPUTE INTERPOLATION ROW PTRS
     row_ptrs_vals[0] = 0;
     for (IndexType i = 0; i < n; ++i) {
-        IndexType row_nnz = 0;
         if (cf[i] == 1) {
-            row_nnz = 1;  // identity for C-points
-        } else {
-            // count strong C-neighbors
-            for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-                if (is_strong_vals[jj] && cf[a_col_idxs[jj]] == 1) {
-                    row_nnz++;
-                }
+            // identity for C-points
+            row_ptrs_vals[i + 1] = row_ptrs_vals[i] + 1;
+            continue;
+        }
+
+        // count strong C-neighbors
+        IndexType row_nnz = 0;
+        for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+            if (is_strong_vals[jj] && cf[a_col_idxs[jj]] == 1) {
+                row_nnz++;
             }
         }
         row_ptrs_vals[i + 1] = row_ptrs_vals[i] + row_nnz;
@@ -219,57 +217,58 @@ void compute_interpolation(
         if (cf[i] == 1) {
             p_col_idxs[p_idx] = fine_to_coarse[i];
             p_vals[p_idx] = one<ValueType>();
-        } else {
-            // full classical RS interpolation formula:
-            // w_ij = -(a_ij + sum_{k in F_strong} (a_ik * a_kj / sum_{m in
-            // C_strong} a_im))
-            //        / (a_ii + sum_{k in weak} a_ik)
+            continue;
+        }
 
-            ValueType diag = zero<ValueType>();
-            ValueType sum_weak = zero<ValueType>();
-            ValueType sum_strong_c_val = zero<ValueType>();
+        // full classical RS interpolation formula:
+        // w_ij = -(a_ij + sum_{k in F_strong} (a_ik * a_kj / sum_{m in
+        // C_strong} a_im))
+        //        / (a_ii + sum_{k in weak} a_ik)
 
-            // accumulate sums
-            for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-                auto j = a_col_idxs[jj];
-                if (i == j)
-                    diag = a_vals[jj];
-                else if (!is_strong[jj])
-                    sum_weak += a_vals[jj];
-                else if (cf[j] == 1)
-                    sum_strong_c_val += a_vals[jj];
+        auto diag = zero<ValueType>();
+        auto sum_weak = zero<ValueType>();
+        auto sum_strong_c_val = zero<ValueType>();
+
+        // accumulate sums
+        for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+            auto j = a_col_idxs[jj];
+            if (i == j) {
+                diag = a_vals[jj];
+            } else if (!is_strong[jj]) {
+                sum_weak += a_vals[jj];
+            } else if (cf[j] == 1) {
+                sum_strong_c_val += a_vals[jj];
             }
+        }
 
-            ValueType denominator = diag + sum_weak;
+        ValueType denominator = diag + sum_weak;
 
-            // compute weights for each strong C-neighbor
-            for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
-                if (is_strong[jj] && cf[a_col_idxs[jj]] == 1) {
-                    auto j = a_col_idxs[jj];
-                    ValueType numerator = a_vals[jj];  // a_ij is right here!
+        // compute weights for each strong C-neighbor
+        for (auto jj = a_row_ptrs[i]; jj < a_row_ptrs[i + 1]; ++jj) {
+            if (is_strong[jj] && cf[a_col_idxs[jj]] == 1) {
+                auto j = a_col_idxs[jj];
+                ValueType numerator = a_vals[jj];  // a_ij is right here!
 
-                    // contribution from strong F-neighbors k
-                    for (auto kk = a_row_ptrs[i]; kk < a_row_ptrs[i + 1];
-                         ++kk) {
-                        if (is_strong[kk] && cf[a_col_idxs[kk]] == -1) {
-                            auto k = a_col_idxs[kk];
-                            ValueType a_ik = a_vals[kk];
-                            ValueType a_kj = zero<ValueType>();
-                            // only search for a_kj in row k
-                            for (auto n_kj = a_row_ptrs[k];
-                                 n_kj < a_row_ptrs[k + 1]; ++n_kj) {
-                                if (a_col_idxs[n_kj] == j) {
-                                    a_kj = a_vals[n_kj];
-                                    break;
-                                }
+                // contribution from strong F-neighbors k
+                for (auto kk = a_row_ptrs[i]; kk < a_row_ptrs[i + 1]; ++kk) {
+                    if (is_strong[kk] && cf[a_col_idxs[kk]] == -1) {
+                        auto k = a_col_idxs[kk];
+                        ValueType a_ik = a_vals[kk];
+                        ValueType a_kj = zero<ValueType>();
+                        // only search for a_kj in row k
+                        for (auto n_kj = a_row_ptrs[k];
+                             n_kj < a_row_ptrs[k + 1]; ++n_kj) {
+                            if (a_col_idxs[n_kj] == j) {
+                                a_kj = a_vals[n_kj];
+                                break;
                             }
-                            numerator += (a_ik * a_kj) / sum_strong_c_val;
                         }
+                        numerator += (a_ik * a_kj) / sum_strong_c_val;
                     }
-                    p_col_idxs[p_idx] = fine_to_coarse[j];
-                    p_vals[p_idx] = -numerator / denominator;
-                    p_idx++;
                 }
+                p_col_idxs[p_idx] = fine_to_coarse[j];
+                p_vals[p_idx] = -numerator / denominator;
+                p_idx++;
             }
         }
     }

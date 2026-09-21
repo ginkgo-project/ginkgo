@@ -261,12 +261,9 @@ Csr<ValueType, IndexType>::create_const(
     gko::detail::const_array_view<IndexType>&& row_ptrs,
     std::shared_ptr<strategy_type> strategy)
 {
-    return create_const(
-        std::move(exec), size,
-        std::forward<gko::detail::const_array_view<ValueType>>(values),
-        std::forward<gko::detail::const_array_view<IndexType>>(col_idxs),
-        std::forward<gko::detail::const_array_view<IndexType>>(row_ptrs),
-        get_strategy_enum<Csr>(strategy));
+    return create_const(std::move(exec), size, std::move(values),
+                        std::move(col_idxs), std::move(row_ptrs),
+                        get_strategy_enum<Csr>(strategy));
 }
 
 
