@@ -2,10 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <string>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/profiler_hook.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
@@ -33,7 +37,8 @@ namespace {
 int global_step = 0;
 
 
-void assert_same_vector(std::vector<int> v1, std::vector<int> v2)
+template <typename T>
+void assert_same_vector(const std::vector<T>& v1, std::vector<T> v2)
 {
     ASSERT_EQ(v1.size(), v2.size());
     for (gko::size_type i = 0; i < v1.size(); i++) {
@@ -396,7 +401,7 @@ protected:
                 .on(this->exec));
     }
 
-    std::shared_ptr<const gko::ReferenceExecutor> exec;
+    std::shared_ptr<gko::ReferenceExecutor> exec;
     std::shared_ptr<Csr> mtx;
     std::shared_ptr<Csr> mtx2;
     std::shared_ptr<typename Coarse::Factory> coarse_factory;
@@ -1296,6 +1301,198 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByFCycle)
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
+}
+
+std::pair<gko::log::ProfilerHook::hook_function,
+          gko::log::ProfilerHook::hook_function>
+make_hooks(std::vector<std::string>& output)
+{
+    return std::make_pair(
+        [&output](const char* msg, gko::log::profile_event_category) {
+            output.push_back(msg);
+        },
+        [](const char* msg, gko::log::profile_event_category) {});
+}
+
+std::vector<std::string> extract_info(const std::vector<std::string>& input)
+{
+    std::vector<std::string> result;
+    for (const auto& s : input) {
+        if (s.find("apply") == std::string::npos) {
+            continue;
+        }
+        if (s.find("multigrid") != std::string::npos) {
+            continue;
+        }
+        // if (s.find("restrict") != std::string::npos || s.find("prolong") !=
+        // std::string::npos || s.find("coarse") != std::string::npos ||
+        // s.find("system") != std::string::npos) {
+        //     result.push_back(s);
+        // }
+        result.push_back(s);
+    }
+    return result;
+}
+
+void setup_name(std::shared_ptr<gko::log::ProfilerHook> logger,
+                gko::solver::Multigrid* mg)
+{
+    auto mg_list = mg->get_mg_level_list();
+    for (int i = 0; i < mg_list.size(); i++) {
+        // because we do not change the fine matrix from given one, coarse is
+        // equal to next fine
+        logger->set_object_name(mg_list.at(i)->get_coarse_op(),
+                                "coarse_" + std::to_string(i));
+        logger->set_object_name(mg_list.at(i)->get_restrict_op(),
+                                "restrict_" + std::to_string(i));
+        logger->set_object_name(mg_list.at(i)->get_prolong_op(),
+                                "prolong_" + std::to_string(i));
+    }
+    logger->set_object_name(mg->get_system_matrix(), "system");
+    logger->set_object_name(mg->get_coarsest_solver(), "coarsest_solver");
+    logger->set_object_name(mg, "multigrid");
+}
+
+
+TEST(MixedMultigrid, CheckApply)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto multigrid_factory =
+        gko::solver::Multigrid::build()
+            .with_max_levels(2u)
+            .with_pre_smoother(nullptr)
+            .with_mid_smoother(nullptr)
+            .with_mg_level(DummyMultigridLevelWithFactory<double>::build())
+            .with_coarsest_solver(DummyLinOpWithFactory<double>::build())
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_min_coarse_rows(1u)
+            .on(exec);
+    auto mtx = gko::share(DummyLinOp::create(exec, gko::dim<2>{3, 3}));
+    auto solver = multigrid_factory->generate(mtx);
+    auto b =
+        gko::initialize<gko::matrix::Dense<double>>({-1.0, 3.0, 1.0}, exec);
+    auto x = gko::initialize<gko::matrix::Dense<double>>({0.0, 0.0, 0.0}, exec);
+    std::vector<std::string> output;
+    auto hooks = make_hooks(output);
+    auto logger = gko::log::ProfilerHook::create_custom(
+        std::move(hooks.first), std::move(hooks.second));
+    setup_name(logger, solver.get());
+
+    exec->add_logger(logger);
+    solver->apply(b, x);
+    exec->remove_logger(logger);
+
+    output = extract_info(output);
+    assert_same_vector(
+        output, {
+                    // clang-format off
+            "advanced_apply(gko::matrix::Dense<double> * system * gko::matrix::Dense<double> + gko::matrix::Dense<double> * gko::matrix::Dense<double>)",
+            "apply(restrict_0 * gko::matrix::Dense<double> = gko::matrix::Dense<double>)",
+            "advanced_apply(gko::matrix::Dense<double> * coarse_0 * gko::matrix::Dense<double> + gko::matrix::Dense<double> * gko::matrix::Dense<double>)",
+            "apply(restrict_1 * gko::matrix::Dense<double> = gko::matrix::Dense<double>)",
+            "apply(coarsest_solver * gko::matrix::Dense<double> = gko::matrix::Dense<double>)",
+            "advanced_apply(gko::matrix::Dense<double> * prolong_1 * gko::matrix::Dense<double> + gko::matrix::Dense<double> * gko::matrix::Dense<double>)",
+            "advanced_apply(gko::matrix::Dense<double> * prolong_0 * gko::matrix::Dense<double> + gko::matrix::Dense<double> * gko::matrix::Dense<double>)"
+                    // clang-format on
+                });
+}
+
+
+TEST(MixedMultigrid, CheckApplyMixed)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto multigrid_factory =
+        gko::solver::Multigrid::build()
+            .with_max_levels(2u)
+            .with_pre_smoother(nullptr)
+            .with_mid_smoother(nullptr)
+            .with_mg_level(DummyMultigridLevelWithFactory<double>::build(),
+                           DummyMultigridLevelWithFactory<float>::build())
+            .with_coarsest_solver(DummyLinOpWithFactory<float>::build())
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_min_coarse_rows(1u)
+            .on(exec);
+    auto mtx = gko::share(DummyLinOp::create(exec, gko::dim<2>{3, 3}));
+    auto solver = multigrid_factory->generate(mtx);
+    auto b =
+        gko::initialize<gko::matrix::Dense<double>>({-1.0, 3.0, 1.0}, exec);
+    auto x = gko::initialize<gko::matrix::Dense<double>>({0.0, 0.0, 0.0}, exec);
+    std::vector<std::string> output;
+    auto hooks = make_hooks(output);
+    auto logger = gko::log::ProfilerHook::create_custom(
+        std::move(hooks.first), std::move(hooks.second));
+    setup_name(logger, solver.get());
+
+    exec->add_logger(logger);
+    solver->apply(b, x);
+    exec->remove_logger(logger);
+
+    output = extract_info(output);
+    assert_same_vector(
+        output,
+        {
+            // clang-format off
+            "advanced_apply(gko::matrix::Dense<double> * system * gko::matrix::Dense<double> + gko::matrix::Dense<double> * gko::matrix::Dense<double>)",
+            "apply(restrict_0 * gko::matrix::Dense<double> = gko::matrix::Dense<float>)",
+            "advanced_apply(gko::matrix::Dense<float> * coarse_0 * gko::matrix::Dense<float> + gko::matrix::Dense<float> * gko::matrix::Dense<float>)",
+            "apply(restrict_1 * gko::matrix::Dense<float> = gko::matrix::Dense<float>)",
+            "apply(coarsest_solver * gko::matrix::Dense<float> = gko::matrix::Dense<float>)",
+            "advanced_apply(gko::matrix::Dense<float> * prolong_1 * gko::matrix::Dense<float> + gko::matrix::Dense<float> * gko::matrix::Dense<float>)",
+            // beta is same as b, which is fine for prolongation as row_gatherer
+            "advanced_apply(gko::matrix::Dense<float> * prolong_0 * gko::matrix::Dense<float> + gko::matrix::Dense<float> * gko::matrix::Dense<double>)"
+            // clang-format on
+        });
+}
+
+
+TEST(MixedMultigrid, CheckApplyMixedInternal)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto multigrid_factory =
+        gko::solver::Multigrid::build()
+            .with_max_levels(2u)
+            .with_pre_smoother(nullptr)
+            .with_mid_smoother(nullptr)
+            .with_mg_level(DummyMultigridLevelWithFactory<float>::build(),
+                           DummyMultigridLevelWithFactory<float>::build())
+            //    first vector need to be fp64 to keep matrix apply in the first
+            //    level because we do not use matrix to get precision yet
+            .with_precision(gko::solver::multigrid::precision::fp64,
+                            gko::solver::multigrid::precision::fp64)
+            .with_coarsest_solver(DummyLinOpWithFactory<float>::build())
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_min_coarse_rows(1u)
+            .on(exec);
+    auto mtx = gko::share(DummyLinOp::create(exec, gko::dim<2>{3, 3}));
+    auto solver = multigrid_factory->generate(mtx);
+    auto b =
+        gko::initialize<gko::matrix::Dense<double>>({-1.0, 3.0, 1.0}, exec);
+    auto x = gko::initialize<gko::matrix::Dense<double>>({0.0, 0.0, 0.0}, exec);
+    std::vector<std::string> output;
+    auto hooks = make_hooks(output);
+    auto logger = gko::log::ProfilerHook::create_custom(
+        std::move(hooks.first), std::move(hooks.second));
+    setup_name(logger, solver.get());
+
+    exec->add_logger(logger);
+    solver->apply(b, x);
+    exec->remove_logger(logger);
+
+    output = extract_info(output);
+    assert_same_vector(
+        output,
+        {
+            // clang-format off
+                    // the first one b is float because the apply_with_initial_guess use first mg_level precision (might need to change)
+            "advanced_apply(gko::matrix::Dense<double> * system * gko::matrix::Dense<double> + gko::matrix::Dense<double> * gko::matrix::Dense<double>)",
+            "apply(restrict_0 * gko::matrix::Dense<double> = gko::matrix::Dense<double>)",
+            "advanced_apply(gko::matrix::Dense<float> * coarse_0 * gko::matrix::Dense<double> + gko::matrix::Dense<double> * gko::matrix::Dense<double>)",
+            "apply(restrict_1 * gko::matrix::Dense<double> = gko::matrix::Dense<double>)",
+            "apply(coarsest_solver * gko::matrix::Dense<double> = gko::matrix::Dense<double>)",
+            "advanced_apply(gko::matrix::Dense<double> * prolong_1 * gko::matrix::Dense<double> + gko::matrix::Dense<double> * gko::matrix::Dense<double>)",
+            "advanced_apply(gko::matrix::Dense<double> * prolong_0 * gko::matrix::Dense<double> + gko::matrix::Dense<double> * gko::matrix::Dense<float>)"
+            // clang-format on
+        });
 }
 
 
