@@ -2,3 +2,7 @@ add_subdirectory(unified)
 add_subdirectory(cuda_hip)
 set(GKO_UNIFIED_COMMON_SOURCES ${GKO_UNIFIED_COMMON_SOURCES} PARENT_SCOPE)
 set(GKO_CUDA_HIP_COMMON_SOURCES ${GKO_CUDA_HIP_COMMON_SOURCES} PARENT_SCOPE)
+
+if(GINKGO_BUILD_TESTS AND GINKGO_BUILD_CUDA)
+    add_subdirectory(tests)
+endif()
