@@ -29,6 +29,7 @@
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/gather_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -55,7 +56,7 @@ GKO_REGISTER_OPERATION(compute_coarse_coo, pgm::compute_coarse_coo);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
-GKO_REGISTER_OPERATION(gather_index, pgm::gather_index);
+GKO_REGISTER_OPERATION(gather, components::gather);
 
 
 }  // anonymous namespace
@@ -288,9 +289,9 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_off_diag_agg(
     auto row_gatherer = matrix->row_gatherer_;
 
     array<IndexType> send_agg(exec, total_send_size);
-    exec->run(pgm::make_gather_index(
-        send_agg.get_size(), local_agg.get_const_data(),
-        row_gatherer->get_const_send_idxs(), send_agg.get_data()));
+    exec->run(pgm::make_gather(send_agg.get_size(), local_agg.get_const_data(),
+                               row_gatherer->get_const_send_idxs(),
+                               send_agg.get_data()));
 
     // There is no index map on the coarse level yet, so map the local indices
     // to global indices on the coarse level manually

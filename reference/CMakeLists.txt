@@ -11,6 +11,7 @@ target_sources(
         components/absolute_array_kernels.cpp
         components/fill_array_kernels.cpp
         components/format_conversion_kernels.cpp
+        components/gather_kernels.cpp
         components/precision_conversion_kernels.cpp
         components/prefix_sum_kernels.cpp
         components/range_minimum_query_kernels.cpp

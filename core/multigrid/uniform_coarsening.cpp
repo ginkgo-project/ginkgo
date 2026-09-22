@@ -28,6 +28,7 @@
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/gather_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -47,7 +48,7 @@ GKO_REGISTER_OPERATION(fill_incremental_indices,
                        uniform_coarsening::fill_incremental_indices);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
-GKO_REGISTER_OPERATION(gather_index, pgm::gather_index);
+GKO_REGISTER_OPERATION(gather, components::gather);
 GKO_REGISTER_OPERATION(map_row, pgm::map_row);
 GKO_REGISTER_OPERATION(map_col, pgm::map_col);
 GKO_REGISTER_OPERATION(sort_agg, pgm::sort_agg);
@@ -332,7 +333,7 @@ UniformCoarsening<ValueType, IndexType>::communicate_non_local_agg(
     auto row_gatherer = matrix->row_gatherer_;
 
     array<IndexType> send_agg(exec, total_send_size);
-    exec->run(uniform_coarsening::make_gather_index(
+    exec->run(uniform_coarsening::make_gather(
         send_agg.get_size(), local_agg.get_const_data(),
         row_gatherer->get_const_send_idxs(), send_agg.get_data()));
 

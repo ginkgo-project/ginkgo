@@ -22,6 +22,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
+#include "core/components/gather_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -274,7 +275,7 @@ TYPED_TEST(Pgm, GatherIndex)
     map.get_data()[3] = 2;
     map.get_data()[4] = 0;
 
-    gko::kernels::reference::pgm::gather_index(
+    gko::kernels::reference::components::gather(
         this->exec, num, orig.get_const_data(), map.get_const_data(),
         result.get_data());
 
