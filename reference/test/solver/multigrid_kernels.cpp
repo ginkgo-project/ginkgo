@@ -1317,6 +1317,20 @@ TYPED_TEST(Multigrid, UpdateMatrixValueWithoutLevelsThrows)
 }
 
 
+// EnableSolverBase::set_system_matrix already rejects a matrix whose
+// dimensions differ from the solver's, so the update inherits that check.
+TYPED_TEST(Multigrid, UpdateMatrixValueWithMismatchingSizeThrows)
+{
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::v);
+    // mtx is 3x3, mtx2 is 6x6
+    auto solver = multigrid_factory->generate(this->mtx);
+
+    ASSERT_THROW(solver->update_matrix_value(this->mtx2),
+                 gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(Multigrid, UpdateMatrixValueMatchesRegeneratedHierarchy)
 {
     using Csr = typename TestFixture::Csr;
