@@ -4,10 +4,14 @@
 
 #include "ginkgo/core/multigrid/pgm.hpp"
 
+#include <limits>
+#include <utility>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
@@ -29,6 +33,7 @@
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/prefix_sum_kernels.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -49,13 +54,15 @@ GKO_REGISTER_OPERATION(assign_to_exist_agg, pgm::assign_to_exist_agg);
 GKO_REGISTER_OPERATION(sort_agg, pgm::sort_agg);
 GKO_REGISTER_OPERATION(map_row, pgm::map_row);
 GKO_REGISTER_OPERATION(map_col, pgm::map_col);
-GKO_REGISTER_OPERATION(sort_row_major, components::sort_row_major);
+GKO_REGISTER_OPERATION(sort_row_major, pgm::sort_row_major);
 GKO_REGISTER_OPERATION(count_unrepeated_nnz, pgm::count_unrepeated_nnz);
 GKO_REGISTER_OPERATION(compute_coarse_coo, pgm::compute_coarse_coo);
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(gather_index, pgm::gather_index);
+GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
+                       components::prefix_sum_nonnegative);
 
 
 }  // anonymous namespace
@@ -90,23 +97,40 @@ void agg_to_restrict(std::shared_ptr<const Executor> exec, IndexType num_agg,
 
 
 template <typename ValueType, typename IndexType>
-std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
-    std::shared_ptr<const Executor> exec,
-    const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
-    const gko::array<IndexType>& agg, IndexType off_diag_num_agg,
-    const gko::array<IndexType>& off_diag_agg)
+std::pair<std::shared_ptr<matrix::Csr<ValueType, IndexType>>,
+          std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>>>
+generate_coarse(std::shared_ptr<const Executor> exec,
+                const matrix::Csr<ValueType, IndexType>* fine_csr,
+                IndexType num_agg, const gko::array<IndexType>& agg,
+                IndexType off_diag_num_agg,
+                const gko::array<IndexType>& off_diag_agg)
 {
     const auto num = fine_csr->get_size()[0];
     const auto nnz = fine_csr->get_num_stored_elements();
     gko::array<IndexType> row_idxs(exec, nnz);
     gko::array<IndexType> col_idxs(exec, nnz);
     gko::array<ValueType> vals(exec, nnz);
+    // the mapping stores one fine index per nonzero, so IndexType has to be
+    // able to address all of them
+    if (nnz > static_cast<size_type>(std::numeric_limits<IndexType>::max())) {
+        throw OverflowError(__FILE__, __LINE__, "IndexType");
+    }
+    gko::array<IndexType> mapping_cols(exec, nnz);
     exec->copy_from(exec, nnz, fine_csr->get_const_values(), vals.get_data());
 
     if (nnz == 0) {
-        return matrix::Csr<ValueType, IndexType>::create(
-            exec, dim<2>(num_agg, off_diag_num_agg));
+        // An empty fine block gives an empty coarse block. Still return a
+        // valid (empty) mapping, such that value-only updates can apply it
+        // unconditionally.
+        gko::array<IndexType> mapping_rows(exec, {zero<IndexType>()});
+        return std::make_pair(matrix::Csr<ValueType, IndexType>::create(
+                                  exec, dim<2>(num_agg, off_diag_num_agg)),
+                              matrix::SparsityCsr<ValueType, IndexType>::create(
+                                  exec, dim<2>{0, 0}, std::move(mapping_cols),
+                                  std::move(mapping_rows)));
     }
+
+    exec->run(pgm::make_fill_seq_array(mapping_cols.get_data(), nnz));
 
     // map row_ptrs to coarse row index
     exec->run(pgm::make_map_row(num, fine_csr->get_const_row_ptrs(),
@@ -121,12 +145,15 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
     // TODO: If we have deterministic reduce_by_key, we might consider
     // stable_sort_by_key
     exec->run(pgm::make_sort_row_major(nnz, row_idxs.get_data(),
-                                       col_idxs.get_data(), vals.get_data()));
+                                       col_idxs.get_data(), vals.get_data(),
+                                       mapping_cols.get_data()));
     // compute the total nnz and create the fine csr
     size_type coarse_nnz = 0;
     exec->run(pgm::make_count_unrepeated_nnz(nnz, row_idxs.get_const_data(),
                                              col_idxs.get_const_data(),
                                              &coarse_nnz));
+    // mapping can be col index for sparsity csr
+    gko::array<IndexType> mapping_rows(exec, coarse_nnz + 1);
     // reduce by key (row, col)
     auto coarse_coo = matrix::Coo<ValueType, IndexType>::create(
         exec,
@@ -135,21 +162,60 @@ std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
         coarse_nnz);
     exec->run(pgm::make_compute_coarse_coo(
         nnz, row_idxs.get_const_data(), col_idxs.get_const_data(),
-        vals.get_const_data(), coarse_coo->get_device_view()));
+        vals.get_const_data(), coarse_coo->get_device_view(),
+        mapping_rows.get_data()));
+    exec->run(pgm::make_prefix_sum_nonnegative(mapping_rows.get_data(),
+                                               coarse_nnz + 1));
     // use move_to
     auto coarse_csr = matrix::Csr<ValueType, IndexType>::create(exec);
     coarse_csr->move_from(coarse_coo);
-    return std::move(coarse_csr);
+    auto mapping_csr = matrix::SparsityCsr<ValueType, IndexType>::create(
+        exec, dim<2>{coarse_nnz, nnz}, std::move(mapping_cols),
+        std::move(mapping_rows));
+    return std::make_pair(std::move(coarse_csr), std::move(mapping_csr));
 }
 
 
 template <typename ValueType, typename IndexType>
-std::shared_ptr<matrix::Csr<ValueType, IndexType>> generate_coarse(
-    std::shared_ptr<const Executor> exec,
-    const matrix::Csr<ValueType, IndexType>* fine_csr, IndexType num_agg,
-    const gko::array<IndexType>& agg)
+std::pair<std::shared_ptr<matrix::Csr<ValueType, IndexType>>,
+          std::shared_ptr<matrix::SparsityCsr<ValueType, IndexType>>>
+generate_coarse(std::shared_ptr<const Executor> exec,
+                const matrix::Csr<ValueType, IndexType>* fine_csr,
+                IndexType num_agg, const gko::array<IndexType>& agg)
 {
     return generate_coarse(exec, fine_csr, num_agg, agg, num_agg, agg);
+}
+
+
+/**
+ * Recomputes the values of a coarse matrix from the fine values, reusing the
+ * coarse-to-fine mapping built during the generation.
+ *
+ * The sparsity of both matrices and the mapping between them are unchanged, so
+ * only the coarse values are overwritten. The coarse matrix is only reachable
+ * as const through the multigrid level, but updating its values in place is
+ * exactly what this is for, hence the const_cast.
+ */
+template <typename ValueType, typename IndexType>
+void copy_mapped_values(
+    std::shared_ptr<const Executor> exec,
+    const matrix::SparsityCsr<ValueType, IndexType>* mapping,
+    const matrix::Csr<ValueType, IndexType>* fine,
+    const matrix::Csr<ValueType, IndexType>* coarse)
+{
+    auto fine_vals = matrix::Dense<ValueType>::create_const(
+        exec, dim<2>{fine->get_num_stored_elements(), 1},
+        make_const_array_view(exec, fine->get_num_stored_elements(),
+                              fine->get_const_values()),
+        1);
+    auto mutable_coarse =
+        const_cast<matrix::Csr<ValueType, IndexType>*>(coarse);
+    auto coarse_vals = matrix::Dense<ValueType>::create(
+        exec, dim<2>{mutable_coarse->get_num_stored_elements(), 1},
+        make_array_view(exec, mutable_coarse->get_num_stored_elements(),
+                        mutable_coarse->get_values()),
+        1);
+    mapping->apply(fine_vals, coarse_vals);
 }
 
 
@@ -259,9 +325,9 @@ Pgm<ValueType, IndexType>::generate_local(
 
     // Construct the coarse matrix
     // TODO: improve it
-    auto coarse_matrix =
+    auto [coarse_matrix, mapping_matrix] =
         generate_coarse(exec, local_matrix.get(), num_agg, agg_);
-
+    mapping_local_ = mapping_matrix;
     return std::tie(prolong_row_gather, coarse_matrix, restrict_sparsity);
 }
 
@@ -333,6 +399,87 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_off_diag_agg(
 #endif
 
 
+#if GINKGO_BUILD_MPI
+
+
+template <typename ValueType, typename IndexType>
+void Pgm<ValueType, IndexType>::setup_distributed_fine_op()
+{
+    using csr_type = matrix::Csr<ValueType, IndexType>;
+    auto convert_fine_op = [&](auto matrix) {
+        using global_index_type = typename std::decay_t<
+            decltype(*matrix)>::result_type::global_index_type;
+        auto exec = as<LinOp>(matrix)->get_executor();
+        auto comm = as<experimental::distributed::DistributedBase>(matrix)
+                        ->get_communicator();
+        auto fine =
+            share(experimental::distributed::
+                      Matrix<ValueType, IndexType, global_index_type>::create(
+                          exec, comm, csr_type::create(exec),
+                          csr_type::create(exec)));
+        matrix->convert_to(fine);
+        this->set_fine_op(fine);
+    };
+    auto setup_fine_op = [&](auto matrix) {
+        // Only support csr matrix currently.
+        auto diag_csr = std::dynamic_pointer_cast<const csr_type>(
+            matrix->get_diag_matrix());
+        auto off_diag_csr = std::dynamic_pointer_cast<const csr_type>(
+            matrix->get_off_diag_matrix());
+        // If system matrix is not csr or need sorting, generate the csr.
+        if (!parameters_.skip_sorting || !diag_csr || !off_diag_csr) {
+            using global_index_type =
+                typename std::decay_t<decltype(*matrix)>::global_index_type;
+            convert_fine_op(
+                as<ConvertibleTo<experimental::distributed::Matrix<
+                    ValueType, IndexType, global_index_type>>>(matrix));
+        } else {
+            // No conversion is required, so the system matrix is directly
+            // usable as the fine op. During generation this is what the
+            // constructor already stored, but update_matrix_value relies on
+            // it to replace the previous matrix.
+            this->set_fine_op(matrix);
+        }
+    };
+
+    // setup the fine op using Csr with current ValueType
+    // we do not use dispatcher run in the first place because we have the
+    // fallback option for that.
+    if (auto obj =
+            std::dynamic_pointer_cast<const fst_mtx_type>(system_matrix_)) {
+        setup_fine_op(obj);
+    } else if (auto obj = std::dynamic_pointer_cast<const snd_mtx_type>(
+                   system_matrix_)) {
+        setup_fine_op(obj);
+    } else {
+        // handle other ValueTypes.
+        run<ConvertibleTo, fst_mtx_type, snd_mtx_type>(system_matrix_,
+                                                       convert_fine_op);
+    }
+}
+
+
+#endif  // GINKGO_BUILD_MPI
+
+
+template <typename ValueType, typename IndexType>
+std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
+Pgm<ValueType, IndexType>::setup_local_fine_op()
+{
+    using csr_type = matrix::Csr<ValueType, IndexType>;
+    // Only support csr matrix currently.
+    auto pgm_op = std::dynamic_pointer_cast<const csr_type>(system_matrix_);
+    // If system matrix is not csr or need sorting, generate the csr.
+    if (!parameters_.skip_sorting || !pgm_op) {
+        pgm_op = convert_to_with_sorting<csr_type>(
+            this->get_executor(), system_matrix_, parameters_.skip_sorting);
+    }
+    // keep the same precision data in fine_op
+    this->set_fine_op(pgm_op);
+    return pgm_op;
+}
+
+
 template <typename ValueType, typename IndexType>
 void Pgm<ValueType, IndexType>::generate()
 {
@@ -340,56 +487,7 @@ void Pgm<ValueType, IndexType>::generate()
 #if GINKGO_BUILD_MPI
     if (std::dynamic_pointer_cast<
             const experimental::distributed::DistributedBase>(system_matrix_)) {
-        auto convert_fine_op = [&](auto matrix) {
-            using global_index_type = typename std::decay_t<
-                decltype(*matrix)>::result_type::global_index_type;
-            auto exec = as<LinOp>(matrix)->get_executor();
-            auto comm = as<experimental::distributed::DistributedBase>(matrix)
-                            ->get_communicator();
-            auto fine = share(
-                experimental::distributed::
-                    Matrix<ValueType, IndexType, global_index_type>::create(
-                        exec, comm,
-                        matrix::Csr<ValueType, IndexType>::create(exec),
-                        matrix::Csr<ValueType, IndexType>::create(exec)));
-            matrix->convert_to(fine);
-            this->set_fine_op(fine);
-        };
-        auto setup_fine_op = [&](auto matrix) {
-            // Only support csr matrix currently.
-            auto diag_csr = std::dynamic_pointer_cast<const csr_type>(
-                matrix->get_diag_matrix());
-            auto off_diag_csr = std::dynamic_pointer_cast<const csr_type>(
-                matrix->get_off_diag_matrix());
-            // If system matrix is not csr or need sorting, generate the
-            // csr.
-            if (!parameters_.skip_sorting || !diag_csr || !off_diag_csr) {
-                using global_index_type =
-                    typename std::decay_t<decltype(*matrix)>::global_index_type;
-                convert_fine_op(
-                    as<ConvertibleTo<experimental::distributed::Matrix<
-                        ValueType, IndexType, global_index_type>>>(matrix));
-            }
-        };
-
-        using fst_mtx_type =
-            experimental::distributed::Matrix<ValueType, IndexType, IndexType>;
-        using snd_mtx_type =
-            experimental::distributed::Matrix<ValueType, IndexType, int64>;
-        // setup the fine op using Csr with current ValueType
-        // we do not use dispatcher run in the first place because we have
-        // the fallback option for that.
-        if (auto obj =
-                std::dynamic_pointer_cast<const fst_mtx_type>(system_matrix_)) {
-            setup_fine_op(obj);
-        } else if (auto obj = std::dynamic_pointer_cast<const snd_mtx_type>(
-                       system_matrix_)) {
-            setup_fine_op(obj);
-        } else {
-            // handle other ValueTypes.
-            run<ConvertibleTo, fst_mtx_type, snd_mtx_type>(system_matrix_,
-                                                           convert_fine_op);
-        }
+        this->setup_distributed_fine_op();
 
         auto distributed_setup = [&](auto matrix) {
             using global_index_type =
@@ -431,6 +529,8 @@ void Pgm<ValueType, IndexType>::generate()
             // off_diag_agg already maps the fine off-diag indices to
             // coarse global indices, so mapping it with the coarse index
             // map results in the coarse off-diag indices.
+            auto off_diag_num_agg =
+                static_cast<IndexType>(coarse_imap.get_non_local_size());
             auto off_diag_map = coarse_imap.map_to_local(
                 off_diag_agg,
                 experimental::distributed::index_space::non_local);
@@ -440,11 +540,11 @@ void Pgm<ValueType, IndexType>::generate()
             // different row and col maps.
             auto off_diag_csr =
                 as<const csr_type>(matrix->get_off_diag_matrix());
-            auto result_off_diag_csr = generate_coarse(
+            auto [result_off_diag_csr, mapping_off_diag] = generate_coarse(
                 exec, off_diag_csr.get(),
                 static_cast<IndexType>(std::get<1>(result)->get_size()[0]),
-                agg_, static_cast<IndexType>(coarse_imap.get_non_local_size()),
-                off_diag_map);
+                agg_, off_diag_num_agg, off_diag_map);
+            mapping_off_diag_ = mapping_off_diag;
 
             // setup the generated linop.
             auto coarse = share(
@@ -474,19 +574,52 @@ void Pgm<ValueType, IndexType>::generate()
     } else
 #endif  // GINKGO_BUILD_MPI
     {
-        auto exec = this->get_executor();
-        // Only support csr matrix currently.
-        auto pgm_op = std::dynamic_pointer_cast<const csr_type>(system_matrix_);
-        // If system matrix is not csr or need sorting, generate the csr.
-        if (!parameters_.skip_sorting || !pgm_op) {
-            pgm_op = convert_to_with_sorting<csr_type>(
-                exec, system_matrix_, parameters_.skip_sorting);
-            // keep the same precision data in fine_op
-            this->set_fine_op(pgm_op);
-        }
-        auto result = this->generate_local(pgm_op);
+        auto result = this->generate_local(this->setup_local_fine_op());
         this->set_multigrid_level(std::get<0>(result), std::get<1>(result),
                                   std::get<2>(result));
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Pgm<ValueType, IndexType>::update_matrix_value(
+    std::shared_ptr<const LinOp> new_matrix)
+{
+    using csr_type = matrix::Csr<ValueType, IndexType>;
+    system_matrix_ = new_matrix;
+#if GINKGO_BUILD_MPI
+    if (std::dynamic_pointer_cast<
+            const experimental::distributed::DistributedBase>(system_matrix_)) {
+        this->setup_distributed_fine_op();
+
+        auto distributed_setup = [&](auto matrix) {
+            using global_index_type =
+                typename std::decay_t<decltype(*matrix)>::global_index_type;
+
+            auto exec = gko::as<LinOp>(matrix)->get_executor();
+            auto diag_csr = gko::as<const csr_type>(matrix->get_diag_matrix());
+            auto off_diag_csr =
+                gko::as<const csr_type>(matrix->get_off_diag_matrix());
+            auto coarse =
+                as<experimental::distributed::Matrix<ValueType, IndexType,
+                                                     global_index_type>>(
+                    this->get_coarse_op());
+            copy_mapped_values(
+                exec, mapping_local_.get(), diag_csr.get(),
+                gko::as<csr_type>(coarse->get_diag_matrix()).get());
+            copy_mapped_values(
+                exec, mapping_off_diag_.get(), off_diag_csr.get(),
+                gko::as<csr_type>(coarse->get_off_diag_matrix()).get());
+        };
+        // the fine op is using csr with the current ValueType
+        run<fst_mtx_type, snd_mtx_type>(this->get_fine_op(), distributed_setup);
+    } else
+#endif
+    {
+        auto exec = this->get_executor();
+        auto pgm_op = this->setup_local_fine_op();
+        copy_mapped_values(exec, mapping_local_.get(), pgm_op.get(),
+                           gko::as<csr_type>(this->get_coarse_op()).get());
     }
 }
 

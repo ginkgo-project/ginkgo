@@ -17,6 +17,14 @@
 
 
 namespace gko {
+
+
+class UpdateMatrixValue {
+public:
+    virtual void update_matrix_value(std::shared_ptr<const gko::LinOp>) = 0;
+};
+
+
 /**
  * @brief The multigrid components namespace.
  *

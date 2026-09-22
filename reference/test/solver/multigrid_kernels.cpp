@@ -1299,4 +1299,198 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByFCycle)
 }
 
 
+// Scaling by a positive constant leaves the Pgm aggregates untouched, so an
+// updated hierarchy has to agree with a freshly generated one entry by entry.
+// A solver generated on a zero-sized matrix skips generate(), so it has no
+// levels. Updating it must be rejected rather than reaching back() on an
+// empty list.
+TYPED_TEST(Multigrid, UpdateMatrixValueWithoutLevelsThrows)
+{
+    using Csr = typename TestFixture::Csr;
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::v);
+    auto empty = gko::share(Csr::create(this->exec));
+    auto solver = multigrid_factory->generate(empty);
+    ASSERT_EQ(solver->get_mg_level_list().size(), 0);
+
+    ASSERT_THROW(solver->update_matrix_value(this->mtx), gko::ValueMismatch);
+}
+
+
+// EnableSolverBase::set_system_matrix already rejects a matrix whose
+// dimensions differ from the solver's, so the update inherits that check.
+// generate picks the smoother for each level through level_selector_, so the
+// update has to do the same. Indexing the smoother list by the level instead
+// silently picks a different smoother whenever the selector is not the
+// identity. A single smoother list hides this, since handle_list ignores the
+// index then, which is why the rest of the suite does not catch it.
+TYPED_TEST(Multigrid, UpdateMatrixValueSelectsSmoothersLikeGenerate)
+{
+    using Solver = typename TestFixture::Solver;
+    auto factory =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_min_coarse_rows(1u)
+            .with_mg_level(this->coarse_factory, this->coarse_factory)
+            // the second smoother is a nullptr, i.e. no smoother on that level
+            .with_pre_smoother(this->smoother_factory, nullptr)
+            // always pick the first smoother, whatever the level
+            .with_level_selector([](const gko::size_type, const gko::LinOp*) {
+                return gko::size_type{0};
+            })
+            .with_post_uses_pre(true)
+            .with_coarsest_solver(this->coarsest_factory)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx2);
+    auto expected = factory->generate(this->mtx2);
+    auto expected_pre = expected->get_pre_smoother_list();
+    ASSERT_GT(expected_pre.size(), 1);
+
+    solver->update_matrix_value(this->mtx2);
+
+    auto pre = solver->get_pre_smoother_list();
+    ASSERT_EQ(pre.size(), expected_pre.size());
+    for (gko::size_type i = 0; i < pre.size(); i++) {
+        // the selector picks the first smoother for every level, so no level
+        // may end up with the nullptr entry
+        ASSERT_NE(expected_pre.at(i), nullptr);
+        ASSERT_NE(pre.at(i), nullptr);
+    }
+}
+
+
+TYPED_TEST(Multigrid, UpdateMatrixValueWithMismatchingSizeThrows)
+{
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::v);
+    // mtx is 3x3, mtx2 is 6x6
+    auto solver = multigrid_factory->generate(this->mtx);
+
+    ASSERT_THROW(solver->update_matrix_value(this->mtx2),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Multigrid, UpdateMatrixValueMatchesRegeneratedHierarchy)
+{
+    using Csr = typename TestFixture::Csr;
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::v);
+    auto solver = multigrid_factory->generate(this->mtx2);
+    auto two = gko::initialize<Mtx>({value_type{2}}, this->exec);
+    auto scaled = gko::share(gko::clone(this->mtx2));
+    scaled->scale(two);
+    auto expected = multigrid_factory->generate(scaled);
+
+    solver->update_matrix_value(scaled);
+
+    auto mg_level = solver->get_mg_level_list();
+    auto expected_mg_level = expected->get_mg_level_list();
+    ASSERT_GT(mg_level.size(), 0);
+    ASSERT_EQ(mg_level.size(), expected_mg_level.size());
+    for (gko::size_type i = 0; i < mg_level.size(); i++) {
+        GKO_ASSERT_MTX_NEAR(
+            gko::as<Csr>(mg_level.at(i)->get_coarse_op()),
+            gko::as<Csr>(expected_mg_level.at(i)->get_coarse_op()),
+            r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(
+            gko::as<Csr>(mg_level.at(i)->get_fine_op()),
+            gko::as<Csr>(expected_mg_level.at(i)->get_fine_op()),
+            r<value_type>::value);
+    }
+    ASSERT_EQ(solver->get_system_matrix().get(),
+              static_cast<const gko::LinOp*>(scaled.get()));
+}
+
+
+TYPED_TEST(Multigrid, UpdateMatrixValueRegeneratesSmoothers)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::v);
+    auto solver = multigrid_factory->generate(this->mtx2);
+    auto original_pre = solver->get_pre_smoother_list();
+    auto original_coarsest = solver->get_coarsest_solver();
+    auto two = gko::initialize<Mtx>({value_type{2}}, this->exec);
+    auto scaled = gko::share(gko::clone(this->mtx2));
+    scaled->scale(two);
+
+    solver->update_matrix_value(scaled);
+
+    // the lists are cleared before being rebuilt, so they must come back with
+    // the same shape but hold newly generated operators
+    auto pre = solver->get_pre_smoother_list();
+    ASSERT_GT(pre.size(), 0);
+    ASSERT_EQ(pre.size(), original_pre.size());
+    for (gko::size_type i = 0; i < pre.size(); i++) {
+        ASSERT_NE(pre.at(i), nullptr);
+        ASSERT_NE(pre.at(i), original_pre.at(i));
+    }
+    // post_uses_pre is set, so the post list has to track the new pre list
+    ASSERT_EQ(solver->get_post_smoother_list().size(), pre.size());
+    ASSERT_NE(solver->get_coarsest_solver(), original_coarsest);
+}
+
+
+// A single V-cycle is deterministic, so comparing it against a freshly
+// generated solver covers the level operators, the smoothers and the coarsest
+// solver at once: any of them left stale changes the result.
+TYPED_TEST(Multigrid, UpdateMatrixValueAppliesLikeRegeneratedSolver)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto single_cycle_factory =
+        Solver::build()
+            .with_pre_smoother(this->smoother_factory)
+            .with_coarsest_solver(this->coarsest_factory)
+            .with_max_levels(2u)
+            .with_post_uses_pre(true)
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::both)
+            .with_mg_level(this->coarse_factory)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_cycle(gko::solver::multigrid::cycle::v)
+            .with_min_coarse_rows(1u)
+            .on(this->exec);
+    auto solver = single_cycle_factory->generate(this->mtx2);
+    auto two = gko::initialize<Mtx>({value_type{2}}, this->exec);
+    auto scaled = gko::share(gko::clone(this->mtx2));
+    scaled->scale(two);
+    auto expected_solver = single_cycle_factory->generate(scaled);
+    auto x = gko::clone(this->x2);
+    auto expected_x = gko::clone(this->x2);
+
+    solver->update_matrix_value(scaled);
+    solver->apply(this->b2, x);
+    expected_solver->apply(this->b2, expected_x);
+
+    GKO_ASSERT_MTX_NEAR(x, expected_x, r<value_type>::value);
+}
+
+
+TYPED_TEST(Multigrid, UpdateMatrixValueSolvesUpdatedStencilSystem)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto multigrid_factory =
+        this->get_multigrid_factory(gko::solver::multigrid::cycle::v);
+    auto solver = multigrid_factory->generate(this->mtx);
+    auto two = gko::initialize<Mtx>({value_type{2}}, this->exec);
+    auto scaled = gko::share(gko::clone(this->mtx));
+    scaled->scale(two);
+    auto b = gko::initialize<Mtx>({-1.0, 3.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->update_matrix_value(scaled);
+    solver->apply(b, x);
+
+    // 2 A x = b has half the solution of A x = b
+    GKO_ASSERT_MTX_NEAR(x, l({0.5, 1.5, 1.0}), r<value_type>::value);
+}
+
+
 }  // namespace

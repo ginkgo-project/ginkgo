@@ -18,6 +18,7 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 
@@ -48,7 +49,9 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Pgm : public LinOp, public EnableMultigridLevel<ValueType> {
+class Pgm : public LinOp,
+            public EnableMultigridLevel<ValueType>,
+            public UpdateMatrixValue {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -147,6 +150,8 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
+    void update_matrix_value(std::shared_ptr<const LinOp> new_matrix) override;
+
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
@@ -190,7 +195,30 @@ protected:
     generate_local(
         std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
 
+    /**
+     * Converts the system matrix into a Csr with the current value type,
+     * sorting it unless skip_sorting is set, and stores it as the fine
+     * operator.
+     *
+     * @return the Csr fine operator
+     */
+    std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
+    setup_local_fine_op();
+
 #if GINKGO_BUILD_MPI
+    /** The distributed matrix types the fine operator can take. */
+    using fst_mtx_type =
+        experimental::distributed::Matrix<ValueType, IndexType, IndexType>;
+    using snd_mtx_type =
+        experimental::distributed::Matrix<ValueType, IndexType, int64>;
+
+    /**
+     * Converts the distributed system matrix into one whose diagonal and
+     * off-diagonal blocks are Csr with the current value type, and stores it
+     * as the fine operator.
+     */
+    void setup_distributed_fine_op();
+
     /**
      * Communicates the off-diag aggregates (as global indices)
      *
@@ -218,6 +246,12 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     array<IndexType> agg_;
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_local_;
+#if GINKGO_BUILD_MPI
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_off_diag_;
+#endif
 };
 
 
