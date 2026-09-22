@@ -7,6 +7,8 @@
 #include <memory>
 #include <type_traits>
 
+#include <omp.h>
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/array.hpp>
@@ -53,6 +55,51 @@ struct to_device_type_impl<move_only_type&> {
 }  // namespace omp
 }  // namespace kernels
 }  // namespace gko
+
+
+// `#pragma omp parallel num_threads(n)` is only a request: the runtime may
+// grant a smaller team (nesting disabled, OMP_THREAD_LIMIT, OMP_DYNAMIC, ...),
+// while omp_get_max_threads() still reports n. The reduction kernels must
+// handle this, otherwise part of the input is skipped and unwritten partial
+// results are folded into the output.
+//
+// Disabling nesting and calling a kernel from inside a parallel region is a
+// deterministic way to get a team of 1 while omp_get_max_threads() reports
+// the full thread count.
+
+// Sets max-active-levels to 1 so that inner parallel regions are serialized,
+// and restores the previous value on scope exit.
+class serialized_inner_parallel_guard {
+public:
+    serialized_inner_parallel_guard() : old_levels_{omp_get_max_active_levels()}
+    {
+        omp_set_max_active_levels(1);
+    }
+
+    ~serialized_inner_parallel_guard()
+    {
+        omp_set_max_active_levels(old_levels_);
+    }
+
+private:
+    int old_levels_;
+};
+
+
+// Runs `fn` such that any parallel region it opens gets a team of 1, fewer
+// threads than it requested based on omp_get_max_threads().
+template <typename Fn>
+void run_with_undersized_team(Fn fn)
+{
+    serialized_inner_parallel_guard guard{};
+#pragma omp parallel num_threads(2)
+    {
+#pragma omp single
+        {
+            fn();
+        }
+    }
+}
 
 
 class KernelLaunch : public ::testing::Test {
@@ -280,6 +327,25 @@ TEST_F(KernelLaunch, Reduction1D)
 }
 
 
+// The reduction must cover the whole input and must not fold uninitialized
+// partial results when the granted team is smaller than requested.
+TEST_F(KernelLaunch, Reduction1DUndersizedTeam)
+{
+    gko::array<int64> output{exec, 1};
+
+    run_with_undersized_team([&] {
+        gko::kernels::omp::run_kernel_reduction(
+            exec, [] GKO_KERNEL(auto i, auto a, auto dummy) { return i + 1; },
+            [] GKO_KERNEL(auto i, auto j) { return i + j; },
+            [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
+            size_type{100000}, output, move_only_val);
+    });
+
+    // 2 * sum i=0...99999 (i+1)
+    ASSERT_EQ(*output.get_const_data(), 10000100000LL);
+}
+
+
 TEST_F(KernelLaunch, Reduction2DSmallRows)
 {
     gko::array<int64> output{exec, 1};
@@ -350,6 +416,27 @@ TEST_F(KernelLaunch, Reduction2D)
 }
 
 
+// see Reduction1DUndersizedTeam: same issue in the 2D (sized) reduction
+TEST_F(KernelLaunch, Reduction2DUndersizedTeam)
+{
+    gko::array<int64> output{exec, 1};
+
+    run_with_undersized_team([&] {
+        gko::kernels::omp::run_kernel_reduction(
+            exec,
+            [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
+                return (i + 1) * (j + 1);
+            },
+            [] GKO_KERNEL(auto i, auto j) { return i + j; },
+            [] GKO_KERNEL(auto j) { return j * 4; }, int64{}, output.get_data(),
+            gko::dim<2>{1000, 100}, output, move_only_val);
+    });
+
+    // 4 * sum i=0...999 sum j=0...99 of (i+1)*(j+1)
+    ASSERT_EQ(*output.get_const_data(), 10110100000LL);
+}
+
+
 TEST_F(KernelLaunch, ReductionRow2DSmall)
 {
     // 4 rows, with oversubscription this means we use multiple threads per row
@@ -381,6 +468,40 @@ TEST_F(KernelLaunch, ReductionRow2DSmall)
         gko::dim<2>{static_cast<size_type>(num_rows),
                     static_cast<size_type>(num_cols)},
         output, move_only_val);
+
+    GKO_ASSERT_ARRAY_EQ(host_ref, output);
+}
+
+
+// see Reduction1DUndersizedTeam: same issue in the row partial-sum branch
+TEST_F(KernelLaunch, ReductionRow2DSmallUndersizedTeam)
+{
+    int num_rows = 4;
+    int num_cols = 100;
+    gko::array<int64> host_ref{exec->get_master(),
+                               static_cast<size_type>(2 * num_rows)};
+    std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
+    gko::array<int64> output{exec, host_ref};
+    for (int i = 0; i < num_rows; i++) {
+        // we are computing 2 * sum {j=0, j<cols} (i+1)*(j+1) for each
+        // row i and storing it with stride 2
+        host_ref.get_data()[2 * i] =
+            static_cast<int64>(num_cols) * (num_cols + 1) * (i + 1);
+    }
+
+    run_with_undersized_team([&] {
+        gko::kernels::omp::run_kernel_row_reduction(
+            exec,
+            [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
+                return (i + 1) * (j + 1);
+            },
+            [] GKO_KERNEL(auto i, auto j) { return i + j; },
+            [] GKO_KERNEL(auto j) { return j * 2; }, int64{}, output.get_data(),
+            2,
+            gko::dim<2>{static_cast<size_type>(num_rows),
+                        static_cast<size_type>(num_cols)},
+            output, move_only_val);
+    });
 
     GKO_ASSERT_ARRAY_EQ(host_ref, output);
 }
