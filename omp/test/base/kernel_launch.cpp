@@ -57,27 +57,41 @@ struct to_device_type_impl<move_only_type&> {
 }  // namespace gko
 
 
-// Restores the max-active-levels ICV on scope exit.
-class nesting_disabled_guard {
+// `#pragma omp parallel num_threads(n)` is only a request: the runtime may
+// grant a smaller team (nesting disabled, OMP_THREAD_LIMIT, OMP_DYNAMIC, ...),
+// while omp_get_max_threads() still reports n. The reduction kernels must
+// handle this, otherwise part of the input is skipped and unwritten partial
+// results are folded into the output.
+//
+// Disabling nesting and calling a kernel from inside a parallel region is a
+// deterministic way to get a team of 1 while omp_get_max_threads() reports
+// the full thread count.
+
+// Sets max-active-levels to 1 so that inner parallel regions are serialized,
+// and restores the previous value on scope exit.
+class serialized_inner_parallel_guard {
 public:
-    nesting_disabled_guard() : old_levels_{omp_get_max_active_levels()}
+    serialized_inner_parallel_guard() : old_levels_{omp_get_max_active_levels()}
     {
         omp_set_max_active_levels(1);
     }
 
-    ~nesting_disabled_guard() { omp_set_max_active_levels(old_levels_); }
+    ~serialized_inner_parallel_guard()
+    {
+        omp_set_max_active_levels(old_levels_);
+    }
 
 private:
     int old_levels_;
 };
 
 
-// Runs `fn` in a parallel region with nesting disabled, so the reduction's team
-// is 1 while omp_get_max_threads() still reports the full count.
+// Runs `fn` such that any parallel region it opens gets a team of 1, fewer
+// threads than it requested based on omp_get_max_threads().
 template <typename Fn>
-void run_in_nested_parallel(Fn fn)
+void run_with_undersized_team(Fn fn)
 {
-    nesting_disabled_guard guard{};
+    serialized_inner_parallel_guard guard{};
 #pragma omp parallel num_threads(2)
     {
 #pragma omp single
@@ -313,12 +327,13 @@ TEST_F(KernelLaunch, Reduction1D)
 }
 
 
-// Must cover the whole input and not fold uninitialized scratch.
-TEST_F(KernelLaunch, Reduction1DNestedParallel)
+// The reduction must cover the whole input and must not fold uninitialized
+// partial results when the granted team is smaller than requested.
+TEST_F(KernelLaunch, Reduction1DUndersizedTeam)
 {
     gko::array<int64> output{exec, 1};
 
-    run_in_nested_parallel([&] {
+    run_with_undersized_team([&] {
         gko::kernels::omp::run_kernel_reduction(
             exec, [] GKO_KERNEL(auto i, auto a, auto dummy) { return i + 1; },
             [] GKO_KERNEL(auto i, auto j) { return i + j; },
@@ -401,12 +416,12 @@ TEST_F(KernelLaunch, Reduction2D)
 }
 
 
-// see Reduction1DNestedParallel: same issue in the 2D (sized) reduction
-TEST_F(KernelLaunch, Reduction2DNestedParallel)
+// see Reduction1DUndersizedTeam: same issue in the 2D (sized) reduction
+TEST_F(KernelLaunch, Reduction2DUndersizedTeam)
 {
     gko::array<int64> output{exec, 1};
 
-    run_in_nested_parallel([&] {
+    run_with_undersized_team([&] {
         gko::kernels::omp::run_kernel_reduction(
             exec,
             [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
@@ -433,7 +448,8 @@ TEST_F(KernelLaunch, ReductionRow2DSmall)
     std::fill_n(host_ref.get_data(), 2 * num_rows, 1234);
     gko::array<int64> output{exec, host_ref};
     for (int i = 0; i < num_rows; i++) {
-        // 2 * sum {j<cols} (i+1)*(j+1) per row i, stride 2
+        // we are computing 2 * sum {j=0, j<cols} (i+1)*(j+1) for each
+        // row i and storing it with stride 2
         host_ref.get_data()[2 * i] =
             static_cast<int64>(num_cols) * (num_cols + 1) * (i + 1);
     }
@@ -457,8 +473,8 @@ TEST_F(KernelLaunch, ReductionRow2DSmall)
 }
 
 
-// see Reduction1DNestedParallel: same issue in the row partial-sum branch
-TEST_F(KernelLaunch, ReductionRow2DSmallNestedParallel)
+// see Reduction1DUndersizedTeam: same issue in the row partial-sum branch
+TEST_F(KernelLaunch, ReductionRow2DSmallUndersizedTeam)
 {
     int num_rows = 4;
     int num_cols = 100;
@@ -473,7 +489,7 @@ TEST_F(KernelLaunch, ReductionRow2DSmallNestedParallel)
             static_cast<int64>(num_cols) * (num_cols + 1) * (i + 1);
     }
 
-    run_in_nested_parallel([&] {
+    run_with_undersized_team([&] {
         gko::kernels::omp::run_kernel_row_reduction(
             exec,
             [] GKO_KERNEL(auto i, auto j, auto a, auto dummy) {
