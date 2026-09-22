@@ -457,6 +457,28 @@ TYPED_TEST(Pgm, GenerateMgLevel)
 }
 
 
+// EnableMultigridLevel::set_fine_op rejects an operator whose dimensions
+// differ from the current fine operator, so the update inherits that check.
+TYPED_TEST(Pgm, UpdateMatrixValueWithMismatchingSizeThrows)
+{
+    using Mtx = typename TestFixture::Mtx;
+    // this->mtx is 5x5
+    auto coarse_fine = this->pgm_factory->generate(this->mtx);
+    auto smaller = gko::share(Mtx::create(this->exec));
+    smaller->read({{3, 3},
+                   {{0, 0, 4},
+                    {0, 1, -1},
+                    {1, 0, -1},
+                    {1, 1, 4},
+                    {1, 2, -1},
+                    {2, 1, -1},
+                    {2, 2, 4}}});
+
+    ASSERT_THROW(coarse_fine->update_matrix_value(smaller),
+                 gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(Pgm, ReGenerateMgLevelOnTheSameMatrix)
 {
     using value_type = typename TestFixture::value_type;
