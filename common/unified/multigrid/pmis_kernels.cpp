@@ -4,8 +4,7 @@
 
 #include "core/multigrid/pmis_kernels.hpp"
 
-#include <random>
-
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
@@ -33,16 +32,20 @@ constexpr int width = 32;
 template <typename ValueType, typename IndexType>
 void compute_row_maxabs(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* csr,
+                        bool has_diagonal,
                         remove_complex<ValueType>* row_maxabs)
 {
     run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto row, auto tid, auto row_ptrs, auto col_idxs,
-                      auto values) {
-            auto maxabs = zero<device_type<remove_complex<ValueType>>>();
+        [] GKO_KERNEL(auto row, auto tid, auto has_diagonal, auto prev_maxabs,
+                      auto row_ptrs, auto col_idxs, auto values) {
+            // seeded from the previous value so a second call extends the
+            // maximum. Reading the output is safe: run_kernel_row_reduction
+            // writes it only in its final pass
+            auto maxabs = prev_maxabs[row];
             for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
                  idx += width) {
-                if (row == col_idxs[idx]) {
+                if (has_diagonal && row == col_idxs[idx]) {
                     continue;
                 }
                 maxabs = gko::max(maxabs, abs(values[idx]));
@@ -50,8 +53,9 @@ void compute_row_maxabs(std::shared_ptr<const DefaultExecutor> exec,
             return maxabs;
         },
         GKO_KERNEL_REDUCE_MAX(remove_complex<ValueType>), row_maxabs, 1,
-        dim<2>{csr->get_size()[0], width}, csr->get_const_row_ptrs(),
-        csr->get_const_col_idxs(), csr->get_const_values());
+        dim<2>{csr->get_size()[0], width}, has_diagonal, row_maxabs,
+        csr->get_const_row_ptrs(), csr->get_const_col_idxs(),
+        csr->get_const_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -61,13 +65,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,
                             const matrix::Csr<ValueType, IndexType>* csr,
+                            bool has_diagonal,
                             const remove_complex<ValueType>* row_maxabs,
                             remove_complex<ValueType> strength_threshold,
                             IndexType* sparsity_rows)
 {
     run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto row, auto tid, auto row_maxabs,
+        [] GKO_KERNEL(auto row, auto tid, auto has_diagonal, auto row_maxabs,
                       auto strength_threshold, auto row_ptrs, auto col_idxs,
                       auto values) {
             auto max_abs = row_maxabs[row];
@@ -77,7 +82,7 @@ void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,
             }
             for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
                  idx += width) {
-                if (row == col_idxs[idx]) {
+                if (has_diagonal && row == col_idxs[idx]) {
                     continue;
                 }
                 if (abs(values[idx]) >= strength_threshold * max_abs) {
@@ -87,9 +92,9 @@ void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,
             return count;
         },
         GKO_KERNEL_REDUCE_SUM(IndexType), sparsity_rows, 1,
-        dim<2>{csr->get_size()[0], width}, row_maxabs, strength_threshold,
-        csr->get_const_row_ptrs(), csr->get_const_col_idxs(),
-        csr->get_const_values());
+        dim<2>{csr->get_size()[0], width}, has_diagonal, row_maxabs,
+        strength_threshold, csr->get_const_row_ptrs(),
+        csr->get_const_col_idxs(), csr->get_const_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -99,6 +104,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_strong_dep(std::shared_ptr<const DefaultExecutor> exec,
                         const matrix::Csr<ValueType, IndexType>* csr,
+                        bool has_diagonal,
                         const remove_complex<ValueType>* row_maxabs,
                         remove_complex<ValueType> strength_threshold,
                         matrix::SparsityCsr<ValueType, IndexType>* strong_dep)
@@ -107,9 +113,9 @@ void compute_strong_dep(std::shared_ptr<const DefaultExecutor> exec,
     // warp with popcount and prefix for a row.
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto row_maxabs, auto strength_threshold,
-                      auto row_ptrs, auto col_idxs, auto values,
-                      auto dep_row_ptrs, auto dep_col_idxs) {
+        [] GKO_KERNEL(auto row, auto has_diagonal, auto row_maxabs,
+                      auto strength_threshold, auto row_ptrs, auto col_idxs,
+                      auto values, auto dep_row_ptrs, auto dep_col_idxs) {
             auto max_abs = row_maxabs[row];
             if (max_abs == zero(max_abs)) {
                 return;
@@ -117,7 +123,7 @@ void compute_strong_dep(std::shared_ptr<const DefaultExecutor> exec,
             auto d_idx = dep_row_ptrs[row];
             for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
                 const auto col = col_idxs[idx];
-                if (row == col) {
+                if (has_diagonal && row == col) {
                     continue;
                 }
                 if (abs(values[idx]) >= strength_threshold * max_abs) {
@@ -126,7 +132,7 @@ void compute_strong_dep(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
         },
-        csr->get_size()[0], row_maxabs, strength_threshold,
+        csr->get_size()[0], has_diagonal, row_maxabs, strength_threshold,
         csr->get_const_row_ptrs(), csr->get_const_col_idxs(),
         csr->get_const_values(), strong_dep->get_const_row_ptrs(),
         strong_dep->get_col_idxs());
@@ -136,60 +142,60 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void initialize_weight_and_status(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::SparsityCsr<ValueType, IndexType>* trans_strong_dep,
-    remove_complex<ValueType>* weight, int* status)
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void initialize_weight_and_status(std::shared_ptr<const DefaultExecutor> exec,
+                                  size_type num, const LocalIndexType* counts,
+                                  const GlobalIndexType* global_idx,
+                                  ValueType* weight, int* status)
 {
-    auto num = trans_strong_dep->get_size()[0];
-    // we only use float here because the dpcpp device may lack double
-    // precision support and the random generators do not support 16-bit
-    array<float> random(exec, num);
-    initialize_random_weight(exec, num, random.get_data());
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto row_ptrs, auto random, auto weight,
+        [] GKO_KERNEL(auto row, auto counts, auto global_idx, auto weight,
                       auto status) {
-            using type = device_type<remove_complex<ValueType>>;
-            auto w = static_cast<float>(row_ptrs[row + 1] - row_ptrs[row]);
-            status[row] =
-                (w == 0.0f ? kernels::pmis::fine : kernels::pmis::unassigned);
-            // curand/hiprand generate in (0, 1] while the others use
-            // [0, 1); scaling keeps the fraction below 1 everywhere
-            weight[row] = static_cast<type>(random[row] * 0.99f + w);
+            using type = device_type<ValueType>;
+            const auto count = counts[row];
+            status[row] = (count == zero(count) ? kernels::pmis::fine
+                                                : kernels::pmis::unassigned);
+            const auto draw = kernels::pmis::random_weight_from_index(
+                static_cast<uint64>(global_idx[row]));
+            // scaled by an exact power of two, see the reference kernel
+            weight[row] =
+                static_cast<type>(draw * 0.5f + static_cast<float>(count));
         },
-        num, trans_strong_dep->get_const_row_ptrs(), random.get_const_data(),
-        weight, status);
+        num, counts, global_idx, weight, status);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
-void classify(std::shared_ptr<const DefaultExecutor> exec,
-              const remove_complex<ValueType>* weight,
-              const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
-              const int* status, int* new_status)
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void classify_select(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const remove_complex<ValueType>* weight, const GlobalIndexType* global_idx,
+    LocalIndexType col_offset,
+    const matrix::SparsityCsr<ValueType, LocalIndexType>* strong_dep,
+    const int* status, int* new_status)
 {
     static_assert(kernels::pmis::unassigned < kernels::pmis::coarse,
                   "we use min reduction to mark local maximum as coarse");
-    // mark coarse point
+    // seeded from new_status so a second call can only downgrade; see
+    // compute_row_maxabs for why reading the reduction output is safe
     run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto row, auto tid, auto status, auto weight,
+        [] GKO_KERNEL(auto row, auto tid, auto col_offset, auto status,
+                      auto new_status, auto weight, auto global_idx,
                       auto row_ptrs, auto col_idxs) {
-            auto ans = status[row];
-            if (ans != kernels::pmis::unassigned) {
-                return ans;
+            if (status[row] != kernels::pmis::unassigned ||
+                new_status[row] != kernels::pmis::coarse) {
+                return new_status[row];
             }
             for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
                  idx += width) {
-                auto col = col_idxs[idx];
+                const auto col = col_offset + col_idxs[idx];
                 if (status[col] == kernels::pmis::unassigned &&
-                    device_std::tie(weight[col], col) >
-                        device_std::tie(weight[row], row)) {
+                    device_std::tie(weight[col], global_idx[col]) >
+                        device_std::tie(weight[row], global_idx[row])) {
                     return kernels::pmis::unassigned;
                 }
             }
@@ -197,16 +203,28 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
         },
         [] GKO_KERNEL(auto a, auto b) { return a < b ? a : b; } /* minimum */,
         [] GKO_KERNEL(auto a) { return a; }, kernels::pmis::coarse, new_status,
-        1, dim<2>{strong_dep->get_size()[0], width}, status, weight,
-        strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());
-    // mark new fine point strongly influenced by the new coarse points
+        1, dim<2>{strong_dep->get_size()[0], width}, col_offset, status,
+        new_status, weight, global_idx, strong_dep->get_const_row_ptrs(),
+        strong_dep->get_const_col_idxs());
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_PMIS_CLASSIFY_SELECT_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void classify_mark_fine(
+    std::shared_ptr<const DefaultExecutor> exec, IndexType col_offset,
+    const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
+    int* new_status)
+{
     // TODO: using warp vote function if implement in native way.
     static_assert(kernels::pmis::fine > kernels::pmis::unassigned,
                   "we use max reduction to mark new fine by any strong coarse");
     run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto row, auto tid, auto new_status, auto row_ptrs,
-                      auto col_idxs) {
+        [] GKO_KERNEL(auto row, auto tid, auto col_offset, auto new_status,
+                      auto row_ptrs, auto col_idxs) {
             if (new_status[row] != kernels::pmis::unassigned) {
                 return new_status[row];
             }
@@ -215,7 +233,8 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
                 // we will only update new_status from -1 to 0 or keep -1, so
                 // grabbing this value is fine no matter if it is updated or
                 // not.
-                if (new_status[col_idxs[idx]] == kernels::pmis::coarse) {
+                if (new_status[col_offset + col_idxs[idx]] ==
+                    kernels::pmis::coarse) {
                     return kernels::pmis::fine;
                 }
             }
@@ -223,11 +242,27 @@ void classify(std::shared_ptr<const DefaultExecutor> exec,
         },
         [] GKO_KERNEL(auto a, auto b) { return a > b ? a : b; } /* maximum */,
         [] GKO_KERNEL(auto a) { return a; }, kernels::pmis::unassigned,
-        new_status, 1, dim<2>{strong_dep->get_size()[0], width}, new_status,
-        strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());
+        new_status, 1, dim<2>{strong_dep->get_size()[0], width}, col_offset,
+        new_status, strong_dep->get_const_row_ptrs(),
+        strong_dep->get_const_col_idxs());
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_CLASSIFY_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PMIS_CLASSIFY_MARK_FINE_KERNEL);
+
+
+void classify_seed(std::shared_ptr<const DefaultExecutor> exec, size_type num,
+                   const int* status, int* new_status)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto status, auto new_status) {
+            new_status[row] = (status[row] == kernels::pmis::unassigned)
+                                  ? kernels::pmis::coarse
+                                  : status[row];
+        },
+        num, status, new_status);
+}
 
 
 void count(std::shared_ptr<const DefaultExecutor> exec, size_type num,
@@ -247,132 +282,210 @@ void count(std::shared_ptr<const DefaultExecutor> exec, size_type num,
 
 template <typename ValueType, typename IndexType>
 void direct_interpolation_row_count(
-    std::shared_ptr<const DefaultExecutor> exec,
+    std::shared_ptr<const DefaultExecutor> exec, IndexType col_offset,
     const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,
-    const int* status, IndexType* prolong_row_ptr)
+    const int* status, IndexType* prolong_row_count)
 {
+    // seeded from prolong_row_count so a second call adds to the first
     run_kernel_row_reduction(
         exec,
-        [] GKO_KERNEL(auto row, auto tid, auto status, auto row_ptrs,
-                      auto col_idxs) {
+        [] GKO_KERNEL(auto row, auto tid, auto col_offset, auto prev_count,
+                      auto status, auto row_ptrs, auto col_idxs) {
+            // the caller seeds the coarse row's identity entry
+            auto count = tid == 0 ? prev_count[row] : zero<IndexType>();
             if (status[row] == kernels::pmis::coarse) {
-                return tid == 0 ? one<IndexType>() : zero<IndexType>();
+                return count;
             }
-            auto count = zero<IndexType>();
             for (auto idx = tid + row_ptrs[row]; idx < row_ptrs[row + 1];
                  idx += width) {
-                if (status[col_idxs[idx]] == kernels::pmis::coarse) {
+                if (status[col_offset + col_idxs[idx]] ==
+                    kernels::pmis::coarse) {
                     count++;
                 }
             }
             return count;
         },
-        GKO_KERNEL_REDUCE_SUM(IndexType), prolong_row_ptr, 1,
-        dim<2>{strong_dep->get_size()[0], width}, status,
-        strong_dep->get_const_row_ptrs(), strong_dep->get_const_col_idxs());
+        GKO_KERNEL_REDUCE_SUM(IndexType), prolong_row_count, 1,
+        dim<2>{strong_dep->get_size()[0], width}, col_offset, prolong_row_count,
+        status, strong_dep->get_const_row_ptrs(),
+        strong_dep->get_const_col_idxs());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DIRECT_INTERPOLATION_ROW_COUNT);
 
 
-template <typename ValueType, typename IndexType>
-void direct_interpolation_fill(
-    std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* csr,
-    const remove_complex<ValueType>* row_maxabs,
-    const remove_complex<ValueType> strength_threshold,
-    const IndexType* coarse_map, const IndexType* prolong_row_ptrs,
-    IndexType* prolong_col_idxs, ValueType* prolong_values)
+template <typename LocalIndexType, typename GlobalIndexType>
+void coarse_global_index(std::shared_ptr<const DefaultExecutor> exec,
+                         size_type num, GlobalIndexType offset,
+                         const int* status, const LocalIndexType* coarse_map,
+                         GlobalIndexType* coarse_global)
 {
-    // currently use one thread per row. It might get improved by using a warp
-    // for row with prefix and popcount
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto row_maxabs, auto strength_threshold,
-                      auto coarse_map, auto row_ptrs, auto col_idxs,
-                      auto values, auto prolong_row_ptrs, auto prolong_col_idxs,
-                      auto prolong_values) {
-            if (coarse_map[row] != coarse_map[row + 1]) {
-                auto idx = prolong_row_ptrs[row];
-                prolong_col_idxs[idx] = coarse_map[row];
-                prolong_values[idx] = one<device_type<ValueType>>();
+        [] GKO_KERNEL(auto i, auto offset, auto status, auto coarse_map,
+                      auto coarse_global) {
+            using global_index_type = decltype(offset);
+            coarse_global[i] =
+                status[i] == kernels::pmis::coarse
+                    ? offset + static_cast<global_index_type>(coarse_map[i])
+                    : invalid_index<global_index_type>();
+        },
+        num, offset, status, coarse_map, coarse_global);
+}
+
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_PMIS_COARSE_GLOBAL_INDEX);
+
+
+// run_kernel maps its arguments to device types, but does not map the
+// members of a struct
+template <typename ValueType, typename IndexType>
+kernels::pmis::interpolation_workspace<device_type<ValueType>, IndexType>
+as_device_workspace(
+    kernels::pmis::interpolation_workspace<ValueType, IndexType> ws)
+{
+    return {as_device_type(ws.pos),  as_device_type(ws.pos_divisor),
+            as_device_type(ws.neg),  as_device_type(ws.neg_divisor),
+            as_device_type(ws.diag), ws.enable_pos,
+            ws.enable_neg,           ws.cursor};
+}
+
+
+template <typename ValueType, typename IndexType>
+void direct_interpolation_accumulate(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* csr, bool has_diagonal,
+    IndexType col_offset, const remove_complex<ValueType>* row_maxabs,
+    const remove_complex<ValueType> strength_threshold, const int* status,
+    kernels::pmis::interpolation_workspace<ValueType, IndexType> ws)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto has_diagonal, auto col_offset,
+                      auto row_maxabs, auto strength_threshold, auto status,
+                      auto row_ptrs, auto col_idxs, auto values, auto ws) {
+            if (status[row] == kernels::pmis::coarse) {
                 return;
             }
-            // a fine point without any strong dependence gets no
-            // interpolation entry, which is consistent with
-            // compute_strong_dep{,_row} and with the count computed by
-            // direct_interpolation_row_count
             const auto max_abs = row_maxabs[row];
             if (max_abs == zero(max_abs)) {
                 return;
             }
-            auto pos = zero<device_type<ValueType>>();
-            auto pos_divisor = zero<device_type<ValueType>>();
-            auto neg = zero<device_type<ValueType>>();
-            auto neg_divisor = zero<device_type<ValueType>>();
-            auto diag = zero<device_type<ValueType>>();
-            bool enable_neg = false;
-            bool enable_pos = false;
-            // first compute alpha/beta
             for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
-                auto val = values[idx];
-                auto col = col_idxs[idx];
-                if (col == row) {
-                    diag = val;
+                const auto val = values[idx];
+                const auto col = col_idxs[idx];
+                if (has_diagonal && col == row) {
+                    ws.diag[row] = val;
                     continue;
                 }
+                const bool is_coarse =
+                    status[col_offset + col] == kernels::pmis::coarse;
+                const bool is_strong = abs(val) >= strength_threshold * max_abs;
                 if (real(val) >= zero(real(val))) {
-                    pos += val;
-                    if (coarse_map[col] != coarse_map[col + 1] &&
-                        abs(val) >= strength_threshold * max_abs) {
-                        pos_divisor += val;
-                        enable_pos = true;
+                    ws.pos[row] += val;
+                    if (is_coarse && is_strong) {
+                        ws.pos_divisor[row] += val;
+                        ws.enable_pos[row] = 1;
                     }
                 } else {
-                    neg += val;
-                    if (coarse_map[col] != coarse_map[col + 1] &&
-                        abs(val) >= strength_threshold * max_abs) {
-                        neg_divisor += val;
-                        enable_neg = true;
+                    ws.neg[row] += val;
+                    if (is_coarse && is_strong) {
+                        ws.neg_divisor[row] += val;
+                        ws.enable_neg[row] = 1;
                     }
-                }
-            }
-            pos = safe_divide(pos, pos_divisor);
-            neg = safe_divide(neg, neg_divisor);
-            if (!enable_neg && !enable_pos) {
-                return;
-            }
-
-            auto p_idx = prolong_row_ptrs[row];
-            for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
-                auto val = values[idx];
-                auto col = col_idxs[idx];
-                if (col == row || abs(val) < strength_threshold * max_abs) {
-                    continue;
-                }
-                if (real(val) >= zero(real(val)) && enable_pos &&
-                    coarse_map[col] != coarse_map[col + 1]) {
-                    prolong_col_idxs[p_idx] = coarse_map[col];
-                    prolong_values[p_idx] = -pos * val / diag;
-                    p_idx++;
-                }
-                if (real(val) < zero(real(val)) && enable_neg &&
-                    coarse_map[col] != coarse_map[col + 1]) {
-                    prolong_col_idxs[p_idx] = coarse_map[col];
-                    prolong_values[p_idx] = -neg * val / diag;
-                    p_idx++;
                 }
             }
         },
-        csr->get_size()[0], row_maxabs, strength_threshold, coarse_map,
-        csr->get_const_row_ptrs(), csr->get_const_col_idxs(),
-        csr->get_const_values(), prolong_row_ptrs, prolong_col_idxs,
-        prolong_values);
+        csr->get_size()[0], has_diagonal, col_offset, row_maxabs,
+        strength_threshold, status, csr->get_const_row_ptrs(),
+        csr->get_const_col_idxs(), csr->get_const_values(),
+        as_device_workspace(ws));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
-    GKO_DECLARE_DIRECT_INTERPOLATION_FILL);
+    GKO_DECLARE_DIRECT_INTERPOLATION_ACCUMULATE);
+
+
+template <typename ValueType, typename IndexType>
+void direct_interpolation_emit(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const matrix::Csr<ValueType, IndexType>* csr, bool has_diagonal,
+    IndexType col_offset, const remove_complex<ValueType>* row_maxabs,
+    const remove_complex<ValueType> strength_threshold, const int* status,
+    kernels::pmis::interpolation_workspace<ValueType, IndexType> ws,
+    IndexType* prolong_col_idxs, ValueType* prolong_values)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto has_diagonal, auto col_offset,
+                      auto row_maxabs, auto strength_threshold, auto status,
+                      auto row_ptrs, auto col_idxs, auto values, auto ws,
+                      auto prolong_col_idxs, auto prolong_values) {
+            if (status[row] == kernels::pmis::coarse) {
+                return;
+            }
+            const auto max_abs = row_maxabs[row];
+            if (max_abs == zero(max_abs)) {
+                return;
+            }
+            if (!ws.enable_pos[row] && !ws.enable_neg[row]) {
+                return;
+            }
+            const auto alpha = safe_divide(ws.pos[row], ws.pos_divisor[row]);
+            const auto beta = safe_divide(ws.neg[row], ws.neg_divisor[row]);
+            for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
+                const auto val = values[idx];
+                const auto col = col_idxs[idx];
+                if ((has_diagonal && col == row) ||
+                    abs(val) < strength_threshold * max_abs ||
+                    status[col_offset + col] != kernels::pmis::coarse) {
+                    continue;
+                }
+                if (real(val) >= zero(real(val)) && ws.enable_pos[row]) {
+                    prolong_col_idxs[ws.cursor[row]] = col_offset + col;
+                    prolong_values[ws.cursor[row]] =
+                        -alpha * val / ws.diag[row];
+                    ws.cursor[row]++;
+                }
+                if (real(val) < zero(real(val)) && ws.enable_neg[row]) {
+                    prolong_col_idxs[ws.cursor[row]] = col_offset + col;
+                    prolong_values[ws.cursor[row]] = -beta * val / ws.diag[row];
+                    ws.cursor[row]++;
+                }
+            }
+        },
+        csr->get_size()[0], has_diagonal, col_offset, row_maxabs,
+        strength_threshold, status, csr->get_const_row_ptrs(),
+        csr->get_const_col_idxs(), csr->get_const_values(),
+        as_device_workspace(ws), prolong_col_idxs, prolong_values);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIRECT_INTERPOLATION_EMIT);
+
+
+template <typename ValueType, typename IndexType>
+void direct_interpolation_fill_coarse_rows(
+    std::shared_ptr<const DefaultExecutor> exec, size_type num_rows,
+    const int* status, const IndexType* prolong_row_ptrs,
+    IndexType* prolong_col_idxs, ValueType* prolong_values)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto row, auto status, auto prolong_row_ptrs,
+                      auto prolong_col_idxs, auto prolong_values) {
+            if (status[row] == kernels::pmis::coarse) {
+                const auto idx = prolong_row_ptrs[row];
+                prolong_col_idxs[idx] = row;
+                prolong_values[idx] = one<device_type<ValueType>>();
+            }
+        },
+        num_rows, status, prolong_row_ptrs, prolong_col_idxs, prolong_values);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DIRECT_INTERPOLATION_FILL_COARSE_ROWS);
 
 
 }  // namespace pmis

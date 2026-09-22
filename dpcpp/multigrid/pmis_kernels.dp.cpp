@@ -2,11 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <oneapi/dpl/random>
-
 #include "core/multigrid/pmis_kernels.hpp"
-
-#include <cstdint>
 
 #include <sycl/sycl.hpp>
 
@@ -18,23 +14,25 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace pmis {
 
 
-template <typename ValueType>
-void initialize_random_weight(std::shared_ptr<const DefaultExecutor> exec,
-                              size_type num, ValueType* weight)
+template <typename IndexType>
+void add_at_indices(std::shared_ptr<const DefaultExecutor> exec, size_type num,
+                    const IndexType* idxs, const IndexType* values,
+                    IndexType* out)
 {
-    constexpr auto seed = kernels::pmis::random_seed;
+    // idxs may repeat across neighbours, hence the atomic
     exec->get_queue()->submit([&](sycl::handler& cgh) {
-        cgh.parallel_for(sycl::range<1>(num), [=](sycl::item<1> idx) {
-            std::uint64_t offset = idx.get_linear_id();
-            oneapi::dpl::minstd_rand engine(seed, offset);
-            oneapi::dpl::uniform_real_distribution<ValueType> distr(0, 1);
-            weight[idx] = distr(engine);
+        cgh.parallel_for(sycl::range<1>(num), [=](sycl::item<1> item) {
+            const auto i = item.get_linear_id();
+            sycl::atomic_ref<IndexType, sycl::memory_order::relaxed,
+                             sycl::memory_scope::device,
+                             sycl::access::address_space::global_space>
+                ref(out[idxs[i]]);
+            ref.fetch_add(values ? values[i] : IndexType{1});
         });
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE_BASE(
-    GKO_DECLARE_PMIS_INITIALIZE_RANDOM_WEIGHT_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PMIS_ADD_AT_INDICES);
 
 
 }  // namespace pmis
