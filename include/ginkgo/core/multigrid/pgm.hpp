@@ -195,7 +195,30 @@ protected:
     generate_local(
         std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
 
+    /**
+     * Converts the system matrix into a Csr with the current value type,
+     * sorting it unless skip_sorting is set, and stores it as the fine
+     * operator.
+     *
+     * @return the Csr fine operator
+     */
+    std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
+    setup_local_fine_op();
+
 #if GINKGO_BUILD_MPI
+    /** The distributed matrix types the fine operator can take. */
+    using fst_mtx_type =
+        experimental::distributed::Matrix<ValueType, IndexType, IndexType>;
+    using snd_mtx_type =
+        experimental::distributed::Matrix<ValueType, IndexType, int64>;
+
+    /**
+     * Converts the distributed system matrix into one whose diagonal and
+     * off-diagonal blocks are Csr with the current value type, and stores it
+     * as the fine operator.
+     */
+    void setup_distributed_fine_op();
+
     /**
      * Communicates the off-diag aggregates (as global indices)
      *
