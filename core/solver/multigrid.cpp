@@ -885,6 +885,12 @@ void Multigrid::update_matrix_value(std::shared_ptr<const LinOp> new_matrix)
     for (int i = 0; i < mg_level_list_.size(); i++) {
         auto mg_level = mg_level_list_.at(i);
         as<UpdateMatrixValue>(mg_level)->update_matrix_value(matrix);
+        // the smoother is selected the same way as in generate. The level
+        // index is not necessarily the smoother index, so it must go through
+        // level_selector_ here as well. It still sees the fine matrix of this
+        // level, hence before matrix moves on to the coarse operator.
+        auto index = level_selector_(i, matrix.get());
+        GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
         matrix = mg_level->get_coarse_op();
         run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
@@ -915,7 +921,7 @@ void Multigrid::update_matrix_value(std::shared_ptr<const LinOp> new_matrix)
                         parameters_.smoother_relax);
                 }
             },
-            i, mg_level->get_fine_op());
+            index, mg_level->get_fine_op());
     }
     if (parameters_.post_uses_pre) {
         post_smoother_list_ = pre_smoother_list_;

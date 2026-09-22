@@ -1319,6 +1319,47 @@ TYPED_TEST(Multigrid, UpdateMatrixValueWithoutLevelsThrows)
 
 // EnableSolverBase::set_system_matrix already rejects a matrix whose
 // dimensions differ from the solver's, so the update inherits that check.
+// generate picks the smoother for each level through level_selector_, so the
+// update has to do the same. Indexing the smoother list by the level instead
+// silently picks a different smoother whenever the selector is not the
+// identity. A single smoother list hides this, since handle_list ignores the
+// index then, which is why the rest of the suite does not catch it.
+TYPED_TEST(Multigrid, UpdateMatrixValueSelectsSmoothersLikeGenerate)
+{
+    using Solver = typename TestFixture::Solver;
+    auto factory =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_min_coarse_rows(1u)
+            .with_mg_level(this->coarse_factory, this->coarse_factory)
+            // the second smoother is a nullptr, i.e. no smoother on that level
+            .with_pre_smoother(this->smoother_factory, nullptr)
+            // always pick the first smoother, whatever the level
+            .with_level_selector([](const gko::size_type, const gko::LinOp*) {
+                return gko::size_type{0};
+            })
+            .with_post_uses_pre(true)
+            .with_coarsest_solver(this->coarsest_factory)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx2);
+    auto expected = factory->generate(this->mtx2);
+    auto expected_pre = expected->get_pre_smoother_list();
+    ASSERT_GT(expected_pre.size(), 1);
+
+    solver->update_matrix_value(this->mtx2);
+
+    auto pre = solver->get_pre_smoother_list();
+    ASSERT_EQ(pre.size(), expected_pre.size());
+    for (gko::size_type i = 0; i < pre.size(); i++) {
+        // the selector picks the first smoother for every level, so no level
+        // may end up with the nullptr entry
+        ASSERT_NE(expected_pre.at(i), nullptr);
+        ASSERT_NE(pre.at(i), nullptr);
+    }
+}
+
+
 TYPED_TEST(Multigrid, UpdateMatrixValueWithMismatchingSizeThrows)
 {
     auto multigrid_factory =
