@@ -1,0 +1,67 @@
+# Entry point for the CSCS CI (https://docs.cscs.ch/services/cicd/).
+#
+# This file is not part of the gitlab.com pipeline in .gitlab-ci.yml. CSCS
+# mirrors the GitHub repository into its own GitLab instance, runs this file
+# there and submits the jobs to the Alps clusters through FirecREST. Which
+# branches and pull requests trigger it is configured on the CSCS CI setup
+# page. CSCS specifics: CI_PIPELINE_SOURCE is always `trigger`, and
+# `rules: changes` has no effect.
+#
+# The jobs run on Daint's Grace-Hopper nodes (4 GH200 per node). Nodes are not
+# shared and are billed as a whole, so each job builds Ginkgo and runs all
+# tests within the same Slurm job, using all 4 GPUs for the tests.
+
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
+
+stages:
+  - test
+
+.daint_build_and_test:
+  extends: .baremetal-runner-daint-gh200
+  stage: test
+  variables:
+    GIT_STRATEGY: fetch
+    SLURM_JOB_NUM_NODES: 1
+    # must be quoted, otherwise Slurm reads the value as minutes
+    SLURM_TIMELIMIT: "01:30:00"
+    UENV: prgenv-gnu/26.3:v1
+    CXX: g++
+    CUDAHOSTCXX: g++
+    BUILD_TYPE: Release
+    # a node has 288 cores, but nvcc processes need several GB each
+    BUILD_JOBS: 64
+    CTEST_JOBS: 64
+    OMP_NUM_THREADS: 64
+    EXTRA_CMAKE_FLAGS: ""
+  script:
+    - uenv run --view=default ${UENV} -- cmake -S . -B build -G Ninja
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=90
+        -DGINKGO_BUILD_OMP=ON -DGINKGO_DEVEL_TOOLS=OFF
+        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=OFF
+        -DGINKGO_BUILD_BENCHMARKS=OFF
+        ${EXTRA_CMAKE_FLAGS}
+    - uenv run --view=default ${UENV} -- cmake --build build --parallel ${BUILD_JOBS}
+    - cd build
+    # srun calls of the MPI tests inherit the uenv loaded by `uenv run`
+    - CTEST_JUNIT_DIR=${CI_PROJECT_DIR}/test-results
+        uenv run --view=default ${UENV} -- bash ../.gitlab/run-ctest.sh
+  artifacts:
+    when: always
+    reports:
+      junit: test-results/*.xml
+
+daint/cuda131/nompi/gcc/omp/release/shared:
+  extends: .daint_build_and_test
+
+# Multi-GPU tests with GPU-aware Cray MPICH. The uenv links Cray MPICH to its
+# GTL library, which additionally needs MPICH_GPU_SUPPORT_ENABLED=1 at runtime.
+# CMake's FindMPI is expected to pick srun as MPIEXEC_EXECUTABLE.
+daint/cuda131/cray-mpich/gcc/omp/debug/shared:
+  extends: .daint_build_and_test
+  variables:
+    BUILD_TYPE: Debug
+    SLURM_TIMELIMIT: "02:00:00"
+    MPICH_GPU_SUPPORT_ENABLED: 1
+    EXTRA_CMAKE_FLAGS: -DGINKGO_BUILD_MPI=ON -DGINKGO_FORCE_GPU_AWARE_MPI=ON
