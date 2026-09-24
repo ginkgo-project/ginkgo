@@ -12,6 +12,11 @@
 
 set -e
 
+# nproc also honors OMP_NUM_THREADS, which some sites set to 1 by default, so
+# prefer the Slurm allocation and ignore the OpenMP settings otherwise
+cores="${SLURM_CPUS_PER_TASK:-$(env -u OMP_NUM_THREADS -u OMP_THREAD_LIMIT nproc)}"
+echo "Using ${cores} cores"
+
 if [[ -n "${MODULES}" ]]; then
   # batch jobs don't necessarily inherit the module shell function
   if ! command -v module > /dev/null 2>&1 && [[ -n "${LMOD_PKG}" ]]; then
@@ -34,7 +39,11 @@ cmake -S . -B build \
   -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_TESTS=ON \
   -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_BENCHMARKS=OFF \
   "${cmake_flags[@]}"
-cmake --build build --parallel "${BUILD_JOBS:-$(nproc)}"
+cmake --build build --parallel "${BUILD_JOBS:-${cores}}"
 
 cd build
+# the CTest resource specification gives OpenMP tests as many CPU slots as
+# there are OpenMP threads, so a site default of 1 must not be kept
+export OMP_NUM_THREADS="${cores}"
+export NUM_CORES="${NUM_CORES:-${cores}}"
 bash ../.gitlab/run-ctest.sh

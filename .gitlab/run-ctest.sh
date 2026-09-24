@@ -18,7 +18,9 @@
 
 set -o pipefail
 
-jobs="${CTEST_JOBS:-${NUM_CORES:-$(nproc)}}"
+# nproc would also honor OMP_NUM_THREADS, which is unrelated to the number of
+# tests that can run at the same time
+jobs="${CTEST_JOBS:-${NUM_CORES:-$(env -u OMP_NUM_THREADS -u OMP_THREAD_LIMIT nproc)}}"
 timeout="${CTEST_TIMEOUT:-6000}"
 
 num_tests=$(ctest -N | tail -1 | sed 's/Total Tests: //')
