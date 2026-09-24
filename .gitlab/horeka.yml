@@ -1,0 +1,58 @@
+# Jobs on HoreKa at NHR@KIT (https://docs.nhr.kit.edu/services/ci/).
+#
+# They run on a permanent gitlab-runner with the shell executor on the CI login
+# node hk-ci-controller.scc.kit.edu (CI Level 2). Each job only submits its
+# build and tests as a single Slurm batch job and waits for it. The runner
+# therefore accepts the job right away, and any waiting happens in the Slurm
+# queue instead of in GitLab's pending state.
+#
+# Site-specific settings, like the Slurm account (SBATCH_ACCOUNT), are set in
+# the runner's configuration and not here.
+
+.horeka_build_and_test:
+  stage: build
+  tags:
+    - horeka
+  # covers the time in the Slurm queue as well
+  timeout: 8h
+  variables:
+    # read by sbatch directly; GPU partitions are shared, so a job can
+    # request a single GPU (see https://www.nhr.kit.edu/userdocs/horeka/batch/)
+    SBATCH_PARTITION: accelerated
+    SBATCH_GRES: "gpu:1"
+    SBATCH_TIMELIMIT: "01:30:00"
+    # hardware threads; fits the per-GPU share on the A100 and H100 nodes
+    CPUS_PER_TASK: 32
+    MODULES: "compiler/gnu/13 devel/cuda/12.4 devel/cmake/3.30"
+    BUILD_TYPE: Release
+    EXTRA_CMAKE_FLAGS: ""
+    CTEST_JUNIT_DIR: ${CI_PROJECT_DIR}/test-results
+  script:
+    - bash .gitlab/sbatch-wait.sh --nodes=1 --ntasks=1
+        --cpus-per-task=${CPUS_PER_TASK} --job-name=ginkgo-ci-${CI_JOB_ID}
+        .gitlab/build-and-test.sh
+  artifacts:
+    when: always
+    reports:
+      junit: test-results/*.xml
+  rules:
+    # limited to the CI development branch until the setup is tested
+    - if: $RUN_CI_TAG && $CI_COMMIT_BRANCH == "feat/ci-overhaul"
+  dependencies: []
+
+# TEMPORARY: a reduced configuration on the dev_accelerated partition (A100,
+# at most 1 h), to test the runner setup end to end. The accelerated partition
+# currently has a queue of several days. Remove the partition, time limit and
+# reduced CMake flags once there is a runner with shorter queues (e.g. on
+# HoreKa 2), and build the full configuration again.
+horeka/a100/cuda124/nompi/gcc/release/shared-reduced:
+  extends: .horeka_build_and_test
+  variables:
+    SBATCH_PARTITION: dev_accelerated
+    SBATCH_TIMELIMIT: "01:00:00"
+    # without 16-bit types and mixed precision, and with smaller tests, so
+    # that building and testing fit into the 1 h limit
+    EXTRA_CMAKE_FLAGS: -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=80
+      -DGINKGO_BUILD_OMP=OFF -DGINKGO_ENABLE_HALF=OFF
+      -DGINKGO_ENABLE_BFLOAT16=OFF -DGINKGO_MIXED_PRECISION=OFF
+      -DGINKGO_FAST_TESTS=ON
