@@ -15,17 +15,38 @@ include:
   - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
 
 stages:
+  - check
   - test
+
+variables:
+  UENV: prgenv-gnu/26.3:v1
+
+# Checks the environment before the long jobs start, and downloads the uenv
+# (the baremetal runner does not pull it). Pulling here once also avoids
+# concurrent pulls into the same uenv repository from the jobs below.
+daint/environment:
+  extends: .baremetal-runner-daint-gh200
+  stage: check
+  variables:
+    GIT_STRATEGY: none
+    SLURM_JOB_NUM_NODES: 1
+    # must be quoted, otherwise Slurm reads the value as minutes
+    SLURM_TIMELIMIT: "00:20:00"
+  script:
+    - uenv image pull ${UENV}
+    - nvidia-smi -L
+    - which srun
+    - uenv run --view=default ${UENV} -- bash -c
+        "g++ --version && nvcc --version && cmake --version && ninja --version"
 
 .daint_build_and_test:
   extends: .baremetal-runner-daint-gh200
   stage: test
+  needs: [daint/environment]
   variables:
     GIT_STRATEGY: fetch
     SLURM_JOB_NUM_NODES: 1
-    # must be quoted, otherwise Slurm reads the value as minutes
     SLURM_TIMELIMIT: "01:30:00"
-    UENV: prgenv-gnu/26.3:v1
     CXX: g++
     CUDAHOSTCXX: g++
     BUILD_TYPE: Release
@@ -35,6 +56,8 @@ stages:
     OMP_NUM_THREADS: 64
     EXTRA_CMAKE_FLAGS: ""
   script:
+    # no-op if the image is already there, but scratch may have been purged
+    - uenv image pull ${UENV}
     - uenv run --view=default ${UENV} -- cmake -S . -B build -G Ninja
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=90
