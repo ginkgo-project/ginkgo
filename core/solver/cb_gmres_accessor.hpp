@@ -148,7 +148,9 @@ struct helper_functions_accessor<Accessor3d, true> {
                                                         vector_idx, col_idx);
     }
 
-    static constexpr GKO_ATTRIBUTES auto get_stride(Accessor3d krylov_bases)
+    static constexpr GKO_ATTRIBUTES
+        typename Accessor3d::accessor::storage_stride_type
+        get_stride(Accessor3d krylov_bases)
     {
         return krylov_bases.get_accessor().get_storage_stride();
     }
@@ -169,7 +171,9 @@ struct helper_functions_accessor<Accessor3d, false> {
         // Since there is no scalar, there is nothing to write.
     }
 
-    static constexpr GKO_ATTRIBUTES auto get_stride(Accessor3d krylov_bases)
+    static constexpr GKO_ATTRIBUTES
+        typename Accessor3d::accessor::storage_stride_type
+        get_stride(Accessor3d krylov_bases)
     {
         return krylov_bases.get_accessor().get_stride();
     }
