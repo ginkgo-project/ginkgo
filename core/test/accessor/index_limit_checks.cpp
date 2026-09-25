@@ -49,13 +49,20 @@ TEST(IntegerRangeChecks, SumCheckDoesNotOverflow)
 }
 
 
-TEST(IntegerRangeChecks, ProductHandlesBoundaryAndZero)
+TEST(IntegerRangeChecks, ValueFitsAtBoundary)
 {
     const auto max = std::numeric_limits<std::int32_t>::max();
+
+    EXPECT_TRUE(gko::acc::value_fits<std::int32_t>(0));
+    EXPECT_TRUE(gko::acc::value_fits<std::int32_t>(max));
+    EXPECT_FALSE(gko::acc::value_fits<std::int32_t>(std::uint64_t{max} + 1));
+}
+
+
+TEST(IntegerRangeChecks, ProductHandlesBoundaryAndZero)
+{
     const auto wide_max = std::numeric_limits<std::uint64_t>::max();
 
-    EXPECT_TRUE(gko::acc::product_fits<std::int32_t>(max));
-    EXPECT_FALSE(gko::acc::product_fits<std::int32_t>(std::uint64_t{max} + 1));
     EXPECT_TRUE(gko::acc::product_fits<std::int32_t>(32767, 65536));
     EXPECT_FALSE(gko::acc::product_fits<std::int32_t>(32768, 65536));
     EXPECT_TRUE(gko::acc::product_fits<std::int32_t>(0, wide_max));
