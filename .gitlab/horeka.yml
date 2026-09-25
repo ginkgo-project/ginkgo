@@ -47,9 +47,12 @@
 # HoreKa 2), and build the full configuration again.
 horeka/a100/cuda124/nompi/gcc/release/shared-reduced:
   extends: .horeka_build_and_test
+  # jobs in dev_accelerated start within minutes
+  timeout: 2h
   variables:
     SBATCH_PARTITION: dev_accelerated
-    SBATCH_TIMELIMIT: "01:00:00"
+    # the job takes about 11 min
+    SBATCH_TIMELIMIT: "00:30:00"
     # without 16-bit types and mixed precision, and with smaller tests, so
     # that building and testing fit into the 1 h limit
     EXTRA_CMAKE_FLAGS: -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=80

@@ -74,3 +74,23 @@ daint/cuda131/cray-mpich/gcc/omp/debug/shared:
     SLURM_TIMELIMIT: "02:00:00"
     MPICH_GPU_SUPPORT_ENABLED: 1
     EXTRA_CMAKE_FLAGS: -DGINKGO_BUILD_MPI=ON -DGINKGO_FORCE_GPU_AWARE_MPI=ON
+
+# The previous uenv version, for a second toolchain (CUDA 12.9, GCC 14.2,
+# Cray MPICH 8.1.32), combined with static libraries and GPU-aware MPI.
+daint/cuda129/cray-mpich/gcc/omp/release/static:
+  extends: .daint_build_and_test
+  variables:
+    UENV: prgenv-gnu/25.11:v1
+    SLURM_TIMELIMIT: "02:00:00"
+    MPICH_GPU_SUPPORT_ENABLED: 1
+    EXTRA_CMAKE_FLAGS: -DBUILD_SHARED_LIBS=OFF -DGINKGO_BUILD_MPI=ON
+      -DGINKGO_FORCE_GPU_AWARE_MPI=ON
+
+# Checks that no GPU work is launched on the default CUDA stream, by
+# preloading a library into the tests that detects it. No CI job ran this
+# check before, so failures don't fail the pipeline until we know its state.
+daint/cuda131/nompi/gcc/omp/nondefault-stream/release/shared:
+  extends: .daint_build_and_test
+  allow_failure: true
+  variables:
+    EXTRA_CMAKE_FLAGS: -DGINKGO_TEST_NONDEFAULT_STREAM=ON
