@@ -19,11 +19,11 @@ namespace acc {
 namespace helper {
 
 
-template <typename ArthType, typename IndexType, typename ValueType>
+template <typename ArithmeticType, typename IndexType, typename ValueType>
 auto build_rrm_accessor(matrix::view::dense<ValueType> input)
 {
     using accessor =
-        gko::acc::reduced_row_major<2, ArthType, ValueType, IndexType>;
+        gko::acc::reduced_row_major<2, ArithmeticType, ValueType, IndexType>;
     GKO_ASSERT(dense_accessor_fits<accessor>(input.size[0], input.size[1],
                                              input.stride));
     return range<accessor>(
@@ -35,12 +35,12 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input)
             {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
-template <typename ArthType, typename IndexType, typename ValueType>
+template <typename ArithmeticType, typename IndexType, typename ValueType>
 auto build_rrm_accessor(matrix::view::dense<ValueType> input,
                         index_span column_span)
 {
     using accessor =
-        gko::acc::reduced_row_major<2, ArthType, ValueType, IndexType>;
+        gko::acc::reduced_row_major<2, ArithmeticType, ValueType, IndexType>;
     assert(column_span.is_valid());
     GKO_ASSERT(dense_accessor_fits<accessor>(
         input.size[0], column_span.end - column_span.begin, input.stride));
@@ -57,11 +57,11 @@ auto build_rrm_accessor(matrix::view::dense<ValueType> input,
 
 // use a different name for const to allow the non-const to create const
 // accessor
-template <typename ArthType, typename IndexType, typename ValueType>
+template <typename ArithmeticType, typename IndexType, typename ValueType>
 auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input)
 {
-    using accessor =
-        gko::acc::reduced_row_major<2, ArthType, const ValueType, IndexType>;
+    using accessor = gko::acc::reduced_row_major<2, ArithmeticType,
+                                                 const ValueType, IndexType>;
     GKO_ASSERT(dense_accessor_fits<accessor>(input.size[0], input.size[1],
                                              input.stride));
     return range<accessor>(
@@ -73,12 +73,12 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input)
             {static_cast<typename accessor::size_type>(input.stride)}});
 }
 
-template <typename ArthType, typename IndexType, typename ValueType>
+template <typename ArithmeticType, typename IndexType, typename ValueType>
 auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input,
                               index_span column_span)
 {
-    using accessor =
-        gko::acc::reduced_row_major<2, ArthType, const ValueType, IndexType>;
+    using accessor = gko::acc::reduced_row_major<2, ArithmeticType,
+                                                 const ValueType, IndexType>;
     assert(column_span.is_valid());
     GKO_ASSERT(dense_accessor_fits<accessor>(
         input.size[0], column_span.end - column_span.begin, input.stride));
@@ -93,11 +93,11 @@ auto build_const_rrm_accessor(matrix::view::dense<const ValueType> input,
 }
 
 
-template <typename ArthType, typename ValueType, typename IndexType>
+template <typename ArithmeticType, typename ValueType, typename IndexType>
 auto build_rrm_accessor(matrix::view::csr<ValueType, IndexType> input)
 {
     using accessor =
-        gko::acc::reduced_row_major<1, ArthType, ValueType, IndexType>;
+        gko::acc::reduced_row_major<1, ArithmeticType, ValueType, IndexType>;
     return gko::acc::range<accessor>(
         typename accessor::dim_type{{static_cast<typename accessor::size_type>(
             input.num_stored_elements)}},
@@ -105,12 +105,12 @@ auto build_rrm_accessor(matrix::view::csr<ValueType, IndexType> input)
 }
 
 
-template <typename ArthType, typename ValueType, typename IndexType>
+template <typename ArithmeticType, typename ValueType, typename IndexType>
 auto build_const_rrm_accessor(
     matrix::view::csr<const ValueType, const IndexType> input)
 {
-    using accessor =
-        gko::acc::reduced_row_major<1, ArthType, const ValueType, IndexType>;
+    using accessor = gko::acc::reduced_row_major<1, ArithmeticType,
+                                                 const ValueType, IndexType>;
     return gko::acc::range<accessor>(
         typename accessor::dim_type{{static_cast<typename accessor::size_type>(
             input.num_stored_elements)}},
