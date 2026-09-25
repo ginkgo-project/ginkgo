@@ -9,9 +9,9 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "accessor/index_limit_checks.hpp"
 #include "accessor/index_span.hpp"
 #include "accessor/reduced_row_major.hpp"
-#include "core/base/utils.hpp"
 
 
 namespace gko {
