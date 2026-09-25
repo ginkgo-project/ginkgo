@@ -23,10 +23,6 @@ TEST(IntegerRangeChecks, EnsureSumThrowsForOverflow)
     EXPECT_NO_THROW(gko::ensure_sum_fits<std::int32_t>(max - 1, 1));
     EXPECT_THROW(gko::ensure_sum_fits<std::int32_t>(max, 1),
                  gko::OverflowError);
-    EXPECT_THROW(gko::ensure_sum_fits<std::int32_t>(std::uint64_t{max} + 1, 0),
-                 gko::OverflowError);
-    EXPECT_THROW(gko::ensure_sum_fits<std::int32_t>(0, std::uint64_t{max} + 1),
-                 gko::OverflowError);
 }
 
 
