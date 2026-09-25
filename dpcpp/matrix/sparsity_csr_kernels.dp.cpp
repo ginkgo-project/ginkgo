@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/std_extensions.hpp>
 
+#include "accessor/index_limit_checks.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/sycl_helper.hpp"
 #include "core/base/mixed_precision_types.hpp"
@@ -210,10 +211,10 @@ void classical_spmv(
     const dim3 grid(gridx, b.size[1]);
     const auto block = spmv_block_size;
 
-    GKO_ASSERT(
-        dense_accessor_fits<input_accessor>(b.size[0], b.size[1], b.stride));
-    GKO_ASSERT(
-        dense_accessor_fits<output_accessor>(c.size[0], c.size[1], c.stride));
+    GKO_ASSERT(acc::dense_accessor_fits<input_accessor>(b.size[0], b.size[1],
+                                                        b.stride));
+    GKO_ASSERT(acc::dense_accessor_fits<output_accessor>(c.size[0], c.size[1],
+                                                         c.stride));
     const auto b_vals = gko::acc::range<input_accessor>(
         typename input_accessor::dim_type{
             {static_cast<typename input_accessor::size_type>(b.size[0]),

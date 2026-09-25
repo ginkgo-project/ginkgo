@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "accessor/block_col_major.hpp"
+#include "accessor/index_limit_checks.hpp"
 #include "accessor/range.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
@@ -559,7 +560,7 @@ void convert_to_fbcsr(std::shared_ptr<const ReferenceExecutor> exec,
     const auto num_block_rows = num_rows / bs;
     const auto num_block_cols = num_cols / bs;
     using accessor = acc::block_col_major<ValueType, 3, IndexType>;
-    GKO_ASSERT(block_accessor_fits<accessor>(nzbs, bs));
+    GKO_ASSERT(acc::block_accessor_fits<accessor>(nzbs, bs));
     acc::range<accessor> blocks(
         to_std_array<typename accessor::size_type>(nzbs, bs, bs),
         result->get_values());

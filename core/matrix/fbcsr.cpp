@@ -21,6 +21,7 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "accessor/block_col_major.hpp"
+#include "accessor/index_limit_checks.hpp"
 #include "accessor/range.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/absolute_array_kernels.hpp"
@@ -319,7 +320,7 @@ void Fbcsr<ValueType, IndexType>::write(mat_data& data) const
 
     const size_type nbnz = tmp->get_num_stored_blocks();
     using accessor = acc::block_col_major<const value_type, 3, IndexType>;
-    GKO_ASSERT(block_accessor_fits<accessor>(nbnz, bs_));
+    GKO_ASSERT(acc::block_accessor_fits<accessor>(nbnz, bs_));
     const acc::range<accessor> vblocks(
         to_std_array<typename accessor::size_type>(nbnz, bs_, bs_),
         tmp->values_.get_const_data());
