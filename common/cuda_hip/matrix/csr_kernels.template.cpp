@@ -1932,6 +1932,9 @@ void merge_path_spmv(
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    // Merge-path combines rows and nonzeros, which can overflow even when
+    // both counts fit individually.
+    ensure_sum_fits<IndexType>(a.size[0], a.num_stored_elements);
     const IndexType total = a.size[0] + a.num_stored_elements;
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
@@ -1945,15 +1948,16 @@ void merge_path_spmv(
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
 
-    for (IndexType column_id = 0; column_id < b.size[1]; column_id++) {
+    for (size_type column_id = 0; column_id < b.size[1]; column_id++) {
         const auto column_span =
             acc::index_span(static_cast<acc::size_type>(column_id),
                             static_cast<acc::size_type>(column_id + 1));
         const auto b_vals =
-            acc::helper::build_const_rrm_accessor<arithmetic_type>(b,
-                                                                   column_span);
+            acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(
+                b, column_span);
         auto c_vals =
-            acc::helper::build_rrm_accessor<arithmetic_type>(c, column_span);
+            acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(
+                c, column_span);
         if (!alpha && !beta) {
             if (grid_num > 0) {
                 kernel::abstract_merge_path_spmv<items_per_thread>
@@ -2086,8 +2090,9 @@ void classical_spmv(
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+        acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(b);
+    auto c_vals =
+        acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
     if (!alpha && !beta) {
         if (grid.x > 0 && grid.y > 0) {
             kernel::abstract_classical_spmv<subwarp_size>
@@ -2159,8 +2164,10 @@ bool load_balance_spmv(
             const auto a_vals =
                 acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
             const auto b_vals =
-                acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-            auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+                acc::helper::build_const_rrm_accessor<arithmetic_type,
+                                                      IndexType>(b);
+            auto c_vals =
+                acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
             if (alpha) {
                 if (csr_grid.x > 0 && csr_grid.y > 0) {
                     kernel::abstract_spmv<<<csr_grid, csr_block, 0,

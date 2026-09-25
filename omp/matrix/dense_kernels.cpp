@@ -18,7 +18,9 @@
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "accessor/block_col_major.hpp"
+#include "accessor/index_limit_checks.hpp"
 #include "accessor/range.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 
 
@@ -245,10 +247,10 @@ void convert_to_fbcsr(std::shared_ptr<const DefaultExecutor> exec,
     const auto nzbs = result->get_num_stored_blocks();
     const auto num_block_rows = num_rows / bs;
     const auto num_block_cols = num_cols / bs;
-    acc::range<acc::block_col_major<ValueType, 3>> blocks(
-        std::array<acc::size_type, 3>{static_cast<acc::size_type>(nzbs),
-                                      static_cast<acc::size_type>(bs),
-                                      static_cast<acc::size_type>(bs)},
+    using accessor = acc::block_col_major<ValueType, 3, IndexType>;
+    GKO_ASSERT(acc::block_accessor_fits<accessor>(nzbs, bs));
+    acc::range<accessor> blocks(
+        to_std_array<typename accessor::size_type>(nzbs, bs, bs),
         result->get_values());
     auto col_idxs = result->get_col_idxs();
 #pragma omp parallel for
