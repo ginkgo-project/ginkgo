@@ -28,11 +28,22 @@ constexpr bool sum_fits(std::uint64_t a, std::uint64_t b)
 
 
 /**
- * Checks whether the product of two non-negative integers is representable in
- * IndexType, without overflowing. A single argument checks that value itself.
+ * Checks whether a non-negative integer is representable in IndexType.
  */
 template <typename IndexType>
-constexpr bool product_fits(std::uint64_t a, std::uint64_t b = 1)
+constexpr bool value_fits(std::uint64_t value)
+{
+    return value <=
+           static_cast<std::uint64_t>(std::numeric_limits<IndexType>::max());
+}
+
+
+/**
+ * Checks whether the product of two non-negative integers is representable in
+ * IndexType, without overflowing during the check.
+ */
+template <typename IndexType>
+constexpr bool product_fits(std::uint64_t a, std::uint64_t b)
 {
     constexpr auto limit =
         static_cast<std::uint64_t>(std::numeric_limits<IndexType>::max());
@@ -77,8 +88,8 @@ constexpr bool dense_accessor_fits(std::uint64_t rows, std::uint64_t cols,
                                    std::uint64_t stride)
 {
     using size_type = typename Accessor::size_type;
-    return product_fits<size_type>(rows) && product_fits<size_type>(cols) &&
-           product_fits<size_type>(stride) &&
+    return value_fits<size_type>(rows) && value_fits<size_type>(cols) &&
+           value_fits<size_type>(stride) &&
            dense_access_fits<typename Accessor::index_type>(rows, cols, stride);
 }
 
@@ -92,7 +103,7 @@ constexpr bool block_accessor_fits(std::uint64_t blocks,
                                    std::uint64_t block_size)
 {
     using size_type = typename Accessor::size_type;
-    return product_fits<size_type>(blocks) &&
+    return value_fits<size_type>(blocks) &&
            product_fits<size_type>(block_size, block_size) &&
            block_access_fits<typename Accessor::index_type>(blocks, block_size);
 }
