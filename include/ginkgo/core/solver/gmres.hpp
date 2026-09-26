@@ -245,6 +245,10 @@ protected:
 
 
 template <typename ValueType>
+struct has_nullspace_support<Gmres<ValueType>> : std::true_type {};
+
+
+template <typename ValueType>
 struct workspace_traits<Gmres<ValueType>> {
     using Solver = Gmres<ValueType>;
     // number of vectors used by this workspace
