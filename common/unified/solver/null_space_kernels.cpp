@@ -21,40 +21,58 @@ namespace null_space {
 
 
 template <typename ValueType>
-void compute_scaled_column_sums(std::shared_ptr<const DefaultExecutor> exec,
-                                matrix::view::dense<const ValueType> x,
-                                remove_complex<ValueType> scale,
-                                matrix::view::dense<ValueType> result,
-                                array<char>& tmp)
+void compute_coefficients(std::shared_ptr<const DefaultExecutor> exec,
+                          matrix::view::dense<const ValueType> x,
+                          matrix::view::dense<const ValueType> basis,
+                          bool has_constant, remove_complex<ValueType> inv_size,
+                          matrix::view::dense<ValueType> coefficients,
+                          array<char>& tmp)
 {
+    const auto num_rhs = static_cast<int64>(x.size[1]);
+    const int64 offset = has_constant ? 1 : 0;
+    // one reduction over the rows for all coefficients, with the column index
+    // coefficient_row * num_rhs + rhs, so x and basis are read only once
     run_kernel_col_reduction_cached(
         exec,
-        [] GKO_KERNEL(auto i, auto j, auto x, auto scale) {
-            return x(i, j) * scale;
+        [] GKO_KERNEL(auto i, auto col, auto x, auto basis, auto num_rhs,
+                      auto offset, auto inv_size) {
+            const auto l = col / num_rhs;
+            const auto j = col % num_rhs;
+            return l < offset ? x(i, j) * inv_size
+                              : conj(basis(i, l - offset)) * x(i, j);
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), result.values, x.size, tmp, x,
-        scale);
+        GKO_KERNEL_REDUCE_SUM(ValueType), coefficients.values,
+        dim<2>{x.size[0], coefficients.size[0] * x.size[1]}, tmp, x, basis,
+        num_rhs, offset, inv_size);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_NULL_SPACE_COMPUTE_SCALED_COLUMN_SUMS_KERNEL);
+    GKO_DECLARE_NULL_SPACE_COMPUTE_COEFFICIENTS_KERNEL);
 
 
 template <typename ValueType>
-void remove_constant(std::shared_ptr<const DefaultExecutor> exec,
-                     matrix::view::dense<const ValueType> mean,
-                     matrix::view::dense<ValueType> x)
+void subtract_projection(std::shared_ptr<const DefaultExecutor> exec,
+                         matrix::view::dense<const ValueType> basis,
+                         bool has_constant,
+                         matrix::view::dense<const ValueType> coefficients,
+                         matrix::view::dense<ValueType> x)
 {
     run_kernel(
         exec,
-        [] GKO_KERNEL(auto row, auto col, auto mean, auto x) {
-            x(row, col) -= mean[col];
+        [] GKO_KERNEL(auto i, auto j, auto basis, auto num_basis, auto offset,
+                      auto coefficients, auto x) {
+            auto value = offset > 0 ? coefficients(0, j) : zero(x(i, j));
+            for (int64 l = 0; l < num_basis; ++l) {
+                value += basis(i, l) * coefficients(l + offset, j);
+            }
+            x(i, j) -= value;
         },
-        x.size, mean.values, x);
+        x.size, basis, static_cast<int64>(basis.size[1]),
+        static_cast<int64>(has_constant ? 1 : 0), coefficients, x);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_NULL_SPACE_REMOVE_CONSTANT_KERNEL);
+    GKO_DECLARE_NULL_SPACE_SUBTRACT_PROJECTION_KERNEL);
 
 
 }  // namespace null_space

@@ -2,14 +2,13 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <ginkgo/core/solver/null_space.hpp>
-
 #include <random>
 
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/null_space.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
@@ -58,8 +57,8 @@ TEST_F(NullSpace, BasisProjectionIsEquivalentToRef)
     const gko::size_type n = 1234;
     auto basis = gko::share(gen_mtx(n, 3, 3));
     auto ns = NullSpaceType::create(ref, {basis}, true);
-    auto d_ns = NullSpaceType::create(exec, {gko::share(gko::clone(exec, basis))},
-                                      true);
+    auto d_ns = NullSpaceType::create(
+        exec, {gko::share(gko::clone(exec, basis))}, true);
     auto x = gen_mtx(n, 5, 7);
     auto d_x = gko::clone(exec, x);
 
@@ -69,5 +68,23 @@ TEST_F(NullSpace, BasisProjectionIsEquivalentToRef)
     ASSERT_EQ(d_ns->get_dimension(), gko::size_type{4});
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(d_ns->get_basis()),
                         gko::as<Mtx>(ns->get_basis()), r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 10 * r<value_type>::value);
+}
+
+
+TEST_F(NullSpace, BasisOnlyProjectionIsEquivalentToRef)
+{
+    const gko::size_type n = 1234;
+    auto basis = gko::share(gen_mtx(n, 2, 2));
+    auto ns = NullSpaceType::create(ref, {basis});
+    auto d_ns =
+        NullSpaceType::create(exec, {gko::share(gko::clone(exec, basis))});
+    auto x = gen_mtx(n, 1, 1);
+    auto d_x = gko::clone(exec, x);
+
+    ns->project(x);
+    d_ns->project(d_x);
+
+    ASSERT_EQ(d_ns->get_dimension(), gko::size_type{2});
     GKO_ASSERT_MTX_NEAR(d_x, x, 10 * r<value_type>::value);
 }

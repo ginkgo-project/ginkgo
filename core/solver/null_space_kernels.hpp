@@ -21,25 +21,39 @@ namespace kernels {
 namespace null_space {
 
 
-#define GKO_DECLARE_NULL_SPACE_COMPUTE_SCALED_COLUMN_SUMS_KERNEL(ValueType) \
-    void compute_scaled_column_sums(                                        \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        matrix::view::dense<const ValueType> x,                             \
-        remove_complex<ValueType> scale,                                    \
-        matrix::view::dense<ValueType> result, array<char>& tmp)
+/**
+ * Computes the coefficients of x with respect to the nullspace: if
+ * `has_constant`, row 0 holds the means, sum_i x(i, j) * inv_size, followed by
+ * the rows basis^H x. `coefficients` must be contiguous (stride equal to the
+ * number of columns of x).
+ */
+#define GKO_DECLARE_NULL_SPACE_COMPUTE_COEFFICIENTS_KERNEL(ValueType)  \
+    void compute_coefficients(                                         \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        matrix::view::dense<const ValueType> x,                        \
+        matrix::view::dense<const ValueType> basis, bool has_constant, \
+        remove_complex<ValueType> inv_size,                            \
+        matrix::view::dense<ValueType> coefficients, array<char>& tmp)
 
 
-#define GKO_DECLARE_NULL_SPACE_REMOVE_CONSTANT_KERNEL(ValueType)      \
-    void remove_constant(std::shared_ptr<const DefaultExecutor> exec, \
-                         matrix::view::dense<const ValueType> mean,   \
-                         matrix::view::dense<ValueType> x)
+/**
+ * Removes the nullspace components given by the coefficients from x:
+ * x(i, j) -= coefficients(0, j) (if `has_constant`) + basis(i, :) *
+ * coefficients(:, j).
+ */
+#define GKO_DECLARE_NULL_SPACE_SUBTRACT_PROJECTION_KERNEL(ValueType)   \
+    void subtract_projection(                                          \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        matrix::view::dense<const ValueType> basis, bool has_constant, \
+        matrix::view::dense<const ValueType> coefficients,             \
+        matrix::view::dense<ValueType> x)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                     \
-    template <typename ValueType>                                        \
-    GKO_DECLARE_NULL_SPACE_COMPUTE_SCALED_COLUMN_SUMS_KERNEL(ValueType); \
-    template <typename ValueType>                                        \
-    GKO_DECLARE_NULL_SPACE_REMOVE_CONSTANT_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_NULL_SPACE_COMPUTE_COEFFICIENTS_KERNEL(ValueType); \
+    template <typename ValueType>                                  \
+    GKO_DECLARE_NULL_SPACE_SUBTRACT_PROJECTION_KERNEL(ValueType)
 
 
 }  // namespace null_space

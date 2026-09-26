@@ -156,17 +156,15 @@ protected:
     void project_impl(VectorType* v) const;
 
     template <typename VectorType>
-    void remove_constant_impl(VectorType* v) const;
+    void remove_components(VectorType* v,
+                           const matrix::Dense<ValueType>* basis_local,
+                           bool has_constant) const;
 
 private:
     bool contains_constant_;
     // orthonormal explicit basis (n x k), Dense or distributed::Vector
     std::shared_ptr<const LinOp> basis_;
-    // conjugate transpose of the (local part of the) basis, k x n_local
-    std::shared_ptr<const matrix::Dense<ValueType>> basis_conj_trans_;
-    std::shared_ptr<const matrix::Dense<ValueType>> one_;
-    std::shared_ptr<const matrix::Dense<ValueType>> neg_one_;
-    // scratch: (1 + k) x nrhs coefficients (column sums, then V^H x)
+    // scratch: (1 + k) x nrhs coefficients (means, then V^H x)
     detail::DenseCache<ValueType> coefficients_;
     detail::DenseCache<ValueType> host_coefficients_;
     mutable array<char> reduction_tmp_;
