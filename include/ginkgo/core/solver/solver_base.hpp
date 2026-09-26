@@ -8,10 +8,13 @@
 
 #include <memory>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -797,6 +800,18 @@ private:
  * @ingroup solvers
  * @ingroup LinOp
  */
+/**
+ * Traits class stating whether an iterative solver projects out the nullspaces
+ * given by the `nullspace` / `left_nullspace` factory parameters. Solvers that
+ * do so specialize it to std::true_type; all other solvers throw NotSupported
+ * when a nullspace is set instead of silently ignoring it.
+ *
+ * @tparam Solver  the solver type
+ */
+template <typename Solver>
+struct has_nullspace_support : std::false_type {};
+
+
 template <typename ValueType, typename DerivedType>
 class EnablePreconditionedIterativeSolver
     : public EnableSolverBase<DerivedType>,
@@ -824,6 +839,12 @@ public:
     {
         nullspace_ = cast_nullspace(params.nullspace);
         left_nullspace_ = cast_nullspace(params.left_nullspace);
+        if ((nullspace_ || left_nullspace_) &&
+            !has_nullspace_support<DerivedType>::value) {
+            throw NotSupported(
+                __FILE__, __LINE__, "nullspace projection",
+                name_demangling::get_type_name(typeid(DerivedType)));
+        }
     }
 
     /**
@@ -843,7 +864,82 @@ public:
         return left_nullspace_;
     }
 
+protected:
+    /**
+     * Removes the right nullspace component from `v`, if a right nullspace is
+     * set. Solvers apply this to the initial guess and to the result of every
+     * preconditioner application, which keeps all search directions, and thus
+     * the solution, orthogonal to \( N(A) \).
+     */
+    void project_nullspace(ptr_param<LinOp> v) const
+    {
+        if (nullspace_) {
+            nullspace_->project(v);
+        }
+    }
+
+    /**
+     * Returns the right-hand side the solver should use: `b` itself, or, if a
+     * left nullspace is set, the projection of `b` onto \( \mathrm{range}(A)
+     * \), which makes the system consistent. Solvers use it in place of `b`
+     * everywhere,
+     * including in the stopping criterion, so that the residual they measure
+     * can converge to zero also for inconsistent systems.
+     *
+     * @note The projected copy is cached, the next call overwrites it.
+     */
+    template <typename VectorType>
+    const VectorType* get_consistent_rhs(const VectorType* b) const
+    {
+        if (!left_nullspace_) {
+            return b;
+        }
+        auto rhs = dynamic_cast<VectorType*>(consistent_rhs_.op.get());
+        if (!rhs || rhs->get_executor() != b->get_executor()) {
+            auto new_rhs = VectorType::create_with_config_of(b);
+            rhs = new_rhs.get();
+            consistent_rhs_.op = std::move(new_rhs);
+        }
+        rhs->copy_from(b);
+        left_nullspace_->project(rhs);
+        return rhs;
+    }
+
+    /**
+     * @return the right nullspace to use for the (conjugate) transposed
+     *         solver, which is the left nullspace of this one.
+     */
+    std::shared_ptr<const LinOp> get_transposed_nullspace(bool conjugate) const
+    {
+        assert_nullspace_transposable(conjugate);
+        return left_nullspace_;
+    }
+
+    /**
+     * @return the left nullspace to use for the (conjugate) transposed
+     *         solver, which is the right nullspace of this one.
+     */
+    std::shared_ptr<const LinOp> get_transposed_left_nullspace(
+        bool conjugate) const
+    {
+        assert_nullspace_transposable(conjugate);
+        return nullspace_;
+    }
+
 private:
+    // N(A^T) is the complex conjugate of N(A^H), which would need a
+    // conjugated basis, so only the conjugate transpose supports complex
+    // nullspaces.
+    void assert_nullspace_transposable(bool conjugate) const
+    {
+        if (!conjugate && is_complex<ValueType>() &&
+            (nullspace_ || left_nullspace_)) {
+            throw NotSupported(
+                __FILE__, __LINE__, "transpose with nullspace",
+                name_demangling::get_type_name(typeid(DerivedType)));
+        }
+    }
+
     static std::shared_ptr<const NullSpace<ValueType>> cast_nullspace(
         std::shared_ptr<const LinOp> ns)
     {
@@ -868,8 +964,20 @@ private:
         }
     }
 
+    // storage that is not copied or moved along with the solver
+    struct rhs_cache {
+        rhs_cache() = default;
+        rhs_cache(const rhs_cache&) {}
+        rhs_cache(rhs_cache&&) noexcept {}
+        rhs_cache& operator=(const rhs_cache&) { return *this; }
+        rhs_cache& operator=(rhs_cache&&) noexcept { return *this; }
+
+        mutable std::unique_ptr<LinOp> op;
+    };
+
     std::shared_ptr<const NullSpace<ValueType>> nullspace_{};
     std::shared_ptr<const NullSpace<ValueType>> left_nullspace_{};
+    rhs_cache consistent_rhs_;
 };
 
 
@@ -902,20 +1010,24 @@ struct enable_preconditioned_iterative_solver_factory_parameters
         generated_preconditioner, nullptr);
 
     /**
-     * Right nullspace \( N(A) \) of the (singular) system matrix. When set, the
-     * solver removes the \( N(A) \) component from the iterate, converging to
-     * the minimum-norm solution. A NullSpace is itself a LinOp, so it
-     * type-erases here. By default, none.
+     * Right nullspace \( N(A) \) of the (singular) system matrix, given as a
+     * NullSpace<ValueType>. When set, the solver removes the \( N(A) \)
+     * component from the initial guess and from every preconditioned vector,
+     * converging to the minimum-norm solution. Supported by Cg, Fcg, Minres,
+     * Gmres and Bicgstab (see has_nullspace_support); other solvers throw
+     * NotSupported. By default, none.
      */
     std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(nullspace,
                                                               nullptr);
 
     /**
      * Left nullspace \( N(A^H) \) -- the orthogonal complement of
-     * \( \mathrm{range}(A) \). When set, the solver projects the residual onto
-     * \( \mathrm{range}(A) \) to make the RHS consistent (least-squares solve
-     * of inconsistent systems). For symmetric problems \( N(A) = N(A^H) \);
-     * pass the same object to both. By default, none.
+     * \( \mathrm{range}(A) \), given as a NullSpace<ValueType>. When set, the
+     * solver projects the right-hand side onto \( \mathrm{range}(A) \),
+     * which makes the system consistent; inconsistent systems are then solved
+     * in the least-squares sense, and the stopping criteria measure the
+     * residual of the projected system. For symmetric problems
+     * \( N(A) = N(A^H) \); pass the same object to both. By default, none.
      */
     std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(left_nullspace,
                                                               nullptr);

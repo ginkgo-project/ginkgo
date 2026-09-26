@@ -78,6 +78,7 @@
 #include "core/solver/lower_trs_kernels.hpp"
 #include "core/solver/minres_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
+#include "core/solver/null_space_kernels.hpp"
 #include "core/solver/pipe_cg_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
@@ -578,6 +579,16 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg
+
+
+namespace null_space {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_NULL_SPACE_COMPUTE_SCALED_COLUMN_SUMS_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_NULL_SPACE_REMOVE_CONSTANT_KERNEL);
+
+
+}  // namespace null_space
 
 
 namespace bicg {

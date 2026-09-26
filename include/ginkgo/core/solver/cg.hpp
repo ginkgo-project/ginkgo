@@ -138,6 +138,10 @@ protected:
 
 
 template <typename ValueType>
+struct has_nullspace_support<Cg<ValueType>> : std::true_type {};
+
+
+template <typename ValueType>
 struct workspace_traits<Cg<ValueType>> {
     using Solver = Cg<ValueType>;
     // number of vectors used by this workspace
