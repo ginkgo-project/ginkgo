@@ -133,6 +133,10 @@ protected:
 
 
 template <typename ValueType>
+struct has_nullspace_support<Bicgstab<ValueType>> : std::true_type {};
+
+
+template <typename ValueType>
 struct workspace_traits<Bicgstab<ValueType>> {
     using Solver = Bicgstab<ValueType>;
     // number of vectors used by this workspace

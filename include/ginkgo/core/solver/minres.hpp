@@ -138,6 +138,10 @@ protected:
 
 
 template <typename ValueType>
+struct has_nullspace_support<Minres<ValueType>> : std::true_type {};
+
+
+template <typename ValueType>
 struct workspace_traits<Minres<ValueType>> {
     using Solver = Minres<ValueType>;
     // number of vectors used by this workspace

@@ -105,6 +105,8 @@ std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(false))
+        .with_left_nullspace(this->get_transposed_left_nullspace(false))
         .with_krylov_dim(this->get_krylov_dim())
         .with_restart_ratio(this->get_restart_ratio())
         .with_flexible(this->get_parameters().flexible)
@@ -121,6 +123,8 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(true))
+        .with_left_nullspace(this->get_transposed_left_nullspace(true))
         .with_krylov_dim(this->get_krylov_dim())
         .with_restart_ratio(this->get_restart_ratio())
         .with_flexible(this->get_parameters().flexible)
@@ -340,6 +344,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     constexpr uint8 RelativeStoppingId{1};
 
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b = this->get_consistent_rhs(dense_b);
     auto exec = this->get_executor();
     this->setup_workspace();
     const auto is_flexible = this->get_parameters().flexible;
@@ -470,6 +476,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         stop_status.get_data()));
     // residual = residual - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
+    // A annihilates N(A), so removing it from x keeps the residual unchanged
+    this->project_nullspace(dense_x);
 
     // residual_norm = norm(residual)
     residual->compute_norm2(residual_norm, reduction_tmp);
@@ -547,6 +555,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // x = x + get_preconditioner() * before_preconditioner
             this->get_preconditioner()->apply(before_preconditioner,
                                               after_preconditioner);
+            this->project_nullspace(after_preconditioner);
             dense_x->add_scaled(one_op, after_preconditioner);
             // residual = dense_b
             residual->copy_from(dense_b);
@@ -589,6 +598,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // preconditioned_krylov_vector = get_preconditioner() * this_krylov
         this->get_preconditioner()->apply(this_krylov,
                                           preconditioned_krylov_vector);
+        // keeps A's input, and thus the update of x, orthogonal to N(A)
+        this->project_nullspace(preconditioned_krylov_vector);
 
         // Create view of current column in the hessenberg matrix:
         // hessenberg_iter = hessenberg(:, restart_iter), which
@@ -701,6 +712,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // after_preconditioner = get_preconditioner() * before_preconditioner
         this->get_preconditioner()->apply(before_preconditioner,
                                           after_preconditioner);
+        this->project_nullspace(after_preconditioner);
     }
     // x = x + after_preconditioner
     dense_x->add_scaled(one_op, after_preconditioner);
