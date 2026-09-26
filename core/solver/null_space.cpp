@@ -28,9 +28,8 @@ namespace null_space {
 namespace {
 
 
-GKO_REGISTER_OPERATION(compute_scaled_column_sums,
-                       null_space::compute_scaled_column_sums);
-GKO_REGISTER_OPERATION(remove_constant, null_space::remove_constant);
+GKO_REGISTER_OPERATION(compute_coefficients, null_space::compute_coefficients);
+GKO_REGISTER_OPERATION(subtract_projection, null_space::subtract_projection);
 
 
 }  // anonymous namespace
@@ -148,11 +147,7 @@ NullSpace<ValueType>::create_from_constant(std::shared_ptr<const Executor> exec,
 
 template <typename ValueType>
 NullSpace<ValueType>::NullSpace(std::shared_ptr<const Executor> exec)
-    : LinOp(exec),
-      contains_constant_{false},
-      one_{initialize<matrix::Dense<ValueType>>({one<ValueType>()}, exec)},
-      neg_one_{initialize<matrix::Dense<ValueType>>({-one<ValueType>()}, exec)},
-      reduction_tmp_{exec}
+    : LinOp(exec), contains_constant_{false}, reduction_tmp_{exec}
 {}
 
 
@@ -212,7 +207,7 @@ void NullSpace<ValueType>::setup_basis(
     block->compute_norm2(orig_norms);
     auto host_orig_norms = gko::clone(exec->get_master(), orig_norms);
     if (contains_constant_) {
-        this->remove_constant_impl(block.get());
+        this->remove_components(block.get(), nullptr, true);
     }
     const auto drop_tolerance =
         sqrt(std::numeric_limits<absolute_type>::epsilon());
@@ -230,7 +225,7 @@ void NullSpace<ValueType>::setup_basis(
                 col_j->sub_scaled(coeff.get(), col_i.get());
             }
             if (contains_constant_) {
-                this->remove_constant_impl(col_j.get());
+                this->remove_components(col_j.get(), nullptr, true);
             }
         }
         col_j->compute_norm2(norm.get());
@@ -256,28 +251,7 @@ void NullSpace<ValueType>::setup_basis(
             result_local->create_submatrix(span{0, local_rows}, span{i, i + 1});
         target->copy_from(source.get());
     }
-    basis_conj_trans_ =
-        share(as<matrix::Dense<ValueType>>(result_local->conj_transpose()));
     basis_ = std::move(result);
-}
-
-
-template <typename ValueType>
-template <typename VectorType>
-void NullSpace<ValueType>::remove_constant_impl(VectorType* v) const
-{
-    auto exec = this->get_executor();
-    auto v_local = detail::get_local(v);
-    const auto inv_size = static_cast<absolute_type>(
-        1.0 / static_cast<double>(this->get_size()[0]));
-    auto mean = matrix::Dense<ValueType>::create(
-        exec, dim<2>{1, v_local->get_size()[1]});
-    exec->run(null_space::make_compute_scaled_column_sums(
-        v_local->get_const_device_view(), inv_size, mean->get_device_view(),
-        reduction_tmp_));
-    all_reduce_sum(v, mean.get(), host_coefficients_);
-    exec->run(null_space::make_remove_constant(mean->get_const_device_view(),
-                                               v_local->get_device_view()));
 }
 
 
@@ -298,14 +272,8 @@ template <typename VectorType>
 void NullSpace<ValueType>::project_impl(VectorType* v) const
 {
     GKO_ASSERT_EQUAL_ROWS(v, this);
-    const size_type num_const = contains_constant_ ? 1 : 0;
-    const auto num_basis = this->get_num_basis_vectors();
-    const auto num_rhs = v->get_size()[1];
-    if (num_const + num_basis == 0 || num_rhs == 0) {
-        return;
-    }
     const matrix::Dense<ValueType>* basis_local = nullptr;
-    if (num_basis > 0) {
+    if (basis_) {
         auto basis = dynamic_cast<const VectorType*>(basis_.get());
         if (basis == nullptr) {
             // e.g. a non-distributed basis applied to a distributed vector
@@ -313,40 +281,47 @@ void NullSpace<ValueType>::project_impl(VectorType* v) const
         }
         basis_local = detail::get_local(basis);
     }
+    this->remove_components(v, basis_local, contains_constant_);
+}
+
+
+template <typename ValueType>
+template <typename VectorType>
+void NullSpace<ValueType>::remove_components(
+    VectorType* v, const matrix::Dense<ValueType>* basis_local,
+    bool has_constant) const
+{
+    const size_type num_const = has_constant ? 1 : 0;
+    const auto num_basis = basis_local ? basis_local->get_size()[1] : 0;
+    const auto num_rhs = v->get_size()[1];
+    if (num_const + num_basis == 0 || num_rhs == 0) {
+        return;
+    }
     auto exec = this->get_executor();
     auto v_exec = make_temporary_clone(exec, v);
     auto v_local = detail::get_local(v_exec.get());
+    const auto local_rows = v_local->get_size()[0];
+    const auto basis_view = basis_local
+                                ? basis_local->get_const_device_view()
+                                : matrix::view::dense<const ValueType>{
+                                      dim<2>{local_rows, 0}, 0, nullptr};
     if (basis_local) {
         GKO_ASSERT_EQUAL_ROWS(v_local, basis_local);
     }
-
-    // coefficients = [ mean(v) ; V^H v ], reduced in a single all-reduce
+    const auto inv_size = static_cast<absolute_type>(
+        1.0 / static_cast<double>(this->get_size()[0]));
+    // coefficients = [ mean(v) ; V^H v ] in one pass over v, then combined
+    // over all ranks with a single all-reduce
     coefficients_.init(exec, dim<2>{num_const + num_basis, num_rhs});
-    std::unique_ptr<matrix::Dense<ValueType>> mean;
-    std::unique_ptr<matrix::Dense<ValueType>> coeffs;
-    if (num_const > 0) {
-        mean = coefficients_->create_submatrix(span{0, 1}, span{0, num_rhs});
-        const auto inv_size = static_cast<absolute_type>(
-            1.0 / static_cast<double>(this->get_size()[0]));
-        exec->run(null_space::make_compute_scaled_column_sums(
-            v_local->get_const_device_view(), inv_size, mean->get_device_view(),
-            reduction_tmp_));
-    }
-    if (num_basis > 0) {
-        coeffs = coefficients_->create_submatrix(
-            span{num_const, num_const + num_basis}, span{0, num_rhs});
-        basis_conj_trans_->apply(v_local, coeffs.get());
-    }
+    exec->run(null_space::make_compute_coefficients(
+        v_local->get_const_device_view(), basis_view, has_constant, inv_size,
+        coefficients_->get_device_view(), reduction_tmp_));
     all_reduce_sum(v_exec.get(), coefficients_.get(), host_coefficients_);
-    // The basis is orthogonal to the constant, so both parts can be removed
-    // independently: v -= mean(v), v -= V (V^H v)
-    if (mean) {
-        exec->run(null_space::make_remove_constant(
-            mean->get_const_device_view(), v_local->get_device_view()));
-    }
-    if (coeffs) {
-        basis_local->apply(neg_one_, coeffs.get(), one_, v_local);
-    }
+    // v -= mean(v) + V (V^H v) in one pass; the basis is orthogonal to the
+    // constant, so both components can be removed at once
+    exec->run(null_space::make_subtract_projection(
+        basis_view, has_constant, coefficients_->get_const_device_view(),
+        v_local->get_device_view()));
 }
 
 
@@ -385,10 +360,8 @@ NullSpace<ValueType>& NullSpace<ValueType>::operator=(const NullSpace& other)
         auto exec = this->get_executor();
         contains_constant_ = other.contains_constant_;
         basis_ = other.basis_;
-        basis_conj_trans_ = other.basis_conj_trans_;
         if (basis_ && other.get_executor() != exec) {
             basis_ = gko::clone(exec, basis_);
-            basis_conj_trans_ = gko::clone(exec, basis_conj_trans_);
         }
     }
     return *this;
@@ -403,10 +376,8 @@ NullSpace<ValueType>& NullSpace<ValueType>::operator=(NullSpace&& other)
         auto exec = this->get_executor();
         contains_constant_ = std::exchange(other.contains_constant_, false);
         basis_ = std::move(other.basis_);
-        basis_conj_trans_ = std::move(other.basis_conj_trans_);
         if (basis_ && other.get_executor() != exec) {
             basis_ = gko::clone(exec, basis_);
-            basis_conj_trans_ = gko::clone(exec, basis_conj_trans_);
         }
     }
     return *this;

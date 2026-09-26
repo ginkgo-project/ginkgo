@@ -20,40 +20,56 @@ namespace null_space {
 
 
 template <typename ValueType>
-void compute_scaled_column_sums(std::shared_ptr<const ReferenceExecutor> exec,
-                                matrix::view::dense<const ValueType> x,
-                                remove_complex<ValueType> scale,
-                                matrix::view::dense<ValueType> result,
-                                array<char>& tmp)
+void compute_coefficients(std::shared_ptr<const ReferenceExecutor> exec,
+                          matrix::view::dense<const ValueType> x,
+                          matrix::view::dense<const ValueType> basis,
+                          bool has_constant, remove_complex<ValueType> inv_size,
+                          matrix::view::dense<ValueType> coefficients,
+                          array<char>& tmp)
 {
-    for (size_type j = 0; j < x.size[1]; ++j) {
-        result(0, j) = zero<ValueType>();
+    const size_type offset = has_constant ? 1 : 0;
+    for (size_type l = 0; l < coefficients.size[0]; ++l) {
+        for (size_type j = 0; j < x.size[1]; ++j) {
+            coefficients(l, j) = zero<ValueType>();
+        }
     }
     for (size_type i = 0; i < x.size[0]; ++i) {
         for (size_type j = 0; j < x.size[1]; ++j) {
-            result(0, j) += x(i, j) * scale;
+            if (has_constant) {
+                coefficients(0, j) += x(i, j) * inv_size;
+            }
+            for (size_type l = 0; l < basis.size[1]; ++l) {
+                coefficients(l + offset, j) += conj(basis(i, l)) * x(i, j);
+            }
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_NULL_SPACE_COMPUTE_SCALED_COLUMN_SUMS_KERNEL);
+    GKO_DECLARE_NULL_SPACE_COMPUTE_COEFFICIENTS_KERNEL);
 
 
 template <typename ValueType>
-void remove_constant(std::shared_ptr<const ReferenceExecutor> exec,
-                     matrix::view::dense<const ValueType> mean,
-                     matrix::view::dense<ValueType> x)
+void subtract_projection(std::shared_ptr<const ReferenceExecutor> exec,
+                         matrix::view::dense<const ValueType> basis,
+                         bool has_constant,
+                         matrix::view::dense<const ValueType> coefficients,
+                         matrix::view::dense<ValueType> x)
 {
+    const size_type offset = has_constant ? 1 : 0;
     for (size_type i = 0; i < x.size[0]; ++i) {
         for (size_type j = 0; j < x.size[1]; ++j) {
-            x(i, j) -= mean(0, j);
+            auto value = has_constant ? coefficients(0, j) : zero<ValueType>();
+            for (size_type l = 0; l < basis.size[1]; ++l) {
+                value += basis(i, l) * coefficients(l + offset, j);
+            }
+            x(i, j) -= value;
         }
     }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_NULL_SPACE_REMOVE_CONSTANT_KERNEL);
+    GKO_DECLARE_NULL_SPACE_SUBTRACT_PROJECTION_KERNEL);
 
 
 }  // namespace null_space
