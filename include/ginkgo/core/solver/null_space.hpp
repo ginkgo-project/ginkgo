@@ -9,9 +9,11 @@
 #include <memory>
 #include <vector>
 
-#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -22,19 +24,28 @@ namespace gko {
 /**
  * NullSpace represents the (right or left) nullspace of an operator and *is*
  * the orthogonal projector \( P = I - V V^H \) onto its complement, where
- * \( V \) is an orthonormal basis of the nullspace.
+ * \( V \) is an orthonormal basis of the nullspace:
  *
- * The projector is assembled only from BLAS-1 operations shared by
- * matrix::Dense and experimental::distributed::Vector (`compute_conj_dot`,
- * `sub_scaled`, `inv_scale`, `compute_norm2`, `fill`), so it needs no dedicated
- * kernels and works for non-distributed and distributed vectors alike; the
- * all-reduce required in the distributed case happens inside
- * `compute_conj_dot`.
+ * - The constant vector is handled implicitly (by subtracting the mean), so a
+ *   constant-only
+ *   nullspace works with any vector layout (`matrix::Dense` or
+ *   `experimental::distributed::Vector` with any partition).
+ * - An explicit basis is copied and orthonormalized once at creation time
+ *   (twice-iterated modified Gram-Schmidt, also against the constant if it is
+ *   part of the nullspace). Columns that are numerically linearly dependent
+ *   (relative norm below \( \sqrt{\epsilon} \) after orthogonalization) are
+ *   dropped; get_dimension() reports the remaining dimension.
+ * - project() removes all nullspace components of all columns of a vector at
+ *   once: the coefficients \( C = V^H X \) (plus the column sums for the
+ *   constant) are computed together and, for distributed vectors, combined
+ *   with a single all-reduce (like `VecMDot`), followed by \( X -= V C \)
+ *   (like `VecMAXPY`).
  *
- * @note v1 projects a single column (`nrhs == 1`).
- * @note A NullSpace is created once and shared (`shared_ptr<const NullSpace>`);
- *       it binds to the vector type (Dense vs. distributed) it is first applied
- *       to.
+ * The object is immutable after creation apart from internal scratch buffers,
+ * so it can be shared between solvers (e.g. as both the left and right
+ * nullspace of a symmetric operator). Like other Ginkgo LinOps with internal
+ * caches, a single instance must not be applied concurrently from multiple
+ * threads.
  *
  * @tparam ValueType  the value type of the vectors it projects.
  *
@@ -51,162 +62,114 @@ public:
     using EnableCloneable<NullSpace>::move_to;
 
     using value_type = ValueType;
+    using absolute_type = remove_complex<ValueType>;
 
     /**
      * Creates a NullSpace from an explicit basis.
      *
-     * @param exec  the executor
-     * @param basis  the nullspace basis, each entry an `n x 1` vector
-     *               (matrix::Dense or distributed::Vector). Orthonormalized
-     *               (modified Gram-Schmidt) on first use; near-dependent
-     *               columns are dropped.
+     * @param exec  the executor the projector (and its basis) lives on
+     * @param basis  the nullspace basis vectors. Each entry is an `n x k_i`
+     *               matrix::Dense<ValueType> or
+     *               experimental::distributed::Vector<ValueType> (all entries
+     *               of the same kind and, if distributed, the same
+     *               partition); their columns together span the nullspace.
+     *               They do not need to be orthonormal: they are copied and
+     *               orthonormalized, dropping numerically dependent columns.
      * @param contains_constant  whether the constant vector is also part of
-     *                           the nullspace (materialized on first use).
+     *                           the nullspace.
      */
     static std::unique_ptr<NullSpace> create(
         std::shared_ptr<const Executor> exec,
         std::vector<std::shared_ptr<const LinOp>> basis,
-        bool contains_constant = false)
-    {
-        GKO_ASSERT(!basis.empty());
-        const auto n = basis[0]->get_size()[0];
-        return std::unique_ptr<NullSpace>(
-            new NullSpace(std::move(exec), dim<2>{n, n}, std::move(basis),
-                          contains_constant));
-    }
+        bool contains_constant = false);
 
     /**
-     * Creates a NullSpace consisting only of the constant vector (the
-     * pure-Neumann case). The normalized all-ones column is materialized to
-     * match the vector type/distribution on first use.
+     * Creates a NullSpace consisting only of the constant vector (e.g. a
+     * pure-Neumann Poisson problem). The constant is never materialized, so
+     * the result can project vectors of any type and distribution.
      *
      * @param exec  the executor
      * @param size  the (square, global) size `n x n` of the operator.
      */
     static std::unique_ptr<NullSpace> create_from_constant(
-        std::shared_ptr<const Executor> exec, dim<2> size)
-    {
-        return std::unique_ptr<NullSpace>(
-            new NullSpace(std::move(exec), size,
-                          std::vector<std::shared_ptr<const LinOp>>{}, true));
-    }
+        std::shared_ptr<const Executor> exec, dim<2> size);
 
     /** @return whether the constant vector is part of the nullspace. */
     bool contains_constant() const noexcept { return contains_constant_; }
 
     /**
-     * @return the number of orthonormal basis columns (valid after first use;
-     *         a nominal count before).
+     * @return the dimension of the nullspace: the number of orthonormal
+     *         explicit basis vectors, plus one if the constant is included.
      */
     size_type get_dimension() const noexcept
     {
-        return prepared_ ? basis_.size()
-                         : raw_basis_.size() + (contains_constant_ ? 1 : 0);
+        return get_num_basis_vectors() + (contains_constant_ ? 1 : 0);
     }
 
     /**
-     * In-place projector \( v \leftarrow (I - V V^H) v \). Requires `v` to have
-     * a single column.
-     *
-     * @tparam VectorType  matrix::Dense<ValueType> or
-     *                     experimental::distributed::Vector<ValueType>.
+     * @return the orthonormalized explicit basis as a single `n x k` vector
+     *         of the same kind as the input basis (orthogonal to the constant
+     *         if contains_constant()), or nullptr if there is none.
      */
-    template <typename VectorType>
-    void project(VectorType* v) const
-    {
-        if (v->get_size()[1] != 1) {
-            GKO_NOT_IMPLEMENTED;
-        }
-        this->template prepare<VectorType>(v);
-        auto coeff = matrix::Dense<ValueType>::create(this->get_executor(),
-                                                      dim<2>{1, 1});
-        for (const auto& col : basis_) {
-            auto b = gko::as<VectorType>(col.get());
-            // coeff = b^H v  (all-reduce happens inside for distributed
-            // vectors)
-            v->compute_conj_dot(b, coeff);
-            // v = v - coeff * b
-            v->sub_scaled(coeff, b);
-        }
-    }
+    std::shared_ptr<const LinOp> get_basis() const noexcept { return basis_; }
+
+    /**
+     * Applies the projector in place: \( v \leftarrow (I - V V^H) v \), for
+     * each column of `v` independently.
+     *
+     * @param v  a matrix::Dense<ValueType> or
+     *           experimental::distributed::Vector<ValueType> with as many rows
+     *           as this operator. If the NullSpace has an explicit basis, `v`
+     *           must be of the same kind (and distribution) as that basis.
+     */
+    void project(ptr_param<LinOp> v) const;
+
+    NullSpace& operator=(const NullSpace& other);
+
+    NullSpace& operator=(NullSpace&& other);
+
+    NullSpace(const NullSpace& other);
+
+    NullSpace(NullSpace&& other);
 
 protected:
-    NullSpace(std::shared_ptr<const Executor> exec, dim<2> size = {})
-        : LinOp(std::move(exec), size),
-          contains_constant_{false},
-          prepared_{false}
-    {}
+    explicit NullSpace(std::shared_ptr<const Executor> exec);
 
     NullSpace(std::shared_ptr<const Executor> exec, dim<2> size,
-              std::vector<std::shared_ptr<const LinOp>> raw_basis,
-              bool contains_constant)
-        : LinOp(std::move(exec), size),
-          contains_constant_{contains_constant},
-          raw_basis_{std::move(raw_basis)},
-          prepared_{false}
-    {}
+              std::vector<std::shared_ptr<const LinOp>> basis,
+              bool contains_constant);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    /**
-     * Builds the orthonormal basis on first use, using `like` (an `n x 1`
-     * vector) to fix the value type / distribution of the constant column.
-     */
-    template <typename VectorType>
-    void prepare(const VectorType* like) const
+    size_type get_num_basis_vectors() const noexcept
     {
-        if (prepared_) {
-            return;
-        }
-        auto exec = this->get_executor();
-        std::vector<std::shared_ptr<LinOp>> cols;
-        if (contains_constant_) {
-            auto ones = VectorType::create_with_config_of(like);
-            ones->fill(one<ValueType>());
-            auto nrm = matrix::Dense<remove_complex<ValueType>>::create(
-                exec, dim<2>{1, 1});
-            ones->compute_norm2(nrm);
-            ones->inv_scale(nrm);  // normalize to unit length
-            cols.push_back(std::move(ones));
-        }
-        for (const auto& raw : raw_basis_) {
-            cols.push_back(gko::clone(gko::as<VectorType>(raw.get())));
-        }
-
-        // modified Gram-Schmidt orthonormalization
-        auto coeff = matrix::Dense<ValueType>::create(exec, dim<2>{1, 1});
-        auto nrm = matrix::Dense<remove_complex<ValueType>>::create(
-            exec, dim<2>{1, 1});
-        auto host_nrm = matrix::Dense<remove_complex<ValueType>>::create(
-            exec->get_master(), dim<2>{1, 1});
-        std::vector<std::shared_ptr<const LinOp>> ortho;
-        for (auto& c : cols) {
-            auto cv = gko::as<VectorType>(c.get());
-            for (const auto& q : ortho) {
-                auto qv = gko::as<VectorType>(q.get());
-                cv->compute_conj_dot(qv, coeff);  // coeff = q^H c
-                cv->sub_scaled(coeff, qv);
-            }
-            cv->compute_norm2(nrm);
-            host_nrm->copy_from(nrm);
-            if (host_nrm->at(0, 0) > remove_complex<ValueType>{1e-10}) {
-                cv->inv_scale(nrm);
-                ortho.push_back(std::move(c));
-            }
-            // else: near-dependent column, dropped
-        }
-        basis_ = std::move(ortho);
-        prepared_ = true;
+        return basis_ ? basis_->get_size()[1] : 0;
     }
+
+    template <typename VectorType>
+    void setup_basis(const std::vector<std::shared_ptr<const LinOp>>& basis);
+
+    template <typename VectorType>
+    void project_impl(VectorType* v) const;
+
+    template <typename VectorType>
+    void remove_constant_impl(VectorType* v) const;
 
 private:
     bool contains_constant_;
-    std::vector<std::shared_ptr<const LinOp>> raw_basis_;
-    mutable std::vector<std::shared_ptr<const LinOp>> basis_;
-    mutable bool prepared_;
+    // orthonormal explicit basis (n x k), Dense or distributed::Vector
+    std::shared_ptr<const LinOp> basis_;
+    // conjugate transpose of the (local part of the) basis, k x n_local
+    std::shared_ptr<const matrix::Dense<ValueType>> basis_conj_trans_;
+    std::shared_ptr<const matrix::Dense<ValueType>> one_;
+    std::shared_ptr<const matrix::Dense<ValueType>> neg_one_;
+    // scratch: (1 + k) x nrhs coefficients (column sums, then V^H x)
+    detail::DenseCache<ValueType> coefficients_;
+    detail::DenseCache<ValueType> host_coefficients_;
+    mutable array<char> reduction_tmp_;
 };
 
 
