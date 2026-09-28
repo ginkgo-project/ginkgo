@@ -6,8 +6,6 @@ on:
       - 'main'
       - 'develop'
       - 'release/**'
-      # TEMPORARY: to test this workflow before it is on develop
-      - 'feat/ci-overhaul'
     tags:
       - '**'
   pull_request:
@@ -79,7 +77,7 @@ jobs:
             set -e
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y --no-install-recommends build-essential cmake ccache git ca-certificates
+            apt-get install -y --no-install-recommends build-essential cmake ccache git ca-certificates python3
             mkdir build
             cd build
             cmake .. -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=${{ matrix.config.arch }} -DGINKGO_BUILD_OMP=ON -DCMAKE_BUILD_TYPE=Release

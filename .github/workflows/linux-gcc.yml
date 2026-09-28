@@ -7,8 +7,6 @@ on:
       - 'master'
       - 'develop'
       - 'release/**'
-      # TEMPORARY: to test this workflow before it is on develop
-      - 'feat/ci-overhaul'
     tags:
       - '**'
   pull_request:

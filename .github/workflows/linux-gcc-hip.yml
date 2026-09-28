@@ -6,8 +6,6 @@ on:
       - 'main'
       - 'develop'
       - 'release/**'
-      # TEMPORARY: to test this workflow before it is on develop
-      - 'feat/ci-overhaul'
     tags:
       - '**'
   pull_request:
@@ -81,7 +79,7 @@ jobs:
             set -e
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y --no-install-recommends build-essential cmake ccache git ca-certificates hipblas-dev hipsparse-dev hiprand-dev rocrand-dev rocthrust-dev rocprim-dev hipfft-dev
+            apt-get install -y --no-install-recommends build-essential cmake ccache git ca-certificates python3 hipblas-dev hipsparse-dev hiprand-dev rocrand-dev rocthrust-dev rocprim-dev hipfft-dev
             mkdir build
             cd build
             cmake .. -DGINKGO_BUILD_HIP=ON -DCMAKE_HIP_ARCHITECTURES=${{ matrix.config.arch }} -DCMAKE_HIP_COMPILER=/opt/rocm/llvm/bin/clang++ -DCMAKE_HIP_COMPILER_LAUNCHER=ccache -DCMAKE_PREFIX_PATH=/opt/rocm -DGINKGO_BUILD_OMP=ON -DCMAKE_BUILD_TYPE=Release
