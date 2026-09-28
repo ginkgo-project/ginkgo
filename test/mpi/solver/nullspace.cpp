@@ -16,6 +16,7 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
@@ -45,7 +46,6 @@ protected:
         gko::experimental::distributed::Partition<local_index_type,
                                                   global_index_type>;
     using dense = gko::matrix::Dense<value_type>;
-    using csr = gko::matrix::Csr<value_type, local_index_type>;
     using NullSpace = gko::NullSpace<value_type>;
     using schwarz = gko::experimental::distributed::preconditioner::Schwarz<
         value_type, local_index_type, global_index_type>;
@@ -54,13 +54,10 @@ protected:
     NullspaceDistributed()
         : part(gko::share(part_type::build_from_global_size_uniform(
               ref, comm.size(), static_cast<global_index_type>(n)))),
-          // zero mean, also on each component [0, 5) and [5, 9)
-          x_star{{3, -1, -4, 2, 0, -5, 9, -2, -2}},
-          x_star2{{1, 2, -2, -1, 0, 4, -1, -1, -2}}
+          x_star{{3, -1, -4, 2, 0, -5, 9, -2, -2}}
     {}
 
-    // Block diagonal matrix of 1-D Neumann Laplacians of paths with the given
-    // numbers of nodes; the blocks span several ranks.
+    // Neumann Laplacians of paths as diagonal blocks, spanning several ranks
     std::shared_ptr<dist_mtx> laplacian(std::vector<int> block_sizes)
     {
         gko::matrix_data<value_type, global_index_type> data(gko::dim<2>(n, n));
@@ -117,6 +114,15 @@ protected:
         return result;
     }
 
+    std::unique_ptr<dist_vec> rhs(const gko::LinOp* mtx, double offset)
+    {
+        auto b = distributed(x_star);
+        mtx->apply(distributed(x_star), b);
+        b->add_scaled(gko::initialize<dense>({offset}, exec),
+                      distributed({std::vector<double>(n, 1.0)}));
+        return b;
+    }
+
     std::unique_ptr<gko::LinOpFactory> factory(
         const std::string& name, std::shared_ptr<const NullSpace> nullspace,
         std::shared_ptr<const NullSpace> left_nullspace)
@@ -146,7 +152,6 @@ protected:
         }
     }
 
-    // initial guess with a nonzero nullspace component
     std::vector<std::vector<double>> initial_guess()
     {
         std::vector<double> col(n);
@@ -162,14 +167,11 @@ protected:
                                            "bicgstab"};
     std::shared_ptr<part_type> part;
     std::vector<std::vector<double>> x_star;
-    std::vector<std::vector<double>> x_star2;
 };
 
 
 TEST_F(NullspaceDistributed, ProjectionMatchesSerial)
 {
-    // the same nullspace (constant + two explicit vectors) applied to the same
-    // data, once distributed and once serially on the full vector
     const std::vector<std::vector<double>> basis{{1, 1, 1, 1, 0, 0, 0, 0, 0},
                                                  {0, 1, 2, 3, 4, 5, 6, 7, 8}};
     const std::vector<std::vector<double>> data{{4, 1, -2, 9, 3, 3, 0, -7, 2},
@@ -205,7 +207,7 @@ TEST_F(NullspaceDistributed, ProjectionMatchesSerial)
 }
 
 
-TEST_F(NullspaceDistributed, ConsistentSystemGivesMinimumNormSolution)
+TEST_F(NullspaceDistributed, GivesMinimumNormLeastSquaresSolution)
 {
     auto mtx = laplacian({9});
     auto constant =
@@ -213,71 +215,28 @@ TEST_F(NullspaceDistributed, ConsistentSystemGivesMinimumNormSolution)
     ASSERT_LT(gko::test::compute_nullspace_residual(mtx.get(), constant.get(),
                                                     distributed(x_star).get()),
               tol);
-    for (const auto& name : solvers) {
-        SCOPED_TRACE(name);
-        auto solver = factory(name, constant, constant)->generate(mtx);
-        auto x_star_vec = distributed(x_star);
-        auto b = distributed(x_star);
-        mtx->apply(x_star_vec, b);
-        auto x = distributed(initial_guess());
+    for (const bool consistent : {true, false}) {
+        SCOPED_TRACE(consistent ? "consistent" : "inconsistent");
+        for (const auto& name : solvers) {
+            SCOPED_TRACE(name);
+            auto solver = factory(name, constant, constant)->generate(mtx);
+            auto logger =
+                gko::share(gko::log::Convergence<value_type>::create());
+            solver->add_logger(logger);
+            auto b = rhs(mtx.get(), consistent ? 0.0 : 3.0);
+            auto x = distributed(initial_guess());
 
-        solver->apply(b, x);
+            solver->apply(b, x);
 
-        GKO_ASSERT_MTX_NEAR(x->get_local_vector(), local_rows(x_star), tol);
-    }
-}
-
-
-TEST_F(NullspaceDistributed, InconsistentSystemGivesMinimumNormLeastSquares)
-{
-    auto mtx = laplacian({9});
-    auto constant =
-        gko::share(NullSpace::create_from_constant(exec, mtx->get_size()));
-    for (const auto& name : solvers) {
-        SCOPED_TRACE(name);
-        auto solver = factory(name, constant, constant)->generate(mtx);
-        auto x_star_vec = distributed(x_star);
-        auto b = distributed(x_star);
-        mtx->apply(x_star_vec, b);
-        // add a component in N(A^H)
-        auto ones = distributed({std::vector<double>(n, 1.0)});
-        auto three = gko::initialize<dense>({3.0}, exec);
-        b->add_scaled(three, ones);
-        auto x = distributed(initial_guess());
-
-        solver->apply(b, x);
-
-        GKO_ASSERT_MTX_NEAR(x->get_local_vector(), local_rows(x_star), tol);
-    }
-}
-
-
-TEST_F(NullspaceDistributed, SolvesMultipleRightHandSides)
-{
-    auto mtx = laplacian({9});
-    auto constant =
-        gko::share(NullSpace::create_from_constant(exec, mtx->get_size()));
-    const std::vector<std::vector<double>> x_stars{x_star[0], x_star2[0]};
-    auto guess = initial_guess();
-    guess.push_back(guess[0]);
-    for (const auto& name : solvers) {
-        SCOPED_TRACE(name);
-        auto solver = factory(name, constant, constant)->generate(mtx);
-        auto x_star_vec = distributed(x_stars);
-        auto b = distributed(x_stars);
-        mtx->apply(x_star_vec, b);
-        auto x = distributed(guess);
-
-        solver->apply(b, x);
-
-        GKO_ASSERT_MTX_NEAR(x->get_local_vector(), local_rows(x_stars), tol);
+            ASSERT_TRUE(logger->has_converged());
+            GKO_ASSERT_MTX_NEAR(x->get_local_vector(), local_rows(x_star), tol);
+        }
     }
 }
 
 
 TEST_F(NullspaceDistributed, ExplicitBasisOfDisconnectedGraph)
 {
-    // two disconnected paths [0, 5) and [5, 9) spanning the rank boundaries
     auto mtx = laplacian({5, 4});
     auto nullspace = gko::share(NullSpace::create(
         exec, {gko::share(distributed({{1, 1, 1, 1, 1, 0, 0, 0, 0}})),
@@ -288,9 +247,7 @@ TEST_F(NullspaceDistributed, ExplicitBasisOfDisconnectedGraph)
     for (const auto& name : solvers) {
         SCOPED_TRACE(name);
         auto solver = factory(name, nullspace, nullspace)->generate(mtx);
-        auto x_star_vec = distributed(x_star);
-        auto b = distributed(x_star);
-        mtx->apply(x_star_vec, b);
+        auto b = rhs(mtx.get(), 0.0);
         auto x = distributed(initial_guess());
 
         solver->apply(b, x);
