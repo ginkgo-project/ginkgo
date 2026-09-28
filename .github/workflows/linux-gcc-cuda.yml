@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {version: "13.4.1", name: "cuda-13.4/release/shared", arch: "80"}
+          - {version: "13.3.1", name: "cuda-13.3/release/shared", arch: "80"}
     name: gcc/${{ matrix.config.name }} (only compile)
     runs-on: [ubuntu-24.04]
     # GitHub cancels jobs after 6 hours; stop earlier so that ccache is saved
@@ -77,10 +77,11 @@ jobs:
             set -e
             export DEBIAN_FRONTEND=noninteractive
             apt-get update
-            apt-get install -y --no-install-recommends build-essential cmake ccache git ca-certificates python3
+            apt-get install -y --no-install-recommends build-essential cmake ninja-build ccache git ca-certificates python3
+            git config --global --add safe.directory "$PWD"
             mkdir build
             cd build
-            cmake .. -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=${{ matrix.config.arch }} -DGINKGO_BUILD_OMP=ON -DCMAKE_BUILD_TYPE=Release
+            cmake .. -G Ninja -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=${{ matrix.config.arch }} -DGINKGO_BUILD_OMP=ON -DCMAKE_BUILD_TYPE=Release
             ccache --zero-stats
             cmake --build . -j4
             ccache --show-stats'

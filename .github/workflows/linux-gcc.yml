@@ -49,7 +49,7 @@ jobs:
       - name: setup
         run: |
           sudo apt-get update
-          sudo apt-get install -y ccache libopenmpi-dev openmpi-bin
+          sudo apt-get install -y ninja-build ccache libopenmpi-dev openmpi-bin
 
       - name: info
         run: |
@@ -80,9 +80,9 @@ jobs:
           mkdir install
           INSTALL_PREFIX="${PWD}/install"
           cd build
-          cmake .. -DCMAKE_CXX_FLAGS=-Wpedantic -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_MPI=ON -DMPIEXEC_MAX_NUMPROCS=8
+          cmake .. -G Ninja -DCMAKE_CXX_FLAGS=-Wpedantic -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_MPI=ON -DMPIEXEC_MAX_NUMPROCS=8
           ccache --zero-stats
-          make -j4
+          ninja -j4
           ccache --show-stats
           ctest -j4 --output-on-failure --label-exclude distributed
           ctest --output-on-failure --label-regex distributed
@@ -90,8 +90,8 @@ jobs:
       - name: install
         run: |
           cd build
-          make install
-          make test_install
+          ninja install
+          ninja test_install
 
       # saved even if the build fails or times out, so the next run is faster
       - name: save ccache
