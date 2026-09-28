@@ -19,6 +19,7 @@ include:
   - local: '.gitlab/rules.yml'
   - local: '.gitlab/scripts.yml'
   - local: '.gitlab/variables.yml'
+  - local: '.gitlab/horeka.yml'
   # This is a workaround to conditionally make the branch pipelines
   # interruptible, because the flag does not directly support rules [1].
   #
