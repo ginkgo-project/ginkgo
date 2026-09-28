@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/solver/null_space_kernels.hpp"
+#include "core/solver/nullspace_kernels.hpp"
 
 #include <ginkgo/core/base/math.hpp>
 
@@ -14,10 +14,10 @@ namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The NullSpace namespace.
+ * @brief The Nullspace namespace.
  *
  */
-namespace null_space {
+namespace nullspace {
 
 
 template <typename ValueType>
@@ -47,7 +47,7 @@ void compute_coefficients(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_NULL_SPACE_COMPUTE_COEFFICIENTS_KERNEL);
+    GKO_DECLARE_NULLSPACE_COMPUTE_COEFFICIENTS_KERNEL);
 
 
 template <typename ValueType>
@@ -72,10 +72,10 @@ void subtract_projection(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
-    GKO_DECLARE_NULL_SPACE_SUBTRACT_PROJECTION_KERNEL);
+    GKO_DECLARE_NULLSPACE_SUBTRACT_PROJECTION_KERNEL);
 
 
-}  // namespace null_space
+}  // namespace nullspace
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko

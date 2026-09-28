@@ -72,7 +72,7 @@ target_sources(
         solver/lower_trs_kernels.cpp
         solver/minres_kernels.cpp
         solver/multigrid_kernels.cpp
-        solver/null_space_kernels.cpp
+        solver/nullspace_kernels.cpp
         solver/pipe_cg_kernels.cpp
         solver/upper_trs_kernels.cpp
         stop/criterion_kernels.cpp

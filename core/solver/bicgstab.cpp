@@ -103,10 +103,11 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     constexpr uint8 RelativeStoppingId{1};
 
-    // solve with the consistent right-hand side if a left nullspace is set
-    dense_b = this->get_consistent_rhs(dense_b);
     auto exec = this->get_executor();
     this->setup_workspace();
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b = this->get_consistent_rhs(
+        dense_b, workspace_traits<Bicgstab>::consistent_rhs);
 
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);
@@ -290,7 +291,7 @@ int workspace_traits<Bicgstab<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Bicgstab<ValueType>>::num_vectors(const Solver&)
 {
-    return 16;
+    return 17;
 }
 
 
@@ -298,11 +299,23 @@ template <typename ValueType>
 std::vector<std::string> workspace_traits<Bicgstab<ValueType>>::op_names(
     const Solver&)
 {
-    return {
-        "r",   "z",     "y",     "v",         "s",     "t",
-        "p",   "rr",    "alpha", "beta",      "gamma", "prev_rho",
-        "rho", "omega", "one",   "minus_one",
-    };
+    return {"r",
+            "z",
+            "y",
+            "v",
+            "s",
+            "t",
+            "p",
+            "rr",
+            "alpha",
+            "beta",
+            "gamma",
+            "prev_rho",
+            "rho",
+            "omega",
+            "one",
+            "minus_one",
+            "consistent_rhs"};
 }
 
 
@@ -324,7 +337,7 @@ std::vector<int> workspace_traits<Bicgstab<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Bicgstab<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, y, v, s, t, p, rr};
+    return {r, z, y, v, s, t, p, rr, consistent_rhs};
 }
 
 

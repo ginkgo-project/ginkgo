@@ -14,19 +14,21 @@
 #include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/minres.hpp>
-#include <ginkgo/core/solver/null_space.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/nullspace.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
-#include "core/test/utils/null_space_helpers.hpp"
+#include "core/test/utils/nullspace_helpers.hpp"
 
 
 namespace {
@@ -39,13 +41,13 @@ protected:
     using real = gko::remove_complex<T>;
     using Csr = gko::matrix::Csr<value_type, int>;
     using vec = gko::matrix::Dense<value_type>;
-    using NullSpace = gko::NullSpace<value_type>;
+    using Nullspace = gko::solver::Nullspace<value_type>;
 
     NullspaceSolvers()
         : exec(gko::ReferenceExecutor::create()),
           mtx(laplacian({8})),
           constant(gko::share(
-              NullSpace::create_from_constant(exec, mtx->get_size()))),
+              Nullspace::create_from_constant(exec, mtx->get_size()))),
           x_star(column({3, -1, -4, 2, -5, 9, -2, -2})),
           x_star2(column({1, 2, -2, -1, 4, -1, -1, -2}))
     {}
@@ -116,8 +118,8 @@ protected:
     }
 
     std::unique_ptr<gko::LinOpFactory> factory(
-        const std::string& name, std::shared_ptr<const NullSpace> nullspace,
-        std::shared_ptr<const NullSpace> left_nullspace,
+        const std::string& name, std::shared_ptr<const Nullspace> nullspace,
+        std::shared_ptr<const Nullspace> left_nullspace,
         std::shared_ptr<const gko::stop::CriterionFactory> criterion = nullptr)
     {
         if (!criterion) {
@@ -155,7 +157,7 @@ protected:
                                            "bicgstab"};
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Csr> mtx;
-    std::shared_ptr<NullSpace> constant;
+    std::shared_ptr<Nullspace> constant;
     std::unique_ptr<vec> x_star;
     std::unique_ptr<vec> x_star2;
 };
@@ -186,6 +188,72 @@ TYPED_TEST(NullspaceSolvers, GivesMinimumNormLeastSquaresSolution)
             GKO_ASSERT_MTX_NEAR(x, this->x_star, this->tol);
         }
     }
+}
+
+
+TYPED_TEST(NullspaceSolvers, HermitianSolversNeedOnlyRightNullspace)
+{
+    using value_type = typename TestFixture::value_type;
+    for (const std::string name : {"cg", "fcg", "minres"}) {
+        SCOPED_TRACE(name);
+        auto solver =
+            this->factory(name, this->constant, nullptr)->generate(this->mtx);
+        auto logger = gko::share(gko::log::Convergence<value_type>::create());
+        solver->add_logger(logger);
+        auto b = this->rhs(this->mtx.get(), this->x_star.get(), value_type{3});
+        auto x = this->initial_guess(1);
+
+        solver->apply(b, x);
+
+        ASSERT_TRUE(logger->has_converged());
+        GKO_ASSERT_MTX_NEAR(x, this->x_star, this->tol);
+    }
+}
+
+
+TYPED_TEST(NullspaceSolvers, ConstantNullspaceWorksOnAllMultigridLevels)
+{
+    using value_type = typename TestFixture::value_type;
+    using vec = typename TestFixture::vec;
+    using Nullspace = typename TestFixture::Nullspace;
+    const int n = 64;
+    auto mtx = this->laplacian({n});
+    std::vector<double> x_vals(n);
+    for (int i = 0; i < n; ++i) {
+        x_vals[i] = i - (n - 1) / 2.0;
+    }
+    auto x_star = this->column(x_vals);
+    auto ns = gko::share(Nullspace::create_from_constant(this->exec));
+    auto logger = gko::share(gko::log::Convergence<value_type>::create());
+    auto solver =
+        gko::solver::Cg<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
+            .with_preconditioner(
+                gko::solver::Multigrid::build()
+                    .with_mg_level(
+                        gko::multigrid::Pgm<value_type, int>::build())
+                    .with_min_coarse_rows(8u)
+                    .with_coarsest_solver(
+                        gko::solver::Cg<value_type>::build()
+                            .with_criteria(gko::stop::Iteration::build()
+                                               .with_max_iters(20u))
+                            .with_nullspace(ns))
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(1u)))
+            .with_nullspace(ns)
+            .on(this->exec)
+            ->generate(mtx);
+    solver->add_logger(logger);
+    auto b = this->rhs(mtx.get(), x_star.get(), value_type{0});
+    auto x = vec::create(this->exec, x_star->get_size());
+    x->fill(gko::one<value_type>());
+
+    solver->apply(b, x);
+
+    ASSERT_TRUE(logger->has_converged());
+    GKO_ASSERT_MTX_NEAR(x, x_star, this->tol);
 }
 
 
@@ -268,9 +336,9 @@ TYPED_TEST(NullspaceSolvers, RealSolverSolvesComplexSystem)
 TYPED_TEST(NullspaceSolvers, ExplicitBasisOfDisconnectedGraph)
 {
     using value_type = typename TestFixture::value_type;
-    using NullSpace = typename TestFixture::NullSpace;
+    using Nullspace = typename TestFixture::Nullspace;
     auto mtx = this->laplacian({4, 4});
-    auto nullspace = gko::share(NullSpace::create(
+    auto nullspace = gko::share(Nullspace::create(
         this->exec, {this->column({1, 1, 1, 1, 0, 0, 0, 0}),
                      this->column({0, 0, 0, 0, 1, 1, 1, 1})}));
     ASSERT_LT(gko::test::compute_nullspace_residual(mtx.get(), nullspace.get(),
@@ -293,7 +361,7 @@ TYPED_TEST(NullspaceSolvers, NonsymmetricSystemWithDistinctNullspaces)
 {
     using value_type = typename TestFixture::value_type;
     using Csr = typename TestFixture::Csr;
-    using NullSpace = typename TestFixture::NullSpace;
+    using Nullspace = typename TestFixture::Nullspace;
     // A = L S: N(A) = span{S^-1 1}, but N(A^H) = N(S L) = span{1}
     const auto n = this->mtx->get_size()[0];
     std::vector<double> s(n);
@@ -309,7 +377,7 @@ TYPED_TEST(NullspaceSolvers, NonsymmetricSystemWithDistinctNullspaces)
     }
     auto mtx = gko::share(Csr::create(this->exec));
     mtx->read(data);
-    auto right = gko::share(NullSpace::create(this->exec, {this->column(u)}));
+    auto right = gko::share(Nullspace::create(this->exec, {this->column(u)}));
     ASSERT_LT(gko::test::compute_nullspace_residual(mtx.get(), right.get(),
                                                     this->x_star.get()),
               this->tol);

@@ -138,7 +138,10 @@ protected:
 
 
 template <typename ValueType>
-struct has_nullspace_support<Cg<ValueType>> : std::true_type {};
+struct nullspace_traits<Cg<ValueType>> {
+    static constexpr bool is_supported = true;
+    static constexpr bool requires_hermitian = true;
+};
 
 
 template <typename ValueType>
@@ -175,6 +178,8 @@ struct workspace_traits<Cg<ValueType>> {
     constexpr static int one = 7;
     // constant -1.0 scalar
     constexpr static int minus_one = 8;
+    // right-hand side projected onto the range of the system matrix
+    constexpr static int consistent_rhs = 9;
 
     // stopping status array
     constexpr static int stop = 0;

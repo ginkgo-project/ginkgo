@@ -59,6 +59,12 @@ struct SolverConfigTest {
         config_map["generated_preconditioner"] = pnode{"linop"};
         param.with_generated_preconditioner(
             detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
+        config_map["nullspace"] = pnode{"linop"};
+        param.with_nullspace(
+            detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
+        config_map["left_nullspace"] = pnode{"linop"};
+        param.with_left_nullspace(
+            detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
         if (from_reg) {
             config_map["criteria"] = pnode{"criterion_factory"};
             param.with_criteria(
@@ -86,6 +92,8 @@ struct SolverConfigTest {
 
         ASSERT_EQ(res_param.generated_preconditioner,
                   ans_param.generated_preconditioner);
+        ASSERT_EQ(res_param.nullspace, ans_param.nullspace);
+        ASSERT_EQ(res_param.left_nullspace, ans_param.left_nullspace);
         if (from_reg) {
             ASSERT_EQ(res_param.criteria, ans_param.criteria);
             ASSERT_EQ(res_param.preconditioner, ans_param.preconditioner);

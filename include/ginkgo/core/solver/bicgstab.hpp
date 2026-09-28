@@ -133,7 +133,10 @@ protected:
 
 
 template <typename ValueType>
-struct has_nullspace_support<Bicgstab<ValueType>> : std::true_type {};
+struct nullspace_traits<Bicgstab<ValueType>> {
+    static constexpr bool is_supported = true;
+    static constexpr bool requires_hermitian = false;
+};
 
 
 template <typename ValueType>
@@ -184,6 +187,8 @@ struct workspace_traits<Bicgstab<ValueType>> {
     constexpr static int one = 14;
     // constant -1.0 scalar
     constexpr static int minus_one = 15;
+    // right-hand side projected onto the range of the system matrix
+    constexpr static int consistent_rhs = 16;
 
     // stopping status array
     constexpr static int stop = 0;

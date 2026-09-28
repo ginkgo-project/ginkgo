@@ -8,18 +8,18 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/null_space.hpp>
+#include <ginkgo/core/solver/nullspace.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
 
 
-class NullSpace : public CommonTestFixture {
+class Nullspace : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Dense<value_type>;
-    using NullSpaceType = gko::NullSpace<value_type>;
+    using NullspaceType = gko::solver::Nullspace<value_type>;
 
-    NullSpace() : rand_engine(42) {}
+    Nullspace() : rand_engine(42) {}
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,
                                  gko::size_type num_cols, gko::size_type stride)
@@ -37,11 +37,11 @@ protected:
 };
 
 
-TEST_F(NullSpace, ConstantProjectionIsEquivalentToRef)
+TEST_F(Nullspace, ConstantProjectionIsEquivalentToRef)
 {
     const gko::size_type n = 1234;
-    auto ns = NullSpaceType::create_from_constant(ref, gko::dim<2>{n, n});
-    auto d_ns = NullSpaceType::create_from_constant(exec, gko::dim<2>{n, n});
+    auto ns = NullspaceType::create_from_constant(ref, gko::dim<2>{n, n});
+    auto d_ns = NullspaceType::create_from_constant(exec, gko::dim<2>{n, n});
     auto x = gen_mtx(n, 5, 7);
     auto d_x = gko::clone(exec, x);
 
@@ -52,12 +52,12 @@ TEST_F(NullSpace, ConstantProjectionIsEquivalentToRef)
 }
 
 
-TEST_F(NullSpace, BasisProjectionIsEquivalentToRef)
+TEST_F(Nullspace, BasisProjectionIsEquivalentToRef)
 {
     const gko::size_type n = 1234;
     auto basis = gko::share(gen_mtx(n, 3, 3));
-    auto ns = NullSpaceType::create(ref, {basis}, true);
-    auto d_ns = NullSpaceType::create(
+    auto ns = NullspaceType::create(ref, {basis}, true);
+    auto d_ns = NullspaceType::create(
         exec, {gko::share(gko::clone(exec, basis))}, true);
     auto x = gen_mtx(n, 5, 7);
     auto d_x = gko::clone(exec, x);
@@ -72,13 +72,13 @@ TEST_F(NullSpace, BasisProjectionIsEquivalentToRef)
 }
 
 
-TEST_F(NullSpace, BasisOnlyProjectionIsEquivalentToRef)
+TEST_F(Nullspace, BasisOnlyProjectionIsEquivalentToRef)
 {
     const gko::size_type n = 1234;
     auto basis = gko::share(gen_mtx(n, 2, 2));
-    auto ns = NullSpaceType::create(ref, {basis});
+    auto ns = NullspaceType::create(ref, {basis});
     auto d_ns =
-        NullSpaceType::create(exec, {gko::share(gko::clone(exec, basis))});
+        NullspaceType::create(exec, {gko::share(gko::clone(exec, basis))});
     auto x = gen_mtx(n, 1, 1);
     auto d_x = gko::clone(exec, x);
 

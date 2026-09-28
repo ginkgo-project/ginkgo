@@ -25,12 +25,12 @@
 #include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/minres.hpp>
-#include <ginkgo/core/solver/null_space.hpp>
+#include <ginkgo/core/solver/nullspace.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
-#include "core/test/utils/null_space_helpers.hpp"
+#include "core/test/utils/nullspace_helpers.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
 
 
@@ -46,7 +46,7 @@ protected:
         gko::experimental::distributed::Partition<local_index_type,
                                                   global_index_type>;
     using dense = gko::matrix::Dense<value_type>;
-    using NullSpace = gko::NullSpace<value_type>;
+    using Nullspace = gko::solver::Nullspace<value_type>;
     using schwarz = gko::experimental::distributed::preconditioner::Schwarz<
         value_type, local_index_type, global_index_type>;
     using jacobi = gko::preconditioner::Jacobi<value_type, local_index_type>;
@@ -124,8 +124,8 @@ protected:
     }
 
     std::unique_ptr<gko::LinOpFactory> factory(
-        const std::string& name, std::shared_ptr<const NullSpace> nullspace,
-        std::shared_ptr<const NullSpace> left_nullspace)
+        const std::string& name, std::shared_ptr<const Nullspace> nullspace,
+        std::shared_ptr<const Nullspace> left_nullspace)
     {
         auto configure = [&](auto params) {
             return params
@@ -176,12 +176,12 @@ TEST_F(NullspaceDistributed, ProjectionMatchesSerial)
                                                  {0, 1, 2, 3, 4, 5, 6, 7, 8}};
     const std::vector<std::vector<double>> data{{4, 1, -2, 9, 3, 3, 0, -7, 2},
                                                 {1, 0, 0, 5, -1, 8, 2, 2, 6}};
-    auto dist_ns = NullSpace::create(exec,
+    auto dist_ns = Nullspace::create(exec,
                                      {gko::share(distributed({basis[0]})),
                                       gko::share(distributed({basis[1]}))},
                                      true);
     auto serial_ns =
-        NullSpace::create(ref,
+        Nullspace::create(ref,
                           {gko::share(gko::initialize<dense>(
                                {1., 1., 1., 1., 0., 0., 0., 0., 0.}, ref)),
                            gko::share(gko::initialize<dense>(
@@ -211,7 +211,7 @@ TEST_F(NullspaceDistributed, GivesMinimumNormLeastSquaresSolution)
 {
     auto mtx = laplacian({9});
     auto constant =
-        gko::share(NullSpace::create_from_constant(exec, mtx->get_size()));
+        gko::share(Nullspace::create_from_constant(exec, mtx->get_size()));
     ASSERT_LT(gko::test::compute_nullspace_residual(mtx.get(), constant.get(),
                                                     distributed(x_star).get()),
               tol);
@@ -238,7 +238,7 @@ TEST_F(NullspaceDistributed, GivesMinimumNormLeastSquaresSolution)
 TEST_F(NullspaceDistributed, ExplicitBasisOfDisconnectedGraph)
 {
     auto mtx = laplacian({5, 4});
-    auto nullspace = gko::share(NullSpace::create(
+    auto nullspace = gko::share(Nullspace::create(
         exec, {gko::share(distributed({{1, 1, 1, 1, 1, 0, 0, 0, 0}})),
                gko::share(distributed({{0, 0, 0, 0, 0, 1, 1, 1, 1}}))}));
     ASSERT_LT(gko::test::compute_nullspace_residual(mtx.get(), nullspace.get(),
@@ -259,7 +259,7 @@ TEST_F(NullspaceDistributed, ExplicitBasisOfDisconnectedGraph)
 
 TEST_F(NullspaceDistributed, NonDistributedBasisRejectsDistributedVector)
 {
-    auto nullspace = NullSpace::create(
+    auto nullspace = Nullspace::create(
         exec, {gko::share(gko::initialize<dense>(
                   {1., 1., 1., 1., 1., 0., 0., 0., 0.}, exec))});
     auto v = distributed(x_star);

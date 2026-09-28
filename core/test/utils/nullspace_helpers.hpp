@@ -2,15 +2,15 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_CORE_TEST_UTILS_NULL_SPACE_HELPERS_HPP_
-#define GKO_CORE_TEST_UTILS_NULL_SPACE_HELPERS_HPP_
+#ifndef GKO_CORE_TEST_UTILS_NULLSPACE_HELPERS_HPP_
+#define GKO_CORE_TEST_UTILS_NULLSPACE_HELPERS_HPP_
 
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
-#include <ginkgo/core/solver/null_space.hpp>
+#include <ginkgo/core/solver/nullspace.hpp>
 
 
 namespace gko {
@@ -33,7 +33,8 @@ namespace test {
  */
 template <typename ValueType, typename VectorType>
 remove_complex<ValueType> compute_nullspace_residual(
-    const LinOp* op, const NullSpace<ValueType>* ns, const VectorType* like)
+    const LinOp* op, const solver::Nullspace<ValueType>* ns,
+    const VectorType* like)
 {
     using real_type = remove_complex<ValueType>;
     auto exec = like->get_executor();
@@ -70,4 +71,4 @@ remove_complex<ValueType> compute_nullspace_residual(
 }  // namespace gko
 
 
-#endif  // GKO_CORE_TEST_UTILS_NULL_SPACE_HELPERS_HPP_
+#endif  // GKO_CORE_TEST_UTILS_NULLSPACE_HELPERS_HPP_
