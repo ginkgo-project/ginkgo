@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_SOLVER_NULL_SPACE_HPP_
-#define GKO_PUBLIC_CORE_SOLVER_NULL_SPACE_HPP_
+#ifndef GKO_PUBLIC_CORE_SOLVER_NULLSPACE_HPP_
+#define GKO_PUBLIC_CORE_SOLVER_NULLSPACE_HPP_
 
 
 #include <memory>
@@ -19,27 +19,30 @@
 
 
 namespace gko {
+namespace solver {
 
 
 /**
- * NullSpace represents the (right or left) nullspace of an operator and *is*
+ * Nullspace represents the (right or left) nullspace of an operator and *is*
  * the orthogonal projector \( P = I - V V^H \) onto its complement, where
- * \( V \) is an orthonormal basis of the nullspace:
+ * \( V \) is an orthonormal basis of the nullspace.
  *
- * - The constant vector is handled implicitly (by subtracting the mean), so a
- *   constant-only
- *   nullspace works with any vector layout (`matrix::Dense` or
+ * - The constant vector is handled implicitly by subtracting the mean, so a
+ *   constant-only nullspace works with any vector layout (`matrix::Dense` or
  *   `experimental::distributed::Vector` with any partition).
  * - An explicit basis is copied and orthonormalized once at creation time
- *   (twice-iterated modified Gram-Schmidt, also against the constant if it is
- *   part of the nullspace). Columns that are numerically linearly dependent
- *   (relative norm below \( \sqrt{\epsilon} \) after orthogonalization) are
- *   dropped; get_dimension() reports the remaining dimension.
- * - project() removes all nullspace components of all columns of a vector at
- *   once: the coefficients \( C = V^H X \) (plus the column sums for the
- *   constant) are computed together and, for distributed vectors, combined
- *   with a single all-reduce (like `VecMDot`), followed by \( X -= V C \)
- *   (like `VecMAXPY`).
+ *   (twice-iterated Gram-Schmidt, also against the constant if it is part of
+ *   the nullspace). Columns that are numerically linearly dependent (relative
+ *   norm below \( \sqrt{\epsilon} \) after orthogonalization) are dropped;
+ *   get_dimension() reports the remaining dimension.
+ * - project() removes the nullspace components of all columns of a vector at
+ *   once: the coefficients \( C = V^H X \) and the column means are computed
+ *   in a single pass (and, for distributed vectors, a single all-reduce),
+ *   followed by \( X \leftarrow X - V C \).
+ *
+ * The typical use is as the `nullspace` / `left_nullspace` parameter of an
+ * iterative solver, see
+ * enable_preconditioned_iterative_solver_factory_parameters.
  *
  * The object is immutable after creation apart from internal scratch buffers,
  * so it can be shared between solvers (e.g. as both the left and right
@@ -53,19 +56,19 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class NullSpace : public LinOp, public EnableCloneable<NullSpace<ValueType>> {
-    friend class EnableCloneable<NullSpace>;
+class Nullspace : public LinOp, public EnableCloneable<Nullspace<ValueType>> {
+    friend class EnableCloneable<Nullspace>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<NullSpace>::convert_to;
-    using EnableCloneable<NullSpace>::move_to;
+    using EnableCloneable<Nullspace>::convert_to;
+    using EnableCloneable<Nullspace>::move_to;
 
     using value_type = ValueType;
     using absolute_type = remove_complex<ValueType>;
 
     /**
-     * Creates a NullSpace from an explicit basis.
+     * Creates a Nullspace from an explicit basis.
      *
      * @param exec  the executor the projector (and its basis) lives on
      * @param basis  the nullspace basis vectors. Each entry is an `n x k_i`
@@ -78,21 +81,27 @@ public:
      * @param contains_constant  whether the constant vector is also part of
      *                           the nullspace.
      */
-    static std::unique_ptr<NullSpace> create(
+    static std::unique_ptr<Nullspace> create(
         std::shared_ptr<const Executor> exec,
         std::vector<std::shared_ptr<const LinOp>> basis,
         bool contains_constant = false);
 
     /**
-     * Creates a NullSpace consisting only of the constant vector (e.g. a
+     * Creates a Nullspace consisting only of the constant vector (e.g. a
      * pure-Neumann Poisson problem). The constant is never materialized, so
      * the result can project vectors of any type and distribution.
+     *
+     * Solvers adapt a constant-only nullspace to the size of their system
+     * matrix, so the same object can be used in solver factories that are
+     * generated for matrices of different sizes (e.g. on the levels of a
+     * multigrid hierarchy). The size only matters when using the Nullspace
+     * directly, and can be omitted otherwise.
      *
      * @param exec  the executor
      * @param size  the (square, global) size `n x n` of the operator.
      */
-    static std::unique_ptr<NullSpace> create_from_constant(
-        std::shared_ptr<const Executor> exec, dim<2> size);
+    static std::unique_ptr<Nullspace> create_from_constant(
+        std::shared_ptr<const Executor> exec, dim<2> size = {});
 
     /** @return whether the constant vector is part of the nullspace. */
     bool contains_constant() const noexcept { return contains_constant_; }
@@ -119,23 +128,23 @@ public:
      *
      * @param v  a matrix::Dense<ValueType> or
      *           experimental::distributed::Vector<ValueType> with as many rows
-     *           as this operator. If the NullSpace has an explicit basis, `v`
+     *           as this operator. If the Nullspace has an explicit basis, `v`
      *           must be of the same kind (and distribution) as that basis.
      */
     void project(ptr_param<LinOp> v) const;
 
-    NullSpace& operator=(const NullSpace& other);
+    Nullspace& operator=(const Nullspace& other);
 
-    NullSpace& operator=(NullSpace&& other);
+    Nullspace& operator=(Nullspace&& other);
 
-    NullSpace(const NullSpace& other);
+    Nullspace(const Nullspace& other);
 
-    NullSpace(NullSpace&& other);
+    Nullspace(Nullspace&& other);
 
 protected:
-    explicit NullSpace(std::shared_ptr<const Executor> exec);
+    explicit Nullspace(std::shared_ptr<const Executor> exec);
 
-    NullSpace(std::shared_ptr<const Executor> exec, dim<2> size,
+    Nullspace(std::shared_ptr<const Executor> exec, dim<2> size,
               std::vector<std::shared_ptr<const LinOp>> basis,
               bool contains_constant);
 
@@ -153,7 +162,19 @@ protected:
     void setup_basis(const std::vector<std::shared_ptr<const LinOp>>& basis);
 
     template <typename VectorType>
-    void project_impl(VectorType* v) const;
+    const matrix::Dense<ValueType>* get_local_basis(const VectorType* v) const;
+
+    // stores [mean(v); V^H v] in coefficients_
+    template <typename VectorType>
+    void compute_components(const VectorType* v,
+                            const matrix::Dense<ValueType>* basis_local,
+                            bool has_constant) const;
+
+    // v -= mean + V C with the coefficients from compute_components
+    template <typename VectorType>
+    void subtract_components(VectorType* v,
+                             const matrix::Dense<ValueType>* basis_local,
+                             bool has_constant) const;
 
     template <typename VectorType>
     void remove_components(VectorType* v,
@@ -165,13 +186,14 @@ private:
     // orthonormal explicit basis (n x k), Dense or distributed::Vector
     std::shared_ptr<const LinOp> basis_;
     // scratch: (1 + k) x nrhs coefficients (means, then V^H x)
-    detail::DenseCache<ValueType> coefficients_;
-    detail::DenseCache<ValueType> host_coefficients_;
+    gko::detail::DenseCache<ValueType> coefficients_;
+    gko::detail::DenseCache<ValueType> host_coefficients_;
     mutable array<char> reduction_tmp_;
 };
 
 
+}  // namespace solver
 }  // namespace gko
 
 
-#endif  // GKO_PUBLIC_CORE_SOLVER_NULL_SPACE_HPP_
+#endif  // GKO_PUBLIC_CORE_SOLVER_NULLSPACE_HPP_

@@ -128,7 +128,7 @@ target_sources(
         solver/lower_trs.cpp
         solver/minres.cpp
         solver/multigrid.cpp
-        solver/null_space.cpp
+        solver/nullspace.cpp
         solver/pipe_cg.cpp
         solver/upper_trs.cpp
         stop/combined.cpp

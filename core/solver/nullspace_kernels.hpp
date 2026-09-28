@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_CORE_SOLVER_NULL_SPACE_KERNELS_HPP_
-#define GKO_CORE_SOLVER_NULL_SPACE_KERNELS_HPP_
+#ifndef GKO_CORE_SOLVER_NULLSPACE_KERNELS_HPP_
+#define GKO_CORE_SOLVER_NULLSPACE_KERNELS_HPP_
 
 
 #include <memory>
@@ -18,7 +18,7 @@
 
 namespace gko {
 namespace kernels {
-namespace null_space {
+namespace nullspace {
 
 
 /**
@@ -27,7 +27,7 @@ namespace null_space {
  * the rows basis^H x. `coefficients` must be contiguous (stride equal to the
  * number of columns of x).
  */
-#define GKO_DECLARE_NULL_SPACE_COMPUTE_COEFFICIENTS_KERNEL(ValueType)  \
+#define GKO_DECLARE_NULLSPACE_COMPUTE_COEFFICIENTS_KERNEL(ValueType)   \
     void compute_coefficients(                                         \
         std::shared_ptr<const DefaultExecutor> exec,                   \
         matrix::view::dense<const ValueType> x,                        \
@@ -41,7 +41,7 @@ namespace null_space {
  * x(i, j) -= coefficients(0, j) (if `has_constant`) + basis(i, :) *
  * coefficients(:, j).
  */
-#define GKO_DECLARE_NULL_SPACE_SUBTRACT_PROJECTION_KERNEL(ValueType)   \
+#define GKO_DECLARE_NULLSPACE_SUBTRACT_PROJECTION_KERNEL(ValueType)    \
     void subtract_projection(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                   \
         matrix::view::dense<const ValueType> basis, bool has_constant, \
@@ -49,17 +49,17 @@ namespace null_space {
         matrix::view::dense<ValueType> x)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
-    template <typename ValueType>                                  \
-    GKO_DECLARE_NULL_SPACE_COMPUTE_COEFFICIENTS_KERNEL(ValueType); \
-    template <typename ValueType>                                  \
-    GKO_DECLARE_NULL_SPACE_SUBTRACT_PROJECTION_KERNEL(ValueType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                              \
+    template <typename ValueType>                                 \
+    GKO_DECLARE_NULLSPACE_COMPUTE_COEFFICIENTS_KERNEL(ValueType); \
+    template <typename ValueType>                                 \
+    GKO_DECLARE_NULLSPACE_SUBTRACT_PROJECTION_KERNEL(ValueType)
 
 
-}  // namespace null_space
+}  // namespace nullspace
 
 
-GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(null_space,
+GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(nullspace,
                                         GKO_DECLARE_ALL_AS_TEMPLATES);
 
 
@@ -69,4 +69,4 @@ GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(null_space,
 }  // namespace kernels
 }  // namespace gko
 
-#endif  // GKO_CORE_SOLVER_NULL_SPACE_KERNELS_HPP_
+#endif  // GKO_CORE_SOLVER_NULLSPACE_KERNELS_HPP_

@@ -140,7 +140,10 @@ protected:
 
 
 template <typename ValueType>
-struct has_nullspace_support<Fcg<ValueType>> : std::true_type {};
+struct nullspace_traits<Fcg<ValueType>> {
+    static constexpr bool is_supported = true;
+    static constexpr bool requires_hermitian = true;
+};
 
 
 template <typename ValueType>
@@ -181,6 +184,8 @@ struct workspace_traits<Fcg<ValueType>> {
     constexpr static int one = 9;
     // constant -1.0 scalar
     constexpr static int minus_one = 10;
+    // right-hand side projected onto the range of the system matrix
+    constexpr static int consistent_rhs = 11;
 
     // stopping status array
     constexpr static int stop = 0;
