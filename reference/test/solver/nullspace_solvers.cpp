@@ -46,15 +46,12 @@ protected:
           mtx(laplacian({8})),
           constant(gko::share(
               NullSpace::create_from_constant(exec, mtx->get_size()))),
-          // zero mean, also on each half [0, 4) and [4, 8)
           x_star(column({3, -1, -4, 2, -5, 9, -2, -2})),
           x_star2(column({1, 2, -2, -1, 4, -1, -1, -2}))
     {}
 
-    // Block diagonal matrix of 1-D Neumann Laplacians of paths with the given
-    // numbers of nodes: symmetric, singular, one constant nullspace vector per
-    // block. Its diagonal (1, 2, ..., 2, 1) is not constant, so Jacobi
-    // preconditioning does not preserve range(A).
+    // Neumann Laplacians of paths as diagonal blocks. The diagonal is not
+    // constant, so Jacobi preconditioning does not preserve range(A).
     std::shared_ptr<Csr> laplacian(std::vector<int> block_sizes)
     {
         int n = 0;
@@ -95,7 +92,17 @@ protected:
         return result;
     }
 
-    // initial guess with a nonzero nullspace component
+    std::unique_ptr<vec> rhs(const gko::LinOp* a, const vec* x,
+                             value_type offset)
+    {
+        auto b = gko::clone(x);
+        a->apply(x, b);
+        auto ones = vec::create(exec, b->get_size());
+        ones->fill(gko::one<value_type>());
+        b->add_scaled(gko::initialize<vec>({offset}, exec), ones);
+        return b;
+    }
+
     std::unique_ptr<vec> initial_guess(gko::size_type num_rhs)
     {
         auto result =
@@ -143,7 +150,6 @@ protected:
         }
     }
 
-    // generous for the error amplification by cond(A) on range(A)
     const real tol = real{1000} * r<value_type>::value;
     const std::vector<std::string> solvers{"cg", "fcg", "minres", "gmres",
                                            "bicgstab"};
@@ -158,83 +164,36 @@ TYPED_TEST_SUITE(NullspaceSolvers, gko::test::ValueTypes,
                  TypenameNameGenerator);
 
 
-TYPED_TEST(NullspaceSolvers, ConsistentSystemGivesMinimumNormSolution)
+TYPED_TEST(NullspaceSolvers, GivesMinimumNormLeastSquaresSolution)
 {
-    using vec = typename TestFixture::vec;
-    for (const auto& name : this->solvers) {
-        SCOPED_TRACE(name);
-        auto solver = this->factory(name, this->constant, this->constant)
-                          ->generate(this->mtx);
-        auto b = vec::create(this->exec, this->x_star->get_size());
-        this->mtx->apply(this->x_star, b);
-        auto x = this->initial_guess(1);
-
-        solver->apply(b, x);
-
-        // x_star has zero mean, so it is the minimum-norm solution
-        GKO_ASSERT_MTX_NEAR(x, this->x_star, this->tol);
-    }
-}
-
-
-TYPED_TEST(NullspaceSolvers, InconsistentSystemGivesMinimumNormLeastSquares)
-{
-    using vec = typename TestFixture::vec;
     using value_type = typename TestFixture::value_type;
-    for (const auto& name : this->solvers) {
-        SCOPED_TRACE(name);
-        auto solver = this->factory(name, this->constant, this->constant)
-                          ->generate(this->mtx);
-        // the constant part of b lies in N(A^H), so the least-squares
-        // residual b - A x is exactly that constant
-        auto b = vec::create(this->exec, this->x_star->get_size());
-        this->mtx->apply(this->x_star, b);
-        auto offset = gko::initialize<vec>({value_type{3}}, this->exec);
-        auto ones = vec::create(this->exec, b->get_size());
-        ones->fill(gko::one<value_type>());
-        b->add_scaled(offset, ones);
-        auto x = this->initial_guess(1);
+    for (const bool consistent : {true, false}) {
+        SCOPED_TRACE(consistent ? "consistent" : "inconsistent");
+        for (const auto& name : this->solvers) {
+            SCOPED_TRACE(name);
+            auto solver = this->factory(name, this->constant, this->constant)
+                              ->generate(this->mtx);
+            auto logger =
+                gko::share(gko::log::Convergence<value_type>::create());
+            solver->add_logger(logger);
+            auto b = this->rhs(this->mtx.get(), this->x_star.get(),
+                               consistent ? value_type{0} : value_type{3});
+            auto x = this->initial_guess(1);
 
-        solver->apply(b, x);
+            solver->apply(b, x);
 
-        GKO_ASSERT_MTX_NEAR(x, this->x_star, this->tol);
-    }
-}
-
-
-TYPED_TEST(NullspaceSolvers, InconsistentSystemConverges)
-{
-    using vec = typename TestFixture::vec;
-    using value_type = typename TestFixture::value_type;
-    for (const auto& name : this->solvers) {
-        SCOPED_TRACE(name);
-        auto solver = this->factory(name, this->constant, this->constant)
-                          ->generate(this->mtx);
-        auto logger = gko::share(gko::log::Convergence<value_type>::create());
-        solver->add_logger(logger);
-        auto b = vec::create(this->exec, this->x_star->get_size());
-        this->mtx->apply(this->x_star, b);
-        auto offset = gko::initialize<vec>({value_type{3}}, this->exec);
-        auto ones = vec::create(this->exec, b->get_size());
-        ones->fill(gko::one<value_type>());
-        b->add_scaled(offset, ones);
-        auto x = this->initial_guess(1);
-
-        solver->apply(b, x);
-
-        // the stopping criterion must measure the residual of the consistent
-        // system, which unlike b - A x can be reduced to zero
-        ASSERT_TRUE(logger->has_converged());
+            ASSERT_TRUE(logger->has_converged());
+            GKO_ASSERT_MTX_NEAR(x, this->x_star, this->tol);
+        }
     }
 }
 
 
 TYPED_TEST(NullspaceSolvers, StaysAccurateWhenIteratingPastConvergence)
 {
-    using vec = typename TestFixture::vec;
     using value_type = typename TestFixture::value_type;
-    // GMRES is excluded: it breaks down after exhausting the Krylov space
-    // also without nullspace
+    // GMRES breaks down after exhausting the Krylov space also without
+    // nullspace
     for (const std::string name : {"cg", "fcg", "minres", "bicgstab"}) {
         SCOPED_TRACE(name);
         auto solver =
@@ -242,8 +201,7 @@ TYPED_TEST(NullspaceSolvers, StaysAccurateWhenIteratingPastConvergence)
                           gko::stop::Iteration::build().with_max_iters(50u).on(
                               this->exec))
                 ->generate(this->mtx);
-        auto b = vec::create(this->exec, this->x_star->get_size());
-        this->mtx->apply(this->x_star, b);
+        auto b = this->rhs(this->mtx.get(), this->x_star.get(), value_type{0});
         auto x = this->initial_guess(1);
 
         solver->apply(b, x);
@@ -256,6 +214,7 @@ TYPED_TEST(NullspaceSolvers, StaysAccurateWhenIteratingPastConvergence)
 TYPED_TEST(NullspaceSolvers, SolvesMultipleRightHandSides)
 {
     using vec = typename TestFixture::vec;
+    using value_type = typename TestFixture::value_type;
     const auto n = this->mtx->get_size()[0];
     auto x_star = vec::create(this->exec, gko::dim<2>{n, 2});
     for (gko::size_type i = 0; i < n; ++i) {
@@ -266,8 +225,7 @@ TYPED_TEST(NullspaceSolvers, SolvesMultipleRightHandSides)
         SCOPED_TRACE(name);
         auto solver = this->factory(name, this->constant, this->constant)
                           ->generate(this->mtx);
-        auto b = vec::create(this->exec, x_star->get_size());
-        this->mtx->apply(x_star, b);
+        auto b = this->rhs(this->mtx.get(), x_star.get(), value_type{3});
         auto x = this->initial_guess(2);
 
         solver->apply(b, x);
@@ -311,8 +269,6 @@ TYPED_TEST(NullspaceSolvers, ExplicitBasisOfDisconnectedGraph)
 {
     using value_type = typename TestFixture::value_type;
     using NullSpace = typename TestFixture::NullSpace;
-    // two disconnected paths: the nullspace is spanned by the indicator
-    // vectors of the two components, not by the constant alone
     auto mtx = this->laplacian({4, 4});
     auto nullspace = gko::share(NullSpace::create(
         this->exec, {this->column({1, 1, 1, 1, 0, 0, 0, 0}),
@@ -323,13 +279,11 @@ TYPED_TEST(NullspaceSolvers, ExplicitBasisOfDisconnectedGraph)
     for (const auto& name : this->solvers) {
         SCOPED_TRACE(name);
         auto solver = this->factory(name, nullspace, nullspace)->generate(mtx);
-        auto b = gko::clone(this->x_star);
-        mtx->apply(this->x_star, b);
+        auto b = this->rhs(mtx.get(), this->x_star.get(), value_type{0});
         auto x = this->initial_guess(1);
 
         solver->apply(b, x);
 
-        // x_star has zero mean on each component
         GKO_ASSERT_MTX_NEAR(x, this->x_star, this->tol);
     }
 }
@@ -338,11 +292,9 @@ TYPED_TEST(NullspaceSolvers, ExplicitBasisOfDisconnectedGraph)
 TYPED_TEST(NullspaceSolvers, NonsymmetricSystemWithDistinctNullspaces)
 {
     using value_type = typename TestFixture::value_type;
-    using vec = typename TestFixture::vec;
     using Csr = typename TestFixture::Csr;
     using NullSpace = typename TestFixture::NullSpace;
-    // A = L S with the Laplacian L and S = diag(s): N(A) = span{S^-1 1}, but
-    // N(A^H) = N(S L) = span{1}
+    // A = L S: N(A) = span{S^-1 1}, but N(A^H) = N(S L) = span{1}
     const auto n = this->mtx->get_size()[0];
     std::vector<double> s(n);
     std::vector<double> u(n);
@@ -361,7 +313,6 @@ TYPED_TEST(NullspaceSolvers, NonsymmetricSystemWithDistinctNullspaces)
     ASSERT_LT(gko::test::compute_nullspace_residual(mtx.get(), right.get(),
                                                     this->x_star.get()),
               this->tol);
-    // the minimum-norm solution is orthogonal to u
     std::vector<double> y{3, -1, 4, 1, -5, 9, 2, -6};
     double uy = 0;
     double uu = 0;
@@ -376,13 +327,7 @@ TYPED_TEST(NullspaceSolvers, NonsymmetricSystemWithDistinctNullspaces)
     for (const std::string name : {"gmres", "bicgstab"}) {
         SCOPED_TRACE(name);
         auto solver = this->factory(name, right, this->constant)->generate(mtx);
-        // consistent part plus a component in N(A^H)
-        auto b = gko::clone(x_star);
-        mtx->apply(x_star, b);
-        auto offset = gko::initialize<vec>({value_type{2}}, this->exec);
-        auto ones = vec::create(this->exec, b->get_size());
-        ones->fill(gko::one<value_type>());
-        b->add_scaled(offset, ones);
+        auto b = this->rhs(mtx.get(), x_star.get(), value_type{2});
         auto x = this->initial_guess(1);
 
         solver->apply(b, x);
