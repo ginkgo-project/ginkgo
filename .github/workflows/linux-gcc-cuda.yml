@@ -1,0 +1,96 @@
+name: Linux-GCC-CUDA (compile-only)
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'develop'
+      - 'release/**'
+      # TEMPORARY: to test this workflow before it is on develop
+      - 'feat/ci-overhaul'
+    tags:
+      - '**'
+  pull_request:
+    types: [opened,synchronize]
+    paths-ignore:
+      - 'doc/**'
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  linux_cuda:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {version: "13.4.1", name: "cuda-13.4/release/shared", arch: "80"}
+    name: gcc/${{ matrix.config.name }} (only compile)
+    runs-on: [ubuntu-24.04]
+    # GitHub cancels jobs after 6 hours; stop earlier so that ccache is saved
+    timeout-minutes: 330
+    env:
+      # compiled objects are cached between runs, see the ccache steps
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 2G
+      IMAGE: nvidia/cuda:${{ matrix.config.version }}-devel-ubuntu24.04
+
+    steps:
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v4
+
+      # the CUDA image is large, so remove preinstalled software first
+      - name: setup
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+          docker pull "${IMAGE}"
+
+      # restores the cache of this branch or, as a fallback, of any branch
+      # (e.g. develop for a new pull request)
+      - name: restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-linux-cuda-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-linux-cuda-${{ github.ref_name }}-
+            ccache-linux-cuda-
+
+      - name: Debug over SSH (tmate)
+        uses: mxschmitt/action-tmate@v3.5
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+        with:
+          limit-access-to-actor: true
+
+      # builds in the CUDA container; the workspace is mounted at the same path,
+      # so that ccache's base directory is the same inside and outside
+      - name: configure
+        run: |
+          docker run --rm -v "${GITHUB_WORKSPACE}:${GITHUB_WORKSPACE}" -w "${GITHUB_WORKSPACE}" -e CCACHE_DIR -e CCACHE_BASEDIR -e CCACHE_MAXSIZE "${IMAGE}" bash -c '
+            set -e
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y --no-install-recommends build-essential cmake ccache git ca-certificates
+            mkdir build
+            cd build
+            cmake .. -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=${{ matrix.config.arch }} -DGINKGO_BUILD_OMP=ON -DCMAKE_BUILD_TYPE=Release
+            ccache --zero-stats
+            cmake --build . -j4
+            ccache --show-stats'
+
+      # saved even if the build fails or times out, so the next run is faster
+      - name: save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-linux-cuda-${{ github.ref_name }}-${{ github.run_id }}
