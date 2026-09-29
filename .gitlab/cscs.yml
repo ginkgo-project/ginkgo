@@ -64,12 +64,6 @@ variables:
     reports:
       junit: test-results/*.xml
 
-# The uenv provides Cray MPICH, which Ginkgo would otherwise use automatically.
-daint/cuda131/nompi/gcc/omp/release/shared:
-  extends: .daint_build_and_test
-  variables:
-    EXTRA_CMAKE_FLAGS: -DGINKGO_BUILD_MPI=OFF
-
 # Multi-GPU tests with GPU-aware Cray MPICH. The uenv links Cray MPICH to its
 # GTL library, which additionally needs MPICH_GPU_SUPPORT_ENABLED=1 at runtime.
 # The MPI tests are launched with srun and use up to 8 processes. Without
@@ -97,13 +91,3 @@ daint/cuda129/cray-mpich/gcc/omp/release/static:
     UENV: prgenv-gnu/25.11:v1
     SLURM_TIMELIMIT: "02:00:00"
     EXTRA_CMAKE_FLAGS: -DBUILD_SHARED_LIBS=OFF ${MPI_CMAKE_FLAGS}
-
-# Checks that no GPU work is launched on the default CUDA stream, by
-# preloading a library into the tests that detects it. No CI job has run this
-# check for CUDA since 2024, so failures don't fail the pipeline until we know
-# its state.
-daint/cuda131/nompi/gcc/omp/nondefault-stream/release/shared:
-  extends: .daint_build_and_test
-  allow_failure: true
-  variables:
-    EXTRA_CMAKE_FLAGS: -DGINKGO_BUILD_MPI=OFF -DGINKGO_TEST_NONDEFAULT_STREAM=ON

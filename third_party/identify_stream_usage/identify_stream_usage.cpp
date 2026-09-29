@@ -121,10 +121,10 @@ DEFINE_OVERLOAD(cudaLaunchCooperativeKernel,
 
 #if CUDART_VERSION >= 12040
 
-// Since CUDA 12.4, the code that nvcc generates for kernel<<<...>>> launches
-// calls these functions instead of cudaLaunchKernel (unless
-// __NV_LEGACY_LAUNCH is defined). They are only declared in headers for
-// device code, so declare them here to get C linkage.
+// Newer CUDA versions (e.g. 13.1) launch kernel<<<...>>> through these
+// functions instead of cudaLaunchKernel (unless __NV_LEGACY_LAUNCH is
+// defined). They exist since CUDA 12.4. Declare them here with C linkage, in
+// case the included headers don't.
 extern "C" {
 cudaError_t __cudaLaunchKernel(cudaKernel_t kernel, dim3 gridDim,
                                dim3 blockDim, void** args, size_t sharedMem,
