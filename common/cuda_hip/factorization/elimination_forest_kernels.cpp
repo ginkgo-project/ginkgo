@@ -268,7 +268,8 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
     // initialize worklist1 with forward edges
     {
         const auto num_blocks = ceildiv(nnz, default_block_size);
-        kernel::mst_initialize_worklist<<<num_blocks, default_block_size>>>(
+        kernel::mst_initialize_worklist<<<num_blocks, default_block_size, 0,
+                                          exec->get_stream()>>>(
             rows, cols, nnz, wl1_source, wl1_target, wl1_edge_id, wl1_counter);
     }
     auto wl1_size = get_wl1_size();
@@ -277,7 +278,8 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
         // attach each node to its smallest adjacent non-cycle edge
         {
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
-            kernel::mst_find_minimum<<<num_blocks, default_block_size>>>(
+            kernel::mst_find_minimum<<<num_blocks, default_block_size, 0,
+                                       exec->get_stream()>>>(
                 wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
                 min_edges, wl2_source, wl2_target, wl2_edge_id, wl2_counter);
         }
@@ -287,10 +289,12 @@ void compute_skeleton_tree(std::shared_ptr<const DefaultExecutor> exec,
         if (wl1_size > 0) {
             // join minimal edges
             const auto num_blocks = ceildiv(wl1_size, default_block_size);
-            kernel::mst_join_edges<<<num_blocks, default_block_size>>>(
+            kernel::mst_join_edges<<<num_blocks, default_block_size, 0,
+                                     exec->get_stream()>>>(
                 wl1_source, wl1_target, wl1_edge_id, wl1_size, parents,
                 min_edges, rows, cols, out_rows, out_cols, output_counter);
-            kernel::mst_reset_min_edges<<<num_blocks, default_block_size>>>(
+            kernel::mst_reset_min_edges<<<num_blocks, default_block_size, 0,
+                                          exec->get_stream()>>>(
                 wl1_source, wl1_target, wl1_size, min_edges);
         }
     }

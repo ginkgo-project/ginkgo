@@ -72,8 +72,7 @@ jobs:
         uses: mxschmitt/action-tmate@v3.5
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
-      # MPI tests run one at a time after the other tests, since concurrent
-      # mpiexec calls on 4 cores would compete for the same cores
+      # MPI tests run one at a time after the other tests
       - name: configure
         run: |
           mkdir build
@@ -85,7 +84,7 @@ jobs:
           ninja -j4
           ccache --show-stats
           ctest -j4 --output-on-failure --label-exclude distributed
-          ctest --output-on-failure --label-regex distributed
+          OMP_NUM_THREADS=1 ctest --output-on-failure --label-regex distributed
 
       - name: install
         run: |

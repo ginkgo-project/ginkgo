@@ -36,16 +36,21 @@
     reports:
       junit: test-results/*.xml
   rules:
-    # limited to the CI development branch until the setup is tested
-    - if: $RUN_CI_TAG && $CI_COMMIT_BRANCH == "feat/ci-overhaul"
+    # Only runs when started manually in GitLab
+    - if: $RUN_CI_TAG
+      when: manual
+      allow_failure: true
   dependencies: []
 
+# Checks that no GPU work is launched on the default CUDA stream, by
+# preloading a library into the tests that detects it. No other CI job runs
+# this check.
+#
 # TEMPORARY: a reduced configuration on the dev_accelerated partition (A100,
-# at most 1 h), to test the runner setup end to end. The accelerated partition
-# currently has a queue of several days. Remove the partition, time limit and
-# reduced CMake flags once there is a runner with shorter queues (e.g. on
-# HoreKa 2), and build the full configuration again.
-horeka/a100/cuda124/nompi/gcc/release/shared-reduced:
+# at most 1 h), since the accelerated partition currently has a queue of
+# several days. Remove the partition, time limit and reduced CMake flags once
+# there is a runner with shorter queues (e.g. on HoreKa 2).
+horeka/a100/cuda124/nompi/gcc/nondefault-stream/release/shared-reduced:
   extends: .horeka_build_and_test
   # jobs in dev_accelerated start within minutes
   timeout: 2h
@@ -56,6 +61,7 @@ horeka/a100/cuda124/nompi/gcc/release/shared-reduced:
     # without 16-bit types and mixed precision, and with smaller tests, so
     # that building and testing fit into the 1 h limit
     EXTRA_CMAKE_FLAGS: -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=80
+      -DGINKGO_BUILD_MPI=OFF -DGINKGO_TEST_NONDEFAULT_STREAM=ON
       -DGINKGO_BUILD_OMP=OFF -DGINKGO_ENABLE_HALF=OFF
       -DGINKGO_ENABLE_BFLOAT16=OFF -DGINKGO_MIXED_PRECISION=OFF
       -DGINKGO_FAST_TESTS=ON

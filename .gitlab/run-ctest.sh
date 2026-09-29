@@ -12,6 +12,8 @@
 # Optional environment variables:
 # - CTEST_JOBS: maximum number of tests running at the same time
 #   (default: NUM_CORES, or the number of available cores)
+# - CTEST_MPI_OMP_THREADS: OpenMP threads per rank in the distributed tests
+#   (default: CTEST_JOBS / 8, at least 1, since MPI tests use up to 8 ranks)
 # - CTEST_TIMEOUT: timeout per test in seconds (default: 6000)
 # - CTEST_JUNIT_DIR: directory for JUnit test reports (requires CTest 3.21+)
 # - CTEST_EXTRA_ARGS: additional arguments passed to all ctest calls
@@ -22,6 +24,7 @@ set -o pipefail
 # tests that can run at the same time
 jobs="${CTEST_JOBS:-${NUM_CORES:-$(env -u OMP_NUM_THREADS -u OMP_THREAD_LIMIT nproc)}}"
 timeout="${CTEST_TIMEOUT:-6000}"
+mpi_omp_threads="${CTEST_MPI_OMP_THREADS:-$(( jobs / 8 > 1 ? jobs / 8 : 1 ))}"
 
 num_tests=$(ctest -N | tail -1 | sed 's/Total Tests: //')
 if (( num_tests == 0 )); then
@@ -51,6 +54,7 @@ status=0
 ctest --output-on-failure --timeout "${timeout}" --parallel "${jobs}" \
   --resource-spec-file ctest_resources.json --label-exclude distributed \
   "${parallel_junit[@]}" "${extra_args[@]}" || status=1
-ctest --output-on-failure --timeout "${timeout}" --label-regex distributed \
+OMP_NUM_THREADS="${mpi_omp_threads}" \
+  ctest --output-on-failure --timeout "${timeout}" --label-regex distributed \
   "${distributed_junit[@]}" "${extra_args[@]}" || status=1
 exit ${status}
