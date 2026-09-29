@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
+// SPDX-FileCopyrightText: 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -216,6 +216,9 @@ TYPED_TEST(NullspaceSolvers, ConstantNullspaceWorksOnAllMultigridLevels)
     using value_type = typename TestFixture::value_type;
     using vec = typename TestFixture::vec;
     using Nullspace = typename TestFixture::Nullspace;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
     const int n = 64;
     auto mtx = this->laplacian({n});
     std::vector<double> x_vals(n);

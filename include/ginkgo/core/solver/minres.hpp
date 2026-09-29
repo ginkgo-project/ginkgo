@@ -203,7 +203,7 @@ struct workspace_traits<Minres<ValueType>> {
     // constant -1.0 scalar
     constexpr static int minus_one = 20;
     // right-hand side projected onto the range of the system matrix
-    constexpr static int consistent_rhs = 21;
+    constexpr static int proj_rhs = 21;
 
     // stopping status array
     constexpr static int stop = 0;

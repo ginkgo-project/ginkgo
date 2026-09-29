@@ -915,7 +915,7 @@ public:
     }
 
     /**
-     * @return the right nullspace \( N(A) \), or nullptr if none was set.
+     * @return the right nullspace \f$ N(A) \f$, or nullptr if none was set.
      */
     std::shared_ptr<const Nullspace<ValueType>> get_nullspace() const
     {
@@ -923,8 +923,8 @@ public:
     }
 
     /**
-     * @return the left nullspace \( N(A^H) \) (the complement of
-     *         \( \mathrm{range}(A) \)), or nullptr if none was set.
+     * @return the left nullspace \f$ N(A^H) \f$ (the complement of
+     *         \f$ \mathrm{range}(A) \f$), or nullptr if none was set.
      */
     std::shared_ptr<const Nullspace<ValueType>> get_left_nullspace() const
     {
@@ -936,7 +936,7 @@ protected:
      * Removes the right nullspace component from `v`, if a right nullspace is
      * set. Solvers apply this to the initial guess and to the result of every
      * preconditioner application, which keeps all search directions, and thus
-     * the solution, orthogonal to \( N(A) \).
+     * the solution, orthogonal to \f$ N(A) \f$.
      */
     void project_nullspace(ptr_param<LinOp> v) const
     {
@@ -948,7 +948,7 @@ protected:
     /**
      * Returns the right-hand side the solver should use: `b` itself, or, if a
      * left nullspace is set, the projection of `b` onto
-     * \( \mathrm{range}(A) \), which makes the system consistent. Solvers
+     * \f$ \mathrm{range}(A) \f$, which makes the system consistent. Solvers
      * use it in place of `b` everywhere, including in the stopping criterion,
      * so that the residual they measure can converge to zero also for
      * inconsistent systems.
@@ -1104,8 +1104,8 @@ struct enable_preconditioned_iterative_solver_factory_parameters
         generated_preconditioner, nullptr);
 
     /**
-     * Right nullspace \( N(A) \) of the (singular) system matrix, given as a
-     * Nullspace<ValueType>. When set, the solver removes the \( N(A) \)
+     * Right nullspace \f$ N(A) \f$ of the (singular) system matrix, given as a
+     * Nullspace<ValueType>. When set, the solver removes the \f$ N(A) \f$
      * component from the initial guess and from every preconditioned vector,
      * converging to the minimum-norm solution.
      *
@@ -1118,17 +1118,17 @@ struct enable_preconditioned_iterative_solver_factory_parameters
                                                               nullptr);
 
     /**
-     * Left nullspace \( N(A^H) \) -- the orthogonal complement of
-     * \( \mathrm{range}(A) \), given as a Nullspace<ValueType>. When set, the
-     * solver projects the right-hand side onto \( \mathrm{range}(A) \),
+     * Left nullspace \f$ N(A^H) \f$ -- the orthogonal complement of
+     * \f$ \mathrm{range}(A) \f$, given as a Nullspace<ValueType>. When set, the
+     * solver projects the right-hand side onto \f$ \mathrm{range}(A) \f$,
      * which makes the system consistent, so inconsistent systems are solved in
      * the least-squares sense.
      *
      * The solver then works with the projected right-hand side throughout:
      * stopping criteria measure the residual of the projected system and
      * loggers receive the projected right-hand side. The residual
-     * \( b - A x \) of the original system does not drop below the norm of
-     * the removed part of \( b \).
+     * \f$ b - A x \f$ of the original system does not drop below the norm of
+     * the removed part of \f$ b \f$.
      *
      * For solvers requiring a Hermitian matrix (Cg, Fcg, Minres), the left
      * and right nullspace coincide, and this defaults to `nullspace`. By

@@ -333,8 +333,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto exec = this->get_executor();
     this->setup_workspace();
     // solve with the consistent right-hand side if a left nullspace is set
-    dense_b = this->get_consistent_rhs(dense_b,
-                                       workspace_traits<Gmres>::consistent_rhs);
+    dense_b =
+        this->get_consistent_rhs(dense_b, workspace_traits<Gmres>::proj_rhs);
     const auto is_flexible = this->get_parameters().flexible;
     const auto num_rows = this->get_size()[0];
     const auto local_num_rows =
@@ -758,7 +758,7 @@ std::vector<std::string> workspace_traits<Gmres<ValueType>>::op_names(
             "minus_one",
             "next_krylov_norm_tmp",
             "preconditioned_krylov_bases",
-            "consistent_rhs"};
+            "proj_rhs"};
 }
 
 
@@ -788,7 +788,7 @@ std::vector<int> workspace_traits<Gmres<ValueType>>::vectors(const Solver&)
             before_preconditioner,
             after_preconditioner,
             preconditioned_krylov_bases,
-            consistent_rhs};
+            proj_rhs};
 }
 
 
