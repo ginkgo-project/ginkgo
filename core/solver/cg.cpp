@@ -105,8 +105,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     auto exec = this->get_executor();
     this->setup_workspace();
     // solve with the consistent right-hand side if a left nullspace is set
-    dense_b =
-        this->get_consistent_rhs(dense_b, workspace_traits<Cg>::consistent_rhs);
+    dense_b = this->get_consistent_rhs(dense_b, workspace_traits<Cg>::proj_rhs);
 
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);
@@ -236,8 +235,10 @@ template <typename ValueType>
 std::vector<std::string> workspace_traits<Cg<ValueType>>::op_names(
     const Solver&)
 {
-    return {"r",        "z",   "p",   "q",         "beta",
-            "prev_rho", "rho", "one", "minus_one", "consistent_rhs"};
+    return {
+        "r",        "z",   "p",   "q",         "beta",
+        "prev_rho", "rho", "one", "minus_one", "proj_rhs",
+    };
 }
 
 
@@ -259,7 +260,7 @@ std::vector<int> workspace_traits<Cg<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Cg<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, p, q, consistent_rhs};
+    return {r, z, p, q, proj_rhs};
 }
 
 

@@ -300,7 +300,7 @@ struct workspace_traits<Gmres<ValueType>> {
     // preconditioned krylov basis multivector
     constexpr static int preconditioned_krylov_bases = 15;
     // right-hand side projected onto the range of the system matrix
-    constexpr static int consistent_rhs = 16;
+    constexpr static int proj_rhs = 16;
 
     // stopping status array
     constexpr static int stop = 0;

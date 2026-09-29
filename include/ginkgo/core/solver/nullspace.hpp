@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
+// SPDX-FileCopyrightText: 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,8 +24,8 @@ namespace solver {
 
 /**
  * Nullspace represents the (right or left) nullspace of an operator and *is*
- * the orthogonal projector \( P = I - V V^H \) onto its complement, where
- * \( V \) is an orthonormal basis of the nullspace.
+ * the orthogonal projector \f$ P = I - V V^H \f$ onto its complement, where
+ * \f$ V \f$ is an orthonormal basis of the nullspace.
  *
  * - The constant vector is handled implicitly by subtracting the mean, so a
  *   constant-only nullspace works with any vector layout (`matrix::Dense` or
@@ -33,12 +33,12 @@ namespace solver {
  * - An explicit basis is copied and orthonormalized once at creation time
  *   (twice-iterated Gram-Schmidt, also against the constant if it is part of
  *   the nullspace). Columns that are numerically linearly dependent (relative
- *   norm below \( \sqrt{\epsilon} \) after orthogonalization) are dropped;
+ *   norm below \f$ \sqrt{\epsilon} \f$ after orthogonalization) are dropped;
  *   get_dimension() reports the remaining dimension.
  * - project() removes the nullspace components of all columns of a vector at
- *   once: the coefficients \( C = V^H X \) and the column means are computed
+ *   once: the coefficients \f$ C = V^H X \f$ and the column means are computed
  *   in a single pass (and, for distributed vectors, a single all-reduce),
- *   followed by \( X \leftarrow X - V C \).
+ *   followed by \f$ X \leftarrow X - V C \f$.
  *
  * The typical use is as the `nullspace` / `left_nullspace` parameter of an
  * iterative solver, see
@@ -112,7 +112,8 @@ public:
      */
     size_type get_dimension() const noexcept
     {
-        return get_num_basis_vectors() + (contains_constant_ ? 1 : 0);
+        return (basis_ ? basis_->get_size()[1] : 0) +
+               (contains_constant_ ? 1 : 0);
     }
 
     /**
@@ -123,7 +124,7 @@ public:
     std::shared_ptr<const LinOp> get_basis() const noexcept { return basis_; }
 
     /**
-     * Applies the projector in place: \( v \leftarrow (I - V V^H) v \), for
+     * Applies the projector in place: \f$ v \leftarrow (I - V V^H) v \f$, for
      * each column of `v` independently.
      *
      * @param v  a matrix::Dense<ValueType> or
@@ -152,11 +153,6 @@ protected:
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
-
-    size_type get_num_basis_vectors() const noexcept
-    {
-        return basis_ ? basis_->get_size()[1] : 0;
-    }
 
     template <typename VectorType>
     void setup_basis(const std::vector<std::shared_ptr<const LinOp>>& basis);

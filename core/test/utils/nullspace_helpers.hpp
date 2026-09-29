@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
+// SPDX-FileCopyrightText: 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,9 +19,9 @@ namespace test {
 
 /**
  * Computes how far `op` is from annihilating the nullspace `ns`: the largest
- * \( \|A q\|_2 \) over the orthonormal basis vectors \( q \) of `ns`, including
- * the normalized constant if it is part of the nullspace. A NaN norm makes the
- * result NaN.
+ * \f$ \|A q\|_2 \f$ over the orthonormal basis vectors \f$ q \f$ of `ns`,
+ * including the normalized constant if it is part of the nullspace. A NaN norm
+ * makes the result NaN.
  *
  * @param op  the operator whose (right) nullspace `ns` should be
  * @param ns  the nullspace

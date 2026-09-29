@@ -179,7 +179,7 @@ struct workspace_traits<Cg<ValueType>> {
     // constant -1.0 scalar
     constexpr static int minus_one = 8;
     // right-hand side projected onto the range of the system matrix
-    constexpr static int consistent_rhs = 9;
+    constexpr static int proj_rhs = 9;
 
     // stopping status array
     constexpr static int stop = 0;
