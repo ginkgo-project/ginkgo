@@ -45,9 +45,11 @@ variables:
         "uenv image inspect ${UENV} > /dev/null 2>&1 || uenv image pull ${UENV}"
     # GCC fuses multiplications and additions on ARM by default, which changes
     # the rounding enough for some tests to fail, so turn that off (like in
-    # .github/workflows/arm.yml).
+    # .github/workflows/arm.yml). MPI tests are launched with srun, which CTest
+    # only finds with its absolute path.
     - uenv run --view=default ${UENV} -- cmake -S . -B build -G Ninja
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS=-ffp-contract=off
+        -DMPIEXEC_EXECUTABLE="$(command -v srun)"
         -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=90
         -DGINKGO_BUILD_OMP=ON -DGINKGO_DEVEL_TOOLS=OFF
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=OFF
@@ -66,15 +68,15 @@ variables:
 
 # Multi-GPU tests with GPU-aware Cray MPICH. The uenv links Cray MPICH to its
 # GTL library, which additionally needs MPICH_GPU_SUPPORT_ENABLED=1 at runtime.
-# The MPI tests are launched with srun and use up to 8 processes. Without
-# MPIEXEC_MAX_NUMPROCS, CMake detects only 1 and disables all MPI tests.
+# The MPI tests use up to 8 processes. Without MPIEXEC_MAX_NUMPROCS, CMake
+# detects only 1 and disables all MPI tests.
 .daint_mpi:
   variables:
     SLURM_NTASKS: 8
     SLURM_CPUS_PER_TASK: 32
     MPICH_GPU_SUPPORT_ENABLED: 1
     MPI_CMAKE_FLAGS: -DGINKGO_BUILD_MPI=ON -DGINKGO_FORCE_GPU_AWARE_MPI=ON
-      -DMPIEXEC_EXECUTABLE=srun -DMPIEXEC_MAX_NUMPROCS=8
+      -DMPIEXEC_MAX_NUMPROCS=8
 
 daint/cuda131/cray-mpich/gcc/omp/debug/shared:
   extends: [.daint_build_and_test, .daint_mpi]
