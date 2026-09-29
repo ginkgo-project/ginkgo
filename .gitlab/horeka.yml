@@ -36,8 +36,10 @@
     reports:
       junit: test-results/*.xml
   rules:
-    # limited to the CI development branch until the setup is tested
-    - if: $RUN_CI_TAG && $CI_COMMIT_BRANCH == "feat/ci-overhaul"
+    # Only runs when started manually in GitLab
+    - if: $RUN_CI_TAG
+      when: manual
+      allow_failure: true
   dependencies: []
 
 # TEMPORARY: a reduced configuration on the dev_accelerated partition (A100,
