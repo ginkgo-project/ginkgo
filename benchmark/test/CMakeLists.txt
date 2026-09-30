@@ -33,4 +33,10 @@ if(GINKGO_BUILD_MPI)
     add_benchmark_test(multi_vector_distributed)
     add_benchmark_test(spmv_distributed)
     add_benchmark_test(solver_distributed)
+    set_tests_properties(
+        benchmark_multi_vector_distributed
+        benchmark_spmv_distributed
+        benchmark_solver_distributed
+        PROPERTIES LABELS distributed
+    )
 endif()
