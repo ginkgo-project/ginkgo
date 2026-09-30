@@ -5,6 +5,8 @@ ginkgo_create_omp_test(index_set)
 # nesting: OMP_NUM_THREADS=8 makes the kernels request up to 8 threads, while
 # OMP_THREAD_LIMIT=4 caps the team at 4. The *UndersizedTeam tests only
 # cover the team-of-1 case.
+# KMP_WARNINGS=0: older libomp (e.g. LLVM 8) aborts with "invalid %N$ use
+# detected" when printing its "cannot form a team" warning.
 add_test(
     NAME omp/test/base/kernel_launch_thread_limited
     COMMAND omp_test_base_kernel_launch --gtest_filter=*Reduction*
@@ -14,5 +16,5 @@ set_tests_properties(
     omp/test/base/kernel_launch_thread_limited
     PROPERTIES
         ENVIRONMENT
-            "OMP_NUM_THREADS=8;OMP_THREAD_LIMIT=4;OMP_MAX_ACTIVE_LEVELS=1"
+            "OMP_NUM_THREADS=8;OMP_THREAD_LIMIT=4;OMP_MAX_ACTIVE_LEVELS=1;KMP_WARNINGS=0"
 )
