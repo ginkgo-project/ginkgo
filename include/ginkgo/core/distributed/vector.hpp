@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
+#include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/distributed/base.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
@@ -704,62 +705,26 @@ private:
 namespace detail {
 
 
-template <typename TargetType>
-struct conversion_target_helper;
-
-
 /**
- * @internal
+ * Specialization for distributed::Vector.
  *
- * Specialization of conversion_target_helper for distributed vectors.
- * This is necessary, since Vector needs to be created from both an executor and
- * a communicator.
+ * This creates a distributed::Vector using both the executor and the
+ * communicator of the source object.
  *
- * @see conversion_target_helper
+ * @tparam ValueType ValueType of the target distributed::Vector.
  */
 template <typename ValueType>
 struct conversion_target_helper<experimental::distributed::Vector<ValueType>> {
-    using target_type = experimental::distributed::Vector<ValueType>;
-    using source_type =
-        experimental::distributed::Vector<previous_precision<ValueType>>;
-
-    static std::unique_ptr<target_type> create_empty(const source_type* source)
+    template <typename SourceValueType,
+              typename = std::enable_if_t<is_complex<ValueType>() ==
+                                          is_complex<SourceValueType>()>>
+    static std::unique_ptr<experimental::distributed::Vector<ValueType>>
+    create_empty(
+        const experimental::distributed::Vector<SourceValueType>* source)
     {
-        return target_type::create(source->get_executor(),
-                                   source->get_communicator());
+        return experimental::distributed::Vector<ValueType>::create(
+            source->get_executor(), source->get_communicator());
     }
-
-    // Allow to create_empty of the same type
-    // For distributed case, next<next<V>> will be V in the candidate list.
-    // TODO: decide to whether to add this or add condition to the list
-    static std::unique_ptr<target_type> create_empty(const target_type* source)
-    {
-        return target_type::create(source->get_executor(),
-                                   source->get_communicator());
-    }
-
-#if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-    using snd_source_type =
-        experimental::distributed::Vector<previous_precision<ValueType, 2>>;
-
-    static std::unique_ptr<target_type> create_empty(
-        const snd_source_type* source)
-    {
-        return target_type::create(source->get_executor(),
-                                   source->get_communicator());
-    }
-#endif
-#if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-    using trd_source_type =
-        experimental::distributed::Vector<previous_precision<ValueType, 3>>;
-
-    static std::unique_ptr<target_type> create_empty(
-        const trd_source_type* source)
-    {
-        return target_type::create(source->get_executor(),
-                                   source->get_communicator());
-    }
-#endif
 };
 
 
