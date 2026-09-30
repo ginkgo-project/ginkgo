@@ -14,8 +14,10 @@
 #endif  // GKO_HAVE_CXXABI_H
 
 
+#include <cstdlib>
 #include <memory>
 #include <string>
+#include <typeinfo>
 
 
 namespace gko {
