@@ -68,10 +68,10 @@ private:
 // specialization for constant objects, no need to convert back something that
 // cannot change
 template <typename CopyType, typename OrigType>
-class convert_back_deleter<const CopyType, const OrigType> {
+class convert_back_deleter<const CopyType, OrigType> {
 public:
     using pointer = const CopyType*;
-    using original_pointer = const OrigType*;
+    using original_pointer = OrigType*;
     convert_back_deleter(original_pointer) {}
 
     void operator()(pointer ptr) const { delete ptr; }
@@ -85,6 +85,9 @@ public:
  * as the target object of a convert_to call. This can be specialized to
  * gain more control on how a TargetType object has to be created.
  *
+ * The default implementation assumes that the TargetType object can be created
+ * just by calling the create method on the executor.
+ *
  * @tparam TargetType  The type an object shall be converted to
  */
 template <typename TargetType>
@@ -96,15 +99,8 @@ struct conversion_target_helper {
      * @param source  The source object for the conversion
      * @return  An unique_ptr of TargetType on the same executor as source.
      */
-    template <typename SourceType,
-              typename = std::enable_if_t<std::is_base_of<
-                  ConvertibleTo<TargetType>, SourceType>::value>>
+    template <typename SourceType>
     static std::unique_ptr<TargetType> create_empty(const SourceType* source)
-    {
-        return TargetType::create(source->get_executor());
-    }
-
-    static std::unique_ptr<TargetType> create_empty(const TargetType* source)
     {
         return TargetType::create(source->get_executor());
     }
