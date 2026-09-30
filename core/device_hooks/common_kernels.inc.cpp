@@ -16,6 +16,7 @@
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/gather_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/range_minimum_query_kernels.hpp"
@@ -201,6 +202,11 @@
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_BASE(_macro)
 
+#define GKO_STUB_TEMPLATE_AND_INDEX_TYPE(_macro)                    \
+    template <typename ValueType, typename IndexType>               \
+    _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_TEMPLATE_AND_INDEX_TYPE(_macro)
+
 #define GKO_STUB_TEMPLATE_TYPE(_macro)                   \
     template <typename IndexType>                        \
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
@@ -268,6 +274,7 @@ template GKO_DECLARE_FILL_ARRAY_KERNEL(uint64);
 #endif
 
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
+GKO_STUB_TEMPLATE_AND_INDEX_TYPE(GKO_DECLARE_GATHER_KERNEL);
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
@@ -1143,7 +1150,6 @@ GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR);
 GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
-GKO_STUB_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
 
 
 }  // namespace pgm

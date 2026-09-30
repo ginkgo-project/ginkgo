@@ -77,12 +77,6 @@ namespace pgm {
         const ValueType* vals,                                           \
         matrix::view::coo<ValueType, IndexType> coarse_coo)
 
-#define GKO_DECLARE_PGM_GATHER_INDEX(IndexType)                    \
-    void gather_index(std::shared_ptr<const DefaultExecutor> exec, \
-                      size_type num_res, const IndexType* orig,    \
-                      const IndexType* gather_map, IndexType* result)
-
-
 #define GKO_DECLARE_ALL_AS_TEMPLATES                               \
     template <typename IndexType>                                  \
     GKO_DECLARE_PGM_MATCH_EDGE_KERNEL(IndexType);                  \
@@ -103,9 +97,7 @@ namespace pgm {
     template <typename ValueType, typename IndexType>              \
     GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType);      \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_GATHER_INDEX(IndexType)
+    GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType)
 
 
 }  // namespace pgm
