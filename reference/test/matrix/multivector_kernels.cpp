@@ -1105,14 +1105,16 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_permute(
     permutation_dense->read(permutation_data);
     if ((mode & permute_mode::rows) == permute_mode::rows) {
         // compute P * A
-        permutation_dense->as_const_dense_view()->apply(input, result);
+        permutation_dense->as_const_dense_view()->apply(
+            input->create_real_view(), result->create_real_view());
     }
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         // compute A * P^T = (P * A^T)^T
         auto tmp = gko::share(result->transpose());
         auto tmp2 = gko::as<gko::matrix::MultiVector<ValueType>>(
             gko::as<gko::Cloneable>(tmp)->clone());
-        permutation_dense->as_const_dense_view()->apply(tmp, tmp2);
+        permutation_dense->as_const_dense_view()->apply(
+            tmp->create_real_view(), tmp2->create_real_view());
         tmp2->transpose(result);
     }
     return result;
@@ -1142,11 +1144,13 @@ std::unique_ptr<gko::matrix::MultiVector<ValueType>> ref_permute(
     }
     row_permutation_dense->read(row_permutation_data);
     col_permutation_dense->read(col_permutation_data);
-    row_permutation_dense->as_const_dense_view()->apply(input, result);
+    row_permutation_dense->as_const_dense_view()->apply(
+        input->create_real_view(), result->create_real_view());
     auto tmp = gko::share(result->transpose());
     auto tmp2 = gko::as<gko::matrix::MultiVector<ValueType>>(
         gko::as<gko::Cloneable>(tmp)->clone());
-    col_permutation_dense->as_const_dense_view()->apply(tmp, tmp2);
+    col_permutation_dense->as_const_dense_view()->apply(
+        tmp->create_real_view(), tmp2->create_real_view());
     tmp2->transpose(result);
     return result;
 }
