@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,7 +26,9 @@ void reset_device(int device_id)
 
 void destroy_event(GKO_HIP_EVENT_STRUCT* event)
 {
-    GKO_ASSERT_NO_HIP_ERRORS(hipEventDestroy(event));
+    // called from the time_point destructor, which must not throw, and failing
+    // to destroy the event only leaks it
+    (void)hipEventDestroy(event);
 }
 
 

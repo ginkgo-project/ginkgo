@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,7 +25,9 @@ void reset_device(int device_id)
 
 void destroy_event(CUevent_st* event)
 {
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event));
+    // called from the time_point destructor, which must not throw, and failing
+    // to destroy the event only leaks it
+    cudaEventDestroy(event);
 }
 
 
