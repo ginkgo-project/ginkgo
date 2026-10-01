@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
@@ -52,9 +52,9 @@ class ResidualNormBase : public Criterion {
 
 protected:
     using absolute_type = remove_complex<ValueType>;
-    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
-    using NormVector = matrix::Dense<absolute_type>;
-    using Vector = matrix::Dense<ValueType>;
+    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
+    using NormVector = matrix::MultiVector<absolute_type>;
+    using Vector = matrix::MultiVector<ValueType>;
     bool check_impl(uint8 stoppingId, bool setFinalized,
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
@@ -125,9 +125,9 @@ private:
 template <typename ValueType = default_precision>
 class ResidualNorm : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
-    using Vector = matrix::Dense<ValueType>;
+    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
+    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
+    using Vector = matrix::MultiVector<ValueType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -207,9 +207,9 @@ protected:
 template <typename ValueType = default_precision>
 class ImplicitResidualNorm : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
-    using Vector = matrix::Dense<ValueType>;
+    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
+    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
+    using Vector = matrix::MultiVector<ValueType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -344,9 +344,9 @@ class GKO_DEPRECATED(
     "mode::initial_resnorm") ResidualNormReduction
     : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
-    using Vector = matrix::Dense<ValueType>;
+    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
+    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
+    using Vector = matrix::MultiVector<ValueType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -406,9 +406,9 @@ class GKO_DEPRECATED(
     "mode::rhs_norm") RelativeResidualNorm
     : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::Dense<to_complex<ValueType>>;
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
-    using Vector = matrix::Dense<ValueType>;
+    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
+    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
+    using Vector = matrix::MultiVector<ValueType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -467,8 +467,8 @@ class GKO_DEPRECATED(
     "mode::absolute") AbsoluteResidualNorm
     : public ResidualNormBase<ValueType> {
 public:
-    using NormVector = matrix::Dense<remove_complex<ValueType>>;
-    using Vector = matrix::Dense<ValueType>;
+    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
+    using Vector = matrix::MultiVector<ValueType>;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {

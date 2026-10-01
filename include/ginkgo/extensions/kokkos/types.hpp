@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,7 +10,7 @@
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/extensions/kokkos/config.hpp>
 
 
@@ -168,7 +168,7 @@ mapper<array<ValueType>, MemorySpace>::map(
 
 
 /**
- * Type that maps a Ginkgo matrix::Dense to an unmanaged 2D Kokkos::View.
+ * Type that maps a Ginkgo matrix::MultiVector to an unmanaged 2D Kokkos::View.
  *
  * @warning Using std::complex as data type might lead to issues, since the
  *          alignment of Kokkos::complex is not necessarily the same.
@@ -176,7 +176,7 @@ mapper<array<ValueType>, MemorySpace>::map(
  * @tparam MemorySpace  The memory space type the mapped object should use.
  */
 template <typename ValueType, typename MemorySpace>
-struct mapper<matrix::Dense<ValueType>, MemorySpace> {
+struct mapper<matrix::MultiVector<ValueType>, MemorySpace> {
     template <typename ValueType_c>
     using type = Kokkos::View<typename value_type<ValueType_c>::type**,
                               Kokkos::LayoutStride, MemorySpace,
@@ -185,17 +185,19 @@ struct mapper<matrix::Dense<ValueType>, MemorySpace> {
     /**
      * Maps a mutable dense matrix.
      */
-    static type<ValueType> map(matrix::Dense<ValueType>& m);
+    static type<ValueType> map(matrix::MultiVector<ValueType>& m);
 
     /**
      * Maps a const dense matrix.
      */
-    static type<const ValueType> map(const matrix::Dense<ValueType>& m);
+    static type<const ValueType> map(const matrix::MultiVector<ValueType>& m);
 };
 
 template <typename ValueType, typename MemorySpace>
-typename mapper<matrix::Dense<ValueType>, MemorySpace>::template type<ValueType>
-mapper<matrix::Dense<ValueType>, MemorySpace>::map(matrix::Dense<ValueType>& m)
+typename mapper<matrix::MultiVector<ValueType>,
+                MemorySpace>::template type<ValueType>
+mapper<matrix::MultiVector<ValueType>, MemorySpace>::map(
+    matrix::MultiVector<ValueType>& m)
 {
     assert_compatibility<MemorySpace>(m);
 
@@ -208,10 +210,10 @@ mapper<matrix::Dense<ValueType>, MemorySpace>::map(matrix::Dense<ValueType>& m)
 
 
 template <typename ValueType, typename MemorySpace>
-typename mapper<matrix::Dense<ValueType>,
+typename mapper<matrix::MultiVector<ValueType>,
                 MemorySpace>::template type<const ValueType>
-mapper<matrix::Dense<ValueType>, MemorySpace>::map(
-    const matrix::Dense<ValueType>& m)
+mapper<matrix::MultiVector<ValueType>, MemorySpace>::map(
+    const matrix::MultiVector<ValueType>& m)
 {
     assert_compatibility<MemorySpace>(m);
 

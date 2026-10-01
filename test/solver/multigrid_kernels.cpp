@@ -10,7 +10,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -21,7 +21,7 @@
 
 class Multigrid : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::MultiVector<>;
     Multigrid() : rand_engine(30) {}
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)

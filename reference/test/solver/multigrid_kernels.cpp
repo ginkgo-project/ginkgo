@@ -7,7 +7,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -151,7 +151,7 @@ protected:
                     const gko::LinOp* beta, gko::LinOp* x) const override
     {
         auto alpha_value =
-            gko::as<gko::matrix::Dense<ValueType>>(alpha)->at(0, 0);
+            gko::as<gko::matrix::MultiVector<ValueType>>(alpha)->at(0, 0);
         gko::remove_complex<ValueType> scale = gko::real(alpha_value);
         global_step *= static_cast<int>(scale);
         step.push_back(global_step);
@@ -223,7 +223,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Csr = gko::matrix::Csr<value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Multigrid;
     using Coarse = gko::multigrid::Pgm<value_type>;
     using CoarseNext = gko::multigrid::Pgm<gko::next_precision<value_type>>;

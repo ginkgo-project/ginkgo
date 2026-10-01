@@ -17,7 +17,7 @@
 #include <ginkgo/core/distributed/row_gatherer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"

@@ -13,8 +13,8 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -32,7 +32,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using MgLevel = gko::multigrid::UniformCoarsening<value_type, index_type>;
     using VT = value_type;
 

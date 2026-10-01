@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,7 +25,7 @@ namespace matrix {
 
 
 template <typename ValueType>
-class Dense;
+class MultiVector;
 
 
 }
@@ -35,7 +35,7 @@ namespace detail {
 
 
 /**
- * Manages a Dense vector that is buffered and reused internally to avoid
+ * Manages a MultiVector vector that is buffered and reused internally to avoid
  * repeated allocations. Copying an instance will only yield an empty object
  * since copying the cached vector would not make sense. The stored object is
  * always mutable, so the cache can be used in a const-context.
@@ -51,7 +51,7 @@ struct DenseCache {
     DenseCache(DenseCache&&) noexcept {}
     DenseCache& operator=(const DenseCache&) { return *this; }
     DenseCache& operator=(DenseCache&&) noexcept { return *this; }
-    mutable std::unique_ptr<matrix::Dense<ValueType>> vec{};
+    mutable std::unique_ptr<matrix::MultiVector<ValueType>> vec{};
 
 
     /**
@@ -66,7 +66,7 @@ struct DenseCache {
      * @param template_vec  Defines the configuration (executor, size, stride)
      *                      of the buffered vector.
      */
-    void init_from(const matrix::Dense<ValueType>* template_vec) const;
+    void init_from(const matrix::MultiVector<ValueType>* template_vec) const;
 
     /**
      * Initializes the buffered vector, if
@@ -83,19 +83,19 @@ struct DenseCache {
      * Reference access to the underlying vector.
      * @return  Reference to the stored vector.
      */
-    matrix::Dense<ValueType>& operator*() const { return *vec; }
+    matrix::MultiVector<ValueType>& operator*() const { return *vec; }
 
     /**
      * Pointer access to the underlying vector.
      * @return  Pointer to the stored vector.
      */
-    matrix::Dense<ValueType>* operator->() const { return vec.get(); }
+    matrix::MultiVector<ValueType>* operator->() const { return vec.get(); }
 
     /**
      * Pointer access to the underlying vector.
      * @return  Pointer to the stored vector.
      */
-    matrix::Dense<ValueType>* get() const { return vec.get(); }
+    matrix::MultiVector<ValueType>* get() const { return vec.get(); }
 };
 
 
@@ -104,7 +104,7 @@ class GenericDenseCacheAccessor;
 
 
 /**
- * Manages a workspace to give Dense Vector with different value_type. The
+ * Manages a workspace to give MultiVector Vector with different value_type. The
  * workspace is buffered and reused internally to avoid repeated allocations.
  * Copying an instance will only yield an empty object since copying the cached
  * vector would not make sense. The stored object is always mutable, so the
@@ -129,7 +129,7 @@ struct GenericDenseCache {
      * @return  Pointer to the vector view.
      */
     template <typename ValueType>
-    std::shared_ptr<matrix::Dense<ValueType>> get(
+    std::shared_ptr<matrix::MultiVector<ValueType>> get(
         std::shared_ptr<const Executor> exec, dim<2> size) const;
 
 private:
@@ -142,7 +142,7 @@ class ScalarCacheAccessor;
 
 
 /**
- * Manages a map to store Dense Scalar with different value_type by a
+ * Manages a map to store MultiVector Scalar with different value_type by a
  * user-specified value. The workspace is buffered and reused internally to
  * avoid repeated allocations. Copying an instance will only yield an empty
  * object since copying the cached vector would not make sense. The stored
@@ -167,7 +167,7 @@ struct ScalarCache {
      * @return  Pointer to the vector view.
      */
     template <typename ValueType>
-    std::shared_ptr<const matrix::Dense<ValueType>> get() const;
+    std::shared_ptr<const matrix::MultiVector<ValueType>> get() const;
 
 private:
     std::shared_ptr<const Executor> exec;

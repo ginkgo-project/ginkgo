@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,15 +19,15 @@
 
 int main(int argc, char* argv[])
 {
-    // Use some shortcuts. In Ginkgo, vectors are seen as a gko::matrix::Dense
-    // with one column/one row. The advantage of this concept is that using
-    // multiple vectors is a now a natural extension of adding columns/rows are
-    // necessary.
+    // Use some shortcuts. In Ginkgo, vectors are seen as a
+    // gko::matrix::MultiVector with one column/one row. The advantage of this
+    // concept is that using multiple vectors is a now a natural extension of
+    // adding columns/rows are necessary.
     using ValueType = double;
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
-    using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
+    using real_vec = gko::matrix::MultiVector<RealValueType>;
     // The gko::matrix::Csr class is used here, but any other matrix class such
     // as gko::matrix::Coo, gko::matrix::Hybrid, gko::matrix::Ell or
     // gko::matrix::Sellp could also be used.

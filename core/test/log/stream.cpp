@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,7 +10,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/stream.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -198,7 +198,7 @@ TYPED_TEST(Stream, CatchesPolymorphicObjectCreateStarted)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::polymorphic_object_create_started_mask, out);
-    auto po = gko::matrix::Dense<TypeParam>::create(exec);
+    auto po = gko::matrix::MultiVector<TypeParam>::create(exec);
     std::stringstream ptrstream;
     ptrstream << po.get();
 
@@ -217,8 +217,8 @@ TYPED_TEST(Stream, CatchesPolymorphicObjectCreateCompleted)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::polymorphic_object_create_completed_mask, out);
-    auto po = gko::matrix::Dense<TypeParam>::create(exec);
-    auto output = gko::matrix::Dense<TypeParam>::create(exec);
+    auto po = gko::matrix::MultiVector<TypeParam>::create(exec);
+    auto output = gko::matrix::MultiVector<TypeParam>::create(exec);
     std::stringstream ptrstream_in;
     ptrstream_in << po.get();
     std::stringstream ptrstream_out;
@@ -240,8 +240,8 @@ TYPED_TEST(Stream, CatchesPolymorphicObjectCopyStarted)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::polymorphic_object_copy_started_mask, out);
-    auto from = gko::matrix::Dense<TypeParam>::create(exec);
-    auto to = gko::matrix::Dense<TypeParam>::create(exec);
+    auto from = gko::matrix::MultiVector<TypeParam>::create(exec);
+    auto to = gko::matrix::MultiVector<TypeParam>::create(exec);
     std::stringstream ptrstream_from;
     ptrstream_from << from.get();
     std::stringstream ptrstream_to;
@@ -263,8 +263,8 @@ TYPED_TEST(Stream, CatchesPolymorphicObjectCopyCompleted)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::polymorphic_object_copy_completed_mask, out);
-    auto from = gko::matrix::Dense<TypeParam>::create(exec);
-    auto to = gko::matrix::Dense<TypeParam>::create(exec);
+    auto from = gko::matrix::MultiVector<TypeParam>::create(exec);
+    auto to = gko::matrix::MultiVector<TypeParam>::create(exec);
     std::stringstream ptrstream_from;
     ptrstream_from << from.get();
     std::stringstream ptrstream_to;
@@ -286,8 +286,8 @@ TYPED_TEST(Stream, CatchesPolymorphicObjectMoveStarted)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::polymorphic_object_move_started_mask, out);
-    auto from = gko::matrix::Dense<TypeParam>::create(exec);
-    auto to = gko::matrix::Dense<TypeParam>::create(exec);
+    auto from = gko::matrix::MultiVector<TypeParam>::create(exec);
+    auto to = gko::matrix::MultiVector<TypeParam>::create(exec);
     std::stringstream ptrstream_from;
     ptrstream_from << from.get();
     std::stringstream ptrstream_to;
@@ -309,8 +309,8 @@ TYPED_TEST(Stream, CatchesPolymorphicObjectMoveCompleted)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::polymorphic_object_move_completed_mask, out);
-    auto from = gko::matrix::Dense<TypeParam>::create(exec);
-    auto to = gko::matrix::Dense<TypeParam>::create(exec);
+    auto from = gko::matrix::MultiVector<TypeParam>::create(exec);
+    auto to = gko::matrix::MultiVector<TypeParam>::create(exec);
     std::stringstream ptrstream_from;
     ptrstream_from << from.get();
     std::stringstream ptrstream_to;
@@ -332,7 +332,7 @@ TYPED_TEST(Stream, CatchesPolymorphicObjectDeleted)
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::polymorphic_object_deleted_mask, out);
-    auto po = gko::matrix::Dense<TypeParam>::create(exec);
+    auto po = gko::matrix::MultiVector<TypeParam>::create(exec);
     std::stringstream ptrstream;
     ptrstream << po.get();
 
@@ -347,14 +347,14 @@ TYPED_TEST(Stream, CatchesPolymorphicObjectDeleted)
 
 TYPED_TEST(Stream, CatchesLinOpApplyStarted)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_apply_started_mask, out);
-    auto A = Dense::create(exec);
-    auto b = Dense::create(exec);
-    auto x = Dense::create(exec);
+    auto A = MultiVector::create(exec);
+    auto b = MultiVector::create(exec);
+    auto x = MultiVector::create(exec);
     std::stringstream ptrstream_A;
     ptrstream_A << A.get();
     std::stringstream ptrstream_b;
@@ -375,14 +375,14 @@ TYPED_TEST(Stream, CatchesLinOpApplyStarted)
 
 TYPED_TEST(Stream, CatchesLinOpApplyStartedWithVerbose)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_apply_started_mask, out, true);
-    auto A = gko::initialize<Dense>({1.5}, exec);
-    auto b = gko::initialize<Dense>({-2.25}, exec);
-    auto x = gko::initialize<Dense>({3.125}, exec);
+    auto A = gko::initialize<MultiVector>({1.5}, exec);
+    auto b = gko::initialize<MultiVector>({-2.25}, exec);
+    auto x = gko::initialize<MultiVector>({3.125}, exec);
 
     logger->template on<gko::log::Logger::linop_apply_started>(A.get(), b.get(),
                                                                x.get());
@@ -396,14 +396,14 @@ TYPED_TEST(Stream, CatchesLinOpApplyStartedWithVerbose)
 
 TYPED_TEST(Stream, CatchesLinOpApplyCompleted)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_apply_completed_mask, out);
-    auto A = Dense::create(exec);
-    auto b = Dense::create(exec);
-    auto x = Dense::create(exec);
+    auto A = MultiVector::create(exec);
+    auto b = MultiVector::create(exec);
+    auto x = MultiVector::create(exec);
     std::stringstream ptrstream_A;
     ptrstream_A << A.get();
     std::stringstream ptrstream_b;
@@ -424,14 +424,14 @@ TYPED_TEST(Stream, CatchesLinOpApplyCompleted)
 
 TYPED_TEST(Stream, CatchesLinOpApplyCompletedWithVerbose)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_apply_completed_mask, out, true);
-    auto A = gko::initialize<Dense>({1.5}, exec);
-    auto b = gko::initialize<Dense>({-2.25}, exec);
-    auto x = gko::initialize<Dense>({3.125}, exec);
+    auto A = gko::initialize<MultiVector>({1.5}, exec);
+    auto b = gko::initialize<MultiVector>({-2.25}, exec);
+    auto x = gko::initialize<MultiVector>({3.125}, exec);
 
     logger->template on<gko::log::Logger::linop_apply_completed>(
         A.get(), b.get(), x.get());
@@ -445,16 +445,16 @@ TYPED_TEST(Stream, CatchesLinOpApplyCompletedWithVerbose)
 
 TYPED_TEST(Stream, CatchesLinOpAdvancedApplyStarted)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_advanced_apply_started_mask, out);
-    auto A = Dense::create(exec);
-    auto alpha = Dense::create(exec);
-    auto b = Dense::create(exec);
-    auto beta = Dense::create(exec);
-    auto x = Dense::create(exec);
+    auto A = MultiVector::create(exec);
+    auto alpha = MultiVector::create(exec);
+    auto b = MultiVector::create(exec);
+    auto beta = MultiVector::create(exec);
+    auto x = MultiVector::create(exec);
     std::stringstream ptrstream_A;
     ptrstream_A << A.get();
     std::stringstream ptrstream_alpha;
@@ -481,16 +481,16 @@ TYPED_TEST(Stream, CatchesLinOpAdvancedApplyStarted)
 
 TYPED_TEST(Stream, CatchesLinOpAdvancedApplyStartedWithVerbose)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_advanced_apply_started_mask, out, true);
-    auto A = gko::initialize<Dense>({1.5}, exec);
-    auto alpha = gko::initialize<Dense>({-4.75}, exec);
-    auto b = gko::initialize<Dense>({-2.25}, exec);
-    auto beta = gko::initialize<Dense>({-5.5}, exec);
-    auto x = gko::initialize<Dense>({3.125}, exec);
+    auto A = gko::initialize<MultiVector>({1.5}, exec);
+    auto alpha = gko::initialize<MultiVector>({-4.75}, exec);
+    auto b = gko::initialize<MultiVector>({-2.25}, exec);
+    auto beta = gko::initialize<MultiVector>({-5.5}, exec);
+    auto x = gko::initialize<MultiVector>({3.125}, exec);
 
     logger->template on<gko::log::Logger::linop_advanced_apply_started>(
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
@@ -506,16 +506,16 @@ TYPED_TEST(Stream, CatchesLinOpAdvancedApplyStartedWithVerbose)
 
 TYPED_TEST(Stream, CatchesLinOpAdvancedApplyCompleted)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_advanced_apply_completed_mask, out);
-    auto A = Dense::create(exec);
-    auto alpha = Dense::create(exec);
-    auto b = Dense::create(exec);
-    auto beta = Dense::create(exec);
-    auto x = Dense::create(exec);
+    auto A = MultiVector::create(exec);
+    auto alpha = MultiVector::create(exec);
+    auto b = MultiVector::create(exec);
+    auto beta = MultiVector::create(exec);
+    auto x = MultiVector::create(exec);
     std::stringstream ptrstream_A;
     ptrstream_A << A.get();
     std::stringstream ptrstream_alpha;
@@ -542,16 +542,16 @@ TYPED_TEST(Stream, CatchesLinOpAdvancedApplyCompleted)
 
 TYPED_TEST(Stream, CatchesLinOpAdvancedApplyCompletedWithVerbose)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::linop_advanced_apply_completed_mask, out, true);
-    auto A = gko::initialize<Dense>({1.5}, exec);
-    auto alpha = gko::initialize<Dense>({-4.75}, exec);
-    auto b = gko::initialize<Dense>({-2.25}, exec);
-    auto beta = gko::initialize<Dense>({-5.5}, exec);
-    auto x = gko::initialize<Dense>({3.125}, exec);
+    auto A = gko::initialize<MultiVector>({1.5}, exec);
+    auto alpha = gko::initialize<MultiVector>({-4.75}, exec);
+    auto b = gko::initialize<MultiVector>({-2.25}, exec);
+    auto beta = gko::initialize<MultiVector>({-5.5}, exec);
+    auto x = gko::initialize<MultiVector>({3.125}, exec);
 
     logger->template on<gko::log::Logger::linop_advanced_apply_completed>(
         A.get(), alpha.get(), b.get(), beta.get(), x.get());
@@ -575,7 +575,8 @@ TYPED_TEST(Stream, CatchesLinopFactoryGenerateStarted)
         gko::solver::Bicgstab<TypeParam>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
-    auto input = factory->generate(gko::matrix::Dense<TypeParam>::create(exec));
+    auto input =
+        factory->generate(gko::matrix::MultiVector<TypeParam>::create(exec));
     std::stringstream ptrstream_factory;
     ptrstream_factory << factory.get();
     std::stringstream ptrstream_input;
@@ -601,9 +602,10 @@ TYPED_TEST(Stream, CatchesLinopFactoryGenerateCompleted)
         gko::solver::Bicgstab<TypeParam>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
-    auto input = factory->generate(gko::matrix::Dense<TypeParam>::create(exec));
+    auto input =
+        factory->generate(gko::matrix::MultiVector<TypeParam>::create(exec));
     auto output =
-        factory->generate(gko::matrix::Dense<TypeParam>::create(exec));
+        factory->generate(gko::matrix::MultiVector<TypeParam>::create(exec));
     std::stringstream ptrstream_factory;
     ptrstream_factory << factory.get();
     std::stringstream ptrstream_input;
@@ -710,17 +712,17 @@ TYPED_TEST(Stream, CatchesCriterionCheckCompletedWithVerbose)
 
 TYPED_TEST(Stream, CatchesIterationsWithoutStoppingStatus)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::iteration_complete_mask, out);
-    auto solver = Dense::create(exec);
-    auto right_hand_side = Dense::create(exec);
-    auto residual = Dense::create(exec);
-    auto solution = Dense::create(exec);
-    auto residual_norm = Dense::create(exec);
-    auto implicit_sq_residual_norm = Dense::create(exec);
+    auto solver = MultiVector::create(exec);
+    auto right_hand_side = MultiVector::create(exec);
+    auto residual = MultiVector::create(exec);
+    auto solution = MultiVector::create(exec);
+    auto residual_norm = MultiVector::create(exec);
+    auto implicit_sq_residual_norm = MultiVector::create(exec);
     std::stringstream ptrstream_solver;
     ptrstream_solver << solver.get();
     std::stringstream ptrstream_residual;
@@ -740,17 +742,17 @@ TYPED_TEST(Stream, CatchesIterationsWithoutStoppingStatus)
 
 TYPED_TEST(Stream, CatchesIterationsWithStoppingStatus)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
         gko::log::Logger::iteration_complete_mask, out);
-    auto solver = Dense::create(exec);
-    auto right_hand_side = Dense::create(exec);
-    auto residual = Dense::create(exec);
-    auto solution = Dense::create(exec);
-    auto residual_norm = Dense::create(exec);
-    auto implicit_sq_residual_norm = Dense::create(exec);
+    auto solver = MultiVector::create(exec);
+    auto right_hand_side = MultiVector::create(exec);
+    auto residual = MultiVector::create(exec);
+    auto solution = MultiVector::create(exec);
+    auto residual_norm = MultiVector::create(exec);
+    auto implicit_sq_residual_norm = MultiVector::create(exec);
     std::stringstream ptrstream_solver;
     ptrstream_solver << solver.get();
     std::stringstream ptrstream_residual;
@@ -772,7 +774,7 @@ TYPED_TEST(Stream, CatchesIterationsWithStoppingStatus)
 
 TYPED_TEST(Stream, CatchesIterationsWithVerbose)
 {
-    using Dense = gko::matrix::Dense<TypeParam>;
+    using MultiVector = gko::matrix::MultiVector<TypeParam>;
     auto exec = gko::ReferenceExecutor::create();
     std::stringstream out;
     auto logger = gko::log::Stream<TypeParam>::create(
@@ -782,11 +784,11 @@ TYPED_TEST(Stream, CatchesIterationsWithVerbose)
         gko::solver::Bicgstab<TypeParam>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
             .on(exec);
-    auto solver = factory->generate(gko::initialize<Dense>({1.25}, exec));
-    auto right_hand_side = gko::initialize<Dense>({-5.5}, exec);
-    auto residual = gko::initialize<Dense>({-4.5}, exec);
-    auto solution = gko::initialize<Dense>({-2.25}, exec);
-    auto residual_norm = gko::initialize<Dense>({-3.125}, exec);
+    auto solver = factory->generate(gko::initialize<MultiVector>({1.25}, exec));
+    auto right_hand_side = gko::initialize<MultiVector>({-5.5}, exec);
+    auto residual = gko::initialize<MultiVector>({-4.5}, exec);
+    auto solution = gko::initialize<MultiVector>({-2.25}, exec);
+    auto residual_norm = gko::initialize<MultiVector>({-3.125}, exec);
     gko::array<gko::stopping_status> stop_status(exec, 1);
 
     logger->template on<gko::log::Logger::iteration_complete>(

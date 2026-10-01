@@ -4,7 +4,6 @@
 
 #include "core/solver/chebyshev_kernels.hpp"
 
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/chebyshev.hpp>
 
 namespace gko {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,7 +16,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils/value_generator.hpp"
 
@@ -190,7 +190,7 @@ generate_random_device_matrix_data(gko::size_type num_rows,
  *
  * @return the unique pointer of MatrixType
  */
-template <typename MatrixType = matrix::Dense<>,
+template <typename MatrixType = matrix::MultiVector<>,
           typename IndexType = typename MatrixType::index_type,
           typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> fill_random_matrix(
@@ -231,8 +231,9 @@ std::unique_ptr<MatrixType> fill_random_matrix(
  *
  * @return the unique pointer of MatrixType
  */
-template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+template <typename MatrixType = matrix::MultiVector<>,
+          typename NonzeroDistribution, typename ValueDistribution,
+          typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_matrix(
     size_type num_rows, size_type num_cols, NonzeroDistribution&& nonzero_dist,
     ValueDistribution&& value_dist, Engine&& engine,
@@ -264,15 +265,17 @@ std::unique_ptr<MatrixType> generate_random_matrix(
  * @param exec  executor where the matrix should be allocated
  * @param args  additional arguments for the matrix constructor
  *
- * @return the unique pointer of gko::matrix::Dense<ValueType>
+ * @return the unique pointer of gko::matrix::MultiVector<ValueType>
  */
 template <typename ValueType, typename ValueDistribution, typename Engine,
           typename... MatrixArgs>
-std::unique_ptr<gko::matrix::Dense<ValueType>> generate_random_dense_matrix(
-    size_type num_rows, size_type num_cols, ValueDistribution&& value_dist,
-    Engine&& engine, std::shared_ptr<const Executor> exec, MatrixArgs&&... args)
+std::unique_ptr<gko::matrix::MultiVector<ValueType>>
+generate_random_dense_matrix(size_type num_rows, size_type num_cols,
+                             ValueDistribution&& value_dist, Engine&& engine,
+                             std::shared_ptr<const Executor> exec,
+                             MatrixArgs&&... args)
 {
-    auto result = gko::matrix::Dense<ValueType>::create(
+    auto result = gko::matrix::MultiVector<ValueType>::create(
         exec, gko::dim<2>{num_rows, num_cols},
         std::forward<MatrixArgs>(args)...);
     result->read(
@@ -406,8 +409,9 @@ matrix_data<ValueType, IndexType> generate_random_triangular_matrix_data(
  *
  * @return the unique pointer of MatrixType
  */
-template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+template <typename MatrixType = matrix::MultiVector<>,
+          typename NonzeroDistribution, typename ValueDistribution,
+          typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_triangular_matrix(
     size_type size, bool ones_on_diagonal, bool lower_triangular,
     NonzeroDistribution&& nonzero_dist, ValueDistribution&& value_dist,
@@ -447,8 +451,9 @@ std::unique_ptr<MatrixType> generate_random_triangular_matrix(
  *
  * @return the unique pointer of MatrixType
  */
-template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+template <typename MatrixType = matrix::MultiVector<>,
+          typename NonzeroDistribution, typename ValueDistribution,
+          typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
     size_type size, bool ones_on_diagonal, NonzeroDistribution&& nonzero_dist,
     ValueDistribution&& value_dist, Engine&& engine,
@@ -482,8 +487,9 @@ std::unique_ptr<MatrixType> generate_random_lower_triangular_matrix(
  *
  * @return the unique pointer of MatrixType
  */
-template <typename MatrixType = matrix::Dense<>, typename NonzeroDistribution,
-          typename ValueDistribution, typename Engine, typename... MatrixArgs>
+template <typename MatrixType = matrix::MultiVector<>,
+          typename NonzeroDistribution, typename ValueDistribution,
+          typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_upper_triangular_matrix(
     size_type size, bool ones_on_diagonal, NonzeroDistribution&& nonzero_dist,
     ValueDistribution&& value_dist, Engine&& engine,
@@ -546,8 +552,8 @@ matrix_data<ValueType, IndexType> generate_random_band_matrix_data(
  *
  * @return the unique pointer of MatrixType
  */
-template <typename MatrixType = matrix::Dense<>, typename ValueDistribution,
-          typename Engine, typename... MatrixArgs>
+template <typename MatrixType = matrix::MultiVector<>,
+          typename ValueDistribution, typename Engine, typename... MatrixArgs>
 std::unique_ptr<MatrixType> generate_random_band_matrix(
     size_type size, size_type lower_bandwidth, size_type upper_bandwidth,
     ValueDistribution&& value_dist, Engine&& engine,
