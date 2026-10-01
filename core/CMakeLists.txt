@@ -40,6 +40,7 @@ target_sources(
         base/memory.cpp
         base/mpi.cpp
         base/mtx_io.cpp
+        base/multivector.cpp
         base/perturbation.cpp
         base/precision.cpp
         base/segmented_array.cpp
