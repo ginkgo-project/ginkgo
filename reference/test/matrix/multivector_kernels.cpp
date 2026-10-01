@@ -198,11 +198,41 @@ TYPED_TEST(MultiVector, ScalesDataMixed)
 }
 
 
+TYPED_TEST(MultiVector, ScalesDataReal)
+{
+    using RealMtx = typename TestFixture::RealMtx;
+    using T = gko::to_real<typename TestFixture::value_type>;
+    auto alpha = gko::initialize<RealMtx>({I<T>{2.0, -2.0}}, this->exec);
+
+    this->mtx2->scale(alpha);
+
+    EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
+    EXPECT_EQ(this->mtx2->at(0, 1), T{2.0});
+    EXPECT_EQ(this->mtx2->at(1, 0), T{-4.0});
+    EXPECT_EQ(this->mtx2->at(1, 1), T{-4.0});
+}
+
+
 TYPED_TEST(MultiVector, InvScalesData)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::initialize<Mtx>({I<T>{0.5, -0.5}}, this->exec);
+
+    this->mtx2->inv_scale(alpha);
+
+    EXPECT_EQ(this->mtx2->at(0, 0), T{2.0});
+    EXPECT_EQ(this->mtx2->at(0, 1), T{2.0});
+    EXPECT_EQ(this->mtx2->at(1, 0), T{-4.0});
+    EXPECT_EQ(this->mtx2->at(1, 1), T{-4.0});
+}
+
+
+TYPED_TEST(MultiVector, InvScalesDataReal)
+{
+    using RealMtx = typename TestFixture::RealMtx;
+    using T = gko::to_real<typename TestFixture::value_type>;
+    auto alpha = gko::initialize<RealMtx>({I<T>{0.5, -0.5}}, this->exec);
 
     this->mtx2->inv_scale(alpha);
 
@@ -306,6 +336,26 @@ TYPED_TEST(MultiVector, AddsScaledMixed)
     auto mmtx3 = MixedMtx::create(this->exec);
     this->mtx3->convert_to(mmtx3);
     auto alpha = gko::initialize<MixedMtx>({{2.0, 1.0, -2.0}}, this->exec);
+    T in_stride{-1};
+    this->mtx1->get_values()[3] = in_stride;
+
+    this->mtx1->add_scaled(alpha, this->mtx3);
+
+    EXPECT_EQ(this->mtx1->at(0, 0), T{3.0});
+    EXPECT_EQ(this->mtx1->at(0, 1), T{4.0});
+    EXPECT_EQ(this->mtx1->at(0, 2), T{-3.0});
+    EXPECT_EQ(this->mtx1->at(1, 0), T{2.5});
+    EXPECT_EQ(this->mtx1->at(1, 1), T{4.0});
+    EXPECT_EQ(this->mtx1->at(1, 2), T{-1.5});
+    ASSERT_EQ(this->mtx1->get_values()[3], in_stride);
+}
+
+
+TYPED_TEST(MultiVector, AddsScaledReal)
+{
+    using RealMtx = typename TestFixture::RealMtx;
+    using T = gko::to_real<typename TestFixture::value_type>;
+    auto alpha = gko::initialize<RealMtx>({{2.0, 1.0, -2.0}}, this->exec);
     T in_stride{-1};
     this->mtx1->get_values()[3] = in_stride;
 
