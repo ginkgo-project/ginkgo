@@ -93,7 +93,7 @@ inline constexpr precision precision_v<std::complex<bfloat16>> =
 // True if the precision is complex or any
 constexpr bool is_complex(precision p)
 {
-    return p == precision::any ||
+    return static_cast<int>(p) == static_cast<int>(precision::any) ||
 #if GINKGO_ENABLE_HALF
            p == precision::complex_fp16 ||
 #endif
@@ -107,7 +107,7 @@ constexpr bool is_complex(precision p)
 // True if the precision is real or any
 constexpr bool is_real(precision p)
 {
-    return p == precision::any ||
+    return static_cast<int>(p) == static_cast<int>(precision::any) ||
 #if GINKGO_ENABLE_HALF
            p == precision::fp16 ||
 #endif
