@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <algorithm>
 #include <array>
 #include <memory>
 
@@ -18,6 +19,8 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
@@ -123,7 +126,7 @@ TYPED_TEST(Pgm, CanReGenerateFromDistributedMatrix)
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using global_index_type = typename TestFixture::global_index_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
-    auto pgm_factory = pgm::build().on(this->exec);
+    auto pgm_factory = pgm::build().with_updatable_values(true).on(this->exec);
     auto result = pgm_factory->generate(this->dist_mat);
     auto rank = this->comm.rank();
     gko::matrix_data<value_type, global_index_type> new_mat_input{
@@ -171,7 +174,9 @@ TYPED_TEST(Pgm, CanReGenerateFromDistributedMatrixWithSkipSorting)
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using global_index_type = typename TestFixture::global_index_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
-    auto pgm_factory = pgm::build().with_skip_sorting(true).on(this->exec);
+    auto pgm_factory =
+        pgm::build().with_skip_sorting(true).with_updatable_values(true).on(
+            this->exec);
     auto result = pgm_factory->generate(this->dist_mat);
     auto rank = this->comm.rank();
     gko::matrix_data<value_type, global_index_type> new_mat_input{
@@ -239,7 +244,7 @@ TYPED_TEST(Pgm, CanReGenerateFromBlockDiagonalDistributedMatrix)
     auto scaled_dist_mat =
         gko::share(dist_mtx_type::create(this->exec, this->comm));
     scaled_dist_mat->read_distributed(scaled_input, this->row_part);
-    auto pgm_factory = pgm::build().on(this->exec);
+    auto pgm_factory = pgm::build().with_updatable_values(true).on(this->exec);
     auto result = pgm_factory->generate(dist_mat);
     auto expected_diag = gko::clone(gko::as<local_matrix_type>(
         gko::as<dist_mtx_type>(result->get_coarse_op())->get_diag_matrix()));
@@ -255,4 +260,105 @@ TYPED_TEST(Pgm, CanReGenerateFromBlockDiagonalDistributedMatrix)
     ASSERT_EQ(gko::as<local_matrix_type>(coarse->get_off_diag_matrix())
                   ->get_num_stored_elements(),
               0);
+}
+
+
+// Multigrid::update_matrix_value has to work on a distributed hierarchy as
+// well: every level is updated in place and the smoothers and the coarsest
+// solver are regenerated on the updated operators.
+TYPED_TEST(Pgm, MultigridCanUpdateFromDistributedMatrix)
+{
+    using pgm = typename TestFixture::pgm;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
+    using global_index_type = typename TestFixture::global_index_type;
+    // scaling by a constant keeps the sparsity pattern and the aggregates
+    auto scaled_input = this->mat_input;
+    for (auto& entry : scaled_input.nonzeros) {
+        entry.value = entry.value * value_type{2};
+    }
+    auto scaled_mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    scaled_mat->read_distributed(scaled_input, this->row_part);
+    gko::matrix_data<value_type, global_index_type> b_data{gko::dim<2>{8, 1},
+                                                           {{0, 0, 1.0},
+                                                            {1, 0, -1.0},
+                                                            {2, 0, 2.0},
+                                                            {3, 0, 0.0},
+                                                            {4, 0, -2.0},
+                                                            {5, 0, 1.0},
+                                                            {6, 0, 3.0},
+                                                            {7, 0, -1.0}}};
+    auto b = dist_vec_type::create(this->exec, this->comm);
+    b->read_distributed(b_data, this->row_part);
+    auto x = dist_vec_type::create(this->exec, this->comm);
+    x->read_distributed(
+        gko::matrix_data<value_type, global_index_type>{gko::dim<2>{8, 1}},
+        this->row_part);
+    auto expected_x = gko::clone(x);
+    auto factory =
+        gko::solver::Multigrid::build()
+            .with_max_levels(1u)
+            .with_min_coarse_rows(2u)
+            .with_mg_level(pgm::build().with_updatable_values(true))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto solver = factory->generate(this->dist_mat);
+    auto expected_solver = factory->generate(scaled_mat);
+
+    solver->update_matrix_value(scaled_mat);
+    solver->apply(b, x);
+    expected_solver->apply(b, expected_x);
+
+    auto mg_level = solver->get_mg_level_list();
+    auto expected_mg_level = expected_solver->get_mg_level_list();
+    ASSERT_GT(mg_level.size(), 0);
+    ASSERT_EQ(mg_level.size(), expected_mg_level.size());
+    for (gko::size_type i = 0; i < mg_level.size(); i++) {
+        auto coarse = gko::as<dist_mtx_type>(mg_level.at(i)->get_coarse_op());
+        auto expected_coarse =
+            gko::as<dist_mtx_type>(expected_mg_level.at(i)->get_coarse_op());
+        GKO_ASSERT_MTX_NEAR(gko::as<typename TestFixture::local_matrix_type>(
+                                coarse->get_diag_matrix()),
+                            gko::as<typename TestFixture::local_matrix_type>(
+                                expected_coarse->get_diag_matrix()),
+                            r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(gko::as<typename TestFixture::local_matrix_type>(
+                                coarse->get_off_diag_matrix()),
+                            gko::as<typename TestFixture::local_matrix_type>(
+                                expected_coarse->get_off_diag_matrix()),
+                            r<value_type>::value);
+    }
+    GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected_x->get_local_vector(),
+                        r<value_type>::value * 50);
+}
+
+
+// The number of nonzeros is checked per rank, but a mismatch on a single rank
+// has to make every rank throw. Letting only the affected rank throw would
+// leave the others hanging in the next collective call.
+TYPED_TEST(Pgm, UpdateMatrixValueWithMismatchingNnzOnOneRankThrowsEverywhere)
+{
+    using pgm = typename TestFixture::pgm;
+    using value_type = typename TestFixture::value_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    auto pgm_factory = pgm::build().with_updatable_values(true).on(this->exec);
+    auto result = pgm_factory->generate(this->dist_mat);
+    // drop (2, 2), which lives on rank 1 only, so only that rank sees a
+    // different number of nonzeros
+    auto sparser_input = this->mat_input;
+    auto& nonzeros = sparser_input.nonzeros;
+    nonzeros.erase(
+        std::remove_if(nonzeros.begin(), nonzeros.end(),
+                       [](const auto& entry) {
+                           return entry.row == global_index_type{2} &&
+                                  entry.column == global_index_type{2};
+                       }),
+        nonzeros.end());
+    auto sparser_mat =
+        gko::share(dist_mtx_type::create(this->exec, this->comm));
+    sparser_mat->read_distributed(sparser_input, this->row_part);
+
+    ASSERT_THROW(result->update_matrix_value(sparser_mat), gko::ValueMismatch);
 }

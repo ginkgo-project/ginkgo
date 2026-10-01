@@ -346,9 +346,11 @@ TEST_F(Pgm, ReGenerateMgLevelIsEquivalentToRefOnScaledUnsortedMatrix)
     d_system_mtx = gko::clone(exec, system_mtx);
     auto mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
                                 .with_deterministic(true)
+                                .with_updatable_values(true)
                                 .on(ref);
     auto d_mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
                                   .with_deterministic(true)
+                                  .with_updatable_values(true)
                                   .on(exec);
 
     auto mg_level = mg_level_factory->generate(system_mtx);
@@ -372,9 +374,11 @@ TEST_F(Pgm, ReGenerateMgLevelIsEquivalentToRefOnDifferentUnsortedMatrix)
     d_system_mtx = gko::clone(exec, system_mtx);
     auto mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
                                 .with_deterministic(true)
+                                .with_updatable_values(true)
                                 .on(ref);
     auto d_mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
                                   .with_deterministic(true)
+                                  .with_updatable_values(true)
                                   .on(exec);
 
     auto mg_level = mg_level_factory->generate(system_mtx);

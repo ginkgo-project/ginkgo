@@ -128,6 +128,18 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
+
+        /**
+         * Whether update_matrix_value() can be used on the generated level.
+         *
+         * Updating the coarse values without recomputing the aggregates
+         * requires the mapping from the coarse to the fine nonzeros, which
+         * costs one additional index array of the size of the fine number of
+         * nonzeros per generated level. The mapping is only built, and kept,
+         * if this is set to `true`; otherwise update_matrix_value() throws
+         * NotSupported.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(updatable_values, false);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -150,6 +162,26 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
+    /**
+     * Recomputes the coarse operator from the values of a new system matrix,
+     * keeping the aggregates, the prolongation and the restriction operator
+     * of the current level.
+     *
+     * The coarse operator is updated in place, so everything that was handed
+     * out by get_coarse_op() before sees the new values afterwards, while
+     * anything generated from it (a smoother or a solver, for example) keeps
+     * working on the old values until it is regenerated. The same holds for
+     * copies of this level, which share the coarse operator.
+     *
+     * @param new_matrix  the new system matrix. It has to have the same
+     *                    dimensions, the same number of nonzeros and the same
+     *                    sparsity pattern as the matrix this level was
+     *                    generated with. Only the dimensions and the number
+     *                    of nonzeros are checked.
+     *
+     * @throw NotSupported  if the level was not generated with
+     *                      `updatable_values` set.
+     */
     void update_matrix_value(std::shared_ptr<const LinOp> new_matrix) override;
 
 protected:
@@ -196,28 +228,30 @@ protected:
         std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
 
     /**
-     * Converts the system matrix into a Csr with the current value type,
-     * sorting it unless skip_sorting is set, and stores it as the fine
-     * operator.
+     * Converts a system matrix into a Csr with the current value type,
+     * sorting it unless skip_sorting is set.
+     *
+     * The result is not stored, so that update_matrix_value() can convert
+     * before it decides whether the update is admissible.
+     *
+     * @param system_matrix  the matrix to convert
      *
      * @return the Csr fine operator
      */
     std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
-    setup_local_fine_op();
+    convert_local_fine_op(std::shared_ptr<const LinOp> system_matrix) const;
 
 #if GINKGO_BUILD_MPI
-    /** The distributed matrix types the fine operator can take. */
-    using fst_mtx_type =
-        experimental::distributed::Matrix<ValueType, IndexType, IndexType>;
-    using snd_mtx_type =
-        experimental::distributed::Matrix<ValueType, IndexType, int64>;
-
     /**
-     * Converts the distributed system matrix into one whose diagonal and
-     * off-diagonal blocks are Csr with the current value type, and stores it
-     * as the fine operator.
+     * Converts a distributed system matrix into one whose diagonal and
+     * off-diagonal blocks are Csr with the current value type.
+     *
+     * @param system_matrix  the matrix to convert
+     *
+     * @return the distributed fine operator
      */
-    void setup_distributed_fine_op();
+    std::shared_ptr<const LinOp> convert_distributed_fine_op(
+        std::shared_ptr<const LinOp> system_matrix) const;
 
     /**
      * Communicates the off-diag aggregates (as global indices)
