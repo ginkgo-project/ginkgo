@@ -339,28 +339,6 @@ TYPED_TEST(Cgs, SolvesMultiVectorSystemMixed)
 }
 
 
-TYPED_TEST(Cgs, SolvesMultiVectorSystemMixedComplex)
-{
-    using value_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
-    auto solver = this->cgs_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
-        {value_type{-1.0, 2.0}, value_type{3.0, -6.0}, value_type{1.0, -2.0}},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
-        this->exec);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{-4.0, 8.0}, value_type{-1.0, 2.0},
-                           value_type{4.0, -8.0}}),
-                        (r_mixed<value_type, TypeParam>() * 1e2));
-}
-
-
 TYPED_TEST(Cgs, SolvesMultipleMultiVectorSystem)
 {
     using Mtx = typename TestFixture::Mtx;

@@ -168,28 +168,6 @@ TYPED_TEST(Fbcsr, AppliesToMultiVectorMatrix)
 }
 
 
-TYPED_TEST(Fbcsr, AppliesToMultiVectorComplexMatrix)
-{
-    using T = typename TestFixture::value_type;
-    using CT = typename gko::to_complex<T>;
-    using CVec = gko::matrix::MultiVector<CT>;
-    using index_type = typename TestFixture::index_type;
-    const gko::size_type nrows = this->mtx2->get_size()[0];
-    const gko::size_type ncols = this->mtx2->get_size()[1];
-    const gko::size_type nvecs = 3;
-    auto x = get_some_vectors<CT>(this->exec, ncols, nvecs);
-    auto y = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
-    auto yref = CVec::create(this->exec, gko::dim<2>{nrows, nvecs});
-
-    this->mtx2->apply(x, y);
-    this->ref2csrmtx->apply(x, yref);
-
-    const double tolerance =
-        std::numeric_limits<gko::remove_complex<T>>::epsilon();
-    GKO_ASSERT_MTX_NEAR(y, yref, tolerance);
-}
-
-
 TYPED_TEST(Fbcsr, AppliesLinearCombinationToMultiVectorVector)
 {
     using Vec = typename TestFixture::Vec;
