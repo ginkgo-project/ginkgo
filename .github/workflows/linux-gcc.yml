@@ -10,7 +10,7 @@ on:
     tags:
       - '**'
   pull_request:
-    types: [opened,synchronize,labeled]
+    types: [opened,synchronize]
     paths-ignore:
       - 'doc/**'
   workflow_dispatch:
@@ -21,22 +21,11 @@ on:
         default: false
 
 concurrency:
-  # runs for labels that don't start the full test get their own group,
-  # so that they don't cancel running builds
-  group: >-
-    ${{ github.workflow }}-${{ (github.head_ref && (github.event.action != 'labeled'
-    || (github.event.label.name == '1:ST:ready-to-merge' && !contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
-    || (github.event.label.name == '1:ST:run-full-test' && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')))
-    && github.ref) || github.run_id }}
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   linux-omp-mpi:
-    # runs on all pull requests, but of the label events only on adding a full-test label
-    if: >-
-      github.event.action != 'labeled'
-      || (github.event.label.name == '1:ST:ready-to-merge' && !contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
-      || (github.event.label.name == '1:ST:run-full-test' && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge'))
     strategy:
       fail-fast: false
       matrix:
