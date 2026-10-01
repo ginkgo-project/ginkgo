@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -21,6 +22,7 @@ template <typename T>
 class ResidualNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::MultiVector<T>;
+    using Dense = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
     using ValueType = T;
 
@@ -74,13 +76,17 @@ TYPED_TEST(ResidualNorm, CanCreateFactory)
 TYPED_TEST(ResidualNorm, CheckIfResZeroConverges)
 {
     using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using NormVector = typename TestFixture::NormVector;
     using T = typename TestFixture::ValueType;
     using gko::stop::mode;
-    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Mtx>({1.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({0.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> x = gko::initialize<Mtx>({0.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> res_norm =
+    std::shared_ptr<gko::LinOp> mtx =
+        gko::initialize<Dense>({1.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({0.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> x =
+        gko::initialize<Mtx>({0.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> res_norm =
         gko::initialize<NormVector>({0.0}, this->exec_);
 
     for (auto baseline :
@@ -123,7 +129,7 @@ TYPED_TEST(ResidualNorm, CannotCreateCriterionWithoutNeededInput)
 TYPED_TEST(ResidualNorm, CanCreateCriterionWithNeededInput)
 {
     using Mtx = typename TestFixture::Mtx;
-    std::shared_ptr<gko::LinOp> scalar =
+    std::shared_ptr<gko::AbstractMultiVector> scalar =
         gko::initialize<Mtx>({1.0}, this->exec_);
     auto rhs_criterion =
         this->rhs_factory_->generate(nullptr, scalar, nullptr, nullptr);
@@ -141,7 +147,7 @@ TYPED_TEST(ResidualNorm, CanCreateCriterionWithNeededInput)
 TYPED_TEST(ResidualNorm, CanIgorneResidualNorm)
 {
     using Mtx = typename TestFixture::Mtx;
-    std::shared_ptr<gko::LinOp> scalar =
+    std::shared_ptr<gko::AbstractMultiVector> scalar =
         gko::initialize<Mtx>({1.0}, this->exec_);
     auto criterion =
         this->rhs_factory_->generate(nullptr, scalar, nullptr, nullptr);
@@ -164,7 +170,8 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoal)
     using NormVector = typename TestFixture::NormVector;
     using T_nc = gko::remove_complex<TypeParam>;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({10.0}, this->exec_);
     auto rhs_criterion =
         this->rhs_factory_->generate(nullptr, rhs, nullptr, initial_res.get());
     auto rel_criterion =
@@ -252,7 +259,7 @@ TYPED_TEST(ResidualNorm, SelfCalculatesThrowWithoutMatrix)
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
 
     T rhs_val = 10.0;
-    std::shared_ptr<gko::LinOp> rhs =
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
         gko::initialize<Mtx>({rhs_val}, this->exec_);
     auto rhs_criterion =
         this->rhs_factory_->generate(nullptr, rhs, nullptr, initial_res.get());
@@ -328,14 +335,15 @@ TYPED_TEST(ResidualNorm, RelativeSelfCalculatesThrowWithoutRhs)
 TYPED_TEST(ResidualNorm, SelfCalculatesAndWaitsTillResidualGoal)
 {
     using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using NormVector = typename TestFixture::NormVector;
     using T = TypeParam;
     using T_nc = gko::remove_complex<TypeParam>;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
-    auto system_mtx = share(gko::initialize<Mtx>({1.0}, this->exec_));
+    auto system_mtx = share(gko::initialize<Dense>({1.0}, this->exec_));
 
     T rhs_val = 10.0;
-    std::shared_ptr<gko::LinOp> rhs =
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
         gko::initialize<Mtx>({rhs_val}, this->exec_);
     auto rhs_criterion = this->rhs_factory_->generate(system_mtx, rhs, nullptr,
                                                       initial_res.get());
@@ -425,7 +433,7 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoalMultipleRHS)
     using T = TypeParam;
     using T_nc = gko::remove_complex<TypeParam>;
     auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs =
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
         gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
     auto rhs_criterion =
         this->rhs_factory_->generate(nullptr, rhs, nullptr, res.get());
@@ -517,7 +525,8 @@ TYPED_TEST(ResidualNorm, WorksWithMinIterationCount)
     using NormVector = typename TestFixture::NormVector;
     using T_nc = gko::remove_complex<TypeParam>;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({10.0}, this->exec_);
     auto min_factory = gko::stop::min_iters(
                            10, gko::stop::ResidualNorm<TypeParam>::build()
                                    .with_baseline(gko::stop::mode::absolute)
@@ -576,7 +585,8 @@ TYPED_TEST(ResidualNorm, SimplifiedInterface)
     using NormVector = typename TestFixture::NormVector;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
     auto initial_guess = gko::initialize<Mtx>({1000.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({10.0}, this->exec_);
 
     auto factory_abs = gko::stop::absolute_residual_norm(0.5).on(this->exec_);
     auto factory_rel = gko::stop::relative_residual_norm(0.5).on(this->exec_);
@@ -608,6 +618,7 @@ template <typename T>
 class ResidualNormWithInitialResnorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::MultiVector<T>;
+    using Dense = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
 
     ResidualNormWithInitialResnorm()
@@ -631,9 +642,13 @@ TYPED_TEST(ResidualNormWithInitialResnorm,
            CanCreateCriterionWithMtxRhsXWithoutInitialRes)
 {
     using Mtx = typename TestFixture::Mtx;
-    std::shared_ptr<gko::LinOp> x = gko::initialize<Mtx>({100.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Mtx>({1.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> b = gko::initialize<Mtx>({10.0}, this->exec_);
+    using Dense = typename TestFixture::Dense;
+    std::shared_ptr<gko::AbstractMultiVector> x =
+        gko::initialize<Mtx>({100.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> mtx =
+        gko::initialize<Dense>({1.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> b =
+        gko::initialize<Mtx>({10.0}, this->exec_);
 
     auto criterion = this->factory_->generate(mtx, b, x.get());
 
@@ -646,7 +661,8 @@ TYPED_TEST(ResidualNormWithInitialResnorm, WaitsTillResidualGoal)
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({10.0}, this->exec_);
     auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
     auto init_res_val = res_norm->at(0, 0);
     auto criterion =
@@ -678,14 +694,16 @@ TYPED_TEST(ResidualNormWithInitialResnorm,
 {
     using T = TypeParam;
     using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using NormVector = typename TestFixture::NormVector;
     T initial_res = 100;
     T rhs_val = 10;
-    std::shared_ptr<gko::LinOp> rhs =
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
         gko::initialize<Mtx>({rhs_val}, this->exec_);
     std::shared_ptr<Mtx> x =
         gko::initialize<Mtx>({rhs_val - initial_res}, this->exec_);
-    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Mtx>({1.0}, this->exec_);
+    std::shared_ptr<gko::LinOp> mtx =
+        gko::initialize<Dense>({1.0}, this->exec_);
 
     auto criterion = this->factory_->generate(mtx, rhs, x.get());
     bool one_changed{};
@@ -719,7 +737,7 @@ TYPED_TEST(ResidualNormWithInitialResnorm, WaitsTillResidualGoalMultipleRHS)
     auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
     auto res_norm =
         gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs =
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
         gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};
@@ -787,7 +805,7 @@ TYPED_TEST(ResidualNormWithRhsNorm, CannotCreateCriterionWithoutB)
 TYPED_TEST(ResidualNormWithRhsNorm, CanCreateCriterionWithB)
 {
     using Mtx = typename TestFixture::Mtx;
-    std::shared_ptr<gko::LinOp> scalar =
+    std::shared_ptr<gko::AbstractMultiVector> scalar =
         gko::initialize<Mtx>({1.0}, this->exec_);
     auto criterion =
         this->factory_->generate(nullptr, scalar, nullptr, nullptr);
@@ -803,7 +821,8 @@ TYPED_TEST(ResidualNormWithRhsNorm, WaitsTillResidualGoal)
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({10.0}, this->exec_);
     auto rhs_norm = gko::initialize<NormVector>({I<T_nc>{0.0}}, this->exec_);
     gko::as<Mtx>(rhs)->compute_norm2(rhs_norm);
     auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
@@ -840,7 +859,7 @@ TYPED_TEST(ResidualNormWithRhsNorm, WaitsTillResidualGoalMultipleRHS)
     auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
     auto res_norm =
         gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs =
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
         gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
     auto rhs_norm =
         gko::initialize<NormVector>({I<T_nc>{0.0, 0.0}}, this->exec_);
@@ -873,6 +892,7 @@ template <typename T>
 class ImplicitResidualNorm : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::MultiVector<T>;
+    using Dense = gko::matrix::Dense<T>;
     using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
     using ValueType = T;
 
@@ -922,12 +942,16 @@ TYPED_TEST(ImplicitResidualNorm, CanCreateFactory)
 TYPED_TEST(ImplicitResidualNorm, CheckIfResZeroConverges)
 {
     using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using T = typename TestFixture::ValueType;
     using gko::stop::mode;
-    std::shared_ptr<gko::LinOp> mtx = gko::initialize<Mtx>({1.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({0.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> x = gko::initialize<Mtx>({0.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> implicit_sq_res_norm =
+    std::shared_ptr<gko::LinOp> mtx =
+        gko::initialize<Dense>({1.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({0.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> x =
+        gko::initialize<Mtx>({0.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> implicit_sq_res_norm =
         gko::initialize<Mtx>({0.0}, this->exec_);
 
     for (auto baseline :
@@ -965,7 +989,7 @@ TYPED_TEST(ImplicitResidualNorm, CannotCreateCriterionWithoutBAndInitRes)
 TYPED_TEST(ImplicitResidualNorm, CanCreateCriterionWithB)
 {
     using Mtx = typename TestFixture::Mtx;
-    std::shared_ptr<gko::LinOp> scalar =
+    std::shared_ptr<gko::AbstractMultiVector> scalar =
         gko::initialize<Mtx>({1.0}, this->exec_);
     auto criterion =
         this->factory_->generate(nullptr, scalar, nullptr, nullptr);
@@ -991,7 +1015,8 @@ TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoal)
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({10.0}, this->exec_);
     auto res_norm = gko::initialize<Mtx>({100.0}, this->exec_);
     auto rhs_norm = gko::initialize<NormVector>({I<T_nc>{0.0}}, this->exec_);
     gko::as<Mtx>(rhs)->compute_norm2(rhs_norm);
@@ -1027,7 +1052,7 @@ TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
     using T_nc = gko::remove_complex<TypeParam>;
     auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
     auto res_norm = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs =
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
         gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
     auto rhs_norm =
         gko::initialize<NormVector>({I<T_nc>{0.0, 0.0}}, this->exec_);
@@ -1064,7 +1089,8 @@ TYPED_TEST(ImplicitResidualNorm, SimplifiedInterface)
     using NormVector = typename TestFixture::NormVector;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
     auto initial_guess = gko::initialize<Mtx>({1000.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({10.0}, this->exec_);
 
     auto factory_abs =
         gko::stop::absolute_implicit_residual_norm(0.5).on(this->exec_);
@@ -1137,7 +1163,7 @@ TYPED_TEST(ResidualNormWithAbsolute, CannotCreateCriterionWithoutB)
 TYPED_TEST(ResidualNormWithAbsolute, CanCreateCriterionWithB)
 {
     using Mtx = typename TestFixture::Mtx;
-    std::shared_ptr<gko::LinOp> scalar =
+    std::shared_ptr<gko::AbstractMultiVector> scalar =
         gko::initialize<Mtx>({1.0}, this->exec_);
     auto criterion =
         this->factory_->generate(nullptr, scalar, nullptr, nullptr);
@@ -1151,7 +1177,8 @@ TYPED_TEST(ResidualNormWithAbsolute, WaitsTillResidualGoal)
     using Mtx = typename TestFixture::Mtx;
     using NormVector = typename TestFixture::NormVector;
     auto initial_res = gko::initialize<Mtx>({100.0}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs = gko::initialize<Mtx>({10.0}, this->exec_);
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
+        gko::initialize<Mtx>({10.0}, this->exec_);
     auto res_norm = gko::initialize<NormVector>({100.0}, this->exec_);
     auto criterion =
         this->factory_->generate(nullptr, rhs, nullptr, initial_res.get());
@@ -1186,7 +1213,7 @@ TYPED_TEST(ResidualNormWithAbsolute, WaitsTillResidualGoalMultipleRHS)
     auto res = gko::initialize<Mtx>({I<T>{100.0, 100.0}}, this->exec_);
     auto res_norm =
         gko::initialize<NormVector>({I<T_nc>{100.0, 100.0}}, this->exec_);
-    std::shared_ptr<gko::LinOp> rhs =
+    std::shared_ptr<gko::AbstractMultiVector> rhs =
         gko::initialize<Mtx>({I<T>{10.0, 10.0}}, this->exec_);
     auto criterion = this->factory_->generate(nullptr, rhs, nullptr, res.get());
     bool one_changed{};

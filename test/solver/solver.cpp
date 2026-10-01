@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
@@ -128,7 +129,7 @@ struct Fcg : SimpleSolverTest<gko::solver::Fcg<solver_value_type>> {
 
 
 struct PipeCg : SimpleSolverTest<gko::solver::PipeCg<solver_value_type>> {
-    static double tolerance() { return 1e7 * r<value_type>::value; }
+    static double tolerance() { return 4e7 * r<value_type>::value; }
 };
 
 

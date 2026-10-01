@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -23,7 +24,7 @@ template <typename T>
 class Cg : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Cg<value_type>;
 
     Cg()

@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/composition.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
@@ -46,7 +47,8 @@ protected:
 template <typename T>
 class Composition : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::MultiVector<T>;
+    using Vec = gko::matrix::MultiVector<T>;
+    using Mtx = gko::matrix::Dense<T>;
     using value_type = T;
 
     Composition() : exec{gko::ReferenceExecutor::create()}
@@ -67,7 +69,7 @@ protected:
     }
 
     std::shared_ptr<const gko::Executor> exec;
-    std::vector<std::shared_ptr<gko::LinOp>> coefficients;
+    std::vector<std::shared_ptr<Vec>> coefficients;
     std::vector<std::shared_ptr<gko::LinOp>> operators;
     std::shared_ptr<Mtx> identity;
     std::shared_ptr<Mtx> product;
@@ -82,9 +84,9 @@ TYPED_TEST(Composition, AppliesSingleToVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -99,10 +101,10 @@ TYPED_TEST(Composition, AppliesSingleToMixedVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using Mtx = gko::matrix::MultiVector<gko::next_precision<TypeParam>>;
-    using value_type = typename Mtx::value_type;
+    using Vec = gko::matrix::MultiVector<gko::next_precision<TypeParam>>;
+    using value_type = typename Vec::value_type;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -119,9 +121,9 @@ TYPED_TEST(Composition, AppliesSingleToComplexVector)
               [ 27 26 ]
     */
     using value_type = gko::to_complex<TypeParam>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto x = gko::initialize<Mtx>(
+    auto x = gko::initialize<Vec>(
         {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
     auto res = clone(x);
 
@@ -133,38 +135,17 @@ TYPED_TEST(Composition, AppliesSingleToComplexVector)
 }
 
 
-TYPED_TEST(Composition, AppliesSingleToMixedComplexVector)
-{
-    /*
-        cmp = [ -9 -2 ]
-              [ 27 26 ]
-    */
-    using value_type = gko::next_precision<gko::to_complex<TypeParam>>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
-    auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto x = gko::initialize<Mtx>(
-        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
-    auto res = clone(x);
-
-    cmp->apply(x, res);
-
-    GKO_ASSERT_MTX_NEAR(res,
-                        l({value_type{-13.0, 26.0}, value_type{79.0, -158.0}}),
-                        (r_mixed<value_type, TypeParam>()));
-}
-
-
 TYPED_TEST(Composition, AppliesSingleLinearCombinationToVector)
 {
     /*
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(alpha, x, beta, res);
@@ -180,11 +161,11 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedVector)
               [ 27 26 ]
     */
     using value_type = gko::next_precision<TypeParam>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(alpha, x, beta, res);
@@ -200,7 +181,7 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToComplexVector)
         cmp = [ -9 -2 ]
               [ 27 26 ]
     */
-    using MultiVector = typename TestFixture::Mtx;
+    using MultiVector = typename TestFixture::Vec;
     using MultiVectorComplex = gko::to_complex<MultiVector>;
     using value_type = typename MultiVectorComplex::value_type;
     auto cmp = gko::Composition<TypeParam>::create(this->product);
@@ -218,41 +199,16 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToComplexVector)
 }
 
 
-TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedComplexVector)
-{
-    /*
-        cmp = [ -9 -2 ]
-              [ 27 26 ]
-    */
-    using MixedMultiVector =
-        gko::matrix::MultiVector<gko::next_precision<TypeParam>>;
-    using MixedMultiVectorComplex = gko::to_complex<MixedMultiVector>;
-    using value_type = typename MixedMultiVectorComplex::value_type;
-    auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto alpha = gko::initialize<MixedMultiVector>({3.0}, this->exec);
-    auto beta = gko::initialize<MixedMultiVector>({-1.0}, this->exec);
-    auto x = gko::initialize<MixedMultiVectorComplex>(
-        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
-    auto res = clone(x);
-
-    cmp->apply(alpha, x, beta, res);
-
-    GKO_ASSERT_MTX_NEAR(res,
-                        l({value_type{-40.0, 80.0}, value_type{235.0, -470.0}}),
-                        (r_mixed<value_type, TypeParam>()));
-}
-
-
 TYPED_TEST(Composition, AppliesToVector)
 {
     /*
         cmp = [ 2 ] * [ 3 2 ]
               [ 1 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(this->operators[0],
                                                    this->operators[1]);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -267,12 +223,12 @@ TYPED_TEST(Composition, AppliesLinearCombinationToVector)
         cmp = [ 2 ] * [ 3 2 ]
               [ 1 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(this->operators[0],
                                                    this->operators[1]);
-    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(alpha, x, beta, res);
@@ -287,10 +243,10 @@ TYPED_TEST(Composition, AppliesLongerToVector)
         cmp = [ 2 ] * [ 3 2 ] * [ -9  -2 ]
               [ 1 ]             [ 27  26 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(
         this->operators[0], this->operators[1], this->product);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -305,12 +261,12 @@ TYPED_TEST(Composition, AppliesLongerLinearCombinationToVector)
         cmp = [ 2 ] * [ 3 2 ] * [ -9  -2 ]
               [ 1 ]             [ 27  26 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(
         this->operators[0], this->operators[1], this->product);
-    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(alpha, x, beta, res);
@@ -326,10 +282,10 @@ TYPED_TEST(Composition, AppliesLongestToVector)
               [ 1 ]             [  5 -3  0 ]   [  6 -2 ]   [ 0 1 ]
                                                [ -3  2 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(this->operators.begin(),
                                                    this->operators.end());
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -345,12 +301,12 @@ TYPED_TEST(Composition, AppliesLongestLinearCombinationToVector)
               [ 1 ]             [  5 -3  0 ]   [  6 -2 ]   [ 0 1 ]
                                                [ -3  2 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(this->operators.begin(),
                                                    this->operators.end());
-    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto alpha = gko::initialize<Vec>({3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(alpha, x, beta, res);
@@ -366,10 +322,10 @@ TYPED_TEST(Composition, AppliesLongestToVectorMultipleRhs)
               [ 1 ]             [  5 -3  0 ]   [  6 -2 ]   [ 0 1 ]
                                                [ -3  2 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(this->operators.begin(),
                                                    this->operators.end());
-    auto x = clone(this->identity);
+    auto x = clone(this->identity->as_multivector_view());
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -386,12 +342,12 @@ TYPED_TEST(Composition, AppliesLongestLinearCombinationToVectorMultipleRhs)
               [ 1 ]             [  5 -3  0 ]   [  6 -2 ]   [ 0 1 ]
                                                [ -3  2 ]
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     auto cmp = gko::Composition<TypeParam>::create(this->operators.begin(),
                                                    this->operators.end());
-    auto alpha = gko::initialize<Mtx>({3.0}, this->exec);
-    auto beta = gko::initialize<Mtx>({-1.0}, this->exec);
-    auto x = clone(this->identity);
+    auto alpha = gko::initialize<Vec>({3.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto x = clone(this->identity->as_multivector_view());
     auto res = clone(x);
 
     cmp->apply(alpha, x, beta, res);
@@ -406,13 +362,13 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess)
     /*
         cmp = I * DummyLinOp * I
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto cmp = gko::Composition<TypeParam>::create(
         this->identity,
         DummyLinOp<value_type>::create(this->exec, this->identity->get_size()),
         this->identity);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -426,14 +382,14 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess2)
     /*
         cmp = I * DummyLinOp(2x3) * DummyLinOp(3x2) * I
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto size1 = gko::dim<2>(3, 2);
     auto size2 = gko::dim<2>(2, 3);
     auto cmp = gko::Composition<TypeParam>::create(
         this->identity, DummyLinOp<value_type>::create(this->exec, size2),
         DummyLinOp<value_type>::create(this->exec, size1), this->identity);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -447,12 +403,12 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess3)
     /*
         cmp = I * DummyLinOp
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto cmp = gko::Composition<TypeParam>::create(
         DummyLinOp<value_type>::create(this->exec, this->identity->get_size()),
         this->identity);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -466,14 +422,14 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess4)
     /*
         cmp = I * DummyLinOp(2x3) * DummyLinOp(3x2)
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto size1 = gko::dim<2>(3, 2);
     auto size2 = gko::dim<2>(2, 3);
     auto cmp = gko::Composition<TypeParam>::create(
         this->identity, DummyLinOp<value_type>::create(this->exec, size2),
         DummyLinOp<value_type>::create(this->exec, size1));
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);
@@ -487,14 +443,14 @@ TYPED_TEST(Composition, AppliesToVectorWithInitialGuess5)
     /*
         cmp = DummyLinOp(2x3) * DummyLinOp(3x2) * I
     */
-    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
     auto size1 = gko::dim<2>(3, 2);
     auto size2 = gko::dim<2>(2, 3);
     auto cmp = gko::Composition<TypeParam>::create(
         DummyLinOp<value_type>::create(this->exec, size2),
         DummyLinOp<value_type>::create(this->exec, size1), this->identity);
-    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto x = gko::initialize<Vec>({1.0, 2.0}, this->exec);
     auto res = clone(x);
 
     cmp->apply(x, res);

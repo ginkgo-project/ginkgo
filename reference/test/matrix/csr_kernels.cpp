@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
@@ -47,6 +48,7 @@ protected:
     using Hybrid = gko::matrix::Hybrid<value_type, index_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
     using MixedVec = gko::matrix::MultiVector<gko::next_precision<value_type>>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Perm = gko::matrix::Permutation<index_type>;
     using ScaledPerm = gko::matrix::ScaledPermutation<value_type, index_type>;
 
@@ -675,7 +677,7 @@ TYPED_TEST(Csr, MixedAppliesLinearCombinationToMultiVectorMatrix3)
 TYPED_TEST(Csr, AppliesToCsrMatrix)
 {
     using T = typename TestFixture::value_type;
-    this->mtx->apply(this->mtx3_unsorted, this->mtx2);
+    this->mtx2 = this->mtx->multiply(this->mtx3_unsorted);
 
     ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
@@ -776,7 +778,8 @@ TYPED_TEST(Csr, AppliesLinearCombinationToCsrMatrix)
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
 
-    this->mtx->apply(alpha, this->mtx3_unsorted, beta, this->mtx2);
+    this->mtx2 =
+        this->mtx->multiply_add(alpha, this->mtx3_unsorted, beta, this->mtx2);
 
     ASSERT_EQ(this->mtx2->get_size(), gko::dim<2>(2, 3));
     ASSERT_EQ(this->mtx2->get_num_stored_elements(), 6);
@@ -912,7 +915,7 @@ TYPED_TEST(Csr, AppliesLinearCombinationToIdentityMatrix)
         this->exec);
     auto id = gko::matrix::Identity<T>::create(this->exec, a->get_size()[1]);
 
-    a->apply(alpha, id, beta, b);
+    b = a->scale_add(alpha, beta, b);
 
     GKO_ASSERT_MTX_NEAR(b, expect, r<T>::value);
     GKO_ASSERT_MTX_EQ_SPARSITY(b, expect);
@@ -1200,11 +1203,11 @@ TYPED_TEST(Csr, MovesToPrecision)
 }
 
 
-TYPED_TEST(Csr, ConvertsToMultiVector)
+TYPED_TEST(Csr, ConvertsToDense)
 {
-    using MultiVector = typename TestFixture::Vec;
-    auto dense_mtx = MultiVector::create(this->mtx->get_executor());
-    auto dense_other = gko::initialize<MultiVector>(
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    auto dense_other = gko::initialize<Dense>(
         4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
 
     this->mtx->convert_to(dense_mtx);
@@ -1213,11 +1216,11 @@ TYPED_TEST(Csr, ConvertsToMultiVector)
 }
 
 
-TYPED_TEST(Csr, MovesToMultiVector)
+TYPED_TEST(Csr, MovesToDense)
 {
-    using MultiVector = typename TestFixture::Vec;
-    auto dense_mtx = MultiVector::create(this->mtx->get_executor());
-    auto dense_other = gko::initialize<MultiVector>(
+    using Dense = typename TestFixture::Dense;
+    auto dense_mtx = Dense::create(this->mtx->get_executor());
+    auto dense_other = gko::initialize<Dense>(
         4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, this->exec);
 
     this->mtx->move_to(dense_mtx);
@@ -1390,13 +1393,12 @@ TYPED_TEST(Csr, MovesEmptyToPrecision)
 }
 
 
-TYPED_TEST(Csr, ConvertsEmptyToMultiVector)
+TYPED_TEST(Csr, ConvertsEmptyToDense)
 {
-    using ValueType = typename TestFixture::value_type;
     using Csr = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = typename TestFixture::Dense;
     auto empty = Csr::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->convert_to(res);
 
@@ -1404,13 +1406,12 @@ TYPED_TEST(Csr, ConvertsEmptyToMultiVector)
 }
 
 
-TYPED_TEST(Csr, MovesEmptyToMultiVector)
+TYPED_TEST(Csr, MovesEmptyToDense)
 {
-    using ValueType = typename TestFixture::value_type;
     using Csr = typename TestFixture::Mtx;
-    using MultiVector = gko::matrix::MultiVector<ValueType>;
+    using Dense = typename TestFixture::Dense;
     auto empty = Csr::create(this->exec);
-    auto res = MultiVector::create(this->exec);
+    auto res = Dense::create(this->exec);
 
     empty->move_to(res);
 
@@ -1696,13 +1697,12 @@ std::unique_ptr<gko::matrix::Csr<ValueType, IndexType>> ref_permute(
         permutation, (mode & permute_mode::inverse) == permute_mode::inverse);
     if ((mode & permute_mode::rows) == permute_mode::rows) {
         // compute P * A
-        permutation_csr->apply(input, result);
+        result = permutation_csr->multiply(input);
     }
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         // compute A * P^T = (P * A^T)^T
-        auto tmp = result->transpose();
-        auto tmp2 = gko::as<Csr>(gko::as<gko::Cloneable>(tmp.get())->clone());
-        permutation_csr->apply(tmp, tmp2);
+        auto tmp = gko::as<Csr>(result->transpose());
+        auto tmp2 = permutation_csr->multiply(tmp);
         result = gko::as<Csr>(tmp2->transpose());
     }
     return result;
@@ -1716,15 +1716,13 @@ std::unique_ptr<gko::matrix::Csr<ValueType, IndexType>> ref_permute(
 {
     using gko::matrix::permute_mode;
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
-    auto result = input->clone();
     auto row_permutation_csr =
         csr_from_permutation<ValueType>(row_permutation, invert);
     auto col_permutation_csr =
         csr_from_permutation<ValueType>(col_permutation, invert);
-    row_permutation_csr->apply(input, result);
-    auto tmp = result->transpose();
-    auto tmp2 = gko::as<Csr>(gko::as<gko::Cloneable>(tmp.get())->clone());
-    col_permutation_csr->apply(tmp, tmp2);
+    auto result = row_permutation_csr->multiply(input);
+    auto tmp = gko::as<Csr>(result->transpose());
+    auto tmp2 = col_permutation_csr->multiply(tmp);
     return gko::as<Csr>(tmp2->transpose());
 }
 

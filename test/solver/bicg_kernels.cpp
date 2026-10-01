@@ -25,12 +25,13 @@
 class Bicg : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
 
     Bicg() : rand_engine(30)
     {
         std::string file_name(gko::matrices::location_ani1_mtx);
         auto input_file = std::ifstream(file_name, std::ios::in);
-        mtx_ani = gko::read<Mtx>(input_file, ref);
+        mtx_ani = gko::read<Dense>(input_file, ref);
         d_mtx_ani = gko::clone(exec, mtx_ani.get());
     }
 
@@ -105,7 +106,7 @@ protected:
     std::unique_ptr<Mtx> beta;
     std::unique_ptr<Mtx> prev_rho;
     std::unique_ptr<Mtx> rho;
-    std::shared_ptr<Mtx> mtx_ani;
+    std::shared_ptr<Dense> mtx_ani;
     gko::array<gko::stopping_status> stop_status;
 
     std::unique_ptr<Mtx> d_b;
@@ -121,7 +122,7 @@ protected:
     std::unique_ptr<Mtx> d_beta;
     std::unique_ptr<Mtx> d_prev_rho;
     std::unique_ptr<Mtx> d_rho;
-    std::shared_ptr<Mtx> d_mtx_ani;
+    std::shared_ptr<Dense> d_mtx_ani;
     gko::array<gko::stopping_status> d_stop_status;
 };
 
@@ -210,7 +211,7 @@ TEST_F(Bicg, ApplyWithSpdMatrixIsEquivalentToRef)
         gko::dim<2>{50, 50}, std::normal_distribution<value_type>(-1.0, 1.0),
         rand_engine);
     gko::utils::make_hpd(data);
-    auto mtx = Mtx::create(ref, data.size, 53);
+    auto mtx = Dense::create(ref, data.size, 53);
     mtx->read(data);
     auto x = gen_mtx(50, 3, 5);
     auto b = gen_mtx(50, 3, 4);

@@ -31,7 +31,7 @@
 
 class FixedCoarsening : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
     FixedCoarsening() : rand_engine(30), m{597} {}

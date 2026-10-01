@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/extended_float.hpp"
