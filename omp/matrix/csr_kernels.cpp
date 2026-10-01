@@ -1131,7 +1131,6 @@ void compute_submatrix_from_index_set(
     const auto src_col_idxs = source->get_const_col_idxs();
     const auto src_values = source->get_const_values();
 
-#pragma unroll
     for (size_type set = 0; set < num_row_subsets; ++set) {
         for (auto row = row_subset_begin[set]; row < row_subset_end[set];
              ++row) {
