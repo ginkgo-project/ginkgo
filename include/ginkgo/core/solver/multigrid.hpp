@@ -144,7 +144,7 @@ class Multigrid : public LinOp,
                   public EnableSolverBase<Multigrid>,
                   public EnableIterativeBase<Multigrid>,
                   public EnableApplyWithInitialGuess<Multigrid>,
-                  public UpdateMatrixValue {
+                  public gko::multigrid::UpdateMatrixValue {
     friend class EnableApplyWithInitialGuess<Multigrid>;
 
 public:
@@ -435,6 +435,31 @@ public:
                                  const config::type_descriptor& td_for_child =
                                      config::make_type_descriptor<>());
 
+    /**
+     * Updates the solver from the values of a new system matrix, keeping the
+     * multigrid hierarchy that was built from the old one.
+     *
+     * Every level is updated through
+     * gko::multigrid::UpdateMatrixValue::update_matrix_value(), and the
+     * smoothers and the coarsest solver are regenerated on the updated
+     * operators. The hierarchy itself (the aggregates, the prolongation and
+     * the restriction operators and the number of levels) is reused.
+     *
+     * The levels are updated in place, so a copy of this solver, which shares
+     * the levels, sees the new coarse operators but keeps its own, now stale,
+     * smoothers.
+     *
+     * The update is rejected before any state is changed if the hierarchy is
+     * empty, if the new matrix does not match the current one in size, or if
+     * any level does not implement gko::multigrid::UpdateMatrixValue.
+     *
+     * @param new_matrix  the new system matrix. It has to have the same
+     *                    dimensions and sparsity pattern as the matrix this
+     *                    solver was generated with.
+     *
+     * @throw NotSupported  if any level of the hierarchy does not support
+     *                      value-only updates.
+     */
     void update_matrix_value(
         std::shared_ptr<const gko::LinOp> new_matrix) override;
 
@@ -460,6 +485,41 @@ protected:
      * hand side needed for the level solver.
      */
     void generate();
+
+    /**
+     * Generates the smoothers of one level and appends them to the given
+     * lists. Shared by generate() and update_matrix_value().
+     *
+     * @param mg_level  the level to generate the smoothers for
+     * @param index  the index into the smoother lists of the parameters, as
+     *               returned by the level selector
+     * @param pre_smoother_list  the list the pre smoother is appended to
+     * @param mid_smoother_list  the list the mid smoother is appended to, if
+     *                           the mid smoother is standalone
+     * @param post_smoother_list  the list the post smoother is appended to,
+     *                            unless the post smoother reuses the pre one
+     */
+    void generate_smoothers(
+        std::shared_ptr<const gko::multigrid::MultigridLevel> mg_level,
+        size_type index,
+        std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
+        std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
+        std::vector<std::shared_ptr<const LinOp>>& post_smoother_list);
+
+    /**
+     * Generates the solver for the coarsest level. Shared by generate() and
+     * update_matrix_value().
+     *
+     * @param last_mg_level  the coarsest level, which gives the value type to
+     *                       dispatch on
+     * @param level  the number of levels, passed to the solver selector
+     * @param matrix  the coarsest operator
+     *
+     * @return the coarsest solver
+     */
+    std::unique_ptr<LinOp> generate_coarsest_solver(
+        std::shared_ptr<const gko::multigrid::MultigridLevel> last_mg_level,
+        size_type level, std::shared_ptr<const LinOp> matrix);
 
     explicit Multigrid(std::shared_ptr<const Executor> exec);
 

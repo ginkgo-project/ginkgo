@@ -50,6 +50,12 @@ protected:
                           .with_max_unassigned_ratio(0.1)
                           .with_skip_sorting(true)
                           .on(exec)),
+          updatable_pgm_factory(MgLevel::build()
+                                    .with_max_iterations(2u)
+                                    .with_max_unassigned_ratio(0.1)
+                                    .with_skip_sorting(true)
+                                    .with_updatable_values(true)
+                                    .on(exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
                           gko::matrix::csr::spmv_strategy::classical)),
           weight(WeightMtx::create(exec, gko::dim<2>(5, 5), 15,
@@ -183,6 +189,7 @@ protected:
     std::shared_ptr<Vec> prolong_applyans;
     std::shared_ptr<Vec> fine_x;
     std::unique_ptr<typename MgLevel::Factory> pgm_factory;
+    std::unique_ptr<typename MgLevel::Factory> updatable_pgm_factory;
     std::unique_ptr<MgLevel> mg_level;
 };
 
@@ -457,13 +464,90 @@ TYPED_TEST(Pgm, GenerateMgLevel)
 }
 
 
+// Keeping the coarse-to-fine mapping costs memory, so it is opt-in. Without
+// it there is nothing to update from.
+TYPED_TEST(Pgm, UpdateMatrixValueWithoutUpdatableValuesThrows)
+{
+    auto coarse_fine = this->pgm_factory->generate(this->mtx);
+
+    ASSERT_THROW(coarse_fine->update_matrix_value(this->mtx),
+                 gko::NotSupported);
+}
+
+
+// The mapping has one entry per fine nonzero, so a matrix with a different
+// number of nonzeros can not be mapped onto the existing coarse operator.
+TYPED_TEST(Pgm, UpdateMatrixValueWithMismatchingNnzThrows)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
+    // same 5x5 size, but one nonzero less than this->mtx
+    auto sparser = gko::share(Mtx::create(this->exec));
+    sparser->read({{5, 5},
+                   {{0, 0, 5},
+                    {0, 1, -3},
+                    {0, 2, -3},
+                    {1, 0, -3},
+                    {1, 1, 5},
+                    {1, 3, -2},
+                    {1, 4, -1},
+                    {2, 0, -3},
+                    {2, 2, 5},
+                    {2, 4, -1},
+                    {3, 1, -3},
+                    {3, 3, 5},
+                    {4, 1, -2},
+                    {4, 4, 5}}});
+
+    ASSERT_THROW(coarse_fine->update_matrix_value(sparser), gko::ValueMismatch);
+}
+
+
+// A rejected update must not leave the level half-way updated: the coarse
+// operator, the fine operator and the system matrix all have to be the ones
+// the level was generated with.
+TYPED_TEST(Pgm, UpdateMatrixValueLeavesStateUntouchedOnError)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
+    auto original_coarse =
+        gko::clone(gko::as<Mtx>(coarse_fine->get_coarse_op()));
+    auto sparser = gko::share(Mtx::create(this->exec));
+    sparser->read({{5, 5},
+                   {{0, 0, 5},
+                    {0, 1, -3},
+                    {0, 2, -3},
+                    {1, 0, -3},
+                    {1, 1, 5},
+                    {1, 3, -2},
+                    {1, 4, -1},
+                    {2, 0, -3},
+                    {2, 2, 5},
+                    {2, 4, -1},
+                    {3, 1, -3},
+                    {3, 3, 5},
+                    {4, 1, -2},
+                    {4, 4, 5}}});
+
+    ASSERT_THROW(coarse_fine->update_matrix_value(sparser), gko::ValueMismatch);
+
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
+                        original_coarse, 0.0);
+    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_fine_op()), this->mtx,
+                        0.0);
+    ASSERT_EQ(coarse_fine->get_system_matrix().get(),
+              static_cast<const gko::LinOp*>(this->mtx.get()));
+}
+
+
 // EnableMultigridLevel::set_fine_op rejects an operator whose dimensions
 // differ from the current fine operator, so the update inherits that check.
 TYPED_TEST(Pgm, UpdateMatrixValueWithMismatchingSizeThrows)
 {
     using Mtx = typename TestFixture::Mtx;
     // this->mtx is 5x5
-    auto coarse_fine = this->pgm_factory->generate(this->mtx);
+    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
     auto smaller = gko::share(Mtx::create(this->exec));
     smaller->read({{3, 3},
                    {{0, 0, 4},
@@ -492,7 +576,7 @@ TYPED_TEST(Pgm, ReGenerateMgLevelOnTheSameMatrix)
         {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
     auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
 
-    auto coarse_fine = this->pgm_factory->generate(this->mtx);
+    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
     coarse_fine->update_matrix_value(this->mtx);
     auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
     auto row_gather_view = gko::array<index_type>::const_view(
@@ -545,7 +629,7 @@ TYPED_TEST(Pgm, ReGenerateMgLevelOnTheDifferentMatrix)
     new_coarse_matrix->read(
         {{2, 2}, {{0, 0, 6}, {0, 1, -11}, {1, 0, -10}, {1, 1, 5}}});
 
-    auto coarse_fine = this->pgm_factory->generate(this->mtx);
+    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
     coarse_fine->update_matrix_value(new_matrix);
     auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
     auto row_gather_view = gko::array<index_type>::const_view(
@@ -588,6 +672,7 @@ TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
     auto mglevel_sort = MgLevel::build()
                             .with_max_iterations(2u)
                             .with_max_unassigned_ratio(0.1)
+                            .with_updatable_values(true)
                             .on(this->exec);
     /* this unsorted matrix is stored as this->fine:
      *  5 -3 -3  0  0
@@ -637,6 +722,7 @@ TYPED_TEST(Pgm, ReGenerateMgLevelOnDifferentUnsortedMatrix)
     auto mglevel_sort = MgLevel::build()
                             .with_max_iterations(2u)
                             .with_max_unassigned_ratio(0.1)
+                            .with_updatable_values(true)
                             .on(this->exec);
     /* this unsorted matrix is stored as this->fine:
      *  5 -3 -3  0  0

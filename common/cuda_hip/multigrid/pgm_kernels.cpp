@@ -82,9 +82,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
-                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals,
-                    IndexType* mapping_cols)
+void sort_row_major_with_mapping(std::shared_ptr<const DefaultExecutor> exec,
+                                 size_type nnz, IndexType* row_idxs,
+                                 IndexType* col_idxs, ValueType* vals,
+                                 IndexType* mapping_cols)
 {
     auto vals_it = thrust::make_zip_iterator(
         thrust::make_tuple(as_device_type(vals), mapping_cols));
@@ -94,7 +95,8 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
     thrust::stable_sort_by_key(thrust_policy(exec), it, it + nnz, vals_it);
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PGM_SORT_ROW_MAJOR_WITH_MAPPING);
 
 
 template <typename ValueType, typename IndexType>
@@ -104,28 +106,39 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         matrix::view::coo<ValueType, IndexType> coarse_coo,
                         IndexType* mapping_rows)
 {
-    auto vals_it = thrust::make_zip_iterator(thrust::make_tuple(
-        as_device_type(vals), thrust::make_constant_iterator<IndexType>(1)));
     // this const_cast is necessary as a workaround for CCCL bug
     // https://github.com/NVIDIA/cccl/issues/1527
     // shipped with CUDA 12.4
     auto key_it = thrust::make_zip_iterator(thrust::make_tuple(
         const_cast<IndexType*>(row_idxs), const_cast<IndexType*>(col_idxs)));
-
-    auto coarse_vals_it = thrust::make_zip_iterator(
-        thrust::make_tuple(as_device_type(coarse_coo.values), mapping_rows));
     auto coarse_key_it = thrust::make_zip_iterator(
         thrust::make_tuple(coarse_coo.row_idxs, coarse_coo.col_idxs));
 
-    thrust::reduce_by_key(
-        thrust_policy(exec), key_it, key_it + fine_nnz, vals_it, coarse_key_it,
-        coarse_vals_it,
-        [] __device__(const auto& lhs, const auto& rhs) { return lhs == rhs; },
-        [] __device__(const auto& lhs, const auto& rhs) {
-            return thrust::make_tuple(
-                thrust::get<0>(lhs) + thrust::get<0>(rhs),
-                thrust::get<1>(lhs) + thrust::get<1>(rhs));
-        });
+    if (mapping_rows) {
+        // additionally count how many fine nonzeros are reduced into each
+        // coarse nonzero by summing a constant one alongside the values
+        auto vals_it = thrust::make_zip_iterator(
+            thrust::make_tuple(as_device_type(vals),
+                               thrust::make_constant_iterator<IndexType>(1)));
+        auto coarse_vals_it = thrust::make_zip_iterator(thrust::make_tuple(
+            as_device_type(coarse_coo.values), mapping_rows));
+        thrust::reduce_by_key(
+            thrust_policy(exec), key_it, key_it + fine_nnz, vals_it,
+            coarse_key_it, coarse_vals_it,
+            [] __device__(const auto& lhs, const auto& rhs) {
+                return lhs == rhs;
+            },
+            [] __device__(const auto& lhs, const auto& rhs) {
+                return thrust::make_tuple(
+                    thrust::get<0>(lhs) + thrust::get<0>(rhs),
+                    thrust::get<1>(lhs) + thrust::get<1>(rhs));
+            });
+    } else {
+        auto vals_it = as_device_type(vals);
+        auto coarse_vals_it = as_device_type(coarse_coo.values);
+        thrust::reduce_by_key(thrust_policy(exec), key_it, key_it + fine_nnz,
+                              vals_it, coarse_key_it, coarse_vals_it);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
