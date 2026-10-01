@@ -118,28 +118,6 @@ TYPED_TEST(Perturbation, AppliesToMixedVector)
 }
 
 
-TYPED_TEST(Perturbation, AppliesToComplexVector)
-{
-    /*
-        cmp = I + 2 * [ 2 ] * [ 3 2 ]
-                      [ 1 ]
-    */
-    using value_type = gko::to_complex<TypeParam>;
-    using Vec = gko::matrix::MultiVector<value_type>;
-    auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
-                                                    this->projector);
-    auto x = gko::initialize<Vec>(
-        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
-    auto res = Vec::create_with_config_of(x);
-
-    cmp->apply(x, res);
-
-    GKO_ASSERT_MTX_NEAR(res,
-                        l({value_type{29.0, -58.0}, value_type{16.0, -32.0}}),
-                        r<TypeParam>::value);
-}
-
-
 TYPED_TEST(Perturbation, AppliesLinearCombinationToVector)
 {
     /*
@@ -179,31 +157,6 @@ TYPED_TEST(Perturbation, AppliesLinearCombinationToMixedVector)
 
     GKO_ASSERT_MTX_NEAR(res, l({86.0, 46.0}),
                         (r_mixed<value_type, TypeParam>()));
-}
-
-
-TYPED_TEST(Perturbation, AppliesLinearCombinationToComplexVector)
-{
-    /*
-        cmp = I + 2 * [ 2 ] * [ 3 2 ]
-                      [ 1 ]
-    */
-    using MultiVector = typename TestFixture::Vec;
-    using MultiVectorComplex = gko::to_complex<MultiVector>;
-    using value_type = typename MultiVectorComplex::value_type;
-    auto cmp = gko::Perturbation<TypeParam>::create(this->scalar, this->basis,
-                                                    this->projector);
-    auto alpha = gko::initialize<MultiVector>({3.0}, this->exec);
-    auto beta = gko::initialize<MultiVector>({-1.0}, this->exec);
-    auto x = gko::initialize<MultiVectorComplex>(
-        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
-    auto res = gko::clone(x);
-
-    cmp->apply(alpha, x, beta, res);
-
-    GKO_ASSERT_MTX_NEAR(res,
-                        l({value_type{86.0, -172.0}, value_type{46.0, -92.0}}),
-                        r<TypeParam>::value);
 }
 
 

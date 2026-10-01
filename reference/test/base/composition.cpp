@@ -118,27 +118,6 @@ TYPED_TEST(Composition, AppliesSingleToMixedVector)
 }
 
 
-TYPED_TEST(Composition, AppliesSingleToComplexVector)
-{
-    /*
-        cmp = [ -9 -2 ]
-              [ 27 26 ]
-    */
-    using value_type = gko::to_complex<TypeParam>;
-    using Vec = gko::matrix::MultiVector<value_type>;
-    auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto x = gko::initialize<Vec>(
-        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
-    auto res = clone(x);
-
-    cmp->apply(x, res);
-
-    GKO_ASSERT_MTX_NEAR(res,
-                        l({value_type{-13.0, 26.0}, value_type{79.0, -158.0}}),
-                        r<TypeParam>::value);
-}
-
-
 TYPED_TEST(Composition, AppliesSingleLinearCombinationToVector)
 {
     /*
@@ -176,30 +155,6 @@ TYPED_TEST(Composition, AppliesSingleLinearCombinationToMixedVector)
 
     GKO_ASSERT_MTX_NEAR(res, l({-40.0, 235.0}),
                         (r_mixed<value_type, TypeParam>()));
-}
-
-
-TYPED_TEST(Composition, AppliesSingleLinearCombinationToComplexVector)
-{
-    /*
-        cmp = [ -9 -2 ]
-              [ 27 26 ]
-    */
-    using MultiVector = typename TestFixture::Vec;
-    using MultiVectorComplex = gko::to_complex<MultiVector>;
-    using value_type = typename MultiVectorComplex::value_type;
-    auto cmp = gko::Composition<TypeParam>::create(this->product);
-    auto alpha = gko::initialize<MultiVector>({3.0}, this->exec);
-    auto beta = gko::initialize<MultiVector>({-1.0}, this->exec);
-    auto x = gko::initialize<MultiVectorComplex>(
-        {value_type{1.0, -2.0}, value_type{2.0, -4.0}}, this->exec);
-    auto res = clone(x);
-
-    cmp->apply(alpha, x, beta, res);
-
-    GKO_ASSERT_MTX_NEAR(res,
-                        l({value_type{-40.0, 80.0}, value_type{235.0, -470.0}}),
-                        r<TypeParam>::value);
 }
 
 

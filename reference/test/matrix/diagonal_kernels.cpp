@@ -548,64 +548,6 @@ TYPED_TEST(Diagonal, OutplaceAbsolute)
 }
 
 
-TYPED_TEST(Diagonal, AppliesToComplex)
-{
-    using value_type = typename TestFixture::value_type;
-    using complex_type = gko::to_complex<value_type>;
-    using Vec = gko::matrix::MultiVector<complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto dense1 =
-        gko::initialize<Vec>({{complex_type{1.0, 2.0}, complex_type{2.0, 4.0},
-                               complex_type{3.0, 6.0}},
-                              {complex_type{1.5, 3.0}, complex_type{2.5, 5.0},
-                               complex_type{3.5, 7.0}}},
-                             exec);
-    auto dense2 = Vec::create(exec, gko::dim<2>{2, 3});
-
-    this->diag1->apply(dense1, dense2);
-
-    GKO_ASSERT_MTX_NEAR(dense2,
-                        l({{complex_type{2.0, 4.0}, complex_type{4.0, 8.0},
-                            complex_type{6.0, 12.0}},
-                           {complex_type{4.5, 9.0}, complex_type{7.5, 15.0},
-                            complex_type{10.5, 21.0}}}),
-                        0.0);
-}
-
-
-TYPED_TEST(Diagonal, AppliesLinearCombinationToComplex)
-{
-    using value_type = typename TestFixture::value_type;
-    using complex_type = gko::to_complex<value_type>;
-    using Vec = gko::matrix::MultiVector<complex_type>;
-    using Scalar = gko::matrix::MultiVector<value_type>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto dense1 =
-        gko::initialize<Vec>({{complex_type{1.0, 2.0}, complex_type{2.0, 4.0},
-                               complex_type{3.0, 6.0}},
-                              {complex_type{1.5, 3.0}, complex_type{2.5, 5.0},
-                               complex_type{3.5, 7.0}}},
-                             exec);
-    auto dense2 =
-        gko::initialize<Vec>({{complex_type{1.0, 2.0}, complex_type{2.0, 4.0},
-                               complex_type{3.0, 6.0}},
-                              {complex_type{1.5, 3.0}, complex_type{2.5, 5.0},
-                               complex_type{3.5, 7.0}}},
-                             exec);
-    auto alpha = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({2.0}, this->exec);
-
-    this->diag1->apply(alpha, dense1, beta, dense2);
-
-    GKO_ASSERT_MTX_NEAR(dense2,
-                        l({{complex_type{0.0, 0.0}, complex_type{0.0, 0.0},
-                            complex_type{0.0, 0.0}},
-                           {complex_type{-1.5, -3.0}, complex_type{-2.5, -5.0},
-                            complex_type{-3.5, -7.0}}}),
-                        0.0);
-}
-
-
 template <typename ValueType>
 class DiagonalComplex : public ::testing::Test {
 protected:

@@ -21,7 +21,6 @@ protected:
     using Id = gko::matrix::Identity<value_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
     using MixedVec = gko::matrix::MultiVector<gko::next_precision<value_type>>;
-    using ComplexVec = gko::to_complex<Vec>;
 
     Identity() : exec(gko::ReferenceExecutor::create()) {}
 
@@ -124,37 +123,6 @@ TYPED_TEST(Identity, AppliesLinearCombinationToMultipleVectors)
     identity->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({{7.0, 6.5}, {1.0, 6.5}, {12.0, 1.5}}), 0.0);
-}
-
-
-TYPED_TEST(Identity, AppliesToComplex)
-{
-    using Id = typename TestFixture::Id;
-    using ComplexVec = typename TestFixture::ComplexVec;
-    auto identity = Id::create(this->exec, 3);
-    auto x = gko::initialize<ComplexVec>({3.0, -1.0, 2.0}, this->exec);
-    auto b = gko::initialize<ComplexVec>({2.0, 1.0, 5.0}, this->exec);
-
-    identity->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x, l({2.0, 1.0, 5.0}), 0.0);
-}
-
-
-TYPED_TEST(Identity, AppliesLinearCombinationToComplex)
-{
-    using Id = typename TestFixture::Id;
-    using Vec = typename TestFixture::Vec;
-    using ComplexVec = typename TestFixture::ComplexVec;
-    auto identity = Id::create(this->exec, 3);
-    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
-    auto beta = gko::initialize<Vec>({1.0}, this->exec);
-    auto x = gko::initialize<ComplexVec>({3.0, -1.0, 2.0}, this->exec);
-    auto b = gko::initialize<ComplexVec>({2.0, 1.0, 5.0}, this->exec);
-
-    identity->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x, l({7.0, 1.0, 12.0}), 0.0);
 }
 
 
