@@ -306,6 +306,8 @@ struct Gmres
         param.with_flexible(true);
         config_map["ortho_method"] = pnode{"cgs"};
         param.with_ortho_method(gko::solver::gmres::ortho_method::cgs);
+        config_map["default_initial_guess"] = pnode{"zero"};
+        param.with_default_initial_guess(gko::solver::initial_guess_mode::zero);
     }
 
     template <bool from_reg, typename AnswerType>
@@ -319,6 +321,8 @@ struct Gmres
         ASSERT_EQ(res_param.restart_ratio, ans_param.restart_ratio);
         ASSERT_EQ(res_param.flexible, ans_param.flexible);
         ASSERT_EQ(res_param.ortho_method, ans_param.ortho_method);
+        ASSERT_EQ(res_param.default_initial_guess,
+                  ans_param.default_initial_guess);
     }
 };
 
