@@ -174,10 +174,10 @@ def compare_output_impl(
         (re.escape(str(matrixpath)), "<filename>"),
     ]
     if generate:
-        open(expected_stdout, "w").write(
+        pathlib.Path(expected_stdout).write_text(
             "\n".join(sanitize_json_text(result.stdout.decode()))
         )
-        open(expected_stderr, "w").write(
+        pathlib.Path(expected_stderr).write_text(
             "\n".join(
                 sanitize_text(
                     result.stderr.decode(),
@@ -194,9 +194,9 @@ def compare_output_impl(
         ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
-    expected_stdout_processed = sanitize_json_text(open(expected_stdout).read())
+    expected_stdout_processed = sanitize_json_text(pathlib.Path(expected_stdout).read_text())
     expected_stderr_processed = sanitize_text(
-        open(expected_stderr).read(),
+        pathlib.Path(expected_stderr).read_text(),
         ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
