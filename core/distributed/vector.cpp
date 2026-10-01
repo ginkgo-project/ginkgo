@@ -408,8 +408,8 @@ void Vector<ValueType>::compute_dot_impl(
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = as<matrix::MultiVector<value_type>>(result);
-    this->get_local_vector()->compute_dot(as<Vector>(b)->get_local_vector(),
-                                          dense_res, tmp);
+    this->get_local_vector()->compute_dot(b->get_local_vector(), dense_res,
+                                          tmp);
     exec->synchronize();
     auto sum_op = gko::experimental::mpi::sum<value_type>();
     if (mpi::requires_host_buffer(exec, comm)) {
@@ -434,8 +434,8 @@ void Vector<ValueType>::compute_conj_dot_impl(
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = as<matrix::MultiVector<value_type>>(result);
-    this->get_local_vector()->compute_conj_dot(
-        as<Vector>(b)->get_local_vector(), dense_res, tmp);
+    this->get_local_vector()->compute_conj_dot(b->get_local_vector(), dense_res,
+                                               tmp);
     exec->synchronize();
     auto sum_op = gko::experimental::mpi::sum<value_type>();
     if (mpi::requires_host_buffer(exec, comm)) {
@@ -460,7 +460,7 @@ void Vector<ValueType>::compute_norm2_impl(norm_type* result,
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
     auto dense_res = as<NormVector>(result);
-    this->compute_squared_norm2(dense_res, tmp);
+    this->compute_squared_norm2_impl(dense_res, tmp);
     exec->run(vector::make_compute_sqrt(dense_res->get_device_view()));
 }
 
