@@ -416,6 +416,262 @@ TEST_F(LinOpFactory, CopiesLinOpToOtherExecutor)
 }
 
 
+// a class template, like most LinOps, with its reuse constructor and check
+// private, so the macro's friend declaration is exercised
+template <typename T = int>
+class DummyReusableLinOp : public gko::LinOp {
+public:
+    DummyReusableLinOp(std::shared_ptr<const gko::Executor> exec)
+        : gko::LinOp(exec)
+    {}
+
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
+    {
+        T GKO_FACTORY_PARAMETER_SCALAR(value, T{5});
+        bool GKO_FACTORY_PARAMETER_SCALAR(throw_on_reuse, false);
+    };
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(DummyReusableLinOp, parameters,
+                                         Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
+
+    // records what the reuse constructor and the check saw
+    class reuse_data_type : public gko::LinOpFactory::ReuseData {
+    public:
+        bool initialized = false;
+        gko::dim<2> size{};
+        int num_reuses = 0;
+        mutable std::shared_ptr<const gko::Executor> last_checked_exec;
+    };
+
+    DummyReusableLinOp(const Factory* factory,
+                       std::shared_ptr<const gko::LinOp> op)
+        : gko::LinOp(factory->get_executor()),
+          parameters_{factory->get_parameters()},
+          op_{op}
+    {}
+
+    std::shared_ptr<const gko::LinOp> op_;
+    bool reused = false;
+
+protected:
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
+    {}
+
+private:
+    DummyReusableLinOp(const Factory* factory,
+                       std::shared_ptr<const gko::LinOp> op,
+                       reuse_data_type& reuse_data)
+        : gko::LinOp(factory->get_executor()),
+          parameters_{factory->get_parameters()},
+          op_{op}
+    {
+        if (parameters_.throw_on_reuse) {
+            throw gko::NotImplemented(__FILE__, __LINE__, "DummyReusableLinOp");
+        }
+        if (reuse_data.initialized) {
+            reused = true;
+            reuse_data.num_reuses++;
+        } else {
+            reuse_data.initialized = true;
+            reuse_data.size = op->get_size();
+        }
+    }
+
+    static void check_reuse_consistent(const Factory*, const gko::LinOp* input,
+                                       const reuse_data_type& reuse_data)
+    {
+        reuse_data.last_checked_exec = input->get_executor();
+        if (reuse_data.initialized) {
+            GKO_ASSERT_EQUAL_DIMENSIONS(input->get_size(), reuse_data.size);
+        }
+    }
+};
+
+using Reusable = DummyReusableLinOp<>;
+using ReusableData = Reusable::reuse_data_type;
+
+
+// a non-template LinOp (like Multigrid), with all constructors private
+class DummyNonTemplateReusableLinOp : public gko::LinOp {
+public:
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(DummyNonTemplateReusableLinOp,
+                                         parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
+
+    class reuse_data_type : public gko::LinOpFactory::ReuseData {};
+
+    bool from_reuse_constructor = false;
+
+protected:
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
+    {}
+
+private:
+    DummyNonTemplateReusableLinOp(const Factory* factory,
+                                  std::shared_ptr<const gko::LinOp>)
+        : gko::LinOp(factory->get_executor()),
+          parameters_{factory->get_parameters()}
+    {}
+
+    DummyNonTemplateReusableLinOp(const Factory* factory,
+                                  std::shared_ptr<const gko::LinOp>,
+                                  reuse_data_type&)
+        : gko::LinOp(factory->get_executor()),
+          parameters_{factory->get_parameters()},
+          from_reuse_constructor{true}
+    {}
+
+    static void check_reuse_consistent(const Factory*, const gko::LinOp*,
+                                       const reuse_data_type&)
+    {}
+};
+
+
+TEST_F(LinOpFactory, PlainFactoryGenerateReuseFallsBackToGenerate)
+{
+    auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
+    auto other_size = DummyLinOp::create(ref, gko::dim<2>{2, 2});
+    auto factory = DummyLinOpWithFactory<>::build().with_value(6).on(ref);
+    auto own_data = factory->create_empty_reuse_data();
+    auto foreign_data = Reusable::build().on(ref)->create_empty_reuse_data();
+
+    // reuse data of any kind is ignored
+    for (auto data : {own_data.get(), foreign_data.get()}) {
+        auto op = gko::as<DummyLinOpWithFactory<>>(
+            factory->generate_reuse(dummy, *data));
+
+        ASSERT_EQ(op->get_executor(), ref);
+        ASSERT_EQ(op->get_parameters().value, 6);
+        ASSERT_EQ(op->op_.get(), dummy.get());
+    }
+    ASSERT_FALSE(gko::as<ReusableData>(foreign_data.get())->initialized);
+    ASSERT_NO_THROW(
+        factory->check_reuse_consistent(other_size.get(), *own_data));
+}
+
+
+TEST_F(LinOpFactory, GenerateReuseIsLoggedAndPropagatesLoggers)
+{
+    auto before_logger = *logger;
+    auto factory =
+        DummyLinOpWithFactory<>::build().with_loggers(logger).on(ref);
+    auto reuse_data = factory->create_empty_reuse_data();
+
+    auto op = factory->generate_reuse(
+        DummyLinOp::create(ref, gko::dim<2>{3, 5}), *reuse_data);
+    op->apply(op, op);
+
+    ASSERT_EQ(logger->linop_factory_generate_started,
+              before_logger.linop_factory_generate_started + 1);
+    ASSERT_EQ(logger->linop_factory_generate_completed,
+              before_logger.linop_factory_generate_completed + 1);
+    // exactly once: the loggers must not be added twice
+    ASSERT_EQ(logger->linop_apply_started,
+              before_logger.linop_apply_started + 1);
+    ASSERT_EQ(logger->linop_apply_completed,
+              before_logger.linop_apply_completed + 1);
+}
+
+
+TEST_F(LinOpFactory, GenerateReuseInitializesThenReuses)
+{
+    auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
+    auto factory = Reusable::build().with_value(6).on(ref);
+    const gko::LinOpFactory* base_factory = factory.get();
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto data = gko::as<ReusableData>(reuse_data.get());
+
+    auto first = factory->generate_reuse(dummy, *reuse_data);
+    // the reuse path is also taken through the base class
+    auto second = base_factory->generate_reuse(dummy, *reuse_data);
+
+    static_assert(
+        std::is_same<decltype(first), std::unique_ptr<Reusable>>::value,
+        "generate_reuse has to return the concrete LinOp type");
+    ASSERT_FALSE(first->reused);
+    ASSERT_EQ(first->get_parameters().value, 6);
+    ASSERT_EQ(first->op_.get(), dummy.get());
+    ASSERT_TRUE(gko::as<Reusable>(second.get())->reused);
+    ASSERT_EQ(data->size, gko::dim<2>(3, 5));
+    ASSERT_EQ(data->num_reuses, 1);
+}
+
+
+TEST_F(LinOpFactory, GenerateReuseChecksAndGeneratesOnFactoryExecutor)
+{
+    auto ref2 = gko::ReferenceExecutor::create();
+    auto dummy = gko::share(DummyLinOp::create(ref2, gko::dim<2>{3, 5}));
+    auto factory = Reusable::build().on(ref);
+    auto reuse_data = factory->create_empty_reuse_data();
+
+    auto op = factory->generate_reuse(dummy, *reuse_data);
+
+    ASSERT_EQ(gko::as<ReusableData>(reuse_data.get())->last_checked_exec, ref);
+    ASSERT_EQ(op->get_executor(), ref);
+    ASSERT_EQ(op->op_->get_executor(), ref);
+    ASSERT_NE(op->op_.get(), dummy.get());
+}
+
+
+TEST_F(LinOpFactory, FailedGenerateReuseKeepsReuseDataUsable)
+{
+    auto matching = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
+    auto other_size = gko::share(DummyLinOp::create(ref, gko::dim<2>{2, 2}));
+    auto factory = Reusable::build().on(ref);
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto data = gko::as<ReusableData>(reuse_data.get());
+    auto plain_data =
+        DummyLinOpWithFactory<>::build().on(ref)->create_empty_reuse_data();
+    auto throwing_factory = Reusable::build().with_throw_on_reuse(true).on(ref);
+    throwing_factory->add_logger(logger);
+    auto throwing_data = throwing_factory->create_empty_reuse_data();
+    auto before_logger = *logger;
+
+    // a throwing generation leaves empty reuse data empty
+    ASSERT_THROW(throwing_factory->generate_reuse(matching, *throwing_data),
+                 gko::NotImplemented);
+    ASSERT_FALSE(gko::as<ReusableData>(throwing_data.get())->initialized);
+    ASSERT_EQ(logger->linop_factory_generate_started,
+              before_logger.linop_factory_generate_started + 1);
+    ASSERT_EQ(logger->linop_factory_generate_completed,
+              before_logger.linop_factory_generate_completed);
+    // an inconsistent input and reuse data of another type are rejected
+    factory->generate_reuse(matching, *reuse_data);
+    ASSERT_THROW(factory->generate_reuse(other_size, *reuse_data),
+                 gko::DimensionMismatch);
+    ASSERT_THROW(factory->generate_reuse(matching, *plain_data),
+                 gko::NotSupported);
+    // and initialized reuse data stays usable
+    ASSERT_EQ(data->num_reuses, 0);
+    ASSERT_TRUE(factory->generate_reuse(matching, *reuse_data)->reused);
+}
+
+
+TEST_F(LinOpFactory, ReusableFactoryUsesMatchingConstructor)
+{
+    using NonTemplate = DummyNonTemplateReusableLinOp;
+    auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
+    auto factory = NonTemplate::build().on(ref);
+    auto reuse_data = factory->create_empty_reuse_data();
+
+    auto generated = factory->generate(dummy);
+    auto generated_reuse = factory->generate_reuse(dummy, *reuse_data);
+
+    static_assert(std::is_same<decltype(generated_reuse),
+                               std::unique_ptr<NonTemplate>>::value,
+                  "generate_reuse has to return the concrete LinOp type");
+    ASSERT_FALSE(generated->from_reuse_constructor);
+    ASSERT_TRUE(generated_reuse->from_reuse_constructor);
+}
+
+
 template <typename Type>
 class DummyLinOpWithType
     : public gko::LinOp,
