@@ -52,7 +52,6 @@ class ResidualNormBase : public Criterion {
 
 protected:
     using absolute_type = remove_complex<ValueType>;
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<absolute_type>;
     using Vector = matrix::MultiVector<ValueType>;
     bool check_impl(uint8 stoppingId, bool setFinalized,
@@ -123,7 +122,6 @@ private:
 template <typename ValueType = default_precision>
 class ResidualNorm : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
 
@@ -197,7 +195,6 @@ protected:
 template <typename ValueType = default_precision>
 class ImplicitResidualNorm : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
 
@@ -326,7 +323,6 @@ class GKO_DEPRECATED(
     "mode::initial_resnorm") ResidualNormReduction
     : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
 
@@ -388,7 +384,6 @@ class GKO_DEPRECATED(
     "mode::rhs_norm") RelativeResidualNorm
     : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
 

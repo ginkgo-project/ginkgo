@@ -37,7 +37,6 @@ protected:
     using Diagonal = gko::matrix::Diagonal<value_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
     using MixedVec = gko::matrix::MultiVector<mixed_type>;
-    using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
 
     Dense() : rand_engine(15) {}
 
@@ -169,36 +168,6 @@ TEST_F(Dense, AdvancedApplyMixedIsEquivalentToRef)
               convert<MixedVec>(dbeta), convert<MixedVec>(dresult));
 
     GKO_ASSERT_MTX_NEAR(dresult, result, 1e-7);
-}
-
-
-TEST_F(Dense, ApplyToComplexIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto complex_b = gen_mtx<ComplexVec>(x->get_size()[1], 1);
-    auto dcomplex_b = gko::clone(exec, complex_b);
-    auto complex_x = gen_mtx<ComplexVec>(x->get_size()[0], 1);
-    auto dcomplex_x = gko::clone(exec, complex_x);
-
-    x->apply(complex_b, complex_x);
-    dx->apply(dcomplex_b, dcomplex_x);
-
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
-}
-
-
-TEST_F(Dense, AdvancedApplyToComplexIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto complex_b = gen_mtx<ComplexVec>(x->get_size()[1], 1);
-    auto dcomplex_b = gko::clone(exec, complex_b);
-    auto complex_x = gen_mtx<ComplexVec>(x->get_size()[0], 1);
-    auto dcomplex_x = gko::clone(exec, complex_x);
-
-    x->apply(alpha, complex_b, beta, complex_x);
-    dx->apply(dalpha, dcomplex_b, dbeta, dcomplex_x);
-
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
 
 
