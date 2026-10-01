@@ -62,9 +62,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
 
 
 template <typename ValueType, typename IndexType>
-void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
-                    IndexType* row_idxs, IndexType* col_idxs, ValueType* vals,
-                    IndexType* mapping_cols)
+void sort_row_major_with_mapping(std::shared_ptr<const DefaultExecutor> exec,
+                                 size_type nnz, IndexType* row_idxs,
+                                 IndexType* col_idxs, ValueType* vals,
+                                 IndexType* mapping_cols)
 {
     auto it = detail::make_zip_iterator(row_idxs, col_idxs, vals, mapping_cols);
     std::stable_sort(it, it + nnz, [](auto a, auto b) {
@@ -72,7 +73,8 @@ void sort_row_major(std::shared_ptr<const DefaultExecutor> exec, size_type nnz,
     });
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR);
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PGM_SORT_ROW_MAJOR_WITH_MAPPING);
 
 
 template <typename ValueType, typename IndexType>
@@ -96,7 +98,9 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
             coarse_row[coarse_idxs] = curr_row;
             coarse_col[coarse_idxs] = curr_col;
             coarse_val[coarse_idxs] = temp_val;
-            mapping_rows[coarse_idxs] = count;
+            if (mapping_rows) {
+                mapping_rows[coarse_idxs] = count;
+            }
             curr_row = row_idxs[idxs];
             curr_col = col_idxs[idxs];
             temp_val = vals[idxs];
@@ -111,7 +115,9 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
     coarse_row[coarse_idxs] = curr_row;
     coarse_col[coarse_idxs] = curr_col;
     coarse_val[coarse_idxs] = temp_val;
-    mapping_rows[coarse_idxs] = count;
+    if (mapping_rows) {
+        mapping_rows[coarse_idxs] = count;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
