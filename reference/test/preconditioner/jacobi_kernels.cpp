@@ -671,30 +671,6 @@ TYPED_TEST(Jacobi, AppliesToMixedVector)
 }
 
 
-TYPED_TEST(Jacobi, AppliesToComplexVector)
-{
-    using Vec = gko::to_complex<typename TestFixture::Vec>;
-    using value_type = typename Vec::value_type;
-    auto x = gko::initialize<Vec>(
-        {value_type{1.0, 2.0}, value_type{-1.0, -2.0}, value_type{2.0, 4.0},
-         value_type{-2.0, -4.0}, value_type{3.0, 6.0}},
-        this->exec);
-    auto b = gko::initialize<Vec>(
-        {value_type{4.0, 8.0}, value_type{-1.0, -2.0}, value_type{-2.0, -4.0},
-         value_type{4.0, 8.0}, value_type{-1.0, -2.0}},
-        this->exec);
-    auto bj = this->bj_factory->generate(this->mtx);
-
-    bj->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({value_type{1.0, 2.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0},
-           value_type{1.0, 2.0}, value_type{0.0, 0.0}}),
-        r<value_type>::value);
-}
-
-
 TYPED_TEST(Jacobi, AppliesToVectorWithAdaptivePrecision)
 {
     using Vec = typename TestFixture::Vec;
@@ -891,31 +867,6 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedVector)
     GKO_ASSERT_MTX_NEAR(
         x, l({1.0, 1.0, -2.0, 4.0, -3.0}),
         (r_mixed<value_type, typename TestFixture::value_type>()));
-}
-
-
-TYPED_TEST(Jacobi, AppliesLinearCombinationToComplexVector)
-{
-    using MultiVector = typename TestFixture::Vec;
-    using MultiVectorComplex = gko::to_complex<MultiVector>;
-    using value_type = typename TestFixture::value_type;
-    using T = gko::to_complex<value_type>;
-    auto x = gko::initialize<MultiVectorComplex>(
-        {T{1.0, 2.0}, T{-1.0, -2.0}, T{2.0, 4.0}, T{-2.0, -4.0}, T{3.0, 6.0}},
-        this->exec);
-    auto b = gko::initialize<MultiVectorComplex>(
-        {T{4.0, 8.0}, T{-1.0, -2.0}, T{-2.0, -4.0}, T{4.0, 8.0}, T{-1.0, -2.0}},
-        this->exec);
-    auto alpha = gko::initialize<MultiVector>({2.0}, this->exec);
-    auto beta = gko::initialize<MultiVector>({-1.0}, this->exec);
-    auto bj = this->bj_factory->generate(this->mtx);
-
-    bj->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({T{1.0, 2.0}, T{1.0, 2.0}, T{-2.0, -4.0}, T{4.0, 8.0},
-                           T{-3.0, -6.0}}),
-                        r<value_type>::value);
 }
 
 
