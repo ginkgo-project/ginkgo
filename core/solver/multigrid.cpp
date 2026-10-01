@@ -700,76 +700,51 @@ typename Multigrid::parameters_type Multigrid::parse(
 }
 
 
-void Multigrid::generate()
+void Multigrid::generate_smoothers(
+    std::shared_ptr<const gko::multigrid::MultigridLevel> mg_level,
+    size_type index,
+    std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
+    std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
+    std::vector<std::shared_ptr<const LinOp>>& post_smoother_list)
 {
-    // generate coarse matrix until reaching max_level or min_coarse_rows
-    auto num_rows = this->get_system_matrix()->get_size()[0];
-    size_type level = 0;
-    auto matrix = this->get_system_matrix();
-    auto exec = this->get_executor();
-    // Always generate smoother with size = level.
-    while (level < parameters_.max_levels &&
-           num_rows > parameters_.min_coarse_rows) {
-        auto index = level_selector_(level, matrix.get());
-        GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
-        auto mg_level_factory = parameters_.mg_level.at(index);
-        // coarse generate
-        auto mg_level = as<gko::multigrid::MultigridLevel>(
-            share(mg_level_factory->generate(matrix)));
-        if (mg_level->get_coarse_op()->get_size()[0] == num_rows) {
-            // do not reduce dimension
-            break;
-        }
-
-        run<gko::multigrid::EnableMultigridLevel, float, double,
+    run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
-            float16, std::complex<float16>,
+        float16, std::complex<float16>,
 #endif
 #if GINKGO_ENABLE_BFLOAT16
-            bfloat16, std::complex<bfloat16>,
+        bfloat16, std::complex<bfloat16>,
 #endif
-            std::complex<float>, std::complex<double>>(
-            mg_level,
-            [this](auto mg_level, auto index, auto matrix) {
-                using value_type =
-                    typename std::decay_t<decltype(*mg_level)>::value_type;
+        std::complex<float>, std::complex<double>>(
+        mg_level,
+        [this, &pre_smoother_list, &mid_smoother_list, &post_smoother_list](
+            auto mg_level, auto index, auto matrix) {
+            using value_type =
+                typename std::decay_t<decltype(*mg_level)>::value_type;
+            handle_list<value_type>(
+                index, matrix, parameters_.pre_smoother, pre_smoother_list,
+                parameters_.smoother_iters, parameters_.smoother_relax);
+            if (parameters_.mid_case ==
+                multigrid::mid_smooth_type::standalone) {
                 handle_list<value_type>(
-                    index, matrix, parameters_.pre_smoother, pre_smoother_list_,
+                    index, matrix, parameters_.mid_smoother, mid_smoother_list,
                     parameters_.smoother_iters, parameters_.smoother_relax);
-                if (parameters_.mid_case ==
-                    multigrid::mid_smooth_type::standalone) {
-                    handle_list<value_type>(
-                        index, matrix, parameters_.mid_smoother,
-                        mid_smoother_list_, parameters_.smoother_iters,
-                        parameters_.smoother_relax);
-                }
-                if (!parameters_.post_uses_pre) {
-                    handle_list<value_type>(
-                        index, matrix, parameters_.post_smoother,
-                        post_smoother_list_, parameters_.smoother_iters,
-                        parameters_.smoother_relax);
-                }
-            },
-            index, mg_level->get_fine_op());
+            }
+            if (!parameters_.post_uses_pre) {
+                handle_list<value_type>(
+                    index, matrix, parameters_.post_smoother,
+                    post_smoother_list, parameters_.smoother_iters,
+                    parameters_.smoother_relax);
+            }
+        },
+        index, mg_level->get_fine_op());
+}
 
-        mg_level_list_.emplace_back(mg_level);
-        matrix = mg_level_list_.back()->get_coarse_op();
-        num_rows = matrix->get_size()[0];
-        level++;
-    }
-    if (parameters_.post_uses_pre) {
-        post_smoother_list_ = pre_smoother_list_;
-    }
-    // Generate at least one level
-    GKO_ASSERT_EQ(level > 0, true);
-    auto last_mg_level = mg_level_list_.back();
 
-    using ws = workspace_traits<Multigrid>;
-    this->setup_workspace();
-    this->create_state();
-    cache_.state->generate(this->get_system_matrix().get(), this, 1);
-
-    // generate coarsest solver
+std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
+    std::shared_ptr<const gko::multigrid::MultigridLevel> last_mg_level,
+    size_type level, std::shared_ptr<const LinOp> matrix)
+{
+    std::unique_ptr<LinOp> coarsest_solver;
     run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
         float16, std::complex<float16>,
@@ -779,7 +754,7 @@ void Multigrid::generate()
 #endif
         std::complex<float>, std::complex<double>>(
         last_mg_level,
-        [this](auto mg_level, auto level, auto matrix) {
+        [this, &coarsest_solver](auto mg_level, auto level, auto matrix) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             auto exec = this->get_executor();
@@ -851,20 +826,126 @@ void Multigrid::generate()
                 }
             };
             if (parameters_.coarsest_solver.size() == 0) {
-                coarsest_solver_ = gen_default_solver();
+                coarsest_solver = gen_default_solver();
             } else {
                 auto temp_index = solver_selector_(level, matrix.get());
                 GKO_ENSURE_IN_BOUNDS(temp_index,
                                      parameters_.coarsest_solver.size());
                 auto solver = parameters_.coarsest_solver.at(temp_index);
                 if (solver == nullptr) {
-                    coarsest_solver_ = gen_default_solver();
+                    coarsest_solver = gen_default_solver();
                 } else {
-                    coarsest_solver_ = solver->generate(matrix);
+                    coarsest_solver = solver->generate(matrix);
                 }
             }
         },
         level, matrix);
+    return coarsest_solver;
+}
+
+
+void Multigrid::generate()
+{
+    // generate coarse matrix until reaching max_level or min_coarse_rows
+    auto num_rows = this->get_system_matrix()->get_size()[0];
+    size_type level = 0;
+    auto matrix = this->get_system_matrix();
+    auto exec = this->get_executor();
+    // Always generate smoother with size = level.
+    while (level < parameters_.max_levels &&
+           num_rows > parameters_.min_coarse_rows) {
+        auto index = level_selector_(level, matrix.get());
+        GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
+        auto mg_level_factory = parameters_.mg_level.at(index);
+        // coarse generate
+        auto mg_level = as<gko::multigrid::MultigridLevel>(
+            share(mg_level_factory->generate(matrix)));
+        if (mg_level->get_coarse_op()->get_size()[0] == num_rows) {
+            // do not reduce dimension
+            break;
+        }
+
+        this->generate_smoothers(mg_level, index, pre_smoother_list_,
+                                 mid_smoother_list_, post_smoother_list_);
+
+        mg_level_list_.emplace_back(mg_level);
+        matrix = mg_level_list_.back()->get_coarse_op();
+        num_rows = matrix->get_size()[0];
+        level++;
+    }
+    if (parameters_.post_uses_pre) {
+        post_smoother_list_ = pre_smoother_list_;
+    }
+    // Generate at least one level
+    GKO_ASSERT_EQ(level > 0, true);
+    auto last_mg_level = mg_level_list_.back();
+
+    using ws = workspace_traits<Multigrid>;
+    this->setup_workspace();
+    this->create_state();
+    cache_.state->generate(this->get_system_matrix().get(), this, 1);
+
+    coarsest_solver_ =
+        this->generate_coarsest_solver(last_mg_level, level, matrix);
+}
+
+
+void Multigrid::update_matrix_value(std::shared_ptr<const LinOp> new_matrix)
+{
+    // Validate everything that can be validated before any state changes, so
+    // that a rejected update leaves the solver as it was.
+    //
+    // The hierarchy is reused as is, so there has to be one. It is empty when
+    // the solver was generated on a zero-sized matrix, in which case
+    // mg_level_list_.back() below would be undefined behavior.
+    GKO_ASSERT_EQ(mg_level_list_.size() > 0, true);
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, new_matrix);
+    // Only levels implementing UpdateMatrixValue can be updated. Pgm is
+    // currently the only one, so every other coarsening has to be rejected
+    // here rather than halfway through the loop below.
+    for (const auto& mg_level : mg_level_list_) {
+        if (!dynamic_cast<gko::multigrid::UpdateMatrixValue*>(mg_level.get())) {
+            GKO_NOT_SUPPORTED(mg_level);
+        }
+    }
+
+    // Build the new smoothers and the new coarsest solver into local lists
+    // first and only publish them once everything succeeded.
+    std::vector<std::shared_ptr<const LinOp>> pre_smoother_list;
+    std::vector<std::shared_ptr<const LinOp>> mid_smoother_list;
+    std::vector<std::shared_ptr<const LinOp>> post_smoother_list;
+    auto matrix = new_matrix;
+    // Always generate smoother with size = level.
+    for (size_type i = 0; i < mg_level_list_.size(); i++) {
+        auto mg_level = mg_level_list_.at(i);
+        as<gko::multigrid::UpdateMatrixValue>(mg_level)->update_matrix_value(
+            matrix);
+        // the smoother is selected the same way as in generate. The level
+        // index is not necessarily the smoother index, so it must go through
+        // level_selector_ here as well. It still sees the fine matrix of this
+        // level, hence before matrix moves on to the coarse operator.
+        auto index = level_selector_(i, matrix.get());
+        GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
+        matrix = mg_level->get_coarse_op();
+        this->generate_smoothers(mg_level, index, pre_smoother_list,
+                                 mid_smoother_list, post_smoother_list);
+    }
+    if (parameters_.post_uses_pre) {
+        post_smoother_list = pre_smoother_list;
+    }
+    auto coarsest_solver = this->generate_coarsest_solver(
+        mg_level_list_.back(), mg_level_list_.size(), matrix);
+
+    this->set_system_matrix(new_matrix);
+    pre_smoother_list_ = std::move(pre_smoother_list);
+    mid_smoother_list_ = std::move(mid_smoother_list);
+    post_smoother_list_ = std::move(post_smoother_list);
+    coarsest_solver_ = std::move(coarsest_solver);
+    // the cached state keeps a raw pointer to the system matrix and sizes
+    // taken from the hierarchy, so it has to be rebuilt like in generate()
+    this->setup_workspace();
+    this->create_state();
+    cache_.state->generate(this->get_system_matrix().get(), this, 1);
 }
 
 
