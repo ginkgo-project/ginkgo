@@ -169,7 +169,7 @@ def compare_output_impl(
         "DEBUG: (begin|end  ) (allocate|free)",  # allocations
     ]
     typename_patterns = [
-        ("(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
+        (r"(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
         ("what\\(\\): .*", "what(): <removed>"),
         (re.escape(str(matrixpath)), "<filename>"),
     ]
