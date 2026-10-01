@@ -415,8 +415,43 @@ private:
             if (f16_traits::is_inf(exp)) {
                 return conv::shift_sign(data_) | exp;
             } else if (f16_traits::is_denom(exp)) {
-                // TODO: handle denormals
-                return conv::shift_sign(data_);
+                // gap to fp16 denormal exponents (+1 from normal to denormal
+                // exponent base)
+                const auto gap_to_fp16 =
+                    ((conv::bias_change -
+                      ((data_ & f32_traits::exponent_mask) >>
+                       conv::significand_offset)) >>
+                     f16_traits::significand_bits) +
+                    1;
+
+                // get the tail length which will be rounding
+                const auto tail_len = gap_to_fp16 + conv::significand_offset;
+
+                if (tail_len > f32_traits::significand_bits + 1) {
+                    return conv::shift_sign(data_);
+                }
+
+                // all significant (including implicitly leading 1) will be
+                // moved after representation field more than one digit (less
+                // than half) such that it will rounding to zero.
+                const auto explicit_significand =
+                    (data_ & f32_traits::significand_mask) |
+                    (1 << f32_traits::significand_bits);
+
+                const auto tail =
+                    explicit_significand &
+                    static_cast<f32_traits::bits_type>((1 << tail_len) - 1);
+
+                auto new_significand = explicit_significand >> tail_len;
+
+                const auto result =
+                    conv::shift_sign(data_) | exp | new_significand;
+
+                const auto half =
+                    static_cast<f32_traits::bits_type>(1 << (tail_len - 1));
+
+                return result +
+                       (tail > half || ((tail == half) && (result & 1)));
             } else {
                 // Rounding to even
                 const auto result = conv::shift_sign(data_) | exp |
@@ -442,8 +477,42 @@ private:
             return conv::shift_sign(data_) | f32_traits::exponent_mask |
                    f32_traits::significand_mask;
         } else if (f16_traits::is_denom(data_)) {
-            // TODO: handle denormals
-            return conv::shift_sign(data_);
+            if (!(data_ & f16_traits::significand_mask)) {
+                return conv::shift_sign(data_);
+            }
+
+            int leading_zeros{};
+
+// Counts leading zeros in the significand to determine the
+// normalization shift
+#if defined(_MSC_VER)
+            unsigned long index{};
+            _BitScanReverse(&index, static_cast<std::uint32_t>(
+                                        f16_traits::significand_mask & data_));
+
+            leading_zeros = f16_traits::significand_bits - index - 1;
+#else
+            leading_zeros = __builtin_clz(static_cast<std::uint32_t>(
+                                f16_traits::significand_mask & data_)) -
+                            f16_traits::exponent_bits - f16_traits::sign_bits -
+                            CHAR_BIT * (sizeof(conv::result_bits) -
+                                        sizeof(conv::source_bits));
+#endif
+
+            // Computes the new exponent, 0xxxxxxxx000...00
+            auto new_exponent =
+                ((conv::bias_change >> f32_traits::significand_bits) -
+                 leading_zeros)
+                << f32_traits::significand_bits;
+
+            // Shifts the original significand to normalize it, remove the
+            // implicit '1', and align it in the new 23-bit field
+            auto new_significand =
+                (static_cast<f32_traits::bits_type>(data_)
+                 << (conv::significand_offset + leading_zeros + 1)) &
+                f32_traits::significand_mask;
+
+            return conv::shift_sign(data_) | new_exponent | new_significand;
         } else {
             return conv::shift_sign(data_) | conv::shift_exponent(data_) |
                    conv::shift_significand(data_);
