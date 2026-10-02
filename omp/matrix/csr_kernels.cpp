@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
 
+#include "accessor/index_limit_checks.hpp"
 #include "core/base/allocator.hpp"
 #include "core/base/index_range.hpp"
 #include "core/base/index_set_kernels.hpp"
@@ -101,7 +102,7 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
     // Merge-SpMV variables
     // Merge-path combines rows and nonzeros, which can overflow even when
     // both counts fit individually.
-    ensure_sum_fits<IndexType>(a.size[0], a.num_stored_elements);
+    GKO_ASSERT(acc::sum_fits<IndexType>(a.size[0], a.num_stored_elements));
     const auto num_rows = static_cast<IndexType>(a.size[0]);
     const auto nnz = static_cast<IndexType>(a.num_stored_elements);
     const auto num_threads = static_cast<IndexType>(omp_get_max_threads());

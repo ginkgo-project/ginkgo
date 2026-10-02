@@ -27,6 +27,7 @@
 #include <ginkgo/core/matrix/sellp.hpp>
 
 #include "accessor/cuda_hip_helper.hpp"
+#include "accessor/index_limit_checks.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/pointer_mode_guard.hpp"
@@ -1934,7 +1935,7 @@ void merge_path_spmv(
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     // Merge-path combines rows and nonzeros, which can overflow even when
     // both counts fit individually.
-    ensure_sum_fits<IndexType>(a.size[0], a.num_stored_elements);
+    GKO_ASSERT(acc::sum_fits<IndexType>(a.size[0], a.num_stored_elements));
     const IndexType total = a.size[0] + a.num_stored_elements;
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);

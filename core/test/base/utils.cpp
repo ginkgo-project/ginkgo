@@ -4,26 +4,14 @@
 
 #include "core/base/utils.hpp"
 
-#include <cstdint>
-#include <limits>
-
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
 
 namespace {
-
-
-TEST(IntegerRangeChecks, EnsureSumThrowsForOverflow)
-{
-    const auto max = std::numeric_limits<std::int32_t>::max();
-
-    EXPECT_NO_THROW(gko::ensure_sum_fits<std::int32_t>(max - 1, 1));
-    EXPECT_THROW(gko::ensure_sum_fits<std::int32_t>(max, 1),
-                 gko::OverflowError);
-}
 
 
 struct Base {

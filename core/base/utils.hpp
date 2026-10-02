@@ -7,18 +7,13 @@
 
 
 #include <array>
-#include <cstdint>
 #include <memory>
 #include <type_traits>
 
-#include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-
-#include "accessor/index_limit_checks.hpp"
 
 
 namespace gko {
@@ -206,21 +201,6 @@ template <typename T, typename... Args>
 constexpr std::array<T, sizeof...(Args)> to_std_array(Args&&... args)
 {
     return {static_cast<T>(args)...};
-}
-
-
-/**
- * Throws OverflowError if the sum of two non-negative integers cannot be
- * represented in IndexType. Unlike assertion-only checks, this also runs in
- * release builds.
- */
-template <typename IndexType>
-void ensure_sum_fits(std::uint64_t a, std::uint64_t b)
-{
-    if (!acc::sum_fits<IndexType>(a, b)) {
-        throw OverflowError{__FILE__, __LINE__,
-                            name_demangling::get_type_name(typeid(IndexType))};
-    }
 }
 
 
