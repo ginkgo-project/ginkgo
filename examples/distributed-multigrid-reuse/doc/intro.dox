@@ -1,0 +1,15 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This example shows how an application that solves a sequence of linear systems with the same sparsity pattern can reuse the setup of a distributed multigrid preconditioner with `LinOpFactory::generate_reuse()`.
+
+It solves the nonlinear diffusion equation -div((1 + u^2) grad u) = f on the unit square with a Picard iteration: every iteration assembles A(u_k) and solves A(u_k) u_{k+1} = f with a multigrid preconditioned Cg, until the nonlinear residual is small.
+All A(u_k) share their sparsity pattern, so after the hierarchy has been recorded once, generate_reuse() keeps the Pgm aggregates and transfer operators and only recomputes the coarse matrices, smoothers and the coarsest solver.
+The example also shows how to assemble a matrix whose entries depend on values owned by neighbouring ranks without exchanging them, by reading the matrix with `assembly_mode::communicate`.
+
+The kept aggregates only fit the later matrices if the recorded one is representative. The first iterate u_0 = 0 gives the constant-coefficient Laplacian, which Pgm coarsens poorly, so the first iteration uses generate() and the hierarchy is recorded in the second one.
+
+To run it with multiple processes, use `mpirun -n NUM_PROCS ./distributed-multigrid-reuse [executor] [grid_side] [max_picard_iters] [refresh_interval]`.
+A refresh_interval of 1 sets up the hierarchy from scratch in every iteration, which can be used to compare the setup times and iteration counts with the default reuse.
+
+If you are using GPU devices, please make sure that you run this example with at most as many processes as you have GPU
+devices available.
