@@ -1,26 +1,44 @@
 name: Windows-MSVC-CUDA (compile-only)
 
 on:
-  workflow_call:
-    inputs:
-      full:
-        description: 'Run all configurations instead of the reduced pull request set'
-        type: boolean
-        default: true
+  push:
+    branches:
+      - 'main'
+      - 'develop'
+      - 'release/**'
+    tags:
+      - '**'
+  pull_request:
+    types: [opened,synchronize,labeled]
+    paths-ignore:
+      - 'doc/**'
   workflow_dispatch:
     inputs:
       debug_enabled:
         description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
-      full:
-        description: 'Run all configurations instead of the reduced pull request set'
-        type: boolean
-        default: true
+
+concurrency:
+  # runs for labels that don't start the full test get their own group,
+  # so that they don't cancel running builds
+  group: >-
+    ${{ github.workflow }}-${{ (github.head_ref && (github.event.action != 'labeled'
+    || (github.event.label.name == '1:ST:ready-to-merge' && !contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
+    || (github.event.label.name == '1:ST:run-full-test' && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')))
+    && github.ref) || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   windows_cuda:
-    if: inputs.full
+    # runs only outside of pull requests or on pull requests with a full-test label
+    if: >-
+      (github.event.action != 'labeled'
+      || (github.event.label.name == '1:ST:ready-to-merge' && !contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
+      || (github.event.label.name == '1:ST:run-full-test' && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')))
+      && (github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')
+      || contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
     strategy:
       fail-fast: false
       matrix:
