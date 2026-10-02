@@ -338,59 +338,37 @@ TEST_F(Pgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
 }
 
 
-TEST_F(Pgm, ReGenerateMgLevelIsEquivalentToRefOnScaledUnsortedMatrix)
+TEST_F(Pgm, GenerateReuseIsEquivalentToRef)
 {
     initialize_data();
     gko::test::unsort_matrix(system_mtx, rand_engine);
     d_system_mtx = gko::clone(exec, system_mtx);
-    auto mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
-                                .with_deterministic(true)
-                                .with_updatable_values(true)
-                                .on(ref);
-    auto d_mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
-                                  .with_deterministic(true)
-                                  .with_updatable_values(true)
-                                  .on(exec);
-
-    auto mg_level = mg_level_factory->generate(system_mtx);
-    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
-    auto alpha = gko::initialize<Mtx>({gko::one<value_type>() * 2}, exec);
-    system_mtx->scale(alpha);
-    d_system_mtx->scale(alpha);
-    d_mg_level->update_matrix_value(d_system_mtx);
-    mg_level->update_matrix_value(system_mtx);
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
-                        gko::as<Csr>(mg_level->get_coarse_op()),
-                        r<value_type>::value);
-}
-
-
-TEST_F(Pgm, ReGenerateMgLevelIsEquivalentToRefOnDifferentUnsortedMatrix)
-{
-    initialize_data();
-    gko::test::unsort_matrix(system_mtx, rand_engine);
-    d_system_mtx = gko::clone(exec, system_mtx);
-    auto mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
-                                .with_deterministic(true)
-                                .with_updatable_values(true)
-                                .on(ref);
-    auto d_mg_level_factory = gko::multigrid::Pgm<value_type, int>::build()
-                                  .with_deterministic(true)
-                                  .with_updatable_values(true)
-                                  .on(exec);
-
-    auto mg_level = mg_level_factory->generate(system_mtx);
-    auto d_mg_level = d_mg_level_factory->generate(d_system_mtx);
-    for (gko::size_type i = 0; i < system_mtx->get_num_stored_elements(); i++) {
-        system_mtx->get_values()[i] = gko::detail::get_rand_value<value_type>(
+    auto factory = gko::multigrid::Pgm<value_type, int>::build()
+                       .with_deterministic(true)
+                       .on(ref);
+    auto d_factory = gko::multigrid::Pgm<value_type, int>::build()
+                         .with_deterministic(true)
+                         .on(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto d_reuse_data = d_factory->create_empty_reuse_data();
+    factory->generate_reuse(system_mtx, *reuse_data);
+    d_factory->generate_reuse(d_system_mtx, *d_reuse_data);
+    // scaled values, then new random values with the same pattern
+    auto scaled = gko::share(gko::clone(system_mtx));
+    scaled->scale(gko::initialize<Mtx>({gko::one<value_type>() * 2}, ref));
+    auto random = gko::share(gko::clone(system_mtx));
+    for (gko::size_type i = 0; i < random->get_num_stored_elements(); i++) {
+        random->get_values()[i] = gko::detail::get_rand_value<value_type>(
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
     }
-    d_system_mtx = gko::clone(exec, system_mtx);
-    d_mg_level->update_matrix_value(d_system_mtx);
-    mg_level->update_matrix_value(system_mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level->get_coarse_op()),
-                        gko::as<Csr>(mg_level->get_coarse_op()),
-                        r<value_type>::value);
+    for (auto matrix : {scaled, random}) {
+        auto level = factory->generate_reuse(matrix, *reuse_data);
+        auto d_level =
+            d_factory->generate_reuse(gko::clone(exec, matrix), *d_reuse_data);
+
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_level->get_coarse_op()),
+                            gko::as<Csr>(level->get_coarse_op()),
+                            r<value_type>::value);
+    }
 }

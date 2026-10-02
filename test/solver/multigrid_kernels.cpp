@@ -207,11 +207,9 @@ TEST_F(Multigrid, MultigridKCycleCheckStopIsEquivalentToRef)
 }
 
 
-// Multigrid::update_matrix_value runs the Pgm mapping and regenerates the
-// smoothers on whichever executor the solver lives on, so the whole update
-// has to give the same solver as on the reference executor. test/multigrid
-// only covers the Pgm level itself.
-class MultigridUpdate : public CommonTestFixture {
+// generate_reuse runs the Pgm mapping and regenerates the smoothers and the
+// coarsest solver on whichever executor the solver lives on
+class MultigridReuse : public CommonTestFixture {
 protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Vec = gko::matrix::Dense<value_type>;
@@ -219,7 +217,7 @@ protected:
     using Smoother = gko::solver::Ir<value_type>;
     using InnerSolver = gko::preconditioner::Jacobi<value_type>;
 
-    MultigridUpdate() : rand_engine(42)
+    MultigridReuse() : rand_engine(42)
     {
 #ifdef GINKGO_FAST_TESTS
         const int m = 129;
@@ -233,8 +231,7 @@ protected:
         gko::utils::make_hpd(data);
         mtx = gko::share(Csr::create(ref));
         mtx->read(data);
-        // scaling by a constant keeps the sparsity pattern and the
-        // aggregates, which is exactly what the update relies on
+        // scaling keeps the sparsity pattern and the aggregates
         scaled = gko::share(gko::clone(mtx));
         scaled->scale(gko::initialize<Vec>({value_type{2}}, ref));
         d_mtx = gko::share(gko::clone(exec, mtx));
@@ -252,9 +249,7 @@ protected:
             .with_max_levels(2u)
             .with_min_coarse_rows(8u)
             .with_post_uses_pre(true)
-            .with_mg_level(
-                Coarse::build().with_deterministic(true).with_updatable_values(
-                    true))
+            .with_mg_level(Coarse::build().with_deterministic(true))
             .with_pre_smoother(
                 Smoother::build()
                     .with_solver(InnerSolver::build().with_max_block_size(1u))
@@ -274,45 +269,35 @@ protected:
 };
 
 
-TEST_F(MultigridUpdate, UpdateMatrixValueIsEquivalentToRef)
+TEST_F(MultigridReuse, GenerateReuseIsEquivalentToRefAndToRegenerated)
 {
-    auto solver = gen_factory(ref)->generate(mtx);
-    auto d_solver = gen_factory(exec)->generate(d_mtx);
+    auto factory = gen_factory(ref);
+    auto d_factory = gen_factory(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto d_reuse_data = d_factory->create_empty_reuse_data();
+    factory->generate_reuse(mtx, *reuse_data);
+    d_factory->generate_reuse(d_mtx, *d_reuse_data);
     auto x = Vec::create(ref, gko::dim<2>{b->get_size()[0], 1});
     x->fill(gko::zero<value_type>());
     auto d_x = gko::clone(exec, x);
+    auto d_expected_x = gko::clone(exec, x);
 
-    solver->update_matrix_value(scaled);
-    d_solver->update_matrix_value(d_scaled);
+    auto solver = factory->generate_reuse(scaled, *reuse_data);
+    auto d_solver = d_factory->generate_reuse(d_scaled, *d_reuse_data);
+    auto d_expected = d_factory->generate(d_scaled);
     solver->apply(b, x);
-    d_solver->apply(d_b, d_x);
-
-    auto mg_level = solver->get_mg_level_list();
-    auto d_mg_level = d_solver->get_mg_level_list();
-    ASSERT_GT(mg_level.size(), 0);
-    ASSERT_EQ(mg_level.size(), d_mg_level.size());
-    for (gko::size_type i = 0; i < mg_level.size(); i++) {
-        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_mg_level.at(i)->get_coarse_op()),
-                            gko::as<Csr>(mg_level.at(i)->get_coarse_op()),
-                            r<value_type>::value);
-    }
-    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
-}
-
-
-// An updated solver has to behave like one generated on the new matrix from
-// scratch, on the device as well.
-TEST_F(MultigridUpdate, UpdatedSolverAppliesLikeRegeneratedSolver)
-{
-    auto d_solver = gen_factory(exec)->generate(d_mtx);
-    auto d_expected = gen_factory(exec)->generate(d_scaled);
-    auto d_x = Vec::create(exec, gko::dim<2>{b->get_size()[0], 1});
-    d_x->fill(gko::zero<value_type>());
-    auto d_expected_x = gko::clone(d_x);
-
-    d_solver->update_matrix_value(d_scaled);
     d_solver->apply(d_b, d_x);
     d_expected->apply(d_b, d_expected_x);
 
+    auto levels = solver->get_mg_level_list();
+    auto d_levels = d_solver->get_mg_level_list();
+    ASSERT_GT(levels.size(), 0);
+    ASSERT_EQ(levels.size(), d_levels.size());
+    for (gko::size_type i = 0; i < levels.size(); i++) {
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_levels.at(i)->get_coarse_op()),
+                            gko::as<Csr>(levels.at(i)->get_coarse_op()),
+                            r<value_type>::value);
+    }
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
     GKO_ASSERT_MTX_NEAR(d_x, d_expected_x, r<value_type>::value * 1e3);
 }
