@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/std_extensions.hpp>
 
 #include "accessor/cuda_hip_helper.hpp"
+#include "accessor/index_limit_checks.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
@@ -24,6 +25,7 @@
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/mixed_precision_types.hpp"
+#include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -189,12 +191,18 @@ void classical_spmv(
         std::optional<matrix::view::dense<const OutputValueType>>>
         beta = {})
 {
+    if (c.size[0] == 0 || c.size[1] == 0) {
+        // empty output: nothing to do
+        return;
+    }
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using input_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType,
+                                    IndexType>;
     using output_accessor =
-        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType>;
+        gko::acc::reduced_row_major<2, arithmetic_type, OutputValueType,
+                                    IndexType>;
 
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() *
@@ -205,20 +213,24 @@ void classical_spmv(
     const dim3 grid(gridx, b.size[1]);
     const auto block = spmv_block_size;
 
+    GKO_ASSERT(acc::dense_accessor_fits<input_accessor>(b.size[0], b.size[1],
+                                                        b.stride));
+    GKO_ASSERT(acc::dense_accessor_fits<output_accessor>(c.size[0], c.size[1],
+                                                         c.stride));
     const auto b_vals = gko::acc::range<input_accessor>(
-        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
-                                       static_cast<acc::size_type>(b.size[1])}},
+        typename input_accessor::dim_type{
+            {static_cast<typename input_accessor::size_type>(b.size[0]),
+             static_cast<typename input_accessor::size_type>(b.size[1])}},
         b.values,
-        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
+        typename input_accessor::storage_stride_type{
+            {static_cast<typename input_accessor::size_type>(b.stride)}});
     auto c_vals = gko::acc::range<output_accessor>(
-        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(c.size[0]),
-                                       static_cast<acc::size_type>(c.size[1])}},
+        typename output_accessor::dim_type{
+            {static_cast<typename output_accessor::size_type>(c.size[0]),
+             static_cast<typename output_accessor::size_type>(c.size[1])}},
         c.values,
-        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(c.stride)}});
-    if (c.size[0] == 0 || c.size[1] == 0) {
-        // empty output: nothing to do
-        return;
-    }
+        typename output_accessor::storage_stride_type{
+            {static_cast<typename output_accessor::size_type>(c.stride)}});
     if (!alpha && !beta) {
         kernel::abstract_classical_spmv<subwarp_size>
             <<<grid, block, 0, exec->get_stream()>>>(
