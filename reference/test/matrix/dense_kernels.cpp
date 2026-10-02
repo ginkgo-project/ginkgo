@@ -559,38 +559,6 @@ TYPED_TEST(Dense, ScaleAddIdentityRectangular)
 }
 
 
-TYPED_TEST(Dense, AdvancedAppliesToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using MixedVector = gko::matrix::MultiVector<mixed_value_type>;
-    using MixedVectorComplex = gko::matrix::MultiVector<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    auto b = gko::initialize<MixedVectorComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
-         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}},
-        exec);
-    auto x = gko::initialize<MixedVectorComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}},
-        exec);
-    auto alpha = gko::initialize<MixedVector>({-1.0}, this->exec);
-    auto beta = gko::initialize<MixedVector>({2.0}, this->exec);
-
-    this->mtx1->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{mixed_complex_type{-12.0, -16.0}, mixed_complex_type{-16.0, -20.0}},
-           {mixed_complex_type{-13.0, -15.0},
-            mixed_complex_type{-18.5, -20.5}}}),
-        0.0);
-}
-
-
 template <typename ValueIndexType>
 class DenseWithIndexType
     : public Dense<

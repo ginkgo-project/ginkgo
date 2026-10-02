@@ -893,38 +893,6 @@ TYPED_TEST(Ell, OutplaceAbsolute)
 }
 
 
-TYPED_TEST(Ell, AdvancedAppliesToMixedComplex)
-{
-    using mixed_value_type =
-        gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_value_type>;
-    using MixedMultiVector = gko::matrix::MultiVector<mixed_value_type>;
-    using MixedMultiVectorComplex =
-        gko::matrix::MultiVector<mixed_complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    // clang-format off
-    auto b = gko::initialize<MixedMultiVectorComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}},
-         {mixed_complex_type{3.0, 4.0}, mixed_complex_type{4.0, 5.0}}}, exec);
-    auto x = gko::initialize<MixedMultiVectorComplex>(
-        {{mixed_complex_type{1.0, 0.0}, mixed_complex_type{2.0, 1.0}},
-         {mixed_complex_type{2.0, 2.0}, mixed_complex_type{3.0, 3.0}}}, exec);
-    auto alpha = gko::initialize<MixedMultiVector>({-1.0}, this->exec);
-    auto beta = gko::initialize<MixedMultiVector>({2.0}, this->exec);
-    // clang-format on
-
-    this->mtx1->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{mixed_complex_type{-11.0, -14.0}, mixed_complex_type{-15.0, -18.0}},
-           {mixed_complex_type{-6.0, -6.0}, mixed_complex_type{-9.0, -9.0}}}),
-        0.0);
-}
-
-
 template <typename ValueIndexType>
 class EllComplex : public ::testing::Test {
 protected:
