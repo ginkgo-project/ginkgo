@@ -254,8 +254,9 @@ void Stream<ValueType>::on_polymorphic_object_deleted(
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_linop_apply_started(const LinOp* A, const LinOp* b,
-                                               const LinOp* x) const
+void Stream<ValueType>::on_linop_apply_started(
+    const LinOp* A, const AbstractMultiVector* b,
+    const AbstractMultiVector* x) const
 {
     *os_ << prefix_ << "apply started on A " << demangle_name(A) << " with b "
          << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
@@ -271,8 +272,9 @@ void Stream<ValueType>::on_linop_apply_started(const LinOp* A, const LinOp* b,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_linop_apply_completed(const LinOp* A, const LinOp* b,
-                                                 const LinOp* x) const
+void Stream<ValueType>::on_linop_apply_completed(
+    const LinOp* A, const AbstractMultiVector* b,
+    const AbstractMultiVector* x) const
 {
     *os_ << prefix_ << "apply completed on A " << demangle_name(A) << " with b "
          << demangle_name(b) << " and x " << demangle_name(x) << std::endl;
@@ -288,11 +290,10 @@ void Stream<ValueType>::on_linop_apply_completed(const LinOp* A, const LinOp* b,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_linop_advanced_apply_started(const LinOp* A,
-                                                        const LinOp* alpha,
-                                                        const LinOp* b,
-                                                        const LinOp* beta,
-                                                        const LinOp* x) const
+void Stream<ValueType>::on_linop_advanced_apply_started(
+    const LinOp* A, const AbstractMultiVector* alpha,
+    const AbstractMultiVector* b, const AbstractMultiVector* beta,
+    const AbstractMultiVector* x) const
 {
     *os_ << prefix_ << "advanced apply started on A " << demangle_name(A)
          << " with alpha " << demangle_name(alpha) << " b " << demangle_name(b)
@@ -314,11 +315,10 @@ void Stream<ValueType>::on_linop_advanced_apply_started(const LinOp* A,
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_linop_advanced_apply_completed(const LinOp* A,
-                                                          const LinOp* alpha,
-                                                          const LinOp* b,
-                                                          const LinOp* beta,
-                                                          const LinOp* x) const
+void Stream<ValueType>::on_linop_advanced_apply_completed(
+    const LinOp* A, const AbstractMultiVector* alpha,
+    const AbstractMultiVector* b, const AbstractMultiVector* beta,
+    const AbstractMultiVector* x) const
 {
     *os_ << prefix_ << "advanced apply completed on A " << demangle_name(A)
          << " with alpha " << demangle_name(alpha) << " b " << demangle_name(b)
@@ -361,8 +361,10 @@ void Stream<ValueType>::on_linop_factory_generate_completed(
 template <typename ValueType>
 void Stream<ValueType>::on_criterion_check_started(
     const stop::Criterion* criterion, const size_type& num_iterations,
-    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
-    const uint8& stopping_id, const bool& set_finalized) const
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* solution, const uint8& stopping_id,
+    const bool& set_finalized) const
 {
     *os_ << prefix_ << "check started for " << demangle_name(criterion)
          << " at iteration " << num_iterations << " with ID "
@@ -391,10 +393,11 @@ void Stream<ValueType>::on_criterion_check_started(
 template <typename ValueType>
 void Stream<ValueType>::on_criterion_check_completed(
     const stop::Criterion* criterion, const size_type& num_iterations,
-    const LinOp* residual, const LinOp* residual_norm, const LinOp* solution,
-    const uint8& stoppingId, const bool& setFinalized,
-    const array<stopping_status>* status, const bool& oneChanged,
-    const bool& converged) const
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* solution, const uint8& stoppingId,
+    const bool& setFinalized, const array<stopping_status>* status,
+    const bool& oneChanged, const bool& converged) const
 {
     *os_ << prefix_ << "check completed for " << demangle_name(criterion)
          << " at iteration " << num_iterations << " with ID "
@@ -427,9 +430,11 @@ void Stream<ValueType>::on_criterion_check_completed(
 
 template <typename ValueType>
 void Stream<ValueType>::on_iteration_complete(
-    const LinOp* solver, const LinOp* right_hand_side, const LinOp* solution,
-    const size_type& num_iterations, const LinOp* residual,
-    const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
+    const LinOp* solver, const AbstractMultiVector* right_hand_side,
+    const AbstractMultiVector* solution, const size_type& num_iterations,
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_resnorm_sq,
     const array<stopping_status>* status, bool stopped) const
 {
     *os_ << prefix_ << "iteration " << num_iterations
@@ -472,11 +477,10 @@ void Stream<ValueType>::on_iteration_complete(
 
 
 template <typename ValueType>
-void Stream<ValueType>::on_iteration_complete(const LinOp* solver,
-                                              const size_type& num_iterations,
-                                              const LinOp* residual,
-                                              const LinOp* solution,
-                                              const LinOp* residual_norm) const
+void Stream<ValueType>::on_iteration_complete(
+    const LinOp* solver, const size_type& num_iterations,
+    const AbstractMultiVector* residual, const AbstractMultiVector* solution,
+    const AbstractMultiVector* residual_norm) const
 {
     on_iteration_complete(solver, nullptr, solution, num_iterations, residual,
                           residual_norm, nullptr, nullptr, false);
@@ -485,9 +489,10 @@ void Stream<ValueType>::on_iteration_complete(const LinOp* solver,
 
 template <typename ValueType>
 void Stream<ValueType>::on_iteration_complete(
-    const LinOp* solver, const size_type& num_iterations, const LinOp* residual,
-    const LinOp* solution, const LinOp* residual_norm,
-    const LinOp* implicit_sq_residual_norm) const
+    const LinOp* solver, const size_type& num_iterations,
+    const AbstractMultiVector* residual, const AbstractMultiVector* solution,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_sq_residual_norm) const
 {
     on_iteration_complete(solver, nullptr, solution, num_iterations, residual,
                           residual_norm, implicit_sq_residual_norm, nullptr,

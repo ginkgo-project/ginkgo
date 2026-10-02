@@ -81,6 +81,7 @@ protected:
     using local_csr = gko::matrix::Csr<value_type, local_index_type>;
     using global_csr = gko::matrix::Csr<value_type, global_index_type>;
     using Dense = gko::matrix::Dense<value_type>;
+    using MultiVector = gko::matrix::MultiVector<value_type>;
     using Partition =
         gko::experimental::distributed::Partition<local_index_type,
                                                   global_index_type>;
@@ -129,7 +130,8 @@ protected:
         b_dense->read(b_data);
         auto c_dense =
             Dense::create(ref, gko::dim<2>{a_data.size[0], b_data.size[1]});
-        a_dense->apply(b_dense, c_dense);
+        a_dense->apply(b_dense->as_const_multivector_view(),
+                       c_dense->as_multivector_view());
         return c_dense;
     }
 };
@@ -222,7 +224,7 @@ TYPED_TEST(DistSpgemm, RandomSparseMatchesSequential)
     using value_type = typename TestFixture::value_type;
     using dist_mtx = typename TestFixture::dist_mtx;
     using dist_vec = typename TestFixture::dist_vec;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     using Partition = typename TestFixture::Partition;
     using global_csr = typename TestFixture::global_csr;
     using global_index_type = typename TestFixture::global_index_type;
@@ -269,9 +271,9 @@ TYPED_TEST(DistSpgemm, RandomSparseMatchesSequential)
     }
 
     // Sequential SpMV: y_ref = C_seq * x
-    auto x_full = Dense::create(this->ref);
+    auto x_full = MultiVector::create(this->ref);
     x_full->read(x_data);
-    auto y_ref = Dense::create(this->ref, gko::dim<2>{n, 1});
+    auto y_ref = MultiVector::create(this->ref, gko::dim<2>{n, 1});
     c_seq->apply(x_full, y_ref);
 
     // Distributed SpMV: y_dist = C_dist * x_dist
@@ -379,11 +381,11 @@ TYPED_TEST(DistSpgemm, NonSquareMismatchedPartitions)
 
     // Reference: compute C_ref = A*B as a sequential Dense, then C_ref*x
     auto c_ref = this->compute_sequential_product(a_data, b_data);
-    auto x_ref =
-        gko::matrix::Dense<value_type>::create(this->ref, gko::dim<2>{n, 1});
+    auto x_ref = gko::matrix::MultiVector<value_type>::create(
+        this->ref, gko::dim<2>{n, 1});
     x_ref->read(x_data);
-    auto y_ref =
-        gko::matrix::Dense<value_type>::create(this->ref, gko::dim<2>{m, 1});
+    auto y_ref = gko::matrix::MultiVector<value_type>::create(
+        this->ref, gko::dim<2>{m, 1});
     c_ref->apply(x_ref, y_ref);
 
     // Compare only this rank's slice of y
@@ -391,10 +393,10 @@ TYPED_TEST(DistSpgemm, NonSquareMismatchedPartitions)
     auto a_row_part_host = gko::clone(this->ref, a_row_part);
     auto local_m_begin = a_row_part_host->get_range_bounds()[rank];
     auto local_m_end = a_row_part_host->get_range_bounds()[rank + 1];
-    auto y_ref_slice = y_ref->create_submatrix(
-        gko::span{static_cast<gko::size_type>(local_m_begin),
-                  static_cast<gko::size_type>(local_m_end)},
-        gko::span{0, 1});
+    auto y_ref_slice = y_ref->create_subview(
+        gko::local_span{static_cast<gko::size_type>(local_m_begin),
+                        static_cast<gko::size_type>(local_m_end)},
+        gko::local_span{0, 1});
     GKO_ASSERT_MTX_NEAR(y_dist->get_local_vector(), y_ref_slice,
                         r<value_type>::value * 100);
 }
@@ -405,7 +407,7 @@ TYPED_TEST(DistSpgemm, NonContiguousInnerPartitionMatchesSequential)
     using value_type = typename TestFixture::value_type;
     using dist_mtx = typename TestFixture::dist_mtx;
     using dist_vec = typename TestFixture::dist_vec;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     using Partition = typename TestFixture::Partition;
     using global_index_type = typename TestFixture::global_index_type;
     SKIP_IF_HALF(value_type);
@@ -463,9 +465,9 @@ TYPED_TEST(DistSpgemm, NonContiguousInnerPartitionMatchesSequential)
         x_data.nonzeros.emplace_back(
             i, 0, static_cast<value_type>(static_cast<double>(i + 1)));
     }
-    auto x_full = Dense::create(this->ref);
+    auto x_full = MultiVector::create(this->ref);
     x_full->read(x_data);
-    auto y_ref = Dense::create(this->ref, gko::dim<2>{m, 1});
+    auto y_ref = MultiVector::create(this->ref, gko::dim<2>{m, 1});
     c_seq->apply(x_full, y_ref);
 
     // Distributed SpMV
@@ -511,7 +513,7 @@ TYPED_TEST(DistSpgemm, EmptyLocalRowsMatchesSequential)
     using value_type = typename TestFixture::value_type;
     using dist_mtx = typename TestFixture::dist_mtx;
     using dist_vec = typename TestFixture::dist_vec;
-    using Dense = typename TestFixture::Dense;
+    using MultiVector = typename TestFixture::MultiVector;
     using Partition = typename TestFixture::Partition;
     using global_index_type = typename TestFixture::global_index_type;
     SKIP_IF_HALF(value_type);
@@ -571,9 +573,9 @@ TYPED_TEST(DistSpgemm, EmptyLocalRowsMatchesSequential)
         x_data.nonzeros.emplace_back(
             i, 0, static_cast<value_type>(static_cast<double>(i + 1)));
     }
-    auto x_full = Dense::create(this->ref);
+    auto x_full = MultiVector::create(this->ref);
     x_full->read(x_data);
-    auto y_ref = Dense::create(this->ref, gko::dim<2>{m, 1});
+    auto y_ref = MultiVector::create(this->ref, gko::dim<2>{m, 1});
     c_seq->apply(x_full, y_ref);
 
     // Distributed SpMV

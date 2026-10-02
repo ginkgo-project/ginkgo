@@ -9,7 +9,6 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -17,6 +16,7 @@
 
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/dispatch_helper.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -190,32 +190,34 @@ Hybrid<ValueType, IndexType>::create(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                              AbstractMultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            auto ell_mtx = this->get_ell();
-            auto coo_mtx = this->get_coo();
-            ell_mtx->apply(dense_b, dense_x);
-            coo_mtx->apply2(dense_b, dense_x);
+    precision_dispatch<ValueType>(
+        [this](auto b_, auto x_) {
+            ell_->apply(b_, x_);
+            coo_->apply2(b_, x_);
         },
         b, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                              const LinOp* b, const LinOp* beta,
-                                              LinOp* x) const
+void Hybrid<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                              const AbstractMultiVector* b,
+                                              const AbstractMultiVector* beta,
+                                              AbstractMultiVector* x) const
 {
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto ell_mtx = this->get_ell();
-            auto coo_mtx = this->get_coo();
-            ell_mtx->apply(dense_alpha, dense_b, dense_beta, dense_x);
-            coo_mtx->apply2(dense_alpha, dense_b, dense_x);
+    precision_dispatch<ValueType>(
+        [this, alpha, beta](auto b_, auto x_) {
+            auto converted_alpha = alpha->as_precision(precision_v<ValueType>);
+            auto real_alpha = converted_alpha->create_real_view();
+            auto alpha_ = !is_complex<ValueType>() ? real_alpha.get()
+                                                   : converted_alpha.get();
+            ell_->apply(alpha_, b_, beta, x_);
+            coo_->apply2(alpha_, b_, x_);
         },
-        alpha, b, beta, x);
+        b, x);
 }
 
 

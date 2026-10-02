@@ -142,8 +142,9 @@ struct DummyLogger : gko::log::Logger {
 
     void on_iteration_complete(
         const gko::LinOp* solver, const gko::size_type& num_iterations,
-        const gko::LinOp* residual, const gko::LinOp* solution = nullptr,
-        const gko::LinOp* residual_norm = nullptr) const override
+        const gko::AbstractMultiVector* residual,
+        const gko::AbstractMultiVector* solution = nullptr,
+        const gko::AbstractMultiVector* residual_norm = nullptr) const override
     {
         this->num_iterations_ = num_iterations;
     }
@@ -247,24 +248,29 @@ struct DummyLoggerExtended : gko::log::Logger {
 
     void on_iteration_complete(
         const gko::LinOp* solver, const gko::size_type& num_iterations,
-        const gko::LinOp* residual, const gko::LinOp* solution = nullptr,
-        const gko::LinOp* residual_norm = nullptr) const override
+        const gko::AbstractMultiVector* residual,
+        const gko::AbstractMultiVector* solution = nullptr,
+        const gko::AbstractMultiVector* residual_norm = nullptr) const override
     {
         this->logged_deprecated_1 = true;
     }
 
-    void on_iteration_complete(const gko::LinOp* solver,
-                               const gko::size_type& it, const gko::LinOp* r,
-                               const gko::LinOp* x, const gko::LinOp* tau,
-                               const gko::LinOp* implicit_tau_sq) const override
+    void on_iteration_complete(
+        const gko::LinOp* solver, const gko::size_type& it,
+        const gko::AbstractMultiVector* r, const gko::AbstractMultiVector* x,
+        const gko::AbstractMultiVector* tau,
+        const gko::AbstractMultiVector* implicit_tau_sq) const override
     {
         this->logged_deprecated_2 = true;
     }
 
-    void on_iteration_complete(const gko::LinOp* solver, const gko::LinOp* b,
-                               const gko::LinOp* x, const gko::size_type& it,
-                               const gko::LinOp* r, const gko::LinOp* tau,
-                               const gko::LinOp* implicit_tau_sq,
+    void on_iteration_complete(const gko::LinOp* solver,
+                               const gko::AbstractMultiVector* b,
+                               const gko::AbstractMultiVector* x,
+                               const gko::size_type& it,
+                               const gko::AbstractMultiVector* r,
+                               const gko::AbstractMultiVector* tau,
+                               const gko::AbstractMultiVector* implicit_tau_sq,
                                const gko::array<gko::stopping_status>* status,
                                bool stopped) const override
     {

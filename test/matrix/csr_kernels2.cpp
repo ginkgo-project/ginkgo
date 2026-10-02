@@ -36,8 +36,8 @@ class Csr : public CommonTestFixture {
 protected:
     using Arr = gko::array<index_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Mtx = gko::matrix::Csr<value_type>;
-    using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<value_type>>;
     using Perm = gko::matrix::Permutation<index_type>;
     using ScaledPerm = gko::matrix::ScaledPermutation<value_type, index_type>;
@@ -80,9 +80,9 @@ protected:
     void set_up_apply_data(int num_vectors = 1)
     {
         mtx = Mtx::create(ref, strategy);
-        mtx->move_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 1));
+        mtx->move_from(gen_mtx<Dense>(mtx_size[0], mtx_size[1], 1));
         square_mtx = Mtx::create(ref, strategy);
-        square_mtx->move_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[0], 1));
+        square_mtx->move_from(gen_mtx<Dense>(mtx_size[0], mtx_size[0], 1));
         expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
         y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);
@@ -737,36 +737,6 @@ TEST_F(Csr, ScaleAddReuseUpdateCrossExecutor)
     dreuse.update_values(alpha, mtx, beta, mtx2, result);
 
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
-}
-
-
-TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
-{
-    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
-    auto dcomplex_b = gko::clone(exec, complex_b);
-    auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
-    auto dcomplex_x = gko::clone(exec, complex_x);
-
-    mtx->apply(complex_b, complex_x);
-    dmtx->apply(dcomplex_b, dcomplex_x);
-
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
-}
-
-
-TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
-{
-    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
-    auto dcomplex_b = gko::clone(exec, complex_b);
-    auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
-    auto dcomplex_x = gko::clone(exec, complex_x);
-
-    mtx->apply(alpha, complex_b, beta, complex_x);
-    dmtx->apply(dalpha, dcomplex_b, dbeta, dcomplex_x);
-
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
 
 

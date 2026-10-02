@@ -183,13 +183,13 @@ public:
                                      config::make_type_descriptor<ValueType>());
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_dense_impl(const matrix::MultiVector<ValueType>* b,
-                          matrix::MultiVector<ValueType>* x) const;
-
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     explicit CbGmres(std::shared_ptr<const Executor> exec)
         : LinOp(std::move(exec))
