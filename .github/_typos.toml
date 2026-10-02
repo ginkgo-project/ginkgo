@@ -27,3 +27,4 @@ abs_operaton = "abs_operaton" # considered interface break in range.hpp
 max_operaton = "max_operaton" # considered interface break in range.hpp
 min_operaton = "min_operaton" # considered interface break in range.hpp
 squared_norm_operaton = "squared_norm_operaton" # considered interface break in range.hpp
+pmix_iof_write_output = "pmix_iof_write_output" # PMIx function, iof = I/O forwarding
