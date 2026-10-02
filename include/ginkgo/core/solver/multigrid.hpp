@@ -136,6 +136,14 @@ class MultigridState;
  * - Trottenberg, U., Oosterlee, C. W., Schüller, A.
  *   *%Multigrid.* 1st ed. Academic Press, 2001. ISBN 978-0-12-701070-0.
  *
+ * The factory supports LinOpFactory::generate_reuse(): the recorded
+ * hierarchy is reused as long as its levels reproduce their coarse sizes,
+ * and levels, smoothers and the coarsest solver are generated through their
+ * own generate_reuse(). Below the first level that comes out different,
+ * everything is generated anew. Every call returns a new solver; its
+ * hierarchy and Pgm levels are independent of the reuse data and of earlier
+ * results, other components keep the reuse guarantees of their factories.
+ *
  * @ingroup Multigrid
  * @ingroup solvers
  * @ingroup LinOp
@@ -143,8 +151,7 @@ class MultigridState;
 class Multigrid : public LinOp,
                   public EnableSolverBase<Multigrid>,
                   public EnableIterativeBase<Multigrid>,
-                  public EnableApplyWithInitialGuess<Multigrid>,
-                  public gko::multigrid::UpdateMatrixValue {
+                  public EnableApplyWithInitialGuess<Multigrid> {
     friend class EnableApplyWithInitialGuess<Multigrid>;
 
 public:
@@ -168,7 +175,7 @@ public:
     std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
     get_mg_level_list() const
     {
-        return {mg_level_list_.begin(), mg_level_list_.end()};
+        return mg_level_list_;
     }
 
     /**
@@ -413,8 +420,31 @@ public:
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::zero);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Multigrid, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Records the hierarchy of generate_reuse() and the reuse data of its
+     * levels, smoothers and coarsest solver.
+     */
+    class reuse_data_type : public LinOpFactory::ReuseData {
+        friend class Multigrid;
+
+        struct level_data {
+            size_type index{};
+            dim<2> coarse_size{};
+            std::unique_ptr<LinOpFactory::ReuseData> level;
+            std::unique_ptr<LinOpFactory::ReuseData> pre_smoother;
+            std::unique_ptr<LinOpFactory::ReuseData> mid_smoother;
+            std::unique_ptr<LinOpFactory::ReuseData> post_smoother;
+        };
+
+        bool initialized_ = false;
+        dim<2> size_{};
+        std::vector<level_data> levels_;
+        size_type coarsest_index_{};
+        std::unique_ptr<LinOpFactory::ReuseData> coarsest_solver_;
+    };
 
     /**
      * Create the parameters from the property_tree.
@@ -435,34 +465,6 @@ public:
                                  const config::type_descriptor& td_for_child =
                                      config::make_type_descriptor<>());
 
-    /**
-     * Updates the solver from the values of a new system matrix, keeping the
-     * multigrid hierarchy that was built from the old one.
-     *
-     * Every level is updated through
-     * gko::multigrid::UpdateMatrixValue::update_matrix_value(), and the
-     * smoothers and the coarsest solver are regenerated on the updated
-     * operators. The hierarchy itself (the aggregates, the prolongation and
-     * the restriction operators and the number of levels) is reused.
-     *
-     * The levels are updated in place, so a copy of this solver, which shares
-     * the levels, sees the new coarse operators but keeps its own, now stale,
-     * smoothers.
-     *
-     * The update is rejected before any state is changed if the hierarchy is
-     * empty, if the new matrix does not match the current one in size, or if
-     * any level does not implement gko::multigrid::UpdateMatrixValue.
-     *
-     * @param new_matrix  the new system matrix. It has to have the same
-     *                    dimensions and sparsity pattern as the matrix this
-     *                    solver was generated with.
-     *
-     * @throw NotSupported  if any level of the hierarchy does not support
-     *                      value-only updates.
-     */
-    void update_matrix_value(
-        std::shared_ptr<const gko::LinOp> new_matrix) override;
-
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -481,14 +483,18 @@ protected:
                           initial_guess_mode guess) const;
 
     /**
-     * Generates the analysis structure from the system matrix and the right
-     * hand side needed for the level solver.
+     * Generates the hierarchy, its smoothers and the coarsest solver. With
+     * reuse_data, every component goes through generate_reuse(), recorded
+     * levels are reused while they reproduce their coarse sizes, and
+     * reuse_data is updated once everything succeeded.
+     *
+     * @param reuse_data  the reuse data, or nullptr for a plain generation
      */
-    void generate();
+    void generate(reuse_data_type* reuse_data);
 
     /**
      * Generates the smoothers of one level and appends them to the given
-     * lists. Shared by generate() and update_matrix_value().
+     * lists.
      *
      * @param mg_level  the level to generate the smoothers for
      * @param index  the index into the smoother lists of the parameters, as
@@ -498,33 +504,54 @@ protected:
      *                           the mid smoother is standalone
      * @param post_smoother_list  the list the post smoother is appended to,
      *                            unless the post smoother reuses the pre one
+     * @param level_reuse  the reuse data of the level, or nullptr
      */
     void generate_smoothers(
         std::shared_ptr<const gko::multigrid::MultigridLevel> mg_level,
         size_type index,
         std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
         std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
-        std::vector<std::shared_ptr<const LinOp>>& post_smoother_list);
+        std::vector<std::shared_ptr<const LinOp>>& post_smoother_list,
+        reuse_data_type::level_data* level_reuse);
 
     /**
-     * Generates the solver for the coarsest level. Shared by generate() and
-     * update_matrix_value().
+     * Generates the solver for the coarsest level.
      *
      * @param last_mg_level  the coarsest level, which gives the value type to
      *                       dispatch on
      * @param level  the number of levels, passed to the solver selector
      * @param matrix  the coarsest operator
+     * @param reuse_data  the reuse data slot of the coarsest solver, or
+     *                    nullptr
+     * @param recorded_index  if given, the coarsest solver index to use
+     *                        instead of asking the solver selector
+     * @param selected_index  receives the coarsest solver index used
      *
      * @return the coarsest solver
      */
     std::unique_ptr<LinOp> generate_coarsest_solver(
         std::shared_ptr<const gko::multigrid::MultigridLevel> last_mg_level,
-        size_type level, std::shared_ptr<const LinOp> matrix);
+        size_type level, std::shared_ptr<const LinOp> matrix,
+        std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
+        const size_type* recorded_index, size_type* selected_index);
 
     explicit Multigrid(std::shared_ptr<const Executor> exec);
 
     explicit Multigrid(const Factory* factory,
                        std::shared_ptr<const LinOp> system_matrix);
+
+    Multigrid(const Factory* factory,
+              std::shared_ptr<const LinOp> system_matrix,
+              reuse_data_type& reuse_data);
+
+    Multigrid(const Factory* factory,
+              std::shared_ptr<const LinOp> system_matrix,
+              reuse_data_type* reuse_data);
+
+    /** Throws if `input` can't be used with `reuse_data`. */
+    static void check_reuse_consistent(const Factory* factory,
+                                       const LinOp* input,
+                                       const reuse_data_type& reuse_data);
 
     /**
      * validate checks the given parameters are valid or not.
@@ -545,7 +572,7 @@ protected:
     void create_state() const;
 
 private:
-    std::vector<std::shared_ptr<gko::multigrid::MultigridLevel>>
+    std::vector<std::shared_ptr<const gko::multigrid::MultigridLevel>>
         mg_level_list_{};
     std::vector<std::shared_ptr<const LinOp>> pre_smoother_list_{};
     std::vector<std::shared_ptr<const LinOp>> mid_smoother_list_{};

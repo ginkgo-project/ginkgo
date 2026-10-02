@@ -216,32 +216,25 @@ generate_coarse(std::shared_ptr<const Executor> exec,
 
 
 /**
- * Recomputes the values of a coarse matrix from the fine values, reusing the
- * coarse-to-fine mapping built during the generation.
- *
- * The sparsity of both matrices and the mapping between them are unchanged, so
- * only the coarse values are overwritten. The coarse matrix is only reachable
- * as const through the multigrid level, but updating its values in place is
- * exactly what this is for, hence the const_cast.
+ * Recomputes the values of a coarse matrix with an unchanged sparsity pattern
+ * from the fine values, through the coarse-to-fine mapping.
  */
 template <typename ValueType, typename IndexType>
 void update_coarse_values(
     std::shared_ptr<const Executor> exec,
     const matrix::SparsityCsr<ValueType, IndexType>* mapping,
     const matrix::Csr<ValueType, IndexType>* fine,
-    const matrix::Csr<ValueType, IndexType>* coarse)
+    matrix::Csr<ValueType, IndexType>* coarse)
 {
     auto fine_vals = matrix::Dense<ValueType>::create_const(
         exec, dim<2>{fine->get_num_stored_elements(), 1},
         make_const_array_view(exec, fine->get_num_stored_elements(),
                               fine->get_const_values()),
         1);
-    auto mutable_coarse =
-        const_cast<matrix::Csr<ValueType, IndexType>*>(coarse);
     auto coarse_vals = matrix::Dense<ValueType>::create(
-        exec, dim<2>{mutable_coarse->get_num_stored_elements(), 1},
-        make_array_view(exec, mutable_coarse->get_num_stored_elements(),
-                        mutable_coarse->get_values()),
+        exec, dim<2>{coarse->get_num_stored_elements(), 1},
+        make_array_view(exec, coarse->get_num_stored_elements(),
+                        coarse->get_values()),
         1);
     mapping->apply(fine_vals, coarse_vals);
 }
@@ -255,7 +248,7 @@ void update_coarse_values(
  * change in the number of nonzeros. A different pattern with the same number
  * of nonzeros is not detectable without comparing the patterns themselves,
  * which costs as much as the update, so it stays a precondition of
- * update_matrix_value().
+ * generate_reuse().
  */
 template <typename ValueType, typename IndexType>
 size_type mapping_nnz(const matrix::SparsityCsr<ValueType, IndexType>* mapping)
@@ -311,9 +304,6 @@ Pgm<ValueType, IndexType>::parse(const config::pnode& config,
     if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
     }
-    if (auto& obj = config_check.get("updatable_values")) {
-        params.with_updatable_values(config::get_value<bool>(obj));
-    }
 
     return params;
 }
@@ -323,7 +313,8 @@ template <typename ValueType, typename IndexType>
 std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
            std::shared_ptr<LinOp>>
 Pgm<ValueType, IndexType>::generate_local(
-    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix)
+    std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix,
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>* mapping)
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
     using real_type = remove_complex<ValueType>;
@@ -398,8 +389,10 @@ Pgm<ValueType, IndexType>::generate_local(
     // Construct the coarse matrix
     // TODO: improve it
     auto [coarse_matrix, mapping_matrix] = generate_coarse(
-        exec, local_matrix.get(), num_agg, agg_, parameters_.updatable_values);
-    mapping_local_ = mapping_matrix;
+        exec, local_matrix.get(), num_agg, agg_, mapping != nullptr);
+    if (mapping) {
+        *mapping = mapping_matrix;
+    }
     return std::tie(prolong_row_gather, coarse_matrix, restrict_sparsity);
 }
 
@@ -560,12 +553,19 @@ Pgm<ValueType, IndexType>::convert_local_fine_op(
 
 
 template <typename ValueType, typename IndexType>
-void Pgm<ValueType, IndexType>::generate()
+void Pgm<ValueType, IndexType>::generate(reuse_data_type* reuse_data)
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
+    const bool with_mapping = reuse_data != nullptr;
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_local;
+    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+        mapping_off_diag;
+    bool distributed = false;
 #if GINKGO_BUILD_MPI
     if (std::dynamic_pointer_cast<
             const experimental::distributed::DistributedBase>(system_matrix_)) {
+        distributed = true;
         this->set_fine_op(this->convert_distributed_fine_op(system_matrix_));
 
         auto distributed_setup = [&](auto matrix) {
@@ -578,7 +578,8 @@ void Pgm<ValueType, IndexType>::generate()
                     ->get_communicator();
             auto pgm_local_op =
                 gko::as<const csr_type>(matrix->get_diag_matrix());
-            auto result = this->generate_local(pgm_local_op);
+            auto result = this->generate_local(
+                pgm_local_op, with_mapping ? &mapping_local : nullptr);
 
             // create the coarse partition
             // the coarse partition will have only one range per part
@@ -619,12 +620,11 @@ void Pgm<ValueType, IndexType>::generate()
             // different row and col maps.
             auto off_diag_csr =
                 as<const csr_type>(matrix->get_off_diag_matrix());
-            auto [result_off_diag_csr, mapping_off_diag] = generate_coarse(
+            auto [result_off_diag_csr, off_diag_mapping] = generate_coarse(
                 exec, off_diag_csr.get(),
                 static_cast<IndexType>(std::get<1>(result)->get_size()[0]),
-                agg_, off_diag_num_agg, off_diag_map,
-                parameters_.updatable_values);
-            mapping_off_diag_ = mapping_off_diag;
+                agg_, off_diag_num_agg, off_diag_map, with_mapping);
+            mapping_off_diag = off_diag_mapping;
 
             // setup the generated linop.
             auto coarse = share(
@@ -659,43 +659,43 @@ void Pgm<ValueType, IndexType>::generate()
         auto pgm_op = this->convert_local_fine_op(system_matrix_);
         // keep the same precision data in fine_op
         this->set_fine_op(pgm_op);
-        auto result = this->generate_local(pgm_op);
+        auto result = this->generate_local(
+            pgm_op, with_mapping ? &mapping_local : nullptr);
         this->set_multigrid_level(std::get<0>(result), std::get<1>(result),
                                   std::get<2>(result));
+    }
+    // record everything only once the generation succeeded
+    if (reuse_data) {
+        reuse_data->agg_ = agg_;
+        reuse_data->prolong_op_ = this->get_prolong_op();
+        reuse_data->restrict_op_ = this->get_restrict_op();
+        reuse_data->coarse_op_ = this->get_coarse_op();
+        reuse_data->mapping_local_ = std::move(mapping_local);
+        reuse_data->mapping_off_diag_ = std::move(mapping_off_diag);
+        reuse_data->size_ = system_matrix_->get_size();
+        reuse_data->distributed_ = distributed;
+        reuse_data->initialized_ = true;
     }
 }
 
 
 template <typename ValueType, typename IndexType>
-void Pgm<ValueType, IndexType>::update_matrix_value(
-    std::shared_ptr<const LinOp> new_matrix)
+void Pgm<ValueType, IndexType>::generate_from(const reuse_data_type& reuse_data)
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
     auto exec = this->get_executor();
-    // The aggregates and the coarse-to-fine mapping are reused as they are,
-    // so a level generated without the mapping can not be updated. Reject it
-    // before anything is touched.
-    if (!parameters_.updatable_values) {
-        throw NotSupported(__FILE__, __LINE__, __func__,
-                           "update_matrix_value on a Pgm generated without "
-                           "the updatable_values parameter");
-    }
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, new_matrix);
-    // generate() gets the system matrix through the factory, which puts it on
-    // the factory executor, so do the same here.
-    auto matrix = new_matrix->get_executor() == exec
-                      ? new_matrix
-                      : gko::clone(exec, new_matrix);
 #if GINKGO_BUILD_MPI
-    if (std::dynamic_pointer_cast<
-            const experimental::distributed::DistributedBase>(matrix)) {
-        // convert first, so that a rejected update leaves the level alone
-        auto fine_op = this->convert_distributed_fine_op(matrix);
-
-        auto distributed_setup = [&](auto fine) {
+    if (reuse_data.distributed_) {
+        auto fine_op = this->convert_distributed_fine_op(system_matrix_);
+        // cloning shares the communication setup of the recorded coarse
+        // matrix, so no MPI call is needed
+        auto coarse = gko::clone(reuse_data.coarse_op_);
+        auto distributed_update = [&](auto fine) {
             using global_index_type =
                 typename std::decay_t<decltype(*fine)>::global_index_type;
-
+            using dist_mtx_type =
+                experimental::distributed::Matrix<ValueType, IndexType,
+                                                  global_index_type>;
             auto diag_csr = gko::as<const csr_type>(fine->get_diag_matrix());
             auto off_diag_csr =
                 gko::as<const csr_type>(fine->get_off_diag_matrix());
@@ -703,8 +703,10 @@ void Pgm<ValueType, IndexType>::update_matrix_value(
             // Throwing on some of them only would leave the others hanging in
             // the next collective call.
             int local_matches = static_cast<int>(
-                mapping_matches(mapping_local_.get(), diag_csr.get()) &&
-                mapping_matches(mapping_off_diag_.get(), off_diag_csr.get()));
+                mapping_matches(reuse_data.mapping_local_.get(),
+                                diag_csr.get()) &&
+                mapping_matches(reuse_data.mapping_off_diag_.get(),
+                                off_diag_csr.get()));
             int matches = local_matches;
             fine->get_communicator().all_reduce(
                 exec->get_master(), &local_matches, &matches, 1, MPI_MIN);
@@ -713,45 +715,76 @@ void Pgm<ValueType, IndexType>::update_matrix_value(
                     __FILE__, __LINE__, __func__,
                     diag_csr->get_num_stored_elements() +
                         off_diag_csr->get_num_stored_elements(),
-                    mapping_nnz(mapping_local_.get()) +
-                        mapping_nnz(mapping_off_diag_.get()),
+                    mapping_nnz(reuse_data.mapping_local_.get()) +
+                        mapping_nnz(reuse_data.mapping_off_diag_.get()),
                     "at least one rank got a matrix with a different number "
-                    "of nonzeros than the one this level was generated with");
+                    "of nonzeros than the reuse data was initialized with");
             }
-
-            system_matrix_ = matrix;
-            this->set_fine_op(fine);
-            auto coarse =
-                as<experimental::distributed::Matrix<ValueType, IndexType,
-                                                     global_index_type>>(
-                    this->get_coarse_op());
+            // the blocks of the distributed matrix are only reachable as
+            // const, but the clone was created above and nothing else refers
+            // to it, so writing its values is safe
+            auto typed_coarse = gko::as<dist_mtx_type>(coarse.get());
             update_coarse_values(
-                exec, mapping_local_.get(), diag_csr.get(),
-                gko::as<csr_type>(coarse->get_diag_matrix()).get());
+                exec, reuse_data.mapping_local_.get(), diag_csr.get(),
+                std::const_pointer_cast<csr_type>(
+                    gko::as<csr_type>(typed_coarse->get_diag_matrix()))
+                    .get());
             update_coarse_values(
-                exec, mapping_off_diag_.get(), off_diag_csr.get(),
-                gko::as<csr_type>(coarse->get_off_diag_matrix()).get());
+                exec, reuse_data.mapping_off_diag_.get(), off_diag_csr.get(),
+                std::const_pointer_cast<csr_type>(
+                    gko::as<csr_type>(typed_coarse->get_off_diag_matrix()))
+                    .get());
         };
         // the fine op is using csr with the current ValueType
         run<fst_mtx_type<ValueType, IndexType>,
-            snd_mtx_type<ValueType, IndexType>>(fine_op, distributed_setup);
+            snd_mtx_type<ValueType, IndexType>>(fine_op, distributed_update);
+        this->set_fine_op(fine_op);
+        this->set_multigrid_level(reuse_data.prolong_op_,
+                                  share(std::move(coarse)),
+                                  reuse_data.restrict_op_);
     } else
-#endif
+#endif  // GINKGO_BUILD_MPI
     {
-        // convert first, so that a rejected update leaves the level alone
-        auto pgm_op = this->convert_local_fine_op(matrix);
-        if (!mapping_matches(mapping_local_.get(), pgm_op.get())) {
+        auto pgm_op = this->convert_local_fine_op(system_matrix_);
+        if (!mapping_matches(reuse_data.mapping_local_.get(), pgm_op.get())) {
             throw ValueMismatch(__FILE__, __LINE__, __func__,
                                 pgm_op->get_num_stored_elements(),
-                                mapping_nnz(mapping_local_.get()),
+                                mapping_nnz(reuse_data.mapping_local_.get()),
                                 "the new matrix does not have the same number "
-                                "of nonzeros as the one this level was "
-                                "generated with");
+                                "of nonzeros as the reuse data was "
+                                "initialized with");
         }
-        system_matrix_ = matrix;
+        auto coarse = gko::clone(gko::as<csr_type>(reuse_data.coarse_op_));
+        update_coarse_values(exec, reuse_data.mapping_local_.get(),
+                             pgm_op.get(), coarse.get());
         this->set_fine_op(pgm_op);
-        update_coarse_values(exec, mapping_local_.get(), pgm_op.get(),
-                             gko::as<csr_type>(this->get_coarse_op()).get());
+        this->set_multigrid_level(reuse_data.prolong_op_,
+                                  share(std::move(coarse)),
+                                  reuse_data.restrict_op_);
+    }
+    agg_ = reuse_data.agg_;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Pgm<ValueType, IndexType>::check_reuse_consistent(
+    const Factory*, const LinOp* input, const reuse_data_type& reuse_data)
+{
+    if (!reuse_data.initialized_) {
+        return;
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(input, reuse_data.size_);
+#if GINKGO_BUILD_MPI
+    const bool distributed =
+        dynamic_cast<const experimental::distributed::DistributedBase*>(
+            input) != nullptr;
+#else
+    const bool distributed = false;
+#endif
+    if (distributed != reuse_data.distributed_) {
+        GKO_INVALID_STATE(
+            "generate_reuse needs a distributed matrix exactly if the reuse "
+            "data was initialized with one");
     }
 }
 

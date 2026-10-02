@@ -86,6 +86,24 @@ casting(const T& x)
 
 
 /**
+ * Generates a component of the hierarchy, through generate_reuse() if reuse
+ * data is kept for it.
+ */
+std::unique_ptr<LinOp> generate_component(
+    const LinOpFactory* factory, std::shared_ptr<const LinOp> matrix,
+    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data)
+{
+    if (!reuse_data) {
+        return factory->generate(std::move(matrix));
+    }
+    if (!*reuse_data) {
+        *reuse_data = factory->create_empty_reuse_data();
+    }
+    return factory->generate_reuse(std::move(matrix), **reuse_data);
+}
+
+
+/**
  * handle_list generate the smoother for each MultigridLevel
  *
  * @tparam ValueType  the type of MultigridLevel
@@ -95,10 +113,11 @@ void handle_list(
     size_type index, std::shared_ptr<const LinOp>& matrix,
     std::vector<std::shared_ptr<const LinOpFactory>>& smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& smoother, size_type iteration,
-    std::complex<double> relaxation_factor)
+    std::complex<double> relaxation_factor,
+    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data)
 {
     auto list_size = smoother_list.size();
-    auto gen_default_smoother = [&] {
+    auto gen_default_smoother = [&]() -> std::shared_ptr<const LinOp> {
         auto exec = matrix->get_executor();
 #if GINKGO_BUILD_MPI
         if (gko::detail::is_distributed(matrix.get())) {
@@ -106,9 +125,9 @@ void handle_list(
             return run<Matrix<ValueType, int32, int32>,
                        Matrix<ValueType, int32, int64>,
                        Matrix<ValueType, int64, int64>>(
-                matrix, [exec, iteration, relaxation_factor](auto matrix) {
-                    using Mtx = typename decltype(matrix)::element_type;
-                    return share(
+                matrix, [&](auto typed_matrix) -> std::shared_ptr<const LinOp> {
+                    using Mtx = typename decltype(typed_matrix)::element_type;
+                    return generate_component(
                         build_smoother(
                             experimental::distributed::preconditioner::Schwarz<
                                 ValueType, typename Mtx::local_index_type,
@@ -118,16 +137,18 @@ void handle_list(
                                         .with_max_block_size(1u))
                                 .on(exec),
                             iteration, casting<ValueType>(relaxation_factor))
-                            ->generate(matrix));
+                            .get(),
+                        matrix, reuse_data);
                 });
         }
 #endif
-        return share(build_smoother(preconditioner::Jacobi<ValueType>::build()
-                                        .with_max_block_size(1u)
-                                        .on(exec),
-                                    iteration,
-                                    casting<ValueType>(relaxation_factor))
-                         ->generate(matrix));
+        return generate_component(
+            build_smoother(preconditioner::Jacobi<ValueType>::build()
+                               .with_max_block_size(1u)
+                               .on(exec),
+                           iteration, casting<ValueType>(relaxation_factor))
+                .get(),
+            matrix, reuse_data);
     };
     if (list_size != 0) {
         auto temp_index = list_size == 1 ? 0 : index;
@@ -136,8 +157,8 @@ void handle_list(
         if (item == nullptr) {
             smoother.emplace_back(nullptr);
         } else {
-            auto solver = item->generate(matrix);
-            smoother.emplace_back(give(solver));
+            smoother.emplace_back(
+                generate_component(item.get(), matrix, reuse_data));
         }
     } else {
         smoother.emplace_back(gen_default_smoother());
@@ -705,7 +726,8 @@ void Multigrid::generate_smoothers(
     size_type index,
     std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
-    std::vector<std::shared_ptr<const LinOp>>& post_smoother_list)
+    std::vector<std::shared_ptr<const LinOp>>& post_smoother_list,
+    reuse_data_type::level_data* level_reuse)
 {
     run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
@@ -716,24 +738,27 @@ void Multigrid::generate_smoothers(
 #endif
         std::complex<float>, std::complex<double>>(
         mg_level,
-        [this, &pre_smoother_list, &mid_smoother_list, &post_smoother_list](
-            auto mg_level, auto index, auto matrix) {
+        [this, &pre_smoother_list, &mid_smoother_list, &post_smoother_list,
+         level_reuse](auto mg_level, auto index, auto matrix) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             handle_list<value_type>(
                 index, matrix, parameters_.pre_smoother, pre_smoother_list,
-                parameters_.smoother_iters, parameters_.smoother_relax);
+                parameters_.smoother_iters, parameters_.smoother_relax,
+                level_reuse ? &level_reuse->pre_smoother : nullptr);
             if (parameters_.mid_case ==
                 multigrid::mid_smooth_type::standalone) {
                 handle_list<value_type>(
                     index, matrix, parameters_.mid_smoother, mid_smoother_list,
-                    parameters_.smoother_iters, parameters_.smoother_relax);
+                    parameters_.smoother_iters, parameters_.smoother_relax,
+                    level_reuse ? &level_reuse->mid_smoother : nullptr);
             }
             if (!parameters_.post_uses_pre) {
                 handle_list<value_type>(
                     index, matrix, parameters_.post_smoother,
                     post_smoother_list, parameters_.smoother_iters,
-                    parameters_.smoother_relax);
+                    parameters_.smoother_relax,
+                    level_reuse ? &level_reuse->post_smoother : nullptr);
             }
         },
         index, mg_level->get_fine_op());
@@ -742,7 +767,9 @@ void Multigrid::generate_smoothers(
 
 std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
     std::shared_ptr<const gko::multigrid::MultigridLevel> last_mg_level,
-    size_type level, std::shared_ptr<const LinOp> matrix)
+    size_type level, std::shared_ptr<const LinOp> matrix,
+    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
+    const size_type* recorded_index, size_type* selected_index)
 {
     std::unique_ptr<LinOp> coarsest_solver;
     run<gko::multigrid::EnableMultigridLevel, float, double,
@@ -754,7 +781,8 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
 #endif
         std::complex<float>, std::complex<double>>(
         last_mg_level,
-        [this, &coarsest_solver](auto mg_level, auto level, auto matrix) {
+        [this, &coarsest_solver, reuse_data, recorded_index, selected_index](
+            auto mg_level, auto level, auto matrix) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             auto exec = this->get_executor();
@@ -768,9 +796,44 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                     return run<Matrix<value_type, int32, int32>,
                                Matrix<value_type, int32, int64>,
                                Matrix<value_type, int64,
-                                      int64>>(matrix, [exec](auto matrix) {
-                        using Mtx = typename decltype(matrix)::element_type;
-                        return solver::Gmres<value_type>::build()
+                                      int64>>(matrix, [&](auto typed_matrix) {
+                        using Mtx =
+                            typename decltype(typed_matrix)::element_type;
+                        return generate_component(
+                            solver::Gmres<value_type>::build()
+                                .with_criteria(
+                                    stop::Iteration::build().with_max_iters(
+                                        typed_matrix->get_size()[0]),
+                                    stop::ResidualNorm<value_type>::build()
+                                        .with_reduction_factor(
+                                            std::numeric_limits<
+                                                absolute_value_type>::
+                                                epsilon() *
+                                            absolute_value_type{10}))
+                                .with_krylov_dim(
+                                    std::min(size_type(100),
+                                             typed_matrix->get_size()[0]))
+                                .with_preconditioner(
+                                    experimental::distributed::preconditioner::
+                                        Schwarz<value_type,
+                                                typename Mtx::local_index_type,
+                                                typename Mtx::
+                                                    global_index_type>::build()
+                                            .with_local_solver(
+                                                preconditioner::Jacobi<
+                                                    value_type>::build()
+                                                    .with_max_block_size(1u)))
+                                .on(exec)
+                                .get(),
+                            matrix, reuse_data);
+                    });
+                }
+#endif
+                // TODO: unify when dpcpp supports direct solver
+                if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
+                    using absolute_value_type = remove_complex<value_type>;
+                    return generate_component(
+                        solver::Gmres<value_type>::build()
                             .with_criteria(
                                 stop::Iteration::build().with_max_iters(
                                     matrix->get_size()[0]),
@@ -782,60 +845,38 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                             .with_krylov_dim(
                                 std::min(size_type(100), matrix->get_size()[0]))
                             .with_preconditioner(
-                                experimental::distributed::preconditioner::
-                                    Schwarz<value_type,
-                                            typename Mtx::local_index_type,
-                                            typename Mtx::global_index_type>::
-                                        build()
-                                            .with_local_solver(
-                                                preconditioner::Jacobi<
-                                                    value_type>::build()
-                                                    .with_max_block_size(1u)))
+                                preconditioner::Jacobi<value_type>::build()
+                                    .with_max_block_size(1u))
                             .on(exec)
-                            ->generate(matrix);
-                    });
-                }
-#endif
-                // TODO: unify when dpcpp supports direct solver
-                if (dynamic_cast<const DpcppExecutor*>(exec.get())) {
-                    using absolute_value_type = remove_complex<value_type>;
-                    return solver::Gmres<value_type>::build()
-                        .with_criteria(
-                            stop::Iteration::build().with_max_iters(
-                                matrix->get_size()[0]),
-                            stop::ResidualNorm<value_type>::build()
-                                .with_reduction_factor(
-                                    std::numeric_limits<
-                                        absolute_value_type>::epsilon() *
-                                    absolute_value_type{10}))
-                        .with_krylov_dim(
-                            std::min(size_type(100), matrix->get_size()[0]))
-                        .with_preconditioner(
-                            preconditioner::Jacobi<value_type>::build()
-                                .with_max_block_size(1u))
-                        .on(exec)
-                        ->generate(matrix);
+                            .get(),
+                        matrix, reuse_data);
                 } else {
-                    return experimental::solver::Direct<value_type,
-                                                        int32>::build()
-                        .with_factorization(
-                            experimental::factorization::Lu<value_type,
-                                                            int32>::build())
-                        .on(exec)
-                        ->generate(matrix);
+                    return generate_component(
+                        experimental::solver::Direct<value_type, int32>::build()
+                            .with_factorization(
+                                experimental::factorization::Lu<value_type,
+                                                                int32>::build())
+                            .on(exec)
+                            .get(),
+                        matrix, reuse_data);
                 }
             };
             if (parameters_.coarsest_solver.size() == 0) {
                 coarsest_solver = gen_default_solver();
             } else {
-                auto temp_index = solver_selector_(level, matrix.get());
+                // a reused hierarchy keeps the recorded choice
+                auto temp_index = recorded_index
+                                      ? *recorded_index
+                                      : solver_selector_(level, matrix.get());
+                *selected_index = temp_index;
                 GKO_ENSURE_IN_BOUNDS(temp_index,
                                      parameters_.coarsest_solver.size());
                 auto solver = parameters_.coarsest_solver.at(temp_index);
                 if (solver == nullptr) {
                     coarsest_solver = gen_default_solver();
                 } else {
-                    coarsest_solver = solver->generate(matrix);
+                    coarsest_solver =
+                        generate_component(solver.get(), matrix, reuse_data);
                 }
             }
         },
@@ -844,29 +885,64 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
 }
 
 
-void Multigrid::generate()
+void Multigrid::generate(reuse_data_type* reuse_data)
 {
+    using level_data = reuse_data_type::level_data;
     // generate coarse matrix until reaching max_level or min_coarse_rows
     auto num_rows = this->get_system_matrix()->get_size()[0];
     size_type level = 0;
     auto matrix = this->get_system_matrix();
-    auto exec = this->get_executor();
+    const size_type num_recorded = reuse_data ? reuse_data->levels_.size() : 0;
+    // recorded levels are reused as long as they reproduce their coarse
+    // size; below the first one that changed, everything is generated anew
+    size_type num_reusable = num_recorded;
+    bool changed = false;
+    std::vector<dim<2>> reused_coarse_sizes;
+    std::vector<level_data> new_levels;
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
-        auto index = level_selector_(level, matrix.get());
+        const bool reusing = level < num_reusable;
+        level_data* entry = nullptr;
+        size_type index{};
+        if (reusing) {
+            entry = &reuse_data->levels_.at(level);
+            index = entry->index;
+        } else {
+            index = level_selector_(level, matrix.get());
+            if (reuse_data) {
+                new_levels.emplace_back();
+                entry = &new_levels.back();
+                entry->index = index;
+            }
+        }
         GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
         auto mg_level_factory = parameters_.mg_level.at(index);
         // coarse generate
         auto mg_level = as<gko::multigrid::MultigridLevel>(
-            share(mg_level_factory->generate(matrix)));
-        if (mg_level->get_coarse_op()->get_size()[0] == num_rows) {
+            share(generate_component(mg_level_factory.get(), matrix,
+                                     entry ? &entry->level : nullptr)));
+        const auto coarse_size = mg_level->get_coarse_op()->get_size();
+        if (coarse_size[0] == num_rows) {
             // do not reduce dimension
+            if (entry && !reusing) {
+                new_levels.pop_back();
+            }
             break;
+        }
+        if (reusing) {
+            if (coarse_size != entry->coarse_size) {
+                changed = true;
+                num_reusable = level + 1;
+            }
+            reused_coarse_sizes.push_back(coarse_size);
+        } else if (entry) {
+            entry->coarse_size = coarse_size;
         }
 
         this->generate_smoothers(mg_level, index, pre_smoother_list_,
-                                 mid_smoother_list_, post_smoother_list_);
+                                 mid_smoother_list_, post_smoother_list_,
+                                 entry);
 
         mg_level_list_.emplace_back(mg_level);
         matrix = mg_level_list_.back()->get_coarse_op();
@@ -885,67 +961,56 @@ void Multigrid::generate()
     this->create_state();
     cache_.state->generate(this->get_system_matrix().get(), this, 1);
 
-    coarsest_solver_ =
-        this->generate_coarsest_solver(last_mg_level, level, matrix);
+    // the recorded coarsest solver data only fits an unchanged hierarchy
+    changed = changed || level != num_recorded || !new_levels.empty();
+    std::unique_ptr<LinOpFactory::ReuseData> new_coarsest;
+    std::unique_ptr<LinOpFactory::ReuseData>* coarsest_reuse = nullptr;
+    const size_type* recorded_coarsest_index = nullptr;
+    size_type coarsest_index{};
+    if (reuse_data) {
+        coarsest_reuse =
+            changed ? &new_coarsest : &reuse_data->coarsest_solver_;
+        if (!changed) {
+            recorded_coarsest_index = &reuse_data->coarsest_index_;
+        }
+    }
+    coarsest_solver_ = this->generate_coarsest_solver(
+        last_mg_level, level, matrix, coarsest_reuse, recorded_coarsest_index,
+        &coarsest_index);
+
+    // update the reuse data only once everything succeeded
+    if (reuse_data) {
+        reuse_data->levels_.resize(reused_coarse_sizes.size());
+        for (size_type i = 0; i < reused_coarse_sizes.size(); i++) {
+            reuse_data->levels_[i].coarse_size = reused_coarse_sizes[i];
+        }
+        for (auto& entry : new_levels) {
+            reuse_data->levels_.push_back(std::move(entry));
+        }
+        if (changed) {
+            reuse_data->coarsest_solver_ = std::move(new_coarsest);
+            reuse_data->coarsest_index_ = coarsest_index;
+        }
+        reuse_data->size_ = this->get_system_matrix()->get_size();
+        reuse_data->initialized_ = true;
+    }
 }
 
 
-void Multigrid::update_matrix_value(std::shared_ptr<const LinOp> new_matrix)
+void Multigrid::check_reuse_consistent(const Factory* factory,
+                                       const LinOp* input,
+                                       const reuse_data_type& reuse_data)
 {
-    // Validate everything that can be validated before any state changes, so
-    // that a rejected update leaves the solver as it was.
-    //
-    // The hierarchy is reused as is, so there has to be one. It is empty when
-    // the solver was generated on a zero-sized matrix, in which case
-    // mg_level_list_.back() below would be undefined behavior.
-    GKO_ASSERT_EQ(mg_level_list_.size() > 0, true);
-    GKO_ASSERT_EQUAL_DIMENSIONS(this, new_matrix);
-    // Only levels implementing UpdateMatrixValue can be updated. Pgm is
-    // currently the only one, so every other coarsening has to be rejected
-    // here rather than halfway through the loop below.
-    for (const auto& mg_level : mg_level_list_) {
-        if (!dynamic_cast<gko::multigrid::UpdateMatrixValue*>(mg_level.get())) {
-            GKO_NOT_SUPPORTED(mg_level);
-        }
+    if (!reuse_data.initialized_) {
+        return;
     }
-
-    // Build the new smoothers and the new coarsest solver into local lists
-    // first and only publish them once everything succeeded.
-    std::vector<std::shared_ptr<const LinOp>> pre_smoother_list;
-    std::vector<std::shared_ptr<const LinOp>> mid_smoother_list;
-    std::vector<std::shared_ptr<const LinOp>> post_smoother_list;
-    auto matrix = new_matrix;
-    // Always generate smoother with size = level.
-    for (size_type i = 0; i < mg_level_list_.size(); i++) {
-        auto mg_level = mg_level_list_.at(i);
-        as<gko::multigrid::UpdateMatrixValue>(mg_level)->update_matrix_value(
-            matrix);
-        // the smoother is selected the same way as in generate. The level
-        // index is not necessarily the smoother index, so it must go through
-        // level_selector_ here as well. It still sees the fine matrix of this
-        // level, hence before matrix moves on to the coarse operator.
-        auto index = level_selector_(i, matrix.get());
-        GKO_ENSURE_IN_BOUNDS(index, parameters_.mg_level.size());
-        matrix = mg_level->get_coarse_op();
-        this->generate_smoothers(mg_level, index, pre_smoother_list,
-                                 mid_smoother_list, post_smoother_list);
+    GKO_ASSERT_EQUAL_DIMENSIONS(input, reuse_data.size_);
+    if (!reuse_data.levels_.empty()) {
+        const auto& first = reuse_data.levels_.front();
+        factory->get_parameters()
+            .mg_level.at(first.index)
+            ->check_reuse_consistent(input, *first.level);
     }
-    if (parameters_.post_uses_pre) {
-        post_smoother_list = pre_smoother_list;
-    }
-    auto coarsest_solver = this->generate_coarsest_solver(
-        mg_level_list_.back(), mg_level_list_.size(), matrix);
-
-    this->set_system_matrix(new_matrix);
-    pre_smoother_list_ = std::move(pre_smoother_list);
-    mid_smoother_list_ = std::move(mid_smoother_list);
-    post_smoother_list_ = std::move(post_smoother_list);
-    coarsest_solver_ = std::move(coarsest_solver);
-    // the cached state keeps a raw pointer to the system matrix and sizes
-    // taken from the hierarchy, so it has to be rebuilt like in generate()
-    this->setup_workspace();
-    this->create_state();
-    cache_.state->generate(this->get_system_matrix().get(), this, 1);
 }
 
 
@@ -1153,6 +1218,20 @@ void Multigrid::create_state() const
 
 Multigrid::Multigrid(const Multigrid::Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
+    : Multigrid(factory, std::move(system_matrix), nullptr)
+{}
+
+
+Multigrid::Multigrid(const Multigrid::Factory* factory,
+                     std::shared_ptr<const LinOp> system_matrix,
+                     reuse_data_type& reuse_data)
+    : Multigrid(factory, std::move(system_matrix), &reuse_data)
+{}
+
+
+Multigrid::Multigrid(const Multigrid::Factory* factory,
+                     std::shared_ptr<const LinOp> system_matrix,
+                     reuse_data_type* reuse_data)
     : LinOp(factory->get_executor(), transpose(system_matrix->get_size())),
       EnableSolverBase<Multigrid>{std::move(system_matrix)},
       EnableIterativeBase<Multigrid>{
@@ -1182,7 +1261,7 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
     this->set_default_initial_guess(parameters_.default_initial_guess);
     if (this->get_system_matrix()->get_size()[0] != 0) {
         // generate on the existed matrix
-        this->generate();
+        this->generate(reuse_data);
     }
 }
 

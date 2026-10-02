@@ -41,6 +41,12 @@ namespace multigrid {
  * un-aggregated elements are assigned to an aggregated group
  * or are left alone.
  *
+ * The factory supports LinOpFactory::generate_reuse(): later calls on a
+ * matrix with the same sparsity pattern keep the aggregates and only
+ * recompute the coarse matrix, so the result can differ from generate().
+ * Every call returns a new level, independent of the reuse data and of
+ * earlier results.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
@@ -49,9 +55,7 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Pgm : public LinOp,
-            public EnableMultigridLevel<ValueType>,
-            public UpdateMatrixValue {
+class Pgm : public LinOp, public EnableMultigridLevel<ValueType> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -128,21 +132,29 @@ public:
          * incorrect.
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
-
-        /**
-         * Whether update_matrix_value() can be used on the generated level.
-         *
-         * Updating the coarse values without recomputing the aggregates
-         * requires the mapping from the coarse to the fine nonzeros, which
-         * costs one additional index array of the size of the fine number of
-         * nonzeros per generated level. The mapping is only built, and kept,
-         * if this is set to `true`; otherwise update_matrix_value() throws
-         * NotSupported.
-         */
-        bool GKO_FACTORY_PARAMETER_SCALAR(updatable_values, false);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Pgm, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Records the aggregates, the transfer operators and the coarse-to-fine
+     * mappings of the first generate_reuse() call.
+     */
+    class reuse_data_type : public LinOpFactory::ReuseData {
+        friend class Pgm;
+
+        bool initialized_ = false;
+        bool distributed_ = false;
+        dim<2> size_{};
+        array<IndexType> agg_;
+        std::shared_ptr<const LinOp> prolong_op_;
+        std::shared_ptr<const LinOp> restrict_op_;
+        std::shared_ptr<const LinOp> coarse_op_;
+        std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+            mapping_local_;
+        std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+            mapping_off_diag_;
+    };
 
     /**
      * Create the parameters from the property_tree.
@@ -162,28 +174,6 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
-    /**
-     * Recomputes the coarse operator from the values of a new system matrix,
-     * keeping the aggregates, the prolongation and the restriction operator
-     * of the current level.
-     *
-     * The coarse operator is updated in place, so everything that was handed
-     * out by get_coarse_op() before sees the new values afterwards, while
-     * anything generated from it (a smoother or a solver, for example) keeps
-     * working on the old values until it is regenerated. The same holds for
-     * copies of this level, which share the coarse operator.
-     *
-     * @param new_matrix  the new system matrix. It has to have the same
-     *                    dimensions, the same number of nonzeros and the same
-     *                    sparsity pattern as the matrix this level was
-     *                    generated with. Only the dimensions and the number
-     *                    of nonzeros are checked.
-     *
-     * @throw NotSupported  if the level was not generated with
-     *                      `updatable_values` set.
-     */
-    void update_matrix_value(std::shared_ptr<const LinOp> new_matrix) override;
-
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override
     {
@@ -201,6 +191,16 @@ protected:
 
     explicit Pgm(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
+        : Pgm(factory, std::move(system_matrix), nullptr)
+    {}
+
+    Pgm(const Factory* factory, std::shared_ptr<const LinOp> system_matrix,
+        reuse_data_type& reuse_data)
+        : Pgm(factory, std::move(system_matrix), &reuse_data)
+    {}
+
+    Pgm(const Factory* factory, std::shared_ptr<const LinOp> system_matrix,
+        reuse_data_type* reuse_data)
         : LinOp(factory->get_executor(), system_matrix->get_size()),
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
@@ -211,28 +211,53 @@ protected:
         GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
         if (system_matrix_->get_size()[0] != 0) {
             // generate on the existed matrix
-            this->generate();
+            if (reuse_data && reuse_data->initialized_) {
+                this->generate_from(*reuse_data);
+            } else {
+                this->generate(reuse_data);
+            }
         }
     }
 
-    void generate();
+    /**
+     * Generates the level. With reuse_data, the coarse-to-fine mappings are
+     * built as well and everything is recorded in it at the end.
+     *
+     * @param reuse_data  empty reuse data to fill, or nullptr
+     */
+    void generate(reuse_data_type* reuse_data);
+
+    /**
+     * Generates the level from recorded reuse data: keeps the aggregates
+     * and the transfer operators and recomputes the coarse matrix.
+     */
+    void generate_from(const reuse_data_type& reuse_data);
+
+    /** Throws if `input` can't be used with `reuse_data`. */
+    static void check_reuse_consistent(const Factory* factory,
+                                       const LinOp* input,
+                                       const reuse_data_type& reuse_data);
 
     /**
      * This function generates the local matrix coarsening operators.
+     *
+     * @param mapping  if given, receives the coarse-to-fine mapping
      *
      * @return a tuple with prolongation, coarse, and restriction linop
      */
     std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
                std::shared_ptr<LinOp>>
     generate_local(
-        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
+        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix,
+        std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>*
+            mapping = nullptr);
 
     /**
      * Converts a system matrix into a Csr with the current value type,
      * sorting it unless skip_sorting is set.
      *
-     * The result is not stored, so that update_matrix_value() can convert
-     * before it decides whether the update is admissible.
+     * The result is not stored, so that generate_from() can convert before
+     * it decides whether the input matches the reuse data.
      *
      * @param system_matrix  the matrix to convert
      *
@@ -280,12 +305,6 @@ protected:
 private:
     std::shared_ptr<const LinOp> system_matrix_{};
     array<IndexType> agg_;
-    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
-        mapping_local_;
-#if GINKGO_BUILD_MPI
-    std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
-        mapping_off_diag_;
-#endif
 };
 
 
