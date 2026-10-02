@@ -80,6 +80,7 @@ void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
 
 
+#if GKO_COMPILING_CUDA && THRUST_MAJOR_VERSION >= 3 && THRUST_MINOR_VERSION >= 4
 /**
  * Custom plus operator because CCCL has a bug in their thrust::reduce_by_key
  * for __half.
@@ -91,6 +92,10 @@ struct plus {
         return lhs + rhs;
     }
 };
+#else
+template <typename T>
+using plus = ::thrust::plus<T>;
+#endif
 
 
 template <typename ValueType, typename IndexType>
