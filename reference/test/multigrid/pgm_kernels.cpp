@@ -5,6 +5,8 @@
 #include "core/multigrid/pgm_kernels.hpp"
 
 #include <memory>
+#include <tuple>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -51,12 +53,6 @@ protected:
                           .with_max_unassigned_ratio(0.1)
                           .with_skip_sorting(true)
                           .on(exec)),
-          updatable_pgm_factory(MgLevel::build()
-                                    .with_max_iterations(2u)
-                                    .with_max_unassigned_ratio(0.1)
-                                    .with_skip_sorting(true)
-                                    .with_updatable_values(true)
-                                    .on(exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
                           gko::matrix::csr::spmv_strategy::classical)),
           weight(WeightMtx::create(exec, gko::dim<2>(5, 5), 15,
@@ -190,7 +186,6 @@ protected:
     std::shared_ptr<Vec> prolong_applyans;
     std::shared_ptr<Vec> fine_x;
     std::unique_ptr<typename MgLevel::Factory> pgm_factory;
-    std::unique_ptr<typename MgLevel::Factory> updatable_pgm_factory;
     std::unique_ptr<MgLevel> mg_level;
 };
 
@@ -465,203 +460,6 @@ TYPED_TEST(Pgm, GenerateMgLevel)
 }
 
 
-// Keeping the coarse-to-fine mapping costs memory, so it is opt-in. Without
-// it there is nothing to update from.
-TYPED_TEST(Pgm, UpdateMatrixValueWithoutUpdatableValuesThrows)
-{
-    auto coarse_fine = this->pgm_factory->generate(this->mtx);
-
-    ASSERT_THROW(coarse_fine->update_matrix_value(this->mtx),
-                 gko::NotSupported);
-}
-
-
-// The mapping has one entry per fine nonzero, so a matrix with a different
-// number of nonzeros can not be mapped onto the existing coarse operator.
-TYPED_TEST(Pgm, UpdateMatrixValueWithMismatchingNnzThrows)
-{
-    using Mtx = typename TestFixture::Mtx;
-    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
-    // same 5x5 size, but one nonzero less than this->mtx
-    auto sparser = gko::share(Mtx::create(this->exec));
-    sparser->read({{5, 5},
-                   {{0, 0, 5},
-                    {0, 1, -3},
-                    {0, 2, -3},
-                    {1, 0, -3},
-                    {1, 1, 5},
-                    {1, 3, -2},
-                    {1, 4, -1},
-                    {2, 0, -3},
-                    {2, 2, 5},
-                    {2, 4, -1},
-                    {3, 1, -3},
-                    {3, 3, 5},
-                    {4, 1, -2},
-                    {4, 4, 5}}});
-
-    ASSERT_THROW(coarse_fine->update_matrix_value(sparser), gko::ValueMismatch);
-}
-
-
-// A rejected update must not leave the level half-way updated: the coarse
-// operator, the fine operator and the system matrix all have to be the ones
-// the level was generated with.
-TYPED_TEST(Pgm, UpdateMatrixValueLeavesStateUntouchedOnError)
-{
-    using value_type = typename TestFixture::value_type;
-    using Mtx = typename TestFixture::Mtx;
-    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
-    auto original_coarse =
-        gko::clone(gko::as<Mtx>(coarse_fine->get_coarse_op()));
-    auto sparser = gko::share(Mtx::create(this->exec));
-    sparser->read({{5, 5},
-                   {{0, 0, 5},
-                    {0, 1, -3},
-                    {0, 2, -3},
-                    {1, 0, -3},
-                    {1, 1, 5},
-                    {1, 3, -2},
-                    {1, 4, -1},
-                    {2, 0, -3},
-                    {2, 2, 5},
-                    {2, 4, -1},
-                    {3, 1, -3},
-                    {3, 3, 5},
-                    {4, 1, -2},
-                    {4, 4, 5}}});
-
-    ASSERT_THROW(coarse_fine->update_matrix_value(sparser), gko::ValueMismatch);
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
-                        original_coarse, 0.0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_fine_op()), this->mtx,
-                        0.0);
-    ASSERT_EQ(coarse_fine->get_system_matrix().get(),
-              static_cast<const gko::LinOp*>(this->mtx.get()));
-}
-
-
-// EnableMultigridLevel::set_fine_op rejects an operator whose dimensions
-// differ from the current fine operator, so the update inherits that check.
-TYPED_TEST(Pgm, UpdateMatrixValueWithMismatchingSizeThrows)
-{
-    using Mtx = typename TestFixture::Mtx;
-    // this->mtx is 5x5
-    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
-    auto smaller = gko::share(Mtx::create(this->exec));
-    smaller->read({{3, 3},
-                   {{0, 0, 4},
-                    {0, 1, -1},
-                    {1, 0, -1},
-                    {1, 1, 4},
-                    {1, 2, -1},
-                    {2, 1, -1},
-                    {2, 2, 4}}});
-
-    ASSERT_THROW(coarse_fine->update_matrix_value(smaller),
-                 gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(Pgm, ReGenerateMgLevelOnTheSameMatrix)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using Mtx = typename TestFixture::Mtx;
-    using SparsityCsr = typename TestFixture::SparsityCsr;
-    using RowGatherer = typename TestFixture::RowGatherer;
-    auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
-    // 0-2-4, 1-3
-    prolong_op->read(
-        {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
-    auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
-
-    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
-    coarse_fine->update_matrix_value(this->mtx);
-    auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
-    auto row_gather_view = gko::array<index_type>::const_view(
-        this->exec, row_gatherer->get_size()[0],
-        row_gatherer->get_const_row_idxs());
-    auto expected_row_gather =
-        gko::array<index_type>(this->exec, {0, 1, 0, 1, 0});
-
-    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
-                        restrict_op, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
-                        this->coarse, r<value_type>::value);
-    GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
-}
-
-
-TYPED_TEST(Pgm, ReGenerateMgLevelOnTheDifferentMatrix)
-{
-    using value_type = typename TestFixture::value_type;
-    using index_type = typename TestFixture::index_type;
-    using Mtx = typename TestFixture::Mtx;
-    using SparsityCsr = typename TestFixture::SparsityCsr;
-    using RowGatherer = typename TestFixture::RowGatherer;
-    auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
-    // 0-2-4, 1-3
-    prolong_op->read(
-        {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
-    auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
-    // give a different matrix which should be different matrix if we do it from
-    // scratch
-    auto new_matrix = gko::share(Mtx::create(this->exec));
-    new_matrix->read({{5, 5},
-                      {{0, 0, 5},
-                       {0, 1, -9},  // make these two strong
-                       {0, 2, -3},
-                       {1, 0, -9},  // make these two strong
-                       {1, 1, 5},
-                       {1, 3, -2},
-                       {1, 4, -1},
-                       {2, 0, -3},
-                       {2, 2, 5},
-                       {2, 4, -1},
-                       {3, 1, -3},
-                       {3, 3, 5},
-                       {4, 1, -2},
-                       {4, 2, -2},
-                       {4, 4, 5}}});
-    auto new_coarse_matrix = Mtx::create(this->exec);
-    // -3 -> -9, so add -6 to (0, 1) and (1, 0)
-    new_coarse_matrix->read(
-        {{2, 2}, {{0, 0, 6}, {0, 1, -11}, {1, 0, -10}, {1, 1, 5}}});
-
-    auto coarse_fine = this->updatable_pgm_factory->generate(this->mtx);
-    coarse_fine->update_matrix_value(new_matrix);
-    auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
-    auto row_gather_view = gko::array<index_type>::const_view(
-        this->exec, row_gatherer->get_size()[0],
-        row_gatherer->get_const_row_idxs());
-    auto expected_row_gather =
-        gko::array<index_type>(this->exec, {0, 1, 0, 1, 0});
-    // we also generate on new_matrix from scratch to check it gives different
-    // again.
-    auto new_coarse_fine = this->pgm_factory->generate(new_matrix);
-    auto new_row_gatherer =
-        gko::as<RowGatherer>(new_coarse_fine->get_prolong_op());
-    auto new_row_gather_view = gko::array<index_type>::const_view(
-        this->exec, new_row_gatherer->get_size()[0],
-        new_row_gatherer->get_const_row_idxs());
-    auto new_expected_row_gather =
-        gko::array<index_type>(this->exec, {0, 0, 1, 0, 1});
-
-    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
-                        restrict_op, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
-                        new_coarse_matrix, r<value_type>::value);
-    // the fine op must track the new matrix, it is used to regenerate the
-    // smoothers in Multigrid::update_matrix_value
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_fine_op()), new_matrix,
-                        r<value_type>::value);
-    GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
-    GKO_ASSERT_ARRAY_EQ(new_row_gather_view, new_expected_row_gather);
-}
-
-
 TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
 {
     using value_type = typename TestFixture::value_type;
@@ -673,7 +471,6 @@ TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
     auto mglevel_sort = MgLevel::build()
                             .with_max_iterations(2u)
                             .with_max_unassigned_ratio(0.1)
-                            .with_updatable_values(true)
                             .on(this->exec);
     /* this unsorted matrix is stored as this->fine:
      *  5 -3 -3  0  0
@@ -712,65 +509,123 @@ TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
 }
 
 
-TYPED_TEST(Pgm, ReGenerateMgLevelOnDifferentUnsortedMatrix)
+TYPED_TEST(Pgm, GenerateReuseKeepsAggregatesAndUpdatesCoarseValues)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Mtx = typename TestFixture::Mtx;
-    using SparsityCsr = typename TestFixture::SparsityCsr;
     using MgLevel = typename TestFixture::MgLevel;
-    using RowGatherer = typename TestFixture::RowGatherer;
-    auto mglevel_sort = MgLevel::build()
-                            .with_max_iterations(2u)
-                            .with_max_unassigned_ratio(0.1)
-                            .with_updatable_values(true)
-                            .on(this->exec);
-    /* this unsorted matrix is stored as this->fine:
-     *  5 -3 -3  0  0
-     * -3  5  0 -2 -1
-     * -3  0  5  0 -1
-     *  0 -3  0  5  0
-     *  0 -2 -2  0  5
-     */
-    auto matrix = gko::share(Mtx::create(
-        this->exec, gko::dim<2>{5, 5},
-        gko::array<value_type>{
-            this->exec,
-            {-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5}},
-        gko::array<index_type>{this->exec,
-                               {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
-        gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
-    auto new_matrix = gko::share(Mtx::create(
-        this->exec, gko::dim<2>{5, 5},
-        gko::array<value_type>{
-            this->exec,
-            {-9, -3, 5, -9, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5}},
-        gko::array<index_type>{this->exec,
-                               {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
-        gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
-    auto new_coarse_matrix = Mtx::create(this->exec);
-    new_coarse_matrix->read(
+    // this->mtx with (0, 1) and (1, 0) changed from -3 to -9, which makes 0
+    // and 1 the strongest pair, so generating on it aggregates differently
+    auto changed = gko::share(Mtx::create(this->exec));
+    changed->read({{5, 5},
+                   {{0, 0, 5},
+                    {0, 1, -9},
+                    {0, 2, -3},
+                    {1, 0, -9},
+                    {1, 1, 5},
+                    {1, 3, -2},
+                    {1, 4, -1},
+                    {2, 0, -3},
+                    {2, 2, 5},
+                    {2, 4, -1},
+                    {3, 1, -3},
+                    {3, 3, 5},
+                    {4, 1, -2},
+                    {4, 2, -2},
+                    {4, 4, 5}}});
+    // -3 -> -9 adds -6 to the coarse (0, 1) and (1, 0)
+    auto changed_coarse = Mtx::create(this->exec);
+    changed_coarse->read(
         {{2, 2}, {{0, 0, 6}, {0, 1, -11}, {1, 0, -10}, {1, 1, 5}}});
-    auto prolong_op = gko::share(Mtx::create(this->exec, gko::dim<2>{5, 2}, 0));
-    // 0-2-4, 1-3
-    prolong_op->read(
-        {{5, 2}, {{0, 0, 1}, {1, 1, 1}, {2, 0, 1}, {3, 1, 1}, {4, 0, 1}}});
-    auto restrict_op = gko::share(gko::as<Mtx>(prolong_op->transpose()));
+    // the same two matrices stored unsorted, for a factory that sorts
+    auto unsorted = [this](std::initializer_list<value_type> vals) {
+        return gko::share(Mtx::create(
+            this->exec, gko::dim<2>{5, 5},
+            gko::array<value_type>{this->exec, vals},
+            gko::array<index_type>{
+                this->exec, {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
+            gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
+    };
+    auto sorting_factory = MgLevel::build()
+                               .with_max_iterations(2u)
+                               .with_max_unassigned_ratio(0.1)
+                               .on(this->exec);
+    const std::vector<std::tuple<const typename MgLevel::Factory*,
+                                 std::shared_ptr<Mtx>, std::shared_ptr<Mtx>>>
+        cases{
+            {this->pgm_factory.get(), this->mtx, changed},
+            {sorting_factory.get(),
+             unsorted({-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5}),
+             unsorted(
+                 {-9, -3, 5, -9, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5})}};
 
-    auto coarse_fine = mglevel_sort->generate(matrix);
-    coarse_fine->update_matrix_value(new_matrix);
-    auto row_gatherer = gko::as<RowGatherer>(coarse_fine->get_prolong_op());
-    auto row_gather_view = gko::array<index_type>::const_view(
-        this->exec, row_gatherer->get_size()[0],
-        row_gatherer->get_const_row_idxs());
-    auto expected_row_gather =
-        gko::array<index_type>(this->exec, {0, 1, 0, 1, 0});
+    for (const auto& [factory, matrix, changed_matrix] : cases) {
+        auto reuse_data = factory->create_empty_reuse_data();
+        auto first = factory->generate_reuse(matrix, *reuse_data);
+        auto first_coarse = gko::clone(gko::as<Mtx>(first->get_coarse_op()));
 
-    GKO_ASSERT_MTX_NEAR(gko::as<SparsityCsr>(coarse_fine->get_restrict_op()),
-                        restrict_op, r<value_type>::value);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
-                        new_coarse_matrix, r<value_type>::value);
-    GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
+        auto level = factory->generate_reuse(changed_matrix, *reuse_data);
+
+        // the aggregates are kept, while a fresh generation would differ
+        GKO_ASSERT_ARRAY_EQ(
+            gko::array<index_type>::const_view(this->exec, 5,
+                                               level->get_const_agg()),
+            gko::array<index_type>(this->exec, {0, 1, 0, 1, 0}));
+        ASSERT_NE(factory->generate(changed_matrix)->get_const_agg()[1],
+                  level->get_const_agg()[1]);
+        GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(level->get_coarse_op()),
+                            changed_coarse, r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(level->get_fine_op()), changed_matrix,
+                            r<value_type>::value);
+        // a later call must not change what an earlier one returned
+        GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(first->get_coarse_op()), first_coarse,
+                            0.0);
+    }
+}
+
+
+TYPED_TEST(Pgm, GenerateReuseRejectsMismatchAndStaysUsable)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto smaller = gko::share(Mtx::create(this->exec));
+    smaller->read({{3, 3},
+                   {{0, 0, 4},
+                    {0, 1, -1},
+                    {1, 0, -1},
+                    {1, 1, 4},
+                    {1, 2, -1},
+                    {2, 1, -1},
+                    {2, 2, 4}}});
+    // this->mtx without (4, 2): same size, one nonzero less
+    auto sparser = gko::share(Mtx::create(this->exec));
+    sparser->read({{5, 5},
+                   {{0, 0, 5},
+                    {0, 1, -3},
+                    {0, 2, -3},
+                    {1, 0, -3},
+                    {1, 1, 5},
+                    {1, 3, -2},
+                    {1, 4, -1},
+                    {2, 0, -3},
+                    {2, 2, 5},
+                    {2, 4, -1},
+                    {3, 1, -3},
+                    {3, 3, 5},
+                    {4, 1, -2},
+                    {4, 4, 5}}});
+    auto reuse_data = this->pgm_factory->create_empty_reuse_data();
+    this->pgm_factory->generate_reuse(this->mtx, *reuse_data);
+
+    ASSERT_THROW(this->pgm_factory->generate_reuse(smaller, *reuse_data),
+                 gko::DimensionMismatch);
+    ASSERT_THROW(this->pgm_factory->generate_reuse(sparser, *reuse_data),
+                 gko::ValueMismatch);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<Mtx>(this->pgm_factory->generate_reuse(this->mtx, *reuse_data)
+                         ->get_coarse_op()),
+        this->coarse, r<value_type>::value);
 }
 
 
