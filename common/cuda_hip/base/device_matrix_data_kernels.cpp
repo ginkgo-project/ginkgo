@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -72,6 +72,24 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_DEVICE_MATRIX_DATA_REMOVE_ZEROS_KERNEL);
 
 
+#if GKO_COMPILING_CUDA && THRUST_MAJOR_VERSION >= 3 && THRUST_MINOR_VERSION >= 4
+/**
+ * Custom plus operator because CCCL has a bug in their thrust::reduce_by_key
+ * for __half.
+ */
+template <typename T>
+struct plus {
+    GKO_ATTRIBUTES T operator()(const T& lhs, const T& rhs) const
+    {
+        return lhs + rhs;
+    }
+};
+#else
+template <typename T>
+using plus = ::thrust::plus<T>;
+#endif
+
+
 template <typename ValueType, typename IndexType>
 void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
                     array<ValueType>& values, array<IndexType>& row_idxs,
@@ -104,7 +122,8 @@ void sum_duplicates(std::shared_ptr<const DefaultExecutor> exec, size_type,
             new_row_idxs.get_data(), new_col_idxs.get_data()));
         auto out_vals = as_device_type(new_values.get_data());
         thrust::reduce_by_key(thrust_policy(exec), in_locs, in_locs + size,
-                              in_vals, out_locs, out_vals);
+                              in_vals, out_locs, out_vals, thrust::equal_to<>{},
+                              plus<device_type<ValueType>>{});
         // swap out storage
         values = std::move(new_values);
         row_idxs = std::move(new_row_idxs);

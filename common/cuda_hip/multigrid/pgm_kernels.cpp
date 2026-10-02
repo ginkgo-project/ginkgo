@@ -80,6 +80,24 @@ void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
 
 
+#if GKO_COMPILING_CUDA && THRUST_MAJOR_VERSION >= 3 && THRUST_MINOR_VERSION >= 4
+/**
+ * Custom plus operator because CCCL has a bug in their thrust::reduce_by_key
+ * for __half.
+ */
+template <typename T>
+struct plus {
+    GKO_ATTRIBUTES T operator()(const T& lhs, const T& rhs) const
+    {
+        return lhs + rhs;
+    }
+};
+#else
+template <typename T>
+using plus = ::thrust::plus<T>;
+#endif
+
+
 template <typename ValueType, typename IndexType>
 void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         size_type fine_nnz, const IndexType* row_idxs,
@@ -98,7 +116,8 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
         thrust::make_tuple(coarse_coo.row_idxs, coarse_coo.col_idxs));
 
     thrust::reduce_by_key(thrust_policy(exec), key_it, key_it + fine_nnz,
-                          vals_it, coarse_key_it, coarse_vals_it);
+                          vals_it, coarse_key_it, coarse_vals_it,
+                          thrust::equal_to<>(), plus<device_type<ValueType>>());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
