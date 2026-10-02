@@ -10,7 +10,7 @@ on:
     tags:
       - '**'
   pull_request:
-    types: [opened,synchronize]
+    types: [opened,synchronize,labeled]
     paths-ignore:
       - 'doc/**'
   workflow_dispatch:
@@ -21,29 +21,37 @@ on:
         default: false
 
 concurrency:
-  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  # runs for labels that don't start the full test get their own group,
+  # so that they don't cancel running builds
+  group: >-
+    ${{ github.workflow }}-${{ (github.head_ref && (github.event.action != 'labeled'
+    || (github.event.label.name == '1:ST:ready-to-merge' && !contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
+    || (github.event.label.name == '1:ST:run-full-test' && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')))
+    && github.ref) || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   arm-omp:
+    # runs on all pull requests, but of the label events only on adding a full-test label
+    if: >-
+      github.event.action != 'labeled'
+      || (github.event.label.name == '1:ST:ready-to-merge' && !contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
+      || (github.event.label.name == '1:ST:run-full-test' && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge'))
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {shared: "ON", build_type: "Debug", name: "arm/omp/debug/shared", mixed: "OFF", half: "ON", bfloat16: "OFF"}
-          - {shared: "OFF", build_type: "Release", name: "arm/omp/release/static", mixed: "ON", half: "ON", bfloat16: "OFF"}
-          - {shared: "ON", build_type: "Release", name: "arm/omp/release/shared", mixed: "ON", half: "OFF", bfloat16: "ON"}
           - {shared: "ON", build_type: "Release", name: "arm/omp/release/shared-16bit", mixed: "ON", half: "ON", bfloat16: "ON"}
     name: ${{ matrix.config.name }}
     runs-on: [ubuntu-24.04-arm]
     timeout-minutes: 240
-    env:
+    env: &env
       # compiled objects are cached between runs, see the ccache steps
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_MAXSIZE: 500M
 
-    steps:
+    steps: &steps
       - name: Checkout the latest code (shallow clone)
         uses: actions/checkout@v4
 
@@ -97,3 +105,26 @@ jobs:
         with:
           path: .ccache
           key: ccache-${{ matrix.config.name }}-${{ github.ref_name }}-${{ github.run_id }}
+
+  # the remaining configurations, they reuse env and steps of arm-omp
+  arm-omp-full:
+    # runs only outside of pull requests or on pull requests with a full-test label
+    if: >-
+      (github.event.action != 'labeled'
+      || (github.event.label.name == '1:ST:ready-to-merge' && !contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
+      || (github.event.label.name == '1:ST:run-full-test' && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')))
+      && (github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')
+      || contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {shared: "ON", build_type: "Debug", name: "arm/omp/debug/shared", mixed: "OFF", half: "ON", bfloat16: "OFF"}
+          - {shared: "OFF", build_type: "Release", name: "arm/omp/release/static", mixed: "ON", half: "ON", bfloat16: "OFF"}
+          - {shared: "ON", build_type: "Release", name: "arm/omp/release/shared", mixed: "ON", half: "OFF", bfloat16: "ON"}
+    name: ${{ matrix.config.name }}
+    runs-on: [ubuntu-24.04-arm]
+    timeout-minutes: 240
+    env: *env
+    steps: *steps
