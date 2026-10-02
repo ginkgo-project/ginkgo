@@ -55,6 +55,8 @@ std::unique_ptr<LinOp> Cg<ValueType>::transpose() const
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(false))
+        .with_left_nullspace(this->get_transposed_left_nullspace(false))
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -68,6 +70,8 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(true))
+        .with_left_nullspace(this->get_transposed_left_nullspace(true))
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -100,6 +104,8 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b = this->get_consistent_rhs(dense_b, workspace_traits<Cg>::proj_rhs);
 
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);
@@ -128,6 +134,8 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         prev_rho->get_device_view(), rho->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // A annihilates N(A), so removing it from x keeps r unchanged
+    this->project_nullspace(dense_x);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -145,6 +153,8 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     while (true) {
         // z = preconditioner * r
         this->get_preconditioner()->apply(r, z);
+        // keeps every search direction, and thus x, orthogonal to N(A)
+        this->project_nullspace(z);
         // rho = dot(r, z)
         r->compute_conj_dot(z, rho, reduction_tmp);
 
@@ -217,7 +227,7 @@ int workspace_traits<Cg<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Cg<ValueType>>::num_vectors(const Solver&)
 {
-    return 9;
+    return 10;
 }
 
 
@@ -226,7 +236,8 @@ std::vector<std::string> workspace_traits<Cg<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "r", "z", "p", "q", "beta", "prev_rho", "rho", "one", "minus_one",
+        "r",        "z",   "p",   "q",         "beta",
+        "prev_rho", "rho", "one", "minus_one", "proj_rhs",
     };
 }
 
@@ -249,7 +260,7 @@ std::vector<int> workspace_traits<Cg<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Cg<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, p, q};
+    return {r, z, p, q, proj_rhs};
 }
 
 

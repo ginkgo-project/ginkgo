@@ -7,14 +7,19 @@
 
 
 #include <memory>
+#include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/nullspace.hpp>
 #include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -787,6 +792,29 @@ private:
 
 
 /**
+ * Traits describing how an iterative solver handles the nullspaces given by
+ * the `nullspace` and `left_nullspace` factory parameters. Solvers that
+ * support them specialize this class.
+ *
+ * @tparam Solver  the solver type
+ */
+template <typename Solver>
+struct nullspace_traits {
+    /**
+     * Whether the solver removes the nullspaces. Other solvers throw
+     * NotSupported when a nullspace is set instead of ignoring it.
+     */
+    static constexpr bool is_supported = false;
+
+    /**
+     * Whether the solver requires a Hermitian system matrix. Then the left
+     * and right nullspace coincide, so setting either sets both.
+     */
+    static constexpr bool requires_hermitian = false;
+};
+
+
+/**
  * A LinOp implementing this interface stores a system matrix and stopping
  * criterion factory.
  *
@@ -820,9 +848,213 @@ public:
         : EnablePreconditionedIterativeSolver{
               system_matrix, stop::combine(params.criteria),
               generate_preconditioner(system_matrix, params)}
-    {}
+    {
+        using traits = nullspace_traits<DerivedType>;
+        if ((params.nullspace || params.left_nullspace) &&
+            !traits::is_supported) {
+            throw NotSupported(
+                __FILE__, __LINE__, "nullspace projection",
+                name_demangling::get_type_name(typeid(DerivedType)));
+        }
+        if (system_matrix) {
+            nullspace_ = prepare_nullspace(params.nullspace, "nullspace",
+                                           system_matrix->get_size()[1]);
+            left_nullspace_ =
+                prepare_nullspace(params.left_nullspace, "left_nullspace",
+                                  system_matrix->get_size()[0]);
+        }
+        if (traits::requires_hermitian) {
+            if (!left_nullspace_) {
+                left_nullspace_ = nullspace_;
+            }
+            if (!nullspace_) {
+                nullspace_ = left_nullspace_;
+            }
+        }
+    }
+
+    EnablePreconditionedIterativeSolver(
+        const EnablePreconditionedIterativeSolver&) = default;
+
+    EnablePreconditionedIterativeSolver(EnablePreconditionedIterativeSolver&&) =
+        default;
+
+    /**
+     * Copies the solver state, cloning the nullspaces onto this executor if
+     * the executors don't match.
+     */
+    EnablePreconditionedIterativeSolver& operator=(
+        const EnablePreconditionedIterativeSolver& other)
+    {
+        if (&other != this) {
+            EnableSolverBase<DerivedType>::operator=(other);
+            EnableIterativeBase<DerivedType>::operator=(other);
+            EnablePreconditionable<DerivedType>::operator=(other);
+            nullspace_ = on_executor(other.nullspace_);
+            left_nullspace_ = on_executor(other.left_nullspace_);
+        }
+        return *this;
+    }
+
+    /**
+     * Moves the solver state, cloning the nullspaces onto this executor if
+     * the executors don't match. The moved-from object has no nullspaces.
+     */
+    EnablePreconditionedIterativeSolver& operator=(
+        EnablePreconditionedIterativeSolver&& other)
+    {
+        if (&other != this) {
+            EnableSolverBase<DerivedType>::operator=(std::move(other));
+            EnableIterativeBase<DerivedType>::operator=(std::move(other));
+            EnablePreconditionable<DerivedType>::operator=(std::move(other));
+            nullspace_ = on_executor(std::exchange(other.nullspace_, nullptr));
+            left_nullspace_ =
+                on_executor(std::exchange(other.left_nullspace_, nullptr));
+        }
+        return *this;
+    }
+
+    /**
+     * @return the right nullspace \f$ N(A) \f$, or nullptr if none was set.
+     */
+    std::shared_ptr<const Nullspace<ValueType>> get_nullspace() const
+    {
+        return nullspace_;
+    }
+
+    /**
+     * @return the left nullspace \f$ N(A^H) \f$ (the complement of
+     *         \f$ \mathrm{range}(A) \f$), or nullptr if none was set.
+     */
+    std::shared_ptr<const Nullspace<ValueType>> get_left_nullspace() const
+    {
+        return left_nullspace_;
+    }
+
+protected:
+    /**
+     * Removes the right nullspace component from `v`, if a right nullspace is
+     * set. Solvers apply this to the initial guess and to the result of every
+     * preconditioner application, which keeps all search directions, and thus
+     * the solution, orthogonal to \f$ N(A) \f$.
+     */
+    void project_nullspace(ptr_param<LinOp> v) const
+    {
+        if (nullspace_) {
+            nullspace_->project(v);
+        }
+    }
+
+    /**
+     * Returns the right-hand side the solver should use: `b` itself, or, if a
+     * left nullspace is set, the projection of `b` onto
+     * \f$ \mathrm{range}(A) \f$, which makes the system consistent. Solvers
+     * use it in place of `b` everywhere, including in the stopping criterion,
+     * so that the residual they measure can converge to zero also for
+     * inconsistent systems.
+     *
+     * @param b  the right-hand side
+     * @param workspace_id  the workspace vector storing the projected copy
+     */
+    template <typename VectorType>
+    const VectorType* get_consistent_rhs(const VectorType* b,
+                                         int workspace_id) const
+    {
+        if (!left_nullspace_) {
+            return b;
+        }
+        auto rhs = this->create_workspace_op_with_config_of(workspace_id, b);
+        rhs->copy_from(b);
+        left_nullspace_->project(rhs);
+        return rhs;
+    }
+
+    /**
+     * @return the right nullspace to use for the (conjugate) transposed
+     *         solver, which is the left nullspace of this one.
+     */
+    std::shared_ptr<const LinOp> get_transposed_nullspace(bool conjugate) const
+    {
+        assert_nullspace_transposable(conjugate);
+        return left_nullspace_;
+    }
+
+    /**
+     * @return the left nullspace to use for the (conjugate) transposed
+     *         solver, which is the right nullspace of this one.
+     */
+    std::shared_ptr<const LinOp> get_transposed_left_nullspace(
+        bool conjugate) const
+    {
+        assert_nullspace_transposable(conjugate);
+        return nullspace_;
+    }
 
 private:
+    // N(A^T) is the complex conjugate of N(A^H), which would need a
+    // conjugated basis, so only the conjugate transpose supports complex
+    // nullspaces.
+    void assert_nullspace_transposable(bool conjugate) const
+    {
+        if (!conjugate && is_complex<ValueType>() &&
+            (nullspace_ || left_nullspace_)) {
+            throw NotSupported(
+                __FILE__, __LINE__, "transpose with nullspace",
+                name_demangling::get_type_name(typeid(DerivedType)));
+        }
+    }
+
+    std::shared_ptr<const Executor> get_solver_executor() const
+    {
+        return static_cast<const DerivedType*>(this)->get_executor();
+    }
+
+    std::shared_ptr<const Nullspace<ValueType>> on_executor(
+        std::shared_ptr<const Nullspace<ValueType>> ns) const
+    {
+        auto exec = get_solver_executor();
+        if (ns && ns->get_executor() != exec) {
+            return gko::clone(exec, ns);
+        }
+        return ns;
+    }
+
+    // Checks the type and size of a nullspace parameter and moves it onto the
+    // solver's executor. A constant-only nullspace is adapted to the size of
+    // the system matrix instead.
+    std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
+        std::shared_ptr<const LinOp> param, const char* name,
+        size_type size) const
+    {
+        if (!param) {
+            return nullptr;
+        }
+        auto ns = std::dynamic_pointer_cast<const Nullspace<ValueType>>(param);
+        if (!ns) {
+            const LinOp& param_obj = *param;
+            throw InvalidStateError(
+                __FILE__, __LINE__, __func__,
+                std::string{"the "} + name + " parameter must be a " +
+                    name_demangling::get_type_name(
+                        typeid(Nullspace<ValueType>)) +
+                    " matching the value type of the solver, got " +
+                    name_demangling::get_type_name(typeid(param_obj)));
+        }
+        if (!ns->get_basis() && ns->get_size()[0] != size) {
+            return ns->contains_constant()
+                       ? Nullspace<ValueType>::create_from_constant(
+                             get_solver_executor(), dim<2>{size, size})
+                       : nullptr;
+        }
+        if (ns->get_size()[0] != size) {
+            throw DimensionMismatch(__FILE__, __LINE__, __func__, name,
+                                    ns->get_size()[0], ns->get_size()[1],
+                                    "system_matrix", size, size,
+                                    "expected a nullspace of matching size");
+        }
+        return on_executor(ns);
+    }
+
     template <typename FactoryParameters>
     static std::shared_ptr<const LinOp> generate_preconditioner(
         std::shared_ptr<const LinOp> system_matrix,
@@ -837,6 +1069,9 @@ private:
                 system_matrix->get_executor(), system_matrix->get_size());
         }
     }
+
+    std::shared_ptr<const Nullspace<ValueType>> nullspace_{};
+    std::shared_ptr<const Nullspace<ValueType>> left_nullspace_{};
 };
 
 
@@ -867,6 +1102,40 @@ struct enable_preconditioned_iterative_solver_factory_parameters
      */
     std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(
         generated_preconditioner, nullptr);
+
+    /**
+     * Right nullspace \f$ N(A) \f$ of the (singular) system matrix, given as a
+     * Nullspace<ValueType>. When set, the solver removes the \f$ N(A) \f$
+     * component from the initial guess and from every preconditioned vector,
+     * converging to the minimum-norm solution.
+     *
+     * Supported by the solvers specializing nullspace_traits (Cg, Fcg, Minres,
+     * Gmres, Bicgstab); other solvers throw NotSupported. A constant-only
+     * nullspace is adapted to the size of the system matrix, other
+     * nullspaces need to match it. By default, none.
+     */
+    std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(nullspace,
+                                                              nullptr);
+
+    /**
+     * Left nullspace \f$ N(A^H) \f$ -- the orthogonal complement of
+     * \f$ \mathrm{range}(A) \f$, given as a Nullspace<ValueType>. When set, the
+     * solver projects the right-hand side onto \f$ \mathrm{range}(A) \f$,
+     * which makes the system consistent, so inconsistent systems are solved in
+     * the least-squares sense.
+     *
+     * The solver then works with the projected right-hand side throughout:
+     * stopping criteria measure the residual of the projected system and
+     * loggers receive the projected right-hand side. The residual
+     * \f$ b - A x \f$ of the original system does not drop below the norm of
+     * the removed part of \f$ b \f$.
+     *
+     * For solvers requiring a Hermitian matrix (Cg, Fcg, Minres), the left
+     * and right nullspace coincide, and this defaults to `nullspace`. By
+     * default, none.
+     */
+    std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(left_nullspace,
+                                                              nullptr);
 };
 
 

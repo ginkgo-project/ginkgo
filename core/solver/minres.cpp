@@ -41,6 +41,8 @@ std::unique_ptr<LinOp> Minres<ValueType>::transpose() const
         .with_generated_preconditioner(
             share(as<Transposable>(this->get_preconditioner())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(false))
+        .with_left_nullspace(this->get_transposed_left_nullspace(false))
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -54,6 +56,8 @@ std::unique_ptr<LinOp> Minres<ValueType>::conj_transpose() const
         .with_generated_preconditioner(share(
             as<Transposable>(this->get_preconditioner())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(true))
+        .with_left_nullspace(this->get_transposed_left_nullspace(true))
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -123,6 +127,9 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b =
+        this->get_consistent_rhs(dense_b, workspace_traits<Minres>::proj_rhs);
 
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);  // z = w_k+1
@@ -160,6 +167,8 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // r = dense_b
     r->copy_from(dense_b);
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // A annihilates N(A), so removing it from x keeps r unchanged
+    this->project_nullspace(dense_x);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -168,6 +177,8 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // beta = <r, z>
     // tau = <z, z>
     this->get_preconditioner()->apply(r, z);
+    // keeps the preconditioned Lanczos vectors, and thus x, orthogonal to N(A)
+    this->project_nullspace(z);
     r->compute_conj_dot(z, beta, reduction_tmp);
     z->compute_conj_dot(z, tau, reduction_tmp);
 
@@ -229,7 +240,13 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix()->apply(one_op, z, neg_one_op, v);
         v->compute_conj_dot(z, alpha, reduction_tmp);
         v->sub_scaled(alpha, q);
+        // v lies in range(A), which is orthogonal to N(A) since A is
+        // Hermitian. Removing the round-off in N(A) from v makes the effective
+        // preconditioner P M P symmetric positive semi-definite, which keeps
+        // beta^2 = <v, z_tilde> non-negative even after convergence.
+        this->project_nullspace(v);
         this->get_preconditioner()->apply(v, z_tilde);
+        this->project_nullspace(z_tilde);
         v->compute_conj_dot(z_tilde, beta, reduction_tmp);
 
         // Updates scalars (row vectors)
@@ -342,7 +359,7 @@ Minres<ValueType>::Minres(const Factory* factory,
 template <typename ValueType>
 int workspace_traits<Minres<ValueType>>::num_vectors(const Solver&)
 {
-    return 21;
+    return 22;
 }
 
 
@@ -357,10 +374,12 @@ template <typename ValueType>
 std::vector<std::string> workspace_traits<Minres<ValueType>>::op_names(
     const Solver&)
 {
-    return {"r",        "z",      "p",        "q",        "v",     "z_tilde",
-            "p_prev",   "q_prev", "alpha",    "beta",     "gamma", "delta",
-            "eta_next", "eta",    "tau",      "cos_prev", "cos",   "sin_prev",
-            "sin",      "one",    "minus_one"};
+    return {
+        "r",        "z",      "p",         "q",        "v",     "z_tilde",
+        "p_prev",   "q_prev", "alpha",     "beta",     "gamma", "delta",
+        "eta_next", "eta",    "tau",       "cos_prev", "cos",   "sin_prev",
+        "sin",      "one",    "minus_one", "proj_rhs",
+    };
 }
 
 
@@ -383,7 +402,7 @@ std::vector<int> workspace_traits<Minres<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Minres<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, p, q, v, z_tilde, p_prev, q_prev};
+    return {r, z, p, q, v, z_tilde, p_prev, q_prev, proj_rhs};
 }
 
 
