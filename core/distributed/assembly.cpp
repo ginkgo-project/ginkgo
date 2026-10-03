@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -71,6 +71,9 @@ device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
     exec->run(assembly::make_fill_send_buffers(
         input, partition.get(), local_part, send_positions, original_positions,
         send_row_idxs, send_col_idxs, send_values));
+    // GPU-aware MPI reads the send buffers directly, so they have to be filled
+    // before the communication starts
+    exec->synchronize();
 
     if (use_host_buffer) {
         send_row_idxs.set_executor(exec->get_master());
