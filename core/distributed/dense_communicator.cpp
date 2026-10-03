@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/distributed/dense_communicator.hpp"
 
+#include <numeric>
+
 namespace gko {
 namespace experimental {
 namespace mpi {

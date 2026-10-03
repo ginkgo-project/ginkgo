@@ -37,7 +37,7 @@ For Ginkgo core library:
 
 *   _cmake 3.16+_
 *   C++17 compliant compiler, one of:
-    *   _gcc 7+_
+    *   _gcc 9+_
     *   _clang 5+_
     *   _Intel compiler 2019+_
     *   _Apple Clang 15.0_ is tested. Earlier versions might also work.
@@ -83,7 +83,7 @@ following:
 
 *   _cmake 3.16+_
 *   C++17 compliant 64-bit compiler:
-    *   _MinGW : gcc 7+_
+    *   _MinGW : gcc 9+_
     *   _Microsoft Visual Studio : VS 2019+_
 
 The Ginkgo CUDA module has the following __additional__ requirements:

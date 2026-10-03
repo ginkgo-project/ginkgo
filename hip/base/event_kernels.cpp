@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,7 +33,9 @@ public:
     ~HipEvent()
     {
         auto guard = exec_->get_scoped_device_id_guard();
-        GKO_ASSERT_NO_HIP_ERRORS(hipEventDestroy(event_));
+        // a destructor must not throw, and failing to destroy the event only
+        // leaks it
+        (void)hipEventDestroy(event_);
     }
 
     void synchronize() const override

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,7 +37,9 @@ public:
     ~CudaEvent()
     {
         auto guard = exec_->get_scoped_device_id_guard();
-        GKO_ASSERT_NO_CUDA_ERRORS(cudaEventDestroy(event_));
+        // a destructor must not throw, and failing to destroy the event only
+        // leaks it
+        cudaEventDestroy(event_);
     }
 
     void synchronize() const override
