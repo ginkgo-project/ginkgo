@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/distributed/dense_communicator.hpp"
 
+#include <numeric>
+
 namespace gko {
 namespace experimental {
 namespace mpi {
@@ -97,7 +99,7 @@ request DenseCommunicator::i_all_to_all_v_impl(
     std::shared_ptr<const Executor> exec, const void* send_buffer,
     MPI_Datatype send_type, void* recv_buffer, MPI_Datatype recv_type) const
 {
-#ifdef GINKGO_HAVE_OPENMPI_PRE_4_1_X
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
     comm_.all_to_all_v(exec, send_buffer, send_sizes_.data(),
                        send_offsets_.data(), send_type, recv_buffer,
                        recv_sizes_.data(), recv_offsets_.data(), recv_type);
@@ -141,7 +143,7 @@ DenseCommunicator::resize(
     resized_comm->recv_sizes_.resize(recv_sizes_.size());
     resized_comm->recv_offsets_.resize(recv_offsets_.size());
 
-    for (auto segment = 0; segment < send_offsets_.size() - 1; ++segment) {
+    for (size_type segment = 0; segment + 1 < send_offsets_.size(); ++segment) {
         resized_comm->send_sizes_[segment] =
             std::accumulate(send_factors.begin() + send_offsets_[segment],
                             send_factors.begin() + send_offsets_[segment + 1],

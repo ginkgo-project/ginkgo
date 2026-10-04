@@ -139,7 +139,7 @@ build/cuda118/nompi/gcc/cuda/debug/shared:
     BUILD_CUDA: "ON"
     ENABLE_HALF: "ON"
     BUILD_TYPE: "Debug"
-    MODULE_LOAD: "cmake/3.18.6 cuda/11.8.0 gcc/7.5.0"
+    MODULE_LOAD: "cmake/3.18.6 cuda/11.8.0 gcc/9.5.0"
 
 build/cuda120/openmpi/gcc/cuda/release/static:
   extends:
@@ -432,7 +432,7 @@ build/nogpu/nompi/gcc/omp/debug/static:
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "OFF"
     MIXED_PRECISION: "OFF"
-    MODULE_LOAD: "cmake/3.18.6 gcc/7.5.0"
+    MODULE_LOAD: "cmake/3.18.6 gcc/9.5.0"
 
 build/nogpu/nompi/gcc/omp/release/static:
   extends:
@@ -448,7 +448,8 @@ build/nogpu/nompi/gcc/omp/release/static:
     ENABLE_BFLOAT16: "ON"
     MODULE_LOAD: "cmake/3.18.6 gcc/9.5.0"
 
-build/nogpu/nompi/gcc/noomp/release/shared:
+# oldest supported GCC with MPI, so that the distributed code is covered too
+build/nogpu/openmpi/gcc/noomp/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
@@ -456,7 +457,8 @@ build/nogpu/nompi/gcc/noomp/release/shared:
     - .use_tum-cpu
   variables:
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.18.6 gcc/9.5.0"
+    BUILD_MPI: "ON"
+    MODULE_LOAD: "cmake/3.18.6 gcc/9.5.0 openmpi/5.0.7"
 
 build/nogpu/nompi/gcc12/noomp/release/shared:
   extends:
