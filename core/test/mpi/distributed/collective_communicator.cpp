@@ -338,6 +338,29 @@ std::vector<gko::int64> expand(const gko::array<gko::int64>& values,
 }  // namespace
 
 
+TYPED_TEST(CollectiveCommunicator, ResizeHandlesAsymmetricDegree)
+{
+    using communicator_type = typename TestFixture::communicator_type;
+    using part_type = typename TestFixture::part_type;
+    using map_type = typename TestFixture::map_type;
+    // only rank 1 receives, so rank 0 sends without receiving and rank 1 the
+    // reverse
+    auto part = gko::share(part_type::build_from_global_size_uniform(
+        this->ref, this->comm.size(), this->comm.size() * 3));
+    auto recv = this->rank == 1 ? gko::array<gko::int64>{this->ref, {0}}
+                                : gko::array<gko::int64>{this->ref};
+    auto imap = map_type{this->ref, part, this->rank, recv};
+    communicator_type spcomm{this->comm, imap};
+    std::vector<comm_index_type> send_factors(
+        static_cast<gko::size_type>(spcomm.get_send_size()), 1);
+
+    auto [resized, recv_factors] = spcomm.resize(this->ref, send_factors);
+
+    ASSERT_EQ(resized->get_send_size(), spcomm.get_send_size());
+    ASSERT_EQ(resized->get_recv_size(), spcomm.get_recv_size());
+}
+
+
 TYPED_TEST(CollectiveCommunicator, ResizeReturnsImpliedRecvFactors)
 {
     auto spcomm = this->create_default_comm();

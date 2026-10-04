@@ -143,7 +143,7 @@ DenseCommunicator::resize(
     resized_comm->recv_sizes_.resize(recv_sizes_.size());
     resized_comm->recv_offsets_.resize(recv_offsets_.size());
 
-    for (auto segment = 0; segment < send_offsets_.size() - 1; ++segment) {
+    for (size_type segment = 0; segment + 1 < send_offsets_.size(); ++segment) {
         resized_comm->send_sizes_[segment] =
             std::accumulate(send_factors.begin() + send_offsets_[segment],
                             send_factors.begin() + send_offsets_[segment + 1],

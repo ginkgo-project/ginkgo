@@ -131,11 +131,15 @@ NeighborhoodCommunicator::resize(
     // resized communicator would exchange nothing.
     auto resized_comm = std::make_unique<NeighborhoodCommunicator>(*this);
 
-    for (auto segment = 0; segment < send_offsets_.size() - 1; ++segment) {
+    // in-degree and out-degree are independent, so the two loops cannot share
+    // a bound
+    for (size_type segment = 0; segment + 1 < send_offsets_.size(); ++segment) {
         resized_comm->send_sizes_[segment] =
             std::accumulate(send_factors.begin() + send_offsets_[segment],
                             send_factors.begin() + send_offsets_[segment + 1],
                             comm_index_type{0});
+    }
+    for (size_type segment = 0; segment + 1 < recv_offsets_.size(); ++segment) {
         resized_comm->recv_sizes_[segment] =
             std::accumulate(recv_factors.begin() + recv_offsets_[segment],
                             recv_factors.begin() + recv_offsets_[segment + 1],
