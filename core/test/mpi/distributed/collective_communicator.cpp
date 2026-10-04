@@ -227,6 +227,25 @@ TYPED_TEST(CollectiveCommunicator, CanCommunicateIalltoall)
 }
 
 
+TYPED_TEST(CollectiveCommunicator, IalltoallIsNonBlocking)
+{
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
+    GTEST_SKIP() << "the communication is blocking for Open MPI < 4.1";
+#endif
+    auto spcomm = this->create_default_comm();
+    gko::array<gko::int64> recv_buffer{
+        this->ref, this->recv_connections[this->rank].get_size()};
+
+    auto req = spcomm.i_all_to_all_v(
+        this->ref, this->send_values[this->rank].get_const_data(),
+        recv_buffer.get_data());
+
+    // only a blocking implementation hands out an already completed request
+    ASSERT_NE(*req.get(), MPI_REQUEST_NULL);
+    req.wait();
+}
+
+
 TYPED_TEST(CollectiveCommunicator, CanCommunicateIalltoallWhenEmpty)
 {
     using communicator_type = typename TestFixture::communicator_type;

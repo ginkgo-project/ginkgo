@@ -99,7 +99,7 @@ request DenseCommunicator::i_all_to_all_v_impl(
     std::shared_ptr<const Executor> exec, const void* send_buffer,
     MPI_Datatype send_type, void* recv_buffer, MPI_Datatype recv_type) const
 {
-#ifdef GINKGO_HAVE_OPENMPI_PRE_4_1_X
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
     comm_.all_to_all_v(exec, send_buffer, send_sizes_.data(),
                        send_offsets_.data(), send_type, recv_buffer,
                        recv_sizes_.data(), recv_offsets_.data(), recv_type);
