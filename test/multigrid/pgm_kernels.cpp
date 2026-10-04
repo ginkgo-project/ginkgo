@@ -21,6 +21,7 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
+#include "core/components/gather_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
@@ -250,7 +251,7 @@ TEST_F(Pgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 }
 
 
-TEST_F(Pgm, GatherIndexIsEquivalentToRef)
+TEST_F(Pgm, GatherIsEquivalentToRef)
 {
     gko::size_type num = 267;
     gko::size_type orig_num = 123;
@@ -261,10 +262,10 @@ TEST_F(Pgm, GatherIndexIsEquivalentToRef)
     gko::array<index_type> d_map(exec, map);
     gko::array<index_type> d_result(exec, result);
 
-    gko::kernels::reference::pgm::gather_index(ref, num, orig.get_const_data(),
-                                               map.get_const_data(),
-                                               result.get_data());
-    gko::kernels::GKO_DEVICE_NAMESPACE::pgm::gather_index(
+    gko::kernels::reference::components::gather(ref, num, orig.get_const_data(),
+                                                map.get_const_data(),
+                                                result.get_data());
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::gather(
         exec, num, d_orig.get_const_data(), d_map.get_const_data(),
         d_result.get_data());
 

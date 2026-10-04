@@ -4,6 +4,7 @@ set(UNIFIED_SOURCES
     components/absolute_array_kernels.cpp
     components/fill_array_kernels.cpp
     components/format_conversion_kernels.cpp
+    components/gather_kernels.cpp
     components/precision_conversion_kernels.cpp
     components/range_minimum_query_kernels.cpp
     components/reduce_array_kernels.cpp
