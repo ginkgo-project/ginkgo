@@ -147,11 +147,11 @@ Nullspace<ValueType>::Nullspace(std::shared_ptr<const Executor> exec,
                                 dim<2> size,
                                 std::vector<std::shared_ptr<const LinOp>> basis,
                                 bool contains_constant)
-    : Nullspace(std::move(exec))
+    : LinOp(exec, size),
+      contains_constant_{contains_constant},
+      reduction_tmp_{exec}
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(size);
-    this->set_size(size);
-    contains_constant_ = contains_constant;
     if (!basis.empty()) {
         gko::detail::vector_dispatch<ValueType>(
             basis[0].get(), [&](auto first) {
