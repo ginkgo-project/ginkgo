@@ -44,6 +44,18 @@ public:
         GKO_ASSERT_NO_HIP_ERRORS(hipEventSynchronize(event_));
     }
 
+    void stream_wait(std::shared_ptr<const Executor> exec) const override
+    {
+        auto dev_exec = std::dynamic_pointer_cast<const HipExecutor>(exec);
+        if (dev_exec) {
+            auto guard = dev_exec->get_scoped_device_id_guard();
+            GKO_ASSERT_NO_HIP_ERRORS(
+                hipStreamWaitEvent(dev_exec->get_stream(), event_, 0));
+        } else {
+            this->synchronize();
+        }
+    }
+
 private:
     std::shared_ptr<const HipExecutor> exec_;
     hipEvent_t event_;

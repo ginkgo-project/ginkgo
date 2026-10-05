@@ -198,7 +198,8 @@ scoped_device_id_guard::scoped_device_id_guard(const CudaExecutor* exec,
 cuda_stream::cuda_stream() GKO_NOT_COMPILED(cuda);
 
 
-cuda_stream::cuda_stream(int device_id) GKO_NOT_COMPILED(cuda);
+cuda_stream::cuda_stream(int device_id, bool non_blocking)
+    GKO_NOT_COMPILED(cuda);
 
 
 cuda_stream::~cuda_stream() {}

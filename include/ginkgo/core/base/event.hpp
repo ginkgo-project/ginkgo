@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,6 +30,19 @@ public:
      * before return from this function.
      */
     virtual void synchronize() const = 0;
+
+    /**
+     * Makes `exec`'s queue wait for this event without blocking the host.
+     * Defaults to synchronize(), which is correct but blocking.
+     *
+     * @param exec  the executor whose queue should wait.
+     */
+    virtual void stream_wait(std::shared_ptr<const Executor> exec) const
+    {
+        this->synchronize();
+    }
+
+    virtual ~Event() = default;
 };
 
 
