@@ -5,6 +5,7 @@
 #include "ginkgo/core/distributed/row_scatterer.hpp"
 
 #include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
@@ -12,10 +13,18 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
+#include "core/base/event_kernels.hpp"
 
 namespace gko {
 namespace experimental {
 namespace distributed {
+
+
+namespace event {
+namespace {
+GKO_REGISTER_OPERATION(record_event, event::record_event);
+}
+}  // namespace event
 
 
 template <typename LocalIndexType>
@@ -27,6 +36,10 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
     auto use_host_buffer =
         mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
     auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
+    auto exec_local_values = make_temporary_clone(exec, local_values);
+    // a temporary clone is freed before the communication finishes, so its
+    // data can't be sent directly
+    auto is_temporary_clone = exec_local_values.get() != local_values.get();
 
     // Dispatch on local_values as a distributed::Vector
     run<Vector,
@@ -37,8 +50,7 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
         bfloat16, std::complex<bfloat16>,
 #endif
         double, float, std::complex<double>, std::complex<float>>(
-        make_temporary_clone(exec, local_values).get(),
-        [&](const auto* lv_global) {
+        exec_local_values.get(), [&](const auto* lv_global) {
             using ValueType =
                 typename std::decay_t<decltype(*lv_global)>::value_type;
             distributed::precision_dispatch<ValueType>([&]() {
@@ -46,9 +58,10 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 auto ncols = lv_local->get_size()[1];
 
                 dim<2> send_size(coll_comm_->get_send_size(), ncols);
+                GKO_ASSERT_EQUAL_DIMENSIONS(lv_local, send_size);
                 const ValueType* send_ptr = nullptr;
                 bool can_send_direct =
-                    !use_host_buffer &&
+                    !use_host_buffer && !is_temporary_clone &&
                     lv_local->get_stride() == static_cast<size_type>(ncols);
                 if (can_send_direct) {
                     send_ptr = lv_local->get_const_values();
@@ -63,12 +76,18 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
                 auto recv_buffer =
                     recv_cache_.get<ValueType>(mpi_exec, recv_size);
 
+                // the send data has to be ready before MPI accesses it
+                std::shared_ptr<const gko::detail::Event> ev = nullptr;
+                lv_local->get_executor()->run(event::make_record_event(ev));
+                ev->synchronize();
+
                 // Start async MPI communication
                 mpi::contiguous_type type(
                     ncols, mpi::type_impl<ValueType>::get_type());
                 req = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
                                                  recv_buffer->get_values(),
                                                  type.get());
+                recv_buffer_ = recv_buffer;
             });
         });
     return req;
@@ -81,10 +100,10 @@ void RowScatterer<LocalIndexType>::wait_and_accumulate(
 {
     req.wait();
 
-    auto exec = this->get_executor();
-    auto use_host_buffer =
-        mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
-    auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
+    GKO_THROW_IF_INVALID(recv_buffer_ != nullptr,
+                         "wait_and_accumulate requires a preceding "
+                         "apply_async.");
+    auto recv_buffer_op = std::exchange(recv_buffer_, nullptr);
 
     // Dispatch on the distributed target to get ValueType
     run<Vector,
@@ -102,11 +121,10 @@ void RowScatterer<LocalIndexType>::wait_and_accumulate(
             auto target_local = target_global->get_local_vector();
             auto target_dense =
                 const_cast<matrix::Dense<ValueType>*>(target_local);
-            auto ncols = target_dense->get_size()[1];
-
-            dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
-
-            auto recv_buffer = recv_cache_.get<ValueType>(mpi_exec, recv_size);
+            // throws if apply_async used a different value type
+            auto recv_buffer =
+                gko::as<matrix::Dense<ValueType>>(recv_buffer_op);
+            GKO_ASSERT_EQUAL_COLS(recv_buffer, target_dense);
 
             // scatter_add handles cross-executor copies via
             // make_temporary_clone
@@ -148,9 +166,10 @@ RowScatterer<LocalIndexType>::RowScatterer(
     const index_map<LocalIndexType, GlobalIndexType>& imap)
     : PolymorphicObject(exec),
       DistributedBase(coll_comm->get_base_communicator()),
-      size_(dim<2>{global_add(exec, coll_comm->get_base_communicator(),
-                              imap.get_non_local_size()),
-                   imap.get_global_size()}),
+      // transpose of the corresponding RowGatherer size
+      size_(dim<2>{imap.get_global_size(),
+                   global_add(exec, coll_comm->get_base_communicator(),
+                              imap.get_non_local_size())}),
       coll_comm_(std::move(coll_comm)),
       recv_idxs_(exec)
 {
