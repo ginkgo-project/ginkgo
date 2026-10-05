@@ -104,24 +104,20 @@ public:
         std::shared_ptr<const Executor> exec, dim<2> size = {});
 
     /** @return whether the constant vector is part of the nullspace. */
-    bool contains_constant() const noexcept { return contains_constant_; }
+    bool contains_constant() const noexcept;
 
     /**
      * @return the dimension of the nullspace: the number of orthonormal
      *         explicit basis vectors, plus one if the constant is included.
      */
-    size_type get_dimension() const noexcept
-    {
-        return (basis_ ? basis_->get_size()[1] : 0) +
-               (contains_constant_ ? 1 : 0);
-    }
+    size_type get_dimension() const noexcept;
 
     /**
      * @return the orthonormalized explicit basis as a single `n x k` vector
      *         of the same kind as the input basis (orthogonal to the constant
      *         if contains_constant()), or nullptr if there is none.
      */
-    std::shared_ptr<const LinOp> get_basis() const noexcept { return basis_; }
+    std::shared_ptr<const LinOp> get_basis() const noexcept;
 
     /**
      * Applies the projector in place: \f$ v \leftarrow (I - V V^H) v \f$, for

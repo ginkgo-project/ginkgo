@@ -137,6 +137,27 @@ Nullspace<ValueType>::create_from_constant(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
+bool Nullspace<ValueType>::contains_constant() const noexcept
+{
+    return contains_constant_;
+}
+
+
+template <typename ValueType>
+size_type Nullspace<ValueType>::get_dimension() const noexcept
+{
+    return (basis_ ? basis_->get_size()[1] : 0) + (contains_constant_ ? 1 : 0);
+}
+
+
+template <typename ValueType>
+std::shared_ptr<const LinOp> Nullspace<ValueType>::get_basis() const noexcept
+{
+    return basis_;
+}
+
+
+template <typename ValueType>
 Nullspace<ValueType>::Nullspace(std::shared_ptr<const Executor> exec)
     : LinOp(exec), contains_constant_{false}, reduction_tmp_{exec}
 {}
