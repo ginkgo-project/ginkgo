@@ -6,9 +6,9 @@
 
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/event.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
@@ -73,18 +73,13 @@ RowGatherer<LocalIndexType>::apply_prepare(
         make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
             using ValueType =
                 typename std::decay_t<decltype(*b_global)>::value_type;
-            // dispatch local vector with the same precision as the global
-            // vector
-            distributed::precision_dispatch<ValueType>([&]() {
-                auto b_local = b_global->get_local_vector();
+            auto b_local = b_global->get_local_vector();
 
-                dim<2> send_size(coll_comm_->get_send_size(),
-                                 b_local->get_size()[1]);
-                auto send_buffer =
-                    workspace.get<ValueType>(mpi_exec, send_size);
-                b_local->row_gather(&send_idxs_, send_buffer);
-                b_local->get_executor()->run(event::make_record_event(ev));
-            });
+            dim<2> send_size(coll_comm_->get_send_size(),
+                             b_local->get_size()[1]);
+            auto send_buffer = workspace.get<ValueType>(mpi_exec, send_size);
+            b_local->row_gather(&send_idxs_, send_buffer);
+            b_local->get_executor()->run(event::make_record_event(ev));
         });
     return ev;
 }
