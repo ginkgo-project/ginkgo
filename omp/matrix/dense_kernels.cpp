@@ -20,6 +20,7 @@
 #include "accessor/block_col_major.hpp"
 #include "accessor/range.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
+#include "omp/components/atomic.hpp"
 
 
 namespace gko {
@@ -479,9 +480,8 @@ void scatter_add(std::shared_ptr<const OmpExecutor> exec,
     for (size_type i = 0; i < nrows; ++i) {
         auto target_row = static_cast<size_type>(scatter_indices[i]);
         for (size_type j = 0; j < ncols; ++j) {
-            auto val = src_vals[i * src_stride + j];
-#pragma omp critical
-            tgt_vals[target_row * tgt_stride + j] += val;
+            atomic_add(tgt_vals[target_row * tgt_stride + j],
+                       src_vals[i * src_stride + j]);
         }
     }
 }

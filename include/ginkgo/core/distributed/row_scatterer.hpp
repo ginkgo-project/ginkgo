@@ -68,7 +68,14 @@ public:
      * communication. The returned request can be waited on to ensure the
      * communication completes before calling wait_and_accumulate.
      *
-     * @param local_values  the local values to scatter (distributed::Vector)
+     * @warning Only one scatter can be active at any given time. Calling this
+     *          function again before wait_and_accumulate will lead to
+     *          undefined behavior.
+     *
+     * @param local_values  the local values to scatter (distributed::Vector).
+     *                      Its local vector must have as many rows as this
+     *                      process sends. It might not be modified before
+     *                      wait_and_accumulate is called.
      *
      * @return  a live mpi::request for the in-flight communication
      */
@@ -83,7 +90,9 @@ public:
      * by apply_async.
      *
      * @param req  the mpi::request from apply_async (will be waited on)
-     * @param distributed_target  the target vector to accumulate into
+     * @param distributed_target  the target vector to accumulate into. It must
+     *                            have the same value type and number of
+     *                            columns as the local_values of apply_async.
      */
     void wait_and_accumulate(mpi::request& req,
                              ptr_param<LinOp> distributed_target) const;
@@ -169,6 +178,8 @@ private:
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
     array<LocalIndexType> recv_idxs_;  // local indices to accumulate into
     mutable gko::detail::GenericDenseCache send_cache_;
+    // receive buffer of the active apply_async, consumed by wait_and_accumulate
+    mutable std::shared_ptr<LinOp> recv_buffer_;
     mutable gko::detail::GenericDenseCache recv_cache_;
 };
 
