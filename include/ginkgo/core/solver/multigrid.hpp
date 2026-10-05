@@ -420,7 +420,9 @@ public:
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::zero);
     };
-    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Multigrid, parameters, Factory);
+    class reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Multigrid, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**

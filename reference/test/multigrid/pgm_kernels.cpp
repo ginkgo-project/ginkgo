@@ -621,7 +621,7 @@ TYPED_TEST(Pgm, GenerateReuseRejectsMismatchAndStaysUsable)
     ASSERT_THROW(this->pgm_factory->generate_reuse(smaller, *reuse_data),
                  gko::DimensionMismatch);
     ASSERT_THROW(this->pgm_factory->generate_reuse(sparser, *reuse_data),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
     GKO_ASSERT_MTX_NEAR(
         gko::as<Mtx>(this->pgm_factory->generate_reuse(this->mtx, *reuse_data)
                          ->get_coarse_op()),

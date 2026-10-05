@@ -133,7 +133,9 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
-    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Pgm, parameters, Factory);
+    class reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Pgm, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**

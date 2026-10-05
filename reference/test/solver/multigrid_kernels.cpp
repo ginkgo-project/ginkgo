@@ -269,14 +269,13 @@ public:
     {}
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
-    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(ReuseRecordingLinOp, parameters,
-                                         Factory);
-    GKO_ENABLE_BUILD_METHOD(Factory);
-
     class reuse_data_type : public gko::LinOpFactory::ReuseData {
     public:
         bool initialized = false;
     };
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(ReuseRecordingLinOp, parameters,
+                                         Factory, reuse_data_type);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
     bool reused = false;
 
@@ -1576,7 +1575,7 @@ TYPED_TEST(Multigrid, GenerateReuseRejectsMismatch)
     ASSERT_THROW(factory->generate_reuse(this->mtx, *reuse_data),
                  gko::DimensionMismatch);
     ASSERT_THROW(factory->generate_reuse(sparser, *reuse_data),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
     ASSERT_GT(first->get_mg_level_list().size(), 0);
     ASSERT_EQ(factory->generate_reuse(this->mtx2, *reuse_data)
                   ->get_mg_level_list()

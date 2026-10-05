@@ -711,12 +711,14 @@ void Pgm<ValueType, IndexType>::generate_from(const reuse_data_type& reuse_data)
             fine->get_communicator().all_reduce(
                 exec->get_master(), &local_matches, &matches, 1, MPI_MIN);
             if (!matches) {
-                throw ValueMismatch(
-                    __FILE__, __LINE__, __func__,
+                throw DimensionMismatch(
+                    __FILE__, __LINE__, __func__, "input nonzeros",
                     diag_csr->get_num_stored_elements() +
                         off_diag_csr->get_num_stored_elements(),
+                    1, "recorded nonzeros",
                     mapping_nnz(reuse_data.mapping_local_.get()) +
                         mapping_nnz(reuse_data.mapping_off_diag_.get()),
+                    1,
                     "at least one rank got a matrix with a different number "
                     "of nonzeros than the reuse data was initialized with");
             }
@@ -747,12 +749,12 @@ void Pgm<ValueType, IndexType>::generate_from(const reuse_data_type& reuse_data)
     {
         auto pgm_op = this->convert_local_fine_op(system_matrix_);
         if (!mapping_matches(reuse_data.mapping_local_.get(), pgm_op.get())) {
-            throw ValueMismatch(__FILE__, __LINE__, __func__,
-                                pgm_op->get_num_stored_elements(),
-                                mapping_nnz(reuse_data.mapping_local_.get()),
-                                "the new matrix does not have the same number "
-                                "of nonzeros as the reuse data was "
-                                "initialized with");
+            throw DimensionMismatch(
+                __FILE__, __LINE__, __func__, "input nonzeros",
+                pgm_op->get_num_stored_elements(), 1, "recorded nonzeros",
+                mapping_nnz(reuse_data.mapping_local_.get()), 1,
+                "the new matrix does not have the same number of nonzeros as "
+                "the reuse data was initialized with");
         }
         auto coarse = gko::clone(gko::as<csr_type>(reuse_data.coarse_op_));
         update_coarse_values(exec, reuse_data.mapping_local_.get(),

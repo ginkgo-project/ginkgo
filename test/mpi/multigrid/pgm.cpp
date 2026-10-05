@@ -233,7 +233,7 @@ TYPED_TEST(Pgm, GenerateReuseWithMismatchingNnzOnOneRankThrowsEverywhere)
     sparser_mat->read_distributed(sparser_input, this->row_part);
 
     ASSERT_THROW(factory->generate_reuse(sparser_mat, *reuse_data),
-                 gko::ValueMismatch);
+                 gko::DimensionMismatch);
 }
 
 
