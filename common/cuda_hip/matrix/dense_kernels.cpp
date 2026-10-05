@@ -855,11 +855,29 @@ void scatter_add(std::shared_ptr<const DefaultExecutor> exec,
     if (nrows == 0 || ncols == 0) {
         return;
     }
-    auto grid_dim = ceildiv(nrows * ncols, default_block_size);
-    kernel::scatter_add_kernel<<<grid_dim, default_block_size, 0,
-                                 exec->get_stream()>>>(
-        nrows, ncols, scatter_indices, as_device_type(source.values),
-        source.stride, as_device_type(target.values), target.stride);
+// not support 16 bit atomic
+#if !defined(CUDA_VERSION)
+    if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
+        GKO_NOT_SUPPORTED(target);
+    } else
+#else
+    const auto compute_capability =
+        as<CudaExecutor>(exec)->get_compute_capability();
+    if (compute_capability < 70 &&
+        std::is_same_v<remove_complex<ValueType>, half>) {
+        GKO_NOT_SUPPORTED(target);
+    } else if (compute_capability < 80 &&
+               std::is_same_v<remove_complex<ValueType>, bfloat16>) {
+        GKO_NOT_SUPPORTED(target);
+    } else
+#endif
+    {
+        auto grid_dim = ceildiv(nrows * ncols, default_block_size);
+        kernel::scatter_add_kernel<<<grid_dim, default_block_size, 0,
+                                     exec->get_stream()>>>(
+            nrows, ncols, scatter_indices, as_device_type(source.values),
+            source.stride, as_device_type(target.values), target.stride);
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
