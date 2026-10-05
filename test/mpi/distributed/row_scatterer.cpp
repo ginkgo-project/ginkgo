@@ -120,8 +120,7 @@ TYPED_TEST(RowScatterer, ScatterIsGatherTranspose)
     auto host_target = gko::clone(this->ref, target);
     auto host_target_local = host_target->get_local_vector();
 
-    // Expected accumulated values (from
-    // core/test/mpi/distributed/row_scatterer.cpp) Ghost connections per rank
+    // Expected accumulated values. Ghost connections per rank
     // (global indices):
     //   Rank 0: {3, 5, 10, 11}
     //   Rank 1: {0, 1, 7, 12, 13}
@@ -188,7 +187,7 @@ TYPED_TEST(RowScatterer, CanScatterConsecutively)
     auto host_target = gko::clone(this->ref, target);
     auto host_target_local = host_target->get_local_vector();
 
-    // Uniform weight=1 scatter of all-1s vector: count contributions per row
+    // Scatter of an all-ones vector: count contributions per row
     std::array<std::array<double, 3>, 6> expected = {{
         {1, 2, 1},
         {2, 2, 2},
