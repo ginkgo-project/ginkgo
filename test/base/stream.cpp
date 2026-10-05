@@ -24,9 +24,6 @@
 namespace {
 
 
-GKO_REGISTER_OPERATION(record_event, event::record_event);
-
-
 class Stream : public CommonTestFixture {
 protected:
     // A second executor on the same device with a stream of its own; memory
@@ -49,6 +46,21 @@ protected:
         // only CUDA and HIP have stream wrappers
         return nullptr;
 #endif
+    }
+
+    // GKO_REGISTER_OPERATION expands to a generic lambda that nvcc rejects in
+    // a .cu translation unit, and this test is compiled as one, so the backend
+    // kernel is called directly.
+    std::shared_ptr<const gko::detail::Event> record_event_on(
+        std::shared_ptr<const gko::EXEC_TYPE> e)
+    {
+        std::shared_ptr<const gko::detail::Event> ev;
+#ifdef GKO_COMPILING_CUDA
+        gko::kernels::cuda::event::record_event(e, ev);
+#elif defined(GKO_COMPILING_HIP)
+        gko::kernels::hip::event::record_event(e, ev);
+#endif
+        return ev;
     }
 
     void SetUp() override
@@ -86,14 +98,16 @@ TEST_F(Stream, NonBlockingStreamIsUsable)
 // happens to win proves nothing.
 TEST_F(Stream, StreamWaitDoesNotBlockTheHost)
 {
-    using Dense = gko::matrix::Dense<double>;
+    // the fixture's value_type, so a single-precision build does not pull
+    // in a double instantiation it may not have
+    using Dense = gko::matrix::Dense<value_type>;
     // large enough that the device, not the host enqueueing the calls, is
     // the bottleneck
     const gko::size_type n = 1 << 25;
     auto reader = this->make_second_executor(true);
     auto x = Dense::create(this->exec, gko::dim<2>{n, 1});
     auto y = Dense::create(this->exec, gko::dim<2>{n, 1});
-    auto alpha = gko::initialize<Dense>({1.0}, this->exec);
+    auto alpha = gko::initialize<Dense>({gko::one<value_type>()}, this->exec);
     x->fill(1.0);
     y->fill(1.0);
     this->exec->synchronize();
@@ -101,8 +115,7 @@ TEST_F(Stream, StreamWaitDoesNotBlockTheHost)
     for (int i = 0; i < 200; i++) {
         x->add_scaled(alpha, y);
     }
-    std::shared_ptr<const gko::detail::Event> ev;
-    this->exec->run(make_record_event(ev));
+    auto ev = this->record_event_on(this->exec);
 
     const auto t0 = std::chrono::steady_clock::now();
     ev->stream_wait(reader);
@@ -129,8 +142,7 @@ TEST_F(Stream, StreamWaitFallsBackToSynchronize)
     gko::array<int> source{this->ref, size};
     std::fill(source.get_data(), source.get_data() + size, 3);
     gko::array<int> on_device{this->exec, source};
-    std::shared_ptr<const gko::detail::Event> ev;
-    this->exec->run(make_record_event(ev));
+    auto ev = this->record_event_on(this->exec);
 
     ASSERT_NO_THROW(ev->stream_wait(this->ref));
 
