@@ -390,15 +390,17 @@ public:
      * Generates a LinOp like generate(), reusing what earlier calls recorded
      * in `reuse_data`.
      *
-     * With an empty `reuse_data`, this is a full generation that also fills
-     * it. Once initialized, the input must have the same size and sparsity
-     * pattern. What is reused is up to the factory and may depend on values,
-     * so the result can differ from generate(). Factories without reuse
-     * support just call generate().
+     * A ReuseData is empty when it comes from create_empty_reuse_data() and
+     * initialized after the first successful generate_reuse(). With an empty
+     * `reuse_data`, this is a full generation that also fills it. Once
+     * initialized, the input must have the same size and sparsity pattern.
+     * What is reused is up to the factory and may depend on values, so the
+     * result can differ from generate(). Factories without reuse support just
+     * call generate().
      *
-     * The result must not outlive `reuse_data`, and a later call with the same
-     * `reuse_data` may invalidate it (it may then only be destroyed).
-     * Factories may guarantee more. Use one ReuseData per result you keep:
+     * As with generate(), the result is independent of `reuse_data` and of
+     * earlier results: it may outlive `reuse_data`, and later calls leave it
+     * unchanged. One ReuseData serves a whole sequence of generations:
      *
      * ```c++
      * auto reuse_data = factory->create_empty_reuse_data();
@@ -439,8 +441,9 @@ protected:
      *
      * Overrides have to keep the guarantees of generate_reuse(): on throwing,
      * leave an empty `reuse_data` empty and an initialized one usable (e.g.
-     * store new data only after success), and keep destroying invalidated
-     * results safe.
+     * store new data only after success), and return results that neither
+     * need `reuse_data` to stay alive nor change with later calls (e.g. share
+     * data with it only through shared ownership).
      */
     virtual std::unique_ptr<LinOp> generate_reuse_impl(
         std::shared_ptr<const LinOp> input, ReuseData& reuse_data) const;
