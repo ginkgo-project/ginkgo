@@ -13,6 +13,7 @@
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/base/event_kernels.hpp"
+#include "core/distributed/helpers.hpp"
 
 namespace gko {
 namespace experimental {
@@ -235,16 +236,6 @@ RowGatherer<LocalIndexType>::get_collective_communicator() const
 }
 
 
-template <typename T>
-T global_add(std::shared_ptr<const Executor> exec,
-             const mpi::communicator& comm, const T& value)
-{
-    T result;
-    comm.all_reduce(std::move(exec), &value, &result, 1, MPI_SUM);
-    return result;
-}
-
-
 template <typename LocalIndexType>
 template <typename GlobalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(
@@ -253,9 +244,10 @@ RowGatherer<LocalIndexType>::RowGatherer(
     const index_map<LocalIndexType, GlobalIndexType>& imap)
     : PolymorphicObject(exec),
       DistributedBase(coll_comm->get_base_communicator()),
-      size_(dim<2>{global_add(exec, coll_comm->get_base_communicator(),
-                              imap.get_non_local_size()),
-                   imap.get_global_size()}),
+      size_(dim<2>{
+          gko::detail::global_add(exec, coll_comm->get_base_communicator(),
+                                  imap.get_non_local_size()),
+          imap.get_global_size()}),
       coll_comm_(std::move(coll_comm)),
       send_idxs_(exec),
       send_cache_()
@@ -267,7 +259,6 @@ RowGatherer<LocalIndexType>::RowGatherer(
         coll_comm_->get_recv_size() == imap.get_non_local_size(),
         "The collective communicator doesn't match the index map.");
 
-    auto comm = coll_comm_->get_base_communicator();
     auto inverse_comm = coll_comm_->create_inverse();
 
     auto mpi_exec =
