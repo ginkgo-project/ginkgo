@@ -45,8 +45,7 @@ namespace multigrid {
  * matrix with the same sparsity pattern keep the aggregates and only
  * recompute the coarse matrix, so the result can differ from generate().
  * The aggregates come from the values of the first matrix, so it should be
- * representative of the later ones. Every call returns a new level,
- * independent of the reuse data and of earlier results.
+ * representative of the later ones.
  *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes

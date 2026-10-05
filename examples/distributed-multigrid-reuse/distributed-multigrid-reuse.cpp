@@ -220,10 +220,9 @@ int main(int argc, char* argv[])
     // particular the Pgm aggregates and transfer operators, in the reuse
     // data. Later calls on a matrix with the same sparsity pattern keep them
     // and only recompute the coarse matrices, the smoothers and the coarsest
-    // solver. A result of generate_reuse() must not outlive its reuse data,
-    // and a later call may invalidate earlier results, so the preconditioner
-    // and the solver live only for one iteration. Replacing the reuse data by
-    // an empty one starts the recording again.
+    // solver. Like generate(), every call returns a new preconditioner that
+    // does not depend on the reuse data. Replacing the reuse data by an empty
+    // one starts the recording again.
     //
     // The kept aggregates only fit the later matrices if the recorded matrix
     // is representative. Here, u_0 = 0 gives k = 1 everywhere, the

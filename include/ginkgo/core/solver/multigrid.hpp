@@ -142,9 +142,7 @@ class MultigridState;
  * own generate_reuse(). Below the first level that comes out different,
  * everything is generated anew. Levels such as Pgm keep choices made from the
  * values of the first matrix, so it should be representative of the later
- * ones. Every call returns a new solver; its hierarchy and Pgm levels are
- * independent of the reuse data and of earlier results, other components
- * keep the reuse guarantees of their factories.
+ * ones.
  *
  * @ingroup Multigrid
  * @ingroup solvers
