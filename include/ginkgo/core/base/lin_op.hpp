@@ -383,7 +383,10 @@ public:
         ReuseData& operator=(ReuseData&&) = delete;
     };
 
-    /** Creates an empty ReuseData. The default returns a plain ReuseData. */
+    /**
+     * Creates an empty ReuseData. The default implementation returns a plain
+     * ReuseData.
+     */
     virtual std::unique_ptr<ReuseData> create_empty_reuse_data() const;
 
     /**
@@ -419,6 +422,10 @@ public:
      * @return the generated LinOp, with this factory's loggers
      *
      * @throw NotSupported  if `reuse_data` has the wrong type for this factory
+     * @throw DimensionMismatch  if a dimension of `input`, like its size or
+     *                           its number of stored elements, differs from
+     *                           the input `reuse_data` was initialized with
+     * @throw InvalidStateError  if `input` does not fit `reuse_data` otherwise
      *
      * @note This interface is experimental.
      */
@@ -428,7 +435,14 @@ public:
     /**
      * Throws if `input` can't be used with `reuse_data`. generate_reuse()
      * calls this first, also while `reuse_data` is still empty, so overrides
-     * have to accept any input then. The default accepts any input.
+     * have to accept any input then. Checks that need a converted input may
+     * run during the generation instead. The default implementation, used by
+     * factories without reuse support, accepts any input, since they generate
+     * from scratch.
+     *
+     * @throw DimensionMismatch  if a dimension of `input` differs from the
+     *                           input `reuse_data` was initialized with
+     * @throw InvalidStateError  if `input` does not fit `reuse_data` otherwise
      */
     virtual void check_reuse_consistent(const LinOp* input,
                                         const ReuseData& reuse_data) const;
@@ -436,8 +450,8 @@ public:
 protected:
     /**
      * Implements generate_reuse(); `input` is on this factory's executor and
-     * has passed check_reuse_consistent(). The default ignores `reuse_data`
-     * and calls generate_impl().
+     * has passed check_reuse_consistent(). The default implementation ignores
+     * `reuse_data` and calls generate_impl().
      *
      * Overrides have to keep the guarantees of generate_reuse(): on throwing,
      * leave an empty `reuse_data` empty and an initialized one usable (e.g.
@@ -926,25 +940,27 @@ using EnableDefaultLinOpFactory =
 
 /**
  * EnableDefaultLinOpFactory with LinOpFactory::generate_reuse() support,
- * usually used through #GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE. ConcreteLinOp
- * has to provide
- * - `reuse_data_type`, default-constructible and derived from
- *   LinOpFactory::ReuseData;
+ * usually used through #GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE. ReuseDataType
+ * has to be default-constructible and derived from LinOpFactory::ReuseData,
+ * and ConcreteLinOp has to provide
  * - a constructor `(const ConcreteFactory*, std::shared_ptr<const LinOp>,
- *   reuse_data_type&)` keeping the guarantees of
+ *   ReuseDataType&)` keeping the guarantees of
  *   LinOpFactory::generate_reuse_impl();
  * - `static void check_reuse_consistent(const ConcreteFactory*,
- *   const LinOp*, const reuse_data_type&)`, accepting any input while the
+ *   const LinOp*, const ReuseDataType&)`, accepting any input while the
  *   data is empty.
  *
- * The template parameters are the same as for EnableDefaultLinOpFactory.
+ * ReuseDataType only has to be complete where the factory's member functions
+ * are used. The other template parameters are the same as for
+ * EnableDefaultLinOpFactory.
  *
  * @note This interface is experimental.
  *
  * @ingroup LinOp
  */
 template <typename ConcreteFactory, typename ConcreteLinOp,
-          typename ParametersType, typename PolymorphicBase = LinOpFactory>
+          typename ParametersType, typename ReuseDataType,
+          typename PolymorphicBase = LinOpFactory>
 class EnableDefaultReusableLinOpFactory
     : public EnableDefaultLinOpFactory<ConcreteFactory, ConcreteLinOp,
                                        ParametersType, PolymorphicBase> {
@@ -966,7 +982,7 @@ public:
     std::unique_ptr<LinOpFactory::ReuseData> create_empty_reuse_data()
         const override
     {
-        return std::make_unique<typename ConcreteLinOp::reuse_data_type>();
+        return std::make_unique<ReuseDataType>();
     }
 
     void check_reuse_consistent(
@@ -975,7 +991,7 @@ public:
     {
         ConcreteLinOp::check_reuse_consistent(
             static_cast<const ConcreteFactory*>(this), input,
-            *as<typename ConcreteLinOp::reuse_data_type>(&reuse_data));
+            *as<ReuseDataType>(&reuse_data));
     }
 
 protected:
@@ -991,7 +1007,7 @@ protected:
     {
         return std::unique_ptr<LinOp>(new ConcreteLinOp(
             static_cast<const ConcreteFactory*>(this), std::move(input),
-            *as<typename ConcreteLinOp::reuse_data_type>(&reuse_data)));
+            *as<ReuseDataType>(&reuse_data)));
     }
 };
 
@@ -1109,15 +1125,19 @@ public:                                                                      \
 
 
 /**
- * Like #GKO_ENABLE_LIN_OP_FACTORY (same parameters), but the factory also
- * supports LinOpFactory::generate_reuse(). The LinOp additionally provides what
- * EnableDefaultReusableLinOpFactory requires, which may be private:
+ * Like #GKO_ENABLE_LIN_OP_FACTORY, but the factory also supports
+ * LinOpFactory::generate_reuse(), with `_reuse_data_type` as its ReuseData.
+ * The LinOp additionally provides what EnableDefaultReusableLinOpFactory
+ * requires, which may be private. The reuse data type can be defined after
+ * the macro, but has to be declared before it:
  *
  * ```c++
  * class MyLinOp : public LinOp {
  * public:
  *     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory) { ... };
- *     GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(MyLinOp, parameters, Factory);
+ *     class reuse_data_type;
+ *     GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(MyLinOp, parameters, Factory,
+ *                                          reuse_data_type);
  *     GKO_ENABLE_BUILD_METHOD(Factory);
  *
  *     class reuse_data_type : public LinOpFactory::ReuseData { ... };
@@ -1131,47 +1151,52 @@ public:                                                                      \
  * };
  * ```
  *
+ * @param _lin_op  concrete operator for which the factory is to be created
+ * @param _parameters_name  name of the parameters member in the class
+ * @param _factory_name  name of the generated factory type
+ * @param _reuse_data_type  the ReuseData type of the factory
+ *
  * @note This interface is experimental.
  *
  * @ingroup LinOp
  */
-#define GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(_lin_op, _parameters_name,       \
-                                             _factory_name)                   \
-public:                                                                       \
-    const _parameters_name##_type& get_##_parameters_name() const             \
-    {                                                                         \
-        return _parameters_name##_;                                           \
-    }                                                                         \
-                                                                              \
-    class _factory_name                                                       \
-        : public ::gko::EnableDefaultReusableLinOpFactory<                    \
-              _factory_name, _lin_op, _parameters_name##_type> {              \
-        friend class ::gko::enable_parameters_type<_parameters_name##_type,   \
-                                                   _factory_name>;            \
-        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)   \
-            : ::gko::EnableDefaultReusableLinOpFactory<                       \
-                  _factory_name, _lin_op, _parameters_name##_type>(           \
-                  std::move(exec))                                            \
-        {}                                                                    \
-        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,   \
-                               const _parameters_name##_type& parameters)     \
-            : ::gko::EnableDefaultReusableLinOpFactory<                       \
-                  _factory_name, _lin_op, _parameters_name##_type>(           \
-                  std::move(exec), parameters)                                \
-        {}                                                                    \
-    };                                                                        \
-    friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,           \
-                                            _parameters_name##_type>;         \
-    friend ::gko::EnableDefaultReusableLinOpFactory<_factory_name, _lin_op,   \
-                                                    _parameters_name##_type>; \
-                                                                              \
-                                                                              \
-private:                                                                      \
-    _parameters_name##_type _parameters_name##_;                              \
-                                                                              \
-public:                                                                       \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
+#define GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(_lin_op, _parameters_name,        \
+                                             _factory_name, _reuse_data_type)  \
+public:                                                                        \
+    const _parameters_name##_type& get_##_parameters_name() const              \
+    {                                                                          \
+        return _parameters_name##_;                                            \
+    }                                                                          \
+                                                                               \
+    class _factory_name : public ::gko::EnableDefaultReusableLinOpFactory<     \
+                              _factory_name, _lin_op, _parameters_name##_type, \
+                              _reuse_data_type> {                              \
+        friend class ::gko::enable_parameters_type<_parameters_name##_type,    \
+                                                   _factory_name>;             \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)    \
+            : ::gko::EnableDefaultReusableLinOpFactory<                        \
+                  _factory_name, _lin_op, _parameters_name##_type,             \
+                  _reuse_data_type>(std::move(exec))                           \
+        {}                                                                     \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,    \
+                               const _parameters_name##_type& parameters)      \
+            : ::gko::EnableDefaultReusableLinOpFactory<                        \
+                  _factory_name, _lin_op, _parameters_name##_type,             \
+                  _reuse_data_type>(std::move(exec), parameters)               \
+        {}                                                                     \
+    };                                                                         \
+    friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,            \
+                                            _parameters_name##_type>;          \
+    friend ::gko::EnableDefaultReusableLinOpFactory<                           \
+        _factory_name, _lin_op, _parameters_name##_type, _reuse_data_type>;    \
+                                                                               \
+                                                                               \
+private:                                                                       \
+    _parameters_name##_type _parameters_name##_;                               \
+                                                                               \
+public:                                                                        \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 

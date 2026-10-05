@@ -430,8 +430,10 @@ public:
         T GKO_FACTORY_PARAMETER_SCALAR(value, T{5});
         bool GKO_FACTORY_PARAMETER_SCALAR(throw_on_reuse, false);
     };
+    // defined below the macro, so the macro has to work with an incomplete type
+    class reuse_data_type;
     GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(DummyReusableLinOp, parameters,
-                                         Factory);
+                                         Factory, reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     // records what the reuse constructor and the check saw
@@ -498,11 +500,10 @@ using ReusableData = Reusable::reuse_data_type;
 class DummyNonTemplateReusableLinOp : public gko::LinOp {
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
-    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(DummyNonTemplateReusableLinOp,
-                                         parameters, Factory);
-    GKO_ENABLE_BUILD_METHOD(Factory);
-
     class reuse_data_type : public gko::LinOpFactory::ReuseData {};
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(DummyNonTemplateReusableLinOp,
+                                         parameters, Factory, reuse_data_type);
+    GKO_ENABLE_BUILD_METHOD(Factory);
 
     bool from_reuse_constructor = false;
 
