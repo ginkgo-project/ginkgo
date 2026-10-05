@@ -203,3 +203,93 @@ TYPED_TEST(RowScatterer, CanScatterConsecutively)
             << "rank=" << rank << " local_row=" << i;
     }
 }
+
+
+TYPED_TEST(RowScatterer, ThrowsOnWrongNumberOfLocalRows)
+{
+    using Vector = gko::experimental::distributed::Vector<double>;
+    auto recv_size = this->rg->get_collective_communicator()->get_recv_size();
+    auto local_vals = Vector::create(
+        this->mpi_exec, this->comm,
+        gko::dim<2>{this->rg->get_size()[0] + this->comm.size(), 1},
+        gko::dim<2>{static_cast<gko::size_type>(recv_size) + 1, 1});
+
+    ASSERT_THROW(this->rs->apply_async(local_vals).wait(),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(RowScatterer, ThrowsOnValueTypeMismatchBetweenApplyAndAccumulate)
+{
+    using Vector = gko::experimental::distributed::Vector<double>;
+    using FloatVector = gko::experimental::distributed::Vector<float>;
+    auto recv_size = this->rg->get_collective_communicator()->get_recv_size();
+    auto ghost_vals = Vector::create(
+        this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
+        gko::dim<2>{static_cast<gko::size_type>(recv_size), 1});
+    ghost_vals->fill(1.0);
+    auto target = FloatVector::create(this->exec, this->comm,
+                                      gko::dim<2>{18, 1}, gko::dim<2>{3, 1});
+    auto req = this->rs->apply_async(ghost_vals);
+
+    ASSERT_THROW(this->rs->wait_and_accumulate(req, target), gko::NotSupported);
+}
+
+
+TYPED_TEST(RowScatterer, ThrowsOnColumnMismatchBetweenApplyAndAccumulate)
+{
+    using Vector = gko::experimental::distributed::Vector<double>;
+    auto recv_size = this->rg->get_collective_communicator()->get_recv_size();
+    auto ghost_vals = Vector::create(
+        this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
+        gko::dim<2>{static_cast<gko::size_type>(recv_size), 1});
+    ghost_vals->fill(1.0);
+    auto target = Vector::create(this->exec, this->comm, gko::dim<2>{18, 2},
+                                 gko::dim<2>{3, 2});
+    auto req = this->rs->apply_async(ghost_vals);
+
+    ASSERT_THROW(this->rs->wait_and_accumulate(req, target),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(RowScatterer, ThrowsOnAccumulateWithoutApply)
+{
+    using Vector = gko::experimental::distributed::Vector<double>;
+    auto target = Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
+                                 gko::dim<2>{3, 1});
+    gko::experimental::mpi::request req;
+
+    ASSERT_THROW(this->rs->wait_and_accumulate(req, target),
+                 gko::InvalidStateError);
+}
+
+
+TYPED_TEST(RowScatterer, CanScatterFromVectorOnDifferentExecutor)
+{
+    using Dense = gko::matrix::Dense<double>;
+    using Vector = gko::experimental::distributed::Vector<double>;
+    int rank = this->comm.rank();
+    auto offset = static_cast<double>(rank * 3);
+    auto b = Vector::create(
+        this->exec, this->comm, gko::dim<2>{18, 1},
+        gko::initialize<Dense>({offset, offset + 1, offset + 2}, this->exec));
+    auto recv_size = this->rg->get_collective_communicator()->get_recv_size();
+    auto ghost_vals = Vector::create(
+        this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
+        gko::dim<2>{static_cast<gko::size_type>(recv_size), 1});
+    this->rg->apply_async(b, ghost_vals).wait();
+    auto host_ghost_vals = gko::clone(this->ref, ghost_vals);
+    auto expected = Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
+                                   gko::dim<2>{3, 1});
+    expected->fill(0.0);
+    auto result = gko::clone(expected);
+    auto expected_req = this->rs->apply_async(ghost_vals);
+    this->rs->wait_and_accumulate(expected_req, expected);
+
+    auto req = this->rs->apply_async(host_ghost_vals);
+    this->rs->wait_and_accumulate(req, result);
+
+    GKO_ASSERT_MTX_NEAR(result->get_local_vector(),
+                        expected->get_local_vector(), 0.0);
+}
