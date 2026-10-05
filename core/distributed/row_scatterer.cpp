@@ -13,6 +13,7 @@
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/base/event_kernels.hpp"
+#include "core/distributed/helpers.hpp"
 
 namespace gko {
 namespace experimental {
@@ -35,12 +36,10 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
     auto use_host_buffer =
         mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
     auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
-    auto exec_local_values = make_temporary_clone(exec, local_values);
-    // a temporary clone is freed before the communication finishes, so its
-    // data can't be sent directly
-    auto is_temporary_clone = exec_local_values.get() != local_values.get();
 
-    // Dispatch on local_values as a distributed::Vector
+    // Dispatch on local_values as a distributed::Vector. It is not cloned to
+    // another executor, since a temporary clone would be freed before the
+    // communication finishes.
     run<Vector,
 #if GINKGO_ENABLE_HALF
         half, std::complex<half>,
@@ -49,7 +48,7 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
         bfloat16, std::complex<bfloat16>,
 #endif
         double, float, std::complex<double>, std::complex<float>>(
-        exec_local_values.get(), [&](const auto* lv_global) {
+        local_values.get(), [&](const auto* lv_global) {
             using ValueType =
                 typename std::decay_t<decltype(*lv_global)>::value_type;
             auto lv_local = lv_global->get_local_vector();
@@ -58,8 +57,10 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
             dim<2> send_size(coll_comm_->get_send_size(), ncols);
             GKO_ASSERT_EQUAL_DIMENSIONS(lv_local, send_size);
             const ValueType* send_ptr = nullptr;
+            // send directly if MPI can access the memory of local_values,
+            // otherwise pack it into the send buffer
             bool can_send_direct =
-                !use_host_buffer && !is_temporary_clone &&
+                mpi_exec->memory_accessible(lv_local->get_executor()) &&
                 lv_local->get_stride() == static_cast<size_type>(ncols);
             if (can_send_direct) {
                 send_ptr = lv_local->get_const_values();
@@ -144,16 +145,6 @@ RowScatterer<LocalIndexType>::get_collective_communicator() const
 }
 
 
-template <typename T>
-static T global_add(std::shared_ptr<const Executor> exec,
-                    const mpi::communicator& comm, const T& value)
-{
-    T result;
-    comm.all_reduce(std::move(exec), &value, &result, 1, MPI_SUM);
-    return result;
-}
-
-
 template <typename LocalIndexType>
 template <typename GlobalIndexType>
 RowScatterer<LocalIndexType>::RowScatterer(
@@ -163,9 +154,10 @@ RowScatterer<LocalIndexType>::RowScatterer(
     : PolymorphicObject(exec),
       DistributedBase(coll_comm->get_base_communicator()),
       // transpose of the corresponding RowGatherer size
-      size_(dim<2>{imap.get_global_size(),
-                   global_add(exec, coll_comm->get_base_communicator(),
-                              imap.get_non_local_size())}),
+      size_(dim<2>{
+          imap.get_global_size(),
+          gko::detail::global_add(exec, coll_comm->get_base_communicator(),
+                                  imap.get_non_local_size())}),
       coll_comm_(std::move(coll_comm)),
       recv_idxs_(exec)
 {
