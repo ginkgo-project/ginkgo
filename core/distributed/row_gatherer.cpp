@@ -131,27 +131,22 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
         make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
             using ValueType =
                 typename std::decay_t<decltype(*b_global)>::value_type;
-            // dispatch local vector with the same precision as the global
-            // vector
-            distributed::precision_dispatch<ValueType>(
-                [&](auto* x_global) {
-                    auto b_local = b_global->get_local_vector();
+            // x is not converted to the precision of b, since a temporary
+            // conversion is freed before MPI finishes receiving into it
+            auto x_global = gko::as<Vector<ValueType>>(x.get());
+            auto b_local = b_global->get_local_vector();
 
-                    dim<2> send_size(coll_comm_->get_send_size(),
-                                     b_local->get_size()[1]);
-                    auto send_buffer =
-                        workspace.get<ValueType>(mpi_exec, send_size);
+            dim<2> send_size(coll_comm_->get_send_size(),
+                             b_local->get_size()[1]);
+            auto send_buffer = workspace.get<ValueType>(mpi_exec, send_size);
 
-                    auto recv_ptr = x_global->get_local_values();
-                    auto send_ptr = send_buffer->get_values();
-                    ev->synchronize();
-                    mpi::contiguous_type type(
-                        b_local->get_size()[1],
-                        mpi::type_impl<ValueType>::get_type());
-                    req = coll_comm_->i_all_to_all_v(
-                        mpi_exec, send_ptr, type.get(), recv_ptr, type.get());
-                },
-                x.get());
+            auto recv_ptr = x_global->get_local_values();
+            auto send_ptr = send_buffer->get_values();
+            ev->synchronize();
+            mpi::contiguous_type type(b_local->get_size()[1],
+                                      mpi::type_impl<ValueType>::get_type());
+            req = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
+                                             recv_ptr, type.get());
         });
     return req;
 }
