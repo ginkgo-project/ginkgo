@@ -55,11 +55,10 @@ namespace distributed {
  * @tparam LocalIndexType  the index type for the stored indices
  */
 template <typename LocalIndexType = int32>
-class RowScatterer final
-    : public EnablePolymorphicObject<RowScatterer<LocalIndexType>>,
-      public EnablePolymorphicAssignment<RowScatterer<LocalIndexType>>,
-      public DistributedBase {
-    friend class EnablePolymorphicObject<RowScatterer, PolymorphicObject>;
+class RowScatterer final : public PolymorphicObject,
+                           public EnableCloneable<RowScatterer<LocalIndexType>>,
+                           public DistributedBase {
+    friend class EnableCloneable<RowScatterer>;
 
 public:
     /**
