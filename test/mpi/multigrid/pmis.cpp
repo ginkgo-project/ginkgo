@@ -47,6 +47,33 @@
 #endif
 
 
+// The same spgemm has no half-precision support on hipSPARSE: its csrgemm2
+// bindings cover float, double and the two complex types only.
+#if defined(GKO_COMPILING_HIP)
+#define GKO_DEVICE_HAS_HALF_SPGEMM 0
+#else
+#define GKO_DEVICE_HAS_HALF_SPGEMM 1
+#endif
+
+
+#if !GKO_DEVICE_HAS_HALF_SPGEMM
+#define SKIP_IF_DEVICE_NO_HALF_SPGEMM(value_type)                            \
+    if (std::is_same<gko::remove_complex<value_type>, gko::half>::value) {   \
+        GTEST_SKIP() << "distributed spgemm in half precision is "           \
+                        "unsupported on this backend (hipSPARSE has no "     \
+                        "half spgemm)";                                      \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#else
+#define SKIP_IF_DEVICE_NO_HALF_SPGEMM(value_type)                            \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+#endif
+
+
 #if !GKO_DEVICE_HAS_INT64_SPGEMM
 #define SKIP_IF_DEVICE_NO_INT64_SPGEMM(local_index_type)                     \
     if (sizeof(local_index_type) > 4) {                                      \
@@ -297,6 +324,7 @@ TYPED_TEST_SUITE(Pmis, gko::test::ValueLocalGlobalIndexTypes,
 TYPED_TEST(Pmis, CanGenerateFromDistributedMatrix)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
     using pmis = typename TestFixture::pmis;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
 
@@ -317,6 +345,7 @@ TYPED_TEST(Pmis, CanGenerateFromDistributedMatrix)
 TYPED_TEST(Pmis, EveryLocalRowOfProlongationIsNonEmpty)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
     using pmis = typename TestFixture::pmis;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
@@ -344,6 +373,7 @@ TYPED_TEST(Pmis, EveryLocalRowOfProlongationIsNonEmpty)
 TYPED_TEST(Pmis, DistributedCoarseOperatorMatchesSerial)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
     using pmis = typename TestFixture::pmis;
 
     auto dist_level = pmis::build().on(this->exec)->generate(this->dist_mat);
@@ -358,6 +388,7 @@ TYPED_TEST(Pmis, DistributedCoarseOperatorMatchesSerial)
 TYPED_TEST(Pmis, RowMaximumSpansBothBlocks)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
     using value_type = typename TestFixture::value_type;
     using global_index_type = typename TestFixture::global_index_type;
     using local_index_type = typename TestFixture::local_index_type;
@@ -387,6 +418,7 @@ TYPED_TEST(Pmis, RowMaximumSpansBothBlocks)
 TYPED_TEST(Pmis, WorksWithAnEmptyLocalRange)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
     using global_index_type = typename TestFixture::global_index_type;
     using local_index_type = typename TestFixture::local_index_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
@@ -425,6 +457,7 @@ TYPED_TEST(Pmis, WorksWithAnEmptyLocalRange)
 TYPED_TEST(Pmis, DistributedMultigridPreconditionedCgConverges)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
     using value_type = typename TestFixture::value_type;
     using real_type = typename TestFixture::real_type;
     using dense_type = typename TestFixture::dense_type;
@@ -466,6 +499,7 @@ TYPED_TEST(Pmis, DistributedMultigridPreconditionedCgConverges)
 TYPED_TEST(Pmis, HierarchyIsIndependentOfRankCount)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
     using pmis = typename TestFixture::pmis;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
