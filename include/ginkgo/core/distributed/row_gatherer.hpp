@@ -118,10 +118,10 @@ public:
      *          will lead to undefined behavior.
      *
      * @param b  the input distributed::Vector.
-     * @param x  the output matrix::Dense with the rows gathered from b. Its
-     *           executor has to be compatible with the MPI implementation, see
-     *           the class documentation. It must have the same value type
-     *           as b.
+     * @param x  the output distributed::Vector with the rows gathered from b.
+     *           Its executor has to be compatible with the MPI
+     *           implementation, see the class documentation. It must have
+     *           the same value type as b.
      *
      * @return  a mpi::request for this task. The task is guaranteed to
      *          be completed only after `.wait()` has been called on it.
@@ -137,10 +137,10 @@ public:
      *          data transfers.
      *
      * @param b  the input distributed::Vector.
-     * @param x  the output matrix::Dense with the rows gathered from b. Its
-     *           executor has to be compatible with the MPI implementation, see
-     *           the class documentation. It must have the same value type
-     *           as b.
+     * @param x  the output distributed::Vector with the rows gathered from b.
+     *           Its executor has to be compatible with the MPI
+     *           implementation, see the class documentation. It must have
+     *           the same value type as b.
      * @param workspace  a workspace to store temporary data for the operation.
      *                   This might not be modified before the request is
      *                   waited on.

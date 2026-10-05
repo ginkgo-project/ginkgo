@@ -6,7 +6,6 @@
 
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/event.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
@@ -53,42 +52,39 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
         exec_local_values.get(), [&](const auto* lv_global) {
             using ValueType =
                 typename std::decay_t<decltype(*lv_global)>::value_type;
-            distributed::precision_dispatch<ValueType>([&]() {
-                auto lv_local = lv_global->get_local_vector();
-                auto ncols = lv_local->get_size()[1];
+            auto lv_local = lv_global->get_local_vector();
+            auto ncols = lv_local->get_size()[1];
 
-                dim<2> send_size(coll_comm_->get_send_size(), ncols);
-                GKO_ASSERT_EQUAL_DIMENSIONS(lv_local, send_size);
-                const ValueType* send_ptr = nullptr;
-                bool can_send_direct =
-                    !use_host_buffer && !is_temporary_clone &&
-                    lv_local->get_stride() == static_cast<size_type>(ncols);
-                if (can_send_direct) {
-                    send_ptr = lv_local->get_const_values();
-                } else {
-                    auto send_buffer =
-                        send_cache_.get<ValueType>(mpi_exec, send_size);
-                    lv_local->convert_to(send_buffer);
-                    send_ptr = send_buffer->get_const_values();
-                }
+            dim<2> send_size(coll_comm_->get_send_size(), ncols);
+            GKO_ASSERT_EQUAL_DIMENSIONS(lv_local, send_size);
+            const ValueType* send_ptr = nullptr;
+            bool can_send_direct =
+                !use_host_buffer && !is_temporary_clone &&
+                lv_local->get_stride() == static_cast<size_type>(ncols);
+            if (can_send_direct) {
+                send_ptr = lv_local->get_const_values();
+            } else {
+                auto send_buffer =
+                    send_cache_.get<ValueType>(mpi_exec, send_size);
+                lv_local->convert_to(send_buffer);
+                send_ptr = send_buffer->get_const_values();
+            }
 
-                dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
-                auto recv_buffer =
-                    recv_cache_.get<ValueType>(mpi_exec, recv_size);
+            dim<2> recv_size(coll_comm_->get_recv_size(), ncols);
+            auto recv_buffer = recv_cache_.get<ValueType>(mpi_exec, recv_size);
 
-                // the send data has to be ready before MPI accesses it
-                std::shared_ptr<const gko::detail::Event> ev = nullptr;
-                lv_local->get_executor()->run(event::make_record_event(ev));
-                ev->synchronize();
+            // the send data has to be ready before MPI accesses it
+            std::shared_ptr<const gko::detail::Event> ev = nullptr;
+            lv_local->get_executor()->run(event::make_record_event(ev));
+            ev->synchronize();
 
-                // Start async MPI communication
-                mpi::contiguous_type type(
-                    ncols, mpi::type_impl<ValueType>::get_type());
-                req = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
-                                                 recv_buffer->get_values(),
-                                                 type.get());
-                recv_buffer_ = recv_buffer;
-            });
+            // Start async MPI communication
+            mpi::contiguous_type type(ncols,
+                                      mpi::type_impl<ValueType>::get_type());
+            req = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
+                                             recv_buffer->get_values(),
+                                             type.get());
+            recv_buffer_ = recv_buffer;
         });
     return req;
 }
@@ -177,7 +173,6 @@ RowScatterer<LocalIndexType>::RowScatterer(
         coll_comm_->get_recv_size() == imap.get_non_local_size(),
         "The collective communicator doesn't match the index map.");
 
-    auto comm = coll_comm_->get_base_communicator();
     auto inverse_comm = coll_comm_->create_inverse();
 
     auto mpi_exec =
@@ -196,7 +191,7 @@ RowScatterer<LocalIndexType>::RowScatterer(
     recv_idxs_.set_executor(exec);
 
     // Use the inverse comm for the actual scatter operation
-    coll_comm_ = coll_comm_->create_inverse();
+    coll_comm_ = std::move(inverse_comm);
 }
 
 
