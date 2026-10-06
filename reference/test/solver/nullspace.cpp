@@ -16,9 +16,12 @@
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/nullspace_projection.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/nullspace.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -477,6 +480,72 @@ TYPED_TEST(Nullspace, HermitianSolverUsesNullspaceAsLeftNullspace)
 
     ASSERT_EQ(cg->get_left_nullspace(), ns);
     ASSERT_EQ(gmres->get_left_nullspace(), nullptr);
+}
+
+
+TYPED_TEST(Nullspace, SolverWrapsPreconditionerInProjection)
+{
+    using value_type = typename TestFixture::value_type;
+    using Projection = gko::preconditioner::NullspaceProjection<value_type>;
+    auto mtx = this->laplacian(4);
+    auto ns =
+        gko::share(gko::solver::Nullspace<value_type>::create_from_constant(
+            this->exec, mtx->get_size()));
+    auto jacobi =
+        gko::share(gko::preconditioner::Jacobi<value_type, int>::build()
+                       .with_max_block_size(1u)
+                       .on(this->exec)
+                       ->generate(mtx));
+    auto criterion = gko::stop::Iteration::build().with_max_iters(1u);
+
+    auto cg = gko::solver::Cg<value_type>::build()
+                  .with_criteria(criterion)
+                  .with_generated_preconditioner(jacobi)
+                  .with_nullspace(ns)
+                  .on(this->exec)
+                  ->generate(mtx);
+    auto minres = gko::solver::Minres<value_type>::build()
+                      .with_criteria(criterion)
+                      .with_generated_preconditioner(jacobi)
+                      .with_nullspace(ns)
+                      .on(this->exec)
+                      ->generate(mtx);
+
+    auto cg_projection = gko::as<Projection>(cg->get_preconditioner());
+    auto minres_projection = gko::as<Projection>(minres->get_preconditioner());
+    ASSERT_EQ(cg_projection->get_preconditioner(), jacobi);
+    ASSERT_EQ(cg_projection->get_nullspace(), ns);
+    ASSERT_EQ(cg_projection->get_left_nullspace(), nullptr);
+    ASSERT_EQ(minres_projection->get_nullspace(), ns);
+    ASSERT_EQ(minres_projection->get_left_nullspace(), ns);
+}
+
+
+TYPED_TEST(Nullspace, SetPreconditionerKeepsProjection)
+{
+    using value_type = typename TestFixture::value_type;
+    using Projection = gko::preconditioner::NullspaceProjection<value_type>;
+    auto mtx = this->laplacian(4);
+    auto ns =
+        gko::share(gko::solver::Nullspace<value_type>::create_from_constant(
+            this->exec, mtx->get_size()));
+    auto jacobi =
+        gko::share(gko::preconditioner::Jacobi<value_type, int>::build()
+                       .with_max_block_size(1u)
+                       .on(this->exec)
+                       ->generate(mtx));
+    auto solver =
+        gko::solver::Cg<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_nullspace(ns)
+            .on(this->exec)
+            ->generate(mtx);
+
+    solver->set_preconditioner(jacobi);
+
+    auto projection = gko::as<Projection>(solver->get_preconditioner());
+    ASSERT_EQ(projection->get_preconditioner(), jacobi);
+    ASSERT_EQ(projection->get_nullspace(), ns);
 }
 
 

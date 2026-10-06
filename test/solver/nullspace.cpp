@@ -88,3 +88,23 @@ TEST_F(Nullspace, BasisOnlyProjectionIsEquivalentToRef)
     ASSERT_EQ(d_ns->get_dimension(), gko::size_type{2});
     GKO_ASSERT_MTX_NEAR(d_x, x, 10 * r<value_type>::value);
 }
+
+
+TEST_F(Nullspace, OutOfPlaceProjectionIsEquivalentToRef)
+{
+    const gko::size_type n = 1234;
+    auto basis = gko::share(gen_mtx(n, 3, 3));
+    auto ns = NullspaceType::create(ref, {basis}, true);
+    auto d_ns = NullspaceType::create(
+        exec, {gko::share(gko::clone(exec, basis))}, true);
+    auto b = gen_mtx(n, 5, 7);
+    auto x = gen_mtx(n, 5, 5);
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
+
+    ns->apply(b, x);
+    d_ns->apply(d_b, d_x);
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 10 * r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(d_b, b, 0.0);
+}
