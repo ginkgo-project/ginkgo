@@ -136,6 +136,7 @@ template <typename ValueType>
 struct nullspace_traits<Bicgstab<ValueType>> {
     static constexpr bool is_supported = true;
     static constexpr bool requires_hermitian = false;
+    static constexpr bool two_sided_projection = false;
 };
 
 

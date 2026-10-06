@@ -162,9 +162,10 @@ protected:
                             const matrix::Dense<ValueType>* basis_local,
                             bool has_constant) const;
 
-    // v -= mean + V C with the coefficients from compute_components
+    // result = v - mean - V C with the coefficients from compute_components;
+    // result may be v
     template <typename VectorType>
-    void subtract_components(VectorType* v,
+    void subtract_components(const VectorType* v, VectorType* result,
                              const matrix::Dense<ValueType>* basis_local,
                              bool has_constant) const;
 
@@ -184,6 +185,27 @@ private:
 };
 
 
+namespace detail {
+
+
+/**
+ * Checks the type and size of a nullspace parameter and moves it onto `exec`.
+ * A constant-only nullspace is adapted to the size of the operator instead.
+ *
+ * @param param  the parameter, a Nullspace<ValueType> or nullptr
+ * @param name  the name of the parameter used in error messages
+ * @param size  the size of the operator
+ * @param exec  the executor of the operator
+ *
+ * @return the nullspace to use, or nullptr if there is none
+ */
+template <typename ValueType>
+std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
+    std::shared_ptr<const LinOp> param, const char* name, size_type size,
+    std::shared_ptr<const Executor> exec);
+
+
+}  // namespace detail
 }  // namespace solver
 }  // namespace gko
 

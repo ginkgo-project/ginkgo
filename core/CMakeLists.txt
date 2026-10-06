@@ -106,6 +106,7 @@ target_sources(
         preconditioner/ilu.cpp
         preconditioner/isai.cpp
         preconditioner/jacobi.cpp
+        preconditioner/nullspace_projection.cpp
         preconditioner/sor.cpp
         reorder/amd.cpp
         reorder/mc64.cpp

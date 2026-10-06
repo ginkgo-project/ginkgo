@@ -102,7 +102,8 @@ std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
 {
     return build()
         .with_generated_preconditioner(
-            share(as<Transposable>(this->get_preconditioner())->transpose()))
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_nullspace(this->get_transposed_nullspace(false))
         .with_left_nullspace(this->get_transposed_left_nullspace(false))
@@ -119,8 +120,9 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 {
     return build()
-        .with_generated_preconditioner(share(
-            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_nullspace(this->get_transposed_nullspace(true))
         .with_left_nullspace(this->get_transposed_left_nullspace(true))
@@ -542,7 +544,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             // x = x + get_preconditioner() * before_preconditioner
             this->get_preconditioner()->apply(before_preconditioner,
                                               after_preconditioner);
-            this->project_nullspace(after_preconditioner);
             dense_x->add_scaled(one_op, after_preconditioner);
             // residual = dense_b
             residual->copy_from(dense_b);
@@ -585,8 +586,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // preconditioned_krylov_vector = get_preconditioner() * this_krylov
         this->get_preconditioner()->apply(this_krylov,
                                           preconditioned_krylov_vector);
-        // keeps A's input, and thus the update of x, orthogonal to N(A)
-        this->project_nullspace(preconditioned_krylov_vector);
 
         // Create view of current column in the hessenberg matrix:
         // hessenberg_iter = hessenberg(:, restart_iter), which
@@ -699,7 +698,6 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // after_preconditioner = get_preconditioner() * before_preconditioner
         this->get_preconditioner()->apply(before_preconditioner,
                                           after_preconditioner);
-        this->project_nullspace(after_preconditioner);
     }
     // x = x + after_preconditioner
     dense_x->add_scaled(one_op, after_preconditioner);

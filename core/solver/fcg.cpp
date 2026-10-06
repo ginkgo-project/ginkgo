@@ -51,7 +51,8 @@ std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
 {
     return build()
         .with_generated_preconditioner(
-            share(as<Transposable>(this->get_preconditioner())->transpose()))
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_nullspace(this->get_transposed_nullspace(false))
         .with_left_nullspace(this->get_transposed_left_nullspace(false))
@@ -65,8 +66,9 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 {
     return build()
-        .with_generated_preconditioner(share(
-            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_nullspace(this->get_transposed_nullspace(true))
         .with_left_nullspace(this->get_transposed_left_nullspace(true))
@@ -157,8 +159,6 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
      */
     while (true) {
         this->get_preconditioner()->apply(r, z);
-        // keeps every search direction, and thus x, orthogonal to N(A)
-        this->project_nullspace(z);
         r->compute_conj_dot(z, rho, reduction_tmp);
         t->compute_conj_dot(z, rho_t, reduction_tmp);
 
