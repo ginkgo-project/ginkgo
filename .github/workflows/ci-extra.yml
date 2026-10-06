@@ -37,12 +37,13 @@ jobs:
   arm:
     # runs on all pull requests, but of the label events only on adding a full-test label
     if: &run >-
+      !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI') && (
       (github.event.action != 'labeled' && (contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test') 
                                             || contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')))
       || (github.event.action == 'labeled' && ((github.event.label.name == '1:ST:ready-to-merge' 
                                                 && !contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
                                                || (github.event.label.name == '1:ST:run-full-test' 
-                                                   && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge'))))
+                                                   && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')))))
     uses: ./.github/workflows/arm.yml
     with: &with
       full: true
