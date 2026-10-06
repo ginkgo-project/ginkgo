@@ -55,20 +55,21 @@ void subtract_projection(std::shared_ptr<const DefaultExecutor> exec,
                          matrix::view::dense<const ValueType> basis,
                          bool has_constant,
                          matrix::view::dense<const ValueType> coefficients,
-                         matrix::view::dense<ValueType> x)
+                         matrix::view::dense<const ValueType> x,
+                         matrix::view::dense<ValueType> output)
 {
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto basis, auto num_basis, auto offset,
-                      auto coefficients, auto x) {
+                      auto coefficients, auto x, auto output) {
             auto value = offset > 0 ? coefficients(0, j) : zero(x(i, j));
             for (int64 l = 0; l < num_basis; ++l) {
                 value += basis(i, l) * coefficients(l + offset, j);
             }
-            x(i, j) -= value;
+            output(i, j) = x(i, j) - value;
         },
         x.size, basis, static_cast<int64>(basis.size[1]),
-        static_cast<int64>(has_constant ? 1 : 0), coefficients, x);
+        static_cast<int64>(has_constant ? 1 : 0), coefficients, x, output);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

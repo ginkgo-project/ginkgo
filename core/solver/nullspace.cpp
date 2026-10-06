@@ -5,11 +5,15 @@
 #include "ginkgo/core/solver/nullspace.hpp"
 
 #include <limits>
+#include <string>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/temporary_clone.hpp>
 
@@ -320,15 +324,17 @@ void Nullspace<ValueType>::compute_components(
 template <typename ValueType>
 template <typename VectorType>
 void Nullspace<ValueType>::subtract_components(
-    VectorType* v, const matrix::Dense<ValueType>* basis_local,
-    bool has_constant) const
+    const VectorType* v, VectorType* result,
+    const matrix::Dense<ValueType>* basis_local, bool has_constant) const
 {
     auto v_local = gko::detail::get_local(v);
-    // v -= mean + V C in one pass; the basis is orthogonal to the constant, so
-    // both components can be removed at once
+    auto result_local = gko::detail::get_local(result);
+    // result = v - mean - V C in one pass; the basis is orthogonal to the
+    // constant, so both components can be removed at once
     this->get_executor()->run(nullspace::make_subtract_projection(
         basis_view(basis_local, v_local->get_size()[0]), has_constant,
-        coefficients_->get_const_device_view(), v_local->get_device_view()));
+        coefficients_->get_const_device_view(),
+        v_local->get_const_device_view(), result_local->get_device_view()));
 }
 
 
@@ -343,7 +349,8 @@ void Nullspace<ValueType>::remove_components(
     }
     auto v_exec = make_temporary_clone(this->get_executor(), v);
     this->compute_components(v_exec.get(), basis_local, has_constant);
-    this->subtract_components(v_exec.get(), basis_local, has_constant);
+    this->subtract_components(v_exec.get(), v_exec.get(), basis_local,
+                              has_constant);
 }
 
 
@@ -352,8 +359,15 @@ void Nullspace<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            dense_x->copy_from(dense_b);
-            this->project(dense_x);
+            // x = b - V C with the components C of b, without copying b first
+            const auto basis_local = this->get_local_basis(dense_b);
+            if (!contains_constant_ && !basis_local) {
+                dense_x->copy_from(dense_b);
+                return;
+            }
+            this->compute_components(dense_b, basis_local, contains_constant_);
+            this->subtract_components(dense_b, dense_x, basis_local,
+                                      contains_constant_);
         },
         b, x);
 }
@@ -376,7 +390,7 @@ void Nullspace<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, dense_b);
             if (has_components) {
-                this->subtract_components(dense_x, basis_local,
+                this->subtract_components(dense_x, dense_x, basis_local,
                                           contains_constant_);
             }
         },
@@ -430,6 +444,57 @@ Nullspace<ValueType>::Nullspace(Nullspace&& other)
 {
     *this = std::move(other);
 }
+
+
+namespace detail {
+
+
+template <typename ValueType>
+std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
+    std::shared_ptr<const LinOp> param, const char* name, size_type size,
+    std::shared_ptr<const Executor> exec)
+{
+    if (!param) {
+        return nullptr;
+    }
+    auto ns = std::dynamic_pointer_cast<const Nullspace<ValueType>>(param);
+    if (!ns) {
+        const LinOp& param_obj = *param;
+        throw InvalidStateError(
+            __FILE__, __LINE__, __func__,
+            std::string{"the "} + name + " parameter must be a " +
+                name_demangling::get_type_name(typeid(Nullspace<ValueType>)) +
+                " matching the value type of the operator, got " +
+                name_demangling::get_type_name(typeid(param_obj)));
+    }
+    if (!ns->get_basis() && ns->get_size()[0] != size) {
+        // a constant-only nullspace is adapted to the size of the operator
+        return ns->contains_constant()
+                   ? Nullspace<ValueType>::create_from_constant(
+                         exec, dim<2>{size, size})
+                   : nullptr;
+    }
+    if (ns->get_size()[0] != size) {
+        throw DimensionMismatch(__FILE__, __LINE__, __func__, name,
+                                ns->get_size()[0], ns->get_size()[1],
+                                "system_matrix", size, size,
+                                "expected a nullspace of matching size");
+    }
+    if (ns->get_executor() != exec) {
+        return gko::clone(exec, ns);
+    }
+    return ns;
+}
+
+
+#define GKO_DECLARE_PREPARE_NULLSPACE(ValueType)                              \
+    std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace<ValueType>( \
+        std::shared_ptr<const LinOp> param, const char* name, size_type size, \
+        std::shared_ptr<const Executor> exec)
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PREPARE_NULLSPACE);
+
+
+}  // namespace detail
 
 
 #define GKO_DECLARE_NULLSPACE(ValueType) class Nullspace<ValueType>

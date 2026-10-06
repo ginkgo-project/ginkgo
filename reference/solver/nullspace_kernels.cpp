@@ -54,7 +54,8 @@ void subtract_projection(std::shared_ptr<const ReferenceExecutor> exec,
                          matrix::view::dense<const ValueType> basis,
                          bool has_constant,
                          matrix::view::dense<const ValueType> coefficients,
-                         matrix::view::dense<ValueType> x)
+                         matrix::view::dense<const ValueType> x,
+                         matrix::view::dense<ValueType> output)
 {
     const size_type offset = has_constant ? 1 : 0;
     for (size_type i = 0; i < x.size[0]; ++i) {
@@ -63,7 +64,7 @@ void subtract_projection(std::shared_ptr<const ReferenceExecutor> exec,
             for (size_type l = 0; l < basis.size[1]; ++l) {
                 value += basis(i, l) * coefficients(l + offset, j);
             }
-            x(i, j) -= value;
+            output(i, j) = x(i, j) - value;
         }
     }
 }

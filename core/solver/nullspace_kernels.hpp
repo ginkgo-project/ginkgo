@@ -38,15 +38,16 @@ namespace nullspace {
 
 /**
  * Removes the nullspace components given by the coefficients from x:
- * x(i, j) -= coefficients(0, j) (if `has_constant`) + basis(i, :) *
- * coefficients(:, j).
+ * output(i, j) = x(i, j) - coefficients(0, j) (if `has_constant`) -
+ * basis(i, :) * coefficients(:, j). `output` may be the same vector as `x`.
  */
 #define GKO_DECLARE_NULLSPACE_SUBTRACT_PROJECTION_KERNEL(ValueType)    \
     void subtract_projection(                                          \
         std::shared_ptr<const DefaultExecutor> exec,                   \
         matrix::view::dense<const ValueType> basis, bool has_constant, \
         matrix::view::dense<const ValueType> coefficients,             \
-        matrix::view::dense<ValueType> x)
+        matrix::view::dense<const ValueType> x,                        \
+        matrix::view::dense<ValueType> output)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                              \
