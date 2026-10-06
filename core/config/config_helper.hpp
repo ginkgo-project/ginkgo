@@ -69,6 +69,7 @@ enum class LinOpFactoryType : int {
     Ilu,
     Isai,
     Jacobi,
+    NullspaceProjection,
     Sor,
     Multigrid,
     Pgm,

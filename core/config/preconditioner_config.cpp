@@ -8,6 +8,7 @@
 #include <ginkgo/core/preconditioner/gauss_seidel.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/nullspace_projection.hpp>
 #include <ginkgo/core/preconditioner/sor.hpp>
 
 #include "core/config/config_helper.hpp"
@@ -23,6 +24,8 @@ namespace config {
 GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE(GaussSeidel,
                                     gko::preconditioner::GaussSeidel);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Jacobi, gko::preconditioner::Jacobi);
+GKO_PARSE_VALUE_TYPE(NullspaceProjection,
+                     gko::preconditioner::NullspaceProjection);
 GKO_PARSE_VALUE_AND_INDEX_TYPE_BASE(Sor, gko::preconditioner::Sor);
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Ic, gko::preconditioner::Ic);
 

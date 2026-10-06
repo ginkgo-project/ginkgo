@@ -11,6 +11,9 @@
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/solver/nullspace.hpp>
 
 
@@ -117,6 +120,24 @@ public:
     };
     GKO_ENABLE_LIN_OP_FACTORY(NullspaceProjection, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Create the parameters from the property_tree. Because this is directly
+     * tied to the specific type, the value type in the property tree is
+     * ignored. The nullspaces and the generated preconditioner are read from
+     * the registry.
+     *
+     * @param config  the property tree for setting
+     * @param context  the registry
+     * @param td_for_child  the type descriptor for children configs. The
+     *                      default uses the value type of this class.
+     *
+     * @return parameters
+     */
+    static parameters_type parse(const config::pnode& config,
+                                 const config::registry& context,
+                                 const config::type_descriptor& td_for_child =
+                                     config::make_type_descriptor<ValueType>());
 
 protected:
     explicit NullspaceProjection(std::shared_ptr<const Executor> exec);

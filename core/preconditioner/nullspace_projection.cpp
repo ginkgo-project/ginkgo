@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
+#include "core/config/config_helper.hpp"
 #include "core/distributed/helpers.hpp"
 
 
@@ -38,6 +39,35 @@ VectorType* get_like(std::unique_ptr<LinOp>& cache, const VectorType* like)
 
 
 }  // anonymous namespace
+
+
+template <typename ValueType>
+typename NullspaceProjection<ValueType>::parameters_type
+NullspaceProjection<ValueType>::parse(
+    const config::pnode& config, const config::registry& context,
+    const config::type_descriptor& td_for_child)
+{
+    auto params = NullspaceProjection::build();
+    config::config_check_decorator config_check(config);
+    if (auto& obj = config_check.get("preconditioner")) {
+        params.with_preconditioner(
+            config::parse_or_get_factory<const LinOpFactory>(obj, context,
+                                                             td_for_child));
+    }
+    if (auto& obj = config_check.get("generated_preconditioner")) {
+        params.with_generated_preconditioner(
+            config::get_stored_obj<const LinOp>(obj, context));
+    }
+    if (auto& obj = config_check.get("nullspace")) {
+        params.with_nullspace(
+            config::get_stored_obj<const LinOp>(obj, context));
+    }
+    if (auto& obj = config_check.get("left_nullspace")) {
+        params.with_left_nullspace(
+            config::get_stored_obj<const LinOp>(obj, context));
+    }
+    return params;
+}
 
 
 template <typename ValueType>
