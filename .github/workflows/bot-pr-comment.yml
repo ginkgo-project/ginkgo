@@ -7,7 +7,11 @@ on:
 jobs:
   label:
     runs-on: ubuntu-latest
-    if: github.event.issue.pull_request != '' && github.event.comment.body == 'label!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    if: >-
+      github.event.issue.pull_request != '' && github.event.comment.body == 'label!' &&
+      (github.event.pull_request.author_association == 'COLLABORATOR'
+       || github.event.pull_request.author_association == 'MEMBER'
+       || github.event.pull_request.author_association == 'OWNER')
     steps:
       - name: Checkout the latest code (shallow clone)
         uses: actions/checkout@v4
@@ -20,7 +24,11 @@ jobs:
 
   check_format:
     name: check-format
-    if: github.event.issue.pull_request != '' && github.event.comment.body == 'check-format!' && (github.event.comment.author_association == 'COLLABORATOR' || github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER')
+    if: >-
+      github.event.issue.pull_request != '' && github.event.comment.body == 'label!' &&
+      (github.event.pull_request.author_association == 'COLLABORATOR'
+       || github.event.pull_request.author_association == 'MEMBER'
+       || github.event.pull_request.author_association == 'OWNER')
     uses: ./.github/workflows/check-formatting.yml
     secrets: inherit
 

@@ -12,6 +12,7 @@ jobs:
   spell-check:
     name: Spell Check with Typos
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI') }}
     steps:
       - uses: actions/checkout@v4
       - name: Check for typos

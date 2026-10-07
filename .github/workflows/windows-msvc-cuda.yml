@@ -1,30 +1,26 @@
 name: Windows-MSVC-CUDA (compile-only)
 
 on:
-  push:
-    branches:
-      - 'main'
-      - 'develop'
-      - 'release/**'
-    tags:
-      - '**'
-  pull_request:
-    types: [opened,synchronize]
-    paths-ignore:
-      - 'doc/**'
+  workflow_call:
+    inputs:
+      full:
+        description: 'Run all configurations instead of the reduced pull request set'
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       debug_enabled:
         description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
-
-concurrency:
-  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
-  cancel-in-progress: true
+      full:
+        description: 'Run all configurations instead of the reduced pull request set'
+        type: boolean
+        default: true
 
 jobs:
   windows_cuda:
+    if: inputs.full
     strategy:
       fail-fast: false
       matrix:

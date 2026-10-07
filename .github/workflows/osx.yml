@@ -1,49 +1,41 @@
 name: OSX-build
 
 on:
-  push:
-    branches:
-      - 'main'
-      - 'master'
-      - 'develop'
-      - 'release/**'
-    tags:
-      - '**'
-  pull_request:
-    types: [opened,synchronize]
-    paths-ignore:
-      - 'doc/**'
+  workflow_call:
+    inputs:
+      full:
+        description: 'Run all configurations instead of the reduced pull request set'
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       debug_enabled:
         description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
-
-concurrency:
-  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
-  cancel-in-progress: true
+      full:
+        description: 'Run all configurations instead of the reduced pull request set'
+        type: boolean
+        default: true
 
 jobs:
   osx-clang-omp:
+    if: ${{ !inputs.full }}
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", mixed: "OFF", half: "ON", bfloat16: "OFF"}
           - {shared: "OFF", build_type: "Release", name: "omp/release/static", mixed: "ON", half: "ON", bfloat16: "OFF"}
-          - {shared: "ON", build_type: "Release", name: "omp/release/shared", mixed: "ON", half: "OFF", bfloat16: "ON"}
-          - {shared: "ON", build_type: "Release", name: "omp/release/shared-16bit", mixed: "ON", half: "ON", bfloat16: "ON"}
     name: ${{ matrix.config.name }}
     runs-on: [macos-latest]
     timeout-minutes: 240
-    env:
+    env: &env
       # compiled objects are cached between runs, see the ccache steps
       CCACHE_DIR: ${{ github.workspace }}/.ccache
       CCACHE_BASEDIR: ${{ github.workspace }}
       CCACHE_MAXSIZE: 500M
 
-    steps:
+    steps: &steps
       - name: Checkout the latest code (shallow clone)
         uses: actions/checkout@v4
 
@@ -96,3 +88,19 @@ jobs:
         with:
           path: .ccache
           key: ccache-osx-${{ matrix.config.name }}-${{ github.ref_name }}-${{ github.run_id }}
+
+  # the remaining configurations, they reuse env and steps of osx-clang-omp
+  osx-clang-omp-full:
+    if: inputs.full
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", mixed: "OFF", half: "ON", bfloat16: "OFF"}
+          - {shared: "ON", build_type: "Release", name: "omp/release/shared", mixed: "ON", half: "OFF", bfloat16: "ON"}
+          - {shared: "ON", build_type: "Release", name: "omp/release/shared-16bit", mixed: "ON", half: "ON", bfloat16: "ON"}
+    name: ${{ matrix.config.name }}
+    runs-on: [macos-latest]
+    timeout-minutes: 240
+    env: *env
+    steps: *steps

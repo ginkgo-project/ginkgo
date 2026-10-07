@@ -10,13 +10,21 @@ concurrency:
 
 jobs:
   check-format:
-    if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
+    if: >-
+      (github.event.pull_request.author_association == 'COLLABORATOR'
+       || github.event.pull_request.author_association == 'MEMBER'
+       || github.event.pull_request.author_association == 'OWNER')
+      && !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI')
     uses: ./.github/workflows/check-formatting.yml
     secrets: inherit
 
   check-wiki-changelog:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.author_association == 'COLLABORATOR' || github.event.pull_request.author_association == 'MEMBER' || github.event.pull_request.author_association == 'OWNER'
+    if: >-
+      (github.event.pull_request.author_association == 'COLLABORATOR'
+       || github.event.pull_request.author_association == 'MEMBER'
+       || github.event.pull_request.author_association == 'OWNER')
+      && !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI')
     steps:
       - name: Checkout the latest code (shallow clone)
         uses: actions/checkout@v4
