@@ -335,9 +335,10 @@ namespace event {
 
 
 GKO_STUB(GKO_DECLARE_EVENT_RECORD_EVENT);
+GKO_STUB(GKO_DECLARE_EVENT_WAIT_EVENT);
 
 
-}
+}  // namespace event
 
 
 namespace partition {

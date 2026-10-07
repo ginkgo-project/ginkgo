@@ -93,10 +93,10 @@ TEST_F(Stream, NonBlockingStreamIsUsable)
 }
 
 
-// stream_wait must return promptly with work outstanding, where synchronize
+// wait_event must return promptly with work outstanding, where synchronize
 // must not. An ordering test would be a race, and a race the implementation
 // happens to win proves nothing.
-TEST_F(Stream, StreamWaitDoesNotBlockTheHost)
+TEST_F(Stream, WaitEventDoesNotBlockTheHost)
 {
     // the fixture's value_type, so a single-precision build does not pull
     // in a double instantiation it may not have
@@ -118,7 +118,7 @@ TEST_F(Stream, StreamWaitDoesNotBlockTheHost)
     auto ev = this->record_event_on(this->exec);
 
     const auto t0 = std::chrono::steady_clock::now();
-    ev->stream_wait(reader);
+    gko::kernels::GKO_DEVICE_NAMESPACE::event::wait_event(reader, ev.get());
     const auto t1 = std::chrono::steady_clock::now();
     ev->synchronize();
     const auto t2 = std::chrono::steady_clock::now();
@@ -134,9 +134,9 @@ TEST_F(Stream, StreamWaitDoesNotBlockTheHost)
 }
 
 
-// The default implementation is a host-side synchronize, checked on the
-// reference executor, which has no queue of its own.
-TEST_F(Stream, StreamWaitFallsBackToSynchronize)
+// The reference executor has no queue of its own, so waiting on it is a
+// host-side synchronize.
+TEST_F(Stream, WaitEventOnHostExecutorSynchronizes)
 {
     const gko::size_type size = 1 << 20;
     gko::array<int> source{this->ref, size};
@@ -144,7 +144,8 @@ TEST_F(Stream, StreamWaitFallsBackToSynchronize)
     gko::array<int> on_device{this->exec, source};
     auto ev = this->record_event_on(this->exec);
 
-    ASSERT_NO_THROW(ev->stream_wait(this->ref));
+    ASSERT_NO_THROW(
+        gko::kernels::reference::event::wait_event(this->ref, ev.get()));
 
     gko::array<int> back{this->ref, on_device};
     GKO_ASSERT_ARRAY_EQ(source, back);

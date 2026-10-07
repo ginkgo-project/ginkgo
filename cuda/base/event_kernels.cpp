@@ -48,17 +48,7 @@ public:
         GKO_ASSERT_NO_CUDA_ERRORS(cudaEventSynchronize(event_));
     }
 
-    void stream_wait(std::shared_ptr<const Executor> exec) const override
-    {
-        auto dev_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
-        if (dev_exec) {
-            auto guard = dev_exec->get_scoped_device_id_guard();
-            GKO_ASSERT_NO_CUDA_ERRORS(
-                cudaStreamWaitEvent(dev_exec->get_stream(), event_, 0));
-        } else {
-            this->synchronize();
-        }
-    }
+    cudaEvent_t get() const { return event_; }
 
 private:
     std::shared_ptr<const CudaExecutor> exec_;
@@ -78,6 +68,20 @@ void record_event(std::shared_ptr<const DefaultExecutor> exec,
                   std::shared_ptr<const detail::Event>& event)
 {
     event = std::make_shared<detail::CudaEvent>(exec);
+}
+
+
+void wait_event(std::shared_ptr<const DefaultExecutor> exec,
+                const detail::Event* event)
+{
+    // an event from another backend has no handle the stream can wait on
+    if (auto cuda_event = dynamic_cast<const detail::CudaEvent*>(event)) {
+        auto guard = exec->get_scoped_device_id_guard();
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaStreamWaitEvent(exec->get_stream(), cuda_event->get(), 0));
+    } else {
+        event->synchronize();
+    }
 }
 
 

@@ -31,17 +31,6 @@ public:
      */
     virtual void synchronize() const = 0;
 
-    /**
-     * Makes `exec`'s queue wait for this event without blocking the host.
-     * Defaults to synchronize(), which is correct but blocking.
-     *
-     * @param exec  the executor whose queue should wait.
-     */
-    virtual void stream_wait(std::shared_ptr<const Executor> exec) const
-    {
-        this->synchronize();
-    }
-
     virtual ~Event() = default;
 };
 
