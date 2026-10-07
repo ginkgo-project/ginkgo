@@ -237,6 +237,20 @@ TYPED_TEST(Ir, ThrowsOnRectangularMatrixInFactory)
 }
 
 
+TYPED_TEST(Ir, ThrowsOnProvidedInnerInitialGuess)
+{
+    using Solver = typename TestFixture::Solver;
+    // there is no meaningful provided guess for the correction A * d = r
+    auto ir_factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .with_inner_initial_guess(gko::solver::initial_guess_mode::provided)
+            .on(this->exec);
+
+    ASSERT_THROW(ir_factory->generate(this->mtx), gko::InvalidStateError);
+}
+
+
 TYPED_TEST(Ir, DefaultRelaxationFactor)
 {
     using value_type = typename TestFixture::value_type;

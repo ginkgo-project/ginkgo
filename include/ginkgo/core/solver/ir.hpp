@@ -189,6 +189,18 @@ public:
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::provided);
+
+        /**
+         * Initial guess of the inner solver for each correction
+         * A * d = residual, if the inner solver uses an initial guess:
+         * initial_guess_mode::zero (scale-invariant) or initial_guess_mode::rhs
+         * (the residual). Starting from the residual can save inner
+         * iterations when the eigenvalues of A are close to 1, but makes IR
+         * diverge when they are far from 1. initial_guess_mode::provided is
+         * not supported.
+         */
+        initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
+            inner_initial_guess, initial_guess_mode::zero);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -243,6 +255,11 @@ protected:
               stop::combine(factory->get_parameters().criteria)},
           parameters_{factory->get_parameters()}
     {
+        if (parameters_.inner_initial_guess == initial_guess_mode::provided) {
+            GKO_INVALID_STATE(
+                "inner_initial_guess must be initial_guess_mode::zero or "
+                "initial_guess_mode::rhs");
+        }
         if (parameters_.generated_solver) {
             this->set_solver(parameters_.generated_solver);
         } else if (parameters_.solver) {
