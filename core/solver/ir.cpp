@@ -243,8 +243,9 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         if (solver_->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
-            // with residual as initial guess.
-            inner_solution->copy_from(residual_ptr);
+            // with zero as initial guess. Any other guess, e.g. the residual,
+            // makes the iteration depend on the scaling of A.
+            inner_solution->fill(zero<ValueType>());
             solver_->apply(residual_ptr, inner_solution);
 
             // x = x + relaxation_factor * inner_solution

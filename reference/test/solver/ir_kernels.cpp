@@ -167,6 +167,37 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
 }
 
 
+TYPED_TEST(Ir, SolvesScaledSystemWithInexactInnerSolver)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    // 16 * tridiag(-1, 4, -1). The inner GMRES runs a single iteration, so
+    // each correction depends on the inner initial guess. A zero guess gives
+    // the same iterates as for the unscaled matrix, while starting from the
+    // residual (which scales with A, not with A^{-1}) makes IR diverge.
+    auto mtx = gko::share(gko::initialize<Mtx>(
+        {{64.0, -16.0, 0.0}, {-16.0, 64.0, -16.0}, {0.0, -16.0, 64.0}},
+        this->exec));
+    auto inner_solver_factory = gko::share(
+        gko::solver::Gmres<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec));
+    auto solver_factory =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
+            .with_solver(inner_solver_factory)
+            .on(this->exec);
+    auto b = gko::initialize<Mtx>({16.0, 144.0, 80.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver_factory->generate(mtx)->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
 TYPED_TEST(Ir, SolvesMultipleTriangularSystems)
 {
     using Mtx = typename TestFixture::Mtx;
