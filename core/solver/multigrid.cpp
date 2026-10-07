@@ -1007,9 +1007,9 @@ void Multigrid::check_reuse_consistent(const Factory* factory,
     GKO_ASSERT_EQUAL_DIMENSIONS(input, reuse_data.size_);
     if (!reuse_data.levels_.empty()) {
         const auto& first = reuse_data.levels_.front();
-        factory->get_parameters()
-            .mg_level.at(first.index)
-            ->check_reuse_consistent(input, *first.level);
+        const auto& mg_level = factory->get_parameters().mg_level;
+        GKO_ENSURE_IN_BOUNDS(first.index, mg_level.size());
+        mg_level.at(first.index)->check_reuse_consistent(input, *first.level);
     }
 }
 

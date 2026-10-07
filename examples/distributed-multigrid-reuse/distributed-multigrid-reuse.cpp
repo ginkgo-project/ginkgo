@@ -7,6 +7,8 @@
 // This is the main ginkgo header file.
 #include <ginkgo/ginkgo.hpp>
 
+// Add the C standard library header for std::atoi and std::exit.
+#include <cstdlib>
 // Add the C++ iomanip header to format the output.
 #include <iomanip>
 // Add the C++ iostream header to output information to the console.
@@ -245,7 +247,7 @@ int main(int argc, char* argv[])
                   << std::setw(10) << "setup" << std::setw(14) << "setup time"
                   << std::setw(10) << "cg iters" << std::endl;
     }
-    double total_setup_time = 0;
+    auto total_setup_time = 0.0;
     gko::size_type total_cg_iters = 0;
     gko::size_type iter = 0;
     ValueType residual{};

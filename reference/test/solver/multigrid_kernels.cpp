@@ -1576,6 +1576,21 @@ TYPED_TEST(Multigrid, GenerateReuseRejectsMismatch)
                  gko::DimensionMismatch);
     ASSERT_THROW(factory->generate_reuse(sparser, *reuse_data),
                  gko::DimensionMismatch);
+    // data that recorded a level factory index this factory does not have
+    auto two_levels_factory =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_min_coarse_rows(1u)
+            .with_mg_level(this->coarse_factory, this->coarse_factory)
+            .with_level_selector([](const gko::size_type, const gko::LinOp*) {
+                return gko::size_type{1};
+            })
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto other_reuse_data = two_levels_factory->create_empty_reuse_data();
+    two_levels_factory->generate_reuse(this->mtx2, *other_reuse_data);
+    ASSERT_THROW(factory->generate_reuse(this->mtx2, *other_reuse_data),
+                 gko::OutOfBoundsError);
     ASSERT_GT(first->get_mg_level_list().size(), 0);
     ASSERT_EQ(factory->generate_reuse(this->mtx2, *reuse_data)
                   ->get_mg_level_list()

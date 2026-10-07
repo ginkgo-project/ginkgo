@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <tuple>
 
 #include <omp.h>
 
