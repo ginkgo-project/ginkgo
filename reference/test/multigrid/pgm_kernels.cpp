@@ -622,6 +622,11 @@ TYPED_TEST(Pgm, GenerateReuseRejectsMismatchAndStaysUsable)
                  gko::DimensionMismatch);
     ASSERT_THROW(this->pgm_factory->generate_reuse(sparser, *reuse_data),
                  gko::DimensionMismatch);
+    // the data was recorded on another executor than this factory's
+    auto other_executor_factory = this->pgm_factory->get_parameters().on(
+        gko::ReferenceExecutor::create());
+    ASSERT_THROW(other_executor_factory->generate_reuse(this->mtx, *reuse_data),
+                 gko::InvalidStateError);
     GKO_ASSERT_MTX_NEAR(
         gko::as<Mtx>(this->pgm_factory->generate_reuse(this->mtx, *reuse_data)
                          ->get_coarse_op()),

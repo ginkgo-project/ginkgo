@@ -237,6 +237,42 @@ TYPED_TEST(Pgm, GenerateReuseWithMismatchingNnzOnOneRankThrowsEverywhere)
 }
 
 
+TYPED_TEST(Pgm, GenerateReuseWithChangedLocalRowsThrowsEverywhere)
+{
+    using pgm = typename TestFixture::pgm;
+    using value_type = typename TestFixture::value_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using Partition = typename TestFixture::Partition;
+    // rows 0 and 1 are empty, so moving them from rank 0 to rank 1 keeps the
+    // number of nonzeros of every block on every rank
+    gko::matrix_data<value_type, global_index_type> input;
+    input.size = this->size;
+    for (global_index_type row = 2; row < 8; row++) {
+        if (row > 2) {
+            input.nonzeros.emplace_back(row, row - 1, -1);
+        }
+        input.nonzeros.emplace_back(row, row, 5);
+        if (row < 7) {
+            input.nonzeros.emplace_back(row, row + 1, -1);
+        }
+    }
+    auto moved_part = gko::share(Partition::build_from_contiguous(
+        this->exec, gko::array<global_index_type>(
+                        this->exec, I<global_index_type>{0, 0, 4, 8})));
+    auto mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    mat->read_distributed(input, this->row_part);
+    auto moved_mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    moved_mat->read_distributed(input, moved_part);
+    auto factory = pgm::build().on(this->exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    factory->generate_reuse(mat, *reuse_data);
+
+    ASSERT_THROW(factory->generate_reuse(moved_mat, *reuse_data),
+                 gko::DimensionMismatch);
+}
+
+
 TYPED_TEST(Pgm, MultigridCanGenerateReuseFromDistributedMatrix)
 {
     using pgm = typename TestFixture::pgm;

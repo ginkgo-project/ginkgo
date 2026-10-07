@@ -702,7 +702,11 @@ void Pgm<ValueType, IndexType>::generate_from(const reuse_data_type& reuse_data)
             // All ranks have to agree on whether the update can go ahead.
             // Throwing on some of them only would leave the others hanging in
             // the next collective call.
+            // The recorded aggregates and transfer operators belong to the
+            // recorded row partition, so the local rows have to match too.
+            const auto local_rows = diag_csr->get_size()[0];
             int local_matches = static_cast<int>(
+                local_rows == reuse_data.agg_.get_size() &&
                 mapping_matches(reuse_data.mapping_local_.get(),
                                 diag_csr.get()) &&
                 mapping_matches(reuse_data.mapping_off_diag_.get(),
@@ -712,15 +716,17 @@ void Pgm<ValueType, IndexType>::generate_from(const reuse_data_type& reuse_data)
                 exec->get_master(), &local_matches, &matches, 1, MPI_MIN);
             if (!matches) {
                 throw DimensionMismatch(
-                    __FILE__, __LINE__, __func__, "input nonzeros",
+                    __FILE__, __LINE__, __func__,
+                    "input [local rows x nonzeros]", local_rows,
                     diag_csr->get_num_stored_elements() +
                         off_diag_csr->get_num_stored_elements(),
-                    1, "recorded nonzeros",
+                    "reuse data [local rows x nonzeros]",
+                    reuse_data.agg_.get_size(),
                     mapping_nnz(reuse_data.mapping_local_.get()) +
                         mapping_nnz(reuse_data.mapping_off_diag_.get()),
-                    1,
                     "at least one rank got a matrix with a different number "
-                    "of nonzeros than the reuse data was initialized with");
+                    "of local rows or nonzeros than the reuse data was "
+                    "initialized with");
             }
             // the blocks of the distributed matrix are only reachable as
             // const, but the clone was created above and nothing else refers
@@ -770,10 +776,18 @@ void Pgm<ValueType, IndexType>::generate_from(const reuse_data_type& reuse_data)
 
 template <typename ValueType, typename IndexType>
 void Pgm<ValueType, IndexType>::check_reuse_consistent(
-    const Factory*, const LinOp* input, const reuse_data_type& reuse_data)
+    const Factory* factory, const LinOp* input,
+    const reuse_data_type& reuse_data)
 {
     if (!reuse_data.initialized_) {
         return;
+    }
+    // the recorded operators are used and written in place on this factory's
+    // executor, so they have to live there
+    if (reuse_data.coarse_op_->get_executor() != factory->get_executor()) {
+        GKO_INVALID_STATE(
+            "generate_reuse needs reuse data recorded on the executor of this "
+            "factory");
     }
     GKO_ASSERT_EQUAL_DIMENSIONS(input, reuse_data.size_);
 #if GINKGO_BUILD_MPI
