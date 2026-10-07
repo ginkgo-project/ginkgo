@@ -43,6 +43,30 @@ namespace multigrid {
 
 
 /**
+ * A enum to specify the precision of stored data.
+ *
+ * follow the multivector, any means follows the multigridlevel precision
+ */
+enum struct precision {
+    none,  //!< no precision information is available, incompatible with all
+           //!< other precisions
+    any,   //!< compatible with all other precisions, including none
+    fp32,
+    complex_fp32,
+    fp64,
+    complex_fp64,
+#if GINKGO_ENABLE_HALF
+    fp16,
+    complex_fp16,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    bf16,
+    complex_bf16,
+#endif
+};
+
+
+/**
  * cycle defines which kind of multigrid cycle can be used.
  * It contains V, W, and F cycle.
  * - V, W cycles use the algorithm from Briggs–Henson–McCormick
@@ -235,6 +259,14 @@ public:
          */
         std::vector<std::shared_ptr<const LinOpFactory>>
             GKO_DEFERRED_FACTORY_VECTOR_PARAMETER(mg_level);
+
+
+        /**
+         * Multigrid working precision list, controlled by level_selector when
+         * size > 1
+         */
+        std::vector<multigrid::precision> GKO_FACTORY_PARAMETER_VECTOR(
+            precision, multigrid::precision::any);
 
         /**
          * Custom selector size_type (size_type level, const LinOp* fine_matrix)
