@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <thrust/device_ptr.h>
+#include <thrust/functional.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
@@ -80,6 +81,27 @@ void sort_agg(std::shared_ptr<const DefaultExecutor> exec, IndexType num,
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_SORT_AGG_KERNEL);
 
 
+#if GKO_COMPILING_CUDA && THRUST_MAJOR_VERSION >= 3 && THRUST_MINOR_VERSION >= 4
+/**
+ * Custom plus operator because CCCL has a bug in their thrust::reduce_by_key
+ * for __half.
+ *
+ * @todo: remove this when CCCL fixes the bug, see
+ *        https://github.com/NVIDIA/cccl/issues/11816
+ */
+template <typename T>
+struct plus {
+    GKO_ATTRIBUTES T operator()(const T& lhs, const T& rhs) const
+    {
+        return lhs + rhs;
+    }
+};
+#else
+template <typename T>
+using plus = thrust::plus<T>;
+#endif
+
+
 template <typename ValueType, typename IndexType>
 void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         size_type fine_nnz, const IndexType* row_idxs,
@@ -97,8 +119,10 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto coarse_key_it = thrust::make_zip_iterator(
         thrust::make_tuple(coarse_coo.row_idxs, coarse_coo.col_idxs));
 
-    thrust::reduce_by_key(thrust_policy(exec), key_it, key_it + fine_nnz,
-                          vals_it, coarse_key_it, coarse_vals_it);
+    thrust::reduce_by_key(
+        thrust_policy(exec), key_it, key_it + fine_nnz, vals_it, coarse_key_it,
+        coarse_vals_it, thrust::equal_to<thrust::tuple<IndexType, IndexType>>{},
+        plus<device_type<ValueType>>{});
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
