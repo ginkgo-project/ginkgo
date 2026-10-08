@@ -23,6 +23,7 @@
 #include "core/mpi/mpi_op.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
+#include "core/solver/solver_base.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
 
@@ -93,6 +94,10 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
         }
         params.with_ortho_method(ortho);
     }
+    if (auto& obj = config_check.get("default_initial_guess")) {
+        params.with_default_initial_guess(
+            config::get_value<solver::initial_guess_mode>(obj));
+    }
 
     return params;
 }
@@ -133,12 +138,21 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
+    this->apply_with_initial_guess_impl(b, x, this->get_default_initial_guess());
+}
+
+
+template <typename ValueType>
+void Gmres<ValueType>::apply_with_initial_guess_impl(
+    const LinOp* b, LinOp* x, initial_guess_mode guess) const
+{
     if (!this->get_system_matrix()) {
         return;
     }
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
+        [this, guess](auto dense_b, auto dense_x) {
+            prepare_initial_guess(dense_b, dense_x, guess);
+            this->apply_dense_impl(dense_b, dense_x, guess);
         },
         b, x);
 }
@@ -331,7 +345,8 @@ struct help_compute_norm<ValueType,
 template <typename ValueType>
 template <typename VectorType>
 void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
-                                        VectorType* dense_x) const
+                                        VectorType* dense_x,
+                                        initial_guess_mode guess) const
 {
     using Vector = VectorType;
     using LocalVector = matrix::Dense<typename Vector::value_type>;
@@ -468,8 +483,11 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         gko::detail::get_local(residual)->get_device_view(),
         givens_sin->get_device_view(), givens_cos->get_device_view(),
         stop_status.get_data()));
-    // residual = residual - Ax
-    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
+    if (guess != initial_guess_mode::zero) {
+        // residual = residual - Ax
+        this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
+                                         residual);
+    }
 
     // residual_norm = norm(residual)
     residual->compute_norm2(residual_norm, reduction_tmp);
@@ -711,13 +729,25 @@ template <typename ValueType>
 void Gmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                   const LinOp* beta, LinOp* x) const
 {
+    this->apply_with_initial_guess_impl(alpha, b, beta, x,
+                                        this->get_default_initial_guess());
+}
+
+
+template <typename ValueType>
+void Gmres<ValueType>::apply_with_initial_guess_impl(
+    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+    initial_guess_mode guess) const
+{
     if (!this->get_system_matrix()) {
         return;
     }
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
+        [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
+                      auto dense_x) {
+            prepare_initial_guess(dense_b, dense_x, guess);
             auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
+            this->apply_dense_impl(dense_b, x_clone.get(), guess);
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone);
         },
