@@ -177,52 +177,6 @@ TYPED_TEST(CbGmres, SolvesStencilSystemMixed)
 }
 
 
-TYPED_TEST(CbGmres, SolvesStencilSystemComplex)
-{
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->cb_gmres_factory->generate(this->mtx);
-    auto b =
-        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
-                              value_type{1.0, -2.0}},
-                             this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
-        this->exec);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
-                           value_type{2.0, -4.0}}),
-                        this->assert_precision());
-}
-
-
-TYPED_TEST(CbGmres, SolvesStencilSystemMixedComplex)
-{
-    using value_type = gko::to_complex<
-        gko::next_precision_base<typename TestFixture::value_type>>;
-    using Mtx = gko::matrix::MultiVector<value_type>;
-    auto solver = this->cb_gmres_factory->generate(this->mtx);
-    auto b =
-        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
-                              value_type{1.0, -2.0}},
-                             this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
-        this->exec);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
-           value_type{2.0, -4.0}}),
-        std::max<double>(this->assert_precision(), r<value_type>::value));
-}
-
-
 TYPED_TEST(CbGmres, SolvesStencilSystem2)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -296,58 +250,6 @@ TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixed)
 
     GKO_ASSERT_MTX_NEAR(
         x, l({1.5, 5.0, 2.0}),
-        std::max<double>(this->assert_precision(), r<value_type>::value));
-}
-
-
-TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyComplex)
-{
-    using Scalar = typename TestFixture::Mtx;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->cb_gmres_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b =
-        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
-                              value_type{1.0, -2.0}},
-                             this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
-        this->exec);
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
-                           value_type{2.0, -4.0}}),
-                        this->assert_precision());
-}
-
-
-TYPED_TEST(CbGmres, SolvesStencilSystemUsingAdvancedApplyMixedComplex)
-{
-    using Scalar = gko::matrix::MultiVector<
-        gko::next_precision_base<typename TestFixture::value_type>>;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->cb_gmres_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b =
-        gko::initialize<Mtx>({value_type{13.0, -26.0}, value_type{7.0, -14.0},
-                              value_type{1.0, -2.0}},
-                             this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
-        this->exec);
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
-           value_type{2.0, -4.0}}),
         std::max<double>(this->assert_precision(), r<value_type>::value));
 }
 

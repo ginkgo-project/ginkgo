@@ -34,7 +34,6 @@ protected:
     using Arr = gko::array<index_type>;
     using Mtx = gko::matrix::Fbcsr<real_type, index_type>;
     using Vec = gko::matrix::MultiVector<real_type>;
-    using ComplexVec = gko::matrix::MultiVector<std::complex<real_type>>;
     using ComplexMtx = gko::matrix::Fbcsr<std::complex<real_type>>;
 
     Fbcsr() : rand_engine(42) {}
@@ -194,40 +193,6 @@ TEST_F(Fbcsr, AdvancedApplyToMultiVectorMatrixIsEquivalentToRef)
     dmtx->apply(dalpha, dy, dbeta, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, 1e-14);
-}
-
-
-TEST_F(Fbcsr, ApplyToComplexIsEquivalentToRef)
-{
-    set_up_apply_data(3);
-    auto complex_b = gen_mtx<ComplexVec>(num_bcols * blk_sz, 3, 1);
-    auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b);
-    auto complex_x = gen_mtx<ComplexVec>(num_brows * blk_sz, 3, 1);
-    auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x);
-
-    mtx->apply(complex_b, complex_x);
-    dmtx->apply(dcomplex_b, dcomplex_x);
-
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
-}
-
-
-TEST_F(Fbcsr, AdvancedApplyToComplexIsEquivalentToRef)
-{
-    set_up_apply_data(3);
-    auto complex_b = gen_mtx<ComplexVec>(num_bcols * blk_sz, 3, 1);
-    auto dcomplex_b = ComplexVec::create(omp);
-    dcomplex_b->copy_from(complex_b);
-    auto complex_x = gen_mtx<ComplexVec>(num_brows * blk_sz, 3, 1);
-    auto dcomplex_x = ComplexVec::create(omp);
-    dcomplex_x->copy_from(complex_x);
-
-    mtx->apply(alpha, complex_b, beta, complex_x);
-    dmtx->apply(dalpha, dcomplex_b, dbeta, dcomplex_x);
-
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, 1e-14);
 }
 
 

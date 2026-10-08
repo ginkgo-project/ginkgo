@@ -17,10 +17,12 @@ namespace gko {
 namespace solver {
 
 
-template <typename SolverType, typename VectorType, typename LogFunc>
-bool update_residual(SolverType* solver, int iter, const VectorType* dense_b,
-                     VectorType* dense_x, VectorType* residual,
-                     const VectorType*& residual_ptr,
+template <typename SolverType, typename LogFunc>
+bool update_residual(SolverType* solver, int iter,
+                     const AbstractMultiVector* dense_b,
+                     AbstractMultiVector* dense_x,
+                     AbstractMultiVector* residual,
+                     const AbstractMultiVector*& residual_ptr,
                      std::unique_ptr<gko::stop::Criterion>& stop_criterion,
                      array<stopping_status>& stop_status, LogFunc log)
 {

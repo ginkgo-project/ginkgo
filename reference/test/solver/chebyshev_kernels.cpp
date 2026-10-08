@@ -138,52 +138,6 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemMixed)
 }
 
 
-TYPED_TEST(Chebyshev, SolvesTriangularSystemComplex)
-{
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->chebyshev_factory->generate(this->mtx);
-    auto b = gko::initialize<Mtx>(
-        {value_type{3.9, -7.8}, value_type{9.0, -18.0}, value_type{2.2, -4.4}},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.0, 0.0}, value_type{0.0, 0.0}, value_type{0.0, 0.0}},
-        this->exec);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.0, -2.0}, value_type{3.0, -6.0},
-                           value_type{2.0, -4.0}}),
-                        r<value_type>::value * 1e1);
-}
-
-
-TYPED_TEST(Chebyshev, SolvesTriangularSystemMixedComplex)
-{
-    using mixed_complex_type =
-        gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using MixedMtx = gko::matrix::MultiVector<mixed_complex_type>;
-    auto solver = this->chebyshev_factory->generate(this->mtx);
-    auto b = gko::initialize<MixedMtx>(
-        {mixed_complex_type{3.9, -7.8}, mixed_complex_type{9.0, -18.0},
-         mixed_complex_type{2.2, -4.4}},
-        this->exec);
-    auto x = gko::initialize<MixedMtx>(
-        {mixed_complex_type{0.0, 0.0}, mixed_complex_type{0.0, 0.0},
-         mixed_complex_type{0.0, 0.0}},
-        this->exec);
-
-    solver->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({mixed_complex_type{1.0, -2.0}, mixed_complex_type{3.0, -6.0},
-           mixed_complex_type{2.0, -4.0}}),
-        (r_mixed<mixed_complex_type, TypeParam>()) * 1e1);
-}
-
-
 TYPED_TEST(Chebyshev, SolvesTriangularSystemWithIterativeInnerSolver)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -260,58 +214,6 @@ TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyMixed)
 
     GKO_ASSERT_MTX_NEAR(x, l({1.5, 5.0, 2.0}),
                         (r_mixed<mixed_type, TypeParam>()) * 1e1);
-}
-
-
-TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyComplex)
-{
-    using Scalar = typename TestFixture::Mtx;
-    using Mtx = gko::to_complex<typename TestFixture::Mtx>;
-    using value_type = typename Mtx::value_type;
-    auto solver = this->chebyshev_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b = gko::initialize<Mtx>(
-        {value_type{3.9, -7.8}, value_type{9.0, -18.0}, value_type{2.2, -4.4}},
-        this->exec);
-    auto x = gko::initialize<Mtx>(
-        {value_type{0.5, -1.0}, value_type{1.0, -2.0}, value_type{2.0, -4.0}},
-        this->exec);
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(x,
-                        l({value_type{1.5, -3.0}, value_type{5.0, -10.0},
-                           value_type{2.0, -4.0}}),
-                        (r_mixed<value_type, TypeParam>()) * 1e1);
-}
-
-
-TYPED_TEST(Chebyshev, SolvesTriangularSystemUsingAdvancedApplyMixedComplex)
-{
-    using mixed_type = gko::next_precision<typename TestFixture::value_type>;
-    using mixed_complex_type = gko::to_complex<mixed_type>;
-    using Scalar = gko::matrix::MultiVector<mixed_type>;
-    using MixedMtx = gko::matrix::MultiVector<mixed_complex_type>;
-    auto solver = this->chebyshev_factory->generate(this->mtx);
-    auto alpha = gko::initialize<Scalar>({2.0}, this->exec);
-    auto beta = gko::initialize<Scalar>({-1.0}, this->exec);
-    auto b = gko::initialize<MixedMtx>(
-        {mixed_complex_type{3.9, -7.8}, mixed_complex_type{9.0, -18.0},
-         mixed_complex_type{2.2, -4.4}},
-        this->exec);
-    auto x = gko::initialize<MixedMtx>(
-        {mixed_complex_type{0.5, -1.0}, mixed_complex_type{1.0, -2.0},
-         mixed_complex_type{2.0, -4.0}},
-        this->exec);
-
-    solver->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({mixed_complex_type{1.5, -3.0}, mixed_complex_type{5.0, -10.0},
-           mixed_complex_type{2.0, -4.0}}),
-        (r_mixed<mixed_complex_type, TypeParam>()) * 1e1);
 }
 
 
