@@ -2,6 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <memory>
+#include <vector>
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/exception.hpp>
@@ -206,6 +209,96 @@ protected:
     std::shared_ptr<const gko::LinOp> coarse_;
     std::shared_ptr<const DummyRestrictOp> restrict_;
     std::shared_ptr<const DummyProlongOp> prolong_;
+
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
+    {}
+};
+
+
+// a level without reuse support whose coarse size depends on the values: it
+// drops one row if the first stored value is positive and two otherwise
+template <typename ValueType>
+class ValueDependentLevel
+    : public gko::LinOp,
+      public gko::multigrid::EnableMultigridLevel<ValueType> {
+public:
+    ValueDependentLevel(std::shared_ptr<const gko::Executor> exec)
+        : gko::LinOp(exec)
+    {}
+
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
+    GKO_ENABLE_LIN_OP_FACTORY(ValueDependentLevel, parameters, Factory);
+    GKO_ENABLE_BUILD_METHOD(Factory);
+
+protected:
+    ValueDependentLevel(const Factory* factory,
+                        std::shared_ptr<const gko::LinOp> op)
+        : gko::LinOp(factory->get_executor(), op->get_size()),
+          gko::multigrid::EnableMultigridLevel<ValueType>(op),
+          parameters_{factory->get_parameters()}
+    {
+        auto exec = this->get_executor();
+        auto fine_rows = op->get_size()[0];
+        auto first =
+            gko::as<gko::matrix::Csr<ValueType>>(op)->get_const_values()[0];
+        gko::size_type n = fine_rows - (gko::real(first) > 0 ? 1 : 2);
+        this->set_multigrid_level(
+            DummyProlongOp::create(exec, gko::dim<2>{fine_rows, n}),
+            DummyLinOp::create(exec, gko::dim<2>{n}),
+            DummyRestrictOp::create(exec, gko::dim<2>{n, fine_rows}));
+    }
+
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
+    {}
+};
+
+
+// reports whether it was generated from initialized reuse data, so tests can
+// see that Multigrid forwards reuse data to its components
+template <typename ValueType>
+class ReuseRecordingLinOp : public gko::LinOp {
+public:
+    ReuseRecordingLinOp(std::shared_ptr<const gko::Executor> exec)
+        : gko::LinOp(exec)
+    {}
+
+    GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory){};
+    class reuse_data_type : public gko::LinOpFactory::ReuseData {
+    public:
+        bool initialized = false;
+    };
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(ReuseRecordingLinOp, parameters,
+                                         Factory, reuse_data_type);
+    GKO_ENABLE_BUILD_METHOD(Factory);
+
+    bool reused = false;
+
+protected:
+    ReuseRecordingLinOp(const Factory* factory,
+                        std::shared_ptr<const gko::LinOp> op)
+        : gko::LinOp(factory->get_executor(), op->get_size()),
+          parameters_{factory->get_parameters()}
+    {}
+
+    ReuseRecordingLinOp(const Factory* factory,
+                        std::shared_ptr<const gko::LinOp> op,
+                        reuse_data_type& reuse_data)
+        : gko::LinOp(factory->get_executor(), op->get_size()),
+          parameters_{factory->get_parameters()},
+          reused{reuse_data.initialized}
+    {
+        reuse_data.initialized = true;
+    }
+
+    static void check_reuse_consistent(const Factory*, const gko::LinOp*,
+                                       const reuse_data_type&)
+    {}
 
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 
@@ -1296,6 +1389,213 @@ TYPED_TEST(Multigrid, SolvesStencilSystemByFCycle)
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value);
+}
+
+
+TYPED_TEST(Multigrid, GenerateReuseMatchesRegeneratedSolver)
+{
+    using Csr = typename TestFixture::Csr;
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    // one cycle, so any stale component changes the applied result
+    auto factory =
+        Solver::build()
+            .with_pre_smoother(this->smoother_factory)
+            .with_coarsest_solver(this->coarsest_factory)
+            .with_max_levels(2u)
+            .with_post_uses_pre(true)
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::both)
+            .with_mg_level(this->coarse_factory)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_cycle(gko::solver::multigrid::cycle::v)
+            .with_min_coarse_rows(1u)
+            .on(this->exec);
+    // scaling keeps the sparsity pattern and the Pgm aggregates
+    auto scaled = gko::share(gko::clone(this->mtx2));
+    scaled->scale(gko::initialize<Mtx>({value_type{2}}, this->exec));
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto first = factory->generate_reuse(this->mtx2, *reuse_data);
+    auto first_x = gko::clone(this->x2);
+    first->apply(this->b2, first_x);
+    auto x = gko::clone(this->x2);
+    auto expected_x = gko::clone(this->x2);
+
+    auto solver = factory->generate_reuse(scaled, *reuse_data);
+    auto expected = factory->generate(scaled);
+    solver->apply(this->b2, x);
+    expected->apply(this->b2, expected_x);
+    auto first_x_again = gko::clone(this->x2);
+    first->apply(this->b2, first_x_again);
+
+    auto levels = solver->get_mg_level_list();
+    auto expected_levels = expected->get_mg_level_list();
+    ASSERT_GT(levels.size(), 0);
+    ASSERT_EQ(levels.size(), expected_levels.size());
+    for (gko::size_type i = 0; i < levels.size(); i++) {
+        GKO_ASSERT_MTX_NEAR(
+            gko::as<Csr>(levels.at(i)->get_coarse_op()),
+            gko::as<Csr>(expected_levels.at(i)->get_coarse_op()),
+            r<value_type>::value);
+    }
+    ASSERT_EQ(solver->get_system_matrix().get(),
+              static_cast<const gko::LinOp*>(scaled.get()));
+    GKO_ASSERT_MTX_NEAR(x, expected_x, r<value_type>::value);
+    // a later call must not change the first solver
+    GKO_ASSERT_MTX_NEAR(first_x_again, first_x, 0.0);
+}
+
+
+// generate picks the smoother of a level through the level selector, so a
+// reused level has to keep the index the selector gave
+TYPED_TEST(Multigrid, GenerateReuseSelectsSmoothersLikeGenerate)
+{
+    using Solver = typename TestFixture::Solver;
+    auto factory =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_min_coarse_rows(1u)
+            .with_mg_level(this->coarse_factory, this->coarse_factory)
+            // no smoother on the second entry
+            .with_pre_smoother(this->smoother_factory, nullptr)
+            // always pick the first entry, whatever the level
+            .with_level_selector([](const gko::size_type, const gko::LinOp*) {
+                return gko::size_type{0};
+            })
+            .with_post_uses_pre(true)
+            .with_coarsest_solver(this->coarsest_factory)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    factory->generate_reuse(this->mtx2, *reuse_data);
+
+    auto solver = factory->generate_reuse(this->mtx2, *reuse_data);
+
+    auto pre = solver->get_pre_smoother_list();
+    ASSERT_GT(pre.size(), 1);
+    for (const auto& smoother : pre) {
+        ASSERT_NE(smoother, nullptr);
+    }
+}
+
+
+TYPED_TEST(Multigrid, GenerateReuseRebuildsFromFirstChangedLevel)
+{
+    using value_type = typename TestFixture::value_type;
+    using Solver = typename TestFixture::Solver;
+    using Recorder = ReuseRecordingLinOp<value_type>;
+    auto recorder = gko::share(Recorder::build().on(this->exec));
+    // picks the recorder for its first two calls and the dummy afterwards:
+    // a reused hierarchy has to keep the recorded choice instead of asking
+    auto calls = std::make_shared<int>(0);
+    // the first level depends on the values, the others drop one row each;
+    // min_coarse_rows stops at 3 rows: 6 -> 5 -> 4 -> 3 for mtx2, but
+    // 6 -> 4 -> 3 once the first value is negative
+    auto factory =
+        Solver::build()
+            .with_max_levels(3u)
+            .with_min_coarse_rows(3u)
+            .with_mg_level(
+                ValueDependentLevel<value_type>::build().on(this->exec),
+                this->rp_factory)
+            .with_pre_smoother(recorder)
+            .with_post_uses_pre(true)
+            // no standalone mid smoother: its default (Jacobi) needs a matrix,
+            // and the coarse operators of these levels are dummies
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::both)
+            .with_coarsest_solver(recorder, this->lo_factory)
+            .with_solver_selector(
+                [calls](const gko::size_type, const gko::LinOp*) {
+                    return gko::size_type{(*calls)++ < 2 ? 0u : 1u};
+                })
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto changed = gko::share(gko::clone(this->mtx2));
+    changed->get_values()[0] = -changed->get_values()[0];
+    auto sizes = [](const gko::solver::Multigrid* solver) {
+        std::vector<gko::size_type> result;
+        for (const auto& level : solver->get_mg_level_list()) {
+            result.push_back(level->get_coarse_op()->get_size()[0]);
+        }
+        return result;
+    };
+    auto smoothers_reused = [](const gko::solver::Multigrid* solver) {
+        std::vector<bool> result;
+        for (const auto& smoother : solver->get_pre_smoother_list()) {
+            result.push_back(gko::as<Recorder>(smoother)->reused);
+        }
+        return result;
+    };
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto first = factory->generate_reuse(this->mtx2, *reuse_data);
+
+    auto rebuilt = factory->generate_reuse(changed, *reuse_data);
+    auto reused = factory->generate_reuse(changed, *reuse_data);
+
+    ASSERT_EQ(sizes(first.get()), (std::vector<gko::size_type>{5, 4, 3}));
+    ASSERT_EQ(sizes(rebuilt.get()), sizes(factory->generate(changed).get()));
+    ASSERT_EQ(sizes(reused.get()), (std::vector<gko::size_type>{4, 3}));
+    // the changed first level keeps its smoother data, the rebuilt one not
+    ASSERT_EQ(smoothers_reused(rebuilt.get()),
+              (std::vector<bool>{true, false}));
+    ASSERT_EQ(smoothers_reused(reused.get()), (std::vector<bool>{true, true}));
+    // the coarsest solver only reuses once the hierarchy stays the same
+    ASSERT_FALSE(gko::as<Recorder>(rebuilt->get_coarsest_solver())->reused);
+    ASSERT_TRUE(gko::as<Recorder>(reused->get_coarsest_solver())->reused);
+}
+
+
+TYPED_TEST(Multigrid, GenerateReuseRejectsMismatch)
+{
+    using Csr = typename TestFixture::Csr;
+    using Solver = typename TestFixture::Solver;
+    // default smoother and default coarsest solver, built on the fly
+    auto factory =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_min_coarse_rows(1u)
+            .with_mg_level(this->coarse_factory)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    // mtx2 without (5, 4): same size, one nonzero less
+    auto sparser =
+        gko::share(gko::initialize<Csr>({{2, -1.0, 0.0, 0.0, 0.0, 0.0},
+                                         {-1.0, 2, -1.0, 0.0, 0.0, 0.0},
+                                         {0.0, -1.0, 2, -1.0, 0.0, 0.0},
+                                         {0.0, 0.0, -1.0, 2, -1.0, 0.0},
+                                         {0.0, 0.0, 0.0, -1.0, 2, -1.0},
+                                         {0.0, 0.0, 0.0, 0.0, 0.0, 2}},
+                                        this->exec));
+    // a zero-sized matrix generates nothing and leaves the data empty
+    auto reuse_data = factory->create_empty_reuse_data();
+    factory->generate_reuse(gko::share(Csr::create(this->exec)), *reuse_data);
+    auto first = factory->generate_reuse(this->mtx2, *reuse_data);
+
+    // mtx is 3x3, mtx2 is 6x6
+    ASSERT_THROW(factory->generate_reuse(this->mtx, *reuse_data),
+                 gko::DimensionMismatch);
+    ASSERT_THROW(factory->generate_reuse(sparser, *reuse_data),
+                 gko::DimensionMismatch);
+    // data that recorded a level factory index this factory does not have
+    auto two_levels_factory =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_min_coarse_rows(1u)
+            .with_mg_level(this->coarse_factory, this->coarse_factory)
+            .with_level_selector([](const gko::size_type, const gko::LinOp*) {
+                return gko::size_type{1};
+            })
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto other_reuse_data = two_levels_factory->create_empty_reuse_data();
+    two_levels_factory->generate_reuse(this->mtx2, *other_reuse_data);
+    ASSERT_THROW(factory->generate_reuse(this->mtx2, *other_reuse_data),
+                 gko::OutOfBoundsError);
+    ASSERT_GT(first->get_mg_level_list().size(), 0);
+    ASSERT_EQ(factory->generate_reuse(this->mtx2, *reuse_data)
+                  ->get_mg_level_list()
+                  .size(),
+              first->get_mg_level_list().size());
 }
 
 

@@ -1,0 +1,31 @@
+<h1>Results</h1>
+This is the expected output for `mpirun -n 4 ./distributed-multigrid-reuse`:
+
+@code{.cpp}
+
+Num rows in matrix: 10000
+Num ranks: 4
+
+ iter      residual     setup    setup time  cg iters
+    0             1  generate    0.00953173        27
+    1       4.92756    record    0.00497701        37
+    2      0.591079     reuse    0.00350611        27
+    3      0.337404     reuse     0.0032835        29
+    4     0.0844591     reuse    0.00333143        25
+    5      0.023152     reuse    0.00330655        23
+    6    0.00508051     reuse    0.00333697        21
+    7   0.000999056     reuse    0.00331201        19
+    8   0.000174637     reuse    0.00327568        16
+    9   2.76182e-05     reuse    0.00329311        13
+   10    3.9894e-06     reuse    0.00334166        11
+
+Picard iterations: 11
+Final residual: 5.31104e-07
+Total setup time: 0.0444958
+Total cg iterations: 248
+
+@endcode
+
+The first iteration uses generate(), the second one records the hierarchy, and the later ones reuse it.
+With a refresh_interval of 1, every iteration after the first one records a new hierarchy, which takes about 0.005 seconds instead of 0.0033, while the Picard and Cg iteration counts stay the same.
+The timings may vary depending on the machine.
