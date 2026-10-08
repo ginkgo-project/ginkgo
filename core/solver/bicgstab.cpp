@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
@@ -35,6 +36,18 @@ GKO_REGISTER_OPERATION(finalize, bicgstab::finalize);
 
 }  // anonymous namespace
 }  // namespace bicgstab
+
+
+template <typename ValueType>
+void Bicgstab<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Bicgstab must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
+                 "Bicgstab must have preconditioner");
+    this->get_preconditioner()->validate_data();
+}
 
 
 template <typename ValueType>
