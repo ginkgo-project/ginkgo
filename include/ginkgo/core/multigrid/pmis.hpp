@@ -28,6 +28,11 @@ namespace multigrid {
  * Pmis creates the coarse- and fine-points group according to the matrix value
  * not the structure.
  *
+ * @note The restriction is \f$P^T\f$ and the coarse operator the Galerkin
+ *       product \f$P^T A P\f$, which assumes a symmetric positive definite
+ *       system. Non-symmetric systems still coarsen, but without a
+ *       convergence guarantee.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indices
  *
