@@ -7,6 +7,7 @@
 #include <string>
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 

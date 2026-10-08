@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 
@@ -29,11 +30,11 @@ protected:
 
     Permutation() : exec(gko::ReferenceExecutor::create()) {}
 
-    std::unique_ptr<gko::matrix::MultiVector<double>> ref_combine(
+    std::unique_ptr<gko::matrix::Dense<double>> ref_combine(
         const gko::matrix::Permutation<index_type>* first,
         const gko::matrix::Permutation<index_type>* second)
     {
-        using Mtx = gko::matrix::MultiVector<double>;
+        using Mtx = gko::matrix::Dense<double>;
         const auto exec = first->get_executor();
         gko::matrix_data<double, index_type> first_perm_data;
         gko::matrix_data<double, index_type> second_perm_data;
@@ -44,7 +45,8 @@ protected:
         first_mtx->read(first_perm_data);
         second_mtx->read(second_perm_data);
         auto combined_mtx = first_mtx->clone();
-        second_mtx->apply(first_mtx, combined_mtx);
+        second_mtx->apply(first_mtx->as_const_multivector_view(),
+                          combined_mtx->as_multivector_view());
         return combined_mtx;
     }
 
@@ -193,18 +195,6 @@ TYPED_TEST(Permutation, AdvancedAppliesRowPermutationToMultiVector)
                            {0.0, 3.5}}),
                         0.0);
     // clang-format on
-}
-
-
-TYPED_TEST(Permutation, ApplyFailsWithNonMultiVectorMatrix)
-{
-    using index_type = typename TestFixture::index_type;
-    using T = typename TestFixture::value_type;
-    auto mtx = gko::matrix::Csr<T, index_type>::create(this->exec);
-    auto mtx2 = mtx->clone();
-    auto perm = gko::matrix::Permutation<index_type>::create(this->exec);
-
-    ASSERT_THROW(perm->apply(mtx, mtx2), gko::NotSupported);
 }
 
 

@@ -266,7 +266,7 @@ TEST_F(Minres, MinresStep2IsEquivalentToRef)
 
 TEST_F(Minres, ApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 53, true);
+    auto mtx = gen_mtx(50, 50, 53, true)->as_dense_view()->clone();
     auto x = gen_mtx(50, 1, 5, false);
     auto b = gen_mtx(50, 1, 4, false);
     auto d_mtx = gko::clone(exec, mtx);
@@ -300,7 +300,7 @@ TEST_F(Minres, ApplyIsEquivalentToRef)
 
 TEST_F(Minres, PreconditionedApplyIsEquivalentToRef)
 {
-    auto mtx = gen_mtx(50, 50, 53, true);
+    auto mtx = gen_mtx(50, 50, 53, true)->as_dense_view()->clone();
     auto x = gen_mtx(50, 1, 5, false);
     auto b = gen_mtx(50, 1, 4, false);
     auto d_mtx = gko::clone(exec, mtx);

@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/block_operator.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
@@ -185,7 +186,7 @@ TEST_F(BlockOperator, ThrowsOnOutOfBoundsBlockAccess)
 
 TEST_F(BlockOperator, CanBeCopied)
 {
-    using Mtx = gko::matrix::MultiVector<>;
+    using Mtx = gko::matrix::Dense<>;
     auto bop = gko::BlockOperator::create(
         exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec), nullptr},
                {nullptr, gko::initialize<Mtx>({{3, 4}, {4, 3}}, exec)}});
@@ -211,7 +212,7 @@ TEST_F(BlockOperator, CanBeCopied)
 
 TEST_F(BlockOperator, CanBeMoved)
 {
-    using Mtx = gko::matrix::MultiVector<>;
+    using Mtx = gko::matrix::Dense<>;
     auto bop = gko::BlockOperator::create(
         exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec), nullptr},
                {nullptr, gko::initialize<Mtx>({{3, 4}, {4, 3}}, exec)}});
@@ -240,13 +241,14 @@ TEST_F(BlockOperator, CanBeMoved)
 TEST_F(BlockOperator, CanApply)
 {
     using vtype = double;
-    using Mtx = gko::matrix::MultiVector<vtype>;
+    using Mtx = gko::matrix::Dense<vtype>;
+    using Vec = gko::matrix::MultiVector<vtype>;
     auto bop = gko::BlockOperator::create(
         exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec),
                 gko::initialize<Mtx>({{5, 6}, {6, 5}}, exec)},
                {nullptr, gko::initialize<Mtx>({{3, 4}, {4, 3}}, exec)}});
-    auto x = gko::initialize<Mtx>({{1, 10}, {2, 20}, {3, 30}, {4, 40}}, exec);
-    auto y = Mtx::create_with_config_of(x);
+    auto x = gko::initialize<Vec>({{1, 10}, {2, 20}, {3, 30}, {4, 40}}, exec);
+    auto y = Vec::create_with_config_of(x);
 
     bop->apply(x, y);
 
@@ -259,15 +261,16 @@ TEST_F(BlockOperator, CanApply)
 TEST_F(BlockOperator, CanAdvancedApply)
 {
     using vtype = double;
-    using Mtx = gko::matrix::MultiVector<vtype>;
+    using Mtx = gko::matrix::Dense<vtype>;
+    using Vec = gko::matrix::MultiVector<vtype>;
     auto bop = gko::BlockOperator::create(
         exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec),
                 gko::initialize<Mtx>({{5, 6}, {6, 5}}, exec)},
                {nullptr, gko::initialize<Mtx>({{3, 4}, {4, 3}}, exec)}});
-    auto x = gko::initialize<Mtx>({1, 2, 3, 4}, exec);
-    auto y = gko::initialize<Mtx>({-4, -3, -2, -1}, exec);
-    auto alpha = gko::initialize<Mtx>({0.5}, exec);
-    auto beta = gko::initialize<Mtx>({-1}, exec);
+    auto x = gko::initialize<Vec>({1, 2, 3, 4}, exec);
+    auto y = gko::initialize<Vec>({-4, -3, -2, -1}, exec);
+    auto alpha = gko::initialize<Vec>({0.5}, exec);
+    auto beta = gko::initialize<Vec>({-1}, exec);
 
     bop->apply(alpha, x, beta, y);
 
@@ -287,7 +290,7 @@ TEST_F(BlockOperator, CanApplyAndAdvancedApplyLarge)
         block_num_rows * local_num_rows, block_num_cols * local_num_cols,
         std::uniform_real_distribution<vtype>(-1, 1), engine, exec);
     auto get_submatrix = [&](auto i, auto j) {
-        return dense->create_submatrix(
+        return dense->create_subview(
             {i * local_num_rows, (i + 1) * local_num_rows},
             {j * local_num_cols, (j + 1) * local_num_cols});
     };
@@ -300,7 +303,7 @@ TEST_F(BlockOperator, CanApplyAndAdvancedApplyLarge)
         }
     }
     auto bop = gko::BlockOperator::create(exec, blocks);
-    auto x = gko::test::generate_random_dense_matrix<vtype>(
+    auto x = gko::test::generate_random_multi_vector<vtype>(
         block_num_cols * local_num_cols, 3,
         std::uniform_real_distribution<vtype>(-1, 1), engine, exec);
     auto y = Mtx::create(exec, gko::dim<2>{block_num_rows * local_num_rows, 3});

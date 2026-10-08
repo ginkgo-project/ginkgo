@@ -7,6 +7,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/log/convergence.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -22,6 +23,7 @@ public:
     using MultiVector = gko::matrix::MultiVector<T>;
     using AbsoluteMultiVector =
         gko::matrix::MultiVector<gko::remove_complex<T>>;
+    using Dense = gko::matrix::Dense<T>;
 
     Convergence()
     {
@@ -31,8 +33,8 @@ public:
             gko::solver::Ir<T>::build()
                 .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
                 .on(exec)
-                ->generate(gko::initialize<MultiVector>(I<I<T>>{{1, 2}, {0, 3}},
-                                                        exec));
+                ->generate(
+                    gko::initialize<Dense>(I<I<T>>{{1, 2}, {0, 3}}, exec));
     }
 
     std::shared_ptr<gko::ReferenceExecutor> exec =

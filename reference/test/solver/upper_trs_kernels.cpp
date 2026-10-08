@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -32,27 +33,29 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::UpperTrs<value_type, index_type>;
     UpperTrs()
         : exec(gko::ReferenceExecutor::create()),
           ref(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{1, 3.0, 1.0}, {0.0, 1, 2.0}, {0.0, 0.0, 1}}, exec)),
-          mtx2(gko::initialize<Mtx>(
+          mtx2(gko::initialize<Dense>(
               {{2, 3.0, 1.0}, {0.0, 3, 2.0}, {0.0, 0.0, 4}}, exec)),
-          mtx_big_upper(gko::initialize<Mtx>({{365.0, 97.0, -654.0, 8.0, 91.0},
-                                              {0.0, -642.0, 684.0, 68.0, 387.0},
-                                              {0.0, 0.0, 134, -651.0, 654.0},
-                                              {0.0, 0.0, 0.0, 43.0, -789.0},
-                                              {0.0, 0.0, 0.0, 0.0, 124.0}},
-                                             exec)),
+          mtx_big_upper(
+              gko::initialize<Dense>({{365.0, 97.0, -654.0, 8.0, 91.0},
+                                      {0.0, -642.0, 684.0, 68.0, 387.0},
+                                      {0.0, 0.0, 134, -651.0, 654.0},
+                                      {0.0, 0.0, 0.0, 43.0, -789.0},
+                                      {0.0, 0.0, 0.0, 0.0, 124.0}},
+                                     exec)),
           mtx_big_general(
-              gko::initialize<Mtx>({{365.0, 97.0, -654.0, 8.0, 91.0},
-                                    {6.0, -642.0, 684.0, 68.0, 387.0},
-                                    {0.0, 0.0, 134, -651.0, 654.0},
-                                    {0.0, 0.0, -1.0, 43.0, -789.0},
-                                    {0.0, 2.0, 0.0, 4.0, 124.0}},
-                                   exec)),
+              gko::initialize<Dense>({{365.0, 97.0, -654.0, 8.0, 91.0},
+                                      {6.0, -642.0, 684.0, 68.0, 387.0},
+                                      {0.0, 0.0, 134, -651.0, 654.0},
+                                      {0.0, 0.0, -1.0, 43.0, -789.0},
+                                      {0.0, 2.0, 0.0, 4.0, 124.0}},
+                                     exec)),
           upper_trs_factory(Solver::build().on(exec)),
           upper_trs_syncfree_factory(
               Solver::build()
@@ -65,10 +68,10 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
     std::shared_ptr<const gko::ReferenceExecutor> ref;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> mtx2;
-    std::shared_ptr<Mtx> mtx_big_upper;
-    std::shared_ptr<Mtx> mtx_big_general;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> mtx2;
+    std::shared_ptr<Dense> mtx_big_upper;
+    std::shared_ptr<Dense> mtx_big_general;
     std::unique_ptr<typename Solver::Factory> upper_trs_factory;
     std::unique_ptr<typename Solver::Factory> upper_trs_syncfree_factory;
     std::unique_ptr<typename Solver::Factory> upper_trs_factory_mrhs;
