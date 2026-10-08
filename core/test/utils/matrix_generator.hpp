@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -697,6 +697,93 @@ std::unique_ptr<MatrixType> generate_tridiag_inverse_matrix(
                                              typename MatrixType::index_type>(
             size, coeffs));
     return mtx;
+}
+
+/**
+ * Generates a 2D Laplace matrix given the x- and y-dimensions of the grid.
+ */
+template <typename ValueType, typename IndexType>
+gko::matrix_data<ValueType, IndexType> generate_laplacian_2d_5point_matrix_data(
+    const gko::dim<2>& grid_sizes)
+{
+    const auto size = grid_sizes[0] * grid_sizes[1];
+    gko::matrix_data<ValueType, IndexType> md{gko::dim<2>{size, size}};
+    md.nonzeros.reserve(grid_sizes[0] * grid_sizes[1] * 5);
+    for (IndexType j = 0; j < grid_sizes[1]; j++) {
+        for (IndexType i = 0; i < grid_sizes[0]; i++) {
+            const auto pt_flat = j * grid_sizes[0] + i;
+            md.nonzeros.emplace_back(pt_flat, pt_flat,
+                                     static_cast<ValueType>(4.0));
+            auto offdiag_val = static_cast<ValueType>(-1.0);
+            if (i + 1 < grid_sizes[0]) {
+                const auto nbd_flat = j * grid_sizes[0] + i + 1;
+                md.nonzeros.emplace_back(pt_flat, nbd_flat, offdiag_val);
+            }
+            if (i - 1 >= 0) {
+                const auto nbd_flat = j * grid_sizes[0] + i - 1;
+                md.nonzeros.emplace_back(pt_flat, nbd_flat, offdiag_val);
+            }
+            if (j + 1 < grid_sizes[1]) {
+                const auto nbd_flat = (j + 1) * grid_sizes[0] + i;
+                md.nonzeros.emplace_back(pt_flat, nbd_flat, offdiag_val);
+            }
+            if (j - 1 >= 0) {
+                const auto nbd_flat = (j - 1) * grid_sizes[0] + i;
+                md.nonzeros.emplace_back(pt_flat, nbd_flat, offdiag_val);
+            }
+        }
+    }
+    md.nonzeros.shrink_to_fit();
+    return md;
+}
+
+
+/**
+ * Generates a 3D Laplace matrix for a 27-point stencil given the x-, y-, and
+ * z-dimensions of the grid. Diagonal value is 26, all off-diagonal values
+ * are -1.
+ */
+template <typename ValueType, typename IndexType>
+gko::matrix_data<ValueType, IndexType>
+generate_laplacian_3d_27point_matrix_data(const gko::dim<3>& grid_sizes)
+{
+    const auto nx = grid_sizes[0];
+    const auto ny = grid_sizes[1];
+    const auto nz = grid_sizes[2];
+    const auto size = nx * ny * nz;
+    gko::matrix_data<ValueType, IndexType> md{gko::dim<2>{size, size}};
+    md.nonzeros.reserve(size * 27);
+    const auto offdiag_val = static_cast<ValueType>(-1.0);
+    for (IndexType k = 0; k < nz; k++) {
+        for (IndexType j = 0; j < ny; j++) {
+            for (IndexType i = 0; i < nx; i++) {
+                const auto pt_flat = k * nx * ny + j * nx + i;
+                md.nonzeros.emplace_back(pt_flat, pt_flat,
+                                         static_cast<ValueType>(26.0));
+                for (IndexType dk = -1; dk <= 1; dk++) {
+                    for (IndexType dj = -1; dj <= 1; dj++) {
+                        for (IndexType di = -1; di <= 1; di++) {
+                            if (di == 0 && dj == 0 && dk == 0) {
+                                continue;
+                            }
+                            const auto ni = i + di;
+                            const auto nj = j + dj;
+                            const auto nk = k + dk;
+                            if (ni >= 0 && ni < nx && nj >= 0 && nj < ny &&
+                                nk >= 0 && nk < nz) {
+                                const auto nbd_flat =
+                                    nk * nx * ny + nj * nx + ni;
+                                md.nonzeros.emplace_back(pt_flat, nbd_flat,
+                                                         offdiag_val);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    md.nonzeros.shrink_to_fit();
+    return md;
 }
 
 
