@@ -58,6 +58,10 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
         params.with_default_initial_guess(
             config::get_value<solver::initial_guess_mode>(obj));
     }
+    if (auto& obj = config_check.get("inner_initial_guess")) {
+        params.with_inner_initial_guess(
+            config::get_value<solver::initial_guess_mode>(obj));
+    }
 
     return params;
 }
@@ -144,6 +148,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::transpose() const
             share(as<Transposable>(this->get_solver())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_relaxation_factor(parameters_.relaxation_factor)
+        .with_inner_initial_guess(parameters_.inner_initial_guess)
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -158,6 +163,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
             share(as<Transposable>(this->get_solver())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_relaxation_factor(conj(parameters_.relaxation_factor))
+        .with_inner_initial_guess(parameters_.inner_initial_guess)
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -243,8 +249,13 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         if (solver_->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
-            // with residual as initial guess.
-            inner_solution->copy_from(residual_ptr);
+            // starting from zero or, if requested, from the residual. The
+            // latter makes the iteration depend on the scaling of A.
+            if (parameters_.inner_initial_guess == initial_guess_mode::rhs) {
+                inner_solution->copy_from(residual_ptr);
+            } else {
+                inner_solution->fill(zero<ValueType>());
+            }
             solver_->apply(residual_ptr, inner_solution);
 
             // x = x + relaxation_factor * inner_solution

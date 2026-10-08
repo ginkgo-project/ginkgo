@@ -42,6 +42,22 @@ protected:
                          .on(exec))
     {}
 
+    // IR with a single inner GMRES iteration that starts each correction
+    // from the residual. Since the eigenvalues of mtx are close to 1, the
+    // residual is a good initial guess, and this converges for mtx, while
+    // starting from zero it stagnates.
+    std::unique_ptr<typename Solver::Factory> build_residual_guess_ir() const
+    {
+        return Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
+            .with_solver(gko::solver::Gmres<value_type>::build().with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u)))
+            .with_inner_initial_guess(gko::solver::initial_guess_mode::rhs)
+            .on(exec);
+    }
+
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::shared_ptr<Mtx> mtx;
     std::unique_ptr<typename Solver::Factory> ir_factory;
@@ -162,6 +178,81 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 
     solver_factory->generate(this->mtx)->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, SolvesScaledSystemWithInexactInnerSolver)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    // 16 * tridiag(-1, 4, -1). The inner GMRES runs a single iteration, so
+    // each correction depends on the inner initial guess. A zero guess gives
+    // the same iterates as for the unscaled matrix, while starting from the
+    // residual (which scales with A, not with A^{-1}) makes IR diverge.
+    auto mtx = gko::share(gko::initialize<Mtx>(
+        {{64.0, -16.0, 0.0}, {-16.0, 64.0, -16.0}, {0.0, -16.0, 64.0}},
+        this->exec));
+    auto inner_solver_factory = gko::share(
+        gko::solver::Gmres<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec));
+    auto solver_factory =
+        gko::solver::Ir<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(100u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
+            .with_solver(inner_solver_factory)
+            .on(this->exec);
+    auto b = gko::initialize<Mtx>({16.0, 144.0, 80.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver_factory->generate(mtx)->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, SolvesTriangularSystemWithInnerSolverStartingFromResidual)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver = this->build_residual_guess_ir()->generate(this->mtx);
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, TransposedSolverKeepsInnerInitialGuess)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver =
+        this->build_residual_guess_ir()->generate(this->mtx->transpose());
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->transpose()->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
+}
+
+
+TYPED_TEST(Ir, ConjTransposedSolverKeepsInnerInitialGuess)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    auto solver =
+        this->build_residual_guess_ir()->generate(this->mtx->conj_transpose());
+    auto b = gko::initialize<Mtx>({3.9, 9.0, 2.2}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->conj_transpose()->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e1);
 }
