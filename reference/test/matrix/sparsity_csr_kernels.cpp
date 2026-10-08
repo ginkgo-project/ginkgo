@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,7 +11,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/test/utils.hpp"
@@ -29,7 +29,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using Mtx = gko::matrix::SparsityCsr<value_type, index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
 
     SparsityCsr()
         : exec(gko::ReferenceExecutor::create()),
@@ -129,7 +129,7 @@ TYPED_TEST_SUITE(SparsityCsr, gko::test::ValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
-TYPED_TEST(SparsityCsr, AppliesToDenseVector)
+TYPED_TEST(SparsityCsr, AppliesToMultiVectorVector)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
@@ -143,10 +143,10 @@ TYPED_TEST(SparsityCsr, AppliesToDenseVector)
 }
 
 
-TYPED_TEST(SparsityCsr, AppliesToMixedDenseVector)
+TYPED_TEST(SparsityCsr, AppliesToMixedMultiVectorVector)
 {
     using T = gko::next_precision<typename TestFixture::value_type>;
-    using Vec = gko::matrix::Dense<T>;
+    using Vec = gko::matrix::MultiVector<T>;
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
 
@@ -157,7 +157,7 @@ TYPED_TEST(SparsityCsr, AppliesToMixedDenseVector)
 }
 
 
-TYPED_TEST(SparsityCsr, AppliesToDenseMatrix)
+TYPED_TEST(SparsityCsr, AppliesToMultiVectorMatrix)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
@@ -174,7 +174,7 @@ TYPED_TEST(SparsityCsr, AppliesToDenseMatrix)
 }
 
 
-TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseVector)
+TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMultiVectorVector)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
@@ -190,7 +190,8 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseVector)
 }
 
 
-TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseVectorWithZeroBetaNaN)
+TYPED_TEST(SparsityCsr,
+           AppliesLinearCombinationToMultiVectorVectorWithZeroBetaNaN)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
@@ -206,10 +207,10 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseVectorWithZeroBetaNaN)
 }
 
 
-TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMixedDenseVector)
+TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMixedMultiVectorVector)
 {
     using T = gko::next_precision<typename TestFixture::value_type>;
-    using Vec = gko::matrix::Dense<T>;
+    using Vec = gko::matrix::MultiVector<T>;
     auto alpha = gko::initialize<Vec>({-1.0}, this->exec);
     auto beta = gko::initialize<Vec>({2.0}, this->exec);
     auto x = gko::initialize<Vec>({2.0, 1.0, 4.0}, this->exec);
@@ -222,7 +223,7 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMixedDenseVector)
 }
 
 
-TYPED_TEST(SparsityCsr, AppliesLinearCombinationToDenseMatrix)
+TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMultiVectorMatrix)
 {
     using Vec = typename TestFixture::Vec;
     using T = typename TestFixture::value_type;
@@ -261,7 +262,7 @@ TYPED_TEST(SparsityCsr, AppliesToMixedComplex)
 {
     using T =
         gko::next_precision<gko::to_complex<typename TestFixture::value_type>>;
-    using Vec = gko::matrix::Dense<T>;
+    using Vec = gko::matrix::MultiVector<T>;
     auto x = gko::initialize<Vec>({T{2.0, 4.0}, T{1.0, 2.0}, T{4.0, 8.0}},
                                   this->exec);
     auto y = Vec::create(this->exec, gko::dim<2>{2, 1});
@@ -294,7 +295,7 @@ TYPED_TEST(SparsityCsr, AppliesLinearCombinationToComplex)
 
 TYPED_TEST(SparsityCsr, AppliesLinearCombinationToMixedComplex)
 {
-    using Vec = gko::matrix::Dense<
+    using Vec = gko::matrix::MultiVector<
         gko::next_precision<typename TestFixture::value_type>>;
     using ComplexVec = gko::to_complex<Vec>;
     using T = typename ComplexVec::value_type;

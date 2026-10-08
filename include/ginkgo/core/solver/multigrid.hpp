@@ -22,7 +22,6 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>

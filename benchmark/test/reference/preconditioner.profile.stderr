@@ -11,23 +11,23 @@ DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill_in_matrix_data
-DEBUG: end   dense::fill_in_matrix_data
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
+DEBUG: begin multivector::fill_in_matrix_data
+DEBUG: end   multivector::fill_in_matrix_data
 DEBUG: begin components::aos_to_soa
 DEBUG: end   components::aos_to_soa
-DEBUG: begin dense::fill
-DEBUG: end   dense::fill
-DEBUG: begin dense::fill_in_matrix_data
-DEBUG: end   dense::fill_in_matrix_data
+DEBUG: begin multivector::fill
+DEBUG: end   multivector::fill
+DEBUG: begin multivector::fill_in_matrix_data
+DEBUG: end   multivector::fill_in_matrix_data
 Matrix is of size (125, 125), 725
 DEBUG: begin stencil(100, 7pt)
 	Running preconditioner: none
 DEBUG: begin none
 DEBUG: begin copy(<typename>)
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
+DEBUG: begin multivector::copy
+DEBUG: end   multivector::copy
 DEBUG: end   copy(<typename>)
 DEBUG: begin repetition generate
 DEBUG: begin generate(<typename>)
@@ -36,8 +36,8 @@ DEBUG: end   repetition generate
 DEBUG: begin repetition apply
 DEBUG: begin apply(<typename>)
 DEBUG: begin copy(<typename>)
-DEBUG: begin dense::copy
-DEBUG: end   dense::copy
+DEBUG: begin multivector::copy
+DEBUG: end   multivector::copy
 DEBUG: end   copy(<typename>)
 DEBUG: end   apply(<typename>)
 DEBUG: end   repetition apply

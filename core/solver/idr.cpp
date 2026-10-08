@@ -102,7 +102,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
 {
     using std::swap;
     using SubspaceType = typename VectorType::value_type;
-    using Vector = matrix::Dense<SubspaceType>;
+    using Vector = matrix::MultiVector<SubspaceType>;
     using AbsType = remove_complex<ValueType>;
     using ws = workspace_traits<Idr>;
 
@@ -327,7 +327,8 @@ void Idr<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
                 auto complex_x = dense_x->make_complex();
                 this->iterate(complex_b.get(), complex_x.get());
                 complex_x->get_real(
-                    dynamic_cast<matrix::Dense<remove_complex<ValueType>>*>(
+                    dynamic_cast<
+                        matrix::MultiVector<remove_complex<ValueType>>*>(
                         dense_x));
             } else {
                 this->iterate(dense_b, dense_x);

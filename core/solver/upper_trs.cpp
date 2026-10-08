@@ -13,7 +13,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
 #include "core/config/config_helper.hpp"
@@ -149,7 +149,7 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     }
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            using Vector = matrix::Dense<ValueType>;
+            using Vector = matrix::MultiVector<ValueType>;
             using ws = workspace_traits<UpperTrs>;
             const auto exec = this->get_executor();
             this->setup_workspace();

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,7 +31,7 @@ protected:
     using value_type = T;
     using real_type = gko::remove_complex<value_type>;
     using solver_type = gko::batch::solver::Bicgstab<value_type>;
-    using Mtx = gko::batch::matrix::Dense<value_type>;
+    using Mtx = gko::batch::matrix::MultiVector<value_type>;
     using EllMtx = gko::batch::matrix::Ell<value_type>;
     using CsrMtx = gko::batch::matrix::Csr<value_type>;
     using MVec = gko::batch::MultiVector<value_type>;
@@ -142,7 +142,7 @@ TYPED_TEST(BatchBicgstab, StencilSystemLoggerLogsIterations)
 }
 
 
-TYPED_TEST(BatchBicgstab, CanSolveDenseSystem)
+TYPED_TEST(BatchBicgstab, CanSolveMultiVectorSystem)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;
@@ -299,7 +299,7 @@ TYPED_TEST(BatchBicgstab, CanSolveCsrSystem)
 }
 
 
-TYPED_TEST(BatchBicgstab, CanSolveDenseHpdSystem)
+TYPED_TEST(BatchBicgstab, CanSolveMultiVectorHpdSystem)
 {
     using value_type = typename TestFixture::value_type;
     using real_type = gko::remove_complex<value_type>;

@@ -10,9 +10,9 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/reorder/reordering_base.hpp>
 
@@ -169,12 +169,12 @@ protected:
         if (cache_.inner_b == nullptr ||
             cache_.inner_b->get_size() != b->get_size()) {
             const auto size = b->get_size();
-            cache_.inner_b =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-            cache_.inner_x =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-            cache_.intermediate =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
+            cache_.inner_b = matrix::MultiVector<value_type>::create(
+                this->get_executor(), size);
+            cache_.inner_x = matrix::MultiVector<value_type>::create(
+                this->get_executor(), size);
+            cache_.intermediate = matrix::MultiVector<value_type>::create(
+                this->get_executor(), size);
         }
         cache_.inner_b->copy_from(as<Cloneable>(b));
         if (inner_operator_->apply_uses_initial_guess()) {
@@ -212,9 +212,9 @@ private:
 
         cache_struct& operator=(cache_struct&&) { return *this; }
 
-        std::unique_ptr<matrix::Dense<value_type>> inner_b{};
-        std::unique_ptr<matrix::Dense<value_type>> inner_x{};
-        std::unique_ptr<matrix::Dense<value_type>> intermediate{};
+        std::unique_ptr<matrix::MultiVector<value_type>> inner_b{};
+        std::unique_ptr<matrix::MultiVector<value_type>> inner_x{};
+        std::unique_ptr<matrix::MultiVector<value_type>> intermediate{};
     } cache_;
 };
 

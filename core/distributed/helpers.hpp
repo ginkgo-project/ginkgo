@@ -11,7 +11,7 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/dispatch_helper.hpp"
 
@@ -21,23 +21,24 @@ namespace detail {
 
 
 template <typename ValueType>
-std::unique_ptr<matrix::Dense<ValueType>> create_with_config_of(
-    const matrix::Dense<ValueType>* mtx)
+std::unique_ptr<matrix::MultiVector<ValueType>> create_with_config_of(
+    const matrix::MultiVector<ValueType>* mtx)
 {
-    return matrix::Dense<ValueType>::create(mtx->get_executor(),
-                                            mtx->get_size(), mtx->get_stride());
+    return matrix::MultiVector<ValueType>::create(
+        mtx->get_executor(), mtx->get_size(), mtx->get_stride());
 }
 
 
 template <typename ValueType>
-const matrix::Dense<ValueType>* get_local(const matrix::Dense<ValueType>* mtx)
+const matrix::MultiVector<ValueType>* get_local(
+    const matrix::MultiVector<ValueType>* mtx)
 {
     return mtx;
 }
 
 
 template <typename ValueType>
-matrix::Dense<ValueType>* get_local(matrix::Dense<ValueType>* mtx)
+matrix::MultiVector<ValueType>* get_local(matrix::MultiVector<ValueType>* mtx)
 {
     return mtx;
 }
@@ -58,15 +59,15 @@ create_with_config_of(const experimental::distributed::Vector<ValueType>* mtx)
 
 
 template <typename ValueType>
-matrix::Dense<ValueType>* get_local(
+matrix::MultiVector<ValueType>* get_local(
     experimental::distributed::Vector<ValueType>* mtx)
 {
-    return const_cast<matrix::Dense<ValueType>*>(mtx->get_local_vector());
+    return const_cast<matrix::MultiVector<ValueType>*>(mtx->get_local_vector());
 }
 
 
 template <typename ValueType>
-const matrix::Dense<ValueType>* get_local(
+const matrix::MultiVector<ValueType>* get_local(
     const experimental::distributed::Vector<ValueType>* mtx)
 {
     return mtx->get_local_vector();
@@ -131,8 +132,8 @@ void vector_dispatch(T* linop, F&& f, Args&&... args)
 #endif
     {
         using type = std::conditional_t<std::is_const<T>::value,
-                                        const matrix::Dense<ValueType>,
-                                        matrix::Dense<ValueType>>;
+                                        const matrix::MultiVector<ValueType>,
+                                        matrix::MultiVector<ValueType>>;
         if (auto concrete_linop = dynamic_cast<type*>(linop)) {
             f(concrete_linop, std::forward<Args>(args)...);
         } else {

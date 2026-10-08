@@ -19,7 +19,7 @@
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/types.hpp"
-#include "core/matrix/dense_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 
 
@@ -177,8 +177,8 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                         hip_solve_struct->policy,
                         hip_solve_struct->factor_work_vec);
                 } else {
-                    dense::transpose(exec, b.as_const(), trans_b);
-                    dense::transpose(exec, x.as_const(), trans_x);
+                    multivector::transpose(exec, b.as_const(), trans_b);
+                    multivector::transpose(exec, x.as_const(), trans_x);
                     for (IndexType i = 0; i < trans_b.size[0]; i++) {
                         sparselib::csrsv2_solve(
                             handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
@@ -191,7 +191,7 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
                             hip_solve_struct->policy,
                             hip_solve_struct->factor_work_vec);
                     }
-                    dense::transpose(exec, trans_x.as_const(), x);
+                    multivector::transpose(exec, trans_x.as_const(), x);
                 }
             }
         } else {
