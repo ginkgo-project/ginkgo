@@ -412,6 +412,17 @@ public:
     }
 
     /**
+     * Get read access to the index map relating the local and non-local
+     * column indices to the global ones.
+     *
+     * @return  the index map
+     */
+    const index_map<local_index_type, global_index_type>& get_index_map() const
+    {
+        return imap_;
+    }
+
+    /**
      * Copy constructs a Matrix.
      *
      * @param other  Matrix to copy from.

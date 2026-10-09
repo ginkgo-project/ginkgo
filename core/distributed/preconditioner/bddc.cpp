@@ -10,8 +10,10 @@
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <random>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <parmetis.h>
@@ -43,6 +45,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/base/extended_float.hpp"
+#include "core/base/intrinsics.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -167,10 +170,10 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
 
     // For the connected-component analysis, classify_dofs_2 emits this rank's
     // local interface adjacency as global index pairs (with the number of ranks
-    // sharing each edge as the agreement threshold). We gather these across all
-    // ranks below so classify_dofs_3 can build the cross-rank-consistent
-    // interface graph and split disconnected interfaces into separate coarse
-    // dofs.
+    // sharing each edge as the agreement threshold). We exchange these between
+    // the ranks sharing each interface below so classify_dofs_3 can build the
+    // cross-rank-consistent interface graph and split disconnected interfaces
+    // into separate coarse dofs.
     array<GlobalIndexType> local_edge_src{exec};
     array<GlobalIndexType> local_edge_dst{exec};
     array<LocalIndexType> local_edge_expected{exec};
@@ -208,36 +211,82 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
         n_constraints, n_owning_interfaces, use_faces, use_edges,
         use_connected_components, unanimous_connectivity));
 
-    // Gather every rank's local interface edges so that each rank holds the
-    // full edge multiset. From it, classify_dofs_3 keeps only edges that all
-    // sharing ranks agree on and computes the (now globally consistent)
-    // connected components.
+    // Send every local interface edge to the ranks sharing its interface. An
+    // edge only joins two dofs with the same label, i.e. the same set of
+    // sharing ranks, and classify_dofs_3 only uses the components of local
+    // dofs, so no other rank ever looks at it. Each rank thus receives every
+    // report for exactly the interfaces it is part of, from all of their
+    // sharing ranks, and classify_dofs_3 keeps the same edges as it would on
+    // the full edge multiset, while the received data no longer grows with
+    // the number of ranks.
     array<GlobalIndexType> global_edge_src{exec};
     array<GlobalIndexType> global_edge_dst{exec};
     array<LocalIndexType> global_edge_expected{exec};
     if (use_connected_components) {
-        int n_local_edges = static_cast<int>(local_edge_src.get_size());
-        array<int> edge_counts{exec, static_cast<size_type>(num_parts)};
-        comm.all_gather(exec, &n_local_edges, 1, edge_counts.get_data(), 1);
-        array<int> edge_offsets{exec, static_cast<size_type>(num_parts) + 1};
-        edge_offsets.get_data()[0] = 0;
-        for (comm_index_type p = 0; p < num_parts; p++) {
-            edge_offsets.get_data()[p + 1] =
-                edge_offsets.get_data()[p] + edge_counts.get_data()[p];
+        const auto n_local_edges = local_edge_src.get_size();
+        const auto n_cols = labels->get_size()[1];
+        const auto label_vals = labels->get_const_values();
+        const auto edge_src = local_edge_src.get_const_data();
+        std::unordered_map<GlobalIndexType, size_type> global_to_row;
+        global_to_row.reserve(n_local_rows);
+        for (size_type i = 0; i < n_local_rows; i++) {
+            global_to_row.emplace(global_idxs.get_const_data()[i], i);
         }
-        int total_edges = edge_offsets.get_data()[num_parts];
-        global_edge_src.resize_and_reset(total_edges);
-        global_edge_dst.resize_and_reset(total_edges);
-        global_edge_expected.resize_and_reset(total_edges);
-        comm.all_gather_v(exec, local_edge_src.get_data(), n_local_edges,
-                          global_edge_src.get_data(), edge_counts.get_data(),
-                          edge_offsets.get_data());
-        comm.all_gather_v(exec, local_edge_dst.get_data(), n_local_edges,
-                          global_edge_dst.get_data(), edge_counts.get_data(),
-                          edge_offsets.get_data());
-        comm.all_gather_v(exec, local_edge_expected.get_data(), n_local_edges,
-                          global_edge_expected.get_data(),
-                          edge_counts.get_data(), edge_offsets.get_data());
+        // Calls fn(rank) for every rank in the label of edge e, which is the
+        // label of both of its dofs.
+        auto for_each_sharing_rank = [&](size_type e, auto&& fn) {
+            const auto row = global_to_row.at(edge_src[e]);
+            for (size_type c = 0; c < n_cols; c++) {
+                uint_type bits;
+                std::memcpy(&bits, label_vals + row * n_cols + c,
+                            sizeof(uint_type));
+                while (bits) {
+                    fn(static_cast<comm_index_type>(
+                        c * n_significand_bits +
+                        gko::detail::find_lowest_bit(bits)));
+                    bits &= bits - 1;
+                }
+            }
+        };
+        std::vector<int> send_counts(num_parts, 0);
+        for (size_type e = 0; e < n_local_edges; e++) {
+            for_each_sharing_rank(e, [&](comm_index_type p) { send_counts[p]++; });
+        }
+        std::vector<int> send_offsets(num_parts + 1, 0);
+        std::partial_sum(send_counts.begin(), send_counts.end(),
+                         send_offsets.begin() + 1);
+        std::vector<GlobalIndexType> send_src(send_offsets.back());
+        std::vector<GlobalIndexType> send_dst(send_offsets.back());
+        std::vector<LocalIndexType> send_expected(send_offsets.back());
+        {
+            auto pos = send_offsets;
+            for (size_type e = 0; e < n_local_edges; e++) {
+                for_each_sharing_rank(e, [&](comm_index_type p) {
+                    send_src[pos[p]] = edge_src[e];
+                    send_dst[pos[p]] = local_edge_dst.get_const_data()[e];
+                    send_expected[pos[p]] =
+                        local_edge_expected.get_const_data()[e];
+                    pos[p]++;
+                });
+            }
+        }
+        std::vector<int> recv_counts(num_parts);
+        comm.all_to_all(exec, send_counts.data(), 1, recv_counts.data(), 1);
+        std::vector<int> recv_offsets(num_parts + 1, 0);
+        std::partial_sum(recv_counts.begin(), recv_counts.end(),
+                         recv_offsets.begin() + 1);
+        global_edge_src.resize_and_reset(recv_offsets.back());
+        global_edge_dst.resize_and_reset(recv_offsets.back());
+        global_edge_expected.resize_and_reset(recv_offsets.back());
+        comm.all_to_all_v(exec, send_src.data(), send_counts.data(),
+                          send_offsets.data(), global_edge_src.get_data(),
+                          recv_counts.data(), recv_offsets.data());
+        comm.all_to_all_v(exec, send_dst.data(), send_counts.data(),
+                          send_offsets.data(), global_edge_dst.get_data(),
+                          recv_counts.data(), recv_offsets.data());
+        comm.all_to_all_v(exec, send_expected.data(), send_counts.data(),
+                          send_offsets.data(), global_edge_expected.get_data(),
+                          recv_counts.data(), recv_offsets.data());
     }
 
     exec->run(bddc::make_classify_dofs_3(
@@ -681,7 +730,7 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
     auto lambda = local_vec::create(exec, dim<2>{n_constraints, n_constraints});
     LL_scal_3 = gko::initialize<local_vec>({one<ValueType>()}, exec);
 
-    if (multilevel) {
+    if (parameters_.write_interfaces) {
         // Interface output. permutation_array holds LOCAL MATRIX indices;
         // translate through the active set before mapping to global.
         auto host_active = dd_system_matrix->get_active_idxs();
@@ -699,8 +748,10 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             gko::experimental::distributed::index_space::combined);
         g_perm.set_executor(host_exec);
         std::ofstream out{"IF_" + std::to_string(comm.rank()) + ".txt"};
-        size_t start = n_inner_idxs;
-        for (auto i = 0; i < n_faces + n_edges + n_vertices; i++) {
+        // The constraints follow the inner and inactive dofs, in the order
+        // of interface_sizes (see classify_dofs_3).
+        size_t start = n_inactive;
+        for (size_type i = 0; i < n_constraints; i++) {
             auto is = interface_sizes.get_const_data()[i];
             for (auto j = start; j < start + is; j++) {
                 out << g_perm.get_data()[j] << " ";
@@ -1215,25 +1266,35 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         int ncommonnodes = 2;
         array<size_type> local_sizes{host_exec, num_parts};
         comm.all_gather(host_exec, &local_size, 1, local_sizes.get_data(), 1);
-        int min_size = local_size;
+        // Smallest non-empty local problem; inactive ranks (size 0) occur on
+        // the lower levels of a multilevel BDDC.
+        size_type min_size = 0;
         for (size_type i = 0; i < num_parts; i++) {
-            min_size = std::min(
-                min_size, static_cast<int>(local_sizes.get_const_data()[i]));
+            const auto size = local_sizes.get_const_data()[i];
+            if (size > 0 && (min_size == 0 || size < min_size)) {
+                min_size = size;
+            }
         }
         int nparts = 1;
-        int new_part = 0;
-        // int nparts = std::pow(
-        //     2,
-        //     std::ceil(std::log(std::ceil(
-        //                   static_cast<remove_complex<ValueType>>(
-        //                       n_global_interfaces) /
-        //                   static_cast<remove_complex<ValueType>>(min_size))) /
-        //               std::log(2)));
-        // std::cout << "RANK " << comm.rank() << ": " << local_size << ", "
-        // << min_size << ", " << n_global_interfaces << " ==> "
-        // << nparts << std::endl;
-        // int nparts = std::pow(2, std::floor(std::log(comm.size() / 2) /
-        // std::log(2)));
+        if (parameters_.distributed_coarse) {
+            const auto ratio = static_cast<size_type>(ceildiv(
+                n_global_interfaces, std::max<size_type>(min_size, 1)));
+            while (static_cast<size_type>(nparts) < ratio &&
+                   nparts < comm.size()) {
+                nparts *= 2;
+            }
+            nparts = std::min(nparts, comm.size());
+        }
+        // Contiguous blocks of ranks, each sending its contributions to its
+        // first rank.
+        const auto block =
+            static_cast<int64>(comm.rank()) * nparts / comm.size();
+        int new_part =
+            static_cast<int>(ceildiv(block * comm.size(), int64{nparts}));
+        if (comm.rank() == 0) {
+            std::cout << "COARSE RANKS: " << nparts << " (" << n_global_interfaces
+                      << " coarse dofs)" << std::endl;
+        }
         // std::vector<float> tpwgts(ncon * nparts, 1. / nparts);
         // std::vector<float> ubvec(ncon, 1.05);
         // int options = 0;
@@ -1245,8 +1306,6 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         //     elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt, &numflag,
         //     &ncon, &ncommonnodes, &nparts, tpwgts.data(), ubvec.data(),
         //     &options, &edgecut, &new_part, &commptr);
-
-        std::cout << comm.rank() << " ==> " << new_part << std::endl;
 
         // Gather mapping of coarse elements (contributions of original ranks)
         // to assigned ranks
@@ -1394,11 +1453,14 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             coarse_solver =
                 parameters_.coarse_solver->generate(complete_coarse_matrix);
         } else {
+            // With several coarse ranks, a block's contributions can belong
+            // to rows owned by another block's owner.
             auto complete_coarse_matrix =
                 share(Matrix<ValueType, LocalIndexType, LocalIndexType>::create(
                     exec, comm));
-            complete_coarse_matrix->read_distributed(complete_coarse_data,
-                                                     new_partition);
+            complete_coarse_matrix->read_distributed(
+                complete_coarse_data, new_partition,
+                gko::experimental::distributed::assembly_mode::communicate);
             coarse_solver =
                 parameters_.coarse_solver->generate(complete_coarse_matrix);
         }

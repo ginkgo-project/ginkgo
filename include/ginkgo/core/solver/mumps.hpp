@@ -40,6 +40,14 @@ namespace solver {
  * factorization data structures, so no Ginkgo Factorization object is
  * produced.
  *
+ * The system matrix can be any matrix convertible to Csr, which every rank
+ * factorizes on its own (on MPI_COMM_SELF), or a distributed::Matrix with
+ * equal row and column partitions, which is factorized jointly by the ranks
+ * owning rows of it. In the distributed case MUMPS reads the matrix in its
+ * Ginkgo distribution; the right-hand side is gathered on the MUMPS host for
+ * each solve and the solution is scattered back to the owning ranks. The
+ * ranks without rows take no part in the factorization or the solve.
+ *
  * @note This solver only runs on the host (CPU). If the executor is not
  *       a ReferenceExecutor or OmpExecutor, data will be copied to the
  *       host for the MUMPS calls.
@@ -107,13 +115,19 @@ protected:
                     LinOp* x) const override;
 
 private:
+    /** Runs analysis and factorization of system_matrix_ into state_. */
+    void generate();
+
+    void apply_distributed(const LinOp* b, LinOp* x) const;
+
     /**
      * Opaque handle to the MUMPS internal state. This avoids exposing
      * the MUMPS headers in the public API.
      */
     struct mumps_state;
     std::unique_ptr<mumps_state> state_;
-    std::shared_ptr<const matrix_type> system_matrix_;
+    /** Host Csr copy, or the distributed::Matrix itself. */
+    std::shared_ptr<const LinOp> system_matrix_;
 
     /** Persistent host buffer for the MUMPS solve phase. */
     detail::DenseCache<ValueType> host_buffer_;

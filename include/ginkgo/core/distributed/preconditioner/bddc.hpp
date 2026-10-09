@@ -158,6 +158,27 @@ public:
 
         bool GKO_FACTORY_PARAMETER_SCALAR(repartition_coarse, false);
 
+        /**
+         * Where the coarse problem is assembled if repartition_coarse is set.
+         * If false, it is gathered on rank 0. If true, it is distributed over
+         * a number of ranks chosen so that each of them holds about as many
+         * coarse dofs as the smallest local problem has rows, rounded up to a
+         * power of two and capped at the number of ranks. Every owner
+         * receives the coarse contributions of a contiguous block of ranks
+         * and is the first rank of its block, so the owners are spread evenly
+         * over the communicator rather than packed onto its first ranks.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(distributed_coarse, false);
+
+        /**
+         * Write this rank's interfaces (coarse dofs) to IF_<rank>.txt in the
+         * working directory: one line per vertex, edge and face, holding the
+         * global indices of its dofs. In a multilevel BDDC, set it on the
+         * first (finest) level only, since every level writes to the same
+         * file names.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(write_interfaces, false);
+
         bool GKO_FACTORY_PARAMETER_SCALAR(constant_nullspace, false);
 
         std::map<GlobalIndexType, LocalIndexType> GKO_FACTORY_PARAMETER_VECTOR(

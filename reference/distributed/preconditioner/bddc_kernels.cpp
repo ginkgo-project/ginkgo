@@ -515,10 +515,10 @@ void classify_dofs_2(
 
     if (use_connected_components) {
         // Emit this rank's local interface adjacency as global index pairs.
-        // classify_dofs gathers these across all ranks and applies the same
-        // keep rule everywhere (see classify_dofs_3), so the resulting graph is
-        // identical on all ranks and its connected components define globally
-        // consistent coarse dofs. We attach, per edge, the number of ranks
+        // classify_dofs sends these to all ranks sharing the interface, which
+        // apply the same keep rule (see classify_dofs_3), so the resulting
+        // graph is identical on all of them and its connected components
+        // define globally consistent coarse dofs. We attach, per edge, the number of ranks
         // sharing it (popcount of the shared label) as the agreement
         // threshold, which the unanimous keep rule compares against.
         std::vector<GlobalIndexType> src;
@@ -603,9 +603,9 @@ void classify_dofs_3(
 
     if (use_connected_components) {
         // Build the cross-rank-consistent interface adjacency graph from the
-        // gathered local edges. Because every rank receives the full edge
-        // multiset and applies the same keep rule, every rank builds the
-        // identical graph and hence identical connected components. Each
+        // exchanged local edges. Every rank sharing an interface receives all
+        // reports for it and applies the same keep rule, so all of them build
+        // the identical graph and hence identical connected components. Each
         // component is identified by the minimum global index it contains,
         // which becomes the coarse-dof tag of all its dofs.
         auto n_global_edges = global_edge_src.get_size();
