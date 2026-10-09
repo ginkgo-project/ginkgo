@@ -35,10 +35,10 @@ namespace solver {
  *   the nullspace). Columns that are numerically linearly dependent (relative
  *   norm below \f$ \sqrt{\epsilon} \f$ after orthogonalization) are dropped;
  *   get_dimension() reports the remaining dimension.
- * - project() removes the nullspace components of all columns of a vector at
- *   once: the coefficients \f$ C = V^H X \f$ and the column means are computed
- *   in a single pass (and, for distributed vectors, a single all-reduce),
- *   followed by \f$ X \leftarrow X - V C \f$.
+ * - project() removes the nullspace components of all columns of its input
+ *   \f$ X \f$ at once: the coefficients \f$ C = V^H X \f$ and the column means
+ *   are computed in a single pass (and, for distributed vectors, a single
+ *   all-reduce), followed by \f$ X \leftarrow X - V C \f$.
  *
  * The typical use is as the `nullspace` / `left_nullspace` parameter of an
  * iterative solver, see
