@@ -44,11 +44,11 @@ namespace solver {
  * iterative solver, see
  * enable_preconditioned_iterative_solver_factory_parameters.
  *
- * The object is immutable after creation apart from internal scratch buffers,
- * so it can be shared between solvers (e.g. as both the left and right
- * nullspace of a symmetric operator). Like other Ginkgo LinOps with internal
- * caches, a single instance must not be applied concurrently from multiple
- * threads.
+ * The object is immutable after creation apart from internal scratch buffers.
+ * Solvers and preconditioner::NullspaceProjection work on their own copy,
+ * which shares the basis, so the same object can be passed to any number of
+ * factories. Like other Ginkgo LinOps with internal caches, a single instance
+ * must not be applied concurrently from multiple threads.
  *
  * @tparam ValueType  the value type of the vectors it projects.
  *
@@ -91,11 +91,12 @@ public:
      * pure-Neumann Poisson problem). The constant is never materialized, so
      * the result can project vectors of any type and distribution.
      *
-     * Solvers adapt a constant-only nullspace to the size of their system
-     * matrix, so the same object can be used in solver factories that are
-     * generated for matrices of different sizes (e.g. on the levels of a
-     * multigrid hierarchy). The size only matters when using the Nullspace
-     * directly, and can be omitted otherwise.
+     * Solvers adapt a constant-only nullspace to the size and value type of
+     * their system matrix, so the same object can be used in solver factories
+     * that are generated for matrices of different sizes (e.g. on the levels
+     * of a multigrid hierarchy) or precisions. Without a size, project()
+     * accepts vectors of any size; the size is only needed to use the
+     * Nullspace as a LinOp.
      *
      * @param exec  the executor
      * @param size  the (square, global) size `n x n` of the operator.
@@ -123,10 +124,12 @@ public:
      * Applies the projector in place: \f$ v \leftarrow (I - V V^H) v \f$, for
      * each column of `v` independently.
      *
-     * @param v  a matrix::Dense<ValueType> or
-     *           experimental::distributed::Vector<ValueType> with as many rows
-     *           as this operator. If the Nullspace has an explicit basis, `v`
-     *           must be of the same kind (and distribution) as that basis.
+     * @param v  a matrix::Dense or experimental::distributed::Vector with as
+     *           many rows as this operator (any number of rows for a
+     *           constant-only nullspace created without a size). Other
+     *           precisions are converted like in apply(). If the Nullspace has
+     *           an explicit basis, `v` must be of the same kind (and
+     *           distribution) as that basis.
      */
     void project(ptr_param<LinOp> v) const;
 
@@ -150,6 +153,7 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
+private:
     template <typename VectorType>
     void setup_basis(const std::vector<std::shared_ptr<const LinOp>>& basis);
 
@@ -174,7 +178,6 @@ protected:
                            const matrix::Dense<ValueType>* basis_local,
                            bool has_constant) const;
 
-private:
     bool contains_constant_;
     // orthonormal explicit basis (n x k), Dense or distributed::Vector
     std::shared_ptr<const LinOp> basis_;
@@ -189,20 +192,23 @@ namespace detail {
 
 
 /**
- * Checks the type and size of a nullspace parameter and moves it onto `exec`.
- * A constant-only nullspace is adapted to the size of the operator instead.
+ * Checks the type and size of a nullspace parameter and returns a copy of it
+ * on `exec`. The copy shares the basis, but has its own scratch buffers. A
+ * constant-only nullspace is adapted to the size and value type of the
+ * operator instead.
  *
- * @param param  the parameter, a Nullspace<ValueType> or nullptr
+ * @param param  the parameter, a Nullspace or nullptr
  * @param name  the name of the parameter used in error messages
- * @param size  the size of the operator
+ * @param op  the operator the nullspace belongs to
+ * @param size  the size of the nullspace vectors
  * @param exec  the executor of the operator
  *
  * @return the nullspace to use, or nullptr if there is none
  */
 template <typename ValueType>
 std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
-    std::shared_ptr<const LinOp> param, const char* name, size_type size,
-    std::shared_ptr<const Executor> exec);
+    std::shared_ptr<const LinOp> param, const char* name, const LinOp* op,
+    size_type size, std::shared_ptr<const Executor> exec);
 
 
 }  // namespace detail

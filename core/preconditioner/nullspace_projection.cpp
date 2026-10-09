@@ -94,10 +94,14 @@ NullspaceProjection<ValueType>::NullspaceProjection(
         preconditioner_ = matrix::Identity<ValueType>::create(exec, size);
     }
     GKO_ASSERT_EQUAL_DIMENSIONS(preconditioner_, this);
+    if (preconditioner_->get_executor() != exec) {
+        preconditioner_ = gko::clone(exec, preconditioner_);
+    }
     nullspace_ = solver::detail::prepare_nullspace<ValueType>(
-        parameters_.nullspace, "nullspace", size, exec);
+        parameters_.nullspace, "nullspace", system_matrix.get(), size, exec);
     left_nullspace_ = solver::detail::prepare_nullspace<ValueType>(
-        parameters_.left_nullspace, "left_nullspace", size, exec);
+        parameters_.left_nullspace, "left_nullspace", system_matrix.get(), size,
+        exec);
 }
 
 

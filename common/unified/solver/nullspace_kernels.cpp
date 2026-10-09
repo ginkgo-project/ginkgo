@@ -14,7 +14,7 @@ namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 /**
- * @brief The Nullspace namespace.
+ * @brief The Nullspace projection namespace.
  *
  */
 namespace nullspace {

@@ -13,7 +13,7 @@ namespace gko {
 namespace kernels {
 namespace reference {
 /**
- * @brief The Nullspace namespace.
+ * @brief The Nullspace projection namespace.
  *
  */
 namespace nullspace {

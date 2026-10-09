@@ -27,18 +27,19 @@ namespace preconditioner {
  * nullspace from the preconditioned vector, which keeps the search
  * directions of a Krylov solver, and thus its solution, orthogonal to the
  * nullspace. The optional \f$ Q \f$ removes the left nullspace from the input.
- * With both, \f$ P M P \f$ is symmetric for a symmetric \f$ M \f$, which
- * solvers like Minres need on ill-conditioned problems or when iterated past
- * convergence.
+ * If both are the same nullspace, \f$ P M P \f$ is symmetric for a symmetric
+ * \f$ M \f$, which solvers like Minres need on ill-conditioned problems or
+ * when iterated past convergence.
  *
  * Iterative solvers that support nullspaces (see solver::nullspace_traits)
  * wrap their preconditioner in a NullspaceProjection when their `nullspace`
- * parameter is set. It can also be used as the preconditioner of any solver
- * directly; then the right-hand side and the initial guess need to be
- * projected by the user, see solver::Nullspace::project.
+ * parameter is set, unless it already is one removing the nullspace. It can
+ * also be used as the preconditioner of any solver directly; then the
+ * right-hand side and the initial guess need to be projected by the user, see
+ * solver::Nullspace::project.
  *
- * A constant-only nullspace is adapted to the size of the system matrix, so
- * the factory can be used for matrices of any size.
+ * A constant-only nullspace is adapted to the size and value type of the
+ * system matrix, so the factory can be used for matrices of any size.
  *
  * @tparam ValueType  the value type of the vectors
  *
