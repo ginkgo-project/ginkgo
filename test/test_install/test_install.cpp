@@ -439,6 +439,17 @@ int main()
         auto test = Bj::build().with_max_block_size(1u).on(exec);
     }
 
+    // core/preconditioner/nullspace_projection.hpp
+    {
+        using Projection = gko::preconditioner::NullspaceProjection<>;
+        auto test =
+            Projection::build()
+                .with_preconditioner(gko::preconditioner::Jacobi<>::build())
+                .with_nullspace(
+                    gko::solver::Nullspace<>::create_from_constant(exec))
+                .on(exec);
+    }
+
     // core/solver/batch_bicgstab.hpp
     {
         using Solver = gko::batch::solver::Bicgstab<>;
@@ -516,6 +527,27 @@ int main()
     {
         using Solver = gko::solver::LowerTrs<>;
         auto test = Solver::build().on(exec);
+    }
+
+    // core/solver/nullspace.hpp
+    {
+        using Nullspace = gko::solver::Nullspace<>;
+        auto test = gko::share(Nullspace::create_from_constant(
+            exec, gko::dim<2>{b->get_size()[0], b->get_size()[0]}));
+        auto solver =
+            gko::solver::Cg<>::build()
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+                .with_nullspace(test)
+                .on(exec);
+#if HAS_REFERENCE
+        // b is constant, so it lies in the nullspace
+        auto b_clone = gko::clone(b);
+        test->project(b_clone);
+        auto zero = vec::create(exec->get_master(), b->get_size());
+        zero->fill(0.0);
+        assert_similar_matrices(gko::clone(exec->get_master(), b_clone), zero,
+                                1e-14);
+#endif  // HAS_REFERENCE
     }
 
     // core/stop/

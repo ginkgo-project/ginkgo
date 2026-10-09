@@ -9,11 +9,19 @@
 #include <memory>
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
+
+#if GINKGO_BUILD_MPI
+#include <ginkgo/core/base/mpi.hpp>
+
+#include "core/mpi/mpi_op.hpp"
+#endif
 
 
 namespace gko {
@@ -70,6 +78,40 @@ const matrix::Dense<ValueType>* get_local(
     const experimental::distributed::Vector<ValueType>* mtx)
 {
     return mtx->get_local_vector();
+}
+
+
+/**
+ * Sums the entries of `values` over all ranks of `comm` in place. If the MPI
+ * implementation cannot access the memory of the executor of `values`, the
+ * data is communicated through `host_buffer`.
+ *
+ * @param comm  the communicator
+ * @param values  the values to reduce, stored contiguously (stride equal to
+ *                the number of columns)
+ * @param host_buffer  the host buffer used if necessary
+ */
+template <typename ValueType>
+void all_reduce_sum(const experimental::mpi::communicator& comm,
+                    matrix::Dense<ValueType>* values,
+                    const DenseCache<ValueType>& host_buffer)
+{
+    GKO_ASSERT(values->get_stride() == values->get_size()[1] ||
+               values->get_size()[0] <= 1);
+    auto exec = values->get_executor();
+    const auto count =
+        static_cast<int>(values->get_size()[0] * values->get_size()[1]);
+    auto sum_op = experimental::mpi::sum<ValueType>();
+    exec->synchronize();
+    if (experimental::mpi::requires_host_buffer(exec, comm)) {
+        host_buffer.init(exec->get_master(), values->get_size());
+        host_buffer->copy_from(values);
+        comm.all_reduce(exec->get_master(), host_buffer->get_values(), count,
+                        sum_op.get_op());
+        values->copy_from(host_buffer.get());
+    } else {
+        comm.all_reduce(exec, values->get_values(), count, sum_op.get_op());
+    }
 }
 
 

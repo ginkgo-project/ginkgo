@@ -20,7 +20,6 @@
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
-#include "core/mpi/mpi_op.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
@@ -103,8 +102,11 @@ std::unique_ptr<LinOp> Gmres<ValueType>::transpose() const
 {
     return build()
         .with_generated_preconditioner(
-            share(as<Transposable>(this->get_preconditioner())->transpose()))
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(false))
+        .with_left_nullspace(this->get_transposed_left_nullspace(false))
         .with_krylov_dim(this->get_krylov_dim())
         .with_restart_ratio(this->get_restart_ratio())
         .with_flexible(this->get_parameters().flexible)
@@ -118,9 +120,12 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 {
     return build()
-        .with_generated_preconditioner(share(
-            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(true))
+        .with_left_nullspace(this->get_transposed_left_nullspace(true))
         .with_krylov_dim(this->get_krylov_dim())
         .with_restart_ratio(this->get_restart_ratio())
         .with_flexible(this->get_parameters().flexible)
@@ -198,29 +203,16 @@ void finish_reduce(matrix::Dense<ValueType>* hessenberg_iter,
                    experimental::distributed::Vector<ValueType>* next_krylov,
                    const size_type num_rhs, const size_type restart_iter)
 {
-    auto exec = hessenberg_iter->get_executor();
     const auto comm = next_krylov->get_communicator();
-    exec->synchronize();
     // hessenberg_iter is the size of all non-zeros for this iteration, but we
     // are not setting the last values for each rhs here. Values that would be
     // below the diagonal in the "full" matrix are skipped, because they will
     // be used to hold the norm of next_krylov for each rhs.
     auto hessenberg_reduce = hessenberg_iter->create_submatrix(
         span{0, restart_iter + 1}, span{0, num_rhs});
-    int message_size = static_cast<int>((restart_iter + 1) * num_rhs);
-    auto sum_op = gko::experimental::mpi::sum<ValueType>();
-    if (experimental::mpi::requires_host_buffer(exec, comm)) {
-        ::gko::detail::DenseCache<ValueType> host_reduction_buffer;
-        host_reduction_buffer.init(exec->get_master(),
-                                   hessenberg_reduce->get_size());
-        host_reduction_buffer->copy_from(hessenberg_reduce);
-        comm.all_reduce(exec->get_master(), host_reduction_buffer->get_values(),
-                        message_size, sum_op.get_op());
-        hessenberg_reduce->copy_from(host_reduction_buffer.get());
-    } else {
-        comm.all_reduce(exec, hessenberg_reduce->get_values(), message_size,
-                        sum_op.get_op());
-    }
+    ::gko::detail::DenseCache<ValueType> host_reduction_buffer;
+    ::gko::detail::all_reduce_sum(comm, hessenberg_reduce.get(),
+                                  host_reduction_buffer);
 }
 #endif
 
@@ -342,6 +334,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b =
+        this->get_consistent_rhs(dense_b, workspace_traits<Gmres>::proj_rhs);
     const auto is_flexible = this->get_parameters().flexible;
     const auto num_rows = this->get_size()[0];
     const auto local_num_rows =
@@ -470,6 +465,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         stop_status.get_data()));
     // residual = residual - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
+    // A annihilates N(A), so removing it from x keeps the residual unchanged
+    this->project_nullspace(dense_x);
 
     // residual_norm = norm(residual)
     residual->compute_norm2(residual_norm, reduction_tmp);
@@ -735,7 +732,7 @@ int workspace_traits<Gmres<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Gmres<ValueType>>::num_vectors(const Solver&)
 {
-    return 16;
+    return 17;
 }
 
 
@@ -758,7 +755,8 @@ std::vector<std::string> workspace_traits<Gmres<ValueType>>::op_names(
             "one",
             "minus_one",
             "next_krylov_norm_tmp",
-            "preconditioned_krylov_bases"};
+            "preconditioned_krylov_bases",
+            "proj_rhs"};
 }
 
 
@@ -787,7 +785,8 @@ std::vector<int> workspace_traits<Gmres<ValueType>>::vectors(const Solver&)
             krylov_bases,
             before_preconditioner,
             after_preconditioner,
-            preconditioned_krylov_bases};
+            preconditioned_krylov_bases,
+            proj_rhs};
 }
 
 

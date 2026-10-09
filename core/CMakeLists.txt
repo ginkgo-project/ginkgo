@@ -106,6 +106,7 @@ target_sources(
         preconditioner/ilu.cpp
         preconditioner/isai.cpp
         preconditioner/jacobi.cpp
+        preconditioner/nullspace_projection.cpp
         preconditioner/sor.cpp
         reorder/amd.cpp
         reorder/mc64.cpp
@@ -128,6 +129,7 @@ target_sources(
         solver/lower_trs.cpp
         solver/minres.cpp
         solver/multigrid.cpp
+        solver/nullspace.cpp
         solver/pipe_cg.cpp
         solver/upper_trs.cpp
         stop/combined.cpp

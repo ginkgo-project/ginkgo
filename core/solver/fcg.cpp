@@ -51,8 +51,11 @@ std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
 {
     return build()
         .with_generated_preconditioner(
-            share(as<Transposable>(this->get_preconditioner())->transpose()))
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(false))
+        .with_left_nullspace(this->get_transposed_left_nullspace(false))
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -63,9 +66,12 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 {
     return build()
-        .with_generated_preconditioner(share(
-            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(true))
+        .with_left_nullspace(this->get_transposed_left_nullspace(true))
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -98,6 +104,9 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b =
+        this->get_consistent_rhs(dense_b, workspace_traits<Fcg>::proj_rhs);
 
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);
@@ -132,6 +141,8 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         rho_t->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // A annihilates N(A), so removing it from x keeps r unchanged
+    this->project_nullspace(dense_x);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -221,7 +232,7 @@ int workspace_traits<Fcg<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Fcg<ValueType>>::num_vectors(const Solver&)
 {
-    return 11;
+    return 12;
 }
 
 
@@ -231,7 +242,7 @@ std::vector<std::string> workspace_traits<Fcg<ValueType>>::op_names(
 {
     return {
         "r",        "z",   "p",     "q",   "t",         "beta",
-        "prev_rho", "rho", "rho_t", "one", "minus_one",
+        "prev_rho", "rho", "rho_t", "one", "minus_one", "proj_rhs",
     };
 }
 
@@ -254,7 +265,7 @@ std::vector<int> workspace_traits<Fcg<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Fcg<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, p, q, t};
+    return {r, z, p, q, t, proj_rhs};
 }
 
 

@@ -133,6 +133,14 @@ protected:
 
 
 template <typename ValueType>
+struct nullspace_traits<Bicgstab<ValueType>> {
+    static constexpr bool is_supported = true;
+    static constexpr bool requires_hermitian = false;
+    static constexpr bool two_sided_projection = false;
+};
+
+
+template <typename ValueType>
 struct workspace_traits<Bicgstab<ValueType>> {
     using Solver = Bicgstab<ValueType>;
     // number of vectors used by this workspace
@@ -180,6 +188,8 @@ struct workspace_traits<Bicgstab<ValueType>> {
     constexpr static int one = 14;
     // constant -1.0 scalar
     constexpr static int minus_one = 15;
+    // right-hand side projected onto the range of the system matrix
+    constexpr static int proj_rhs = 16;
 
     // stopping status array
     constexpr static int stop = 0;
