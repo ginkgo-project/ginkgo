@@ -868,10 +868,10 @@ public:
         if (system_matrix) {
             auto exec = get_solver_executor();
             nullspace_ = detail::prepare_nullspace<ValueType>(
-                params.nullspace, "nullspace", system_matrix->get_size()[1],
-                exec);
+                params.nullspace, "nullspace", system_matrix.get(),
+                system_matrix->get_size()[1], exec);
             left_nullspace_ = detail::prepare_nullspace<ValueType>(
-                params.left_nullspace, "left_nullspace",
+                params.left_nullspace, "left_nullspace", system_matrix.get(),
                 system_matrix->get_size()[0], exec);
         }
         if (traits::requires_hermitian) {
@@ -949,18 +949,37 @@ public:
     /**
      * Sets the preconditioner. If a nullspace is set, the preconditioner is
      * wrapped in a preconditioner::NullspaceProjection, unless it already is
-     * one.
+     * one that removes the nullspace (and, for solvers projecting on both
+     * sides, the left nullspace).
      */
     void set_preconditioner(std::shared_ptr<const LinOp> new_precond) override
     {
         if (new_precond && nullspace_ &&
-            !dynamic_cast<
-                const ::gko::preconditioner::NullspaceProjection<ValueType>*>(
-                new_precond.get())) {
+            !removes_nullspaces(new_precond.get())) {
             new_precond = project_preconditioner(std::move(new_precond));
         }
         EnablePreconditionable<DerivedType>::set_preconditioner(
             std::move(new_precond));
+    }
+
+    /**
+     * @return the preconditioner without its nullspace projection: if a
+     *         nullspace is set, the preconditioner wrapped by
+     *         get_preconditioner(), which is a
+     *         preconditioner::NullspaceProjection, otherwise
+     *         get_preconditioner() itself.
+     */
+    std::shared_ptr<const LinOp> get_unprojected_preconditioner() const
+    {
+        auto precond = this->get_preconditioner();
+        if (nullspace_) {
+            if (auto projection = std::dynamic_pointer_cast<
+                    const ::gko::preconditioner::NullspaceProjection<
+                        ValueType>>(precond)) {
+                return projection->get_preconditioner();
+            }
+        }
+        return precond;
     }
 
 protected:
@@ -1002,23 +1021,6 @@ protected:
     }
 
     /**
-     * @return the preconditioner without the nullspace projection added by
-     *         the solver, e.g. for creating the transposed solver.
-     */
-    std::shared_ptr<const LinOp> get_unprojected_preconditioner() const
-    {
-        auto precond = this->get_preconditioner();
-        if (nullspace_) {
-            if (auto projection = std::dynamic_pointer_cast<
-                    const ::gko::preconditioner::NullspaceProjection<
-                        ValueType>>(precond)) {
-                return projection->get_preconditioner();
-            }
-        }
-        return precond;
-    }
-
-    /**
      * @return the right nullspace to use for the (conjugate) transposed
      *         solver, which is the left nullspace of this one.
      */
@@ -1040,6 +1042,17 @@ protected:
     }
 
 private:
+    // whether precond already removes the nullspaces this solver needs removed
+    bool removes_nullspaces(const LinOp* precond) const
+    {
+        auto projection = dynamic_cast<
+            const ::gko::preconditioner::NullspaceProjection<ValueType>*>(
+            precond);
+        return projection && projection->get_nullspace() &&
+               (!nullspace_traits<DerivedType>::two_sided_projection ||
+                !left_nullspace_ || projection->get_left_nullspace());
+    }
+
     // N(A^T) is the complex conjugate of N(A^H), which would need a
     // conjugated basis, so only the conjugate transpose supports complex
     // nullspaces.
@@ -1136,13 +1149,20 @@ struct enable_preconditioned_iterative_solver_factory_parameters
      * Nullspace<ValueType>. When set, the solver removes the \f$ N(A) \f$
      * component from the initial guess, and wraps its preconditioner in a
      * preconditioner::NullspaceProjection, which removes it from every
-     * preconditioned vector. This converges to the minimum-norm solution. The
-     * solver's get_preconditioner() then returns the wrapper.
+     * preconditioned vector. For a consistent system, i.e. a right-hand side
+     * in \f$ \mathrm{range}(A) \f$, this converges to the minimum-norm
+     * solution. Otherwise, `left_nullspace` needs to be set as well: Hermitian
+     * solvers (Cg, Fcg, Minres) use the nullspace as left nullspace by
+     * default, while Gmres and Bicgstab without it stagnate or diverge. The
+     * solver's get_preconditioner() then returns the wrapper, and
+     * get_unprojected_preconditioner() the wrapped preconditioner.
      *
      * Supported by the solvers specializing nullspace_traits (Cg, Fcg, Minres,
      * Gmres, Bicgstab); other solvers throw NotSupported. A constant-only
-     * nullspace is adapted to the size of the system matrix, other
-     * nullspaces need to match it. By default, none.
+     * nullspace is adapted to the size and value type of the system matrix,
+     * other nullspaces need to match them. For complex value types, the
+     * solver's transpose() throws NotSupported when a nullspace is set, while
+     * conj_transpose() is supported. By default, none.
      */
     std::shared_ptr<const LinOp> GKO_FACTORY_PARAMETER_SCALAR(nullspace,
                                                               nullptr);

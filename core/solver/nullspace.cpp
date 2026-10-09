@@ -111,6 +111,31 @@ matrix::view::dense<const ValueType> basis_view(
 }
 
 
+enum class vector_kind { unsupported, dense, distributed };
+
+
+template <typename ValueType>
+vector_kind get_vector_kind(const LinOp* vec)
+{
+    if (dynamic_cast<const matrix::Dense<ValueType>*>(vec)) {
+        return vector_kind::dense;
+    }
+#if GINKGO_BUILD_MPI
+    if (dynamic_cast<const experimental::distributed::Vector<ValueType>*>(
+            vec)) {
+        return vector_kind::distributed;
+    }
+#endif
+    return vector_kind::unsupported;
+}
+
+
+std::string type_name_of(const LinOp* obj)
+{
+    return name_demangling::get_type_name(typeid(*obj));
+}
+
+
 }  // anonymous namespace
 
 
@@ -123,6 +148,20 @@ std::unique_ptr<Nullspace<ValueType>> Nullspace<ValueType>::create(
         GKO_INVALID_STATE(
             "Nullspace::create needs a non-empty basis, use "
             "create_from_constant for a constant-only nullspace");
+    }
+    for (const auto& vec : basis) {
+        if (!vec) {
+            GKO_INVALID_STATE("Nullspace::create got a null basis entry");
+        }
+        const auto kind = get_vector_kind<ValueType>(vec.get());
+        if (kind == vector_kind::unsupported ||
+            kind != get_vector_kind<ValueType>(basis[0].get())) {
+            // all entries need to be Dense or all distributed vectors
+            throw NotSupported(__FILE__, __LINE__,
+                               "Nullspace::create with a basis entry of type " +
+                                   type_name_of(basis[0].get()),
+                               type_name_of(vec.get()));
+        }
     }
     const auto n = basis[0]->get_size()[0];
     return std::unique_ptr<Nullspace>(new Nullspace(
@@ -266,14 +305,17 @@ void Nullspace<ValueType>::setup_basis(
 template <typename ValueType>
 void Nullspace<ValueType>::project(ptr_param<LinOp> v) const
 {
-    gko::detail::vector_dispatch<ValueType>(v.get(), [&](auto vec) {
-        if (vec == nullptr) {
-            GKO_NOT_SUPPORTED(v.get());
-        }
-        GKO_ASSERT_EQUAL_ROWS(vec, this);
-        this->remove_components(vec, this->get_local_basis(vec),
-                                contains_constant_);
-    });
+    // v is passed as input and output to convert it like apply does
+    experimental::precision_dispatch_real_complex_distributed<ValueType>(
+        [this](auto, auto dense_v) {
+            // a constant-only nullspace without size projects any size
+            if (basis_ || this->get_size()[0] > 0) {
+                GKO_ASSERT_EQUAL_ROWS(dense_v, this);
+            }
+            this->remove_components(dense_v, this->get_local_basis(dense_v),
+                                    contains_constant_);
+        },
+        v.get(), v.get());
 }
 
 
@@ -288,7 +330,10 @@ const matrix::Dense<ValueType>* Nullspace<ValueType>::get_local_basis(
     auto basis = dynamic_cast<const VectorType*>(basis_.get());
     if (basis == nullptr) {
         // e.g. a non-distributed basis applied to a distributed vector
-        GKO_NOT_SUPPORTED(v);
+        throw NotSupported(
+            __FILE__, __LINE__,
+            "Nullspace with a basis of type " + type_name_of(basis_.get()),
+            type_name_of(v));
     }
     return gko::detail::get_local(basis);
 }
@@ -308,8 +353,8 @@ void Nullspace<ValueType>::compute_components(
     if (basis_local) {
         GKO_ASSERT_EQUAL_ROWS(v_local, basis_local);
     }
-    const auto inv_size = static_cast<absolute_type>(
-        1.0 / static_cast<double>(this->get_size()[0]));
+    const auto inv_size =
+        static_cast<absolute_type>(1.0 / static_cast<double>(v->get_size()[0]));
     // coefficients = [ mean(v) ; V^H v ] in one pass over v, then combined
     // over all ranks with a single all-reduce
     coefficients_.init(exec, dim<2>{num_const + num_basis, v->get_size()[1]});
@@ -447,32 +492,62 @@ Nullspace<ValueType>::Nullspace(Nullspace&& other)
 
 
 namespace detail {
+namespace {
+
+
+template <typename... Types>
+bool is_constant_only(const LinOp* param)
+{
+    return (... || [param] {
+        auto ns = dynamic_cast<const Nullspace<Types>*>(param);
+        return ns && ns->contains_constant() && !ns->get_basis();
+    }());
+}
+
+
+// whether `param` is a constant-only Nullspace of any value type
+template <typename ValueType>
+bool is_constant_only_nullspace(const LinOp* param)
+{
+    using real = remove_complex<ValueType>;
+    using real1 = next_precision<real, 1>;
+    using real2 = next_precision<real, 2>;
+    using real3 = next_precision<real, 3>;
+    return is_constant_only<real, real1, real2, real3, to_complex<real>,
+                            to_complex<real1>, to_complex<real2>,
+                            to_complex<real3>>(param);
+}
+
+
+}  // anonymous namespace
 
 
 template <typename ValueType>
 std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
-    std::shared_ptr<const LinOp> param, const char* name, size_type size,
-    std::shared_ptr<const Executor> exec)
+    std::shared_ptr<const LinOp> param, const char* name, const LinOp* op,
+    size_type size, std::shared_ptr<const Executor> exec)
 {
     if (!param) {
         return nullptr;
     }
+    if (is_constant_only_nullspace<ValueType>(param.get())) {
+        // the constant does not depend on the size or value type
+        return Nullspace<ValueType>::create_from_constant(exec,
+                                                          dim<2>{size, size});
+    }
     auto ns = std::dynamic_pointer_cast<const Nullspace<ValueType>>(param);
     if (!ns) {
-        const LinOp& param_obj = *param;
         throw InvalidStateError(
             __FILE__, __LINE__, __func__,
             std::string{"the "} + name + " parameter must be a " +
                 name_demangling::get_type_name(typeid(Nullspace<ValueType>)) +
-                " matching the value type of the operator, got " +
-                name_demangling::get_type_name(typeid(param_obj)));
+                " matching the value type of the operator, or a "
+                "constant-only Nullspace, got " +
+                type_name_of(param.get()));
     }
-    if (!ns->get_basis() && ns->get_size()[0] != size) {
-        // a constant-only nullspace is adapted to the size of the operator
-        return ns->contains_constant()
-                   ? Nullspace<ValueType>::create_from_constant(
-                         exec, dim<2>{size, size})
-                   : nullptr;
+    if (!ns->get_basis()) {
+        // all basis vectors were dropped, there is nothing to remove
+        return nullptr;
     }
     if (ns->get_size()[0] != size) {
         throw DimensionMismatch(__FILE__, __LINE__, __func__, name,
@@ -480,17 +555,24 @@ std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
                                 "system_matrix", size, size,
                                 "expected a nullspace of matching size");
     }
-    if (ns->get_executor() != exec) {
-        return gko::clone(exec, ns);
+    if (gko::detail::is_distributed(op) &&
+        !gko::detail::is_distributed(ns->get_basis().get())) {
+        throw InvalidStateError(
+            __FILE__, __LINE__, __func__,
+            std::string{"the "} + name +
+                " of a distributed operator needs a distributed basis, got " +
+                type_name_of(ns->get_basis().get()));
     }
-    return ns;
+    // a separate copy keeps the scratch buffers of operators generated from
+    // the same parameter apart
+    return gko::clone(exec, ns);
 }
 
 
-#define GKO_DECLARE_PREPARE_NULLSPACE(ValueType)                              \
-    std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace<ValueType>( \
-        std::shared_ptr<const LinOp> param, const char* name, size_type size, \
-        std::shared_ptr<const Executor> exec)
+#define GKO_DECLARE_PREPARE_NULLSPACE(ValueType)                               \
+    std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace<ValueType>(  \
+        std::shared_ptr<const LinOp> param, const char* name, const LinOp* op, \
+        size_type size, std::shared_ptr<const Executor> exec)
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PREPARE_NULLSPACE);
 
 
