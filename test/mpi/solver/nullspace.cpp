@@ -257,12 +257,15 @@ TEST_F(NullspaceDistributed, ExplicitBasisOfDisconnectedGraph)
 }
 
 
-TEST_F(NullspaceDistributed, NonDistributedBasisRejectsDistributedVector)
+TEST_F(NullspaceDistributed, RejectsNonDistributedBasis)
 {
-    auto nullspace = Nullspace::create(
+    auto mtx = laplacian({5, 4});
+    auto nullspace = gko::share(Nullspace::create(
         exec, {gko::share(gko::initialize<dense>(
-                  {1., 1., 1., 1., 1., 0., 0., 0., 0.}, exec))});
+                  {1., 1., 1., 1., 1., 0., 0., 0., 0.}, exec))}));
     auto v = distributed(x_star);
 
     ASSERT_THROW(nullspace->project(v), gko::NotSupported);
+    ASSERT_THROW(factory("cg", nullspace, nullspace)->generate(mtx),
+                 gko::InvalidStateError);
 }

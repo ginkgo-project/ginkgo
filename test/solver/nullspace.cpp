@@ -7,8 +7,12 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/nullspace.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
@@ -17,7 +21,10 @@
 class Nullspace : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Dense<value_type>;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
     using NullspaceType = gko::solver::Nullspace<value_type>;
+    using Cg = gko::solver::Cg<value_type>;
+    using Jacobi = gko::preconditioner::Jacobi<value_type, index_type>;
 
     Nullspace() : rand_engine(42) {}
 
@@ -30,6 +37,23 @@ protected:
             std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
         auto result = Mtx::create(ref, gko::dim<2>{num_rows, num_cols}, stride);
         result->copy_from(tmp_mtx);
+        return result;
+    }
+
+    // Neumann Laplacian of a path with varying edge weights
+    std::shared_ptr<Csr> laplacian(index_type n)
+    {
+        gko::matrix_data<value_type, index_type> data(gko::dim<2>(n, n));
+        for (index_type i = 0; i + 1 < n; ++i) {
+            const value_type w = 1.0 + i % 3;
+            data.nonzeros.emplace_back(i, i + 1, -w);
+            data.nonzeros.emplace_back(i + 1, i, -w);
+            data.nonzeros.emplace_back(i, i, w);
+            data.nonzeros.emplace_back(i + 1, i + 1, w);
+        }
+        data.sum_duplicates();
+        auto result = gko::share(Csr::create(ref));
+        result->read(data);
         return result;
     }
 
@@ -107,4 +131,31 @@ TEST_F(Nullspace, OutOfPlaceProjectionIsEquivalentToRef)
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 10 * r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_b, b, 0.0);
+}
+
+
+TEST_F(Nullspace, SolverIsEquivalentToRef)
+{
+    const gko::size_type n = 100;
+    auto mtx = laplacian(n);
+    auto d_mtx = gko::share(gko::clone(exec, mtx));
+    auto ns = gko::share(NullspaceType::create_from_constant(ref));
+    auto build = [&](std::shared_ptr<const gko::Executor> solver_exec) {
+        return Cg::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(30u))
+            .with_preconditioner(Jacobi::build().with_max_block_size(1u))
+            .with_nullspace(ns)
+            .on(solver_exec);
+    };
+    auto solver = build(ref)->generate(mtx);
+    auto d_solver = build(exec)->generate(d_mtx);
+    auto b = gen_mtx(n, 3, 3);
+    auto x = gen_mtx(n, 3, 3);
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
+
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1000 * r<value_type>::value);
 }

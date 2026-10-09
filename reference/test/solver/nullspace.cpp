@@ -144,25 +144,55 @@ TYPED_TEST(Nullspace, ProjectRemovesComponentAlongBasis)
 }
 
 
-TYPED_TEST(Nullspace, ConstantProjectionRemovesMean)
+TYPED_TEST(Nullspace, ConstantProjectionRemovesMeanOfAnySize)
 {
     using vec = typename TestFixture::vec;
     using value_type = typename TestFixture::value_type;
-    auto ns = gko::solver::Nullspace<value_type>::create_from_constant(
-        this->exec, gko::dim<2>{4, 4});
-    auto v = gko::initialize<vec>(
+    auto ns =
+        gko::solver::Nullspace<value_type>::create_from_constant(this->exec);
+    auto v3 = gko::initialize<vec>(
+        {value_type{1}, value_type{2}, value_type{6}}, this->exec);
+    auto v4 = gko::initialize<vec>(
         {value_type{1}, value_type{2}, value_type{3}, value_type{6}},
         this->exec);
 
-    ns->project(v);
+    ns->project(v3);
+    ns->project(v4);
 
     ASSERT_TRUE(ns->contains_constant());
     ASSERT_EQ(ns->get_dimension(), gko::size_type{1});
-    GKO_ASSERT_MTX_NEAR(v,
+    GKO_ASSERT_MTX_NEAR(
+        v3,
+        gko::initialize<vec>({value_type{-2}, value_type{-1}, value_type{3}},
+                             this->exec),
+        r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(v4,
                         gko::initialize<vec>({value_type{-2}, value_type{-1},
                                               value_type{0}, value_type{3}},
                                              this->exec),
                         r<value_type>::value);
+}
+
+
+TYPED_TEST(Nullspace, ProjectConvertsPrecision)
+{
+    using value_type = typename TestFixture::value_type;
+    using other_type = gko::next_precision<value_type>;
+    using other_vec = gko::matrix::Dense<other_type>;
+    auto ns = gko::solver::Nullspace<value_type>::create_from_constant(
+        this->exec, gko::dim<2>{4, 4});
+    auto v = gko::initialize<other_vec>(
+        {other_type{1}, other_type{2}, other_type{3}, other_type{6}},
+        this->exec);
+
+    ns->project(v);
+
+    GKO_ASSERT_MTX_NEAR(
+        v,
+        gko::initialize<other_vec>(
+            {other_type{-2}, other_type{-1}, other_type{0}, other_type{3}},
+            this->exec),
+        r<value_type>::value);
 }
 
 
@@ -412,32 +442,21 @@ TYPED_TEST(Nullspace, ThrowsOnRowMismatch)
 }
 
 
-TYPED_TEST(Nullspace, ThrowsOnEmptyBasis)
+TYPED_TEST(Nullspace, ThrowsOnInvalidBasis)
 {
     using value_type = typename TestFixture::value_type;
-
-    ASSERT_THROW(gko::solver::Nullspace<value_type>::create(this->exec, {}),
-                 gko::InvalidStateError);
-}
-
-
-TYPED_TEST(Nullspace, CloneProjectsLikeOriginal)
-{
-    using value_type = typename TestFixture::value_type;
+    using NullspaceType = gko::solver::Nullspace<value_type>;
     const auto o = gko::one<value_type>();
-    const auto z = gko::zero<value_type>();
-    auto ns = gko::solver::Nullspace<value_type>::create(
-        this->exec, {this->col({o, -o, z, z})}, true);
-    auto cloned = gko::clone(ns);
-    auto v1 = this->test_vector(4, 2);
-    auto v2 = gko::clone(v1);
+    auto csr = gko::share(gko::matrix::Csr<value_type, int>::create(
+        this->exec, gko::dim<2>{2, 1}));
 
-    ns->project(v1);
-    cloned->project(v2);
-
-    ASSERT_EQ(cloned->get_dimension(), ns->get_dimension());
-    ASSERT_EQ(cloned->contains_constant(), ns->contains_constant());
-    GKO_ASSERT_MTX_NEAR(v1, v2, 0.0);
+    ASSERT_THROW(NullspaceType::create(this->exec, {}), gko::InvalidStateError);
+    ASSERT_THROW(NullspaceType::create(this->exec, {nullptr}),
+                 gko::InvalidStateError);
+    ASSERT_THROW(
+        NullspaceType::create(this->exec, {this->col({o, o}), nullptr}),
+        gko::InvalidStateError);
+    ASSERT_THROW(NullspaceType::create(this->exec, {csr}), gko::NotSupported);
 }
 
 
@@ -478,7 +497,7 @@ TYPED_TEST(Nullspace, HermitianSolverUsesNullspaceAsLeftNullspace)
                      .on(this->exec)
                      ->generate(mtx);
 
-    ASSERT_EQ(cg->get_left_nullspace(), ns);
+    ASSERT_EQ(cg->get_left_nullspace(), cg->get_nullspace());
     ASSERT_EQ(gmres->get_left_nullspace(), nullptr);
 }
 
@@ -514,46 +533,89 @@ TYPED_TEST(Nullspace, SolverWrapsPreconditionerInProjection)
     auto cg_projection = gko::as<Projection>(cg->get_preconditioner());
     auto minres_projection = gko::as<Projection>(minres->get_preconditioner());
     ASSERT_EQ(cg_projection->get_preconditioner(), jacobi);
-    ASSERT_EQ(cg_projection->get_nullspace(), ns);
+    ASSERT_EQ(cg->get_unprojected_preconditioner(), jacobi);
+    ASSERT_TRUE(cg_projection->get_nullspace()->contains_constant());
     ASSERT_EQ(cg_projection->get_left_nullspace(), nullptr);
-    ASSERT_EQ(minres_projection->get_nullspace(), ns);
-    ASSERT_EQ(minres_projection->get_left_nullspace(), ns);
+    ASSERT_TRUE(minres_projection->get_nullspace()->contains_constant());
+    ASSERT_TRUE(minres_projection->get_left_nullspace()->contains_constant());
 }
 
 
-TYPED_TEST(Nullspace, SetPreconditionerKeepsProjection)
+TYPED_TEST(Nullspace, SolverWrapsProjectionMissingItsNullspaces)
 {
     using value_type = typename TestFixture::value_type;
     using Projection = gko::preconditioner::NullspaceProjection<value_type>;
     auto mtx = this->laplacian(4);
-    auto ns =
-        gko::share(gko::solver::Nullspace<value_type>::create_from_constant(
-            this->exec, mtx->get_size()));
+    auto ns = gko::share(
+        gko::solver::Nullspace<value_type>::create_from_constant(this->exec));
+    auto unprojected =
+        gko::share(Projection::build().on(this->exec)->generate(mtx));
+    auto one_sided = gko::share(
+        Projection::build().with_nullspace(ns).on(this->exec)->generate(mtx));
+    auto criterion = gko::stop::Iteration::build().with_max_iters(1u);
+    auto cg_factory = gko::solver::Cg<value_type>::build()
+                          .with_criteria(criterion)
+                          .with_nullspace(ns)
+                          .on(this->exec);
+    auto minres_factory = gko::solver::Minres<value_type>::build()
+                              .with_criteria(criterion)
+                              .with_nullspace(ns)
+                              .on(this->exec);
+    auto cg = cg_factory->generate(mtx);
+    auto minres = minres_factory->generate(mtx);
+
+    cg->set_preconditioner(unprojected);
+    auto cg_unprojected = cg->get_preconditioner();
+    cg->set_preconditioner(one_sided);
+    auto cg_one_sided = cg->get_preconditioner();
+    minres->set_preconditioner(one_sided);
+    auto minres_one_sided = minres->get_preconditioner();
+
+    ASSERT_EQ(gko::as<Projection>(cg_unprojected)->get_preconditioner(),
+              unprojected);
+    ASSERT_EQ(cg_one_sided, one_sided);
+    ASSERT_EQ(gko::as<Projection>(minres_one_sided)->get_preconditioner(),
+              one_sided);
+    ASSERT_NE(gko::as<Projection>(minres_one_sided)->get_left_nullspace(),
+              nullptr);
+}
+
+
+TYPED_TEST(Nullspace, SetPreconditionerWrapsItOnSolverExecutor)
+{
+    using value_type = typename TestFixture::value_type;
+    using Projection = gko::preconditioner::NullspaceProjection<value_type>;
+    auto other_exec = gko::ReferenceExecutor::create();
+    auto mtx = this->laplacian(4);
     auto jacobi =
         gko::share(gko::preconditioner::Jacobi<value_type, int>::build()
                        .with_max_block_size(1u)
-                       .on(this->exec)
+                       .on(other_exec)
                        ->generate(mtx));
     auto solver =
         gko::solver::Cg<value_type>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
-            .with_nullspace(ns)
+            .with_nullspace(gko::share(
+                gko::solver::Nullspace<value_type>::create_from_constant(
+                    this->exec)))
             .on(this->exec)
             ->generate(mtx);
 
     solver->set_preconditioner(jacobi);
 
     auto projection = gko::as<Projection>(solver->get_preconditioner());
-    ASSERT_EQ(projection->get_preconditioner(), jacobi);
-    ASSERT_EQ(projection->get_nullspace(), ns);
+    ASSERT_TRUE(projection->get_nullspace()->contains_constant());
+    ASSERT_EQ(projection->get_executor(), this->exec);
+    ASSERT_EQ(projection->get_preconditioner()->get_executor(), this->exec);
 }
 
 
-TYPED_TEST(Nullspace, SolverAdaptsConstantNullspaceToMatrixSize)
+TYPED_TEST(Nullspace, SolverAdaptsConstantNullspaceToMatrix)
 {
     using value_type = typename TestFixture::value_type;
+    using other_type = gko::to_complex<gko::next_precision<value_type>>;
     auto ns = gko::share(
-        gko::solver::Nullspace<value_type>::create_from_constant(this->exec));
+        gko::solver::Nullspace<other_type>::create_from_constant(this->exec));
     auto factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -586,16 +648,16 @@ TYPED_TEST(Nullspace, SolverRejectsBasisOfWrongSize)
 }
 
 
-TYPED_TEST(Nullspace, SolverRejectsNullspaceOfOtherValueType)
+TYPED_TEST(Nullspace, SolverRejectsBasisOfOtherValueType)
 {
     using value_type = typename TestFixture::value_type;
-    using other_type =
-        std::conditional_t<std::is_same<value_type, double>::value, float,
-                           double>;
+    using other_type = gko::next_precision<value_type>;
+    const auto o = gko::one<other_type>();
+    const auto z = gko::zero<other_type>();
     auto mtx = this->laplacian(4);
-    auto ns =
-        gko::share(gko::solver::Nullspace<other_type>::create_from_constant(
-            this->exec, mtx->get_size()));
+    auto ns = gko::share(gko::solver::Nullspace<other_type>::create(
+        this->exec, {gko::share(gko::initialize<gko::matrix::Dense<other_type>>(
+                        {o, o, z, z}, this->exec))}));
     auto factory =
         gko::solver::Cg<value_type>::build()
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
@@ -603,6 +665,31 @@ TYPED_TEST(Nullspace, SolverRejectsNullspaceOfOtherValueType)
             .on(this->exec);
 
     ASSERT_THROW(factory->generate(mtx), gko::InvalidStateError);
+}
+
+
+TYPED_TEST(Nullspace, SolversShareOnlyTheBasis)
+{
+    using value_type = typename TestFixture::value_type;
+    const auto o = gko::one<value_type>();
+    const auto z = gko::zero<value_type>();
+    auto mtx = this->laplacian(4);
+    auto ns = gko::share(gko::solver::Nullspace<value_type>::create(
+        this->exec, {this->col({o, -o, z, z})}, true));
+    auto factory =
+        gko::solver::Cg<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .with_nullspace(ns)
+            .on(this->exec);
+
+    auto solver1 = factory->generate(mtx);
+    auto solver2 = factory->generate(mtx);
+
+    ASSERT_NE(solver1->get_nullspace(), ns);
+    ASSERT_NE(solver1->get_nullspace(), solver2->get_nullspace());
+    ASSERT_EQ(solver1->get_nullspace()->get_basis(), ns->get_basis());
+    ASSERT_EQ(solver2->get_nullspace()->get_basis(), ns->get_basis());
+    ASSERT_TRUE(solver1->get_nullspace()->contains_constant());
 }
 
 
@@ -649,14 +736,15 @@ TYPED_TEST(Nullspace, TransposedSolverSwapsNullspaces)
 
     auto conj_trans = gko::as<Gmres>(solver->conj_transpose());
 
-    ASSERT_EQ(conj_trans->get_nullspace(), left);
-    ASSERT_EQ(conj_trans->get_left_nullspace(), right);
+    ASSERT_TRUE(conj_trans->get_nullspace()->contains_constant());
+    ASSERT_EQ(conj_trans->get_left_nullspace()->get_basis(),
+              right->get_basis());
     if (gko::is_complex<value_type>()) {
         ASSERT_THROW(solver->transpose(), gko::NotSupported);
     } else {
         auto trans = gko::as<Gmres>(solver->transpose());
-        ASSERT_EQ(trans->get_nullspace(), left);
-        ASSERT_EQ(trans->get_left_nullspace(), right);
+        ASSERT_TRUE(trans->get_nullspace()->contains_constant());
+        ASSERT_EQ(trans->get_left_nullspace()->get_basis(), right->get_basis());
     }
 }
 

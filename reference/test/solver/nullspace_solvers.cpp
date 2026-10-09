@@ -168,7 +168,14 @@ TYPED_TEST_SUITE(NullspaceSolvers, gko::test::ValueTypes,
 
 TYPED_TEST(NullspaceSolvers, GivesMinimumNormLeastSquaresSolution)
 {
+    using vec = typename TestFixture::vec;
     using value_type = typename TestFixture::value_type;
+    const auto n = this->mtx->get_size()[0];
+    auto x_star = vec::create(this->exec, gko::dim<2>{n, 2});
+    for (gko::size_type i = 0; i < n; ++i) {
+        x_star->at(i, 0) = this->x_star->at(i, 0);
+        x_star->at(i, 1) = this->x_star2->at(i, 0);
+    }
     for (const bool consistent : {true, false}) {
         SCOPED_TRACE(consistent ? "consistent" : "inconsistent");
         for (const auto& name : this->solvers) {
@@ -178,14 +185,14 @@ TYPED_TEST(NullspaceSolvers, GivesMinimumNormLeastSquaresSolution)
             auto logger =
                 gko::share(gko::log::Convergence<value_type>::create());
             solver->add_logger(logger);
-            auto b = this->rhs(this->mtx.get(), this->x_star.get(),
+            auto b = this->rhs(this->mtx.get(), x_star.get(),
                                consistent ? value_type{0} : value_type{3});
-            auto x = this->initial_guess(1);
+            auto x = this->initial_guess(2);
 
             solver->apply(b, x);
 
             ASSERT_TRUE(logger->has_converged());
-            GKO_ASSERT_MTX_NEAR(x, this->x_star, this->tol);
+            GKO_ASSERT_MTX_NEAR(x, x_star, this->tol);
         }
     }
 }
@@ -278,30 +285,6 @@ TYPED_TEST(NullspaceSolvers, StaysAccurateWhenIteratingPastConvergence)
         solver->apply(b, x);
 
         GKO_ASSERT_MTX_NEAR(x, this->x_star, this->tol);
-    }
-}
-
-
-TYPED_TEST(NullspaceSolvers, SolvesMultipleRightHandSides)
-{
-    using vec = typename TestFixture::vec;
-    using value_type = typename TestFixture::value_type;
-    const auto n = this->mtx->get_size()[0];
-    auto x_star = vec::create(this->exec, gko::dim<2>{n, 2});
-    for (gko::size_type i = 0; i < n; ++i) {
-        x_star->at(i, 0) = this->x_star->at(i, 0);
-        x_star->at(i, 1) = this->x_star2->at(i, 0);
-    }
-    for (const auto& name : this->solvers) {
-        SCOPED_TRACE(name);
-        auto solver = this->factory(name, this->constant, this->constant)
-                          ->generate(this->mtx);
-        auto b = this->rhs(this->mtx.get(), x_star.get(), value_type{3});
-        auto x = this->initial_guess(2);
-
-        solver->apply(b, x);
-
-        GKO_ASSERT_MTX_NEAR(x, x_star, this->tol);
     }
 }
 

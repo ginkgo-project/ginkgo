@@ -209,6 +209,28 @@ TYPED_TEST(NullspaceProjection, AdaptsConstantNullspaceToMatrixSize)
 }
 
 
+TYPED_TEST(NullspaceProjection, MovesPreconditionerToItsExecutor)
+{
+    using Projection = typename TestFixture::Projection;
+    auto other_exec = gko::ReferenceExecutor::create();
+    auto generated = Projection::build()
+                         .with_generated_preconditioner(
+                             gko::share(gko::clone(other_exec, this->jacobi)))
+                         .with_nullspace(this->constant)
+                         .on(this->exec)
+                         ->generate(this->mtx);
+    auto from_factory =
+        Projection::build()
+            .with_preconditioner(TestFixture::Jacobi::build().on(other_exec))
+            .with_nullspace(this->constant)
+            .on(this->exec)
+            ->generate(this->mtx);
+
+    ASSERT_EQ(generated->get_preconditioner()->get_executor(), this->exec);
+    ASSERT_EQ(from_factory->get_preconditioner()->get_executor(), this->exec);
+}
+
+
 TYPED_TEST(NullspaceProjection, ConjTransposeSwapsNullspaces)
 {
     using Projection = typename TestFixture::Projection;
@@ -275,11 +297,9 @@ TYPED_TEST(NullspaceProjection, WorksAsPreconditionerOfAnySolver)
                     .with_left_nullspace(this->constant))
             .on(this->exec)
             ->generate(this->mtx);
-    auto ns = gko::solver::Nullspace<value_type>::create_from_constant(
-        this->exec, this->mtx->get_size());
 
-    ns->project(b);
-    ns->project(x);
+    this->constant->project(b);
+    this->constant->project(x);
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, x_star, 1000 * r<value_type>::value);
