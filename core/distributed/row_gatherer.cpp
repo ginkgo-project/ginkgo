@@ -6,13 +6,14 @@
 
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/event.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/base/event_kernels.hpp"
+#include "core/distributed/helpers.hpp"
 
 namespace gko {
 namespace experimental {
@@ -73,18 +74,13 @@ RowGatherer<LocalIndexType>::apply_prepare(
         make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
             using ValueType =
                 typename std::decay_t<decltype(*b_global)>::value_type;
-            // dispatch local vector with the same precision as the global
-            // vector
-            distributed::precision_dispatch<ValueType>([&]() {
-                auto b_local = b_global->get_local_vector();
+            auto b_local = b_global->get_local_vector();
 
-                dim<2> send_size(coll_comm_->get_send_size(),
-                                 b_local->get_size()[1]);
-                auto send_buffer =
-                    workspace.get<ValueType>(mpi_exec, send_size);
-                b_local->row_gather(&send_idxs_, send_buffer);
-                b_local->get_executor()->run(event::make_record_event(ev));
-            });
+            dim<2> send_size(coll_comm_->get_send_size(),
+                             b_local->get_size()[1]);
+            auto send_buffer = workspace.get<ValueType>(mpi_exec, send_size);
+            b_local->row_gather(&send_idxs_, send_buffer);
+            b_local->get_executor()->run(event::make_record_event(ev));
         });
     return ev;
 }
@@ -131,27 +127,22 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
         make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
             using ValueType =
                 typename std::decay_t<decltype(*b_global)>::value_type;
-            // dispatch local vector with the same precision as the global
-            // vector
-            distributed::precision_dispatch<ValueType>(
-                [&](auto* x_global) {
-                    auto b_local = b_global->get_local_vector();
+            // x is not converted to the precision of b, since a temporary
+            // conversion is freed before MPI finishes receiving into it
+            auto x_global = gko::as<Vector<ValueType>>(x.get());
+            auto b_local = b_global->get_local_vector();
 
-                    dim<2> send_size(coll_comm_->get_send_size(),
-                                     b_local->get_size()[1]);
-                    auto send_buffer =
-                        workspace.get<ValueType>(mpi_exec, send_size);
+            dim<2> send_size(coll_comm_->get_send_size(),
+                             b_local->get_size()[1]);
+            auto send_buffer = workspace.get<ValueType>(mpi_exec, send_size);
 
-                    auto recv_ptr = x_global->get_local_values();
-                    auto send_ptr = send_buffer->get_values();
-                    ev->synchronize();
-                    mpi::contiguous_type type(
-                        b_local->get_size()[1],
-                        mpi::type_impl<ValueType>::get_type());
-                    req = coll_comm_->i_all_to_all_v(
-                        mpi_exec, send_ptr, type.get(), recv_ptr, type.get());
-                },
-                x.get());
+            auto recv_ptr = x_global->get_local_values();
+            auto send_ptr = send_buffer->get_values();
+            ev->synchronize();
+            mpi::contiguous_type type(b_local->get_size()[1],
+                                      mpi::type_impl<ValueType>::get_type());
+            req = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
+                                             recv_ptr, type.get());
         });
     return req;
 }
@@ -245,16 +236,6 @@ RowGatherer<LocalIndexType>::get_collective_communicator() const
 }
 
 
-template <typename T>
-T global_add(std::shared_ptr<const Executor> exec,
-             const mpi::communicator& comm, const T& value)
-{
-    T result;
-    comm.all_reduce(std::move(exec), &value, &result, 1, MPI_SUM);
-    return result;
-}
-
-
 template <typename LocalIndexType>
 template <typename GlobalIndexType>
 RowGatherer<LocalIndexType>::RowGatherer(
@@ -263,9 +244,10 @@ RowGatherer<LocalIndexType>::RowGatherer(
     const index_map<LocalIndexType, GlobalIndexType>& imap)
     : PolymorphicObject(exec),
       DistributedBase(coll_comm->get_base_communicator()),
-      size_(dim<2>{global_add(exec, coll_comm->get_base_communicator(),
-                              imap.get_non_local_size()),
-                   imap.get_global_size()}),
+      size_(dim<2>{
+          gko::detail::global_add(exec, coll_comm->get_base_communicator(),
+                                  imap.get_non_local_size()),
+          imap.get_global_size()}),
       coll_comm_(std::move(coll_comm)),
       send_idxs_(exec),
       send_cache_()
@@ -277,7 +259,6 @@ RowGatherer<LocalIndexType>::RowGatherer(
         coll_comm_->get_recv_size() == imap.get_non_local_size(),
         "The collective communicator doesn't match the index map.");
 
-    auto comm = coll_comm_->get_base_communicator();
     auto inverse_comm = coll_comm_->create_inverse();
 
     auto mpi_exec =

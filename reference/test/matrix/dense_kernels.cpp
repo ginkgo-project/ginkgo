@@ -2703,6 +2703,80 @@ TYPED_TEST(DenseWithIndexType,
 }
 
 
+TYPED_TEST(DenseWithIndexType, ScatterAddAccumulatesCorrectly)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    // source: 2 rows x 3 cols
+    auto source = gko::initialize<Mtx>(
+        {{value_type{1.0}, value_type{2.0}, value_type{3.0}},
+         {value_type{4.0}, value_type{5.0}, value_type{6.0}}},
+        exec);
+    // scatter indices: source row 0 -> target row 2, source row 1 -> target row
+    // 0
+    gko::array<index_type> scatter_idxs{exec, {2, 0}};
+    // target: 3 rows x 3 cols, initialized to 10.0
+    auto target = Mtx::create(exec, gko::dim<2>{3, 3});
+    target->fill(value_type{10.0});
+
+    target->scatter_add(&scatter_idxs, source.get());
+
+    // target row 0 += source row 1: [10+4, 10+5, 10+6] = [14, 15, 16]
+    // target row 1 unchanged: [10, 10, 10]
+    // target row 2 += source row 0: [10+1, 10+2, 10+3] = [11, 12, 13]
+    auto expected = gko::initialize<Mtx>(
+        {{value_type{14.0}, value_type{15.0}, value_type{16.0}},
+         {value_type{10.0}, value_type{10.0}, value_type{10.0}},
+         {value_type{11.0}, value_type{12.0}, value_type{13.0}}},
+        exec);
+    GKO_ASSERT_MTX_NEAR(target, expected, 0.0);
+}
+
+
+TYPED_TEST(DenseWithIndexType, ScatterAddWithDuplicateIndicesAccumulates)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto source = Mtx::create(exec, gko::dim<2>{3, 1});
+    source->at(0, 0) = value_type{1.0};
+    source->at(1, 0) = value_type{2.0};
+    source->at(2, 0) = value_type{3.0};
+    gko::array<index_type> scatter_idxs{exec, {0, 0, 0}};
+    auto target = Mtx::create(exec, gko::dim<2>{2, 1});
+    target->fill(value_type{0.0});
+
+    target->scatter_add(&scatter_idxs, source.get());
+
+    // target row 0 = 0 + 1 + 2 + 3 = 6
+    // target row 1 unchanged = 0
+    EXPECT_EQ(target->at(0, 0), value_type{6.0});
+    EXPECT_EQ(target->at(1, 0), value_type{0.0});
+}
+
+
+TYPED_TEST(DenseWithIndexType, ScatterAddWithEmptySourceIsNoOp)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto source = Mtx::create(exec, gko::dim<2>{0, 3});
+    gko::array<index_type> scatter_idxs{exec, 0};
+    auto target = gko::initialize<Mtx>(
+        {{value_type{1.0}, value_type{2.0}, value_type{3.0}}}, exec);
+
+    target->scatter_add(&scatter_idxs, source.get());
+
+    EXPECT_EQ(target->at(0, 0), value_type{1.0});
+    EXPECT_EQ(target->at(0, 1), value_type{2.0});
+    EXPECT_EQ(target->at(0, 2), value_type{3.0});
+}
+
+
 TYPED_TEST(DenseWithIndexType, SquareMatrixIsPermutable)
 {
     using Mtx = typename TestFixture::Mtx;

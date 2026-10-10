@@ -366,3 +366,21 @@ TYPED_TEST(RowGatherer, ThrowsOnNonMatchingExecutor)
 
     ASSERT_THROW(rg->apply_async(b, x).wait(), gko::InvalidStateError);
 }
+
+
+TYPED_TEST(RowGatherer, ThrowsOnValueTypeMismatch)
+{
+    using Vector = gko::experimental::distributed::Vector<double>;
+    using FloatVector = gko::experimental::distributed::Vector<float>;
+    int rank = this->comm.rank();
+    auto b = Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
+                            gko::dim<2>{3, 1});
+    b->fill(1.0);
+    auto num_recv =
+        this->template create_recv_connections<double>()[rank].get_size();
+    auto x = FloatVector::create(this->mpi_exec, this->comm,
+                                 gko::dim<2>{this->rg->get_size()[0], 1},
+                                 gko::dim<2>{num_recv, 1});
+
+    ASSERT_THROW(this->rg->apply_async(b, x).wait(), gko::NotSupported);
+}

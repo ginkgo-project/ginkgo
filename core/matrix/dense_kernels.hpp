@@ -321,6 +321,12 @@ namespace kernels {
                              matrix::view::dense<const ValueType> beta,     \
                              matrix::view::dense<OutputType> row_collection)
 
+#define GKO_DECLARE_DENSE_SCATTER_ADD_KERNEL(ValueType, IndexType) \
+    void scatter_add(std::shared_ptr<const DefaultExecutor> exec,  \
+                     const IndexType* scatter_indices,             \
+                     matrix::view::dense<const ValueType> source,  \
+                     matrix::view::dense<ValueType> target)
+
 #define GKO_DECLARE_DENSE_COL_PERMUTE_KERNEL(ValueType, IndexType) \
     void col_permute(std::shared_ptr<const DefaultExecutor> exec,  \
                      const IndexType* permutation_indices,         \
@@ -459,6 +465,8 @@ namespace kernels {
     template <typename ValueType, typename OutputType, typename IndexType>    \
     GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL(ValueType, OutputType,       \
                                                  IndexType);                  \
+    template <typename ValueType, typename IndexType>                         \
+    GKO_DECLARE_DENSE_SCATTER_ADD_KERNEL(ValueType, IndexType);               \
     template <typename ValueType, typename IndexType>                         \
     GKO_DECLARE_DENSE_COL_PERMUTE_KERNEL(ValueType, IndexType);               \
     template <typename ValueType, typename IndexType>                         \

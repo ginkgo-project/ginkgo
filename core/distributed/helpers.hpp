@@ -115,6 +115,19 @@ void all_reduce_sum(const experimental::mpi::communicator& comm,
 }
 
 
+/**
+ * Returns the sum of `value` over all processes of `comm`.
+ */
+template <typename T>
+T global_add(std::shared_ptr<const Executor> exec,
+             const experimental::mpi::communicator& comm, const T& value)
+{
+    T result;
+    comm.all_reduce(std::move(exec), &value, &result, 1, MPI_SUM);
+    return result;
+}
+
+
 #endif
 
 
