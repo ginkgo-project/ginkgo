@@ -213,4 +213,20 @@ TYPED_TEST(SparsityCsr, GeneratesCorrectMatrixData)
 }
 
 
+TYPED_TEST(SparsityCsr, TransposePreservesValue)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto mtx = Mtx::create(
+        this->exec, gko::dim<2>{1, 2}, gko::array<index_type>{this->exec, {1}},
+        gko::array<index_type>{this->exec, {0, 1}}, value_type{5.0});
+
+    auto trans = mtx->transpose();
+    auto trans_as_sparsity = static_cast<Mtx*>(trans.get());
+
+    ASSERT_EQ(trans_as_sparsity->get_const_value()[0], value_type{5.0});
+}
+
+
 }  // namespace
