@@ -52,6 +52,9 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::coo<const ValueType, const IndexType> a_lower,
                     matrix::view::csr<ValueType, IndexType> l)
 {
+    // If `iterations` is set to `Auto`, we do 3 fix-point sweeps as
+    // experiments indicate this works well for many problems.
+    iterations = (iterations == 0) ? 3 : iterations;
     auto num_rows = a_lower.size[0];
     auto l_row_ptrs = l.row_ptrs;
     auto l_col_idxs = l.col_idxs;

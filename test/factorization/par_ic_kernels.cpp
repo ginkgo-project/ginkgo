@@ -138,3 +138,30 @@ TYPED_TEST(ParIc, KernelComputeFactorIsEquivalentToRef)
 
     GKO_EXPECT_MTX_NEAR(this->mtx_l_ani_init, this->dmtx_l_ani_init, tol);
 }
+
+
+TYPED_TEST(ParIc, KernelComputeFactorWithAutoIterationsIsEquivalentToRef)
+{
+    using Coo = typename TestFixture::Coo;
+    using value_type = typename TestFixture::value_type;
+#ifdef GKO_COMPILING_HIP
+    // hip does not support memory operation in 16bit
+    SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
+#endif
+    auto square_size = this->mtx_ani->get_size();
+    auto mtx_l_coo = Coo::create(this->ref, square_size);
+    this->mtx_l_ani->convert_to(mtx_l_coo);
+    auto dmtx_l_coo = gko::clone(this->exec, mtx_l_coo);
+
+    gko::kernels::reference::par_ic_factorization::compute_factor(
+        this->ref, 1, mtx_l_coo->get_const_device_view(),
+        this->mtx_l_ani_init->get_device_view());
+    // 0 iterations means Auto, which needs to run some sweeps
+    gko::kernels::GKO_DEVICE_NAMESPACE::par_ic_factorization::compute_factor(
+        this->exec, 0, dmtx_l_coo->get_const_device_view(),
+        this->dmtx_l_ani_init->get_device_view());
+
+    GKO_ASSERT_MTX_NEAR(this->mtx_l_ani_init, this->dmtx_l_ani_init, 5e-2);
+    GKO_ASSERT_MTX_EQ_SPARSITY(this->mtx_l_ani_init, this->dmtx_l_ani_init);
+}
