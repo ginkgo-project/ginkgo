@@ -16,7 +16,6 @@
 #include "accessor/index_limit_checks.hpp"
 #include "accessor/reduced_row_major.hpp"
 #include "core/base/mixed_precision_types.hpp"
-#include "core/base/utils.hpp"
 
 
 namespace gko {

@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "core/base/utils.hpp"
-
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/name_demangling.hpp>
