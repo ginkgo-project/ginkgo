@@ -54,7 +54,9 @@ struct row_major_helper_s {
         // `std::array<size_type, N>::operator[](const size_type &)` uses a
         // reference. Since `dim_idx` is constexpr (and not defined in a
         // namespace scope), it can't be odr-used.
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
+        return GKO_ACC_ASSERT(first >= 0 && size[dim_idx] >= 0 &&
+                              static_cast<std::uint64_t>(first) <
+                                  static_cast<std::uint64_t>(size[dim_idx])),
                first * static_cast<IndexType>(stride[dim_idx]) +
                    row_major_helper_s<IndexType, total_dim, current_iter + 1>::
                        compute(size, stride, std::forward<Indices>(idxs)...);
@@ -69,8 +71,10 @@ struct row_major_helper_s<IndexType, total_dim, total_dim> {
             const std::array<SizeType, (total_dim > 1 ? total_dim - 1 : 0)>,
             IndexType first)
     {
-        return GKO_ACC_ASSERT(first <
-                              static_cast<IndexType>(size[total_dim - 1])),
+        return GKO_ACC_ASSERT(
+                   first >= 0 && size[total_dim - 1] >= 0 &&
+                   static_cast<std::uint64_t>(first) <
+                       static_cast<std::uint64_t>(size[total_dim - 1])),
                first;
     }
 };
@@ -239,7 +243,9 @@ struct row_major_masked_helper_s<IndexType, mask, set_bits_processed,
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
         // If it is the last set dimension, there is no need for a stride
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
+        return GKO_ACC_ASSERT(first >= 0 && size[dim_idx] >= 0 &&
+                              static_cast<std::uint64_t>(first) <
+                                  static_cast<std::uint64_t>(size[dim_idx])),
                first * (set_bits_processed == stride_size
                             ? IndexType{1}
                             : static_cast<IndexType>(
@@ -261,7 +267,9 @@ struct row_major_masked_helper_s<IndexType, mask, set_bits_processed,
         static_assert(sizeof...(Indices) == stride_size - set_bits_processed,
                       "Mismatching number of Idxs!");
         // If it is the last set dimension, there is no need for a stride
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
+        return GKO_ACC_ASSERT(first >= 0 && size[dim_idx] >= 0 &&
+                              static_cast<std::uint64_t>(first) <
+                                  static_cast<std::uint64_t>(size[dim_idx])),
                first * (set_bits_processed == stride_size
                             ? IndexType{1}
                             : static_cast<IndexType>(
@@ -316,7 +324,9 @@ struct row_major_masked_helper_s<IndexType, mask, 0, stride_size, dim_idx,
         static_assert(sizeof...(Indices) + 1 == total_dim - dim_idx,
                       "Mismatching number of Idxs!");
         // If it is the last set dimension, there is no need for a stride
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
+        return GKO_ACC_ASSERT(first >= 0 && size[dim_idx] >= 0 &&
+                              static_cast<std::uint64_t>(first) <
+                                  static_cast<std::uint64_t>(size[dim_idx])),
                first * (set_bits_processed == stride_size
                             ? IndexType{1}
                             : static_cast<IndexType>(
@@ -338,7 +348,9 @@ struct row_major_masked_helper_s<IndexType, mask, 0, stride_size, dim_idx,
         static_assert(sizeof...(Indices) == stride_size - set_bits_processed,
                       "Mismatching number of Idxs!");
         // If it is the last set dimension, there is no need for a stride
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
+        return GKO_ACC_ASSERT(first >= 0 && size[dim_idx] >= 0 &&
+                              static_cast<std::uint64_t>(first) <
+                                  static_cast<std::uint64_t>(size[dim_idx])),
                first * (set_bits_processed == stride_size
                             ? IndexType{1}
                             : static_cast<IndexType>(
@@ -680,15 +692,19 @@ struct index_helper_s {
         IndexType first, Indices&&... idxs)
     {
         if (current_iter == total_dim - 1) {
-            return GKO_ACC_ASSERT(first <
-                                  static_cast<IndexType>(size[dim_idx])),
+            return GKO_ACC_ASSERT(
+                       first >= 0 && size[dim_idx] >= 0 &&
+                       static_cast<std::uint64_t>(first) <
+                           static_cast<std::uint64_t>(size[dim_idx])),
                    first +
                        index_helper_s<IndexType, total_dim, current_iter + 1>::
                            compute(size, stride,
                                    std::forward<Indices>(idxs)...);
         }
 
-        return GKO_ACC_ASSERT(first < static_cast<IndexType>(size[dim_idx])),
+        return GKO_ACC_ASSERT(first >= 0 && size[dim_idx] >= 0 &&
+                              static_cast<std::uint64_t>(first) <
+                                  static_cast<std::uint64_t>(size[dim_idx])),
                first * static_cast<IndexType>(stride[dim_idx]) +
                    index_helper_s<IndexType, total_dim, current_iter + 1>::
                        compute(size, stride, std::forward<Indices>(idxs)...);
@@ -707,8 +723,10 @@ struct index_helper_s<IndexType, total_dim, total_dim> {
         const std::array<SizeType, (total_dim > 1 ? total_dim - 1 : 0)>& stride,
         IndexType first)
     {
-        return GKO_ACC_ASSERT(first <
-                              static_cast<IndexType>(size[total_dim - 1])),
+        return GKO_ACC_ASSERT(
+                   first >= 0 && size[total_dim - 1] >= 0 &&
+                   static_cast<std::uint64_t>(first) <
+                       static_cast<std::uint64_t>(size[total_dim - 1])),
                first * static_cast<IndexType>(stride[dim_idx - 1]);
     }
 };
