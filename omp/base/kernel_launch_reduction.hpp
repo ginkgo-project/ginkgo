@@ -25,6 +25,10 @@ constexpr int reduction_kernel_oversubscription = 4;
 // `num_threads(...)` is a request, not a guarantee. Seed the partials and
 // derive each range from the team actually granted.
 
+// Inside parallel regions, the kernel arguments are only expanded within a
+// `[&]` lambda: icpx 2024 reads floating-point values that are not the first
+// entry of a parameter pack expanded directly in a parallel region as zero.
+
 
 namespace {
 
@@ -59,8 +63,9 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
 
             auto local_partial = identity;
             for (auto i = begin; i < end; i++) {
-                local_partial =
-                    op(local_partial, fn(i, map_to_device(args)...));
+                local_partial = op(local_partial, [&]() {
+                    return fn(i, map_to_device(args)...);
+                }());
             }
             partial[thread_id] = local_partial;
         }
@@ -112,8 +117,9 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
                 for (auto row = begin; row < end; row++) {
 #pragma unroll
                     for (int64 col = 0; col < local_cols; col++) {
-                        local_partial =
-                            op(local_partial, fn(row, col, args...));
+                        local_partial = op(local_partial, [&]() {
+                            return fn(row, col, args...);
+                        }());
                     }
                 }
             } else {
@@ -124,14 +130,16 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
                          base_col += block_size) {
 #pragma unroll
                         for (int64 i = 0; i < block_size; i++) {
-                            local_partial = op(local_partial,
-                                               fn(row, base_col + i, args...));
+                            local_partial = op(local_partial, [&]() {
+                                return fn(row, base_col + i, args...);
+                            }());
                         }
                     }
 #pragma unroll
                     for (int64 i = 0; i < remainder_cols; i++) {
-                        local_partial = op(local_partial,
-                                           fn(row, rounded_cols + i, args...));
+                        local_partial = op(local_partial, [&]() {
+                            return fn(row, rounded_cols + i, args...);
+                        }());
                     }
                 }
             }
@@ -313,16 +321,18 @@ void run_kernel_col_reduction_sized_impl(
         rows < cols) {
 #pragma omp parallel for
         for (int64 col_block = 0; col_block < num_col_blocks; col_block++) {
-            const auto base_col = col_block * block_size;
-            if (base_col + block_size <= cols) {
-                run_kernel_col_reduction_sized_block_impl<block_size>(
-                    fn, op, finalize, identity, result, 0, rows, base_col,
-                    args...);
-            } else {
-                run_kernel_col_reduction_sized_block_impl<remainder_cols>(
-                    fn, op, finalize, identity, result, 0, rows, base_col,
-                    args...);
-            }
+            [&] {
+                const auto base_col = col_block * block_size;
+                if (base_col + block_size <= cols) {
+                    run_kernel_col_reduction_sized_block_impl<block_size>(
+                        fn, op, finalize, identity, result, 0, rows, base_col,
+                        args...);
+                } else {
+                    run_kernel_col_reduction_sized_block_impl<remainder_cols>(
+                        fn, op, finalize, identity, result, 0, rows, base_col,
+                        args...);
+                }
+            }();
         }
     } else {
         // number of blocks that need to be reduced afterwards
@@ -340,21 +350,25 @@ void run_kernel_col_reduction_sized_impl(
         const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
 #pragma omp parallel for
         for (int64 i = 0; i < reduction_size * num_col_blocks; i++) {
-            const auto col_block = i % num_col_blocks;
-            const auto row_block = i / num_col_blocks;
-            const auto begin = row_block * rows_per_thread;
-            const auto end = std::min(begin + rows_per_thread, rows);
-            const auto base_col = col_block * block_size;
-            const auto identity_fn = [](auto i) { return i; };
-            if (base_col + block_size <= cols) {
-                run_kernel_col_reduction_sized_block_impl<block_size>(
-                    fn, op, identity_fn, identity, partial + cols * row_block,
-                    begin, end, base_col, args...);
-            } else {
-                run_kernel_col_reduction_sized_block_impl<remainder_cols>(
-                    fn, op, identity_fn, identity, partial + cols * row_block,
-                    begin, end, base_col, args...);
-            }
+            [&] {
+                const auto col_block = i % num_col_blocks;
+                const auto row_block = i / num_col_blocks;
+                const auto begin = row_block * rows_per_thread;
+                const auto end = std::min(begin + rows_per_thread, rows);
+                const auto base_col = col_block * block_size;
+                const auto identity_fn = [](auto i) { return i; };
+                if (base_col + block_size <= cols) {
+                    run_kernel_col_reduction_sized_block_impl<block_size>(
+                        fn, op, identity_fn, identity,
+                        partial + cols * row_block, begin, end, base_col,
+                        args...);
+                } else {
+                    run_kernel_col_reduction_sized_block_impl<remainder_cols>(
+                        fn, op, identity_fn, identity,
+                        partial + cols * row_block, begin, end, base_col,
+                        args...);
+                }
+            }();
         }
 #pragma omp parallel for
         for (int64 col = 0; col < cols; col++) {
