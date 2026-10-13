@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -246,6 +246,21 @@ TEST(AssertEqualDimensions, ThrowsWhenDifferentDimensions)
 {
     ASSERT_THROW(
         GKO_ASSERT_EQUAL_DIMENSIONS(gko::dim<2>(3, 5), gko::dim<2>(7, 5)),
+        gko::DimensionMismatch);
+}
+
+
+TEST(AssertSubsetDimensions, DoesNotThrowWhenSubsetDimension)
+{
+    ASSERT_NO_THROW(
+        GKO_ASSERT_SUBSET_DIMENSIONS(gko::dim<2>(3, 5), gko::dim<2>(5, 6)));
+}
+
+
+TEST(AssertSubsetDimensions, ThrowsWhenDifferentDimensions)
+{
+    ASSERT_THROW(
+        GKO_ASSERT_SUBSET_DIMENSIONS(gko::dim<2>(7, 5), gko::dim<2>(5, 6)),
         gko::DimensionMismatch);
 }
 
