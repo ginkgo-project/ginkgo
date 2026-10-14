@@ -14,6 +14,7 @@
 #endif  // GKO_HAVE_CXXABI_H
 
 
+#include <cstdlib>
 #include <memory>
 #include <string>
 
@@ -31,16 +32,14 @@ inline std::string get_type_name(const std::type_info& tinfo)
 {
 #ifdef GKO_HAVE_CXXABI_H
     int status{};
-    const std::string name(
-        std::unique_ptr<char[], void (*)(void*)>(
-            abi::__cxa_demangle(tinfo.name(), nullptr, nullptr, &status),
-            std::free)
-            .get());
-    if (!status)
-        return name;
-    else
+    const std::unique_ptr<char[], void (*)(void*)> name(
+        abi::__cxa_demangle(tinfo.name(), nullptr, nullptr, &status),
+        [](void* ptr) { std::free(ptr); });
+    if (!status) {
+        return std::string(name.get());
+    }
 #endif  // GKO_HAVE_CXXABI_H
-        return std::string(tinfo.name());
+    return std::string(tinfo.name());
 }
 
 
