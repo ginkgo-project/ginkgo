@@ -21,9 +21,9 @@ class time_point {
 public:
     ~time_point();
 
-    time_point(time_point&&);
+    time_point(time_point&&) noexcept;
 
-    time_point& operator=(time_point&&);
+    time_point& operator=(time_point&&) noexcept;
 
     time_point(const time_point&) = delete;
 

@@ -39,7 +39,7 @@ cuda_stream::~cuda_stream()
 }
 
 
-cuda_stream::cuda_stream(cuda_stream&& other)
+cuda_stream::cuda_stream(cuda_stream&& other) noexcept
     : stream_{std::exchange(other.stream_, nullptr)},
       device_id_(std::exchange(other.device_id_, 0))
 {}

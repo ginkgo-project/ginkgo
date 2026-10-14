@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -80,14 +80,14 @@ public:
 
     workspace(const workspace& other) : workspace{other.get_executor()} {}
 
-    workspace(workspace&& other) : workspace{other.get_executor()}
+    workspace(workspace&& other) noexcept : workspace{other.get_executor()}
     {
         other.clear();
     }
 
     workspace& operator=(const workspace& other) { return *this; }
 
-    workspace& operator=(workspace&& other)
+    workspace& operator=(workspace&& other) noexcept
     {
         other.clear();
         return *this;
