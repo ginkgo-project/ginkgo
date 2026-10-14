@@ -1625,18 +1625,25 @@ public:
      *
      * @param other the window object to be moved.
      */
-    window(window&& other) : window_{std::exchange(other.window_, MPI_WIN_NULL)}
+    window(window&& other) noexcept
+        : window_{std::exchange(other.window_, MPI_WIN_NULL)}
     {}
 
     /**
-     * The move assignment operator. Move the other object and replace it with
-     * MPI_WIN_NULL
+     * The move assignment operator. Frees the current window, then moves the
+     * other object and replaces it with MPI_WIN_NULL
      *
      * @param other the window object to be moved.
      */
-    window& operator=(window&& other)
+    window& operator=(window&& other) noexcept
     {
-        window_ = std::exchange(other.window_, MPI_WIN_NULL);
+        if (this != &other) {
+            if (this->window_ && this->window_ != MPI_WIN_NULL) {
+                MPI_Win_free(&this->window_);
+            }
+            window_ = std::exchange(other.window_, MPI_WIN_NULL);
+        }
+        return *this;
     }
 
     /**
