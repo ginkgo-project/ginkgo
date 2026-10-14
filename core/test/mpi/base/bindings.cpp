@@ -1,9 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 #include <gtest/gtest.h>
 
@@ -164,6 +165,24 @@ TYPED_TEST(MpiBindings, CanCreatewindow)
     ASSERT_NE(win.get_window(), MPI_WIN_NULL);
     win.lock_all();
     win.unlock_all();
+}
+
+
+TYPED_TEST(MpiBindings, CanMoveAssignwindow)
+{
+    auto data = std::vector<TypeParam>{1, 2, 3, 4};
+    auto other_data = std::vector<TypeParam>{5, 6, 7, 8};
+    auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
+    auto win = gko::experimental::mpi::window<TypeParam>(this->ref, data.data(),
+                                                         4, comm);
+    auto other = gko::experimental::mpi::window<TypeParam>(
+        this->ref, other_data.data(), 4, comm);
+    auto other_window = other.get_window();
+
+    win = std::move(other);
+
+    ASSERT_EQ(win.get_window(), other_window);
+    ASSERT_EQ(other.get_window(), MPI_WIN_NULL);
 }
 
 
